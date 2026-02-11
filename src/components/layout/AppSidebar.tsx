@@ -54,7 +54,7 @@ export function AppSidebar() {
             <Wallet className="h-5 w-5 text-sidebar-foreground" />
           </div>
           <div>
-            <h1 className="text-base font-bold text-sidebar-foreground tracking-tight">FinControl</h1>
+            <h1 className="text-base font-bold text-sidebar-foreground tracking-tight">Gestor Plin</h1>
             <p className="text-xs text-sidebar-foreground/60">Gestão Financeira</p>
           </div>
         </div>

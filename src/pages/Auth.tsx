@@ -82,7 +82,7 @@ export default function Auth() {
               <Wallet className="h-6 w-6 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">FinControl</CardTitle>
+          <CardTitle className="text-2xl font-bold">Gestor Plin</CardTitle>
           <CardDescription>
             {isLogin ? "Entre na sua conta" : "Crie sua conta gratuita"}
           </CardDescription>
