@@ -249,6 +249,7 @@ export type Database = {
           sort_order: number
           transaction_type: Database["public"]["Enums"]["transaction_type"]
           user_id: string
+          visible_pf: boolean
         }
         Insert: {
           color?: string | null
@@ -263,6 +264,7 @@ export type Database = {
           sort_order?: number
           transaction_type?: Database["public"]["Enums"]["transaction_type"]
           user_id: string
+          visible_pf?: boolean
         }
         Update: {
           color?: string | null
@@ -277,6 +279,7 @@ export type Database = {
           sort_order?: number
           transaction_type?: Database["public"]["Enums"]["transaction_type"]
           user_id?: string
+          visible_pf?: boolean
         }
         Relationships: [
           {
@@ -284,6 +287,42 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      category_companies: {
+        Row: {
+          category_id: string
+          company_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          category_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          category_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_companies_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "category_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]

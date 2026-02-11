@@ -7,15 +7,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
-
-const ICON_OPTIONS = [
-  "shopping-cart", "utensils", "car", "home", "heart", "briefcase",
-  "gift", "book", "music", "plane", "wifi", "zap",
-  "coffee", "shirt", "dumbbell", "graduation-cap", "baby", "dog",
-];
 
 const COLOR_OPTIONS = [
   "#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#6366f1",
@@ -36,9 +31,10 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
   const { contextType } = useCompanyContext();
   const [name, setName] = useState("");
   const [type, setType] = useState<"receita" | "despesa">("despesa");
-  const [icon, setIcon] = useState("shopping-cart");
   const [color, setColor] = useState("#3b82f6");
   const [parentId, setParentId] = useState<string | null>(null);
+  const [visiblePf, setVisiblePf] = useState(true);
+  const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
 
   const { data: allCategories = [] } = useQuery({
@@ -57,26 +53,59 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
     },
   });
 
+  const { data: companies = [] } = useQuery({
+    queryKey: ["companies-for-category", user?.id],
+    enabled: !!user && open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("companies")
+        .select("id, name")
+        .eq("user_id", user!.id)
+        .eq("is_active", true)
+        .order("name");
+      return data ?? [];
+    },
+  });
+
   // Filter parent options: same type, exclude self
   const parentOptions = allCategories.filter(
     (c) => c.transaction_type === type && c.id !== editCategory?.id
   );
 
   useEffect(() => {
+    if (!open) return;
     if (editCategory) {
       setName(editCategory.name);
       setType(editCategory.transaction_type as "receita" | "despesa");
-      setIcon(editCategory.icon ?? "shopping-cart");
       setColor(editCategory.color ?? "#3b82f6");
       setParentId(editCategory.parent_id ?? null);
+      setVisiblePf((editCategory as any).visible_pf ?? true);
+      // Load linked companies
+      supabase
+        .from("category_companies")
+        .select("company_id")
+        .eq("category_id", editCategory.id)
+        .then(({ data }) => {
+          setSelectedCompanies(new Set((data ?? []).map((d) => d.company_id)));
+        });
     } else {
       setName("");
       setType(defaultType ?? "despesa");
-      setIcon("shopping-cart");
       setColor("#3b82f6");
       setParentId(defaultParentId ?? null);
+      setVisiblePf(true);
+      setSelectedCompanies(new Set(companies.map((c) => c.id)));
     }
   }, [editCategory, open, defaultParentId, defaultType]);
+
+  const toggleCompany = (companyId: string) => {
+    setSelectedCompanies((prev) => {
+      const next = new Set(prev);
+      if (next.has(companyId)) next.delete(companyId);
+      else next.add(companyId);
+      return next;
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,29 +117,64 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
     if (editCategory) {
       const { error } = await supabase
         .from("categories")
-        .update({ name: name.trim(), transaction_type: type, icon, color, parent_id: parentId })
+        .update({ name: name.trim(), transaction_type: type, color, parent_id: parentId, visible_pf: visiblePf } as any)
         .eq("id", editCategory.id);
-      if (error) toast.error("Erro ao atualizar", { description: error.message });
-      else { toast.success("Categoria atualizada!"); onOpenChange(false); onSaved(); }
+      if (error) {
+        toast.error("Erro ao atualizar", { description: error.message });
+        setSaving(false);
+        return;
+      }
+
+      // Sync company visibility
+      await supabase.from("category_companies").delete().eq("category_id", editCategory.id);
+      if (selectedCompanies.size > 0) {
+        const rows = Array.from(selectedCompanies).map((company_id) => ({
+          category_id: editCategory.id,
+          company_id,
+        }));
+        await supabase.from("category_companies").insert(rows);
+      }
+
+      toast.success("Categoria atualizada!");
+      onOpenChange(false);
+      onSaved();
     } else {
-      const { error } = await supabase.from("categories").insert({
+      const { data: newCat, error } = await supabase.from("categories").insert({
         user_id: user.id,
         name: name.trim(),
         transaction_type: type,
-        icon,
         color,
         context: contextType,
         parent_id: parentId,
-      });
-      if (error) toast.error("Erro ao criar", { description: error.message });
-      else { toast.success("Categoria criada!"); setName(""); onOpenChange(false); onSaved(); }
+        visible_pf: visiblePf,
+      } as any).select("id").single();
+
+      if (error) {
+        toast.error("Erro ao criar", { description: error.message });
+        setSaving(false);
+        return;
+      }
+
+      // Save company visibility
+      if (newCat && selectedCompanies.size > 0) {
+        const rows = Array.from(selectedCompanies).map((company_id) => ({
+          category_id: newCat.id,
+          company_id,
+        }));
+        await supabase.from("category_companies").insert(rows);
+      }
+
+      toast.success("Categoria criada!");
+      setName("");
+      onOpenChange(false);
+      onSaved();
     }
     setSaving(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editCategory ? "Editar Categoria" : "Nova Categoria"}</DialogTitle>
         </DialogHeader>
@@ -149,7 +213,6 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
             )}
           </div>
 
-
           <div className="space-y-2">
             <Label>Cor</Label>
             <div className="flex gap-2 flex-wrap">
@@ -165,6 +228,32 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
                 />
               ))}
             </div>
+          </div>
+
+          {/* Visibility section */}
+          <div className="space-y-3 border-t pt-4">
+            <Label className="text-sm font-semibold">Visibilidade</Label>
+            <p className="text-xs text-muted-foreground">Selecione onde esta categoria ficará disponível</p>
+
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={visiblePf} onCheckedChange={(v) => setVisiblePf(!!v)} />
+              Pessoa Física (PF)
+            </label>
+
+            {companies.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Empresas</p>
+                {companies.map((company) => (
+                  <label key={company.id} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={selectedCompanies.has(company.id)}
+                      onCheckedChange={() => toggleCompany(company.id)}
+                    />
+                    {company.name}
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
 
           <Button type="submit" className="w-full" disabled={saving}>
