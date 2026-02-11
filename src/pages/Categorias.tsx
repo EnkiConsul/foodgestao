@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
 import { Plus, Search, Tag, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -18,6 +19,7 @@ export default function Categorias() {
   const [editCat, setEditCat] = useState<Tables<"categories"> | null>(null);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: categories = [], refetch } = useQuery({
     queryKey: ["categories-page", user?.id],
@@ -45,10 +47,12 @@ export default function Categorias() {
   const despesas = filtered.filter((c) => c.transaction_type === "despesa");
   const receitas = filtered.filter((c) => c.transaction_type === "receita");
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("categories").delete().eq("id", id);
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    const { error } = await supabase.from("categories").delete().eq("id", deleteId);
     if (error) toast.error("Erro ao excluir", { description: error.message });
     else { toast.success("Categoria excluída"); refetch(); }
+    setDeleteId(null);
   };
 
   const openEdit = (cat: Tables<"categories">) => {
@@ -95,7 +99,7 @@ export default function Categorias() {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                    onClick={() => handleDelete(cat.id)}
+                    onClick={() => setDeleteId(cat.id)}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -170,6 +174,23 @@ export default function Categorias() {
         onSaved={() => refetch()}
         editCategory={editCat}
       />
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir categoria?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. A categoria será removida permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
