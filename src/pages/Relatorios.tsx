@@ -255,6 +255,29 @@ export default function Relatorios() {
         </Button>
       </div>
 
+      {/* Quick period shortcuts */}
+      <div className="flex gap-2 flex-wrap">
+        {[
+          { label: "Último mês", start: startOfMonth(subMonths(new Date(), 1)), end: endOfMonth(subMonths(new Date(), 1)) },
+          { label: "Últimos 3 meses", start: startOfMonth(subMonths(new Date(), 2)), end: endOfMonth(new Date()) },
+          { label: "Últimos 6 meses", start: startOfMonth(subMonths(new Date(), 5)), end: endOfMonth(new Date()) },
+          { label: "Este ano", start: new Date(new Date().getFullYear(), 0, 1), end: endOfMonth(new Date()) },
+        ].map((p) => (
+          <Button
+            key={p.label}
+            variant="outline"
+            size="sm"
+            className={cn(
+              "text-xs",
+              startDate.getTime() === p.start.getTime() && endDate.getTime() === p.end.getTime() && "bg-primary text-primary-foreground hover:bg-primary/90"
+            )}
+            onClick={() => { setStartDate(p.start); setEndDate(p.end); }}
+          >
+            {p.label}
+          </Button>
+        ))}
+      </div>
+
       {/* Period filter */}
       <div className="flex gap-3 flex-wrap items-center">
         <Popover>
