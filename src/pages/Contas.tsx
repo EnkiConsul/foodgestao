@@ -32,6 +32,7 @@ type Bill = {
   contact_id: string | null;
   categories: { name: string } | null;
   accounts: { name: string } | null;
+  payment_methods: { name: string } | null;
 };
 
 const statusConfig: Record<BillStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -69,7 +70,7 @@ export default function Contas() {
     setLoading(true);
     let q = supabase
       .from("bills")
-      .select("id, description, amount, amount_paid, bill_type, due_date, payment_date, status, category_id, account_id, contact_id, categories(name), accounts!bills_account_id_fkey(name)")
+      .select("id, description, amount, amount_paid, bill_type, due_date, payment_date, status, category_id, account_id, contact_id, categories(name), accounts!bills_account_id_fkey(name), payment_methods(name)")
       .eq("user_id", user.id)
       .eq("context", contextType)
       .order("due_date", { ascending: true })
@@ -221,6 +222,9 @@ export default function Contas() {
                       </span>
                       {b.categories?.name && (
                         <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{b.categories.name}</Badge>
+                      )}
+                      {b.payment_methods?.name && (
+                        <Badge variant="outline" className="text-[10px] h-4 px-1.5">{b.payment_methods.name}</Badge>
                       )}
                     </div>
                     {/* Progress bar for partial payments */}
