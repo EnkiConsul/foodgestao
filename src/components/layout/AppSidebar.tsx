@@ -53,7 +53,9 @@ export function AppSidebar() {
     <Sidebar className="border-r-0">
       <SidebarHeader className="p-5 border-b border-sidebar-border mb-2">
         <div className="flex items-center justify-center">
-          <img src={logoGestorPlin} alt="Gestor Plin" className="h-16 w-auto brightness-0 invert opacity-90" />
+          <div className="bg-white/90 rounded-xl p-2.5">
+            <img src={logoGestorPlin} alt="Gestor Plin" className="h-12 w-auto" />
+          </div>
         </div>
       </SidebarHeader>
 
