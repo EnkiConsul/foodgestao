@@ -306,14 +306,23 @@ export default function Categorias() {
     if (srcIdx === destIdx) return;
 
     const draggedItem = visibleTree[srcIdx];
-    // Find siblings at same level with same parent and type
-    const siblings = filtered
+    const targetItem = visibleTree[destIdx];
+
+    // Only allow reordering among siblings (same parent + same type)
+    if (
+      draggedItem.parent_id !== targetItem.parent_id ||
+      draggedItem.transaction_type !== targetItem.transaction_type
+    ) {
+      toast.info("Só é possível reordenar entre categorias do mesmo nível e tipo");
+      return;
+    }
+
+    // Get all siblings sorted by current sort_order
+    const siblings = categories
       .filter((c) => c.parent_id === draggedItem.parent_id && c.transaction_type === draggedItem.transaction_type)
       .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
 
     const oldIdx = siblings.findIndex((c) => c.id === draggedItem.id);
-    // Determine target based on visible tree destination
-    const targetItem = visibleTree[destIdx];
     const newIdx = siblings.findIndex((c) => c.id === targetItem.id);
 
     if (oldIdx === -1 || newIdx === -1 || oldIdx === newIdx) return;
@@ -328,6 +337,7 @@ export default function Categorias() {
       supabase.from("categories").update({ sort_order: i }).eq("id", cat.id)
     );
     await Promise.all(updates);
+    toast.success("Ordem atualizada");
     refetchAll();
   };
 
