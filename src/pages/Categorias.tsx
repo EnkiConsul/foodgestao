@@ -52,6 +52,8 @@ export default function Categorias() {
   const [filterType, setFilterType] = useState<string>("all");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [defaultParentId, setDefaultParentId] = useState<string | null>(null);
+  const [defaultType, setDefaultType] = useState<"receita" | "despesa" | undefined>(undefined);
 
   const { data: categories = [], refetch } = useQuery({
     queryKey: ["categories-page", user?.id, contextType],
@@ -94,6 +96,15 @@ export default function Categorias() {
 
   const openNew = () => {
     setEditCat(null);
+    setDefaultParentId(null);
+    setDefaultType(undefined);
+    setDialogOpen(true);
+  };
+
+  const openAddChild = (parent: Category) => {
+    setEditCat(null);
+    setDefaultParentId(parent.id);
+    setDefaultType(parent.transaction_type as "receita" | "despesa");
     setDialogOpen(true);
   };
 
@@ -240,6 +251,15 @@ export default function Categorias() {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-muted-foreground hover:text-primary"
+                        onClick={() => openAddChild(cat)}
+                        title="Adicionar filho"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-primary"
                         onClick={() => openEdit(cat)}
                       >
                         <Pencil className="h-3.5 w-3.5" />
@@ -281,6 +301,8 @@ export default function Categorias() {
         onOpenChange={setDialogOpen}
         onSaved={() => refetch()}
         editCategory={editCat}
+        defaultParentId={defaultParentId}
+        defaultType={defaultType}
       />
 
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>

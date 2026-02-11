@@ -27,9 +27,11 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
   editCategory?: Tables<"categories"> | null;
+  defaultParentId?: string | null;
+  defaultType?: "receita" | "despesa";
 }
 
-export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory }: Props) {
+export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, defaultParentId, defaultType }: Props) {
   const { user } = useAuth();
   const { contextType } = useCompanyContext();
   const [name, setName] = useState("");
@@ -69,12 +71,12 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory }
       setParentId(editCategory.parent_id ?? null);
     } else {
       setName("");
-      setType("despesa");
+      setType(defaultType ?? "despesa");
       setIcon("shopping-cart");
       setColor("#3b82f6");
-      setParentId(null);
+      setParentId(defaultParentId ?? null);
     }
-  }, [editCategory, open]);
+  }, [editCategory, open, defaultParentId, defaultType]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
