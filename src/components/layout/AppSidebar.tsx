@@ -15,7 +15,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-const logoGestorPlin = "/images/logo-gestor-plin.png";
+const logoGestorPlin = "/images/logo-gestor-plin-transparent.png";
 import {
   Sidebar,
   SidebarContent,
@@ -53,9 +53,7 @@ export function AppSidebar() {
     <Sidebar className="border-r-0">
       <SidebarHeader className="p-5 border-b border-sidebar-border mb-2">
         <div className="flex items-center justify-center">
-    <div className="bg-white rounded-xl p-2 shadow-lg shadow-black/20">
-      <img src={logoGestorPlin} alt="Gestor Plin" className="h-16 w-auto" />
-    </div>
+          <img src={logoGestorPlin} alt="Gestor Plin" className="h-14 w-auto drop-shadow-lg" />
         </div>
       </SidebarHeader>
 
