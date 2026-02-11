@@ -19,7 +19,7 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Category = Tables<"categories">;
 
-type TreeNode = Category & { depth: number; hasChildren: boolean };
+type TreeNode = Category & { depth: number; hasChildren: boolean; index: string };
 
 function buildTree(categories: Category[]): TreeNode[] {
   const map = new Map<string, Category[]>();
@@ -38,14 +38,16 @@ function buildTree(categories: Category[]): TreeNode[] {
   }
 
   const result: TreeNode[] = [];
-  function walk(items: Category[], depth: number) {
-    for (const item of items) {
-      result.push({ ...item, depth, hasChildren: childSet.has(item.id) });
+  function walk(items: Category[], depth: number, parentIndex: string) {
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const idx = parentIndex ? `${parentIndex}.${i + 1}` : `${i + 1}`;
+      result.push({ ...item, depth, hasChildren: childSet.has(item.id), index: idx });
       const children = map.get(item.id);
-      if (children) walk(children, depth + 1);
+      if (children) walk(children, depth + 1, idx);
     }
   }
-  walk(roots, 0);
+  walk(roots, 0, "");
   return result;
 }
 
@@ -309,6 +311,7 @@ export default function Categorias() {
                                   style={{ backgroundColor: cat.color ?? "hsl(var(--primary))" }}
                                 />
                                 <span className={`text-sm ${cat.depth === 0 ? "font-semibold" : ""}`}>
+                                  <span className="text-muted-foreground font-mono text-xs mr-1.5">{cat.index}.</span>
                                   {cat.name}
                                 </span>
                               </div>
