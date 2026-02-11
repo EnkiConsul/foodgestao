@@ -68,10 +68,6 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
     },
   });
 
-  // Filter parent options: same type, exclude self
-  const parentOptions = allCategories.filter(
-    (c) => c.transaction_type === type && c.id !== editCategory?.id
-  );
 
   useEffect(() => {
     if (!open) return;
@@ -98,6 +94,11 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       setSelectedCompanies(new Set(companies.map((c) => c.id)));
     }
   }, [editCategory, open, defaultParentId, defaultType]);
+
+  // Filter parent options: same type, exclude self
+  const parentOptions = allCategories.filter(
+    (c) => c.transaction_type === type && c.id !== editCategory?.id
+  );
 
   const toggleCompany = (companyId: string) => {
     setSelectedCompanies((prev) => {
