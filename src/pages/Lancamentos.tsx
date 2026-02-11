@@ -18,6 +18,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth } from "date-fns";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ptBR } from "date-fns/locale";
 
 type Transaction = {
@@ -140,14 +145,18 @@ export default function Lancamentos() {
     fetchPreviousBalance();
   }, [fetchTransactions, fetchPreviousBalance]);
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("transactions").delete().eq("id", id);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    const { error } = await supabase.from("transactions").delete().eq("id", deleteId);
     if (error) toast.error("Erro ao excluir");
     else {
       toast.success("Lançamento excluído");
       fetchTransactions();
       fetchPreviousBalance();
     }
+    setDeleteId(null);
   };
 
   // Apply filters & search
@@ -450,7 +459,7 @@ export default function Lancamentos() {
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                              onClick={() => handleDelete(t.id)}
+                              onClick={() => setDeleteId(t.id)}
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
@@ -490,6 +499,23 @@ export default function Lancamentos() {
         onCreated={() => { fetchTransactions(); fetchPreviousBalance(); }}
         transaction={editTransaction}
       />
+
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => { if (!o) setDeleteId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir lançamento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Essa ação não pode ser desfeita. O lançamento será removido permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
