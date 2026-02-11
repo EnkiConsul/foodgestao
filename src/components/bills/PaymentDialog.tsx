@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -16,11 +17,16 @@ interface Props {
     description: string;
     amount: number;
     amount_paid: number;
+    bill_type: "receita" | "despesa";
+    account_id: string | null;
+    category_id: string | null;
+    contact_id: string | null;
   } | null;
   onPaid: () => void;
 }
 
 export function PaymentDialog({ open, onOpenChange, bill, onPaid }: Props) {
+  const { user } = useAuth();
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
   const [saving, setSaving] = useState(false);
@@ -54,6 +60,24 @@ export function PaymentDialog({ open, onOpenChange, bill, onPaid }: Props) {
     if (error) {
       toast.error("Erro ao registrar pagamento", { description: error.message });
     } else {
+      // Criar lançamento automático
+      if (user && bill.account_id) {
+        const { error: txError } = await supabase.from("transactions").insert({
+          user_id: user.id,
+          description: `Pgto: ${bill.description}`,
+          amount: numAmount,
+          transaction_type: bill.bill_type,
+          transaction_date: paymentDate,
+          account_id: bill.account_id,
+          category_id: bill.category_id,
+          contact_id: bill.contact_id,
+          status: "confirmado",
+        });
+        if (txError) {
+          toast.warning("Pagamento registrado, mas não foi possível criar o lançamento automático", { description: txError.message });
+        }
+      }
+
       toast.success(isPaidFull ? "Conta paga integralmente!" : "Pagamento parcial registrado!");
       setPaymentAmount("");
       onOpenChange(false);
