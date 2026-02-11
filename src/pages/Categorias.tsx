@@ -80,6 +80,47 @@ export default function Categorias() {
     },
   });
 
+  const { data: companies = [] } = useQuery({
+    queryKey: ["companies-for-categories", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("companies")
+        .select("id, name")
+        .eq("user_id", user!.id)
+        .eq("is_active", true)
+        .order("name");
+      return data ?? [];
+    },
+  });
+
+  const { data: categoryCompanies = [] } = useQuery({
+    queryKey: ["category-companies", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("category_companies")
+        .select("category_id, company_id");
+      return data ?? [];
+    },
+  });
+
+  const companyMap = useMemo(() => {
+    const map = new Map<string, string>();
+    companies.forEach((c) => map.set(c.id, c.name));
+    return map;
+  }, [companies]);
+
+  const catCompanyMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    categoryCompanies.forEach((cc) => {
+      const list = map.get(cc.category_id) || [];
+      list.push(cc.company_id);
+      map.set(cc.category_id, list);
+    });
+    return map;
+  }, [categoryCompanies]);
+
   const filtered = useMemo(() => {
     return categories.filter((c) => {
       const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase());
@@ -281,6 +322,7 @@ export default function Categorias() {
                 <TableHead className="w-10 text-xs"></TableHead>
                 <TableHead className="text-xs">Descrição</TableHead>
                 <TableHead className="w-24 text-xs text-center">Tipo</TableHead>
+                <TableHead className="text-xs hidden md:table-cell">Visibilidade</TableHead>
                 <TableHead className="w-24 text-xs text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -343,6 +385,21 @@ export default function Categorias() {
                               >
                                 {cat.transaction_type === "despesa" ? "Despesa" : "Receita"}
                               </Badge>
+                            </TableCell>
+                            <TableCell className="py-1.5 hidden md:table-cell">
+                              <div className="flex items-center gap-1 flex-wrap">
+                                {(cat as any).visible_pf && (
+                                  <Badge variant="outline" className="text-[10px] h-4 px-1.5">PF</Badge>
+                                )}
+                                {(catCompanyMap.get(cat.id) || []).map((compId) => (
+                                  <Badge key={compId} variant="outline" className="text-[10px] h-4 px-1.5">
+                                    {companyMap.get(compId) ?? "Empresa"}
+                                  </Badge>
+                                ))}
+                                {!(cat as any).visible_pf && !(catCompanyMap.get(cat.id) || []).length && (
+                                  <span className="text-[10px] text-muted-foreground">Sem visibilidade</span>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell className="py-1.5 text-right">
                               <div className="flex justify-end gap-0.5">
