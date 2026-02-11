@@ -64,7 +64,8 @@ export default function Auth() {
         if (error) {
           toast.error("Erro ao cadastrar", { description: error.message });
         } else {
-          toast.success("Cadastro realizado!", { description: "Verifique seu e-mail para confirmar a conta." });
+          toast.success("Cadastro realizado!");
+          navigate("/onboarding");
         }
       }
     } finally {
