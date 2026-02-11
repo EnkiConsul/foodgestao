@@ -9,6 +9,7 @@ import {
   UserCog,
   FolderTree,
   Landmark,
+  Building2,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -35,6 +36,7 @@ const mainItems = [
 ];
 
 const secondaryItems = [
+  { title: "Empresas", url: "/empresas", icon: Building2 },
   { title: "Contas Bancárias", url: "/contas-bancarias", icon: Landmark },
   { title: "Relatórios", url: "/relatorios", icon: FileBarChart },
   { title: "Contatos", url: "/contatos", icon: Users },

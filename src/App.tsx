@@ -19,6 +19,7 @@ import Categorias from "./pages/Categorias";
 import ContasBancarias from "./pages/ContasBancarias";
 import Configuracoes from "./pages/Configuracoes";
 import GestaoUsuarios from "./pages/GestaoUsuarios";
+import Empresas from "./pages/Empresas";
 import AcceptInvite from "./pages/AcceptInvite";
 import NotFound from "./pages/NotFound";
 import { useEffect, useState } from "react";
@@ -97,6 +98,7 @@ const AppRoutes = () => (
       <Route path="/contas-bancarias" element={<ContasBancarias />} />
       <Route path="/configuracoes" element={<Configuracoes />} />
       <Route path="/gestao-usuarios" element={<GestaoUsuarios />} />
+      <Route path="/empresas" element={<Empresas />} />
     </Route>
     <Route path="/convite/:token" element={<AcceptInvite />} />
     <Route path="*" element={<NotFound />} />
