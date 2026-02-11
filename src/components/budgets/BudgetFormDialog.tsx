@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CurrencyInput, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { budgetSchema, validateWithToast } from "@/lib/validations";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface Props {
@@ -58,8 +59,11 @@ export function BudgetFormDialog({ open, onOpenChange, onCreated }: Props) {
     e.preventDefault();
     if (!user) return;
     const numAmount = parseCurrencyToNumber(amount);
-    if (!categoryId) return toast.error("Selecione uma categoria");
-    if (numAmount <= 0) return toast.error("Informe o valor");
+
+    const validated = validateWithToast(budgetSchema, {
+      category_id: categoryId || "", amount: numAmount, period, start_date: startDate, end_date: endDate,
+    }, toast.error);
+    if (!validated) return;
 
     setSaving(true);
     const { error } = await supabase.from("budgets").insert({

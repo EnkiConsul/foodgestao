@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { companySchema, validateWithToast } from "@/lib/validations";
 import type { Database } from "@/integrations/supabase/types";
 
 type Company = Database["public"]["Tables"]["companies"]["Row"];
@@ -47,25 +48,24 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !name.trim()) return;
+    if (!user) return;
+
+    const validated = validateWithToast(companySchema, {
+      name, trade_name: tradeName || null, cnpj: cnpj || null,
+      email: email || null, phone: phone || null, address: address || null,
+    }, toast.error);
+    if (!validated) return;
+
     setSaving(true);
 
-    const payload = {
-      name: name.trim(),
-      trade_name: tradeName.trim() || null,
-      cnpj: cnpj.trim() || null,
-      email: email.trim() || null,
-      phone: phone.trim() || null,
-      address: address.trim() || null,
-      user_id: user.id,
-    };
+    const payload = { ...validated, user_id: user.id };
 
     let error;
     if (company) {
       const { user_id, ...updatePayload } = payload;
       ({ error } = await supabase.from("companies").update(updatePayload).eq("id", company.id));
     } else {
-      ({ error } = await supabase.from("companies").insert(payload));
+      ({ error } = await supabase.from("companies").insert(payload as any));
     }
 
     if (error) {

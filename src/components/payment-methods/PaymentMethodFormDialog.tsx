@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { paymentMethodSchema, validateWithToast } from "@/lib/validations";
 
 interface FormValues {
   name: string;
@@ -47,8 +48,9 @@ export function PaymentMethodFormDialog({ open, onOpenChange, onSaved, editItem 
 
   const onSubmit = async (values: FormValues) => {
     if (!user) return;
-    const trimmed = values.name.trim();
-    if (!trimmed) { toast.error("Informe o nome"); return; }
+    const validated = validateWithToast(paymentMethodSchema, values, toast.error);
+    if (!validated) return;
+    const trimmed = validated.name;
 
     if (editItem) {
       const { error } = await supabase

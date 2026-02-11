@@ -1,11 +1,25 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const ALLOWED_ORIGINS = [
+  "https://gestorplin.lovable.app",
+  "https://id-preview--ceeb4a17-6191-46b0-a351-c97a8211c03e.lovable.app",
+  "http://localhost:5173",
+  "http://localhost:8080",
+];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "Access-Control-Allow-Credentials": "true",
+  };
+}
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -22,7 +36,6 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // User client to get user info
     const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -35,18 +48,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { token } = await req.json();
-    if (!token) {
-      return new Response(JSON.stringify({ error: "Token não fornecido" }), {
+    const body = await req.json();
+    const token = typeof body?.token === "string" ? body.token.trim() : "";
+    if (!token || token.length > 256) {
+      return new Response(JSON.stringify({ error: "Token inválido" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Admin client to bypass RLS
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Find invite
     const { data: invite, error: inviteError } = await adminClient
       .from("company_invites")
       .select("*, companies(name)")
@@ -61,7 +73,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check if expired
     if (new Date(invite.expires_at) < new Date()) {
       await adminClient
         .from("company_invites")
@@ -74,7 +85,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check if already a member
     const { data: existing } = await adminClient
       .from("company_members")
       .select("id")
@@ -97,7 +107,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Add as member
     const { error: memberError } = await adminClient
       .from("company_members")
       .insert({
@@ -107,13 +116,12 @@ Deno.serve(async (req) => {
       });
 
     if (memberError) {
-      return new Response(JSON.stringify({ error: "Erro ao adicionar membro: " + memberError.message }), {
+      return new Response(JSON.stringify({ error: "Erro ao processar convite" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Update invite status
     await adminClient
       .from("company_invites")
       .update({ status: "accepted" })
@@ -127,7 +135,8 @@ Deno.serve(async (req) => {
     });
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    const corsHeaders = getCorsHeaders(req);
+    return new Response(JSON.stringify({ error: "Erro interno" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
