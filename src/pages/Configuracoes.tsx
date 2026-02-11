@@ -88,6 +88,7 @@ export default function Configuracoes() {
     } else {
       toast.success("Configurações salvas!");
       queryClient.invalidateQueries({ queryKey: ["profile-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["privacy-mode"] });
     }
     setSaving(false);
   };

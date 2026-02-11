@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Wallet, Target } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -22,12 +23,9 @@ const DONUT_COLORS = [
   "hsl(270, 50%, 55%)",
 ];
 
-function formatBRL(v: number) {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
 export default function Dashboard() {
   const { user } = useAuth();
+  const { maskBRL } = usePrivacy();
 
   const { data: transactions = [] } = useQuery({
     queryKey: ["dashboard-transactions", user?.id],
@@ -110,9 +108,9 @@ export default function Dashboard() {
   const changeD = totalDespesas > 0 ? `-${((totalDespesas / (totalReceitas + totalDespesas || 1)) * 100).toFixed(0)}%` : "0%";
 
   const kpis = [
-    { label: "Saldo", value: formatBRL(saldo), icon: Wallet, positive: saldo >= 0 },
-    { label: "Receitas", value: formatBRL(totalReceitas), change: changeR, icon: TrendingUp, positive: true },
-    { label: "Despesas", value: formatBRL(totalDespesas), change: changeD, icon: TrendingDown, positive: false },
+    { label: "Saldo", value: maskBRL(saldo), icon: Wallet, positive: saldo >= 0 },
+    { label: "Receitas", value: maskBRL(totalReceitas), change: changeR, icon: TrendingUp, positive: true },
+    { label: "Despesas", value: maskBRL(totalDespesas), change: changeD, icon: TrendingDown, positive: false },
     { label: "Transações", value: String(transactions.length), icon: Target, positive: true },
   ];
 
@@ -167,7 +165,7 @@ export default function Dashboard() {
                   <CartesianGrid vertical={false} />
                   <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
                   <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} width={40} />
-                  <ChartTooltip content={<ChartTooltipContent formatter={(value) => formatBRL(Number(value))} />} />
+                   <ChartTooltip content={<ChartTooltipContent formatter={(value) => maskBRL(Number(value))} />} />
                   <ChartLegend content={<ChartLegendContent />} />
                   <Bar dataKey="receitas" fill="var(--color-receitas)" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="despesas" fill="var(--color-despesas)" radius={[4, 4, 0, 0]} />
@@ -189,7 +187,7 @@ export default function Dashboard() {
             ) : (
               <ChartContainer config={donutConfig} className="h-48 w-full">
                 <PieChart accessibilityLayer>
-                  <ChartTooltip content={<ChartTooltipContent formatter={(value) => formatBRL(Number(value))} />} />
+                  <ChartTooltip content={<ChartTooltipContent formatter={(value) => maskBRL(Number(value))} />} />
                   <Pie data={topCategories} dataKey="value" nameKey="name" innerRadius={45} outerRadius={70} paddingAngle={2}>
                     {topCategories.map((entry, i) => (
                       <Cell key={i} fill={entry.fill} />

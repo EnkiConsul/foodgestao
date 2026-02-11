@@ -1,5 +1,6 @@
 import { useMemo, useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,7 +46,7 @@ import {
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
-const formatBRL = (v: number) =>
+const formatBRLRaw = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const PIE_COLORS = [
@@ -70,6 +71,8 @@ type ReportTab = "resumo" | "categorias";
 
 export default function Relatorios() {
   const { user } = useAuth();
+  const { maskBRL } = usePrivacy();
+  const formatBRL = maskBRL;
   const [tab, setTab] = useState<ReportTab>("resumo");
   const [startDate, setStartDate] = useState<Date>(subMonths(startOfMonth(new Date()), 5));
   const [endDate, setEndDate] = useState<Date>(endOfMonth(new Date()));
@@ -193,15 +196,15 @@ export default function Relatorios() {
           <div class="cards">
             <div class="card">
               <div class="card-label">Total Receitas</div>
-              <div class="card-value green">${formatBRL(totals.receitas)}</div>
+              <div class="card-value green">${formatBRLRaw(totals.receitas)}</div>
             </div>
             <div class="card">
               <div class="card-label">Total Despesas</div>
-              <div class="card-value red">${formatBRL(totals.despesas)}</div>
+              <div class="card-value red">${formatBRLRaw(totals.despesas)}</div>
             </div>
             <div class="card">
               <div class="card-label">Resultado</div>
-              <div class="card-value ${totals.saldo >= 0 ? "green" : "red"}">${formatBRL(totals.saldo)}</div>
+              <div class="card-value ${totals.saldo >= 0 ? "green" : "red"}">${formatBRLRaw(totals.saldo)}</div>
             </div>
           </div>
 
@@ -212,7 +215,7 @@ export default function Relatorios() {
               ${monthlyData
                 .map(
                   (m) =>
-                    `<tr><td>${m.label}</td><td class="right green">${formatBRL(m.receitas)}</td><td class="right red">${formatBRL(m.despesas)}</td><td class="right ${m.receitas - m.despesas >= 0 ? "green" : "red"}">${formatBRL(m.receitas - m.despesas)}</td></tr>`
+                    `<tr><td>${m.label}</td><td class="right green">${formatBRLRaw(m.receitas)}</td><td class="right red">${formatBRLRaw(m.despesas)}</td><td class="right ${m.receitas - m.despesas >= 0 ? "green" : "red"}">${formatBRLRaw(m.receitas - m.despesas)}</td></tr>`
                 )
                 .join("")}
             </tbody>
@@ -225,7 +228,7 @@ export default function Relatorios() {
               ${categoryData
                 .map(
                   (c) =>
-                    `<tr><td>${c.name}</td><td class="right">${formatBRL(c.value)}</td><td class="right">${totals.despesas > 0 ? ((c.value / totals.despesas) * 100).toFixed(1) : 0}%</td></tr>`
+                    `<tr><td>${c.name}</td><td class="right">${formatBRLRaw(c.value)}</td><td class="right">${totals.despesas > 0 ? ((c.value / totals.despesas) * 100).toFixed(1) : 0}%</td></tr>`
                 )
                 .join("")}
             </tbody>

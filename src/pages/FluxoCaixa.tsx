@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,7 +32,7 @@ import { ptBR } from "date-fns/locale";
 
 type Granularity = "diario" | "semanal" | "mensal";
 
-const formatBRL = (v: number) =>
+const formatBRLRaw = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const chartConfig: ChartConfig = {
@@ -42,6 +43,8 @@ const chartConfig: ChartConfig = {
 
 export default function FluxoCaixa() {
   const { user } = useAuth();
+  const { maskBRL } = usePrivacy();
+  const formatBRL = maskBRL;
   const [granularity, setGranularity] = useState<Granularity>("diario");
 
   // Fetch transactions for current month + next month (projection)
