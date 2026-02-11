@@ -33,12 +33,12 @@ const mainItems = [
   { title: "Contas à Pagar", url: "/contas", icon: Wallet },
   { title: "Fluxo de Caixa", url: "/fluxo-caixa", icon: TrendingUp },
   { title: "Orçamento", url: "/orcamento", icon: Target },
+  { title: "Relatórios", url: "/relatorios", icon: FileBarChart },
 ];
 
 const secondaryItems = [
   { title: "Empresas", url: "/empresas", icon: Building2 },
   { title: "Contas Bancárias", url: "/contas-bancarias", icon: Landmark },
-  { title: "Relatórios", url: "/relatorios", icon: FileBarChart },
   { title: "Clientes / Fornecedores", url: "/contatos", icon: Users },
   { title: "Categorias", url: "/categorias", icon: FolderTree },
   { title: "Usuários", url: "/gestao-usuarios", icon: UserCog },
