@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CurrencyInput, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { toast } from "sonner";
 import { Calendar } from "lucide-react";
+import type { Tables } from "@/integrations/supabase/types";
 
 interface Props {
   open: boolean;
@@ -29,7 +31,15 @@ export function PaymentDialog({ open, onOpenChange, bill, onPaid }: Props) {
   const { user } = useAuth();
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
+  const [paymentMethodId, setPaymentMethodId] = useState("");
+  const [paymentMethods, setPaymentMethods] = useState<Tables<"payment_methods">[]>([]);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!user || !open) return;
+    supabase.from("payment_methods").select("*").eq("user_id", user.id).eq("is_active", true)
+      .then(({ data }) => setPaymentMethods(data ?? []));
+  }, [user, open]);
 
   if (!bill) return null;
 
@@ -72,6 +82,7 @@ export function PaymentDialog({ open, onOpenChange, bill, onPaid }: Props) {
           account_id: bill.account_id,
           category_id: bill.category_id,
           contact_id: bill.contact_id,
+          payment_method_id: paymentMethodId || null,
           status: "confirmado",
         });
         if (txError) {
@@ -96,6 +107,7 @@ export function PaymentDialog({ open, onOpenChange, bill, onPaid }: Props) {
 
       toast.success(isPaidFull ? "Conta paga integralmente!" : "Pagamento parcial registrado!");
       setPaymentAmount("");
+      setPaymentMethodId("");
       onOpenChange(false);
       onPaid();
     }
@@ -133,6 +145,20 @@ export function PaymentDialog({ open, onOpenChange, bill, onPaid }: Props) {
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} className="pl-10" />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Forma de pagamento (opcional)</Label>
+            <Select value={paymentMethodId} onValueChange={setPaymentMethodId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                {paymentMethods.map((pm) => (
+                  <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex gap-2">

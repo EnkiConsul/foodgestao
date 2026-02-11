@@ -32,20 +32,24 @@ export function BillFormDialog({ open, onOpenChange, onCreated }: Props) {
   const [accountId, setAccountId] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [notes, setNotes] = useState("");
+  const [paymentMethodId, setPaymentMethodId] = useState("");
   const [saving, setSaving] = useState(false);
 
   const [accounts, setAccounts] = useState<Tables<"accounts">[]>([]);
   const [categories, setCategories] = useState<Tables<"categories">[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<Tables<"payment_methods">[]>([]);
 
   useEffect(() => {
     if (!user || !open) return;
     const load = async () => {
-      const [accRes, catRes] = await Promise.all([
+      const [accRes, catRes, pmRes] = await Promise.all([
         supabase.from("accounts").select("*").eq("user_id", user.id).eq("is_active", true),
         supabase.from("categories").select("*").eq("user_id", user.id),
+        supabase.from("payment_methods").select("*").eq("user_id", user.id).eq("is_active", true),
       ]);
       setAccounts(accRes.data ?? []);
       setCategories(catRes.data ?? []);
+      setPaymentMethods(pmRes.data ?? []);
       if (accRes.data?.[0] && !accountId) setAccountId(accRes.data[0].id);
     };
     load();
@@ -61,6 +65,7 @@ export function BillFormDialog({ open, onOpenChange, onCreated }: Props) {
     setAccountId(accounts[0]?.id ?? "");
     setCategoryId("");
     setNotes("");
+    setPaymentMethodId("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,6 +86,7 @@ export function BillFormDialog({ open, onOpenChange, onCreated }: Props) {
       account_id: accountId || null,
       category_id: categoryId || null,
       notes: notes.trim() || null,
+      payment_method_id: paymentMethodId || null,
       context: contextType,
       company_id: contextType === "pj" ? selectedCompanyId : null,
     });
@@ -152,6 +158,18 @@ export function BillFormDialog({ open, onOpenChange, onCreated }: Props) {
               <SelectContent>
                 {filteredCategories.map((c) => (
                   <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Forma de pagamento (opcional)</Label>
+            <Select value={paymentMethodId} onValueChange={setPaymentMethodId}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                {paymentMethods.map((pm) => (
+                  <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

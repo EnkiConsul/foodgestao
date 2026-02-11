@@ -87,6 +87,7 @@ export type Database = {
           is_recurring: boolean
           notes: string | null
           payment_date: string | null
+          payment_method_id: string | null
           recurrence_type: Database["public"]["Enums"]["recurrence_type"] | null
           status: Database["public"]["Enums"]["bill_status"]
           updated_at: string
@@ -108,6 +109,7 @@ export type Database = {
           is_recurring?: boolean
           notes?: string | null
           payment_date?: string | null
+          payment_method_id?: string | null
           recurrence_type?:
             | Database["public"]["Enums"]["recurrence_type"]
             | null
@@ -131,6 +133,7 @@ export type Database = {
           is_recurring?: boolean
           notes?: string | null
           payment_date?: string | null
+          payment_method_id?: string | null
           recurrence_type?:
             | Database["public"]["Enums"]["recurrence_type"]
             | null
@@ -165,6 +168,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
             referencedColumns: ["id"]
           },
         ]
@@ -616,6 +626,7 @@ export type Database = {
           is_recurring: boolean
           notes: string | null
           parent_transaction_id: string | null
+          payment_method_id: string | null
           recurrence_end_date: string | null
           recurrence_type: Database["public"]["Enums"]["recurrence_type"] | null
           status: Database["public"]["Enums"]["transaction_status"]
@@ -642,6 +653,7 @@ export type Database = {
           is_recurring?: boolean
           notes?: string | null
           parent_transaction_id?: string | null
+          payment_method_id?: string | null
           recurrence_end_date?: string | null
           recurrence_type?:
             | Database["public"]["Enums"]["recurrence_type"]
@@ -670,6 +682,7 @@ export type Database = {
           is_recurring?: boolean
           notes?: string | null
           parent_transaction_id?: string | null
+          payment_method_id?: string | null
           recurrence_end_date?: string | null
           recurrence_type?:
             | Database["public"]["Enums"]["recurrence_type"]
@@ -728,6 +741,13 @@ export type Database = {
             columns: ["parent_transaction_id"]
             isOneToOne: false
             referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
             referencedColumns: ["id"]
           },
         ]

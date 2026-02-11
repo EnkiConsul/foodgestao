@@ -50,16 +50,20 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
   const [accounts, setAccounts] = useState<Tables<"accounts">[]>([]);
   const [categories, setCategories] = useState<Tables<"categories">[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<Tables<"payment_methods">[]>([]);
+  const [paymentMethodId, setPaymentMethodId] = useState("");
 
   useEffect(() => {
     if (!user || !open) return;
     const loadData = async () => {
-      const [accRes, catRes] = await Promise.all([
+      const [accRes, catRes, pmRes] = await Promise.all([
         supabase.from("accounts").select("*").eq("user_id", user.id).eq("is_active", true),
         supabase.from("categories").select("*").eq("user_id", user.id),
+        supabase.from("payment_methods").select("*").eq("user_id", user.id).eq("is_active", true),
       ]);
       setAccounts(accRes.data ?? []);
       setCategories(catRes.data ?? []);
+      setPaymentMethods(pmRes.data ?? []);
       if (accRes.data?.[0] && !accountId) setAccountId(accRes.data[0].id);
     };
     loadData();
@@ -96,6 +100,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     setDestinationAccountId("");
     setCategoryId("");
     setNotes("");
+    setPaymentMethodId("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -119,6 +124,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       destination_account_id: type === "transferencia" ? destinationAccountId : null,
       category_id: categoryId || null,
       notes: notes.trim() || null,
+      payment_method_id: paymentMethodId || null,
       context: contextType,
       company_id: contextType === "pj" ? selectedCompanyId : null,
     };
@@ -240,6 +246,21 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
               </Select>
             </div>
           )}
+
+          {/* Payment Method */}
+          <div className="space-y-2">
+            <Label>Forma de pagamento (opcional)</Label>
+            <Select value={paymentMethodId} onValueChange={setPaymentMethodId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                {paymentMethods.map((pm) => (
+                  <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Notes */}
           <div className="space-y-2">
