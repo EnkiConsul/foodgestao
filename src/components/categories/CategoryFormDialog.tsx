@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,7 +36,29 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory }
   const [type, setType] = useState<"receita" | "despesa">("despesa");
   const [icon, setIcon] = useState("shopping-cart");
   const [color, setColor] = useState("#3b82f6");
+  const [parentId, setParentId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const { data: allCategories = [] } = useQuery({
+    queryKey: ["categories-for-parent", user?.id, contextType],
+    enabled: !!user && open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("categories")
+        .select("*")
+        .eq("user_id", user!.id)
+        .or(contextType === "pf" ? "context.is.null,context.eq.pf" : "context.is.null,context.eq.pj")
+        .is("parent_id", null)
+        .order("transaction_type")
+        .order("name");
+      return data ?? [];
+    },
+  });
+
+  // Filter parent options: same type, exclude self
+  const parentOptions = allCategories.filter(
+    (c) => c.transaction_type === type && c.id !== editCategory?.id
+  );
 
   useEffect(() => {
     if (editCategory) {
@@ -43,11 +66,13 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory }
       setType(editCategory.transaction_type as "receita" | "despesa");
       setIcon(editCategory.icon ?? "shopping-cart");
       setColor(editCategory.color ?? "#3b82f6");
+      setParentId(editCategory.parent_id ?? null);
     } else {
       setName("");
       setType("despesa");
       setIcon("shopping-cart");
       setColor("#3b82f6");
+      setParentId(null);
     }
   }, [editCategory, open]);
 
@@ -61,7 +86,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory }
     if (editCategory) {
       const { error } = await supabase
         .from("categories")
-        .update({ name: name.trim(), transaction_type: type, icon, color })
+        .update({ name: name.trim(), transaction_type: type, icon, color, parent_id: parentId })
         .eq("id", editCategory.id);
       if (error) toast.error("Erro ao atualizar", { description: error.message });
       else { toast.success("Categoria atualizada!"); onOpenChange(false); onSaved(); }
@@ -73,6 +98,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory }
         icon,
         color,
         context: contextType,
+        parent_id: parentId,
       });
       if (error) toast.error("Erro ao criar", { description: error.message });
       else { toast.success("Categoria criada!"); setName(""); onOpenChange(false); onSaved(); }
@@ -101,6 +127,24 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory }
                 <SelectItem value="receita">Receita</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Categoria Pai (opcional)</Label>
+            <Select value={parentId ?? "__none__"} onValueChange={(v) => setParentId(v === "__none__" ? null : v)}>
+              <SelectTrigger><SelectValue placeholder="Nenhuma (raiz)" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Nenhuma (raiz)</SelectItem>
+                {parentOptions.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {parentOptions.length === 0 && (
+              <p className="text-xs text-muted-foreground">Crie categorias raiz do mesmo tipo primeiro</p>
+            )}
           </div>
 
           <div className="space-y-2">
