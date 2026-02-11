@@ -11,31 +11,35 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
-import { Plus, Search, Tag, Pencil, Trash2, ChevronUp, ChevronDown, Filter } from "lucide-react";
+import { Plus, Search, Tag, Pencil, Trash2, ChevronUp, ChevronDown, ChevronRight, Filter } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Category = Tables<"categories">;
 
-function buildTree(categories: Category[]): (Category & { depth: number })[] {
+type TreeNode = Category & { depth: number; hasChildren: boolean };
+
+function buildTree(categories: Category[]): TreeNode[] {
   const map = new Map<string, Category[]>();
   const roots: Category[] = [];
+  const childSet = new Set<string>();
 
   for (const cat of categories) {
     if (cat.parent_id) {
       const children = map.get(cat.parent_id) || [];
       children.push(cat);
       map.set(cat.parent_id, children);
+      childSet.add(cat.parent_id);
     } else {
       roots.push(cat);
     }
   }
 
-  const result: (Category & { depth: number })[] = [];
+  const result: TreeNode[] = [];
   function walk(items: Category[], depth: number) {
     for (const item of items) {
-      result.push({ ...item, depth });
+      result.push({ ...item, depth, hasChildren: childSet.has(item.id) });
       const children = map.get(item.id);
       if (children) walk(children, depth + 1);
     }
@@ -55,6 +59,7 @@ export default function Categorias() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [defaultParentId, setDefaultParentId] = useState<string | null>(null);
   const [defaultType, setDefaultType] = useState<"receita" | "despesa" | undefined>(undefined);
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   const { data: categories = [], refetch } = useQuery({
     queryKey: ["categories-page", user?.id, contextType],
@@ -81,6 +86,29 @@ export default function Categorias() {
   }, [categories, search, filterType]);
 
   const tree = useMemo(() => buildTree(filtered), [filtered]);
+
+  // Filter out children of collapsed parents
+  const visibleTree = useMemo(() => {
+    const result: TreeNode[] = [];
+    const hiddenParents = new Set<string>();
+    for (const node of tree) {
+      if (node.parent_id && (hiddenParents.has(node.parent_id) || collapsed.has(node.parent_id))) {
+        hiddenParents.add(node.id);
+        continue;
+      }
+      result.push(node);
+    }
+    return result;
+  }, [tree, collapsed]);
+
+  const toggleCollapse = (id: string) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const confirmDelete = async () => {
     if (!deleteId) return;
@@ -197,7 +225,7 @@ export default function Categorias() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tree.map((cat) => (
+              {visibleTree.map((cat) => (
                 <TableRow key={cat.id} className="group">
                   <TableCell className="py-1.5 px-4">
                     <Checkbox
@@ -222,7 +250,17 @@ export default function Categorias() {
                     </div>
                   </TableCell>
                   <TableCell className="py-1.5">
-                    <div className="flex items-center gap-2" style={{ paddingLeft: `${cat.depth * 24}px` }}>
+                    <div className="flex items-center gap-1" style={{ paddingLeft: `${cat.depth * 24}px` }}>
+                      {cat.hasChildren ? (
+                        <button
+                          onClick={() => toggleCollapse(cat.id)}
+                          className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
+                        >
+                          <ChevronRight className={`h-3.5 w-3.5 transition-transform ${collapsed.has(cat.id) ? "" : "rotate-90"}`} />
+                        </button>
+                      ) : (
+                        <span className="w-[18px]" />
+                      )}
                       <div
                         className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-white text-[10px] font-bold"
                         style={{ backgroundColor: cat.color ?? "hsl(var(--primary))" }}
@@ -278,7 +316,7 @@ export default function Categorias() {
                   </TableCell>
                 </TableRow>
               ))}
-              {tree.length === 0 && (
+              {visibleTree.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-sm text-muted-foreground">
                     Nenhuma categoria encontrada
