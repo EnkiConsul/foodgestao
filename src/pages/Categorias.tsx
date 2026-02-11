@@ -137,10 +137,32 @@ export default function Categorias() {
     setDialogOpen(true);
   };
 
-  const moveSort = async (cat: Category, direction: "up" | "down") => {
-    const newOrder = direction === "up" ? cat.sort_order - 1 : cat.sort_order + 1;
-    if (newOrder < 0) return;
-    await supabase.from("categories").update({ sort_order: newOrder }).eq("id", cat.id);
+  const moveSort = async (cat: TreeNode, direction: "up" | "down") => {
+    // Find siblings (same parent_id and transaction_type)
+    const siblings = filtered
+      .filter((c) => c.parent_id === cat.parent_id && c.transaction_type === cat.transaction_type)
+      .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+
+    const idx = siblings.findIndex((c) => c.id === cat.id);
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= siblings.length) return;
+
+    const neighbor = siblings[swapIdx];
+    const catOrder = cat.sort_order;
+    const neighborOrder = neighbor.sort_order;
+
+    // If they have the same sort_order, offset to guarantee swap
+    const newCatOrder = neighborOrder === catOrder
+      ? (direction === "up" ? catOrder - 1 : catOrder + 1)
+      : neighborOrder;
+    const newNeighborOrder = neighborOrder === catOrder
+      ? catOrder
+      : catOrder;
+
+    await Promise.all([
+      supabase.from("categories").update({ sort_order: newCatOrder }).eq("id", cat.id),
+      supabase.from("categories").update({ sort_order: newNeighborOrder }).eq("id", neighbor.id),
+    ]);
     refetch();
   };
 
