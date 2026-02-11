@@ -1,49 +1,45 @@
 
 
-## Corrigir Visibilidade da Logomarca no Sidebar
+## Implementar Nova Logomarca e Paleta de Cores
 
-### Diagnostico
+### 1. Logomarca
 
-A logomarca nao aparece no sidebar porque o PNG transparente tem elementos em cores escuras (azul marinho) sobre o fundo escuro do sidebar (`#1B3A5C`). O resultado e texto escuro sobre fundo escuro -- completamente invisivel. O problema nunca foi de tamanho, e sim de **contraste de cor**.
+- Copiar `Logo_Gestor_Plin_Lovable-3.png` para `public/images/logo-gestor-plin-transparent.png` (substituindo a atual)
+- No sidebar (`AppSidebar.tsx`): remover os filtros `brightness-0 invert` e usar um **container branco arredondado** (`bg-white/95 rounded-xl p-3`) para que as cores originais da marca fiquem visiveis sobre o fundo escuro
+- Na pagina de login (`Auth.tsx`): exibir a logo diretamente sem container (fundo claro ja garante contraste)
 
-### Duas opcoes de solucao
+### 2. Paleta de Cores Baseada na Logo
 
-**Opcao A (Recomendada): Filtro CSS para inverter/clarear a logo**
-- Aplicar `brightness(0) invert(1)` na imagem para tornar todos os pixels brancos
-- Resultado: logo branca sobre fundo escuro, sem necessidade de container branco
-- Simples, elegante e integrado ao sidebar
+Cores extraidas da logomarca:
+- **Azul Marinho** `#1B3A5C` (hsl 211 52% 23%) -- textos, sidebar, foreground
+- **Azul Medio** `#2D6EB5` (hsl 211 60% 44%) -- cor primaria (botoes, links, acoes)
+- **Azul Claro** `#5BA4D9` (hsl 205 62% 60%) -- destaques, sidebar primary, hover
 
-**Opcao B: Container branco compacto**
-- Voltar ao container branco (`bg-white rounded-xl p-2`) que funcionava antes
-- Logo fica legivel dentro de um "cartao" branco
-- Menos integrado visualmente, mas garante que as cores originais da marca aparecam
+Atualizacoes no `src/index.css`:
 
-### Detalhes Tecnicos
+**Modo Claro:**
+- `--background`: cinza azulado muito claro (210 25% 97%)
+- `--foreground`: azul marinho (211 52% 18%)
+- `--primary`: azul medio (211 60% 44%)
+- `--card`: branco puro
+- `--sidebar-background`: azul marinho escuro (211 52% 18%)
+- `--sidebar-primary`: azul claro (205 62% 60%)
+- `--success`: verde azulado (160 45% 40%) -- receitas
+- `--destructive`: vermelho neutro (0 65% 51%) -- despesas
+- `--warning`: amarelo quente (38 82% 52%)
 
-**Arquivo:** `src/components/layout/AppSidebar.tsx`
+**Modo Escuro:**
+- `--background`: azul muito escuro (211 50% 6%)
+- `--primary`: azul claro (205 62% 55%)
+- `--sidebar-background`: quase preto azulado (211 50% 5%)
 
-**Opcao A (filtro CSS):**
-```tsx
-<SidebarHeader className="p-5 border-b border-sidebar-border mb-2">
-  <div className="flex items-center justify-center">
-    <img 
-      src={logoGestorPlin} 
-      alt="Gestor Plin" 
-      className="h-14 w-auto brightness-0 invert drop-shadow-[0_2px_4px_rgba(255,255,255,0.15)]" 
-    />
-  </div>
-</SidebarHeader>
-```
+### 3. Detalhes Tecnicos
 
-**Opcao B (container branco):**
-```tsx
-<SidebarHeader className="p-5 border-b border-sidebar-border mb-2">
-  <div className="flex items-center justify-center">
-    <div className="bg-white rounded-xl p-2.5 shadow-lg shadow-black/20">
-      <img src={logoGestorPlin} alt="Gestor Plin" className="h-14 w-auto" />
-    </div>
-  </div>
-</SidebarHeader>
-```
+**Arquivos modificados:**
+- `public/images/logo-gestor-plin-transparent.png` -- substituicao pela nova logo
+- `src/components/layout/AppSidebar.tsx` -- container branco para a logo, remocao dos filtros CSS
+- `src/index.css` -- tokens de cor atualizados (light + dark mode)
+- `src/pages/Auth.tsx` -- verificar se a logo esta sendo usada corretamente
 
-Nenhuma dependencia nova necessaria.
+**Nenhuma dependencia nova.**
+
