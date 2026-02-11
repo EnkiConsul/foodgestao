@@ -1,0 +1,119 @@
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { CurrencyInput, parseCurrencyToNumber } from "@/components/ui/currency-input";
+import { toast } from "sonner";
+import { Calendar } from "lucide-react";
+
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  bill: {
+    id: string;
+    description: string;
+    amount: number;
+    amount_paid: number;
+  } | null;
+  onPaid: () => void;
+}
+
+export function PaymentDialog({ open, onOpenChange, bill, onPaid }: Props) {
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
+  const [saving, setSaving] = useState(false);
+
+  if (!bill) return null;
+
+  const remaining = bill.amount - bill.amount_paid;
+
+  const formatBRL = (v: number) =>
+    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const numAmount = parseCurrencyToNumber(paymentAmount);
+    if (numAmount <= 0) return toast.error("Informe o valor do pagamento");
+    if (numAmount > remaining + 0.01) return toast.error("Valor excede o saldo restante");
+
+    setSaving(true);
+    const newPaid = bill.amount_paid + numAmount;
+    const isPaidFull = newPaid >= bill.amount - 0.01;
+
+    const { error } = await supabase
+      .from("bills")
+      .update({
+        amount_paid: newPaid,
+        payment_date: paymentDate,
+        status: isPaidFull ? "pago" : "parcial",
+      })
+      .eq("id", bill.id);
+
+    if (error) {
+      toast.error("Erro ao registrar pagamento", { description: error.message });
+    } else {
+      toast.success(isPaidFull ? "Conta paga integralmente!" : "Pagamento parcial registrado!");
+      setPaymentAmount("");
+      onOpenChange(false);
+      onPaid();
+    }
+    setSaving(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Registrar Pagamento</DialogTitle>
+          <DialogDescription>{bill.description}</DialogDescription>
+        </DialogHeader>
+
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <span className="text-muted-foreground">Total</span>
+            <p className="font-semibold">{formatBRL(bill.amount)}</p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Restante</span>
+            <p className="font-semibold text-destructive">{formatBRL(remaining)}</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Valor do pagamento</Label>
+            <CurrencyInput value={paymentAmount} onValueChange={setPaymentAmount} placeholder="0,00" />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Data do pagamento</Label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} className="pl-10" />
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                const formatted = remaining.toFixed(2).replace(".", ",");
+                setPaymentAmount(formatted);
+              }}
+            >
+              Pagar total ({formatBRL(remaining)})
+            </Button>
+          </div>
+
+          <Button type="submit" className="w-full" disabled={saving}>
+            {saving ? "Salvando..." : "Confirmar Pagamento"}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
