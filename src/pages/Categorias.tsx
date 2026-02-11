@@ -88,7 +88,7 @@ export default function Categorias() {
     );
     await Promise.all(updates);
     toast.success(`Cor atualizada para ${selected.size} categoria(s)`);
-    refetch();
+    refetchAll();
   };
 
   const handleBatchChangeParent = async () => {
@@ -106,7 +106,7 @@ export default function Categorias() {
       toast.success(`${selected.size} categoria(s) movida(s)`);
       setSelected(new Set());
       setBatchParentId("__none__");
-      refetch();
+      refetchAll();
     }
     setBatchSaving(false);
   };
@@ -123,7 +123,7 @@ export default function Categorias() {
     } else {
       toast.success(`${selected.size} categoria(s) excluída(s)`);
       setSelected(new Set());
-      refetch();
+      refetchAll();
     }
     setBatchDeleting(false);
     setBatchDeleteOpen(false);
@@ -158,7 +158,7 @@ export default function Categorias() {
     setSelected(new Set());
     setBatchVisibilityOpen(false);
     setBatchVisibilitySaving(false);
-    refetch();
+    refetchAll();
   };
 
   const { data: categories = [], refetch } = useQuery({
@@ -191,7 +191,7 @@ export default function Categorias() {
     },
   });
 
-  const { data: categoryCompanies = [] } = useQuery({
+  const { data: categoryCompanies = [], refetch: refetchCatCompanies } = useQuery({
     queryKey: ["category-companies", user?.id],
     enabled: !!user,
     queryFn: async () => {
@@ -201,6 +201,11 @@ export default function Categorias() {
       return data ?? [];
     },
   });
+
+  const refetchAll = useCallback(() => {
+    refetch();
+    refetchCatCompanies();
+  }, [refetch, refetchCatCompanies]);
 
   const companyMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -271,7 +276,7 @@ export default function Categorias() {
     if (!deleteId) return;
     const { error } = await supabase.from("categories").delete().eq("id", deleteId);
     if (error) toast.error("Erro ao excluir", { description: error.message });
-    else { toast.success("Categoria excluída"); refetch(); }
+    else { toast.success("Categoria excluída"); refetchAll(); }
     setDeleteId(null);
   };
 
@@ -323,7 +328,7 @@ export default function Categorias() {
       supabase.from("categories").update({ sort_order: i }).eq("id", cat.id)
     );
     await Promise.all(updates);
-    refetch();
+    refetchAll();
   };
 
   const toggleSelect = (id: string) => {
@@ -626,7 +631,7 @@ export default function Categorias() {
       <CategoryFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        onSaved={() => refetch()}
+        onSaved={() => refetchAll()}
         editCategory={editCat}
         defaultParentId={defaultParentId}
         defaultType={defaultType}
