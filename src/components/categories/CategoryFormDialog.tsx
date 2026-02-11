@@ -149,24 +149,6 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label>Ícone</Label>
-            <div className="grid grid-cols-9 gap-1.5">
-              {ICON_OPTIONS.map((ic) => (
-                <button
-                  key={ic}
-                  type="button"
-                  onClick={() => setIcon(ic)}
-                  className={`flex items-center justify-center h-8 w-8 rounded-md border text-xs transition-colors ${
-                    icon === ic ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-muted"
-                  }`}
-                  title={ic}
-                >
-                  {ic.slice(0, 2).toUpperCase()}
-                </button>
-              ))}
-            </div>
-          </div>
 
           <div className="space-y-2">
             <Label>Cor</Label>
