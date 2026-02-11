@@ -39,7 +39,7 @@ const secondaryItems = [
   { title: "Empresas", url: "/empresas", icon: Building2 },
   { title: "Contas Bancárias", url: "/contas-bancarias", icon: Landmark },
   { title: "Relatórios", url: "/relatorios", icon: FileBarChart },
-  { title: "Contatos", url: "/contatos", icon: Users },
+  { title: "Clientes / Fornecedores", url: "/contatos", icon: Users },
   { title: "Categorias", url: "/categorias", icon: FolderTree },
   { title: "Usuários", url: "/gestao-usuarios", icon: UserCog },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
