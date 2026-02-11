@@ -1,0 +1,224 @@
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CurrencyInput, parseCurrencyToNumber } from "@/components/ui/currency-input";
+import { toast } from "sonner";
+import { Calendar } from "lucide-react";
+import type { Tables } from "@/integrations/supabase/types";
+
+type TransactionType = "receita" | "despesa" | "transferencia";
+
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreated: () => void;
+}
+
+export function TransactionFormDialog({ open, onOpenChange, onCreated }: Props) {
+  const { user } = useAuth();
+  const [type, setType] = useState<TransactionType>("despesa");
+  const [description, setDescription] = useState("");
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [accountId, setAccountId] = useState("");
+  const [destinationAccountId, setDestinationAccountId] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const [accounts, setAccounts] = useState<Tables<"accounts">[]>([]);
+  const [categories, setCategories] = useState<Tables<"categories">[]>([]);
+
+  useEffect(() => {
+    if (!user || !open) return;
+    const loadData = async () => {
+      const [accRes, catRes] = await Promise.all([
+        supabase.from("accounts").select("*").eq("user_id", user.id).eq("is_active", true),
+        supabase.from("categories").select("*").eq("user_id", user.id),
+      ]);
+      setAccounts(accRes.data ?? []);
+      setCategories(catRes.data ?? []);
+      if (accRes.data?.[0] && !accountId) setAccountId(accRes.data[0].id);
+    };
+    loadData();
+  }, [user, open]);
+
+  const filteredCategories = categories.filter(
+    (c) => type === "transferencia" || c.transaction_type === type
+  );
+
+  const resetForm = () => {
+    setType("despesa");
+    setDescription("");
+    setAmount("");
+    setDate(new Date().toISOString().split("T")[0]);
+    setAccountId(accounts[0]?.id ?? "");
+    setDestinationAccountId("");
+    setCategoryId("");
+    setNotes("");
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    const numAmount = parseCurrencyToNumber(amount);
+    if (!description.trim()) return toast.error("Informe a descrição");
+    if (numAmount <= 0) return toast.error("Informe o valor");
+    if (!accountId) return toast.error("Selecione uma conta");
+    if (type === "transferencia" && !destinationAccountId) return toast.error("Selecione a conta de destino");
+
+    setSaving(true);
+    const { error } = await supabase.from("transactions").insert({
+      user_id: user.id,
+      transaction_type: type,
+      description: description.trim(),
+      amount: numAmount,
+      transaction_date: date,
+      account_id: accountId,
+      destination_account_id: type === "transferencia" ? destinationAccountId : null,
+      category_id: categoryId || null,
+      notes: notes.trim() || null,
+    });
+
+    if (error) {
+      toast.error("Erro ao salvar", { description: error.message });
+    } else {
+      toast.success("Lançamento criado!");
+      resetForm();
+      onOpenChange(false);
+      onCreated();
+    }
+    setSaving(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Novo Lançamento</DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Type tabs */}
+          <Tabs value={type} onValueChange={(v) => setType(v as TransactionType)}>
+            <TabsList className="w-full grid grid-cols-3">
+              <TabsTrigger value="receita" className="data-[state=active]:bg-success data-[state=active]:text-success-foreground">
+                Receita
+              </TabsTrigger>
+              <TabsTrigger value="despesa" className="data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground">
+                Despesa
+              </TabsTrigger>
+              <TabsTrigger value="transferencia">
+                Transferência
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          {/* Amount */}
+          <div className="space-y-2">
+            <Label>Valor</Label>
+            <CurrencyInput value={amount} onValueChange={setAmount} placeholder="0,00" />
+          </div>
+
+          {/* Description */}
+          <div className="space-y-2">
+            <Label>Descrição</Label>
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Ex: Supermercado, Salário..."
+              maxLength={200}
+            />
+          </div>
+
+          {/* Date */}
+          <div className="space-y-2">
+            <Label>Data</Label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          {/* Account */}
+          <div className="space-y-2">
+            <Label>{type === "transferencia" ? "Conta de origem" : "Conta"}</Label>
+            <Select value={accountId} onValueChange={setAccountId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a conta" />
+              </SelectTrigger>
+              <SelectContent>
+                {accounts.map((acc) => (
+                  <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Destination account (transfer) */}
+          {type === "transferencia" && (
+            <div className="space-y-2">
+              <Label>Conta de destino</Label>
+              <Select value={destinationAccountId} onValueChange={setDestinationAccountId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o destino" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.filter((a) => a.id !== accountId).map((acc) => (
+                    <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Category */}
+          {type !== "transferencia" && (
+            <div className="space-y-2">
+              <Label>Categoria (opcional)</Label>
+              <Select value={categoryId} onValueChange={setCategoryId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredCategories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Notes */}
+          <div className="space-y-2">
+            <Label>Observações (opcional)</Label>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Anotações adicionais..."
+              rows={2}
+              maxLength={500}
+            />
+          </div>
+
+          <Button type="submit" className="w-full" disabled={saving}>
+            {saving ? "Salvando..." : "Salvar Lançamento"}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
