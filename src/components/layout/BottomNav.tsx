@@ -4,7 +4,7 @@ import { NavLink } from "@/components/NavLink";
 const items = [
   { title: "Início", url: "/", icon: LayoutDashboard },
   { title: "Lançamentos", url: "/lancamentos", icon: ArrowLeftRight },
-  { title: "Contas", url: "/contas", icon: Wallet },
+  { title: "Contas à Pagar", url: "/contas", icon: Wallet },
   { title: "Fluxo", url: "/fluxo-caixa", icon: TrendingUp },
   { title: "Mais", url: "/configuracoes", icon: Settings },
 ];
