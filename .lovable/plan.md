@@ -1,17 +1,40 @@
 
 
-## Atualizar a Logomarca do Gestor Plin
+## Melhorar Visualizacao da Pagina Contas Bancarias
 
-### O que sera feito
-Copiar a nova imagem enviada para `public/images/logo-gestor-plin.png`, substituindo o arquivo anterior. O codigo do sidebar ja aponta para esse caminho, entao nenhuma alteracao de codigo sera necessaria.
+### Problemas Identificados
+- Cards de resumo (Saldo Total, Contas Ativas) muito simples, sem cor ou destaque
+- Cards de conta bancaria com aparencia de "lista" sem hierarquia visual
+- Icones e badges sem contraste com a identidade visual da plataforma (azul escuro #1B3A5C)
+- Falta de uso das cores da plataforma (verde para valores positivos, vermelho para negativos)
 
-### Passos
+### Melhorias Planejadas
 
-1. Copiar `user-uploads://Logo_Gestor_Plin_Lovable.png` para `public/images/logo-gestor-plin.png` (sobrescrevendo o arquivo vazio anterior)
-2. Verificar que `AppSidebar.tsx` ja referencia `/images/logo-gestor-plin.png` (confirmado - nenhuma alteracao de codigo necessaria)
+**1. Cards de Resumo (Saldo Total / Contas Ativas)**
+- Adicionar fundo com gradiente sutil usando a cor primaria (azul escuro)
+- Icones decorativos nos cards de resumo
+- Texto com melhor hierarquia visual
 
-### Detalhes tecnicos
-- O arquivo sera colocado em `public/images/` para ser servido estaticamente
-- A constante `logoGestorPlin` em `AppSidebar.tsx` ja aponta para `/images/logo-gestor-plin.png`
-- A classe CSS `h-9 w-auto` mantera a altura em 36px com largura proporcional
+**2. Cards de Conta Bancaria**
+- Icone da conta com fundo mais visivel usando a cor da conta ou primaria
+- Saldo positivo em verde (#27AE60), negativo em vermelho (#E74C3C)
+- Badge de tipo com cores mais visiveis
+- Borda lateral colorida para destaque visual
+- Espacamento e padding melhorados
 
+**3. Contraste Geral**
+- Botoes de acao (editar/excluir) com hover mais evidente
+- Switch com cores mais contrastantes
+- Melhor separacao visual entre elementos
+
+### Detalhes Tecnicos
+
+Arquivo a ser modificado: `src/pages/ContasBancarias.tsx`
+
+Alteracoes principais:
+- Cards de resumo: adicionar classes de fundo `bg-primary text-primary-foreground` no card de saldo e `bg-muted` no card de contas ativas, com icones `Wallet` e `Landmark`
+- Cards de conta: adicionar `border-l-4` com cor dinamica da conta, aumentar o icone container para `h-10 w-10`, aplicar `text-success` para saldos positivos
+- Badge de tipo: usar `bg-primary/10 text-primary` em vez do `variant="secondary"` padrao
+- Botoes de acao: cores mais explicitas no hover
+
+Nenhuma alteracao de banco de dados ou dependencias novas necessaria.
