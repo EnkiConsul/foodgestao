@@ -10,6 +10,7 @@ import {
   FolderTree,
   Landmark,
   Building2,
+  CreditCard,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -39,6 +40,7 @@ const mainItems = [
 const secondaryItems = [
   { title: "Empresas", url: "/empresas", icon: Building2 },
   { title: "Contas Bancárias", url: "/contas-bancarias", icon: Landmark },
+  { title: "Formas de Pagamento", url: "/formas-pagamento", icon: CreditCard },
   { title: "Clientes / Fornecedores", url: "/contatos", icon: Users },
   { title: "Categorias", url: "/categorias", icon: FolderTree },
   { title: "Usuários", url: "/gestao-usuarios", icon: UserCog },
