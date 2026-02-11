@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
 import { Plus, Search, Landmark, Pencil, Trash2, Wallet } from "lucide-react";
 import { toast } from "sonner";
@@ -32,6 +33,7 @@ export default function ContasBancarias() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<Account | null>(null);
+  const [deleteAccount, setDeleteAccount] = useState<Account | null>(null);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
 
@@ -50,10 +52,12 @@ export default function ContasBancarias() {
 
   useEffect(() => { fetchAccounts(); }, [fetchAccounts]);
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("accounts").delete().eq("id", id);
+  const handleDelete = async () => {
+    if (!deleteAccount) return;
+    const { error } = await supabase.from("accounts").delete().eq("id", deleteAccount.id);
     if (error) toast.error("Erro ao excluir conta");
     else { toast.success("Conta excluída"); fetchAccounts(); }
+    setDeleteAccount(null);
   };
 
   const handleToggleActive = async (account: Account) => {
@@ -191,7 +195,7 @@ export default function ContasBancarias() {
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
-                  onClick={() => handleDelete(a.id)}
+                  onClick={() => setDeleteAccount(a)}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
@@ -215,6 +219,23 @@ export default function ContasBancarias() {
         onSaved={fetchAccounts}
         account={editAccount}
       />
+
+      <AlertDialog open={!!deleteAccount} onOpenChange={(open) => { if (!open) setDeleteAccount(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir conta bancária</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a conta <strong>{deleteAccount?.name}</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
