@@ -11,7 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
-import { Plus, Search, Tag, Pencil, Trash2, ChevronRight, Filter, ChevronsUpDown, GripVertical, FolderTree } from "lucide-react";
+import { Plus, Search, Tag, Pencil, Trash2, ChevronRight, Filter, ChevronsUpDown, GripVertical, FolderTree, Eye } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
@@ -68,6 +70,10 @@ export default function Categorias() {
   const [batchSaving, setBatchSaving] = useState(false);
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
   const [batchDeleting, setBatchDeleting] = useState(false);
+  const [batchVisibilityOpen, setBatchVisibilityOpen] = useState(false);
+  const [batchVisiblePf, setBatchVisiblePf] = useState(true);
+  const [batchSelectedCompanies, setBatchSelectedCompanies] = useState<Set<string>>(new Set());
+  const [batchVisibilitySaving, setBatchVisibilitySaving] = useState(false);
 
   const handleBatchChangeParent = async () => {
     if (selected.size === 0) return;
@@ -105,6 +111,38 @@ export default function Categorias() {
     }
     setBatchDeleting(false);
     setBatchDeleteOpen(false);
+  };
+
+  const handleBatchVisibility = async () => {
+    if (selected.size === 0) return;
+    setBatchVisibilitySaving(true);
+    const ids = Array.from(selected);
+    
+    // Update visible_pf for all selected
+    const updates = ids.map((id) =>
+      supabase.from("categories").update({ visible_pf: batchVisiblePf } as any).eq("id", id)
+    );
+    await Promise.all(updates);
+
+    // Sync category_companies for all selected
+    await Promise.all(ids.map((id) =>
+      supabase.from("category_companies").delete().eq("category_id", id)
+    ));
+    if (batchSelectedCompanies.size > 0) {
+      const rows = ids.flatMap((catId) =>
+        Array.from(batchSelectedCompanies).map((companyId) => ({
+          category_id: catId,
+          company_id: companyId,
+        }))
+      );
+      await supabase.from("category_companies").insert(rows);
+    }
+
+    toast.success(`Visibilidade atualizada para ${selected.size} categoria(s)`);
+    setSelected(new Set());
+    setBatchVisibilityOpen(false);
+    setBatchVisibilitySaving(false);
+    refetch();
   };
 
   const { data: categories = [], refetch } = useQuery({
@@ -368,6 +406,14 @@ export default function Categorias() {
             </Button>
           </div>
           <div className="flex items-center gap-2 ml-auto">
+            <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => {
+              setBatchVisiblePf(true);
+              setBatchSelectedCompanies(new Set(companies.map((c) => c.id)));
+              setBatchVisibilityOpen(true);
+            }}>
+              <Eye className="h-3.5 w-3.5" />
+              Visibilidade
+            </Button>
             <Button variant="destructive" size="sm" className="h-8 text-xs gap-1" onClick={() => setBatchDeleteOpen(true)}>
               <Trash2 className="h-3.5 w-3.5" />
               Excluir
@@ -581,6 +627,45 @@ export default function Categorias() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={batchVisibilityOpen} onOpenChange={setBatchVisibilityOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Alterar Visibilidade ({selected.size} categorias)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Selecione onde as categorias ficarão disponíveis</p>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={batchVisiblePf} onCheckedChange={(v) => setBatchVisiblePf(!!v)} />
+              Pessoa Física (PF)
+            </label>
+            {companies.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Empresas</p>
+                {companies.map((company) => (
+                  <label key={company.id} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={batchSelectedCompanies.has(company.id)}
+                      onCheckedChange={() => {
+                        setBatchSelectedCompanies((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(company.id)) next.delete(company.id);
+                          else next.add(company.id);
+                          return next;
+                        });
+                      }}
+                    />
+                    {company.name}
+                  </label>
+                ))}
+              </div>
+            )}
+            <Button className="w-full" onClick={handleBatchVisibility} disabled={batchVisibilitySaving}>
+              {batchVisibilitySaving ? "Salvando..." : "Aplicar"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
