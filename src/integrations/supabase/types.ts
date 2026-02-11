@@ -240,6 +240,7 @@ export type Database = {
           color: string | null
           context: Database["public"]["Enums"]["context_type"] | null
           created_at: string
+          hierarchy_index: string | null
           icon: string | null
           id: string
           is_system: boolean
@@ -253,6 +254,7 @@ export type Database = {
           color?: string | null
           context?: Database["public"]["Enums"]["context_type"] | null
           created_at?: string
+          hierarchy_index?: string | null
           icon?: string | null
           id?: string
           is_system?: boolean
@@ -266,6 +268,7 @@ export type Database = {
           color?: string | null
           context?: Database["public"]["Enums"]["context_type"] | null
           created_at?: string
+          hierarchy_index?: string | null
           icon?: string | null
           id?: string
           is_system?: boolean
