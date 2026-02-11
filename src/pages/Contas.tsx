@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,7 @@ function computeStatus(bill: Bill): BillStatus {
 
 export default function Contas() {
   const { user } = useAuth();
+  const { contextType, selectedCompanyId } = useCompanyContext();
   const { maskBRL } = usePrivacy();
   const [bills, setBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,12 +67,17 @@ export default function Contas() {
   const fetchBills = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase
+    let q = supabase
       .from("bills")
       .select("id, description, amount, amount_paid, bill_type, due_date, payment_date, status, category_id, account_id, contact_id, categories(name), accounts!bills_account_id_fkey(name)")
       .eq("user_id", user.id)
+      .eq("context", contextType)
       .order("due_date", { ascending: true })
       .limit(200);
+
+    if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
+
+    const { data, error } = await q;
 
     if (error) {
       toast.error("Erro ao carregar contas");
@@ -78,7 +85,7 @@ export default function Contas() {
       setBills((data as unknown as Bill[]) ?? []);
     }
     setLoading(false);
-  }, [user]);
+  }, [user, contextType, selectedCompanyId]);
 
   useEffect(() => { fetchBills(); }, [fetchBills]);
 

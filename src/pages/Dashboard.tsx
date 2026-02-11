@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Wallet, Target, Landmark } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -25,45 +26,55 @@ const DONUT_COLORS = [
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { contextType, selectedCompanyId } = useCompanyContext();
   const { maskBRL } = usePrivacy();
 
   const { data: transactions = [] } = useQuery({
-    queryKey: ["dashboard-transactions", user?.id],
+    queryKey: ["dashboard-transactions", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
     queryFn: async () => {
       const now = new Date();
       const startOfYear = new Date(now.getFullYear(), 0, 1).toISOString().split("T")[0];
-      const { data } = await supabase
+      let q = supabase
         .from("transactions")
         .select("amount, transaction_type, transaction_date, category_id, status")
         .eq("user_id", user!.id)
+        .eq("context", contextType)
         .gte("transaction_date", startOfYear)
         .neq("status", "cancelado");
+      if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
+      const { data } = await q;
       return data ?? [];
     },
   });
 
   const { data: categories = [] } = useQuery({
-    queryKey: ["dashboard-categories", user?.id],
+    queryKey: ["dashboard-categories", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase
+      let q = supabase
         .from("categories")
         .select("id, name, color")
         .eq("user_id", user!.id);
+      if (contextType === "pf") q = q.or("context.is.null,context.eq.pf");
+      else q = q.or("context.is.null,context.eq.pj");
+      const { data } = await q;
       return data ?? [];
     },
   });
 
   const { data: accounts = [] } = useQuery({
-    queryKey: ["dashboard-accounts", user?.id],
+    queryKey: ["dashboard-accounts", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase
+      let q = supabase
         .from("accounts")
         .select("current_balance, is_active")
         .eq("user_id", user!.id)
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .eq("context", contextType);
+      if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
+      const { data } = await q;
       return data ?? [];
     },
   });

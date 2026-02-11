@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { PrivacyProvider } from "@/hooks/usePrivacy";
+import { CompanyContextProvider } from "@/hooks/useCompanyContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
@@ -112,9 +113,11 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <PrivacyProvider>
-            <AppRoutes />
-          </PrivacyProvider>
+          <CompanyContextProvider>
+            <PrivacyProvider>
+              <AppRoutes />
+            </PrivacyProvider>
+          </CompanyContextProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

@@ -1,7 +1,8 @@
-import { Bell, Eye, EyeOff, Menu } from "lucide-react";
+import { Bell, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { ContextSelector } from "@/components/layout/ContextSelector";
 
 export function AppHeader() {
   const [privacyMode, setPrivacyMode] = useState(false);
@@ -12,6 +13,8 @@ export function AppHeader() {
       <div className="md:hidden">
         <SidebarTrigger />
       </div>
+
+      <ContextSelector />
 
       <div className="flex-1" />
 

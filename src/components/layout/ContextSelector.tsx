@@ -1,0 +1,42 @@
+import { User, Building2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+
+export function ContextSelector() {
+  const { contextType, selectedCompanyId, companies, setContext } = useCompanyContext();
+
+  const currentValue = contextType === "pf" ? "pf|null" : `pj|${selectedCompanyId}`;
+
+  const handleChange = (val: string) => {
+    const [type, companyId] = val.split("|");
+    setContext(type as "pf" | "pj", companyId === "null" ? null : companyId);
+  };
+
+  return (
+    <Select value={currentValue} onValueChange={handleChange}>
+      <SelectTrigger className="h-8 w-[180px] text-xs gap-1.5 border-dashed">
+        {contextType === "pf" ? (
+          <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        ) : (
+          <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        )}
+        <SelectValue placeholder="Selecione o perfil" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="pf|null">
+          <span className="flex items-center gap-2">
+            <User className="h-3.5 w-3.5" /> Pessoal
+          </span>
+        </SelectItem>
+        {companies.map((c) => (
+          <SelectItem key={c.id} value={`pj|${c.id}`}>
+            <span className="flex items-center gap-2">
+              <Building2 className="h-3.5 w-3.5" />
+              <span className="truncate max-w-[140px]">{c.trade_name || c.name}</span>
+            </span>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}

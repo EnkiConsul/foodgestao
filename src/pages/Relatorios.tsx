@@ -1,5 +1,6 @@
 import { useMemo, useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -71,6 +72,7 @@ type ReportTab = "resumo" | "categorias";
 
 export default function Relatorios() {
   const { user } = useAuth();
+  const { contextType, selectedCompanyId } = useCompanyContext();
   const { maskBRL } = usePrivacy();
   const formatBRL = maskBRL;
   const [tab, setTab] = useState<ReportTab>("resumo");
@@ -79,28 +81,34 @@ export default function Relatorios() {
   const reportRef = useRef<HTMLDivElement>(null);
 
   const { data: transactions = [] } = useQuery({
-    queryKey: ["relatorios-tx", user?.id, startDate, endDate],
+    queryKey: ["relatorios-tx", user?.id, startDate, endDate, contextType, selectedCompanyId],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase
+      let q = supabase
         .from("transactions")
         .select("amount, transaction_type, transaction_date, category_id, status")
         .eq("user_id", user!.id)
+        .eq("context", contextType)
         .gte("transaction_date", format(startDate, "yyyy-MM-dd"))
         .lte("transaction_date", format(endDate, "yyyy-MM-dd"))
         .neq("status", "cancelado");
+      if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
+      const { data } = await q;
       return data ?? [];
     },
   });
 
   const { data: categories = [] } = useQuery({
-    queryKey: ["relatorios-cats", user?.id],
+    queryKey: ["relatorios-cats", user?.id, contextType],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase
+      let q = supabase
         .from("categories")
         .select("id, name, color, transaction_type")
         .eq("user_id", user!.id);
+      if (contextType === "pf") q = q.or("context.is.null,context.eq.pf");
+      else q = q.or("context.is.null,context.eq.pj");
+      const { data } = await q;
       return data ?? [];
     },
   });
