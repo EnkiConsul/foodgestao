@@ -27,7 +27,7 @@ import {
 const mainItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Lançamentos", url: "/lancamentos", icon: ArrowLeftRight },
-  { title: "Contas", url: "/contas", icon: Wallet },
+  { title: "Contas à Pagar", url: "/contas", icon: Wallet },
   { title: "Fluxo de Caixa", url: "/fluxo-caixa", icon: TrendingUp },
   { title: "Orçamento", url: "/orcamento", icon: Target },
 ];
