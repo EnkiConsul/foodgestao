@@ -18,6 +18,8 @@ import Contatos from "./pages/Contatos";
 import Categorias from "./pages/Categorias";
 import ContasBancarias from "./pages/ContasBancarias";
 import Configuracoes from "./pages/Configuracoes";
+import GestaoUsuarios from "./pages/GestaoUsuarios";
+import AcceptInvite from "./pages/AcceptInvite";
 import NotFound from "./pages/NotFound";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -94,7 +96,9 @@ const AppRoutes = () => (
       <Route path="/categorias" element={<Categorias />} />
       <Route path="/contas-bancarias" element={<ContasBancarias />} />
       <Route path="/configuracoes" element={<Configuracoes />} />
+      <Route path="/gestao-usuarios" element={<GestaoUsuarios />} />
     </Route>
+    <Route path="/convite/:token" element={<AcceptInvite />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
