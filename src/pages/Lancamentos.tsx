@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,7 @@ const typeConfig = {
 
 export default function Lancamentos() {
   const { user } = useAuth();
+  const { maskBRL } = usePrivacy();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -84,8 +86,7 @@ export default function Lancamentos() {
     { receitas: 0, despesas: 0 }
   );
 
-  const formatBRL = (v: number) =>
-    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const formatBRL = maskBRL;
 
   return (
     <div className="space-y-6">

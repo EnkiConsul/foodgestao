@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +51,7 @@ function computeStatus(bill: Bill): BillStatus {
 
 export default function Contas() {
   const { user } = useAuth();
+  const { maskBRL } = usePrivacy();
   const [bills, setBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -102,7 +104,7 @@ export default function Contas() {
     return { aPagar, aReceber, atrasadas };
   }, [filtered]);
 
-  const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const formatBRL = maskBRL;
 
   return (
     <div className="space-y-6">

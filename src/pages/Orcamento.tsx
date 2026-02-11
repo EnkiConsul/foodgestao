@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +13,7 @@ import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const formatBRL = (v: number) =>
+const formatBRLRaw = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 function getAlertLevel(percent: number, alerts: { a70: boolean; a90: boolean; a100: boolean }) {
@@ -24,6 +25,8 @@ function getAlertLevel(percent: number, alerts: { a70: boolean; a90: boolean; a1
 
 export default function Orcamento() {
   const { user } = useAuth();
+  const { maskBRL } = usePrivacy();
+  const formatBRL = maskBRL;
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const { data: budgets = [], refetch } = useQuery({
