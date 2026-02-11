@@ -38,24 +38,42 @@ export function BillFormDialog({ open, onOpenChange, onCreated }: Props) {
   const [accounts, setAccounts] = useState<Tables<"accounts">[]>([]);
   const [categories, setCategories] = useState<Tables<"categories">[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<Tables<"payment_methods">[]>([]);
+  const [categoryCompanyIds, setCategoryCompanyIds] = useState<Map<string, string[]>>(new Map());
 
   useEffect(() => {
     if (!user || !open) return;
     const load = async () => {
-      const [accRes, catRes, pmRes] = await Promise.all([
+      const [accRes, catRes, pmRes, ccRes] = await Promise.all([
         supabase.from("accounts").select("*").eq("user_id", user.id).eq("is_active", true),
         supabase.from("categories").select("*").eq("user_id", user.id),
         supabase.from("payment_methods").select("*").eq("user_id", user.id).eq("is_active", true),
+        supabase.from("category_companies").select("category_id, company_id"),
       ]);
       setAccounts(accRes.data ?? []);
       setCategories(catRes.data ?? []);
       setPaymentMethods(pmRes.data ?? []);
       if (accRes.data?.[0] && !accountId) setAccountId(accRes.data[0].id);
+
+      const map = new Map<string, string[]>();
+      (ccRes.data ?? []).forEach((cc) => {
+        const list = map.get(cc.category_id) || [];
+        list.push(cc.company_id);
+        map.set(cc.category_id, list);
+      });
+      setCategoryCompanyIds(map);
     };
     load();
   }, [user, open]);
 
-  const filteredCategories = categories.filter((c) => c.transaction_type === type);
+  const filteredCategories = categories.filter((c) => {
+    if (c.transaction_type !== type) return false;
+    if (contextType === "pf") return (c as any).visible_pf !== false;
+    if (contextType === "pj" && selectedCompanyId) {
+      const companyIds = categoryCompanyIds.get(c.id) || [];
+      return companyIds.includes(selectedCompanyId);
+    }
+    return true;
+  });
 
   const resetForm = () => {
     setType("despesa");
