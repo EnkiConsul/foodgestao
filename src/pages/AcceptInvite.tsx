@@ -84,7 +84,7 @@ export default function AcceptInvite() {
             <CardHeader className="text-center">
               <CardTitle>Convite para Empresa</CardTitle>
               <CardDescription>
-                Você recebeu um convite para se juntar a uma empresa no FinControl.
+                Você recebeu um convite para se juntar a uma empresa no Gestor Plin.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center gap-4">
