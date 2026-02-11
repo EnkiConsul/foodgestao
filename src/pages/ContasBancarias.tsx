@@ -1,0 +1,220 @@
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { usePrivacy } from "@/hooks/usePrivacy";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
+import { Plus, Search, Landmark, Pencil, Trash2, Wallet } from "lucide-react";
+import { toast } from "sonner";
+import type { Database } from "@/integrations/supabase/types";
+
+type AccountType = Database["public"]["Enums"]["account_type"];
+type Account = Database["public"]["Tables"]["accounts"]["Row"];
+
+const accountTypeLabels: Record<AccountType, string> = {
+  corrente: "Corrente",
+  poupanca: "Poupança",
+  investimento: "Investimento",
+  cartao_credito: "Cartão de Crédito",
+  dinheiro: "Dinheiro",
+  outro: "Outro",
+};
+
+export default function ContasBancarias() {
+  const { user } = useAuth();
+  const { maskBRL } = usePrivacy();
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editAccount, setEditAccount] = useState<Account | null>(null);
+  const [search, setSearch] = useState("");
+  const [filterType, setFilterType] = useState<string>("all");
+
+  const fetchAccounts = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("accounts")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("name");
+    if (error) toast.error("Erro ao carregar contas bancárias");
+    else setAccounts(data ?? []);
+    setLoading(false);
+  }, [user]);
+
+  useEffect(() => { fetchAccounts(); }, [fetchAccounts]);
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from("accounts").delete().eq("id", id);
+    if (error) toast.error("Erro ao excluir conta");
+    else { toast.success("Conta excluída"); fetchAccounts(); }
+  };
+
+  const handleToggleActive = async (account: Account) => {
+    const { error } = await supabase
+      .from("accounts")
+      .update({ is_active: !account.is_active })
+      .eq("id", account.id);
+    if (error) toast.error("Erro ao atualizar status");
+    else fetchAccounts();
+  };
+
+  const filtered = useMemo(() => {
+    return accounts.filter((a) => {
+      const matchSearch = !search || a.name.toLowerCase().includes(search.toLowerCase());
+      const matchType = filterType === "all" || a.account_type === filterType;
+      return matchSearch && matchType;
+    });
+  }, [accounts, search, filterType]);
+
+  const totals = useMemo(() => {
+    const active = accounts.filter((a) => a.is_active);
+    const saldoTotal = active.reduce((s, a) => s + Number(a.current_balance), 0);
+    return { saldoTotal, activeCount: active.length };
+  }, [accounts]);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Contas Bancárias</h1>
+          <p className="text-sm text-muted-foreground">Gerencie suas contas e saldos</p>
+        </div>
+        <Button onClick={() => { setEditAccount(null); setDialogOpen(true); }} className="hidden md:flex">
+          <Plus className="h-4 w-4 mr-2" /> Nova Conta
+        </Button>
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 gap-3">
+        <Card className="shadow-sm">
+          <CardContent className="p-4 text-center">
+            <p className="text-xs text-muted-foreground">Saldo Total</p>
+            <p className="text-lg font-bold text-foreground">{maskBRL(totals.saldoTotal)}</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm">
+          <CardContent className="p-4 text-center">
+            <p className="text-xs text-muted-foreground">Contas Ativas</p>
+            <p className="text-lg font-bold text-foreground">{totals.activeCount}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[180px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Buscar conta..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" maxLength={100} />
+        </div>
+        <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os tipos</SelectItem>
+            {Object.entries(accountTypeLabels).map(([value, label]) => (
+              <SelectItem key={value} value={value}>{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Account list */}
+      <div className="space-y-2">
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <Card className="shadow-sm">
+            <CardContent className="flex flex-col items-center py-12 text-muted-foreground">
+              <Landmark className="h-10 w-10 mb-3 opacity-40" />
+              <p className="text-sm">Nenhuma conta bancária encontrada</p>
+              <Button variant="link" onClick={() => { setEditAccount(null); setDialogOpen(true); }} className="mt-2">
+                Criar primeira conta
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          filtered.map((a) => (
+            <Card key={a.id} className={`shadow-sm hover:shadow transition-shadow ${!a.is_active ? "opacity-60" : ""}`}>
+              <CardContent className="flex items-center gap-3 p-3">
+                <div
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                  style={{ backgroundColor: `${a.color || "hsl(var(--primary))"}20` }}
+                >
+                  <Wallet className="h-4 w-4" style={{ color: a.color || "hsl(var(--primary))" }} />
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium truncate">{a.name}</p>
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5 shrink-0">
+                      {accountTypeLabels[a.account_type]}
+                    </Badge>
+                    {!a.is_active && (
+                      <Badge variant="outline" className="text-[10px] h-4 px-1.5 shrink-0">Inativa</Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Saldo inicial: {maskBRL(Number(a.initial_balance))}
+                  </p>
+                </div>
+
+                <div className="text-right shrink-0">
+                  <p className={`text-sm font-semibold ${Number(a.current_balance) >= 0 ? "text-foreground" : "text-destructive"}`}>
+                    {maskBRL(Number(a.current_balance))}
+                  </p>
+                </div>
+
+                <Switch
+                  checked={a.is_active}
+                  onCheckedChange={() => handleToggleActive(a)}
+                  className="shrink-0"
+                />
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0"
+                  onClick={() => { setEditAccount(a); setDialogOpen(true); }}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                  onClick={() => handleDelete(a.id)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* FAB mobile */}
+      <button
+        onClick={() => { setEditAccount(null); setDialogOpen(true); }}
+        className="fixed bottom-20 right-4 z-50 md:hidden flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
+
+      <AccountFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSaved={fetchAccounts}
+        account={editAccount}
+      />
+    </div>
+  );
+}
