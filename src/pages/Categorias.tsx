@@ -305,11 +305,9 @@ export default function Categorias() {
                                   <span className="w-[18px]" />
                                 )}
                                 <div
-                                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-white text-[10px] font-bold"
+                                  className="h-3 w-3 shrink-0 rounded-full"
                                   style={{ backgroundColor: cat.color ?? "hsl(var(--primary))" }}
-                                >
-                                  {cat.icon ? cat.icon.slice(0, 2).toUpperCase() : cat.name.slice(0, 2).toUpperCase()}
-                                </div>
+                                />
                                 <span className={`text-sm ${cat.depth === 0 ? "font-semibold" : ""}`}>
                                   {cat.name}
                                 </span>
