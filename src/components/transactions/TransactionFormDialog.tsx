@@ -16,13 +16,26 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type TransactionType = "receita" | "despesa" | "transferencia";
 
+interface EditableTransaction {
+  id: string;
+  description: string;
+  amount: number;
+  transaction_type: TransactionType;
+  transaction_date: string;
+  account_id: string;
+  destination_account_id?: string | null;
+  category_id?: string | null;
+  notes?: string | null;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated: () => void;
+  transaction?: EditableTransaction | null;
 }
 
-export function TransactionFormDialog({ open, onOpenChange, onCreated }: Props) {
+export function TransactionFormDialog({ open, onOpenChange, onCreated, transaction }: Props) {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const [type, setType] = useState<TransactionType>("despesa");
@@ -52,6 +65,24 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated }: Props) 
     loadData();
   }, [user, open]);
 
+  // Populate form when editing
+  useEffect(() => {
+    if (transaction && open) {
+      setType(transaction.transaction_type);
+      setDescription(transaction.description);
+      setAmount(transaction.amount.toFixed(2).replace(".", ","));
+      setDate(transaction.transaction_date);
+      setAccountId(transaction.account_id);
+      setDestinationAccountId(transaction.destination_account_id ?? "");
+      setCategoryId(transaction.category_id ?? "");
+      setNotes(transaction.notes ?? "");
+    } else if (!transaction && open) {
+      resetForm();
+    }
+  }, [transaction, open]);
+
+  const isEditing = !!transaction;
+
   const filteredCategories = categories.filter(
     (c) => type === "transferencia" || c.transaction_type === type
   );
@@ -78,8 +109,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated }: Props) 
     if (type === "transferencia" && !destinationAccountId) return toast.error("Selecione a conta de destino");
 
     setSaving(true);
-    const { error } = await supabase.from("transactions").insert({
-      user_id: user.id,
+
+    const payload = {
       transaction_type: type,
       description: description.trim(),
       amount: numAmount,
@@ -90,12 +121,16 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated }: Props) 
       notes: notes.trim() || null,
       context: contextType,
       company_id: contextType === "pj" ? selectedCompanyId : null,
-    });
+    };
+
+    const { error } = isEditing
+      ? await supabase.from("transactions").update(payload).eq("id", transaction.id)
+      : await supabase.from("transactions").insert({ ...payload, user_id: user.id });
 
     if (error) {
       toast.error("Erro ao salvar", { description: error.message });
     } else {
-      toast.success("Lançamento criado!");
+      toast.success(isEditing ? "Lançamento atualizado!" : "Lançamento criado!");
       resetForm();
       onOpenChange(false);
       onCreated();
@@ -107,7 +142,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated }: Props) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Novo Lançamento</DialogTitle>
+          <DialogTitle>{isEditing ? "Editar Lançamento" : "Novo Lançamento"}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -219,7 +254,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated }: Props) 
           </div>
 
           <Button type="submit" className="w-full" disabled={saving}>
-            {saving ? "Salvando..." : "Salvar Lançamento"}
+            {saving ? "Salvando..." : isEditing ? "Atualizar Lançamento" : "Salvar Lançamento"}
           </Button>
         </form>
       </DialogContent>

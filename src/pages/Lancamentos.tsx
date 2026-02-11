@@ -488,6 +488,7 @@ export default function Lancamentos() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onCreated={() => { fetchTransactions(); fetchPreviousBalance(); }}
+        transaction={editTransaction}
       />
     </div>
   );
