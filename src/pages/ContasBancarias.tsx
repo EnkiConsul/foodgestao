@@ -102,16 +102,26 @@ export default function ContasBancarias() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-3">
-        <Card className="shadow-sm">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">Saldo Total</p>
-            <p className="text-lg font-bold text-foreground">{maskBRL(totals.saldoTotal)}</p>
+        <Card className="bg-primary text-primary-foreground shadow-md border-0">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-foreground/15">
+              <Wallet className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs opacity-80">Saldo Total</p>
+              <p className="text-lg font-bold">{maskBRL(totals.saldoTotal)}</p>
+            </div>
           </CardContent>
         </Card>
-        <Card className="shadow-sm">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">Contas Ativas</p>
-            <p className="text-lg font-bold text-foreground">{totals.activeCount}</p>
+        <Card className="bg-muted shadow-md border-0">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+              <Landmark className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Contas Ativas</p>
+              <p className="text-lg font-bold text-foreground">{totals.activeCount}</p>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -151,19 +161,23 @@ export default function ContasBancarias() {
           </Card>
         ) : (
           filtered.map((a) => (
-            <Card key={a.id} className={`shadow-sm hover:shadow transition-shadow ${!a.is_active ? "opacity-60" : ""}`}>
-              <CardContent className="flex items-center gap-3 p-3">
+            <Card
+              key={a.id}
+              className={`shadow-sm hover:shadow-md transition-shadow border-l-4 ${!a.is_active ? "opacity-60" : ""}`}
+              style={{ borderLeftColor: a.color || "hsl(var(--primary))" }}
+            >
+              <CardContent className="flex items-center gap-3 p-4">
                 <div
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
                   style={{ backgroundColor: `${a.color || "hsl(var(--primary))"}20` }}
                 >
-                  <Wallet className="h-4 w-4" style={{ color: a.color || "hsl(var(--primary))" }} />
+                  <Wallet className="h-5 w-5" style={{ color: a.color || "hsl(var(--primary))" }} />
                 </div>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium truncate">{a.name}</p>
-                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5 shrink-0">
+                    <p className="text-sm font-semibold truncate">{a.name}</p>
+                    <Badge className="text-[10px] h-4 px-1.5 shrink-0 bg-primary/10 text-primary border-0 hover:bg-primary/15">
                       {accountTypeLabels[a.account_type]}
                     </Badge>
                     {!a.is_active && (
@@ -176,7 +190,7 @@ export default function ContasBancarias() {
                 </div>
 
                 <div className="text-right shrink-0">
-                  <p className={`text-sm font-semibold ${Number(a.current_balance) >= 0 ? "text-foreground" : "text-destructive"}`}>
+                  <p className={`text-sm font-bold ${Number(a.current_balance) >= 0 ? "text-success" : "text-destructive"}`}>
                     {maskBRL(Number(a.current_balance))}
                   </p>
                 </div>
@@ -190,7 +204,7 @@ export default function ContasBancarias() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0"
+                  className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 shrink-0"
                   onClick={() => { setEditAccount(a); setDialogOpen(true); }}
                 >
                   <Pencil className="h-3.5 w-3.5" />
@@ -199,7 +213,7 @@ export default function ContasBancarias() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
                   onClick={() => setDeleteAccount(a)}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
