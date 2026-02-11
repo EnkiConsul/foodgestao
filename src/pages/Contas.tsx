@@ -27,6 +27,8 @@ type Bill = {
   payment_date: string | null;
   status: BillStatus;
   category_id: string | null;
+  account_id: string | null;
+  contact_id: string | null;
   categories: { name: string } | null;
   accounts: { name: string } | null;
 };
@@ -65,7 +67,7 @@ export default function Contas() {
     setLoading(true);
     const { data, error } = await supabase
       .from("bills")
-      .select("id, description, amount, amount_paid, bill_type, due_date, payment_date, status, category_id, categories(name), accounts!bills_account_id_fkey(name)")
+      .select("id, description, amount, amount_paid, bill_type, due_date, payment_date, status, category_id, account_id, contact_id, categories(name), accounts!bills_account_id_fkey(name)")
       .eq("user_id", user.id)
       .order("due_date", { ascending: true })
       .limit(200);
