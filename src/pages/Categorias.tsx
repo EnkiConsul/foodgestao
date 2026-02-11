@@ -301,7 +301,7 @@ export default function Categorias() {
                     </Badge>
                   </TableCell>
                   <TableCell className="py-1.5 text-right">
-                    <div className="flex justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex justify-end gap-0.5">
                       <TooltipProvider delayDuration={300}>
                         <Tooltip>
                           <TooltipTrigger asChild>
