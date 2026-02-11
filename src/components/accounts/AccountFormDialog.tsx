@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CurrencyInput, formatCurrency, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { toast } from "sonner";
+import { accountSchema, validateWithToast } from "@/lib/validations";
 import type { Database } from "@/integrations/supabase/types";
 
 type AccountType = Database["public"]["Enums"]["account_type"];
@@ -56,10 +57,13 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !name.trim()) return;
-    setSaving(true);
-
+    if (!user) return;
     const balance = parseCurrencyToNumber(initialBalance);
+
+    const validated = validateWithToast(accountSchema, { name, account_type: accountType, initial_balance: balance }, toast.error);
+    if (!validated) return;
+
+    setSaving(true);
 
     if (isEdit && account) {
       const { error } = await supabase

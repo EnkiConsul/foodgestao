@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CurrencyInput, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { toast } from "sonner";
+import { transactionSchema, validateWithToast } from "@/lib/validations";
 import { Calendar } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -125,9 +126,14 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     if (!user) return;
 
     const numAmount = parseCurrencyToNumber(amount);
-    if (!description.trim()) return toast.error("Informe a descrição");
-    if (numAmount <= 0) return toast.error("Informe o valor");
-    if (!accountId) return toast.error("Selecione uma conta");
+    const validated = validateWithToast(transactionSchema, {
+      description, amount: numAmount, transaction_type: type,
+      transaction_date: date, account_id: accountId || "",
+      destination_account_id: type === "transferencia" ? destinationAccountId || "" : null,
+      category_id: categoryId || null, notes: notes || null,
+      payment_method_id: paymentMethodId || null,
+    }, toast.error);
+    if (!validated) return;
     if (type === "transferencia" && !destinationAccountId) return toast.error("Selecione a conta de destino");
 
     setSaving(true);

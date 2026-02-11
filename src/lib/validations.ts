@@ -1,0 +1,84 @@
+import { z } from "zod";
+
+// ---- Company ----
+export const companySchema = z.object({
+  name: z.string().trim().min(1, "Razão social é obrigatória").max(200),
+  trade_name: z.string().trim().max(200).optional().nullable(),
+  cnpj: z.string().trim().max(20).optional().nullable(),
+  email: z.string().trim().email("E-mail inválido").max(100).optional().nullable().or(z.literal("")),
+  phone: z.string().trim().max(20).optional().nullable(),
+  address: z.string().trim().max(300).optional().nullable(),
+});
+
+// ---- Contact ----
+export const contactSchema = z.object({
+  name: z.string().trim().min(1, "Nome é obrigatório").max(100),
+  contact_type: z.enum(["cliente", "fornecedor", "ambos"]),
+  email: z.string().trim().email("E-mail inválido").max(100).optional().nullable().or(z.literal("")),
+  phone: z.string().trim().max(20).optional().nullable(),
+  document: z.string().trim().max(20).optional().nullable(),
+  address: z.string().trim().max(200).optional().nullable(),
+  notes: z.string().trim().max(500).optional().nullable(),
+});
+
+// ---- Account ----
+export const accountSchema = z.object({
+  name: z.string().trim().min(1, "Nome é obrigatório").max(100),
+  account_type: z.enum(["corrente", "poupanca", "investimento", "cartao_credito", "dinheiro", "outro"]),
+  initial_balance: z.number().finite().optional(),
+});
+
+// ---- Transaction ----
+export const transactionSchema = z.object({
+  description: z.string().trim().min(1, "Descrição é obrigatória").max(200),
+  amount: z.number().positive("Valor deve ser positivo").finite(),
+  transaction_type: z.enum(["receita", "despesa", "transferencia"]),
+  transaction_date: z.string().min(1, "Data é obrigatória"),
+  account_id: z.string().uuid("Selecione uma conta"),
+  destination_account_id: z.string().uuid().optional().nullable(),
+  category_id: z.string().uuid().optional().nullable().or(z.literal("")),
+  notes: z.string().trim().max(500).optional().nullable(),
+  payment_method_id: z.string().uuid().optional().nullable().or(z.literal("")),
+});
+
+// ---- Bill ----
+export const billSchema = z.object({
+  description: z.string().trim().min(1, "Descrição é obrigatória").max(200),
+  amount: z.number().positive("Valor deve ser positivo").finite(),
+  bill_type: z.enum(["receita", "despesa"]),
+  due_date: z.string().min(1, "Vencimento é obrigatório"),
+  account_id: z.string().uuid().optional().nullable().or(z.literal("")),
+  category_id: z.string().uuid().optional().nullable().or(z.literal("")),
+  notes: z.string().trim().max(500).optional().nullable(),
+  payment_method_id: z.string().uuid().optional().nullable().or(z.literal("")),
+});
+
+// ---- Category ----
+export const categorySchema = z.object({
+  name: z.string().trim().min(1, "Nome é obrigatório").max(50),
+  transaction_type: z.enum(["receita", "despesa"]),
+  color: z.string().max(20).optional().nullable(),
+});
+
+// ---- Budget ----
+export const budgetSchema = z.object({
+  category_id: z.string().uuid("Selecione uma categoria"),
+  amount: z.number().positive("Valor deve ser positivo").finite(),
+  period: z.enum(["mensal", "anual"]),
+  start_date: z.string().min(1, "Data início é obrigatória"),
+  end_date: z.string().min(1, "Data fim é obrigatória"),
+});
+
+// ---- Payment Method ----
+export const paymentMethodSchema = z.object({
+  name: z.string().trim().min(1, "Nome é obrigatório").max(60),
+  is_active: z.boolean(),
+});
+
+/** Helper: validate and return parsed data or null (shows toast on error) */
+export function validateWithToast<T>(schema: z.ZodSchema<T>, data: unknown, toastFn: (msg: string) => void): T | null {
+  const result = schema.safeParse(data);
+  if (result.success) return result.data;
+  toastFn(result.error.errors[0]?.message ?? "Dados inválidos");
+  return null;
+}

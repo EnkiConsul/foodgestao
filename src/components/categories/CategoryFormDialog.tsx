@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { categorySchema, validateWithToast } from "@/lib/validations";
 import type { Tables } from "@/integrations/supabase/types";
 
 const COLOR_OPTIONS = [
@@ -110,7 +111,8 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    if (!name.trim()) return toast.error("Informe o nome");
+    const catValidated = validateWithToast(categorySchema, { name, transaction_type: type, color }, toast.error);
+    if (!catValidated) return;
 
     setSaving(true);
 

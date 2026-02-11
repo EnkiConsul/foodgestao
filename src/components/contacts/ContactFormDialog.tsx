@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { contactSchema, validateWithToast } from "@/lib/validations";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface Props {
@@ -46,25 +47,24 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact }: 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    if (!name.trim()) return toast.error("Informe o nome");
+
+    const validated = validateWithToast(contactSchema, {
+      name, contact_type: contactType,
+      email: email || null, phone: phone || null,
+      document: document || null, address: address || null,
+      notes: notes || null,
+    }, toast.error);
+    if (!validated) return;
 
     setSaving(true);
-    const payload = {
-      name: name.trim(),
-      contact_type: contactType,
-      email: email.trim() || null,
-      phone: phone.trim() || null,
-      document: document.trim() || null,
-      address: address.trim() || null,
-      notes: notes.trim() || null,
-    };
+    const payload = validated;
 
     if (editContact) {
       const { error } = await supabase.from("contacts").update(payload).eq("id", editContact.id);
       if (error) toast.error("Erro ao atualizar", { description: error.message });
       else { toast.success("Contato atualizado!"); onOpenChange(false); onSaved(); }
     } else {
-      const { error } = await supabase.from("contacts").insert({ ...payload, user_id: user.id });
+      const { error } = await supabase.from("contacts").insert({ ...payload, user_id: user.id } as any);
       if (error) toast.error("Erro ao criar", { description: error.message });
       else { toast.success("Contato criado!"); onOpenChange(false); onSaved(); }
     }

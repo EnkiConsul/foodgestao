@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CurrencyInput, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { toast } from "sonner";
+import { billSchema, validateWithToast } from "@/lib/validations";
 import { Calendar } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -91,8 +92,12 @@ export function BillFormDialog({ open, onOpenChange, onCreated }: Props) {
     if (!user) return;
 
     const numAmount = parseCurrencyToNumber(amount);
-    if (!description.trim()) return toast.error("Informe a descrição");
-    if (numAmount <= 0) return toast.error("Informe o valor");
+    const validated = validateWithToast(billSchema, {
+      description, amount: numAmount, bill_type: type, due_date: dueDate,
+      account_id: accountId || null, category_id: categoryId || null,
+      notes: notes || null, payment_method_id: paymentMethodId || null,
+    }, toast.error);
+    if (!validated) return;
 
     setSaving(true);
     const { error } = await supabase.from("bills").insert({
