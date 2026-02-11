@@ -1,0 +1,125 @@
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import type { Tables } from "@/integrations/supabase/types";
+
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSaved: () => void;
+  editContact?: Tables<"contacts"> | null;
+}
+
+export function ContactFormDialog({ open, onOpenChange, onSaved, editContact }: Props) {
+  const { user } = useAuth();
+  const [name, setName] = useState("");
+  const [contactType, setContactType] = useState<"cliente" | "fornecedor" | "ambos">("cliente");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [document, setDocument] = useState("");
+  const [address, setAddress] = useState("");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (editContact) {
+      setName(editContact.name);
+      setContactType(editContact.contact_type as "cliente" | "fornecedor" | "ambos");
+      setEmail(editContact.email ?? "");
+      setPhone(editContact.phone ?? "");
+      setDocument(editContact.document ?? "");
+      setAddress(editContact.address ?? "");
+      setNotes(editContact.notes ?? "");
+    } else {
+      setName(""); setContactType("cliente"); setEmail(""); setPhone("");
+      setDocument(""); setAddress(""); setNotes("");
+    }
+  }, [editContact, open]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    if (!name.trim()) return toast.error("Informe o nome");
+
+    setSaving(true);
+    const payload = {
+      name: name.trim(),
+      contact_type: contactType,
+      email: email.trim() || null,
+      phone: phone.trim() || null,
+      document: document.trim() || null,
+      address: address.trim() || null,
+      notes: notes.trim() || null,
+    };
+
+    if (editContact) {
+      const { error } = await supabase.from("contacts").update(payload).eq("id", editContact.id);
+      if (error) toast.error("Erro ao atualizar", { description: error.message });
+      else { toast.success("Contato atualizado!"); onOpenChange(false); onSaved(); }
+    } else {
+      const { error } = await supabase.from("contacts").insert({ ...payload, user_id: user.id });
+      if (error) toast.error("Erro ao criar", { description: error.message });
+      else { toast.success("Contato criado!"); onOpenChange(false); onSaved(); }
+    }
+    setSaving(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{editContact ? "Editar Contato" : "Novo Contato"}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Nome *</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome completo ou razão social" maxLength={100} />
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo</Label>
+              <Select value={contactType} onValueChange={(v) => setContactType(v as typeof contactType)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cliente">Cliente</SelectItem>
+                  <SelectItem value="fornecedor">Fornecedor</SelectItem>
+                  <SelectItem value="ambos">Ambos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>CPF/CNPJ</Label>
+              <Input value={document} onChange={(e) => setDocument(e.target.value)} placeholder="000.000.000-00" maxLength={20} />
+            </div>
+            <div className="space-y-2">
+              <Label>E-mail</Label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" maxLength={100} />
+            </div>
+            <div className="space-y-2">
+              <Label>Telefone</Label>
+              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" maxLength={20} />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Endereço</Label>
+              <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, cidade" maxLength={200} />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Observações</Label>
+              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Anotações sobre o contato..." rows={3} maxLength={500} />
+            </div>
+          </div>
+          <Button type="submit" className="w-full" disabled={saving}>
+            {saving ? "Salvando..." : editContact ? "Atualizar" : "Criar Contato"}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
