@@ -48,7 +48,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory }
         .select("*")
         .eq("user_id", user!.id)
         .or(contextType === "pf" ? "context.is.null,context.eq.pf" : "context.is.null,context.eq.pj")
-        .is("parent_id", null)
+        .order("sort_order")
         .order("transaction_type")
         .order("name");
       return data ?? [];
