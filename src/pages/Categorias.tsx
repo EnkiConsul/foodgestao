@@ -11,8 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
-import { Plus, Search, Tag, Pencil, Trash2, ChevronUp, ChevronDown, ChevronRight, Filter, ChevronsUpDown } from "lucide-react";
+import { Plus, Search, Tag, Pencil, Trash2, ChevronRight, Filter, ChevronsUpDown, GripVertical } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -137,32 +138,35 @@ export default function Categorias() {
     setDialogOpen(true);
   };
 
-  const moveSort = async (cat: TreeNode, direction: "up" | "down") => {
-    // Find siblings (same parent_id and transaction_type)
+  const onDragEnd = async (result: DropResult) => {
+    if (!result.destination) return;
+    const srcIdx = result.source.index;
+    const destIdx = result.destination.index;
+    if (srcIdx === destIdx) return;
+
+    const draggedItem = visibleTree[srcIdx];
+    // Find siblings at same level with same parent and type
     const siblings = filtered
-      .filter((c) => c.parent_id === cat.parent_id && c.transaction_type === cat.transaction_type)
+      .filter((c) => c.parent_id === draggedItem.parent_id && c.transaction_type === draggedItem.transaction_type)
       .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
 
-    const idx = siblings.findIndex((c) => c.id === cat.id);
-    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
-    if (swapIdx < 0 || swapIdx >= siblings.length) return;
+    const oldIdx = siblings.findIndex((c) => c.id === draggedItem.id);
+    // Determine target based on visible tree destination
+    const targetItem = visibleTree[destIdx];
+    const newIdx = siblings.findIndex((c) => c.id === targetItem.id);
 
-    const neighbor = siblings[swapIdx];
-    const catOrder = cat.sort_order;
-    const neighborOrder = neighbor.sort_order;
+    if (oldIdx === -1 || newIdx === -1 || oldIdx === newIdx) return;
 
-    // If they have the same sort_order, offset to guarantee swap
-    const newCatOrder = neighborOrder === catOrder
-      ? (direction === "up" ? catOrder - 1 : catOrder + 1)
-      : neighborOrder;
-    const newNeighborOrder = neighborOrder === catOrder
-      ? catOrder
-      : catOrder;
+    // Reorder siblings
+    const reordered = [...siblings];
+    reordered.splice(oldIdx, 1);
+    reordered.splice(newIdx, 0, draggedItem);
 
-    await Promise.all([
-      supabase.from("categories").update({ sort_order: newCatOrder }).eq("id", cat.id),
-      supabase.from("categories").update({ sort_order: newNeighborOrder }).eq("id", neighbor.id),
-    ]);
+    // Update sort_order for all reordered siblings
+    const updates = reordered.map((cat, i) =>
+      supabase.from("categories").update({ sort_order: i }).eq("id", cat.id)
+    );
+    await Promise.all(updates);
     refetch();
   };
 
@@ -256,112 +260,119 @@ export default function Categorias() {
                     onCheckedChange={toggleAll}
                   />
                 </TableHead>
-                <TableHead className="w-20 text-xs">Ordenar</TableHead>
+                <TableHead className="w-10 text-xs"></TableHead>
                 <TableHead className="text-xs">Descrição</TableHead>
                 <TableHead className="w-24 text-xs text-center">Tipo</TableHead>
                 <TableHead className="w-24 text-xs text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {visibleTree.map((cat) => (
-                <TableRow key={cat.id} className="group">
-                  <TableCell className="py-1.5 px-4">
-                    <Checkbox
-                      checked={selected.has(cat.id)}
-                      onCheckedChange={() => toggleSelect(cat.id)}
-                    />
-                  </TableCell>
-                  <TableCell className="py-1.5">
-                    <div className="flex items-center gap-0.5">
-                      <button
-                        onClick={() => moveSort(cat, "up")}
-                        className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        <ChevronUp className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        onClick={() => moveSort(cat, "down")}
-                        className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        <ChevronDown className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-1.5">
-                    <div className="flex items-center gap-1" style={{ paddingLeft: `${cat.depth * 24}px` }}>
-                      {cat.hasChildren ? (
-                        <button
-                          onClick={() => toggleCollapse(cat.id)}
-                          className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
-                        >
-                          <ChevronRight className={`h-3.5 w-3.5 transition-transform ${collapsed.has(cat.id) ? "" : "rotate-90"}`} />
-                        </button>
-                      ) : (
-                        <span className="w-[18px]" />
-                      )}
-                      <div
-                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-white text-[10px] font-bold"
-                        style={{ backgroundColor: cat.color ?? "hsl(var(--primary))" }}
-                      >
-                        {cat.icon ? cat.icon.slice(0, 2).toUpperCase() : cat.name.slice(0, 2).toUpperCase()}
-                      </div>
-                      <span className={`text-sm ${cat.depth === 0 ? "font-semibold" : ""}`}>
-                        {cat.name}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-1.5 text-center">
-                    <Badge
-                      variant="secondary"
-                      className={`text-[10px] h-5 px-1.5 ${
-                        cat.transaction_type === "receita"
-                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                          : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                      }`}
-                    >
-                      {cat.transaction_type === "despesa" ? "Despesa" : "Receita"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="py-1.5 text-right">
-                    <div className="flex justify-end gap-0.5">
-                      <TooltipProvider delayDuration={300}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => openAddChild(cat)}>
-                              <Plus className="h-3.5 w-3.5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top"><p>Adicionar filho</p></TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => openEdit(cat)}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top"><p>Editar</p></TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(cat.id)}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top"><p>Excluir</p></TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {visibleTree.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-sm text-muted-foreground">
-                    Nenhuma categoria encontrada
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
+            <DragDropContext onDragEnd={onDragEnd}>
+              <Droppable droppableId="categories">
+                {(provided) => (
+                  <TableBody ref={provided.innerRef} {...provided.droppableProps}>
+                    {visibleTree.map((cat, index) => (
+                      <Draggable key={cat.id} draggableId={cat.id} index={index}>
+                        {(provided, snapshot) => (
+                          <TableRow
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            className={`group ${snapshot.isDragging ? "bg-muted shadow-md" : ""}`}
+                          >
+                            <TableCell className="py-1.5 px-4">
+                              <Checkbox
+                                checked={selected.has(cat.id)}
+                                onCheckedChange={() => toggleSelect(cat.id)}
+                              />
+                            </TableCell>
+                            <TableCell className="py-1.5 px-1">
+                              <div
+                                {...provided.dragHandleProps}
+                                className="flex items-center justify-center cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+                              >
+                                <GripVertical className="h-4 w-4" />
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-1.5">
+                              <div className="flex items-center gap-1" style={{ paddingLeft: `${cat.depth * 24}px` }}>
+                                {cat.hasChildren ? (
+                                  <button
+                                    onClick={() => toggleCollapse(cat.id)}
+                                    className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
+                                  >
+                                    <ChevronRight className={`h-3.5 w-3.5 transition-transform ${collapsed.has(cat.id) ? "" : "rotate-90"}`} />
+                                  </button>
+                                ) : (
+                                  <span className="w-[18px]" />
+                                )}
+                                <div
+                                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-white text-[10px] font-bold"
+                                  style={{ backgroundColor: cat.color ?? "hsl(var(--primary))" }}
+                                >
+                                  {cat.icon ? cat.icon.slice(0, 2).toUpperCase() : cat.name.slice(0, 2).toUpperCase()}
+                                </div>
+                                <span className={`text-sm ${cat.depth === 0 ? "font-semibold" : ""}`}>
+                                  {cat.name}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-1.5 text-center">
+                              <Badge
+                                variant="secondary"
+                                className={`text-[10px] h-5 px-1.5 ${
+                                  cat.transaction_type === "receita"
+                                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                    : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                }`}
+                              >
+                                {cat.transaction_type === "despesa" ? "Despesa" : "Receita"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="py-1.5 text-right">
+                              <div className="flex justify-end gap-0.5">
+                                <TooltipProvider delayDuration={300}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => openAddChild(cat)}>
+                                        <Plus className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top"><p>Adicionar filho</p></TooltipContent>
+                                  </Tooltip>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => openEdit(cat)}>
+                                        <Pencil className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top"><p>Editar</p></TooltipContent>
+                                  </Tooltip>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(cat.id)}>
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top"><p>Excluir</p></TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                    {visibleTree.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-sm text-muted-foreground">
+                          Nenhuma categoria encontrada
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                )}
+              </Droppable>
+            </DragDropContext>
           </Table>
         </div>
       )}
