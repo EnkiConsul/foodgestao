@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ const accountTypeLabels: Record<AccountType, string> = {
 
 export default function ContasBancarias() {
   const { user } = useAuth();
+  const { contextType, selectedCompanyId } = useCompanyContext();
   const { maskBRL } = usePrivacy();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,15 +42,18 @@ export default function ContasBancarias() {
   const fetchAccounts = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase
+    let q = supabase
       .from("accounts")
       .select("*")
       .eq("user_id", user.id)
+      .eq("context", contextType)
       .order("name");
+    if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
+    const { data, error } = await q;
     if (error) toast.error("Erro ao carregar contas bancárias");
     else setAccounts(data ?? []);
     setLoading(false);
-  }, [user]);
+  }, [user, contextType, selectedCompanyId]);
 
   useEffect(() => { fetchAccounts(); }, [fetchAccounts]);
 

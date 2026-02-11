@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -25,39 +26,46 @@ function getAlertLevel(percent: number, alerts: { a70: boolean; a90: boolean; a1
 
 export default function Orcamento() {
   const { user } = useAuth();
+  const { contextType, selectedCompanyId } = useCompanyContext();
   const { maskBRL } = usePrivacy();
   const formatBRL = maskBRL;
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const { data: budgets = [], refetch } = useQuery({
-    queryKey: ["budgets", user?.id],
+    queryKey: ["budgets", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase
+      let q = supabase
         .from("budgets")
         .select("*, categories(name, color, icon)")
         .eq("user_id", user!.id)
+        .eq("context", contextType)
         .order("created_at", { ascending: false });
+      const { data } = await q;
       return data ?? [];
     },
   });
 
   // Fetch spending per category for current month
   const { data: spending = {} } = useQuery({
-    queryKey: ["budget-spending", user?.id],
+    queryKey: ["budget-spending", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
     queryFn: async () => {
       const start = format(startOfMonth(new Date()), "yyyy-MM-dd");
       const end = format(endOfMonth(new Date()), "yyyy-MM-dd");
-      const { data } = await supabase
+      let q = supabase
         .from("transactions")
         .select("amount, category_id")
         .eq("user_id", user!.id)
         .eq("transaction_type", "despesa")
+        .eq("context", contextType)
         .neq("status", "cancelado")
         .gte("transaction_date", start)
         .lte("transaction_date", end);
 
+      if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
+
+      const { data } = await q;
       const map: Record<string, number> = {};
       for (const t of data ?? []) {
         if (t.category_id) {

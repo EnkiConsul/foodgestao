@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ interface Props {
 
 export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory }: Props) {
   const { user } = useAuth();
+  const { contextType } = useCompanyContext();
   const [name, setName] = useState("");
   const [type, setType] = useState<"receita" | "despesa">("despesa");
   const [icon, setIcon] = useState("shopping-cart");
@@ -70,6 +72,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory }
         transaction_type: type,
         icon,
         color,
+        context: contextType,
       });
       if (error) toast.error("Erro ao criar", { description: error.message });
       else { toast.success("Categoria criada!"); setName(""); onOpenChange(false); onSaved(); }

@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +16,7 @@ import type { Tables } from "@/integrations/supabase/types";
 
 export default function Categorias() {
   const { user } = useAuth();
+  const { contextType } = useCompanyContext();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editCat, setEditCat] = useState<Tables<"categories"> | null>(null);
   const [search, setSearch] = useState("");
@@ -22,13 +24,14 @@ export default function Categorias() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: categories = [], refetch } = useQuery({
-    queryKey: ["categories-page", user?.id],
+    queryKey: ["categories-page", user?.id, contextType],
     enabled: !!user,
     queryFn: async () => {
       const { data } = await supabase
         .from("categories")
         .select("*")
         .eq("user_id", user!.id)
+        .or(contextType === "pf" ? "context.is.null,context.eq.pf" : "context.is.null,context.eq.pj")
         .order("transaction_type")
         .order("sort_order")
         .order("name");

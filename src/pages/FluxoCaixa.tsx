@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -43,56 +44,66 @@ const chartConfig: ChartConfig = {
 
 export default function FluxoCaixa() {
   const { user } = useAuth();
+  const { contextType, selectedCompanyId } = useCompanyContext();
   const { maskBRL } = usePrivacy();
   const formatBRL = maskBRL;
   const [granularity, setGranularity] = useState<Granularity>("diario");
 
   // Fetch transactions for current month + next month (projection)
   const { data: transactions = [] } = useQuery({
-    queryKey: ["fluxo-caixa-transactions", user?.id],
+    queryKey: ["fluxo-caixa-transactions", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
     queryFn: async () => {
       const start = startOfMonth(new Date());
       const end = endOfMonth(addMonths(new Date(), 1));
-      const { data } = await supabase
+      let q = supabase
         .from("transactions")
         .select("amount, transaction_type, transaction_date, status")
         .eq("user_id", user!.id)
+        .eq("context", contextType)
         .gte("transaction_date", format(start, "yyyy-MM-dd"))
         .lte("transaction_date", format(end, "yyyy-MM-dd"))
         .neq("status", "cancelado");
+      if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
+      const { data } = await q;
       return data ?? [];
     },
   });
 
   // Fetch bills for projection
   const { data: bills = [] } = useQuery({
-    queryKey: ["fluxo-caixa-bills", user?.id],
+    queryKey: ["fluxo-caixa-bills", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
     queryFn: async () => {
       const start = new Date();
       const end = endOfMonth(addMonths(new Date(), 1));
-      const { data } = await supabase
+      let q = supabase
         .from("bills")
         .select("amount, amount_paid, bill_type, due_date, status")
         .eq("user_id", user!.id)
+        .eq("context", contextType)
         .gte("due_date", format(start, "yyyy-MM-dd"))
         .lte("due_date", format(end, "yyyy-MM-dd"))
         .neq("status", "pago");
+      if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
+      const { data } = await q;
       return data ?? [];
     },
   });
 
   // Fetch current total balance
   const { data: accounts = [] } = useQuery({
-    queryKey: ["fluxo-caixa-accounts", user?.id],
+    queryKey: ["fluxo-caixa-accounts", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase
+      let q = supabase
         .from("accounts")
         .select("current_balance")
         .eq("user_id", user!.id)
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .eq("context", contextType);
+      if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
+      const { data } = await q;
       return data ?? [];
     },
   });

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ interface Props {
 
 export function BudgetFormDialog({ open, onOpenChange, onCreated }: Props) {
   const { user } = useAuth();
+  const { contextType, selectedCompanyId } = useCompanyContext();
   const [categoryId, setCategoryId] = useState("");
   const [amount, setAmount] = useState("");
   const [period, setPeriod] = useState<"mensal" | "anual">("mensal");
@@ -70,6 +72,7 @@ export function BudgetFormDialog({ open, onOpenChange, onCreated }: Props) {
       alert_threshold_70: alert70,
       alert_threshold_90: alert90,
       alert_threshold_100: alert100,
+      context: contextType,
     });
 
     if (error) {

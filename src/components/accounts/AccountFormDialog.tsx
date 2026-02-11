@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ interface Props {
 
 export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Props) {
   const { user } = useAuth();
+  const { contextType, selectedCompanyId } = useCompanyContext();
   const isEdit = !!account;
 
   const [name, setName] = useState("");
@@ -73,6 +75,8 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
         account_type: accountType,
         initial_balance: balance,
         current_balance: balance,
+        context: contextType,
+        company_id: contextType === "pj" ? selectedCompanyId : null,
       });
       if (error) toast.error("Erro ao criar conta");
       else { toast.success("Conta criada"); onSaved(); onOpenChange(false); }

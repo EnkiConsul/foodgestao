@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,6 +42,7 @@ const MONTHS = [
 
 export default function Lancamentos() {
   const { user } = useAuth();
+  const { contextType, selectedCompanyId } = useCompanyContext();
   const { maskBRL } = usePrivacy();
   const isMobile = useIsMobile();
 
@@ -77,22 +79,28 @@ export default function Lancamentos() {
   // Fetch accounts
   useEffect(() => {
     if (!user) return;
-    supabase.from("accounts").select("id, name").eq("user_id", user.id).eq("is_active", true)
-      .then(({ data }) => setAccounts(data ?? []));
-  }, [user]);
+    let q = supabase.from("accounts").select("id, name").eq("user_id", user.id).eq("is_active", true).eq("context", contextType);
+    if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
+    q.then(({ data }) => setAccounts(data ?? []));
+  }, [user, contextType, selectedCompanyId]);
 
   // Fetch transactions for selected month
   const fetchTransactions = useCallback(async () => {
     if (!user) return;
     setLoading(true);
 
-    const { data, error } = await supabase
+    let q = supabase
       .from("transactions")
       .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, categories(name), accounts!transactions_account_id_fkey(name)")
       .eq("user_id", user.id)
+      .eq("context", contextType)
       .gte("transaction_date", monthStart)
       .lte("transaction_date", monthEnd)
       .order("transaction_date", { ascending: true });
+
+    if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
+
+    const { data, error } = await q;
 
     if (error) {
       toast.error("Erro ao carregar lançamentos");
@@ -100,17 +108,22 @@ export default function Lancamentos() {
       setTransactions((data as unknown as Transaction[]) ?? []);
     }
     setLoading(false);
-  }, [user, monthStart, monthEnd]);
+  }, [user, monthStart, monthEnd, contextType, selectedCompanyId]);
 
   // Fetch previous balance
   const fetchPreviousBalance = useCallback(async () => {
     if (!user) return;
-    const { data, error } = await supabase
+    let q = supabase
       .from("transactions")
       .select("amount, transaction_type")
       .eq("user_id", user.id)
+      .eq("context", contextType)
       .eq("status", "confirmado")
       .lt("transaction_date", monthStart);
+
+    if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
+
+    const { data, error } = await q;
 
     if (!error && data) {
       const bal = data.reduce((acc, t) => {
@@ -120,7 +133,7 @@ export default function Lancamentos() {
       }, 0);
       setPreviousBalance(bal);
     }
-  }, [user, monthStart]);
+  }, [user, monthStart, contextType, selectedCompanyId]);
 
   useEffect(() => {
     fetchTransactions();
