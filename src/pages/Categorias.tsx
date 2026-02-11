@@ -11,7 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
-import { Plus, Search, Tag, Pencil, Trash2, ChevronRight, Filter, ChevronsUpDown, GripVertical } from "lucide-react";
+import { Plus, Search, Tag, Pencil, Trash2, ChevronRight, Filter, ChevronsUpDown, GripVertical, FolderTree } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { toast } from "sonner";
@@ -63,6 +64,28 @@ export default function Categorias() {
   const [defaultParentId, setDefaultParentId] = useState<string | null>(null);
   const [defaultType, setDefaultType] = useState<"receita" | "despesa" | undefined>(undefined);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [batchParentId, setBatchParentId] = useState<string>("__none__");
+  const [batchSaving, setBatchSaving] = useState(false);
+
+  const handleBatchChangeParent = async () => {
+    if (selected.size === 0) return;
+    setBatchSaving(true);
+    const newParentId = batchParentId === "__none__" ? null : batchParentId;
+    const updates = Array.from(selected).map((id) =>
+      supabase.from("categories").update({ parent_id: newParentId }).eq("id", id)
+    );
+    const results = await Promise.all(updates);
+    const errors = results.filter((r) => r.error);
+    if (errors.length > 0) {
+      toast.error(`Erro ao mover ${errors.length} categoria(s)`);
+    } else {
+      toast.success(`${selected.size} categoria(s) movida(s)`);
+      setSelected(new Set());
+      setBatchParentId("__none__");
+      refetch();
+    }
+    setBatchSaving(false);
+  };
 
   const { data: categories = [], refetch } = useQuery({
     queryKey: ["categories-page", user?.id, contextType],
@@ -298,6 +321,37 @@ export default function Categorias() {
           <span className="hidden sm:inline">Filtrar</span>
         </Button>
       </div>
+
+      {/* Batch action bar */}
+      {selected.size > 0 && (
+        <div className="flex flex-wrap items-center gap-3 p-3 rounded-lg border bg-muted/50">
+          <span className="text-sm font-medium">{selected.size} selecionada(s)</span>
+          <div className="flex items-center gap-2">
+            <FolderTree className="h-4 w-4 text-muted-foreground" />
+            <Select value={batchParentId} onValueChange={setBatchParentId}>
+              <SelectTrigger className="h-8 w-[200px] text-xs">
+                <SelectValue placeholder="Categoria Raiz" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Nenhuma (raiz)</SelectItem>
+                {categories
+                  .filter((c) => !selected.has(c.id))
+                  .map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <Button size="sm" className="h-8 text-xs" onClick={handleBatchChangeParent} disabled={batchSaving}>
+              {batchSaving ? "Movendo..." : "Mover"}
+            </Button>
+          </div>
+          <Button variant="ghost" size="sm" className="h-8 text-xs ml-auto" onClick={() => setSelected(new Set())}>
+            Limpar seleção
+          </Button>
+        </div>
+      )}
 
       {/* Table */}
       {categories.length === 0 ? (
