@@ -1,62 +1,52 @@
 
 
-## Gerar lançamento automaticamente ao pagar uma conta
+# Modulo de Gestao de Contas Bancarias
 
-### Objetivo
-Quando o usuario registrar um pagamento (total ou parcial) no modulo Contas, o sistema criara automaticamente um lancamento correspondente na tabela `transactions`, refletindo a movimentacao real no saldo da conta bancaria.
+## Objetivo
+Criar uma nova pagina para gerenciar as contas bancarias do usuario (tabela `accounts`), permitindo listar, criar, editar e excluir contas, com visualizacao de saldos.
 
-### O que muda para o usuario
-- Ao confirmar um pagamento no dialog de pagamento, alem de atualizar o status da conta, um lancamento (receita ou despesa) sera criado automaticamente na tela de Lancamentos.
-- O lancamento tera a mesma descricao, categoria, conta bancaria e data do pagamento.
-- Isso elimina o trabalho manual de registrar a movimentacao em dois lugares.
+## O que ja existe
+- A tabela `accounts` no banco de dados ja possui todos os campos necessarios: `name`, `account_type`, `current_balance`, `initial_balance`, `is_active`, `icon`, `color`, etc.
+- RLS ja esta configurada corretamente.
+- Nao sera necessaria nenhuma migracao de banco de dados.
 
----
+## Funcionalidades da pagina
 
-### Detalhes tecnicos
+1. **Cards resumo** - Saldo total, quantidade de contas ativas
+2. **Lista de contas** - Cards mostrando nome, tipo, saldo atual, com icone e cor
+3. **Criar conta** - Dialog com formulario (nome, tipo, saldo inicial)
+4. **Editar conta** - Mesmo dialog reutilizado para edicao
+5. **Excluir conta** - Botao com confirmacao
+6. **Ativar/Desativar** - Toggle de status
 
-**Arquivo alterado:** `src/components/bills/PaymentDialog.tsx`
+## Arquivos a criar/modificar
 
-**Mudancas necessarias:**
+### Novos arquivos
+1. **`src/pages/ContasBancarias.tsx`** - Pagina principal do modulo, seguindo o padrao das paginas existentes (Lancamentos, Contas)
+2. **`src/components/accounts/AccountFormDialog.tsx`** - Dialog para criar/editar contas bancarias
 
-1. **Receber dados adicionais da bill** -- Expandir a interface `Props` para incluir `bill_type`, `account_id`, `category_id` e `contact_id`, que sao necessarios para criar o lancamento.
+### Arquivos a modificar
+3. **`src/App.tsx`** - Adicionar rota `/contas-bancarias`
+4. **`src/components/layout/AppSidebar.tsx`** - Adicionar item "Contas Bancarias" no menu (icone `Landmark` do lucide)
+5. **`src/components/layout/BottomNav.tsx`** - Nao alterar (espaco limitado, acessivel via "Mais")
 
-2. **Receber o `user_id`** -- Importar `useAuth` para obter o ID do usuario autenticado (necessario para o insert na tabela `transactions`).
+## Detalhes tecnicos
 
-3. **Inserir lancamento apos pagamento bem-sucedido** -- Dentro do `handleSubmit`, apos o update da bill ser confirmado (sem erro), executar um `supabase.from("transactions").insert(...)` com:
-   - `user_id`: do hook useAuth
-   - `description`: prefixo "Pgto: " + descricao da conta
-   - `amount`: valor do pagamento (numAmount)
-   - `transaction_type`: mesmo `bill_type` da conta (receita/despesa)
-   - `transaction_date`: data do pagamento selecionada
-   - `account_id`: da bill
-   - `category_id`: da bill
-   - `contact_id`: da bill
-   - `status`: "confirmado"
+### Pagina ContasBancarias.tsx
+- Busca dados de `accounts` filtrado por `user_id`
+- Cards de resumo: saldo total e numero de contas ativas
+- Lista em cards com nome, tipo (badge), saldo formatado, botoes de editar/excluir
+- Filtro por busca (nome) e tipo de conta
+- FAB mobile para criar nova conta
+- Usa `usePrivacy` para mascarar valores
 
-4. **Tratamento de erro** -- Se o insert do lancamento falhar, exibir um toast de aviso (sem reverter o pagamento ja registrado).
+### AccountFormDialog.tsx
+- Campos: nome, tipo (select com os tipos do enum `account_type`), saldo inicial (currency input)
+- Modo criacao: insere na tabela `accounts` com `user_id`, `current_balance = initial_balance`
+- Modo edicao: atualiza nome, tipo; nao permite alterar saldo inicial apos criacao
+- Validacao: nome obrigatorio, saldo numerico
 
-**Arquivo alterado:** `src/pages/Contas.tsx`
-
-5. **Passar campos extras para o PaymentDialog** -- Ajustar o objeto `bill` passado ao `PaymentDialog` para incluir `bill_type`, `account_id`, `category_id` e `contact_id`. Isso requer ajustar o select do Supabase para trazer `account_id` e `contact_id` (que ja estao no schema mas nao sao selecionados explicitamente).
-
-### Fluxo resumido
-
-```text
-Usuario clica "Registrar Pagamento"
-        |
-        v
-PaymentDialog abre com dados da bill
-        |
-        v
-Usuario informa valor e data -> clica Confirmar
-        |
-        v
-1. UPDATE bills (amount_paid, status, payment_date)
-        |
-        v
-2. INSERT transactions (lancamento automatico)
-        |
-        v
-Toast de sucesso -> Dialog fecha -> Lista atualiza
-```
+### Rota e navegacao
+- Rota: `/contas-bancarias` dentro do layout protegido
+- Sidebar: item adicionado ao grupo "Gerenciar" com icone `Landmark`
 
