@@ -34,12 +34,14 @@ type Transaction = {
   status: string;
   category_id: string | null;
   account_id: string;
+  payment_method_id: string | null;
   categories: { name: string } | null;
   accounts: { name: string } | null;
   payment_methods: { name: string } | null;
 };
 
 type Account = { id: string; name: string };
+type PaymentMethod = { id: string; name: string };
 
 const MONTHS = [
   "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
@@ -57,6 +59,7 @@ export default function Lancamentos() {
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
@@ -71,6 +74,7 @@ export default function Lancamentos() {
   const [filterTransferencia, setFilterTransferencia] = useState(true);
   const [filterRealizado, setFilterRealizado] = useState(true);
   const [filterPendente, setFilterPendente] = useState(true);
+  const [filterPaymentMethod, setFilterPaymentMethod] = useState<string>("all");
 
   const monthStart = useMemo(() => {
     const d = new Date(selectedYear, selectedMonth, 1);
@@ -88,6 +92,8 @@ export default function Lancamentos() {
     let q = supabase.from("accounts").select("id, name").eq("user_id", user.id).eq("is_active", true).eq("context", contextType);
     if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
     q.then(({ data }) => setAccounts(data ?? []));
+    supabase.from("payment_methods").select("id, name").eq("user_id", user.id).eq("is_active", true)
+      .then(({ data }) => setPaymentMethods(data ?? []));
   }, [user, contextType, selectedCompanyId]);
 
   // Fetch transactions for selected month
@@ -97,7 +103,7 @@ export default function Lancamentos() {
 
     let q = supabase
       .from("transactions")
-      .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, categories(name), accounts!transactions_account_id_fkey(name), payment_methods(name)")
+      .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, categories(name), accounts!transactions_account_id_fkey(name), payment_methods(name)")
       .eq("user_id", user.id)
       .eq("context", contextType)
       .gte("transaction_date", monthStart)
@@ -173,6 +179,8 @@ export default function Lancamentos() {
         if (t.status === "pendente" && !filterPendente) return false;
         // account filter
         if (filterAccount !== "all" && t.account_id !== filterAccount) return false;
+        // payment method filter
+        if (filterPaymentMethod !== "all" && t.payment_method_id !== filterPaymentMethod) return false;
         return true;
       }
       return false;
@@ -184,7 +192,7 @@ export default function Lancamentos() {
     else if (sortBy === "description") list.sort((a, b) => a.description.localeCompare(b.description));
 
     return list;
-  }, [transactions, search, filterCredito, filterDebito, filterTransferencia, filterRealizado, filterPendente, filterAccount, sortBy]);
+  }, [transactions, search, filterCredito, filterDebito, filterTransferencia, filterRealizado, filterPendente, filterAccount, filterPaymentMethod, sortBy]);
 
   // Totals
   const totals = useMemo(() => {
@@ -212,6 +220,7 @@ export default function Lancamentos() {
 
   const clearFilters = () => {
     setFilterAccount("all");
+    setFilterPaymentMethod("all");
     setFilterCredito(true);
     setFilterDebito(true);
     setFilterTransferencia(true);
@@ -231,6 +240,21 @@ export default function Lancamentos() {
             <SelectItem value="all">Todas as contas</SelectItem>
             {accounts.map((a) => (
               <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Forma de Pagamento</label>
+        <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}>
+          <SelectTrigger className="mt-1.5">
+            <SelectValue placeholder="Todas" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas</SelectItem>
+            {paymentMethods.map((pm) => (
+              <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
