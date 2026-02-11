@@ -308,24 +308,26 @@ export default function Categorias() {
     const draggedItem = visibleTree[srcIdx];
     const targetItem = visibleTree[destIdx];
 
-    // Only allow reordering among siblings (same parent + same type)
-    if (
-      draggedItem.parent_id !== targetItem.parent_id ||
-      draggedItem.transaction_type !== targetItem.transaction_type
-    ) {
-      toast.info("Só é possível reordenar entre categorias do mesmo nível e tipo");
+    // Only allow reordering among siblings (same parent)
+    if (draggedItem.parent_id !== targetItem.parent_id) {
+      toast.info("Só é possível reordenar entre categorias do mesmo nível");
       return;
     }
 
-    // Get all siblings sorted by current sort_order
+    // Get all siblings with same parent and same type, sorted by current sort_order
     const siblings = categories
       .filter((c) => c.parent_id === draggedItem.parent_id && c.transaction_type === draggedItem.transaction_type)
       .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
 
     const oldIdx = siblings.findIndex((c) => c.id === draggedItem.id);
-    const newIdx = siblings.findIndex((c) => c.id === targetItem.id);
+    // If target is a different type, find the closest sibling position based on direction
+    let newIdx = siblings.findIndex((c) => c.id === targetItem.id);
+    if (newIdx === -1) {
+      // Target is a different type; calculate position based on drag direction
+      newIdx = destIdx > srcIdx ? siblings.length - 1 : 0;
+    }
 
-    if (oldIdx === -1 || newIdx === -1 || oldIdx === newIdx) return;
+    if (oldIdx === -1 || oldIdx === newIdx) return;
 
     // Reorder siblings
     const reordered = [...siblings];
