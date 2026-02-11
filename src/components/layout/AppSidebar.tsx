@@ -7,6 +7,7 @@ import {
   FileBarChart,
   Users,
   FolderTree,
+  Landmark,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -33,6 +34,7 @@ const mainItems = [
 ];
 
 const secondaryItems = [
+  { title: "Contas Bancárias", url: "/contas-bancarias", icon: Landmark },
   { title: "Relatórios", url: "/relatorios", icon: FileBarChart },
   { title: "Contatos", url: "/contatos", icon: Users },
   { title: "Categorias", url: "/categorias", icon: FolderTree },

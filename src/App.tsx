@@ -16,6 +16,7 @@ import Orcamento from "./pages/Orcamento";
 import Relatorios from "./pages/Relatorios";
 import Contatos from "./pages/Contatos";
 import Categorias from "./pages/Categorias";
+import ContasBancarias from "./pages/ContasBancarias";
 import Configuracoes from "./pages/Configuracoes";
 import NotFound from "./pages/NotFound";
 import { useEffect, useState } from "react";
@@ -91,6 +92,7 @@ const AppRoutes = () => (
       <Route path="/relatorios" element={<Relatorios />} />
       <Route path="/contatos" element={<Contatos />} />
       <Route path="/categorias" element={<Categorias />} />
+      <Route path="/contas-bancarias" element={<ContasBancarias />} />
       <Route path="/configuracoes" element={<Configuracoes />} />
     </Route>
     <Route path="*" element={<NotFound />} />
