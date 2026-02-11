@@ -14,6 +14,7 @@ import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
 import { Plus, Search, Tag, Pencil, Trash2, ChevronRight, Filter, ChevronsUpDown, GripVertical, FolderTree, Eye } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
@@ -23,6 +24,11 @@ import type { Tables } from "@/integrations/supabase/types";
 type Category = Tables<"categories">;
 
 type TreeNode = Category & { depth: number; hasChildren: boolean; index: string };
+
+const BATCH_COLOR_OPTIONS = [
+  "#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#6366f1",
+  "#8b5cf6", "#ec4899", "#14b8a6", "#f97316", "#64748b",
+];
 
 function buildTree(categories: Category[]): TreeNode[] {
   const map = new Map<string, Category[]>();
@@ -74,6 +80,16 @@ export default function Categorias() {
   const [batchVisiblePf, setBatchVisiblePf] = useState(true);
   const [batchSelectedCompanies, setBatchSelectedCompanies] = useState<Set<string>>(new Set());
   const [batchVisibilitySaving, setBatchVisibilitySaving] = useState(false);
+
+  const handleBatchColor = async (color: string) => {
+    if (selected.size === 0) return;
+    const updates = Array.from(selected).map((id) =>
+      supabase.from("categories").update({ color }).eq("id", id)
+    );
+    await Promise.all(updates);
+    toast.success(`Cor atualizada para ${selected.size} categoria(s)`);
+    refetch();
+  };
 
   const handleBatchChangeParent = async () => {
     if (selected.size === 0) return;
@@ -406,6 +422,28 @@ export default function Categorias() {
             </Button>
           </div>
           <div className="flex items-center gap-2 ml-auto">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
+                  <div className="h-3.5 w-3.5 rounded-full border" style={{ backgroundColor: "#3b82f6" }} />
+                  Cor
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-3" align="end">
+                <p className="text-xs font-medium mb-2">Aplicar cor a {selected.size} categoria(s)</p>
+                <div className="flex gap-2 flex-wrap max-w-[200px]">
+                  {BATCH_COLOR_OPTIONS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => handleBatchColor(c)}
+                      className="h-7 w-7 rounded-full border-2 border-transparent hover:border-foreground transition-transform hover:scale-110"
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
             <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => {
               setBatchVisiblePf(true);
               setBatchSelectedCompanies(new Set(companies.map((c) => c.id)));
