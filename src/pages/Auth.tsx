@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wallet, Mail, Lock, User } from "lucide-react";
+import { Mail, Lock, User } from "lucide-react";
+const logoGestorPlin = "/images/logo-gestor-plin-transparent.png";
 import { z } from "zod";
 import { toast } from "sonner";
 
@@ -78,9 +79,7 @@ export default function Auth() {
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center space-y-3">
           <div className="flex justify-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-              <Wallet className="h-6 w-6 text-primary-foreground" />
-            </div>
+            <img src={logoGestorPlin} alt="Gestor Plin" className="h-16 w-auto" />
           </div>
           <CardTitle className="text-2xl font-bold">Gestor Plin</CardTitle>
           <CardDescription>
