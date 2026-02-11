@@ -15,6 +15,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import logoGestorPlin from "@/assets/logo-gestor-plin.png";
 import {
   Sidebar,
   SidebarContent,
@@ -52,13 +53,7 @@ export function AppSidebar() {
     <Sidebar className="border-r-0">
       <SidebarHeader className="p-5">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-accent">
-            <Wallet className="h-5 w-5 text-sidebar-foreground" />
-          </div>
-          <div>
-            <h1 className="text-base font-bold text-sidebar-foreground tracking-tight">Gestor Plin</h1>
-            <p className="text-xs text-sidebar-foreground/60">Gestão Financeira</p>
-          </div>
+          <img src={logoGestorPlin} alt="Gestor Plin" className="h-9 w-auto" />
         </div>
       </SidebarHeader>
 
