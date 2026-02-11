@@ -6,6 +6,7 @@ import {
   Target,
   FileBarChart,
   Users,
+  UserCog,
   FolderTree,
   Landmark,
   Settings,
@@ -38,6 +39,7 @@ const secondaryItems = [
   { title: "Relatórios", url: "/relatorios", icon: FileBarChart },
   { title: "Contatos", url: "/contatos", icon: Users },
   { title: "Categorias", url: "/categorias", icon: FolderTree },
+  { title: "Usuários", url: "/gestao-usuarios", icon: UserCog },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 

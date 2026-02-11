@@ -317,6 +317,85 @@ export type Database = {
         }
         Relationships: []
       }
+      company_invites: {
+        Row: {
+          company_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          invited_by: string
+          invited_email: string
+          role: Database["public"]["Enums"]["company_role"]
+          status: Database["public"]["Enums"]["invite_status"]
+          token: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          invited_email: string
+          role?: Database["public"]["Enums"]["company_role"]
+          status?: Database["public"]["Enums"]["invite_status"]
+          token?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          invited_email?: string
+          role?: Database["public"]["Enums"]["company_role"]
+          status?: Database["public"]["Enums"]["invite_status"]
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_invites_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_members: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["company_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["company_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["company_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_members_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           address: string | null
@@ -631,7 +710,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_company_role: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: Database["public"]["Enums"]["company_role"]
+      }
+      is_company_admin_or_owner: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_company_member: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       account_type:
@@ -643,8 +733,10 @@ export type Database = {
         | "outro"
       bill_status: "em_dia" | "vence_em_breve" | "atrasado" | "pago" | "parcial"
       budget_period: "mensal" | "anual"
+      company_role: "owner" | "admin" | "member"
       contact_type: "cliente" | "fornecedor" | "ambos"
       context_type: "pf" | "pj"
+      invite_status: "pending" | "accepted" | "rejected" | "expired"
       profile_type: "pf" | "mei" | "microempresa" | "hibrido"
       recurrence_type:
         | "diario"
@@ -794,8 +886,10 @@ export const Constants = {
       ],
       bill_status: ["em_dia", "vence_em_breve", "atrasado", "pago", "parcial"],
       budget_period: ["mensal", "anual"],
+      company_role: ["owner", "admin", "member"],
       contact_type: ["cliente", "fornecedor", "ambos"],
       context_type: ["pf", "pj"],
+      invite_status: ["pending", "accepted", "rejected", "expired"],
       profile_type: ["pf", "mei", "microempresa", "hibrido"],
       recurrence_type: [
         "diario",
