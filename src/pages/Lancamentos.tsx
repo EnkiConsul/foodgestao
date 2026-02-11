@@ -431,9 +431,12 @@ export default function Lancamentos() {
                         </TableCell>
                         <TableCell className="text-xs py-2">
                           <div className="truncate max-w-[200px]">{t.description}</div>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {t.accounts?.name && (
+                              <span className="text-[10px] text-muted-foreground">{t.accounts.name}</span>
+                            )}
                             {t.categories?.name && (
-                              <span className="text-[10px] text-muted-foreground">{t.categories.name}</span>
+                              <span className="text-[10px] text-muted-foreground">• {t.categories.name}</span>
                             )}
                             {t.payment_methods?.name && (
                               <span className="text-[10px] text-muted-foreground">• {t.payment_methods.name}</span>
