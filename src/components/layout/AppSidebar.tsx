@@ -15,7 +15,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-const logoGestorPlin = "/images/logo-gestor-plin-transparent.png";
+const logoGestorPlin = "/images/logo-gestor-plin-cropped.png";
 import {
   Sidebar,
   SidebarContent,
