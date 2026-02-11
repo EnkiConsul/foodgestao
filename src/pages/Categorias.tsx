@@ -66,6 +66,8 @@ export default function Categorias() {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [batchParentId, setBatchParentId] = useState<string>("__none__");
   const [batchSaving, setBatchSaving] = useState(false);
+  const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
+  const [batchDeleting, setBatchDeleting] = useState(false);
 
   const handleBatchChangeParent = async () => {
     if (selected.size === 0) return;
@@ -85,6 +87,24 @@ export default function Categorias() {
       refetch();
     }
     setBatchSaving(false);
+  };
+  const handleBatchDelete = async () => {
+    if (selected.size === 0) return;
+    setBatchDeleting(true);
+    const deletes = Array.from(selected).map((id) =>
+      supabase.from("categories").delete().eq("id", id)
+    );
+    const results = await Promise.all(deletes);
+    const errors = results.filter((r) => r.error);
+    if (errors.length > 0) {
+      toast.error(`Erro ao excluir ${errors.length} categoria(s)`);
+    } else {
+      toast.success(`${selected.size} categoria(s) excluída(s)`);
+      setSelected(new Set());
+      refetch();
+    }
+    setBatchDeleting(false);
+    setBatchDeleteOpen(false);
   };
 
   const { data: categories = [], refetch } = useQuery({
@@ -347,9 +367,15 @@ export default function Categorias() {
               {batchSaving ? "Movendo..." : "Mover"}
             </Button>
           </div>
-          <Button variant="ghost" size="sm" className="h-8 text-xs ml-auto" onClick={() => setSelected(new Set())}>
-            Limpar seleção
-          </Button>
+          <div className="flex items-center gap-2 ml-auto">
+            <Button variant="destructive" size="sm" className="h-8 text-xs gap-1" onClick={() => setBatchDeleteOpen(true)}>
+              <Trash2 className="h-3.5 w-3.5" />
+              Excluir
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setSelected(new Set())}>
+              Limpar seleção
+            </Button>
+          </div>
         </div>
       )}
 
@@ -534,6 +560,23 @@ export default function Categorias() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={batchDeleteOpen} onOpenChange={setBatchDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {selected.size} categoria(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. As categorias selecionadas serão removidas permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={batchDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBatchDelete} disabled={batchDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {batchDeleting ? "Excluindo..." : "Excluir"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
