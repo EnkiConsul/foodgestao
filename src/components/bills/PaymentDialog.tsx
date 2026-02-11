@@ -62,6 +62,7 @@ export function PaymentDialog({ open, onOpenChange, bill, onPaid }: Props) {
     } else {
       // Criar lançamento automático
       if (user && bill.account_id) {
+        // Criar lançamento automático
         const { error: txError } = await supabase.from("transactions").insert({
           user_id: user.id,
           description: `Pgto: ${bill.description}`,
@@ -75,6 +76,21 @@ export function PaymentDialog({ open, onOpenChange, bill, onPaid }: Props) {
         });
         if (txError) {
           toast.warning("Pagamento registrado, mas não foi possível criar o lançamento automático", { description: txError.message });
+        }
+
+        // Atualizar saldo da conta bancária
+        const { data: account } = await supabase
+          .from("accounts")
+          .select("current_balance")
+          .eq("id", bill.account_id)
+          .single();
+
+        if (account) {
+          const balanceChange = bill.bill_type === "receita" ? numAmount : -numAmount;
+          await supabase
+            .from("accounts")
+            .update({ current_balance: account.current_balance + balanceChange })
+            .eq("id", bill.account_id);
         }
       }
 
