@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -89,6 +89,22 @@ export default function Categorias() {
   }, [categories, search, filterType]);
 
   const tree = useMemo(() => buildTree(filtered), [filtered]);
+
+  // Persist hierarchy_index to database whenever tree changes
+  const persistHierarchyIndex = useCallback(async () => {
+    if (!categories.length) return;
+    const fullTree = buildTree(categories);
+    const updates = fullTree
+      .filter((node) => node.hierarchy_index !== `${node.index}.`)
+      .map((node) =>
+        supabase.from("categories").update({ hierarchy_index: `${node.index}.` }).eq("id", node.id)
+      );
+    if (updates.length > 0) await Promise.all(updates);
+  }, [categories]);
+
+  useEffect(() => {
+    persistHierarchyIndex();
+  }, [persistHierarchyIndex]);
 
   // Filter out children of collapsed parents
   const visibleTree = useMemo(() => {
