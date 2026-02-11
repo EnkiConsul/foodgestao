@@ -36,6 +36,7 @@ type Transaction = {
   account_id: string;
   categories: { name: string } | null;
   accounts: { name: string } | null;
+  payment_methods: { name: string } | null;
 };
 
 type Account = { id: string; name: string };
@@ -96,7 +97,7 @@ export default function Lancamentos() {
 
     let q = supabase
       .from("transactions")
-      .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, categories(name), accounts!transactions_account_id_fkey(name)")
+      .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, categories(name), accounts!transactions_account_id_fkey(name), payment_methods(name)")
       .eq("user_id", user.id)
       .eq("context", contextType)
       .gte("transaction_date", monthStart)
@@ -430,9 +431,14 @@ export default function Lancamentos() {
                         </TableCell>
                         <TableCell className="text-xs py-2">
                           <div className="truncate max-w-[200px]">{t.description}</div>
-                          {t.categories?.name && (
-                            <span className="text-[10px] text-muted-foreground">{t.categories.name}</span>
-                          )}
+                          <div className="flex items-center gap-1.5">
+                            {t.categories?.name && (
+                              <span className="text-[10px] text-muted-foreground">{t.categories.name}</span>
+                            )}
+                            {t.payment_methods?.name && (
+                              <span className="text-[10px] text-muted-foreground">• {t.payment_methods.name}</span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-center py-2">
                           {isReceita && <span className="text-xs font-bold text-success">C</span>}
