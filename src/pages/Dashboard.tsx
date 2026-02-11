@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Wallet, Target } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, Target, Landmark } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +54,24 @@ export default function Dashboard() {
       return data ?? [];
     },
   });
+
+  const { data: accounts = [] } = useQuery({
+    queryKey: ["dashboard-accounts", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("accounts")
+        .select("current_balance, is_active")
+        .eq("user_id", user!.id)
+        .eq("is_active", true);
+      return data ?? [];
+    },
+  });
+
+  const totalBankBalance = useMemo(
+    () => accounts.reduce((sum, a) => sum + Number(a.current_balance), 0),
+    [accounts]
+  );
 
   const catMap = useMemo(
     () => Object.fromEntries(categories.map((c) => [c.id, c])),
@@ -109,9 +127,9 @@ export default function Dashboard() {
 
   const kpis = [
     { label: "Saldo", value: maskBRL(saldo), icon: Wallet, positive: saldo >= 0 },
+    { label: "Contas Bancárias", value: maskBRL(totalBankBalance), icon: Landmark, positive: totalBankBalance >= 0 },
     { label: "Receitas", value: maskBRL(totalReceitas), change: changeR, icon: TrendingUp, positive: true },
     { label: "Despesas", value: maskBRL(totalDespesas), change: changeD, icon: TrendingDown, positive: false },
-    { label: "Transações", value: String(transactions.length), icon: Target, positive: true },
   ];
 
   const barConfig: ChartConfig = {
