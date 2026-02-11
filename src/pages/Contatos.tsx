@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { Plus, Search, Users, Pencil, Trash2, Mail, Phone } from "lucide-react";
 import { toast } from "sonner";
@@ -30,6 +31,7 @@ export default function Contatos() {
   const [editContact, setEditContact] = useState<Tables<"contacts"> | null>(null);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: contacts = [], refetch } = useQuery({
     queryKey: ["contacts-page", user?.id],
@@ -58,10 +60,12 @@ export default function Contatos() {
     });
   }, [contacts, search, filterType]);
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("contacts").delete().eq("id", id);
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    const { error } = await supabase.from("contacts").delete().eq("id", deleteId);
     if (error) toast.error("Erro ao excluir", { description: error.message });
     else { toast.success("Contato excluído"); refetch(); }
+    setDeleteId(null);
   };
 
   const openEdit = (c: Tables<"contacts">) => { setEditContact(c); setDialogOpen(true); };
@@ -147,7 +151,7 @@ export default function Contatos() {
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => openEdit(contact)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(contact.id)}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(contact.id)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -174,6 +178,23 @@ export default function Contatos() {
         onSaved={() => refetch()}
         editContact={editContact}
       />
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir contato?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O contato será removido permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
