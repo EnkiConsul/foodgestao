@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
-import { Plus, Search, Tag, Pencil, Trash2, ChevronUp, ChevronDown, ChevronRight, Filter } from "lucide-react";
+import { Plus, Search, Tag, Pencil, Trash2, ChevronUp, ChevronDown, ChevronRight, Filter, ChevronsUpDown } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
@@ -170,6 +170,22 @@ export default function Categorias() {
         <Button onClick={openNew} variant="outline" size="sm" className="gap-1.5">
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline">Adicionar</span>
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          onClick={() => {
+            const parents = tree.filter((c) => c.hasChildren).map((c) => c.id);
+            if (collapsed.size >= parents.length && parents.length > 0) {
+              setCollapsed(new Set());
+            } else {
+              setCollapsed(new Set(parents));
+            }
+          }}
+        >
+          <ChevronsUpDown className="h-4 w-4" />
+          <span className="hidden sm:inline">{collapsed.size > 0 ? "Expandir" : "Colapsar"}</span>
         </Button>
 
         <Tabs value={filterType} onValueChange={setFilterType}>
