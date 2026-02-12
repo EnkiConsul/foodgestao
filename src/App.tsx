@@ -52,8 +52,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (loading || checkingOnboarding) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-        <img src="/images/logo-gestor-plin-nobg.png" alt="Gestor Plin" className="h-16 w-auto animate-fade-in" />
+      <div className="flex min-h-screen items-center justify-center">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
       </div>
     );
