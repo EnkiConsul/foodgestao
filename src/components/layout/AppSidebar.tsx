@@ -58,7 +58,7 @@ export function AppSidebar() {
       <SidebarHeader className="p-5 border-b border-sidebar-border mb-2">
         <div className="flex items-center justify-center">
           {collapsed ? (
-            <div className="bg-white/95 rounded-lg p-1.5">
+            <div className="bg-white rounded-lg p-1.5">
               <img
                 src="/images/logo-gestor-plin-cropped.png"
                 alt="Gestor Plin"
@@ -66,7 +66,7 @@ export function AppSidebar() {
               />
             </div>
           ) : (
-            <div className="bg-white/95 rounded-xl px-4 py-3">
+            <div className="bg-white rounded-xl px-4 py-3">
               <img src="/images/logo-gestor-plin-cropped.png" alt="Gestor Plin" className="h-14 w-auto" />
             </div>
           )}
