@@ -60,14 +60,14 @@ export function AppSidebar() {
           {collapsed ? (
             <div className="bg-white/95 rounded-lg p-1.5">
               <img
-                src="/logo-gestor-plin.png"
+                src="/images/logo-gestor-plin-cropped.png"
                 alt="Gestor Plin"
                 className="h-8 w-8 object-cover object-left"
               />
             </div>
           ) : (
             <div className="bg-white/95 rounded-xl px-4 py-3">
-              <Logo size="md" linkTo="/" className="h-9" />
+              <img src="/images/logo-gestor-plin-cropped.png" alt="Gestor Plin" className="h-14 w-auto" />
             </div>
           )}
         </div>
