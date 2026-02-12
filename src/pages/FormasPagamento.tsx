@@ -18,7 +18,7 @@ import { toast } from "sonner";
 export default function FormasPagamento() {
   const { user } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editItem, setEditItem] = useState<{ id: string; name: string; is_active: boolean } | null>(null);
+  const [editItem, setEditItem] = useState<{ id: string; name: string; is_active: boolean; visible_pf?: boolean } | null>(null);
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -35,27 +35,51 @@ export default function FormasPagamento() {
     },
   });
 
+  const { data: methodCompanies = [], refetch: refetchCompanies } = useQuery({
+    queryKey: ["payment-method-companies", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await (supabase.from("payment_method_companies" as any) as any)
+        .select("payment_method_id, company_id, companies(name, trade_name)");
+      return (data ?? []) as { payment_method_id: string; company_id: string; companies: { name: string; trade_name: string | null } }[];
+    },
+  });
+
+  const companiesByMethod = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    for (const mc of methodCompanies) {
+      if (!map[mc.payment_method_id]) map[mc.payment_method_id] = [];
+      map[mc.payment_method_id].push(mc.companies?.trade_name || mc.companies?.name || "");
+    }
+    return map;
+  }, [methodCompanies]);
+
   const filtered = useMemo(() => {
     if (!search) return methods;
-    return methods.filter((m) => m.name.toLowerCase().includes(search.toLowerCase()));
+    return methods.filter((m: any) => m.name.toLowerCase().includes(search.toLowerCase()));
   }, [methods, search]);
 
   const confirmDelete = async () => {
     if (!deleteId) return;
     const { error } = await supabase.from("payment_methods").delete().eq("id", deleteId);
     if (error) toast.error("Erro ao excluir", { description: error.message });
-    else { toast.success("Forma de pagamento excluída"); refetch(); }
+    else { toast.success("Forma de pagamento excluída"); refetch(); refetchCompanies(); }
     setDeleteId(null);
   };
 
-  const openEdit = (item: typeof methods[0]) => {
-    setEditItem({ id: item.id, name: item.name, is_active: item.is_active });
+  const openEdit = (item: any) => {
+    setEditItem({ id: item.id, name: item.name, is_active: item.is_active, visible_pf: item.visible_pf });
     setDialogOpen(true);
   };
 
   const openNew = () => {
     setEditItem(null);
     setDialogOpen(true);
+  };
+
+  const handleSaved = () => {
+    refetch();
+    refetchCompanies();
   };
 
   return (
@@ -87,7 +111,7 @@ export default function FormasPagamento() {
         </Card>
       ) : (
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((item) => (
+          {filtered.map((item: any) => (
             <Card key={item.id} className="shadow-sm hover:shadow transition-shadow">
               <CardContent className="flex items-center gap-3 p-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -95,9 +119,17 @@ export default function FormasPagamento() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{item.name}</p>
-                  <Badge variant={item.is_active ? "secondary" : "outline"} className="text-[10px] h-4 px-1.5 mt-0.5">
-                    {item.is_active ? "Ativa" : "Inativa"}
-                  </Badge>
+                  <div className="flex flex-wrap gap-1 mt-0.5">
+                    <Badge variant={item.is_active ? "secondary" : "outline"} className="text-[10px] h-4 px-1.5">
+                      {item.is_active ? "Ativa" : "Inativa"}
+                    </Badge>
+                    {item.visible_pf && (
+                      <Badge variant="outline" className="text-[10px] h-4 px-1.5">Pessoal</Badge>
+                    )}
+                    {(companiesByMethod[item.id] ?? []).map((name: string, i: number) => (
+                      <Badge key={i} variant="outline" className="text-[10px] h-4 px-1.5">{name}</Badge>
+                    ))}
+                  </div>
                 </div>
                 <div className="flex gap-1 shrink-0">
                   <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => openEdit(item)}>
@@ -127,7 +159,7 @@ export default function FormasPagamento() {
       <PaymentMethodFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        onSaved={() => refetch()}
+        onSaved={handleSaved}
         editItem={editItem}
       />
 
