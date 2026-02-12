@@ -193,6 +193,7 @@ export default function ContasBancarias() {
                 </div>
 
                 <div className="text-right shrink-0">
+                  <p className="text-[10px] text-muted-foreground">Saldo Atual</p>
                   <p className={`text-sm font-bold ${Number(a.current_balance) >= 0 ? "text-success" : "text-destructive"}`}>
                     {maskBRL(Number(a.current_balance))}
                   </p>
