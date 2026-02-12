@@ -12,10 +12,10 @@ import {
   Building2,
   CreditCard,
   Settings,
-  LogOut } from
-"lucide-react";
+  LogOut,
+} from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-const logoGestorPlin = "/images/logo-gestor-plin-cropped.png";
+import { Logo } from "@/components/Logo";
 import {
   Sidebar,
   SidebarContent,
@@ -26,36 +26,50 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
-  SidebarFooter } from
-"@/components/ui/sidebar";
+  SidebarFooter,
+  useSidebar,
+} from "@/components/ui/sidebar";
 
 const mainItems = [
-{ title: "Dashboard", url: "/", icon: LayoutDashboard },
-{ title: "Lançamentos", url: "/lancamentos", icon: ArrowLeftRight },
-{ title: "Contas à Pagar", url: "/contas", icon: Wallet },
-{ title: "Fluxo de Caixa", url: "/fluxo-caixa", icon: TrendingUp },
-{ title: "Orçamento", url: "/orcamento", icon: Target },
-{ title: "Relatórios", url: "/relatorios", icon: FileBarChart }];
-
+  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Lançamentos", url: "/lancamentos", icon: ArrowLeftRight },
+  { title: "Contas à Pagar", url: "/contas", icon: Wallet },
+  { title: "Fluxo de Caixa", url: "/fluxo-caixa", icon: TrendingUp },
+  { title: "Orçamento", url: "/orcamento", icon: Target },
+  { title: "Relatórios", url: "/relatorios", icon: FileBarChart },
+];
 
 const secondaryItems = [
-{ title: "Empresas", url: "/empresas", icon: Building2 },
-{ title: "Contas Bancárias", url: "/contas-bancarias", icon: Landmark },
-{ title: "Formas de Pagamento", url: "/formas-pagamento", icon: CreditCard },
-{ title: "Clientes / Fornecedores", url: "/contatos", icon: Users },
-{ title: "Categorias", url: "/categorias", icon: FolderTree },
-{ title: "Usuários", url: "/gestao-usuarios", icon: UserCog },
-{ title: "Configurações", url: "/configuracoes", icon: Settings }];
-
+  { title: "Empresas", url: "/empresas", icon: Building2 },
+  { title: "Contas Bancárias", url: "/contas-bancarias", icon: Landmark },
+  { title: "Formas de Pagamento", url: "/formas-pagamento", icon: CreditCard },
+  { title: "Clientes / Fornecedores", url: "/contatos", icon: Users },
+  { title: "Categorias", url: "/categorias", icon: FolderTree },
+  { title: "Usuários", url: "/gestao-usuarios", icon: UserCog },
+  { title: "Configurações", url: "/configuracoes", icon: Settings },
+];
 
 export function AppSidebar() {
+  const { state } = useSidebar();
+  const collapsed = state === "collapsed";
+
   return (
-    <Sidebar className="border-r-0">
+    <Sidebar className="border-r-0" collapsible="icon">
       <SidebarHeader className="p-5 border-b border-sidebar-border mb-2">
-        <div className="flex items-center justify-center border border-none border-primary rounded-full shadow-none">
-          <div className="bg-white/95 rounded-xl px-4 py-3">
-            <img src={logoGestorPlin} alt="Gestor Plin" className="h-14 w-auto" />
-          </div>
+        <div className="flex items-center justify-center">
+          {collapsed ? (
+            <div className="bg-white/95 rounded-lg p-1.5">
+              <img
+                src="/logo-gestor-plin.png"
+                alt="Gestor Plin"
+                className="h-8 w-8 object-cover object-left"
+              />
+            </div>
+          ) : (
+            <div className="bg-white/95 rounded-xl px-4 py-3">
+              <Logo size="md" linkTo="/" className="h-9" />
+            </div>
+          )}
         </div>
       </SidebarHeader>
 
@@ -66,21 +80,21 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainItems.map((item) =>
-              <SidebarMenuItem key={item.title}>
+              {mainItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
-                    to={item.url}
-                    end={item.url === "/"}
-                    className="flex items-center gap-3 px-5 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground rounded-lg mx-2 transition-all duration-200 hover:translate-x-1"
-                    activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium translate-x-1">
-
+                      to={item.url}
+                      end={item.url === "/"}
+                      className="flex items-center gap-3 px-5 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground rounded-lg mx-2 transition-all duration-200 hover:translate-x-1"
+                      activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium translate-x-1"
+                    >
                       <item.icon className="h-4 w-4 shrink-0" />
                       <span>{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              )}
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -91,20 +105,20 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {secondaryItems.map((item) =>
-              <SidebarMenuItem key={item.title}>
+              {secondaryItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
-                    to={item.url}
-                    className="flex items-center gap-3 px-5 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground rounded-lg mx-2 transition-all duration-200 hover:translate-x-1"
-                    activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium translate-x-1">
-
+                      to={item.url}
+                      className="flex items-center gap-3 px-5 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground rounded-lg mx-2 transition-all duration-200 hover:translate-x-1"
+                      activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium translate-x-1"
+                    >
                       <item.icon className="h-4 w-4 shrink-0" />
                       <span>{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              )}
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -116,12 +130,12 @@ export function AppSidebar() {
             const { supabase } = await import("@/integrations/supabase/client");
             await supabase.auth.signOut();
           }}
-          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent rounded-lg transition-colors">
-
+          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent rounded-lg transition-colors"
+        >
           <LogOut className="h-4 w-4" />
           <span>Sair</span>
         </button>
       </SidebarFooter>
-    </Sidebar>);
-
+    </Sidebar>
+  );
 }
