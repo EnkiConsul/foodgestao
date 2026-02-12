@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { contactSchema, validateWithToast } from "@/lib/validations";
@@ -20,6 +22,7 @@ interface Props {
 
 export function ContactFormDialog({ open, onOpenChange, onSaved, editContact }: Props) {
   const { user } = useAuth();
+  const { companies } = useCompanyContext();
   const [name, setName] = useState("");
   const [contactType, setContactType] = useState<"cliente" | "fornecedor" | "ambos">("cliente");
   const [email, setEmail] = useState("");
@@ -27,6 +30,8 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact }: 
   const [document, setDocument] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
+  const [visiblePf, setVisiblePf] = useState(true);
+  const [selectedCompanyIds, setSelectedCompanyIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -38,15 +43,37 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact }: 
       setDocument(editContact.document ?? "");
       setAddress(editContact.address ?? "");
       setNotes(editContact.notes ?? "");
+      setVisiblePf((editContact as any).visible_pf ?? true);
+      // Load linked companies
+      supabase
+        .from("contact_companies" as any)
+        .select("company_id")
+        .eq("contact_id", editContact.id)
+        .then(({ data }) => {
+          setSelectedCompanyIds((data ?? []).map((r: any) => r.company_id));
+        });
     } else {
       setName(""); setContactType("cliente"); setEmail(""); setPhone("");
       setDocument(""); setAddress(""); setNotes("");
+      setVisiblePf(true);
+      setSelectedCompanyIds([]);
     }
   }, [editContact, open]);
+
+  const toggleCompany = (id: string) => {
+    setSelectedCompanyIds((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+
+    if (!visiblePf && selectedCompanyIds.length === 0) {
+      toast.error("Selecione pelo menos uma vinculação (Pessoa Física ou empresa).");
+      return;
+    }
 
     const validated = validateWithToast(contactSchema, {
       name, contact_type: contactType,
@@ -57,16 +84,30 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact }: 
     if (!validated) return;
 
     setSaving(true);
-    const payload = validated;
+    const payload = { ...validated, visible_pf: visiblePf };
 
     if (editContact) {
-      const { error } = await supabase.from("contacts").update(payload).eq("id", editContact.id);
-      if (error) toast.error("Erro ao atualizar", { description: error.message });
-      else { toast.success("Contato atualizado!"); onOpenChange(false); onSaved(); }
+      const { error } = await supabase.from("contacts").update(payload as any).eq("id", editContact.id);
+      if (error) { toast.error("Erro ao atualizar", { description: error.message }); setSaving(false); return; }
+
+      // Sync contact_companies
+      await (supabase.from("contact_companies" as any) as any).delete().eq("contact_id", editContact.id);
+      if (selectedCompanyIds.length > 0) {
+        await supabase.from("contact_companies" as any).insert(
+          selectedCompanyIds.map((cid) => ({ contact_id: editContact.id, company_id: cid })) as any
+        );
+      }
+      toast.success("Contato atualizado!"); onOpenChange(false); onSaved();
     } else {
-      const { error } = await supabase.from("contacts").insert({ ...payload, user_id: user.id } as any);
-      if (error) toast.error("Erro ao criar", { description: error.message });
-      else { toast.success("Contato criado!"); onOpenChange(false); onSaved(); }
+      const { data: newContact, error } = await supabase.from("contacts").insert({ ...payload, user_id: user.id } as any).select("id").single();
+      if (error || !newContact) { toast.error("Erro ao criar", { description: error?.message }); setSaving(false); return; }
+
+      if (selectedCompanyIds.length > 0) {
+        await supabase.from("contact_companies" as any).insert(
+          selectedCompanyIds.map((cid) => ({ contact_id: (newContact as any).id, company_id: cid })) as any
+        );
+      }
+      toast.success("Contato criado!"); onOpenChange(false); onSaved();
     }
     setSaving(false);
   };
@@ -110,6 +151,27 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact }: 
               <Label>Endereço</Label>
               <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, cidade" maxLength={200} />
             </div>
+
+            {/* Vinculação */}
+            <div className="space-y-3 sm:col-span-2">
+              <Label>Vinculado a *</Label>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox checked={visiblePf} onCheckedChange={(v) => setVisiblePf(!!v)} />
+                  <span className="text-sm">Pessoa Física (Pessoal)</span>
+                </label>
+                {companies.map((company) => (
+                  <label key={company.id} className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={selectedCompanyIds.includes(company.id)}
+                      onCheckedChange={() => toggleCompany(company.id)}
+                    />
+                    <span className="text-sm">{company.trade_name || company.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-2 sm:col-span-2">
               <Label>Observações</Label>
               <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Anotações sobre o contato..." rows={3} maxLength={500} />

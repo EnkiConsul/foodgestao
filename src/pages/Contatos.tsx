@@ -46,6 +46,27 @@ export default function Contatos() {
     },
   });
 
+  // Fetch contact_companies with company names
+  const { data: contactCompanies = [], refetch: refetchCompanies } = useQuery({
+    queryKey: ["contact-companies-page", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await (supabase.from("contact_companies" as any) as any)
+        .select("contact_id, company_id, companies(name, trade_name)");
+      return (data ?? []) as Array<{ contact_id: string; company_id: string; companies: { name: string; trade_name: string | null } }>;
+    },
+  });
+
+  const companyBadgesMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const cc of contactCompanies) {
+      const names = map.get(cc.contact_id) ?? [];
+      names.push(cc.companies?.trade_name || cc.companies?.name || "");
+      map.set(cc.contact_id, names);
+    }
+    return map;
+  }, [contactCompanies]);
+
   const filtered = useMemo(() => {
     return contacts.filter((c) => {
       const q = search.toLowerCase();
@@ -146,6 +167,14 @@ export default function Contatos() {
                       <span className="truncate">{contact.document}</span>
                     )}
                   </div>
+                  <div className="flex items-center gap-1 mt-1 flex-wrap">
+                    {(contact as any).visible_pf && (
+                      <Badge variant="outline" className="text-[10px] h-4 px-1.5">Pessoal</Badge>
+                    )}
+                    {(companyBadgesMap.get(contact.id) ?? []).map((name, i) => (
+                      <Badge key={i} variant="secondary" className="text-[10px] h-4 px-1.5">{name}</Badge>
+                    ))}
+                  </div>
                 </div>
                 <div className="flex gap-1 shrink-0">
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => openEdit(contact)}>
@@ -175,7 +204,7 @@ export default function Contatos() {
       <ContactFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        onSaved={() => refetch()}
+        onSaved={() => { refetch(); refetchCompanies(); }}
         editContact={editContact}
       />
 
