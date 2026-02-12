@@ -16,7 +16,7 @@ interface LogoProps {
 export function Logo({ size = "md", className, linkTo = "/" }: LogoProps) {
   const img = (
     <img
-      src="/images/logo-gestor-plin-cropped.png"
+      src="/images/logo-gestor-plin-clean.png"
       alt="Gestor Plin"
       className={cn(sizeMap[size], "w-auto", className)}
     />
