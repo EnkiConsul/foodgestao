@@ -559,6 +559,42 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_method_companies: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          payment_method_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          payment_method_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          payment_method_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_method_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_method_companies_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_methods: {
         Row: {
           created_at: string
@@ -567,6 +603,7 @@ export type Database = {
           name: string
           updated_at: string
           user_id: string
+          visible_pf: boolean
         }
         Insert: {
           created_at?: string
@@ -575,6 +612,7 @@ export type Database = {
           name: string
           updated_at?: string
           user_id: string
+          visible_pf?: boolean
         }
         Update: {
           created_at?: string
@@ -583,6 +621,7 @@ export type Database = {
           name?: string
           updated_at?: string
           user_id?: string
+          visible_pf?: boolean
         }
         Relationships: []
       }
