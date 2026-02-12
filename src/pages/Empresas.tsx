@@ -76,8 +76,8 @@ export default function Empresas() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Empresas</h1>
-          <p className="text-sm text-muted-foreground">Gerencie suas empresas cadastradas</p>
+          <h1 className="text-2xl font-bold tracking-tight">Perfis de Acesso</h1>
+          <p className="text-sm text-muted-foreground">Gerencie seus perfis de acesso cadastrados</p>
         </div>
         <Button onClick={() => { setEditCompany(null); setDialogOpen(true); }} className="hidden md:flex">
           <Plus className="h-4 w-4 mr-2" /> Nova Empresa

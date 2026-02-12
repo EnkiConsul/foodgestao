@@ -40,7 +40,7 @@ const mainItems = [
 ];
 
 const secondaryItems = [
-  { title: "Empresas", url: "/empresas", icon: Building2 },
+  { title: "Perfis de Acesso", url: "/empresas", icon: Building2 },
   { title: "Contas Bancárias", url: "/contas-bancarias", icon: Landmark },
   { title: "Formas de Pagamento", url: "/formas-pagamento", icon: CreditCard },
   { title: "Clientes / Fornecedores", url: "/contatos", icon: Users },
