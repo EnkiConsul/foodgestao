@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Lock, User } from "lucide-react";
-import { Logo } from "@/components/Logo";
+
 import { z } from "zod";
 import { toast } from "sonner";
 
@@ -78,9 +78,7 @@ export default function Auth() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center space-y-3">
-          <div className="flex justify-center mb-8">
-            <Logo size="lg" linkTo={null} />
-          </div>
+          <CardTitle className="text-2xl font-bold">Gestor Plin</CardTitle>
           <CardDescription>
             {isLogin ? "Entre na sua conta" : "Crie sua conta gratuita"}
           </CardDescription>

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ContextSelector } from "@/components/layout/ContextSelector";
-import { Logo } from "@/components/Logo";
+
 
 export function AppHeader() {
   const [privacyMode, setPrivacyMode] = useState(false);
@@ -15,8 +15,6 @@ export function AppHeader() {
         <SidebarTrigger />
       </div>
 
-      <Logo size="md" className="hidden md:block" />
-      <Logo size="sm" className="md:hidden" />
 
       <ContextSelector />
 
