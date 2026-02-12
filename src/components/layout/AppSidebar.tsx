@@ -62,12 +62,12 @@ export function AppSidebar() {
               <img
                 src="/images/logo-gestor-plin-clean.png"
                 alt="Gestor Plin"
-                className="h-8 w-8 object-cover object-left"
+                className="h-10 w-10 object-cover object-left"
               />
             </div>
           ) : (
-            <div className="bg-white rounded-xl px-4 py-3">
-              <img src="/images/logo-gestor-plin-clean.png" alt="Gestor Plin" className="h-14 w-auto" />
+            <div className="bg-white rounded-xl px-5 py-4">
+              <img src="/images/logo-gestor-plin-clean.png" alt="Gestor Plin" className="h-20 w-auto" />
             </div>
           )}
         </div>

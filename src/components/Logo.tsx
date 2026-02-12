@@ -2,8 +2,8 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const sizeMap = {
-  sm: "h-8",   // 32px
-  md: "h-10",  // 40px
+  sm: "h-10",  // 40px
+  md: "h-12",  // 48px
   lg: "h-14",  // 56px
 } as const;
 
