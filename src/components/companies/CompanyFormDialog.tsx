@@ -54,9 +54,15 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
     e.preventDefault();
     if (!user) return;
 
+    const isPessoal = profileType === "pessoal";
+
     const validated = validateWithToast(companySchema, {
-      name, trade_name: tradeName || null, cnpj: cnpj || null,
-      email: email || null, phone: phone || null, address: address || null,
+      name,
+      trade_name: isPessoal ? null : (tradeName || null),
+      cnpj: cnpj || null,
+      email: email || null,
+      phone: phone || null,
+      address: address || null,
     }, toast.error);
     if (!validated) return;
 
@@ -105,32 +111,61 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
               </div>
             </RadioGroup>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="company-name">Razão Social *</Label>
-            <Input id="company-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Razão social da empresa" required maxLength={200} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="company-trade">Nome Fantasia</Label>
-            <Input id="company-trade" value={tradeName} onChange={(e) => setTradeName(e.target.value)} placeholder="Nome fantasia" maxLength={200} />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="company-cnpj">CNPJ</Label>
-              <Input id="company-cnpj" value={cnpj} onChange={(e) => setCnpj(e.target.value)} placeholder="00.000.000/0000-00" maxLength={20} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company-phone">Telefone</Label>
-              <Input id="company-phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" maxLength={20} />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="company-email">E-mail</Label>
-            <Input id="company-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="empresa@exemplo.com" maxLength={100} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="company-address">Endereço</Label>
-            <Input id="company-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, cidade - UF" maxLength={300} />
-          </div>
+          {profileType === "pessoal" ? (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="company-name">Nome Completo *</Label>
+                <Input id="company-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome completo" required maxLength={200} />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="company-cnpj">CPF</Label>
+                  <Input id="company-cnpj" value={cnpj} onChange={(e) => setCnpj(e.target.value)} placeholder="000.000.000-00" maxLength={20} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="company-phone">Telefone</Label>
+                  <Input id="company-phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" maxLength={20} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="company-email">E-mail</Label>
+                <Input id="company-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" maxLength={100} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="company-address">Endereço</Label>
+                <Input id="company-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, cidade - UF" maxLength={300} />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="company-name">Razão Social *</Label>
+                <Input id="company-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Razão social da empresa" required maxLength={200} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="company-trade">Nome Fantasia</Label>
+                <Input id="company-trade" value={tradeName} onChange={(e) => setTradeName(e.target.value)} placeholder="Nome fantasia" maxLength={200} />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="company-cnpj">CNPJ</Label>
+                  <Input id="company-cnpj" value={cnpj} onChange={(e) => setCnpj(e.target.value)} placeholder="00.000.000/0000-00" maxLength={20} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="company-phone">Telefone</Label>
+                  <Input id="company-phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" maxLength={20} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="company-email">E-mail</Label>
+                <Input id="company-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="empresa@exemplo.com" maxLength={100} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="company-address">Endereço</Label>
+                <Input id="company-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, cidade - UF" maxLength={300} />
+              </div>
+            </>
+          )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={saving || !name.trim()}>
