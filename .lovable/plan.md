@@ -1,41 +1,51 @@
 
 
-## Adicionar campo de vinculacao (Pessoa Fisica / Empresa) no formulario de Conta Bancaria
+## Vincular Contatos a Empresas / Pessoa Fisica
 
 ### O que sera feito
 
-Adicionar um novo campo **"Vinculado a"** no formulario de criacao e edicao de conta bancaria (`AccountFormDialog`), permitindo ao usuario escolher se a conta pertence a **Pessoa Fisica** ou a uma das **empresas** cadastradas.
+Adicionar um campo de selecao multipla no formulario de criacao/edicao de contatos, permitindo vincular cada contato a **Pessoa Fisica** e/ou a uma ou mais **empresas** cadastradas. As empresas vinculadas tambem serao exibidas na listagem de contatos.
 
-### Como funciona hoje
+### Alteracoes no banco de dados
 
-Atualmente, o contexto (PF ou PJ) e definido automaticamente pelo `useCompanyContext` global -- o usuario precisa trocar o perfil no seletor do header antes de criar a conta. Nao ha campo visivel no formulario para escolher a vinculacao.
+Criar uma tabela de juncao `contact_companies` (similar a `category_companies` ja existente) com:
 
-### Alteracoes planejadas
+- `id` (uuid, PK)
+- `contact_id` (uuid, FK para contacts)
+- `company_id` (uuid, FK para companies)
+- `created_at` (timestamp)
+- RLS: usuarios podem gerenciar vinculos dos seus proprios contatos
+- Indice unico em (contact_id, company_id) para evitar duplicatas
 
-**1. `src/components/accounts/AccountFormDialog.tsx`**
+Adicionar tambem uma coluna `visible_pf` (boolean, default true) na tabela `contacts` para indicar se o contato esta vinculado a Pessoa Fisica.
 
-- Adicionar estados `ownerType` (`"pf"` | `"pj"`) e `ownerCompanyId` (`string | null`)
-- Buscar a lista de empresas do usuario via `useCompanyContext` (ja disponivel no hook)
-- Renderizar um novo campo **Select** com label "Vinculado a" contendo:
-  - Opcao "Pessoa Fisica (Pessoal)"
-  - Uma opcao para cada empresa ativa do usuario
+### Alteracoes no codigo
+
+**1. `src/components/contacts/ContactFormDialog.tsx`**
+
+- Importar `useCompanyContext` para obter a lista de empresas
+- Adicionar estado `visiblePf` (boolean) e `selectedCompanyIds` (string[])
+- Renderizar um campo com checkboxes contendo:
+  - "Pessoa Fisica (Pessoal)"
+  - Uma opcao para cada empresa ativa
 - No `useEffect` de inicializacao:
-  - **Criacao:** pre-selecionar com base no contexto global atual
-  - **Edicao:** carregar o valor salvo da conta (`account.context` e `account.company_id`)
+  - **Criacao:** marcar "Pessoa Fisica" por padrao
+  - **Edicao:** carregar `visible_pf` do contato e buscar os IDs da tabela `contact_companies`
 - No `handleSubmit`:
-  - Usar `ownerType` para o campo `context`
-  - Usar `ownerCompanyId` para o campo `company_id`
-  - Na edicao, incluir `context` e `company_id` no `update`
+  - Salvar `visible_pf` no contato
+  - Deletar registros antigos de `contact_companies` para o contato
+  - Inserir os novos vinculos selecionados
 
-**2. `src/pages/ContasBancarias.tsx`** (opcional, melhoria visual)
+**2. `src/pages/Contatos.tsx`**
 
-- Exibir o nome da empresa vinculada ou "Pessoal" na listagem de contas, para que o usuario visualize a vinculacao.
+- Buscar os vinculos de `contact_companies` junto com o nome da empresa
+- Exibir badges com os nomes das empresas vinculadas (e "Pessoal" se `visible_pf` for true) abaixo do nome do contato
 
 ### Detalhes tecnicos
 
-- O campo usara o componente `Select` do Radix UI ja presente no projeto
-- As empresas serao obtidas de `useCompanyContext().companies` (ja carregadas)
-- A RLS existente ja suporta insercao/edicao com `company_id` para admins/owners e contas pessoais para o proprio usuario
-- Na edicao, o `update` passara a incluir `context` e `company_id` para permitir a transferencia de vinculacao
-- O campo sera obrigatorio: sempre tera "Pessoa Fisica" como opcao padrao
+- A tabela `contact_companies` segue o mesmo padrao de `category_companies`
+- RLS baseada em subquery verificando ownership do contato via `contacts.user_id = auth.uid()`
+- No formulario, checkboxes do Radix UI ja disponiveis no projeto serao usados para selecao multipla
+- A query de listagem usara um join para trazer os nomes das empresas vinculadas
+- Pelo menos uma opcao (PF ou empresa) devera estar selecionada para salvar
 
