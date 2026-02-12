@@ -29,7 +29,7 @@ const accountTypeLabels: Record<AccountType, string> = {
 
 export default function ContasBancarias() {
   const { user } = useAuth();
-  const { contextType, selectedCompanyId } = useCompanyContext();
+  const { contextType, selectedCompanyId, companies } = useCompanyContext();
   const { maskBRL } = usePrivacy();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
@@ -185,7 +185,10 @@ export default function ContasBancarias() {
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Saldo inicial: {maskBRL(Number(a.initial_balance))}
+                    {a.context === "pj" && a.company_id
+                      ? companies.find((c) => c.id === a.company_id)?.trade_name || companies.find((c) => c.id === a.company_id)?.name || "Empresa"
+                      : "Pessoal"}
+                    {" · "}Saldo inicial: {maskBRL(Number(a.initial_balance))}
                   </p>
                 </div>
 

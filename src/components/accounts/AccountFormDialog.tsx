@@ -33,12 +33,14 @@ interface Props {
 
 export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Props) {
   const { user } = useAuth();
-  const { contextType, selectedCompanyId } = useCompanyContext();
+  const { contextType, selectedCompanyId, companies } = useCompanyContext();
   const isEdit = !!account;
 
   const [name, setName] = useState("");
   const [accountType, setAccountType] = useState<AccountType>("corrente");
   const [initialBalance, setInitialBalance] = useState("");
+  const [ownerType, setOwnerType] = useState<"pf" | "pj">("pf");
+  const [ownerCompanyId, setOwnerCompanyId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -47,13 +49,17 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
         setName(account.name);
         setAccountType(account.account_type);
         setInitialBalance(formatCurrency(String(Math.round(account.initial_balance * 100))));
+        setOwnerType(account.context as "pf" | "pj");
+        setOwnerCompanyId(account.company_id);
       } else {
         setName("");
         setAccountType("corrente");
         setInitialBalance("");
+        setOwnerType(contextType);
+        setOwnerCompanyId(contextType === "pj" ? selectedCompanyId : null);
       }
     }
-  }, [open, account]);
+  }, [open, account, contextType, selectedCompanyId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,7 +74,12 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
     if (isEdit && account) {
       const { error } = await supabase
         .from("accounts")
-        .update({ name: name.trim(), account_type: accountType })
+        .update({
+          name: name.trim(),
+          account_type: accountType,
+          context: ownerType,
+          company_id: ownerType === "pj" ? ownerCompanyId : null,
+        })
         .eq("id", account.id);
       if (error) toast.error("Erro ao atualizar conta");
       else { toast.success("Conta atualizada"); onSaved(); onOpenChange(false); }
@@ -79,8 +90,8 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
         account_type: accountType,
         initial_balance: balance,
         current_balance: balance,
-        context: contextType,
-        company_id: contextType === "pj" ? selectedCompanyId : null,
+        context: ownerType,
+        company_id: ownerType === "pj" ? ownerCompanyId : null,
       });
       if (error) toast.error("Erro ao criar conta");
       else { toast.success("Conta criada"); onSaved(); onOpenChange(false); }
@@ -98,6 +109,30 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
           <div className="space-y-2">
             <Label htmlFor="name">Nome da Conta</Label>
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Nubank, Itaú..." required maxLength={100} />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Vinculado a</Label>
+            <Select
+              value={ownerType === "pf" ? "pf" : (ownerCompanyId ?? "")}
+              onValueChange={(v) => {
+                if (v === "pf") {
+                  setOwnerType("pf");
+                  setOwnerCompanyId(null);
+                } else {
+                  setOwnerType("pj");
+                  setOwnerCompanyId(v);
+                }
+              }}
+            >
+              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pf">Pessoa Física (Pessoal)</SelectItem>
+                {companies.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.trade_name || c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
