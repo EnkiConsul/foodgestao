@@ -337,6 +337,7 @@ export type Database = {
           is_active: boolean
           name: string
           phone: string | null
+          profile_type: string
           trade_name: string | null
           updated_at: string
           user_id: string
@@ -350,6 +351,7 @@ export type Database = {
           is_active?: boolean
           name: string
           phone?: string | null
+          profile_type?: string
           trade_name?: string | null
           updated_at?: string
           user_id: string
@@ -363,6 +365,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           phone?: string | null
+          profile_type?: string
           trade_name?: string | null
           updated_at?: string
           user_id?: string
