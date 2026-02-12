@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { companySchema, validateWithToast } from "@/lib/validations";
 import type { Database } from "@/integrations/supabase/types";
@@ -21,6 +22,7 @@ interface CompanyFormDialogProps {
 export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: CompanyFormDialogProps) {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [profileType, setProfileType] = useState<"pessoal" | "empresarial">("empresarial");
   const [name, setName] = useState("");
   const [tradeName, setTradeName] = useState("");
   const [cnpj, setCnpj] = useState("");
@@ -30,6 +32,7 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
 
   useEffect(() => {
     if (company) {
+      setProfileType((company as any).profile_type === "pessoal" ? "pessoal" : "empresarial");
       setName(company.name);
       setTradeName(company.trade_name ?? "");
       setCnpj(company.cnpj ?? "");
@@ -37,6 +40,7 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
       setPhone(company.phone ?? "");
       setAddress(company.address ?? "");
     } else {
+      setProfileType("empresarial");
       setName("");
       setTradeName("");
       setCnpj("");
@@ -58,7 +62,7 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
 
     setSaving(true);
 
-    const payload = { ...validated, user_id: user.id };
+    const payload = { ...validated, user_id: user.id, profile_type: profileType };
 
     let error;
     if (company) {
@@ -82,12 +86,25 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{company ? "Editar Empresa" : "Nova Empresa"}</DialogTitle>
+          <DialogTitle>{company ? "Editar Perfil" : "Novo Perfil"}</DialogTitle>
           <DialogDescription>
-            {company ? "Atualize os dados da empresa." : "Preencha os dados para cadastrar uma nova empresa."}
+            {company ? "Atualize os dados do perfil." : "Preencha os dados para cadastrar um novo perfil."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Tipo de Perfil *</Label>
+            <RadioGroup value={profileType} onValueChange={(v) => setProfileType(v as "pessoal" | "empresarial")} className="flex gap-4">
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="pessoal" id="profile-pessoal" />
+                <Label htmlFor="profile-pessoal" className="font-normal cursor-pointer">Pessoal</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="empresarial" id="profile-empresarial" />
+                <Label htmlFor="profile-empresarial" className="font-normal cursor-pointer">Empresarial</Label>
+              </div>
+            </RadioGroup>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="company-name">Razão Social *</Label>
             <Input id="company-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Razão social da empresa" required maxLength={200} />
@@ -117,7 +134,7 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={saving || !name.trim()}>
-              {saving ? "Salvando..." : company ? "Salvar" : "Criar Empresa"}
+              {saving ? "Salvando..." : company ? "Salvar" : "Criar Perfil"}
             </Button>
           </DialogFooter>
         </form>
