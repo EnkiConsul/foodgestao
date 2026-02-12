@@ -80,7 +80,7 @@ export default function Empresas() {
           <p className="text-sm text-muted-foreground">Gerencie seus perfis de acesso cadastrados</p>
         </div>
         <Button onClick={() => { setEditCompany(null); setDialogOpen(true); }} className="hidden md:flex">
-          <Plus className="h-4 w-4 mr-2" /> Nova Empresa
+          <Plus className="h-4 w-4 mr-2" /> Novo Perfil
         </Button>
       </div>
 
