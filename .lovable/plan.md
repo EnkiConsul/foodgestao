@@ -1,82 +1,41 @@
 
 
-## Implementar Logomarca do Gestor Plin em Toda a Aplicacao
+## Adicionar campo de vinculacao (Pessoa Fisica / Empresa) no formulario de Conta Bancaria
 
-### Visao Geral
-Copiar a imagem enviada para o projeto e criar um componente reutilizavel `Logo.tsx`, aplicando-o em todos os pontos da aplicacao: sidebar, header, login/cadastro, loading/splash screen e favicon.
+### O que sera feito
 
----
+Adicionar um novo campo **"Vinculado a"** no formulario de criacao e edicao de conta bancaria (`AccountFormDialog`), permitindo ao usuario escolher se a conta pertence a **Pessoa Fisica** ou a uma das **empresas** cadastradas.
 
-### 1. Copiar a imagem para o projeto
+### Como funciona hoje
 
-- Copiar `user-uploads://logo-gestor-plin.png.png` para `public/logo-gestor-plin.png`
-- Este caminho sera usado no favicon e no componente Logo
+Atualmente, o contexto (PF ou PJ) e definido automaticamente pelo `useCompanyContext` global -- o usuario precisa trocar o perfil no seletor do header antes de criar a conta. Nao ha campo visivel no formulario para escolher a vinculacao.
 
-### 2. Criar componente reutilizavel `src/components/Logo.tsx`
+### Alteracoes planejadas
 
-Props:
-- `size`: `'sm' | 'md' | 'lg'` (32px, 40px, 56px)
-- `className`: string opcional
-- `linkTo`: string opcional (default: `'/'`)
+**1. `src/components/accounts/AccountFormDialog.tsx`**
 
-O componente renderiza um `<Link>` do react-router-dom envolvendo a `<img>`. Se `linkTo` for `null`, renderiza apenas a imagem sem link.
+- Adicionar estados `ownerType` (`"pf"` | `"pj"`) e `ownerCompanyId` (`string | null`)
+- Buscar a lista de empresas do usuario via `useCompanyContext` (ja disponivel no hook)
+- Renderizar um novo campo **Select** com label "Vinculado a" contendo:
+  - Opcao "Pessoa Fisica (Pessoal)"
+  - Uma opcao para cada empresa ativa do usuario
+- No `useEffect` de inicializacao:
+  - **Criacao:** pre-selecionar com base no contexto global atual
+  - **Edicao:** carregar o valor salvo da conta (`account.context` e `account.company_id`)
+- No `handleSubmit`:
+  - Usar `ownerType` para o campo `context`
+  - Usar `ownerCompanyId` para o campo `company_id`
+  - Na edicao, incluir `context` e `company_id` no `update`
 
-```text
-+---------------------------+
-| Logo.tsx                  |
-| size='sm' -> h-8  (32px) |
-| size='md' -> h-10 (40px) |
-| size='lg' -> h-14 (56px) |
-| linkTo -> Link wrapper    |
-+---------------------------+
-```
+**2. `src/pages/ContasBancarias.tsx`** (opcional, melhoria visual)
 
-### 3. Atualizar o Sidebar (`AppSidebar.tsx`)
+- Exibir o nome da empresa vinculada ou "Pessoal" na listagem de contas, para que o usuario visualize a vinculacao.
 
-- Substituir a tag `<img>` atual pelo componente `<Logo>`
-- **Expandido**: `size="md"` (36px ~ h-9) dentro do container branco existente
-- **Colapsado**: versao compacta usando `object-fit: cover` e `object-position` para mostrar apenas o icone da arvore, com tamanho fixo de 32x32px
-- Manter o container `bg-white/95 rounded-xl` para contraste
-- Usar o contexto do sidebar (`useSidebar`) para detectar estado expandido/colapsado
+### Detalhes tecnicos
 
-### 4. Atualizar o Header (`AppHeader.tsx`)
+- O campo usara o componente `Select` do Radix UI ja presente no projeto
+- As empresas serao obtidas de `useCompanyContext().companies` (ja carregadas)
+- A RLS existente ja suporta insercao/edicao com `company_id` para admins/owners e contas pessoais para o proprio usuario
+- Na edicao, o `update` passara a incluir `context` e `company_id` para permitir a transferencia de vinculacao
+- O campo sera obrigatorio: sempre tera "Pessoa Fisica" como opcao padrao
 
-- Adicionar `<Logo>` a esquerda, antes do `SidebarTrigger`
-- Desktop: `size="md"` (40px)
-- Mobile: `size="sm"` (32px)
-- Clique redireciona para `/` (Dashboard)
-
-### 5. Atualizar a pagina de Login/Cadastro (`Auth.tsx`)
-
-- Substituir a `<img>` atual pelo componente `<Logo size="lg" linkTo={null} />`
-- Altura de 56px, centralizada
-- Manter margem inferior de 32px (`mb-8`) entre a logo e o formulario
-
-### 6. Atualizar o Loading/Splash Screen (`App.tsx`)
-
-- No `ProtectedRoute`, substituir o spinner atual por uma tela com:
-  - Logo centralizada com altura de 64px (classe customizada `h-16`)
-  - Animacao de fade-in usando classe Tailwind `animate-fade-in` (ou keyframe customizado no `index.css`)
-  - Spinner abaixo da logo
-
-### 7. Atualizar o Favicon (`index.html`)
-
-- Adicionar `<link rel="icon" href="/logo-gestor-plin.png" type="image/png">` no `<head>`
-
----
-
-### Detalhes Tecnicos
-
-**Arquivos criados:**
-- `src/components/Logo.tsx`
-
-**Arquivos modificados:**
-- `public/logo-gestor-plin.png` (copia do upload)
-- `index.html` (favicon)
-- `src/components/layout/AppSidebar.tsx` (usar Logo com suporte a colapsado/expandido)
-- `src/components/layout/AppHeader.tsx` (adicionar Logo a esquerda)
-- `src/pages/Auth.tsx` (substituir img por Logo)
-- `src/App.tsx` (splash screen com Logo + fade-in)
-- `src/index.css` (keyframe `fade-in` se necessario)
-
-**Dependencias:** nenhuma nova -- usa apenas react-router-dom (ja instalado) e Tailwind.
