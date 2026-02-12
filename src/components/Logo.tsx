@@ -2,9 +2,9 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const sizeMap = {
-  sm: "h-10",  // 40px
-  md: "h-12",  // 48px
-  lg: "h-14",  // 56px
+  sm: "h-10",  // 40px - mobile header
+  md: "h-14",  // 56px - desktop header
+  lg: "h-16",  // 64px - login page
 } as const;
 
 interface LogoProps {
