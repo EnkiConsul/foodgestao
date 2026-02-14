@@ -1,44 +1,117 @@
 
+# Modulo de Administracao da Plataforma (Super Usuario)
 
-## Vincular Formas de Pagamento a Empresas / Pessoa Fisica
+## Resumo
 
-### O que sera feito
+Criar um painel administrativo completo, acessivel exclusivamente por super usuarios, para gerenciar todos os usuarios e perfis de acesso da plataforma, com estatisticas gerais.
 
-Adicionar um campo de selecao multipla no formulario de criacao/edicao de formas de pagamento, permitindo vincular cada forma a **Pessoa Fisica** e/ou a uma ou mais **empresas** cadastradas. A vinculacao tambem sera exibida na listagem.
+---
 
-### Alteracoes no banco de dados
+## Etapas de Implementacao
 
-Seguindo o mesmo padrao ja usado em `contact_companies` e `category_companies`:
+### 1. Banco de Dados - Tabela de Papeis (user_roles)
 
-- Adicionar coluna `visible_pf` (boolean, default true) na tabela `payment_methods`
-- Criar tabela de juncao `payment_method_companies` com:
-  - `id` (uuid, PK)
-  - `payment_method_id` (uuid, FK para payment_methods)
-  - `company_id` (uuid, FK para companies)
-  - `created_at` (timestamp)
-  - Indice unico em (payment_method_id, company_id)
-  - RLS: usuarios podem gerenciar vinculos das suas proprias formas de pagamento (via subquery em `payment_methods.user_id`)
+Criar a infraestrutura de seguranca no banco de dados:
 
-### Alteracoes no codigo
+- **Tipo enum** `app_role` com valores: `super_admin`, `admin`, `user`
+- **Tabela** `user_roles` com colunas: `id`, `user_id` (referencia `auth.users`), `role` (tipo `app_role`), constraint unique em `(user_id, role)`
+- **RLS** habilitado na tabela `user_roles`:
+  - Super admins podem ver todos os registros
+  - Usuarios comuns podem ver apenas seu proprio papel
+- **Funcao** `has_role(user_id, role)` com `SECURITY DEFINER` para verificar papeis sem recursao em RLS
+- **Funcao** `is_super_admin(user_id)` com `SECURITY DEFINER` para verificacao rapida
 
-**1. `src/components/payment-methods/PaymentMethodFormDialog.tsx`**
+O primeiro super admin sera inserido manualmente via SQL apos a migracao.
 
-- Importar `useCompanyContext` e `Checkbox`
-- Adicionar estados `visiblePf` (boolean) e `selectedCompanyIds` (string[])
-- Renderizar checkboxes para "Pessoa Fisica (Pessoal)" e cada empresa ativa
-- Na edicao, carregar `visible_pf` do item e buscar IDs existentes de `payment_method_companies`
-- No submit: salvar `visible_pf` no registro e sincronizar a tabela de juncao (delete antigos + insert novos)
-- Validar que pelo menos uma opcao esteja marcada
+### 2. Politicas RLS para Dados Administrativos
 
-**2. `src/pages/FormasPagamento.tsx`**
+Adicionar politicas nas tabelas existentes para permitir que super admins acessem todos os dados:
 
-- Buscar vinculos de `payment_method_companies` com nome da empresa
-- Exibir badges ("Pessoal" e/ou nomes de empresas) abaixo do nome da forma de pagamento
-- Passar `visible_pf` no `editItem` para o dialog
+- **profiles**: super admins podem SELECT todos os perfis
+- **companies**: super admins podem SELECT todas as empresas
+- **transactions**: super admins podem SELECT todas as transacoes (para estatisticas)
+- **accounts**: super admins podem SELECT todas as contas (para estatisticas)
 
-### Detalhes tecnicos
+### 3. Hook `useSuperAdmin`
 
-- Padrao identico ao implementado em Contatos (`contact_companies` + `visible_pf`)
-- RLS usa subquery: `EXISTS (SELECT 1 FROM payment_methods pm WHERE pm.id = payment_method_companies.payment_method_id AND pm.user_id = auth.uid())`
-- Checkboxes do Radix UI (`@radix-ui/react-checkbox`) ja disponivel no projeto
-- Empresas obtidas via `useCompanyContext().companies`
+Criar hook `src/hooks/useSuperAdmin.tsx` que:
+
+- Consulta a tabela `user_roles` para verificar se o usuario logado possui o papel `super_admin`
+- Retorna `{ isSuperAdmin, loading }`
+- Utiliza React Query para cache eficiente
+
+### 4. Pagina de Administracao
+
+Criar `src/pages/Admin.tsx` com tres abas/secoes:
+
+**Aba 1 - Estatisticas Gerais:**
+- Total de usuarios cadastrados
+- Total de perfis de acesso (pessoais e empresariais)
+- Total de lancamentos na plataforma
+- Cards visuais seguindo o mesmo padrao do Dashboard atual
+
+**Aba 2 - Gestao de Usuarios:**
+- Tabela com todos os usuarios da plataforma (nome, email, data de cadastro, status do onboarding)
+- Busca por nome ou email
+- Acoes: visualizar detalhes, ativar/desativar conta (futuro)
+
+**Aba 3 - Perfis de Acesso:**
+- Tabela com todos os perfis (empresas) criados na plataforma
+- Filtros por tipo (pessoal/empresarial) e status (ativo/inativo)
+- Visualizacao dos dados de cada perfil
+
+### 5. Protecao de Rota
+
+- Criar componente `SuperAdminRoute` que verifica o papel do usuario e redireciona para `/` caso nao seja super admin
+- Adicionar a rota `/admin` no `App.tsx` protegida por esse componente
+
+### 6. Navegacao
+
+- Adicionar item "Administracao" no sidebar (`AppSidebar.tsx`) com icone `ShieldCheck`, visivel **somente** quando o usuario for super admin
+- O item aparecera em uma nova secao separada no final do menu
+
+---
+
+## Detalhes Tecnicos
+
+```text
+Estrutura de arquivos:
+
+src/
+  hooks/
+    useSuperAdmin.tsx        (novo - hook de verificacao)
+  pages/
+    Admin.tsx                (novo - painel admin)
+  components/
+    admin/
+      AdminStats.tsx         (novo - cards de estatisticas)
+      AdminUsers.tsx         (novo - tabela de usuarios)
+      AdminCompanies.tsx     (novo - tabela de perfis)
+      SuperAdminRoute.tsx    (novo - guard de rota)
+
+supabase/
+  migrations/
+    xxx_create_user_roles.sql  (novo - migracao)
+```
+
+**Fluxo de seguranca:**
+
+```text
+Usuario acessa /admin
+  -> SuperAdminRoute verifica user_roles no banco
+    -> Se super_admin: renderiza Admin.tsx
+    -> Se nao: redireciona para /
+```
+
+**Importante:** A verificacao de papel e feita sempre no servidor (via RLS e funcoes `SECURITY DEFINER`), nunca apenas no cliente. O hook `useSuperAdmin` consulta o banco, e as politicas RLS garantem que mesmo que alguem tente acessar dados diretamente, so super admins terao acesso.
+
+### Atribuicao do primeiro Super Admin
+
+Apos a migracao, sera necessario executar manualmente um SQL para definir o primeiro super admin:
+
+```text
+INSERT INTO public.user_roles (user_id, role)
+VALUES ('<seu-user-id>', 'super_admin');
+```
+
+Esse comando sera disponibilizado para execucao no painel do backend.
