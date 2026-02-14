@@ -875,6 +875,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -884,6 +905,13 @@ export type Database = {
         Args: { _company_id: string; _user_id: string }
         Returns: Database["public"]["Enums"]["company_role"]
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_company_admin_or_owner: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
@@ -892,6 +920,7 @@ export type Database = {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       account_type:
@@ -901,6 +930,7 @@ export type Database = {
         | "cartao_credito"
         | "dinheiro"
         | "outro"
+      app_role: "super_admin" | "admin" | "user"
       bill_status: "em_dia" | "vence_em_breve" | "atrasado" | "pago" | "parcial"
       budget_period: "mensal" | "anual"
       company_role: "owner" | "admin" | "member"
@@ -1054,6 +1084,7 @@ export const Constants = {
         "dinheiro",
         "outro",
       ],
+      app_role: ["super_admin", "admin", "user"],
       bill_status: ["em_dia", "vence_em_breve", "atrasado", "pago", "parcial"],
       budget_period: ["mensal", "anual"],
       company_role: ["owner", "admin", "member"],

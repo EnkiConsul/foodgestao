@@ -22,8 +22,10 @@ import Configuracoes from "./pages/Configuracoes";
 import GestaoUsuarios from "./pages/GestaoUsuarios";
 import Empresas from "./pages/Empresas";
 import FormasPagamento from "./pages/FormasPagamento";
+import Admin from "./pages/Admin";
 import AcceptInvite from "./pages/AcceptInvite";
 import NotFound from "./pages/NotFound";
+import { SuperAdminRoute } from "@/components/admin/SuperAdminRoute";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -102,6 +104,7 @@ const AppRoutes = () => (
       <Route path="/gestao-usuarios" element={<GestaoUsuarios />} />
       <Route path="/empresas" element={<Empresas />} />
       <Route path="/formas-pagamento" element={<FormasPagamento />} />
+      <Route path="/admin" element={<SuperAdminRoute><Admin /></SuperAdminRoute>} />
     </Route>
     <Route path="/convite/:token" element={<AcceptInvite />} />
     <Route path="*" element={<NotFound />} />
