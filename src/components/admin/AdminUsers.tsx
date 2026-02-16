@@ -29,15 +29,24 @@ export function AdminUsers() {
   });
 
   const toggleActive = useMutation({
-    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+    mutationFn: async ({ id, is_active, full_name }: { id: string; is_active: boolean; full_name: string | null }) => {
       const { error } = await supabase
         .from("profiles")
         .update({ is_active })
         .eq("id", id);
       if (error) throw error;
+
+      // Log the action
+      await supabase.rpc("insert_audit_log", {
+        _action: is_active ? "user_activated" : "user_deactivated",
+        _entity_type: "user",
+        _entity_id: id,
+        _details: { target_name: full_name || "—" },
+      });
     },
     onSuccess: (_, { is_active }) => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-audit-logs"] });
       toast.success(is_active ? "Usuário ativado" : "Usuário desativado");
     },
     onError: () => {
@@ -109,7 +118,7 @@ export function AdminUsers() {
                       <Switch
                         checked={user.is_active}
                         onCheckedChange={(checked) =>
-                          toggleActive.mutate({ id: user.id, is_active: checked })
+                          toggleActive.mutate({ id: user.id, is_active: checked, full_name: user.full_name })
                         }
                       />
                       <span className="text-xs text-muted-foreground">

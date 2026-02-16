@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminStats } from "@/components/admin/AdminStats";
 import { AdminUsers } from "@/components/admin/AdminUsers";
 import { AdminCompanies } from "@/components/admin/AdminCompanies";
+import { AdminAuditLogs } from "@/components/admin/AdminAuditLogs";
 import { ShieldCheck } from "lucide-react";
 
 export default function Admin() {
@@ -20,6 +21,7 @@ export default function Admin() {
           <TabsTrigger value="stats">Estatísticas</TabsTrigger>
           <TabsTrigger value="users">Usuários</TabsTrigger>
           <TabsTrigger value="companies">Perfis de Acesso</TabsTrigger>
+          <TabsTrigger value="audit">Auditoria</TabsTrigger>
         </TabsList>
 
         <TabsContent value="stats">
@@ -30,6 +32,9 @@ export default function Admin() {
         </TabsContent>
         <TabsContent value="companies">
           <AdminCompanies />
+        </TabsContent>
+        <TabsContent value="audit">
+          <AdminAuditLogs />
         </TabsContent>
       </Tabs>
     </div>
