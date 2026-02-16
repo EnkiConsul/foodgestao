@@ -53,7 +53,7 @@ function computeStatus(bill: Bill): BillStatus {
   return "em_dia";
 }
 
-export default function Contas() {
+export function BillsTab() {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const { maskBRL } = usePrivacy();
@@ -117,14 +117,11 @@ export default function Contas() {
   const formatBRL = maskBRL;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Contas a Pagar e Receber</h1>
-          <p className="text-sm text-muted-foreground">Controle seus pagamentos e recebimentos</p>
-        </div>
-        <Button onClick={() => setDialogOpen(true)} className="hidden md:flex">
-          <Plus className="h-4 w-4 mr-2" /> Nova Conta
+    <div className="space-y-4">
+      {/* Top action bar */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <Button onClick={() => setDialogOpen(true)} size="sm">
+          <Plus className="h-4 w-4 mr-1" /> Nova Conta
         </Button>
       </div>
 
@@ -227,7 +224,6 @@ export default function Contas() {
                         <Badge variant="outline" className="text-[10px] h-4 px-1.5">{b.payment_methods.name}</Badge>
                       )}
                     </div>
-                    {/* Progress bar for partial payments */}
                     {b.amount_paid > 0 && b.computedStatus !== "pago" && (
                       <div className="mt-1.5 flex items-center gap-2">
                         <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
