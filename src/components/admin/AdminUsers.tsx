@@ -1,16 +1,20 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Search } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 export function AdminUsers() {
   const [search, setSearch] = useState("");
+
+  const queryClient = useQueryClient();
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["admin-users"],
@@ -21,6 +25,23 @@ export function AdminUsers() {
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
+    },
+  });
+
+  const toggleActive = useMutation({
+    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ is_active })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_, { is_active }) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast.success(is_active ? "Usuário ativado" : "Usuário desativado");
+    },
+    onError: () => {
+      toast.error("Erro ao alterar status do usuário");
     },
   });
 
@@ -52,6 +73,7 @@ export function AdminUsers() {
               <TableHead>Nome</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Onboarding</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead>Cadastro</TableHead>
             </TableRow>
           </TableHeader>
@@ -59,20 +81,20 @@ export function AdminUsers() {
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 4 }).map((_, j) => (
+                  {Array.from({ length: 5 }).map((_, j) => (
                     <TableCell key={j}><Skeleton className="h-4 w-24" /></TableCell>
                   ))}
                 </TableRow>
               ))
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                   Nenhum usuário encontrado
                 </TableCell>
               </TableRow>
             ) : (
               filtered.map((user) => (
-                <TableRow key={user.id}>
+                <TableRow key={user.id} className={!user.is_active ? "opacity-60" : ""}>
                   <TableCell className="font-medium">{user.full_name || "—"}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="capitalize">{user.profile_type}</Badge>
@@ -81,6 +103,19 @@ export function AdminUsers() {
                     <Badge variant={user.onboarding_completed ? "default" : "secondary"}>
                       {user.onboarding_completed ? "Completo" : "Pendente"}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={user.is_active}
+                        onCheckedChange={(checked) =>
+                          toggleActive.mutate({ id: user.id, is_active: checked })
+                        }
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        {user.is_active ? "Ativo" : "Inativo"}
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {format(new Date(user.created_at), "dd/MM/yyyy", { locale: ptBR })}
