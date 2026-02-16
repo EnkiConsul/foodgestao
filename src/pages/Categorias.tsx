@@ -274,9 +274,18 @@ export default function Categorias() {
 
   const confirmDelete = async () => {
     if (!deleteId) return;
+    const cat = categories.find((c) => c.id === deleteId);
     const { error } = await supabase.from("categories").delete().eq("id", deleteId);
     if (error) toast.error("Erro ao excluir", { description: error.message });
-    else { toast.success("Categoria excluída"); refetchAll(); }
+    else {
+      await supabase.rpc("insert_audit_log", {
+        _action: "category_deleted",
+        _entity_type: "category",
+        _entity_id: deleteId,
+        _details: { target_name: cat?.name || "—" },
+      });
+      toast.success("Categoria excluída"); refetchAll();
+    }
     setDeleteId(null);
   };
 

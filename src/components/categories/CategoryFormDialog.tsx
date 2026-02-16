@@ -138,6 +138,12 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
         await supabase.from("category_companies").insert(rows);
       }
 
+      await supabase.rpc("insert_audit_log", {
+        _action: "category_updated",
+        _entity_type: "category",
+        _entity_id: editCategory.id,
+        _details: { target_name: name.trim() },
+      });
       toast.success("Categoria atualizada!");
       onOpenChange(false);
       onSaved();
@@ -167,6 +173,12 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
         await supabase.from("category_companies").insert(rows);
       }
 
+      await supabase.rpc("insert_audit_log", {
+        _action: "category_created",
+        _entity_type: "category",
+        _entity_id: newCat?.id,
+        _details: { target_name: name.trim() },
+      });
       toast.success("Categoria criada!");
       setName("");
       onOpenChange(false);

@@ -15,8 +15,24 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
 const actionLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  user_activated: { label: "Ativação", variant: "default" },
-  user_deactivated: { label: "Desativação", variant: "destructive" },
+  user_activated: { label: "Usuário Ativado", variant: "default" },
+  user_deactivated: { label: "Usuário Desativado", variant: "destructive" },
+  company_created: { label: "Empresa Criada", variant: "default" },
+  company_updated: { label: "Empresa Atualizada", variant: "secondary" },
+  company_deleted: { label: "Empresa Excluída", variant: "destructive" },
+  transaction_created: { label: "Lançamento Criado", variant: "default" },
+  transaction_updated: { label: "Lançamento Atualizado", variant: "secondary" },
+  transaction_deleted: { label: "Lançamento Excluído", variant: "destructive" },
+  contact_created: { label: "Contato Criado", variant: "default" },
+  contact_updated: { label: "Contato Atualizado", variant: "secondary" },
+  contact_deleted: { label: "Contato Excluído", variant: "destructive" },
+  account_created: { label: "Conta Criada", variant: "default" },
+  account_updated: { label: "Conta Atualizada", variant: "secondary" },
+  account_deleted: { label: "Conta Excluída", variant: "destructive" },
+  category_created: { label: "Categoria Criada", variant: "default" },
+  category_updated: { label: "Categoria Atualizada", variant: "secondary" },
+  category_deleted: { label: "Categoria Excluída", variant: "destructive" },
+  bill_created: { label: "Conta a Pagar Criada", variant: "default" },
 };
 
 const ALL_ACTIONS = "all";

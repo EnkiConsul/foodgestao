@@ -83,9 +83,18 @@ export default function Contatos() {
 
   const confirmDelete = async () => {
     if (!deleteId) return;
+    const contact = contacts.find((c) => c.id === deleteId);
     const { error } = await supabase.from("contacts").delete().eq("id", deleteId);
     if (error) toast.error("Erro ao excluir", { description: error.message });
-    else { toast.success("Contato excluído"); refetch(); }
+    else {
+      await supabase.rpc("insert_audit_log", {
+        _action: "contact_deleted",
+        _entity_type: "contact",
+        _entity_id: deleteId,
+        _details: { target_name: contact?.name || "—" },
+      });
+      toast.success("Contato excluído"); refetch();
+    }
     setDeleteId(null);
   };
 
