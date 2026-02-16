@@ -40,9 +40,18 @@ export default function Empresas() {
 
   const handleDelete = async () => {
     if (!deleteCompany) return;
+    const deletedName = deleteCompany.name;
     const { error } = await supabase.from("companies").delete().eq("id", deleteCompany.id);
     if (error) toast.error("Erro ao excluir empresa", { description: error.message });
-    else { toast.success("Empresa excluída"); fetchCompanies(); }
+    else {
+      await supabase.rpc("insert_audit_log", {
+        _action: "company_deleted",
+        _entity_type: "company",
+        _entity_id: deleteCompany.id,
+        _details: { target_name: deletedName },
+      });
+      toast.success("Empresa excluída"); fetchCompanies();
+    }
     setDeleteCompany(null);
   };
 

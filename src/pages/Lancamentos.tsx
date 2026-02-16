@@ -156,9 +156,16 @@ export default function Lancamentos() {
 
   const confirmDelete = async () => {
     if (!deleteId) return;
+    const tx = transactions.find((t) => t.id === deleteId);
     const { error } = await supabase.from("transactions").delete().eq("id", deleteId);
     if (error) toast.error("Erro ao excluir");
     else {
+      await supabase.rpc("insert_audit_log", {
+        _action: "transaction_deleted",
+        _entity_type: "transaction",
+        _entity_id: deleteId,
+        _details: { target_name: tx?.description || "—" },
+      });
       toast.success("Lançamento excluído");
       fetchTransactions();
       fetchPreviousBalance();

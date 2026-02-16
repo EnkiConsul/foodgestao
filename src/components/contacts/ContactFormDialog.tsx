@@ -97,6 +97,12 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact }: 
           selectedCompanyIds.map((cid) => ({ contact_id: editContact.id, company_id: cid })) as any
         );
       }
+      await supabase.rpc("insert_audit_log", {
+        _action: "contact_updated",
+        _entity_type: "contact",
+        _entity_id: editContact.id,
+        _details: { target_name: name },
+      });
       toast.success("Contato atualizado!"); onOpenChange(false); onSaved();
     } else {
       const { data: newContact, error } = await supabase.from("contacts").insert({ ...payload, user_id: user.id } as any).select("id").single();
@@ -107,6 +113,12 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact }: 
           selectedCompanyIds.map((cid) => ({ contact_id: (newContact as any).id, company_id: cid })) as any
         );
       }
+      await supabase.rpc("insert_audit_log", {
+        _action: "contact_created",
+        _entity_type: "contact",
+        _entity_id: (newContact as any).id,
+        _details: { target_name: name },
+      });
       toast.success("Contato criado!"); onOpenChange(false); onSaved();
     }
     setSaving(false);

@@ -117,6 +117,11 @@ export function BillFormDialog({ open, onOpenChange, onCreated }: Props) {
     if (error) {
       toast.error("Erro ao salvar", { description: error.message });
     } else {
+      await supabase.rpc("insert_audit_log", {
+        _action: "bill_created",
+        _entity_type: "bill",
+        _details: { target_name: description.trim(), amount: String(numAmount), type },
+      });
       toast.success("Conta criada!");
       resetForm();
       onOpenChange(false);

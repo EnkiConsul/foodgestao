@@ -81,6 +81,12 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
     if (error) {
       toast.error(company ? "Erro ao atualizar empresa" : "Erro ao criar empresa", { description: error.message });
     } else {
+      await supabase.rpc("insert_audit_log", {
+        _action: company ? "company_updated" : "company_created",
+        _entity_type: "company",
+        _entity_id: company?.id ?? undefined,
+        _details: { target_name: name },
+      });
       toast.success(company ? "Empresa atualizada!" : "Empresa criada!");
       onSaved();
       onOpenChange(false);

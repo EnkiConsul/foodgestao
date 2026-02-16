@@ -159,6 +159,12 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     if (error) {
       toast.error("Erro ao salvar", { description: error.message });
     } else {
+      await supabase.rpc("insert_audit_log", {
+        _action: isEditing ? "transaction_updated" : "transaction_created",
+        _entity_type: "transaction",
+        _entity_id: isEditing ? transaction.id : undefined,
+        _details: { target_name: description.trim(), amount: String(numAmount), type },
+      });
       toast.success(isEditing ? "Lançamento atualizado!" : "Lançamento criado!");
       resetForm();
       onOpenChange(false);

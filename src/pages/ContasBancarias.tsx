@@ -59,9 +59,18 @@ export default function ContasBancarias() {
 
   const handleDelete = async () => {
     if (!deleteAccount) return;
+    const deletedName = deleteAccount.name;
     const { error } = await supabase.from("accounts").delete().eq("id", deleteAccount.id);
     if (error) toast.error("Erro ao excluir conta");
-    else { toast.success("Conta excluída"); fetchAccounts(); }
+    else {
+      await supabase.rpc("insert_audit_log", {
+        _action: "account_deleted",
+        _entity_type: "account",
+        _entity_id: deleteAccount.id,
+        _details: { target_name: deletedName },
+      });
+      toast.success("Conta excluída"); fetchAccounts();
+    }
     setDeleteAccount(null);
   };
 

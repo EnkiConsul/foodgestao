@@ -82,7 +82,15 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
         })
         .eq("id", account.id);
       if (error) toast.error("Erro ao atualizar conta");
-      else { toast.success("Conta atualizada"); onSaved(); onOpenChange(false); }
+      else {
+        await supabase.rpc("insert_audit_log", {
+          _action: "account_updated",
+          _entity_type: "account",
+          _entity_id: account.id,
+          _details: { target_name: name.trim() },
+        });
+        toast.success("Conta atualizada"); onSaved(); onOpenChange(false);
+      }
     } else {
       const { error } = await supabase.from("accounts").insert({
         user_id: user.id,
@@ -94,7 +102,14 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
         company_id: ownerType === "pj" ? ownerCompanyId : null,
       });
       if (error) toast.error("Erro ao criar conta");
-      else { toast.success("Conta criada"); onSaved(); onOpenChange(false); }
+      else {
+        await supabase.rpc("insert_audit_log", {
+          _action: "account_created",
+          _entity_type: "account",
+          _details: { target_name: name.trim() },
+        });
+        toast.success("Conta criada"); onSaved(); onOpenChange(false);
+      }
     }
     setSaving(false);
   };
