@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, CalendarIcon, X } from "lucide-react";
+import { Search, CalendarIcon, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -36,12 +36,14 @@ const actionLabels: Record<string, { label: string; variant: "default" | "second
 };
 
 const ALL_ACTIONS = "all";
+const PAGE_SIZE = 20;
 
 export function AdminAuditLogs() {
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState(ALL_ACTIONS);
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [page, setPage] = useState(0);
 
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ["admin-audit-logs"],
@@ -50,7 +52,7 @@ export function AdminAuditLogs() {
         .from("audit_logs")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(200);
+        .limit(1000);
       if (error) throw error;
       return data;
     },
@@ -76,6 +78,10 @@ export function AdminAuditLogs() {
     return matchesSearch && matchesAction && matchesFrom && matchesTo;
   });
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const paged = filtered.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
+
   const hasFilters = search || actionFilter !== ALL_ACTIONS || dateFrom || dateTo;
 
   const clearFilters = () => {
@@ -83,7 +89,14 @@ export function AdminAuditLogs() {
     setActionFilter(ALL_ACTIONS);
     setDateFrom(undefined);
     setDateTo(undefined);
+    setPage(0);
   };
+
+  // Reset page when filters change
+  const handleSearchChange = (v: string) => { setSearch(v); setPage(0); };
+  const handleActionChange = (v: string) => { setActionFilter(v); setPage(0); };
+  const handleDateFromChange = (v: Date | undefined) => { setDateFrom(v); setPage(0); };
+  const handleDateToChange = (v: Date | undefined) => { setDateTo(v); setPage(0); };
 
   return (
     <div className="space-y-4">
@@ -93,12 +106,12 @@ export function AdminAuditLogs() {
           <Input
             placeholder="Buscar..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-9"
           />
         </div>
 
-        <Select value={actionFilter} onValueChange={setActionFilter}>
+        <Select value={actionFilter} onValueChange={handleActionChange}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Tipo de ação" />
           </SelectTrigger>
@@ -120,7 +133,7 @@ export function AdminAuditLogs() {
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
-            <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} initialFocus className={cn("p-3 pointer-events-auto")} locale={ptBR} />
+            <Calendar mode="single" selected={dateFrom} onSelect={handleDateFromChange} initialFocus className={cn("p-3 pointer-events-auto")} locale={ptBR} />
           </PopoverContent>
         </Popover>
 
@@ -132,7 +145,7 @@ export function AdminAuditLogs() {
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
-            <Calendar mode="single" selected={dateTo} onSelect={setDateTo} initialFocus className={cn("p-3 pointer-events-auto")} locale={ptBR} />
+            <Calendar mode="single" selected={dateTo} onSelect={handleDateToChange} initialFocus className={cn("p-3 pointer-events-auto")} locale={ptBR} />
           </PopoverContent>
         </Popover>
 
@@ -163,14 +176,14 @@ export function AdminAuditLogs() {
                   ))}
                 </TableRow>
               ))
-            ) : filtered.length === 0 ? (
+            ) : paged.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                   Nenhum log encontrado
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((log) => {
+              paged.map((log) => {
                 const actionInfo = actionLabels[log.action] ?? { label: log.action, variant: "outline" as const };
                 const details = log.details as Record<string, string> | null;
                 return (
@@ -193,6 +206,26 @@ export function AdminAuditLogs() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination */}
+      {filtered.length > PAGE_SIZE && (
+        <div className="flex items-center justify-between pt-2">
+          <p className="text-xs text-muted-foreground">
+            {safePage * PAGE_SIZE + 1}–{Math.min((safePage + 1) * PAGE_SIZE, filtered.length)} de {filtered.length} registros
+          </p>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-xs px-2 text-muted-foreground">
+              {safePage + 1} / {totalPages}
+            </span>
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={safePage >= totalPages - 1} onClick={() => setPage(safePage + 1)}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
