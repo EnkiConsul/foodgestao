@@ -636,6 +636,7 @@ export type Database = {
           document: string | null
           full_name: string | null
           id: string
+          is_active: boolean
           onboarding_completed: boolean
           phone: string | null
           privacy_mode: boolean
@@ -651,6 +652,7 @@ export type Database = {
           document?: string | null
           full_name?: string | null
           id?: string
+          is_active?: boolean
           onboarding_completed?: boolean
           phone?: string | null
           privacy_mode?: boolean
@@ -666,6 +668,7 @@ export type Database = {
           document?: string | null
           full_name?: string | null
           id?: string
+          is_active?: boolean
           onboarding_completed?: boolean
           phone?: string | null
           privacy_mode?: boolean
