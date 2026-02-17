@@ -1,70 +1,124 @@
 
-
-# Migrar funcionalidades de "Contas a Pagar" para "Lancamentos"
+# Plano: Unificar Tudo na Tabela `transactions` e Eliminar a Tabela `bills`
 
 ## Objetivo
-Unificar os modulos "Contas a Pagar" e "Lancamentos" em uma unica tela, adicionando uma segunda aba dentro da pagina de Lancamentos para gerenciar contas (bills). Apos a migracao, a rota `/contas` sera removida e todos os links atualizados.
+Eliminar a distinção entre "lançamento" e "conta a pagar/receber". Todo registro financeiro passa a ser uma **transaction** com campos adicionais que permitem controle de vencimento, pagamentos parciais e status de pagamento.
 
-## Abordagem
+---
 
-A pagina de Lancamentos ganhara um sistema de abas (Tabs) com duas secoes:
-- **Lancamentos** -- conteudo atual da pagina (transacoes realizadas)
-- **Contas a Pagar/Receber** -- todo o conteudo que hoje esta na pagina `Contas.tsx` (bills com filtros, cards de resumo, lista, pagamento parcial, barra de progresso)
+## 1. Migrar o Banco de Dados
 
-## Etapas de implementacao
+Adicionar colunas na tabela `transactions` para absorver as funcionalidades de `bills`:
 
-### 1. Adicionar Tabs na pagina Lancamentos
-- Importar `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` do shadcn/ui
-- Envolver o conteudo atual em `TabsContent value="lancamentos"`
-- Criar `TabsContent value="contas"` com todo o conteudo migrado de `Contas.tsx`
+- `due_date` (date, nullable) -- data de vencimento (se preenchida, indica compromisso futuro)
+- `amount_paid` (numeric, default 0) -- valor ja pago (para pagamentos parciais)
+- `payment_date` (date, nullable) -- data do ultimo pagamento
+- `bill_status` (enum bill_status, nullable) -- em_dia / vence_em_breve / atrasado / pago / parcial
+- `contact_id` ja existe na tabela
 
-### 2. Migrar logica de Contas para dentro de Lancamentos
-- Mover toda a logica de estado, fetch, filtros, computeStatus, totais e a listagem de bills diretamente para dentro do `TabsContent value="contas"`, extraindo em um componente interno ou inline
-- Importar `BillFormDialog` e `PaymentDialog` na pagina Lancamentos
-- Manter os mesmos filtros (busca, tipo, status), cards de resumo (A Pagar, A Receber, Atrasadas) e a listagem com badges, barra de progresso e acoes (pagamento, exclusao)
+Migrar dados existentes da tabela `bills` para `transactions` via SQL (INSERT INTO transactions SELECT ... FROM bills).
 
-### 3. Remover a rota e pagina /contas
-- Remover a rota `/contas` de `App.tsx`
-- Remover a importacao de `Contas` em `App.tsx`
-- O arquivo `src/pages/Contas.tsx` pode ser mantido ou removido (preferivel remover para manter o projeto limpo)
+Manter a tabela `bills` no banco temporariamente (sem uso no codigo), para seguranca. Pode ser removida depois.
 
-### 4. Atualizar navegacao
-- **AppSidebar.tsx**: Remover o item "Contas a Pagar" da lista `mainItems`
-- **BottomNav.tsx**: Substituir o item "Contas a Pagar" (url `/contas`) por outro item relevante ou remove-lo, mantendo 5 itens no maximo
+---
 
-### 5. Adicionar botao "Nova Conta" na aba de contas
-- O FAB mobile e o botao desktop abrirao `BillFormDialog` quando a aba "Contas" estiver ativa, e `TransactionFormDialog` quando estiver em "Lancamentos"
+## 2. Atualizar o Formulario de Lancamento (`TransactionFormDialog`)
 
-## Detalhes tecnicos
+- Adicionar campo opcional **"Data de vencimento"** (visivel para receita/despesa, nao para transferencia)
+- Quando preenchido, o lancamento nasce com `bill_status = 'em_dia'` e `status = 'pendente'`
+- Quando nao preenchido, comportamento atual (lancamento realizado imediato)
+- Atualizar o schema de validacao (`transactionSchema`) para incluir `due_date`, `amount_paid`, `bill_status`
 
-### Estrutura da pagina Lancamentos apos a migracao
+---
+
+## 3. Refatorar a Pagina de Lancamentos (`Lancamentos.tsx`)
+
+- Remover toda logica de fetch/exibicao da tabela `bills`
+- Remover o tipo `Bill`, `UnifiedRow.rowType`, e a unificacao atual de duas fontes
+- Fetch apenas de `transactions` (incluindo novos campos `due_date`, `amount_paid`, `bill_status`)
+- Computar o `bill_status` dinamicamente (em_dia, vence_em_breve, atrasado, pago, parcial) baseado em `due_date` e `amount_paid`
+- Manter colunas: Data, Descricao, D/C, Valor, Status, Vencimento, Saldo
+- Manter cards de resumo: Receitas, Despesas, A Pagar, A Receber, Atrasadas (calculados a partir de transactions com due_date)
+- Manter filtros unificados (status de pagamento, tipo, periodo)
+- Remover botao "Nova Conta" -- tudo e criado pelo mesmo formulario
+- O botao de pagamento parcial (icone $) aparece para transactions com `due_date` e `bill_status != 'pago'`
+
+---
+
+## 4. Adaptar o PaymentDialog
+
+- Em vez de atualizar a tabela `bills`, atualizar a propria transaction:
+  - Incrementar `amount_paid`
+  - Atualizar `bill_status` (parcial ou pago)
+  - Atualizar `payment_date`
+- Manter a logica de atualizar o saldo da conta bancaria (`current_balance`)
+- Remover a criacao de lancamento automatico (pois ja E o lancamento)
+
+---
+
+## 5. Atualizar FluxoCaixa
+
+- Alterar a query de projecao para buscar `transactions` com `due_date IS NOT NULL` e `bill_status != 'pago'` em vez de buscar da tabela `bills`
+
+---
+
+## 6. Remover Arquivos/Codigo Obsoletos
+
+- Remover `src/components/bills/BillFormDialog.tsx`
+- Remover `src/components/bills/BillsTab.tsx`
+- Remover import/uso do `BillFormDialog` em `Lancamentos.tsx`
+- Remover `billSchema` de `src/lib/validations.ts`
+- Atualizar RLS policies da tabela `transactions` se necessario (nenhuma mudanca esperada, pois as policies ja cobrem a tabela)
+
+---
+
+## Detalhes Tecnicos
+
+### SQL da Migracao
 
 ```text
-Lancamentos.tsx
-+-- Tabs (defaultValue="lancamentos")
-|   +-- TabsList
-|   |   +-- TabsTrigger "Lancamentos"
-|   |   +-- TabsTrigger "Contas a Pagar"
-|   +-- TabsContent "lancamentos"
-|   |   +-- (conteudo atual: navegacao mensal, filtros, tabela, saldo)
-|   +-- TabsContent "contas"
-|       +-- (conteudo migrado: cards resumo, filtros, lista de bills)
-+-- BillFormDialog
-+-- PaymentDialog
-+-- TransactionFormDialog
-+-- AlertDialog (exclusao)
+-- Adicionar colunas
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS due_date date;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS amount_paid numeric NOT NULL DEFAULT 0;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS payment_date date;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS bill_status bill_status;
+
+-- Migrar dados de bills para transactions
+INSERT INTO transactions (
+  user_id, description, amount, transaction_type, transaction_date,
+  account_id, category_id, contact_id, notes, payment_method_id,
+  context, company_id, status,
+  due_date, amount_paid, payment_date, bill_status
+)
+SELECT
+  user_id, description, amount, bill_type, due_date,
+  account_id, category_id, contact_id, notes, payment_method_id,
+  context, company_id,
+  CASE WHEN status = 'pago' THEN 'confirmado' ELSE 'pendente' END,
+  due_date, amount_paid, payment_date, status
+FROM bills;
 ```
 
-### Arquivos modificados
-- `src/pages/Lancamentos.tsx` -- adicionar Tabs e integrar bills
-- `src/App.tsx` -- remover rota `/contas` e import
-- `src/components/layout/AppSidebar.tsx` -- remover item "Contas a Pagar"
-- `src/components/layout/BottomNav.tsx` -- remover/substituir item "Contas a Pagar"
+### Logica de Status Dinamico (front-end)
 
-### Arquivos removidos
-- `src/pages/Contas.tsx`
+```text
+function computeBillStatus(tx):
+  se amount_paid >= amount -> "pago"
+  se amount_paid > 0 -> "parcial"
+  se due_date < hoje -> "atrasado"
+  se due_date <= hoje + 7 dias -> "vence_em_breve"
+  senao -> "em_dia"
+```
 
-### Nenhuma alteracao no banco de dados
-- A tabela `bills` e todas as RLS policies permanecem inalteradas
-- Os componentes `BillFormDialog` e `PaymentDialog` continuam funcionando sem modificacao
+### Arquivos Impactados
 
+| Arquivo | Acao |
+|---|---|
+| Migracao SQL | Adicionar colunas + migrar dados |
+| `src/components/transactions/TransactionFormDialog.tsx` | Adicionar campo due_date |
+| `src/pages/Lancamentos.tsx` | Refatorar (remover bills, usar so transactions) |
+| `src/components/bills/PaymentDialog.tsx` | Adaptar para atualizar transactions |
+| `src/pages/FluxoCaixa.tsx` | Query de projecao usa transactions |
+| `src/components/bills/BillFormDialog.tsx` | Deletar |
+| `src/components/bills/BillsTab.tsx` | Deletar |
+| `src/lib/validations.ts` | Remover billSchema, atualizar transactionSchema |
