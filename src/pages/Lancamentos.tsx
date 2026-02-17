@@ -430,31 +430,6 @@ export default function Lancamentos() {
         </div>
       </div>
 
-      <div>
-        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status de Vencimento</label>
-        <div className="space-y-2 mt-1.5">
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={filterBillEmDia} onCheckedChange={(v) => setFilterBillEmDia(!!v)} />
-            Em dia
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={filterBillVenceBreve} onCheckedChange={(v) => setFilterBillVenceBreve(!!v)} />
-            Vence em breve
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={filterBillAtrasado} onCheckedChange={(v) => setFilterBillAtrasado(!!v)} />
-            Atrasado
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={filterBillPago} onCheckedChange={(v) => setFilterBillPago(!!v)} />
-            Pago
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={filterBillParcial} onCheckedChange={(v) => setFilterBillParcial(!!v)} />
-            Parcial
-          </label>
-        </div>
-      </div>
 
       {/* Date range filter */}
       <div>
