@@ -22,7 +22,7 @@ import {
   Download, DollarSign, CalendarIcon, CreditCard, HandCoins, X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { format, endOfMonth, isPast, addDays, isAfter } from "date-fns";
+import { format, endOfMonth, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import {
@@ -30,9 +30,9 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import type { Database } from "@/integrations/supabase/types";
 
-type BillStatus = Database["public"]["Enums"]["bill_status"];
+
+type TransactionDisplayStatus = "pago" | "a_vencer" | "atrasado";
 
 type Transaction = {
   id: string;
@@ -46,7 +46,7 @@ type Transaction = {
   payment_method_id: string | null;
   due_date: string | null;
   amount_paid: number;
-  bill_status: BillStatus | null;
+  bill_status: string | null;
   payment_date: string | null;
   contact_id: string | null;
   categories: { name: string } | null;
@@ -66,7 +66,7 @@ type DisplayRow = {
   accountName: string | null;
   paymentMethodName: string | null;
   txStatus: string;
-  billStatus: BillStatus | null;
+  billStatus: TransactionDisplayStatus;
   amountPaid: number;
   dueDate: string | null;
   runningBalance: number;
@@ -82,23 +82,26 @@ const MONTHS = [
   "Jul", "Ago", "Set", "Out", "Nov", "Dez",
 ];
 
-const billStatusConfig: Record<BillStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  em_dia: { label: "Em dia", variant: "secondary" },
-  vence_em_breve: { label: "Vence em breve", variant: "outline" },
-  atrasado: { label: "Atrasado", variant: "destructive" },
+const displayStatusConfig: Record<TransactionDisplayStatus, { label: string; variant: "default" | "secondary" | "destructive" }> = {
   pago: { label: "Pago", variant: "default" },
-  parcial: { label: "Parcial", variant: "outline" },
+  a_vencer: { label: "A Vencer", variant: "secondary" },
+  atrasado: { label: "Atrasado", variant: "destructive" },
 };
 
-function computeBillStatus(tx: Transaction): BillStatus | null {
-  if (!tx.due_date) return null;
-  if (tx.amount_paid >= tx.amount) return "pago";
-  if (tx.amount_paid > 0) return "parcial";
-  const due = new Date(tx.due_date + "T23:59:59");
-  const now = new Date();
-  if (isPast(due) && now > due) return "atrasado";
-  if (isAfter(due, now) && !isAfter(due, addDays(now, 7))) return "vence_em_breve";
-  return "em_dia";
+function computeDisplayStatus(tx: Transaction): TransactionDisplayStatus {
+  // Has due_date: check payment
+  if (tx.due_date) {
+    if (tx.amount_paid >= tx.amount) return "pago";
+    const due = new Date(tx.due_date + "T23:59:59");
+    if (isPast(due)) return "atrasado";
+    return "a_vencer";
+  }
+  // No due_date: use transaction status + date
+  if (tx.status === "confirmado") return "pago";
+  // Pending without due_date: check if transaction_date is in the past
+  const txDate = new Date(tx.transaction_date + "T23:59:59");
+  if (isPast(txDate)) return "atrasado";
+  return "a_vencer";
 }
 
 export default function Lancamentos() {
@@ -126,8 +129,9 @@ export default function Lancamentos() {
   const [filterCredito, setFilterCredito] = useState(true);
   const [filterDebito, setFilterDebito] = useState(true);
   const [filterTransferencia, setFilterTransferencia] = useState(true);
-  const [filterRealizado, setFilterRealizado] = useState(true);
-  const [filterPendente, setFilterPendente] = useState(true);
+  const [filterPago, setFilterPago] = useState(true);
+  const [filterAVencer, setFilterAVencer] = useState(true);
+  const [filterAtrasado, setFilterAtrasado] = useState(true);
   const [filterPaymentMethod, setFilterPaymentMethod] = useState<string>("all");
   // Date range filter
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
@@ -244,12 +248,15 @@ export default function Lancamentos() {
       if (t.transaction_type === "receita" && !filterCredito) return;
       if (t.transaction_type === "despesa" && !filterDebito) return;
       if (t.transaction_type === "transferencia" && !filterTransferencia) return;
-      if (t.status === "confirmado" && !filterRealizado) return;
-      if (t.status === "pendente" && !filterPendente) return;
       if (filterAccount !== "all" && t.account_id !== filterAccount) return;
       if (filterPaymentMethod !== "all" && t.payment_method_id !== filterPaymentMethod) return;
 
-      const computed = computeBillStatus(t);
+      const computed = computeDisplayStatus(t);
+
+      // Status filter
+      if (computed === "pago" && !filterPago) return;
+      if (computed === "a_vencer" && !filterAVencer) return;
+      if (computed === "atrasado" && !filterAtrasado) return;
 
       // Date range filter for due_date
       if (t.due_date) {
@@ -298,7 +305,7 @@ export default function Lancamentos() {
     });
 
     return rows;
-  }, [transactions, search, filterCredito, filterDebito, filterTransferencia, filterRealizado, filterPendente, filterAccount, filterPaymentMethod, dateFrom, dateTo, sortBy, previousBalance]);
+  }, [transactions, search, filterCredito, filterDebito, filterTransferencia, filterPago, filterAVencer, filterAtrasado, filterAccount, filterPaymentMethod, dateFrom, dateTo, sortBy, previousBalance]);
 
   // Totals
   const totals = useMemo(() => {
@@ -323,7 +330,7 @@ export default function Lancamentos() {
       `"${r.description.replace(/"/g, '""')}"`,
       r.transactionType === "receita" ? "Crédito" : r.transactionType === "despesa" ? "Débito" : "Transferência",
       r.amount.toFixed(2).replace(".", ","),
-      r.billStatus ? billStatusConfig[r.billStatus].label : (r.txStatus === "confirmado" ? "Realizado" : "Pendente"),
+      displayStatusConfig[r.billStatus].label,
       r.dueDate ? format(new Date(r.dueDate + "T12:00:00"), "dd/MM/yyyy") : "",
       r.amountPaid > 0 ? r.amountPaid.toFixed(2).replace(".", ",") : "",
       r.categoryName || "",
@@ -348,8 +355,9 @@ export default function Lancamentos() {
     setFilterCredito(true);
     setFilterDebito(true);
     setFilterTransferencia(true);
-    setFilterRealizado(true);
-    setFilterPendente(true);
+    setFilterPago(true);
+    setFilterAVencer(true);
+    setFilterAtrasado(true);
     setDateFrom(undefined);
     setDateTo(undefined);
   };
@@ -400,12 +408,16 @@ export default function Lancamentos() {
         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</label>
         <div className="space-y-2 mt-1.5">
           <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={filterRealizado} onCheckedChange={(v) => setFilterRealizado(!!v)} />
-            Realizado
+            <Checkbox checked={filterPago} onCheckedChange={(v) => setFilterPago(!!v)} />
+            Pago
           </label>
           <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={filterPendente} onCheckedChange={(v) => setFilterPendente(!!v)} />
-            Pendente
+            <Checkbox checked={filterAVencer} onCheckedChange={(v) => setFilterAVencer(!!v)} />
+            A Vencer
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox checked={filterAtrasado} onCheckedChange={(v) => setFilterAtrasado(!!v)} />
+            Atrasado
           </label>
         </div>
       </div>
@@ -593,7 +605,7 @@ export default function Lancamentos() {
                 <TableBody>
                   <TableRow className="bg-muted/30 font-semibold">
                     <TableCell colSpan={7} className="text-xs py-2">
-                      SALDO ANTERIOR REALIZADO
+                      SALDO ANTERIOR
                     </TableCell>
                     <TableCell className={`text-xs text-right py-2 ${previousBalance >= 0 ? "text-success" : "text-destructive"}`}>
                       {formatBRL(previousBalance)}
@@ -663,15 +675,9 @@ export default function Lancamentos() {
 
                           {/* Status */}
                           <TableCell className="py-2">
-                            {r.billStatus ? (
-                              <Badge variant={billStatusConfig[r.billStatus].variant} className="text-[10px] h-5 px-1.5">
-                                {billStatusConfig[r.billStatus].label}
-                              </Badge>
-                            ) : (
-                              <Badge variant={r.txStatus === "confirmado" ? "default" : "secondary"} className="text-[10px] h-5 px-1.5">
-                                {r.txStatus === "confirmado" ? "Realizado" : "Pendente"}
-                              </Badge>
-                            )}
+                            <Badge variant={displayStatusConfig[r.billStatus].variant} className="text-[10px] h-5 px-1.5">
+                              {displayStatusConfig[r.billStatus].label}
+                            </Badge>
                           </TableCell>
 
                           {/* Vencimento */}
