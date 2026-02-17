@@ -1,45 +1,32 @@
 
 
-# Configurar Colunas da Tabela de Lancamentos
+# Exibir apenas um valor na coluna Valor
 
 ## O que sera feito
 
-Adicionar um botao de configuracao (icone de engrenagem) ao lado do cabecalho da tabela que abre um popover permitindo ao usuario escolher quais colunas deseja exibir na tabela de lancamentos. A preferencia sera salva no localStorage para persistir entre sessoes.
+Na coluna "Valor" da tabela de lancamentos, atualmente sao exibidos dois valores: o valor original do lancamento e, abaixo, o valor pago. A alteracao fara com que apenas um valor seja exibido -- sempre o mais recente. A logica sera:
 
-## Colunas configuraveis
+- Se houve pagamento parcial ou total (`amountPaid > 0`), exibir o `amountPaid` (valor pago)
+- Caso contrario, exibir o `amount` (valor original)
 
-As seguintes colunas poderao ser mostradas/ocultadas pelo usuario:
-
-| Coluna      | Visivel por padrao | Pode ocultar |
-|-------------|-------------------|--------------|
-| Data        | Sim               | Nao (sempre visivel) |
-| Descricao   | Sim               | Nao (sempre visivel) |
-| D/C         | Sim               | Sim |
-| Valor       | Sim               | Nao (sempre visivel) |
-| Status      | Sim               | Sim |
-| Vencimento  | Sim               | Sim |
-| Saldo       | Sim               | Sim |
-| Acoes       | Sim               | Nao (sempre visivel) |
-
-## Como ficara visualmente
-
-- Um botao com icone `SlidersHorizontal` ou `Settings2` posicionado proximo ao botao de exportar CSV, na barra de acoes da pagina
-- Ao clicar, abre um `Popover` com uma lista de checkboxes para cada coluna configuravel
-- As colunas obrigatorias (Data, Descricao, Valor, Acoes) aparecem desabilitadas e sempre marcadas
+Isso consolida a coluna em um unico numero, mostrando sempre o valor da ultima alteracao.
 
 ## Detalhes Tecnicos
 
 ### Arquivo: `src/pages/Lancamentos.tsx`
 
-1. **Estado de colunas visiveis**: Criar um estado `visibleColumns` com tipo `Record<string, boolean>`, inicializado a partir do `localStorage` (chave `lancamentos_columns`). Colunas: `dc`, `status`, `vencimento`, `saldo`.
+Na celula de Valor (linhas 740-745), substituir a renderizacao atual:
 
-2. **Persistencia**: Sempre que `visibleColumns` mudar, salvar no `localStorage`.
+```tsx
+// ANTES (dois valores)
+{formatBRL(r.amount)}
+{hasDue && r.amountPaid > 0 && (
+  <div className="text-[10px] text-muted-foreground">Pago: {formatBRL(r.amountPaid)}</div>
+)}
 
-3. **Botao + Popover**: Adicionar um botao com `Popover` na barra de acoes (proximo ao botao CSV/Exportar). Dentro do popover, listar checkboxes para cada coluna configuravel.
+// DEPOIS (valor unico - sempre o mais recente)
+{formatBRL(r.amountPaid > 0 ? r.amountPaid : r.amount)}
+```
 
-4. **Renderizacao condicional**: No `TableHeader` e no `TableBody`, envolver cada `TableHead`/`TableCell` das colunas configuraveis com `{visibleColumns.coluna && (...)}`.
-
-5. **ColSpan dinamico**: Calcular o `colSpan` do "SALDO ANTERIOR" e "Nenhum registro" dinamicamente com base no numero de colunas visiveis.
-
-6. **Import adicional**: Importar `Settings2` do lucide-react.
+Tambem remover a linha de percentual pago na descricao (linhas 704-706), ja que com um unico valor exibido essa informacao se torna redundante.
 
