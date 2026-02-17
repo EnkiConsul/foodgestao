@@ -348,8 +348,10 @@ export default function Lancamentos() {
 
     const allReceitas = displayRows.filter((r) => r.transactionType === "receita").reduce((s, r) => s + r.amount, 0);
     const allDespesas = displayRows.filter((r) => r.transactionType === "despesa").reduce((s, r) => s + r.amount, 0);
+    const saldoPeriodo = allReceitas - allDespesas;
+    const saldoAcumulado = previousBalance + saldoPeriodo;
 
-    return { receitas, despesas, aPagar, aReceber, atrasadas, allReceitas, allDespesas };
+    return { receitas, despesas, aPagar, aReceber, atrasadas, allReceitas, allDespesas, saldoPeriodo, saldoAcumulado };
   }, [displayRows]);
 
   const formatBRL = maskBRL;
@@ -407,6 +409,62 @@ export default function Lancamentos() {
         </button>
         {open && <div className="px-3 pb-3">{children}</div>}
       </div>
+    );
+  };
+
+  const saldoDates = useMemo(() => {
+    const prevMonthEnd = new Date(selectedYear, selectedMonth, 0);
+    const curMonthStart = new Date(selectedYear, selectedMonth, 1);
+    const curMonthEnd = endOfMonth(new Date(selectedYear, selectedMonth, 1));
+    return {
+      prevEnd: format(prevMonthEnd, "dd/MM/yyyy"),
+      curStart: format(curMonthStart, "dd/MM/yyyy"),
+      curEnd: format(curMonthEnd, "dd/MM/yyyy"),
+      curRange: `${format(curMonthStart, "dd")} a ${format(curMonthEnd, "dd/MM/yyyy")}`,
+    };
+  }, [selectedYear, selectedMonth]);
+
+  const SaldosCard = () => {
+    const [open, setOpen] = useState(true);
+    const rows = [
+      { label: "Saldo Anterior", date: saldoDates.prevEnd, value: previousBalance },
+      { label: "Saldo do Período", date: saldoDates.curRange, value: totals.saldoPeriodo },
+      { label: "Saldo Acumulado", date: saldoDates.curEnd, value: totals.saldoAcumulado },
+    ];
+    return (
+      <Card className="shadow-sm mb-4">
+        <button
+          onClick={() => setOpen(prev => !prev)}
+          className="flex items-center justify-between w-full px-4 py-3"
+        >
+          <div className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-semibold">Saldos</span>
+          </div>
+          <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", open && "rotate-180")} />
+        </button>
+        {open && (
+          <div className="px-4 pb-4">
+            {rows.map((r, i) => (
+              <div key={i} className="flex items-end justify-between py-2 border-b last:border-b-0">
+                <div>
+                  <p className="text-xs text-muted-foreground">{r.label}</p>
+                  <p className="text-[11px] text-muted-foreground/70">{r.date}</p>
+                </div>
+                <span className={cn("text-sm font-medium", r.value >= 0 ? "text-success" : "text-destructive")}>
+                  {formatBRL(r.value)}
+                </span>
+              </div>
+            ))}
+            <div className="mt-2 rounded-md bg-success/10 p-3 flex items-end justify-between">
+              <p className="text-xs text-muted-foreground">Saldo Atual</p>
+              <span className={cn("text-base font-bold", totals.saldoAcumulado >= 0 ? "text-success" : "text-destructive")}>
+                {formatBRL(totals.saldoAcumulado)}
+              </span>
+            </div>
+          </div>
+        )}
+      </Card>
     );
   };
 
@@ -592,6 +650,7 @@ export default function Lancamentos() {
                   <SheetTitle>Filtros</SheetTitle>
                 </SheetHeader>
                 <div className="mt-4">
+                  <SaldosCard />
                   <FilterPanel />
                 </div>
               </SheetContent>
@@ -849,12 +908,15 @@ export default function Lancamentos() {
         </Card>
 
         {!isMobile && (
-          <Card className="shadow-sm h-fit">
-            <CardContent className="p-4">
-              <h3 className="text-sm font-semibold mb-3">Filtro Rápido</h3>
-              <FilterPanel />
-            </CardContent>
-          </Card>
+          <div>
+            <SaldosCard />
+            <Card className="shadow-sm h-fit">
+              <CardContent className="p-4">
+                <h3 className="text-sm font-semibold mb-3">Filtro Rápido</h3>
+                <FilterPanel />
+              </CardContent>
+            </Card>
+          </div>
         )}
       </div>
 
