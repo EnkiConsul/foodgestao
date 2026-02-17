@@ -322,10 +322,11 @@ export default function Lancamentos() {
     else if (sortBy === "value") rows.sort((a, b) => b.amount - a.amount);
     else if (sortBy === "description") rows.sort((a, b) => a.description.localeCompare(b.description));
 
-    // Running balance (only confirmed transactions without due_date, or paid)
+    // Running balance: count confirmed transactions OR paid bills (amount_paid >= amount)
     let running = previousBalance;
     rows.forEach((r) => {
-      if (r.txStatus === "confirmado") {
+      const isPaid = r.hasDueDate && r.amountPaid >= r.amount;
+      if (r.txStatus === "confirmado" || isPaid) {
         if (r.transactionType === "receita") running += r.amount;
         else if (r.transactionType === "despesa") running -= r.amount;
       }
