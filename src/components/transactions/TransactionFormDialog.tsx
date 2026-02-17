@@ -41,11 +41,11 @@ interface Props {
 type CategoryNode = Tables<"categories"> & { children: CategoryNode[]; depth: number };
 
 function buildCategoryTree(cats: Tables<"categories">[]): CategoryNode[] {
-  const sorted = [...cats].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+  // Preserve the order from the query (transaction_type, sort_order, name)
   const map = new Map<string, CategoryNode>();
   const roots: CategoryNode[] = [];
-  sorted.forEach((c) => map.set(c.id, { ...c, children: [], depth: 0 }));
-  sorted.forEach((c) => {
+  cats.forEach((c) => map.set(c.id, { ...c, children: [], depth: 0 }));
+  cats.forEach((c) => {
     const node = map.get(c.id)!;
     if (c.parent_id && map.has(c.parent_id)) {
       const parent = map.get(c.parent_id)!;
@@ -113,7 +113,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     const loadData = async () => {
       const [accRes, catRes, pmRes, ccRes, contactRes, contCompRes] = await Promise.all([
         supabase.from("accounts").select("*").eq("user_id", user.id).eq("is_active", true),
-        supabase.from("categories").select("*").eq("user_id", user.id),
+        supabase.from("categories").select("*").eq("user_id", user.id).order("transaction_type").order("sort_order").order("name"),
         supabase.from("payment_methods").select("*").eq("user_id", user.id).eq("is_active", true),
         supabase.from("category_companies").select("category_id, company_id"),
         supabase.from("contacts").select("*").eq("user_id", user.id).eq("is_active", true).order("name"),
