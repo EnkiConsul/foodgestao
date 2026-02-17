@@ -591,7 +591,6 @@ export default function Lancamentos() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="text-xs w-[35px]">Tipo</TableHead>
                     <TableHead className="text-xs w-[80px]">Data</TableHead>
                     <TableHead className="text-xs">Descrição</TableHead>
                     <TableHead className="text-xs w-[40px] text-center">D/C</TableHead>
@@ -604,7 +603,7 @@ export default function Lancamentos() {
                 </TableHeader>
                 <TableBody>
                   <TableRow className="bg-muted/30 font-semibold">
-                    <TableCell colSpan={7} className="text-xs py-2">
+                    <TableCell colSpan={6} className="text-xs py-2">
                       SALDO ANTERIOR
                     </TableCell>
                     <TableCell className={`text-xs text-right py-2 ${previousBalance >= 0 ? "text-success" : "text-destructive"}`}>
@@ -615,7 +614,7 @@ export default function Lancamentos() {
 
                   {displayRows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground text-sm">
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground text-sm">
                         Nenhum registro neste mês
                       </TableCell>
                     </TableRow>
@@ -629,17 +628,6 @@ export default function Lancamentos() {
 
                       return (
                         <TableRow key={r.id} className={cn("group", hasDue && r.billStatus !== "pago" && "bg-accent/30")}>
-                          {/* Tipo indicator */}
-                          <TableCell className="py-2">
-                            {hasDue ? (
-                              <div className={`flex h-6 w-6 items-center justify-center rounded ${isDespesa ? "bg-destructive/10" : "bg-success/10"}`}>
-                                {isDespesa ? <CreditCard className="h-3 w-3 text-destructive" /> : <HandCoins className="h-3 w-3 text-success" />}
-                              </div>
-                            ) : (
-                              <Badge variant="secondary" className="text-[9px] px-1 h-5">Lnç</Badge>
-                            )}
-                          </TableCell>
-
                           {/* Data */}
                           <TableCell className="text-xs py-2">
                             {format(new Date(r.date + "T12:00:00"), "dd/MM", { locale: ptBR })}
