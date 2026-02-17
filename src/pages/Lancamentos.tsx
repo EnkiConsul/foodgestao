@@ -352,7 +352,7 @@ export default function Lancamentos() {
     const saldoAcumulado = previousBalance + saldoPeriodo;
 
     return { receitas, despesas, aPagar, aReceber, atrasadas, allReceitas, allDespesas, saldoPeriodo, saldoAcumulado };
-  }, [displayRows]);
+  }, [displayRows, previousBalance]);
 
   const formatBRL = maskBRL;
 
