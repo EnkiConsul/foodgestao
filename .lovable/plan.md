@@ -1,30 +1,45 @@
 
-# Inserir Totais de Receitas e Despesas no Final da Tabela
+
+# Configurar Colunas da Tabela de Lancamentos
 
 ## O que sera feito
 
-Adicionar uma linha de rodape (footer) na tabela de lancamentos exibindo o total de Receitas e o total de Despesas do periodo filtrado, usando o componente `TableFooter` ja disponivel.
+Adicionar um botao de configuracao (icone de engrenagem) ao lado do cabecalho da tabela que abre um popover permitindo ao usuario escolher quais colunas deseja exibir na tabela de lancamentos. A preferencia sera salva no localStorage para persistir entre sessoes.
+
+## Colunas configuraveis
+
+As seguintes colunas poderao ser mostradas/ocultadas pelo usuario:
+
+| Coluna      | Visivel por padrao | Pode ocultar |
+|-------------|-------------------|--------------|
+| Data        | Sim               | Nao (sempre visivel) |
+| Descricao   | Sim               | Nao (sempre visivel) |
+| D/C         | Sim               | Sim |
+| Valor       | Sim               | Nao (sempre visivel) |
+| Status      | Sim               | Sim |
+| Vencimento  | Sim               | Sim |
+| Saldo       | Sim               | Sim |
+| Acoes       | Sim               | Nao (sempre visivel) |
 
 ## Como ficara visualmente
 
-A tabela tera uma linha final com fundo destacado contendo:
-- **Total Receitas**: valor em verde, alinhado a direita
-- **Total Despesas**: valor em vermelho, alinhado a direita
-- **Saldo do Periodo** (receitas - despesas): valor colorido conforme positivo/negativo
+- Um botao com icone `SlidersHorizontal` ou `Settings2` posicionado proximo ao botao de exportar CSV, na barra de acoes da pagina
+- Ao clicar, abre um `Popover` com uma lista de checkboxes para cada coluna configuravel
+- As colunas obrigatorias (Data, Descricao, Valor, Acoes) aparecem desabilitadas e sempre marcadas
 
 ## Detalhes Tecnicos
 
 ### Arquivo: `src/pages/Lancamentos.tsx`
 
-1. **Calcular totais sobre todas as displayRows** (nao apenas confirmadas): Adicionar um novo `useMemo` ou ajustar o existente `totals` para somar receitas e despesas de TODAS as linhas exibidas (independente de status), ja que agora o sistema usa status unificados.
+1. **Estado de colunas visiveis**: Criar um estado `visibleColumns` com tipo `Record<string, boolean>`, inicializado a partir do `localStorage` (chave `lancamentos_columns`). Colunas: `dc`, `status`, `vencimento`, `saldo`.
 
-2. **Adicionar `TableFooter`** apos o `TableBody` (linha ~717), com uma ou duas linhas:
-   - Uma `TableRow` com celulas mostrando:
-     - Label "TOTAIS" com `colSpan` cobrindo as primeiras colunas
-     - Valor total de receitas (verde)
-     - Valor total de despesas (vermelho)  
-     - Saldo do periodo na coluna de saldo
+2. **Persistencia**: Sempre que `visibleColumns` mudar, salvar no `localStorage`.
 
-3. **Import**: O componente `TableFooter` ja esta exportado pelo `src/components/ui/table.tsx` -- basta adicioná-lo ao import existente.
+3. **Botao + Popover**: Adicionar um botao com `Popover` na barra de acoes (proximo ao botao CSV/Exportar). Dentro do popover, listar checkboxes para cada coluna configuravel.
 
-4. **Condicional**: O footer so aparece quando `displayRows.length > 0`.
+4. **Renderizacao condicional**: No `TableHeader` e no `TableBody`, envolver cada `TableHead`/`TableCell` das colunas configuraveis com `{visibleColumns.coluna && (...)}`.
+
+5. **ColSpan dinamico**: Calcular o `colSpan` do "SALDO ANTERIOR" e "Nenhum registro" dinamicamente com base no numero de colunas visiveis.
+
+6. **Import adicional**: Importar `Settings2` do lucide-react.
+
