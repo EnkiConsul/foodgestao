@@ -721,20 +721,20 @@ export default function Lancamentos() {
                 {displayRows.length > 0 && (
                   <TableFooter>
                     <TableRow className="bg-muted/60 font-semibold">
-                      <TableCell colSpan={3} className="text-xs py-2 font-bold uppercase">
-                        Totais
+                      <TableCell colSpan={4} className="text-xs py-3">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-bold uppercase">Total Lançamentos</span>
+                          <span className="text-success">- Receitas: {formatBRL(totals.allReceitas)}</span>
+                          <span className="text-destructive">- Despesas: {formatBRL(totals.allDespesas)}</span>
+                        </div>
                       </TableCell>
-                      <TableCell className="text-xs text-right py-2">
-                        <div className="text-success font-bold">{formatBRL(totals.allReceitas)}</div>
-                        <div className="text-destructive font-bold">{formatBRL(totals.allDespesas)}</div>
-                      </TableCell>
-                      <TableCell colSpan={2} className="text-xs py-2 text-muted-foreground">
+                      <TableCell colSpan={2} className="text-xs py-3 text-muted-foreground">
                         Saldo do Período
                       </TableCell>
-                      <TableCell className={`text-xs text-right py-2 font-bold ${(totals.allReceitas - totals.allDespesas) >= 0 ? "text-success" : "text-destructive"}`}>
+                      <TableCell className={`text-xs text-right py-3 font-bold ${(totals.allReceitas - totals.allDespesas) >= 0 ? "text-success" : "text-destructive"}`}>
                         {formatBRL(totals.allReceitas - totals.allDespesas)}
                       </TableCell>
-                      <TableCell className="py-2" />
+                      <TableCell className="py-3" />
                     </TableRow>
                   </TableFooter>
                 )}
