@@ -11,19 +11,21 @@ import { toast } from "sonner";
 import { Calendar } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
+interface PaymentTransaction {
+  id: string;
+  description: string;
+  amount: number;
+  amount_paid: number;
+  transaction_type: "receita" | "despesa";
+  account_id: string;
+  category_id: string | null;
+  contact_id: string | null;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  bill: {
-    id: string;
-    description: string;
-    amount: number;
-    amount_paid: number;
-    bill_type: "receita" | "despesa";
-    account_id: string | null;
-    category_id: string | null;
-    contact_id: string | null;
-  } | null;
+  bill: PaymentTransaction | null;
   onPaid: () => void;
 }
 
@@ -58,54 +60,37 @@ export function PaymentDialog({ open, onOpenChange, bill, onPaid }: Props) {
     const newPaid = bill.amount_paid + numAmount;
     const isPaidFull = newPaid >= bill.amount - 0.01;
 
+    // Update the transaction itself
     const { error } = await supabase
-      .from("bills")
+      .from("transactions")
       .update({
         amount_paid: newPaid,
         payment_date: paymentDate,
-        status: isPaidFull ? "pago" : "parcial",
+        bill_status: isPaidFull ? "pago" : "parcial",
+        status: isPaidFull ? "confirmado" : "pendente",
+        payment_method_id: paymentMethodId || undefined,
       })
       .eq("id", bill.id);
 
     if (error) {
       toast.error("Erro ao registrar pagamento", { description: error.message });
     } else {
-      // Criar lançamento automático
-      if (user && bill.account_id) {
-        // Criar lançamento automático
-        const { error: txError } = await supabase.from("transactions").insert({
-          user_id: user.id,
-          description: `Pgto: ${bill.description}`,
-          amount: numAmount,
-          transaction_type: bill.bill_type,
-          transaction_date: paymentDate,
-          account_id: bill.account_id,
-          category_id: bill.category_id,
-          contact_id: bill.contact_id,
-          payment_method_id: paymentMethodId || null,
-          status: "confirmado",
-        });
-        if (txError) {
-          toast.warning("Pagamento registrado, mas não foi possível criar o lançamento automático", { description: txError.message });
-        }
+      // Update account balance
+      const { data: account } = await supabase
+        .from("accounts")
+        .select("current_balance")
+        .eq("id", bill.account_id)
+        .single();
 
-        // Atualizar saldo da conta bancária
-        const { data: account } = await supabase
+      if (account) {
+        const balanceChange = bill.transaction_type === "receita" ? numAmount : -numAmount;
+        await supabase
           .from("accounts")
-          .select("current_balance")
-          .eq("id", bill.account_id)
-          .single();
-
-        if (account) {
-          const balanceChange = bill.bill_type === "receita" ? numAmount : -numAmount;
-          await supabase
-            .from("accounts")
-            .update({ current_balance: account.current_balance + balanceChange })
-            .eq("id", bill.account_id);
-        }
+          .update({ current_balance: account.current_balance + balanceChange })
+          .eq("id", bill.account_id);
       }
 
-      toast.success(isPaidFull ? "Conta paga integralmente!" : "Pagamento parcial registrado!");
+      toast.success(isPaidFull ? "Pago integralmente!" : "Pagamento parcial registrado!");
       setPaymentAmount("");
       setPaymentMethodId("");
       onOpenChange(false);

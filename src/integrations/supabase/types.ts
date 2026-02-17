@@ -770,7 +770,9 @@ export type Database = {
         Row: {
           account_id: string
           amount: number
+          amount_paid: number
           attachment_url: string | null
+          bill_status: Database["public"]["Enums"]["bill_status"] | null
           category_id: string | null
           company_id: string | null
           contact_id: string | null
@@ -779,12 +781,14 @@ export type Database = {
           created_at: string
           description: string
           destination_account_id: string | null
+          due_date: string | null
           id: string
           installment_number: number | null
           installment_total: number | null
           is_recurring: boolean
           notes: string | null
           parent_transaction_id: string | null
+          payment_date: string | null
           payment_method_id: string | null
           recurrence_end_date: string | null
           recurrence_type: Database["public"]["Enums"]["recurrence_type"] | null
@@ -797,7 +801,9 @@ export type Database = {
         Insert: {
           account_id: string
           amount: number
+          amount_paid?: number
           attachment_url?: string | null
+          bill_status?: Database["public"]["Enums"]["bill_status"] | null
           category_id?: string | null
           company_id?: string | null
           contact_id?: string | null
@@ -806,12 +812,14 @@ export type Database = {
           created_at?: string
           description: string
           destination_account_id?: string | null
+          due_date?: string | null
           id?: string
           installment_number?: number | null
           installment_total?: number | null
           is_recurring?: boolean
           notes?: string | null
           parent_transaction_id?: string | null
+          payment_date?: string | null
           payment_method_id?: string | null
           recurrence_end_date?: string | null
           recurrence_type?:
@@ -826,7 +834,9 @@ export type Database = {
         Update: {
           account_id?: string
           amount?: number
+          amount_paid?: number
           attachment_url?: string | null
+          bill_status?: Database["public"]["Enums"]["bill_status"] | null
           category_id?: string | null
           company_id?: string | null
           contact_id?: string | null
@@ -835,12 +845,14 @@ export type Database = {
           created_at?: string
           description?: string
           destination_account_id?: string | null
+          due_date?: string | null
           id?: string
           installment_number?: number | null
           installment_total?: number | null
           is_recurring?: boolean
           notes?: string | null
           parent_transaction_id?: string | null
+          payment_date?: string | null
           payment_method_id?: string | null
           recurrence_end_date?: string | null
           recurrence_type?:
