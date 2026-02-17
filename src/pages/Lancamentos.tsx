@@ -16,7 +16,7 @@ import { TransactionFormDialog } from "@/components/transactions/TransactionForm
 import { BillsTab } from "@/components/bills/BillsTab";
 import {
   Plus, Search, TrendingUp, TrendingDown, ArrowLeftRight,
-  Trash2, Pencil, ChevronLeft, ChevronRight, Filter, SlidersHorizontal,
+  Trash2, Pencil, ChevronLeft, ChevronRight, Filter, SlidersHorizontal, Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth } from "date-fns";
@@ -227,6 +227,30 @@ export default function Lancamentos() {
 
   const formatBRL = maskBRL;
 
+  const exportTransactionsCSV = () => {
+    const headers = ["Data", "Descrição", "Tipo", "Valor", "Categoria", "Conta", "Forma de Pagamento", "Status", "Saldo"];
+    const rows = rowsWithBalance.map((t) => [
+      format(new Date(t.transaction_date + "T12:00:00"), "dd/MM/yyyy"),
+      `"${t.description.replace(/"/g, '""')}"`,
+      t.transaction_type === "receita" ? "Crédito" : t.transaction_type === "despesa" ? "Débito" : "Transferência",
+      t.amount.toFixed(2).replace(".", ","),
+      t.categories?.name || "",
+      t.accounts?.name || "",
+      t.payment_methods?.name || "",
+      t.status === "confirmado" ? "Realizado" : "Pendente",
+      t.runningBalance.toFixed(2).replace(".", ","),
+    ]);
+    const csv = [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `lancamentos_${format(new Date(selectedYear, selectedMonth, 1), "yyyy-MM")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("CSV exportado com sucesso!");
+  };
+
   const clearFilters = () => {
     setFilterAccount("all");
     setFilterPaymentMethod("all");
@@ -324,6 +348,9 @@ export default function Lancamentos() {
             </Button>
             <Button variant="outline" size="sm" onClick={() => { setEditTransaction(null); setDialogOpen(true); }}>
               <ArrowLeftRight className="h-4 w-4 mr-1" /> Transferência
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportTransactionsCSV} disabled={filtered.length === 0}>
+              <Download className="h-4 w-4 mr-1" /> CSV
             </Button>
           </div>
           <div className="flex items-center gap-2">
