@@ -12,7 +12,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CurrencyInput, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { toast } from "sonner";
 import { transactionSchema, validateWithToast } from "@/lib/validations";
-import { Calendar } from "lucide-react";
+import { Calendar, Repeat } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import type { Tables } from "@/integrations/supabase/types";
 
 type TransactionType = "receita" | "despesa" | "transferencia";
@@ -29,6 +30,9 @@ interface EditableTransaction {
   contact_id?: string | null;
   notes?: string | null;
   due_date?: string | null;
+  is_recurring?: boolean;
+  recurrence_type?: string | null;
+  recurrence_end_date?: string | null;
 }
 
 interface Props {
@@ -99,6 +103,9 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const [contactId, setContactId] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceType, setRecurrenceType] = useState("mensal");
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
 
   const [accounts, setAccounts] = useState<Tables<"accounts">[]>([]);
   const [categories, setCategories] = useState<Tables<"categories">[]>([]);
@@ -157,6 +164,9 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       setContactId(transaction.contact_id ?? "");
       setNotes(transaction.notes ?? "");
       setDueDate(transaction.due_date ?? "");
+      setIsRecurring(transaction.is_recurring ?? false);
+      setRecurrenceType(transaction.recurrence_type ?? "mensal");
+      setRecurrenceEndDate(transaction.recurrence_end_date ?? "");
     } else if (!transaction && open) {
       resetForm();
     }
@@ -198,6 +208,9 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     setContactId("");
     setNotes("");
     setPaymentMethodId("");
+    setIsRecurring(false);
+    setRecurrenceType("mensal");
+    setRecurrenceEndDate("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -236,6 +249,9 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       due_date: hasDueDate ? dueDate : null,
       bill_status: hasDueDate ? "em_dia" : null,
       status: hasDueDate ? "pendente" : "confirmado",
+      is_recurring: isRecurring,
+      recurrence_type: isRecurring ? recurrenceType : null,
+      recurrence_end_date: isRecurring && recurrenceEndDate ? recurrenceEndDate : null,
     };
 
     const { error } = isEditing
@@ -330,6 +346,58 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
               <p className="text-[11px] text-muted-foreground">
                 Se preenchido, o lançamento será tratado como compromisso pendente.
               </p>
+            </div>
+          )}
+
+          {/* Recurrence */}
+          {type !== "transferencia" && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Repeat className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="recurring-switch" className="cursor-pointer">Lançamento recorrente</Label>
+                </div>
+                <Switch
+                  id="recurring-switch"
+                  checked={isRecurring}
+                  onCheckedChange={setIsRecurring}
+                />
+              </div>
+
+              {isRecurring && (
+                <div className="space-y-3 pl-6 border-l-2 border-muted">
+                  <div className="space-y-2">
+                    <Label>Frequência</Label>
+                    <Select value={recurrenceType} onValueChange={setRecurrenceType}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="diario">Diário</SelectItem>
+                        <SelectItem value="semanal">Semanal</SelectItem>
+                        <SelectItem value="quinzenal">Quinzenal</SelectItem>
+                        <SelectItem value="mensal">Mensal</SelectItem>
+                        <SelectItem value="bimestral">Bimestral</SelectItem>
+                        <SelectItem value="trimestral">Trimestral</SelectItem>
+                        <SelectItem value="semestral">Semestral</SelectItem>
+                        <SelectItem value="anual">Anual</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Data final da recorrência (opcional)</Label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="date"
+                        value={recurrenceEndDate}
+                        onChange={(e) => setRecurrenceEndDate(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
