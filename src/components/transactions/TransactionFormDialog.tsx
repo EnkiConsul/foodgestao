@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { addDays, addWeeks, addMonths, addYears } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -87,6 +88,34 @@ function renderCategoryNodes(nodes: CategoryNode[]): React.ReactNode[] {
     }
   });
   return result;
+}
+
+function getNextRecurrenceDate(current: Date, recType: string): Date {
+  switch (recType) {
+    case "diario": return addDays(current, 1);
+    case "semanal": return addWeeks(current, 1);
+    case "quinzenal": return addWeeks(current, 2);
+    case "mensal": return addMonths(current, 1);
+    case "bimestral": return addMonths(current, 2);
+    case "trimestral": return addMonths(current, 3);
+    case "semestral": return addMonths(current, 6);
+    case "anual": return addYears(current, 1);
+    default: return addMonths(current, 1);
+  }
+}
+
+function generateRecurrenceDates(startDate: string, recType: string, endDate?: string): string[] {
+  const dates: string[] = [];
+  const maxOccurrences = 365; // safety limit
+  const horizon = endDate ? new Date(endDate) : addYears(new Date(startDate), 1);
+  let current = new Date(startDate);
+
+  for (let i = 0; i < maxOccurrences; i++) {
+    current = getNextRecurrenceDate(current, recType);
+    if (current > horizon) break;
+    dates.push(current.toISOString().split("T")[0]);
+  }
+  return dates;
 }
 
 export function TransactionFormDialog({ open, onOpenChange, onCreated, transaction }: Props) {
@@ -254,23 +283,76 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       recurrence_end_date: isRecurring && recurrenceEndDate ? recurrenceEndDate : null,
     };
 
-    const { error } = isEditing
-      ? await supabase.from("transactions").update(payload).eq("id", transaction.id)
-      : await supabase.from("transactions").insert({ ...payload, user_id: user.id });
-
-    if (error) {
-      toast.error("Erro ao salvar", { description: error.message });
+    if (isEditing) {
+      const { error } = await supabase.from("transactions").update(payload).eq("id", transaction.id);
+      if (error) {
+        toast.error("Erro ao salvar", { description: error.message });
+      } else {
+        await supabase.rpc("insert_audit_log", {
+          _action: "transaction_updated",
+          _entity_type: "transaction",
+          _entity_id: transaction.id,
+          _details: { target_name: description.trim(), amount: String(numAmount), type },
+        });
+        toast.success("Lançamento atualizado!");
+        resetForm();
+        onOpenChange(false);
+        onCreated();
+      }
     } else {
-      await supabase.rpc("insert_audit_log", {
-        _action: isEditing ? "transaction_updated" : "transaction_created",
-        _entity_type: "transaction",
-        _entity_id: isEditing ? transaction.id : undefined,
-        _details: { target_name: description.trim(), amount: String(numAmount), type },
-      });
-      toast.success(isEditing ? "Lançamento atualizado!" : "Lançamento criado!");
-      resetForm();
-      onOpenChange(false);
-      onCreated();
+      const { data: inserted, error } = await supabase
+        .from("transactions")
+        .insert({ ...payload, user_id: user.id })
+        .select("id")
+        .single();
+
+      if (error || !inserted) {
+        toast.error("Erro ao salvar", { description: error?.message });
+      } else {
+        // Generate future recurring transactions
+        if (isRecurring) {
+          const futureDates = generateRecurrenceDates(date, recurrenceType, recurrenceEndDate || undefined);
+          if (futureDates.length > 0) {
+            const futurePayloads = futureDates.map((futureDate) => {
+              const futureDueDate = hasDueDate && dueDate
+                ? (() => {
+                    const diffMs = new Date(dueDate).getTime() - new Date(date).getTime();
+                    const fd = new Date(new Date(futureDate).getTime() + diffMs);
+                    return fd.toISOString().split("T")[0];
+                  })()
+                : null;
+              return {
+                ...payload,
+                user_id: user.id,
+                transaction_date: futureDate,
+                due_date: futureDueDate,
+                parent_transaction_id: inserted.id,
+                is_recurring: false, // children are not recurring themselves
+              };
+            });
+            const { error: recError } = await supabase.from("transactions").insert(futurePayloads);
+            if (recError) {
+              toast.error("Erro ao gerar recorrências", { description: recError.message });
+            } else {
+              toast.success(`Lançamento criado com ${futureDates.length} recorrência(s)!`);
+            }
+          } else {
+            toast.success("Lançamento criado!");
+          }
+        } else {
+          toast.success("Lançamento criado!");
+        }
+
+        await supabase.rpc("insert_audit_log", {
+          _action: "transaction_created",
+          _entity_type: "transaction",
+          _entity_id: inserted.id,
+          _details: { target_name: description.trim(), amount: String(numAmount), type, recurring: isRecurring },
+        });
+        resetForm();
+        onOpenChange(false);
+        onCreated();
+      }
     }
     setSaving(false);
   };
