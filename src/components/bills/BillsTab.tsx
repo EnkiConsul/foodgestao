@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BillFormDialog } from "@/components/bills/BillFormDialog";
 import { PaymentDialog } from "@/components/bills/PaymentDialog";
-import { Plus, Search, CreditCard, HandCoins, Trash2, DollarSign } from "lucide-react";
+import { Plus, Search, CreditCard, HandCoins, Trash2, DollarSign, Download } from "lucide-react";
 import { toast } from "sonner";
 import { format, isPast, addDays, isAfter } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -116,13 +116,40 @@ export function BillsTab() {
 
   const formatBRL = maskBRL;
 
+  const exportBillsCSV = () => {
+    const headers = ["Descrição", "Tipo", "Valor", "Valor Pago", "Vencimento", "Status", "Categoria", "Forma de Pagamento"];
+    const rows = filtered.map((b) => [
+      `"${b.description.replace(/"/g, '""')}"`,
+      b.bill_type === "despesa" ? "A Pagar" : "A Receber",
+      b.amount.toFixed(2).replace(".", ","),
+      b.amount_paid.toFixed(2).replace(".", ","),
+      format(new Date(b.due_date + "T12:00:00"), "dd/MM/yyyy"),
+      statusConfig[b.computedStatus].label,
+      b.categories?.name || "",
+      b.payment_methods?.name || "",
+    ]);
+    const csv = [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `contas_a_pagar_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("CSV exportado com sucesso!");
+  };
   return (
     <div className="space-y-4">
       {/* Top action bar */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <Button onClick={() => setDialogOpen(true)} size="sm">
-          <Plus className="h-4 w-4 mr-1" /> Nova Conta
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setDialogOpen(true)} size="sm">
+            <Plus className="h-4 w-4 mr-1" /> Nova Conta
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportBillsCSV} disabled={filtered.length === 0}>
+            <Download className="h-4 w-4 mr-1" /> CSV
+          </Button>
+        </div>
       </div>
 
       {/* Summary cards */}
