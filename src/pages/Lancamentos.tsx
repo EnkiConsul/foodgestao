@@ -701,13 +701,6 @@ export default function Lancamentos() {
                           {/* Descrição */}
                           <TableCell className="text-xs py-2">
                             <div className="truncate max-w-[200px]">{r.description}</div>
-                            {!visibleColumns.categoria && !visibleColumns.conta && !visibleColumns.formaPagamento && (
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              {r.accountName && <span className="text-[10px] text-muted-foreground">{r.accountName}</span>}
-                              {r.categoryName && <span className="text-[10px] text-muted-foreground">• {r.categoryName}</span>}
-                              {r.paymentMethodName && <span className="text-[10px] text-muted-foreground">• {r.paymentMethodName}</span>}
-                            </div>
-                            )}
                             {hasDue && r.amountPaid > 0 && r.billStatus !== "pago" && (
                               <span className="text-[10px] text-success font-medium">({paidPercent.toFixed(0)}% pago)</span>
                             )}
