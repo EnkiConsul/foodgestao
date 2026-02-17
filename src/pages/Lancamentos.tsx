@@ -143,7 +143,7 @@ export default function Lancamentos() {
       const saved = localStorage.getItem("lancamentos_columns");
       if (saved) return JSON.parse(saved);
     } catch {}
-    return { dc: true, status: true, vencimento: true, saldo: true };
+    return { data: true, dc: true, status: true, vencimento: true, saldo: true };
   });
 
   useEffect(() => {
@@ -155,8 +155,8 @@ export default function Lancamentos() {
   };
 
   const visibleOptionalCount = Object.values(visibleColumns).filter(Boolean).length;
-  // 4 fixed columns (Data, Descrição, Valor, Ações) + optional
-  const totalColumns = 4 + visibleOptionalCount;
+  // 3 fixed columns (Descrição, Valor, Ações) + optional
+  const totalColumns = 3 + visibleOptionalCount;
 
   const monthStart = useMemo(() => {
     const d = new Date(selectedYear, selectedMonth, 1);
@@ -512,7 +512,7 @@ export default function Lancamentos() {
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Colunas visíveis</p>
               <div className="space-y-2">
                 {[
-                  { key: "data", label: "Data", fixed: true },
+                  { key: "data", label: "Data", fixed: false },
                   { key: "descricao", label: "Descrição", fixed: true },
                   { key: "dc", label: "D/C", fixed: false },
                   { key: "valor", label: "Valor", fixed: true },
@@ -646,7 +646,7 @@ export default function Lancamentos() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="text-xs w-[80px]">Data</TableHead>
+                    {visibleColumns.data !== false && <TableHead className="text-xs w-[80px]">Data</TableHead>}
                     <TableHead className="text-xs">Descrição</TableHead>
                     {visibleColumns.dc && <TableHead className="text-xs w-[40px] text-center">D/C</TableHead>}
                     <TableHead className="text-xs w-[100px] text-right">Valor</TableHead>
@@ -686,9 +686,11 @@ export default function Lancamentos() {
                       return (
                         <TableRow key={r.id} className={cn("group", hasDue && r.billStatus !== "pago" && "bg-accent/30")}>
                           {/* Data */}
+                          {visibleColumns.data !== false && (
                           <TableCell className="text-xs py-2">
                             {format(new Date(r.date + "T12:00:00"), "dd/MM", { locale: ptBR })}
                           </TableCell>
+                          )}
 
                           {/* Descrição */}
                           <TableCell className="text-xs py-2">
