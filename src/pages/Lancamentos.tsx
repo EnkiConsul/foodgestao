@@ -651,8 +651,8 @@ export default function Lancamentos() {
                   <SheetTitle>Filtros</SheetTitle>
                 </SheetHeader>
                 <div className="mt-4">
-                  <SaldosCard />
                   <FilterPanel />
+                  <SaldosCard />
                 </div>
               </SheetContent>
             </Sheet>
@@ -910,13 +910,13 @@ export default function Lancamentos() {
 
         {!isMobile && (
           <div>
-            <SaldosCard />
-            <Card className="shadow-sm h-fit">
+            <Card className="shadow-sm h-fit mb-4">
               <CardContent className="p-4">
                 <h3 className="text-sm font-semibold mb-3">Filtro Rápido</h3>
                 <FilterPanel />
               </CardContent>
             </Card>
+            <SaldosCard />
           </div>
         )}
       </div>
