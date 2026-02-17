@@ -250,10 +250,28 @@ export default function Lancamentos() {
   };
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteWithChildren, setDeleteWithChildren] = useState(false);
+
+  const deletingTx = deleteId ? transactions.find((t) => t.id === deleteId) : null;
+  const isDeleteTargetRecurringParent = deletingTx?.is_recurring === true;
 
   const confirmDelete = async () => {
     if (!deleteId) return;
     const tx = transactions.find((t) => t.id === deleteId);
+
+    // If deleting children too, delete them first
+    if (deleteWithChildren && isDeleteTargetRecurringParent) {
+      const { error: childErr } = await supabase
+        .from("transactions")
+        .delete()
+        .eq("parent_transaction_id", deleteId)
+        .neq("status", "confirmado");
+      if (childErr) {
+        toast.error("Erro ao excluir recorrências", { description: childErr.message });
+        return;
+      }
+    }
+
     const { error } = await supabase.from("transactions").delete().eq("id", deleteId);
     if (error) toast.error("Erro ao excluir");
     else {
@@ -261,12 +279,13 @@ export default function Lancamentos() {
         _action: "transaction_deleted",
         _entity_type: "transaction",
         _entity_id: deleteId,
-        _details: { target_name: tx?.description || "—" },
+        _details: { target_name: tx?.description || "—", deleted_children: deleteWithChildren },
       });
-      toast.success("Lançamento excluído");
+      toast.success(deleteWithChildren ? "Lançamento e recorrências excluídos" : "Lançamento excluído");
       refreshAll();
     }
     setDeleteId(null);
+    setDeleteWithChildren(false);
   };
 
   // Display rows
@@ -972,7 +991,7 @@ export default function Lancamentos() {
         onPaid={refreshAll}
       />
 
-      <AlertDialog open={!!deleteId} onOpenChange={(o) => { if (!o) setDeleteId(null); }}>
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => { if (!o) { setDeleteId(null); setDeleteWithChildren(false); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir lançamento?</AlertDialogTitle>
@@ -980,10 +999,22 @@ export default function Lancamentos() {
               Essa ação não pode ser desfeita. O registro será removido permanentemente.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {isDeleteTargetRecurringParent && (
+            <div className="flex items-center gap-2 px-1">
+              <Checkbox
+                id="delete-children"
+                checked={deleteWithChildren}
+                onCheckedChange={(v) => setDeleteWithChildren(!!v)}
+              />
+              <label htmlFor="delete-children" className="text-sm cursor-pointer">
+                Excluir também todas as ocorrências futuras pendentes
+              </label>
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Excluir
+              Excluir{deleteWithChildren ? " tudo" : ""}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
