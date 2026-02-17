@@ -1,49 +1,30 @@
 
+# Inserir Totais de Receitas e Despesas no Final da Tabela
 
-# Simplificar Status para 3: Pago, A Vencer, Atrasado
+## O que sera feito
 
-## Resumo
+Adicionar uma linha de rodape (footer) na tabela de lancamentos exibindo o total de Receitas e o total de Despesas do periodo filtrado, usando o componente `TableFooter` ja disponivel.
 
-Reduzir os status exibidos de 7 (Realizado, Pendente, Em dia, Vence em breve, Atrasado, Pago, Parcial) para apenas **3 status universais**: **Pago**, **A Vencer**, **Atrasado**.
+## Como ficara visualmente
 
-## Logica Unificada
-
-| Situacao | Status Exibido | Cor |
-|---|---|---|
-| Transacao confirmada sem vencimento | **Pago** | verde (default) |
-| Transacao com vencimento e amount_paid >= amount | **Pago** | verde (default) |
-| Transacao pendente sem vencimento | **A Vencer** | secondary |
-| Transacao com vencimento, nao paga, nao atrasada | **A Vencer** | secondary |
-| Transacao com vencimento, due_date no passado, nao paga | **Atrasado** | destructive |
-| Transacao pendente sem vencimento e com data no passado | **Atrasado** | destructive |
-
-Resumindo:
-- "Parcial" e "Vence em breve" e "Em dia" viram **A Vencer** (se nao esta totalmente pago e nao esta atrasado)
-- "Realizado" e "Confirmado" viram **Pago**
-- "Pendente" sem vencimento futuro vira **A Vencer**
+A tabela tera uma linha final com fundo destacado contendo:
+- **Total Receitas**: valor em verde, alinhado a direita
+- **Total Despesas**: valor em vermelho, alinhado a direita
+- **Saldo do Periodo** (receitas - despesas): valor colorido conforme positivo/negativo
 
 ## Detalhes Tecnicos
 
 ### Arquivo: `src/pages/Lancamentos.tsx`
 
-1. **`computeBillStatus`**: Simplificar para retornar apenas "pago", "a_vencer" ou "atrasado". Aplicar para TODAS as transacoes (nao apenas as com due_date).
+1. **Calcular totais sobre todas as displayRows** (nao apenas confirmadas): Adicionar um novo `useMemo` ou ajustar o existente `totals` para somar receitas e despesas de TODAS as linhas exibidas (independente de status), ja que agora o sistema usa status unificados.
 
-2. **`billStatusConfig`**: Reduzir para 3 entradas:
-   - `pago`: label "Pago", variant "default"
-   - `a_vencer`: label "A Vencer", variant "secondary"
-   - `atrasado`: label "Atrasado", variant "destructive"
+2. **Adicionar `TableFooter`** apos o `TableBody` (linha ~717), com uma ou duas linhas:
+   - Uma `TableRow` com celulas mostrando:
+     - Label "TOTAIS" com `colSpan` cobrindo as primeiras colunas
+     - Valor total de receitas (verde)
+     - Valor total de despesas (vermelho)  
+     - Saldo do periodo na coluna de saldo
 
-3. **Coluna Status na tabela**: Remover a bifurcacao entre transacoes com/sem due_date. Todas usam o mesmo `computeBillStatus`.
+3. **Import**: O componente `TableFooter` ja esta exportado pelo `src/components/ui/table.tsx` -- basta adicioná-lo ao import existente.
 
-4. **Filtros rapidos "Status"**: Trocar "Realizado"/"Pendente" por "Pago", "A Vencer", "Atrasado" com 3 checkboxes.
-
-5. **Variaveis de estado**: Substituir `filterRealizado`/`filterPendente` por `filterPago`, `filterAVencer`, `filterAtrasado`.
-
-6. **Logica de filtragem no useMemo**: Usar o novo status computado para filtrar.
-
-7. **Linha "SALDO ANTERIOR REALIZADO"**: Renomear para "SALDO ANTERIOR".
-
-8. **Exportacao CSV**: Usar o novo status unificado.
-
-9. **Tipo BillStatus**: Atualizar o tipo local para refletir os 3 novos valores (ou criar um novo tipo `TransactionDisplayStatus`).
-
+4. **Condicional**: O footer so aparece quando `displayRows.length > 0`.
