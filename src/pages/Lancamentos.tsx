@@ -135,6 +135,8 @@ export default function Lancamentos() {
   const [filterAVencer, setFilterAVencer] = useState(true);
   const [filterAtrasado, setFilterAtrasado] = useState(true);
   const [filterPaymentMethod, setFilterPaymentMethod] = useState<string>("all");
+  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   // Date range filter
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
@@ -178,6 +180,8 @@ export default function Lancamentos() {
     q.then(({ data }) => setAccounts(data ?? []));
     supabase.from("payment_methods").select("id, name").eq("user_id", user.id).eq("is_active", true)
       .then(({ data }) => setPaymentMethods(data ?? []));
+    supabase.from("categories").select("id, name").eq("user_id", user.id).order("name")
+      .then(({ data }) => setCategories(data ?? []));
   }, [user, contextType, selectedCompanyId]);
 
   // Fetch transactions (includes bills now via due_date)
@@ -273,6 +277,7 @@ export default function Lancamentos() {
       if (t.transaction_type === "transferencia" && !filterTransferencia) return;
       if (filterAccount !== "all" && t.account_id !== filterAccount) return;
       if (filterPaymentMethod !== "all" && t.payment_method_id !== filterPaymentMethod) return;
+      if (filterCategory !== "all" && t.category_id !== filterCategory) return;
 
       const computed = computeDisplayStatus(t);
 
@@ -328,7 +333,7 @@ export default function Lancamentos() {
     });
 
     return rows;
-  }, [transactions, search, filterCredito, filterDebito, filterTransferencia, filterPago, filterAVencer, filterAtrasado, filterAccount, filterPaymentMethod, dateFrom, dateTo, sortBy, previousBalance]);
+  }, [transactions, search, filterCredito, filterDebito, filterTransferencia, filterPago, filterAVencer, filterAtrasado, filterAccount, filterPaymentMethod, filterCategory, dateFrom, dateTo, sortBy, previousBalance]);
 
   // Totals
   const totals = useMemo(() => {
@@ -378,6 +383,7 @@ export default function Lancamentos() {
   const clearFilters = () => {
     setFilterAccount("all");
     setFilterPaymentMethod("all");
+    setFilterCategory("all");
     setFilterCredito(true);
     setFilterDebito(true);
     setFilterTransferencia(true);
@@ -422,6 +428,16 @@ export default function Lancamentos() {
           <SelectContent>
             <SelectItem value="all">Todas</SelectItem>
             {paymentMethods.map((pm) => <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </FilterSection>
+
+      <FilterSection title="Categoria">
+        <Select value={filterCategory} onValueChange={setFilterCategory}>
+          <SelectTrigger className="mt-1"><SelectValue placeholder="Todas" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas</SelectItem>
+            {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
       </FilterSection>
