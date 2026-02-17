@@ -348,7 +348,7 @@ export default function Lancamentos() {
 
     const allReceitas = displayRows.filter((r) => r.transactionType === "receita").reduce((s, r) => s + r.amount, 0);
     const allDespesas = displayRows.filter((r) => r.transactionType === "despesa").reduce((s, r) => s + r.amount, 0);
-    const saldoPeriodo = allReceitas - allDespesas;
+    const saldoPeriodo = receitas - despesas;
     const saldoAcumulado = previousBalance + saldoPeriodo;
 
     return { receitas, despesas, aPagar, aReceber, atrasadas, allReceitas, allDespesas, saldoPeriodo, saldoAcumulado };
