@@ -338,9 +338,9 @@ export default function Lancamentos() {
 
   // Totals
   const totals = useMemo(() => {
-    const confirmed = displayRows.filter((r) => r.txStatus === "confirmado");
-    const receitas = confirmed.filter((r) => r.transactionType === "receita").reduce((s, r) => s + r.amount, 0);
-    const despesas = confirmed.filter((r) => r.transactionType === "despesa").reduce((s, r) => s + r.amount, 0);
+    const effectiveRows = displayRows.filter((r) => r.txStatus === "confirmado" || (r.hasDueDate && r.amountPaid >= r.amount));
+    const receitas = effectiveRows.filter((r) => r.transactionType === "receita").reduce((s, r) => s + r.amount, 0);
+    const despesas = effectiveRows.filter((r) => r.transactionType === "despesa").reduce((s, r) => s + r.amount, 0);
 
     const withDue = displayRows.filter((r) => r.hasDueDate && r.billStatus !== "pago");
     const aPagar = withDue.filter((r) => r.transactionType === "despesa").reduce((s, r) => s + r.amount - r.amountPaid, 0);
