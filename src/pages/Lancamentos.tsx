@@ -19,7 +19,7 @@ import { TransactionFormDialog } from "@/components/transactions/TransactionForm
 import { PaymentDialog } from "@/components/bills/PaymentDialog";
 import {
   Plus, Search, ArrowLeftRight,
-  Trash2, Pencil, ChevronLeft, ChevronRight, Filter, SlidersHorizontal,
+  Trash2, Pencil, ChevronLeft, ChevronRight, ChevronDown, Filter, SlidersHorizontal,
   Download, DollarSign, CalendarIcon, CreditCard, HandCoins, X, Settings2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -388,33 +388,46 @@ export default function Lancamentos() {
     setDateTo(undefined);
   };
 
+  const FilterSection = ({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) => {
+    const [open, setOpen] = useState(defaultOpen);
+    return (
+      <div className="border rounded-md">
+        <button
+          onClick={() => setOpen(prev => !prev)}
+          className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:bg-muted/50 transition-colors"
+        >
+          {title}
+          <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", open && "rotate-180")} />
+        </button>
+        {open && <div className="px-3 pb-3">{children}</div>}
+      </div>
+    );
+  };
+
   const FilterPanel = () => (
-    <div className="space-y-5">
-      <div>
-        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Conta</label>
+    <div className="space-y-2">
+      <FilterSection title="Conta">
         <Select value={filterAccount} onValueChange={setFilterAccount}>
-          <SelectTrigger className="mt-1.5"><SelectValue placeholder="Todas as contas" /></SelectTrigger>
+          <SelectTrigger className="mt-1"><SelectValue placeholder="Todas as contas" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas as contas</SelectItem>
             {accounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
           </SelectContent>
         </Select>
-      </div>
+      </FilterSection>
 
-      <div>
-        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Forma de Pagamento</label>
+      <FilterSection title="Forma de Pagamento">
         <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}>
-          <SelectTrigger className="mt-1.5"><SelectValue placeholder="Todas" /></SelectTrigger>
+          <SelectTrigger className="mt-1"><SelectValue placeholder="Todas" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas</SelectItem>
             {paymentMethods.map((pm) => <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>)}
           </SelectContent>
         </Select>
-      </div>
+      </FilterSection>
 
-      <div>
-        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tipo</label>
-        <div className="space-y-2 mt-1.5">
+      <FilterSection title="Lançamentos">
+        <div className="space-y-2 mt-1">
           <label className="flex items-center gap-2 text-sm">
             <Checkbox checked={filterCredito} onCheckedChange={(v) => setFilterCredito(!!v)} />
             Crédito (Receita)
@@ -428,11 +441,10 @@ export default function Lancamentos() {
             Transferências
           </label>
         </div>
-      </div>
+      </FilterSection>
 
-      <div>
-        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</label>
-        <div className="space-y-2 mt-1.5">
+      <FilterSection title="Status">
+        <div className="space-y-2 mt-1">
           <label className="flex items-center gap-2 text-sm">
             <Checkbox checked={filterPago} onCheckedChange={(v) => setFilterPago(!!v)} />
             Pago
@@ -446,13 +458,10 @@ export default function Lancamentos() {
             Atrasado
           </label>
         </div>
-      </div>
+      </FilterSection>
 
-
-      {/* Date range filter */}
-      <div>
-        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Período (Vencimento)</label>
-        <div className="space-y-2 mt-1.5">
+      <FilterSection title="Período (Vencimento)" defaultOpen={false}>
+        <div className="space-y-2 mt-1">
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className={cn("w-full justify-start text-left font-normal text-xs", !dateFrom && "text-muted-foreground")}>
@@ -481,9 +490,9 @@ export default function Lancamentos() {
             </Button>
           )}
         </div>
-      </div>
+      </FilterSection>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 pt-2">
         <Button size="sm" className="flex-1" onClick={() => {}}>Filtrar</Button>
         <Button size="sm" variant="outline" className="flex-1" onClick={clearFilters}>Limpar</Button>
       </div>
@@ -826,18 +835,8 @@ export default function Lancamentos() {
         {!isMobile && (
           <Card className="shadow-sm h-fit">
             <CardContent className="p-4">
-              <button
-                onClick={() => setFilterCollapsed(prev => !prev)}
-                className="flex items-center justify-between w-full"
-              >
-                <h3 className="text-sm font-semibold">Filtro Rápido</h3>
-                {filterCollapsed ? <ChevronLeft className="h-4 w-4 text-muted-foreground" /> : <X className="h-4 w-4 text-muted-foreground" />}
-              </button>
-              {!filterCollapsed && (
-                <div className="mt-4">
-                  <FilterPanel />
-                </div>
-              )}
+              <h3 className="text-sm font-semibold mb-3">Filtro Rápido</h3>
+              <FilterPanel />
             </CardContent>
           </Card>
         )}
