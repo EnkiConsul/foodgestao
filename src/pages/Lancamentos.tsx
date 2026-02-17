@@ -129,12 +129,6 @@ export default function Lancamentos() {
   const [filterRealizado, setFilterRealizado] = useState(true);
   const [filterPendente, setFilterPendente] = useState(true);
   const [filterPaymentMethod, setFilterPaymentMethod] = useState<string>("all");
-  // Bill status filters
-  const [filterBillEmDia, setFilterBillEmDia] = useState(true);
-  const [filterBillAtrasado, setFilterBillAtrasado] = useState(true);
-  const [filterBillPago, setFilterBillPago] = useState(true);
-  const [filterBillParcial, setFilterBillParcial] = useState(true);
-  const [filterBillVenceBreve, setFilterBillVenceBreve] = useState(true);
   // Date range filter
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
@@ -257,15 +251,6 @@ export default function Lancamentos() {
 
       const computed = computeBillStatus(t);
 
-      // Bill status filters
-      if (computed) {
-        if (computed === "em_dia" && !filterBillEmDia) return;
-        if (computed === "atrasado" && !filterBillAtrasado) return;
-        if (computed === "pago" && !filterBillPago) return;
-        if (computed === "parcial" && !filterBillParcial) return;
-        if (computed === "vence_em_breve" && !filterBillVenceBreve) return;
-      }
-
       // Date range filter for due_date
       if (t.due_date) {
         if (dateFrom) {
@@ -313,7 +298,7 @@ export default function Lancamentos() {
     });
 
     return rows;
-  }, [transactions, search, filterCredito, filterDebito, filterTransferencia, filterRealizado, filterPendente, filterAccount, filterPaymentMethod, filterBillEmDia, filterBillAtrasado, filterBillPago, filterBillParcial, filterBillVenceBreve, dateFrom, dateTo, sortBy, previousBalance]);
+  }, [transactions, search, filterCredito, filterDebito, filterTransferencia, filterRealizado, filterPendente, filterAccount, filterPaymentMethod, dateFrom, dateTo, sortBy, previousBalance]);
 
   // Totals
   const totals = useMemo(() => {
@@ -365,11 +350,6 @@ export default function Lancamentos() {
     setFilterTransferencia(true);
     setFilterRealizado(true);
     setFilterPendente(true);
-    setFilterBillEmDia(true);
-    setFilterBillAtrasado(true);
-    setFilterBillPago(true);
-    setFilterBillParcial(true);
-    setFilterBillVenceBreve(true);
     setDateFrom(undefined);
     setDateTo(undefined);
   };
