@@ -143,7 +143,7 @@ export default function Lancamentos() {
       const saved = localStorage.getItem("lancamentos_columns");
       if (saved) return JSON.parse(saved);
     } catch {}
-    return { data: true, dc: true, status: true, vencimento: true, saldo: true };
+    return { data: true, dc: true, categoria: true, conta: true, formaPagamento: true, status: true, vencimento: true, saldo: true };
   });
 
   useEffect(() => {
@@ -515,6 +515,9 @@ export default function Lancamentos() {
                   { key: "data", label: "Data", fixed: false },
                   { key: "descricao", label: "Descrição", fixed: true },
                   { key: "dc", label: "D/C", fixed: false },
+                  { key: "categoria", label: "Categoria", fixed: false },
+                  { key: "conta", label: "Conta", fixed: false },
+                  { key: "formaPagamento", label: "Forma Pgto", fixed: false },
                   { key: "valor", label: "Valor", fixed: true },
                   { key: "status", label: "Status", fixed: false },
                   { key: "vencimento", label: "Vencimento", fixed: false },
@@ -649,6 +652,9 @@ export default function Lancamentos() {
                     {visibleColumns.data !== false && <TableHead className="text-xs w-[80px]">Data</TableHead>}
                     <TableHead className="text-xs">Descrição</TableHead>
                     {visibleColumns.dc && <TableHead className="text-xs w-[40px] text-center">D/C</TableHead>}
+                    {visibleColumns.categoria && <TableHead className="text-xs w-[100px]">Categoria</TableHead>}
+                    {visibleColumns.conta && <TableHead className="text-xs w-[100px]">Conta</TableHead>}
+                    {visibleColumns.formaPagamento && <TableHead className="text-xs w-[100px]">Forma Pgto</TableHead>}
                     <TableHead className="text-xs w-[100px] text-right">Valor</TableHead>
                     {visibleColumns.status && <TableHead className="text-xs w-[90px]">Status</TableHead>}
                     {visibleColumns.vencimento && <TableHead className="text-xs w-[80px]">Vencimento</TableHead>}
@@ -695,14 +701,16 @@ export default function Lancamentos() {
                           {/* Descrição */}
                           <TableCell className="text-xs py-2">
                             <div className="truncate max-w-[200px]">{r.description}</div>
+                            {!visibleColumns.categoria && !visibleColumns.conta && !visibleColumns.formaPagamento && (
                             <div className="flex items-center gap-1.5 flex-wrap">
                               {r.accountName && <span className="text-[10px] text-muted-foreground">{r.accountName}</span>}
                               {r.categoryName && <span className="text-[10px] text-muted-foreground">• {r.categoryName}</span>}
                               {r.paymentMethodName && <span className="text-[10px] text-muted-foreground">• {r.paymentMethodName}</span>}
-                              {hasDue && r.amountPaid > 0 && r.billStatus !== "pago" && (
-                                <span className="text-[10px] text-success font-medium">({paidPercent.toFixed(0)}% pago)</span>
-                              )}
                             </div>
+                            )}
+                            {hasDue && r.amountPaid > 0 && r.billStatus !== "pago" && (
+                              <span className="text-[10px] text-success font-medium">({paidPercent.toFixed(0)}% pago)</span>
+                            )}
                           </TableCell>
 
                           {/* D/C */}
@@ -711,6 +719,27 @@ export default function Lancamentos() {
                             {isReceita && <span className="text-xs font-bold text-success">C</span>}
                             {isDespesa && <span className="text-xs font-bold text-destructive">D</span>}
                             {isTransf && <span className="text-xs font-bold text-primary">T</span>}
+                          </TableCell>
+                          )}
+
+                          {/* Categoria */}
+                          {visibleColumns.categoria && (
+                          <TableCell className="text-xs py-2 text-muted-foreground truncate max-w-[100px]">
+                            {r.categoryName || "—"}
+                          </TableCell>
+                          )}
+
+                          {/* Conta */}
+                          {visibleColumns.conta && (
+                          <TableCell className="text-xs py-2 text-muted-foreground truncate max-w-[100px]">
+                            {r.accountName || "—"}
+                          </TableCell>
+                          )}
+
+                          {/* Forma Pgto */}
+                          {visibleColumns.formaPagamento && (
+                          <TableCell className="text-xs py-2 text-muted-foreground truncate max-w-[100px]">
+                            {r.paymentMethodName || "—"}
                           </TableCell>
                           )}
 
