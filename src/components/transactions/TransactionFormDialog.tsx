@@ -26,6 +26,7 @@ interface EditableTransaction {
   account_id: string;
   destination_account_id?: string | null;
   category_id?: string | null;
+  contact_id?: string | null;
   notes?: string | null;
   due_date?: string | null;
 }
@@ -48,11 +49,14 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const [accountId, setAccountId] = useState("");
   const [destinationAccountId, setDestinationAccountId] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [contactId, setContactId] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
   const [accounts, setAccounts] = useState<Tables<"accounts">[]>([]);
   const [categories, setCategories] = useState<Tables<"categories">[]>([]);
+  const [contacts, setContacts] = useState<Tables<"contacts">[]>([]);
+  const [contactCompanyIds, setContactCompanyIds] = useState<Map<string, string[]>>(new Map());
   const [paymentMethods, setPaymentMethods] = useState<Tables<"payment_methods">[]>([]);
   const [paymentMethodId, setPaymentMethodId] = useState("");
   const [categoryCompanyIds, setCategoryCompanyIds] = useState<Map<string, string[]>>(new Map());
@@ -60,15 +64,18 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   useEffect(() => {
     if (!user || !open) return;
     const loadData = async () => {
-      const [accRes, catRes, pmRes, ccRes] = await Promise.all([
+      const [accRes, catRes, pmRes, ccRes, contactRes, contCompRes] = await Promise.all([
         supabase.from("accounts").select("*").eq("user_id", user.id).eq("is_active", true),
         supabase.from("categories").select("*").eq("user_id", user.id),
         supabase.from("payment_methods").select("*").eq("user_id", user.id).eq("is_active", true),
         supabase.from("category_companies").select("category_id, company_id"),
+        supabase.from("contacts").select("*").eq("user_id", user.id).eq("is_active", true).order("name"),
+        supabase.from("contact_companies").select("contact_id, company_id"),
       ]);
       setAccounts(accRes.data ?? []);
       setCategories(catRes.data ?? []);
       setPaymentMethods(pmRes.data ?? []);
+      setContacts(contactRes.data ?? []);
       if (accRes.data?.[0] && !accountId) setAccountId(accRes.data[0].id);
 
       const map = new Map<string, string[]>();
@@ -78,6 +85,14 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
         map.set(cc.category_id, list);
       });
       setCategoryCompanyIds(map);
+
+      const contMap = new Map<string, string[]>();
+      (contCompRes.data ?? []).forEach((cc) => {
+        const list = contMap.get(cc.contact_id) || [];
+        list.push(cc.company_id);
+        contMap.set(cc.contact_id, list);
+      });
+      setContactCompanyIds(contMap);
     };
     loadData();
   }, [user, open]);
@@ -92,6 +107,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       setAccountId(transaction.account_id);
       setDestinationAccountId(transaction.destination_account_id ?? "");
       setCategoryId(transaction.category_id ?? "");
+      setContactId(transaction.contact_id ?? "");
       setNotes(transaction.notes ?? "");
       setDueDate(transaction.due_date ?? "");
     } else if (!transaction && open) {
@@ -112,6 +128,15 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     return true;
   });
 
+  const filteredContacts = contacts.filter((c) => {
+    if (contextType === "pf") return c.visible_pf;
+    if (contextType === "pj" && selectedCompanyId) {
+      const companyIds = contactCompanyIds.get(c.id) || [];
+      return companyIds.includes(selectedCompanyId);
+    }
+    return true;
+  });
+
   const resetForm = () => {
     setType("despesa");
     setDescription("");
@@ -121,6 +146,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     setAccountId(accounts[0]?.id ?? "");
     setDestinationAccountId("");
     setCategoryId("");
+    setContactId("");
     setNotes("");
     setPaymentMethodId("");
   };
@@ -153,6 +179,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       account_id: accountId,
       destination_account_id: type === "transferencia" ? destinationAccountId : null,
       category_id: categoryId || null,
+      contact_id: type !== "transferencia" ? (contactId || null) : null,
       notes: notes.trim() || null,
       payment_method_id: paymentMethodId || null,
       context: contextType,
@@ -300,6 +327,23 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                 <SelectContent>
                   {filteredCategories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Contact (Cliente/Fornecedor) */}
+          {type !== "transferencia" && (
+            <div className="space-y-2">
+              <Label>Cliente/Fornecedor (opcional)</Label>
+              <Select value={contactId} onValueChange={setContactId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o contato" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredContacts.map((ct) => (
+                    <SelectItem key={ct.id} value={ct.id}>{ct.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
