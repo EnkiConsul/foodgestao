@@ -1,32 +1,55 @@
 
-
-# Exibir apenas um valor na coluna Valor
+# Adicionar Card "Saldos" no painel lateral de Lancamentos
 
 ## O que sera feito
 
-Na coluna "Valor" da tabela de lancamentos, atualmente sao exibidos dois valores: o valor original do lancamento e, abaixo, o valor pago. A alteracao fara com que apenas um valor seja exibido -- sempre o mais recente. A logica sera:
+Adicionar um card "Saldos" no painel lateral direito (acima do Filtro Rapido), seguindo o modelo da imagem de referencia. O card exibira quatro linhas de informacao financeira:
 
-- Se houve pagamento parcial ou total (`amountPaid > 0`), exibir o `amountPaid` (valor pago)
-- Caso contrario, exibir o `amount` (valor original)
+1. **Saldo Anterior** - saldo inicial do periodo selecionado (valor ja existente como `previousBalance`), com a data do ultimo dia do mes anterior
+2. **Saldo do Periodo** - diferenca entre receitas e despesas do periodo (receitas - despesas), com o intervalo de datas do mes selecionado
+3. **Saldo Acumulado** - soma do saldo anterior com o saldo do periodo, com a data do ultimo dia do mes
+4. **Saldo Atual** - mesmo valor do saldo acumulado, destacado em verde com fonte maior
 
-Isso consolida a coluna em um unico numero, mostrando sempre o valor da ultima alteracao.
+O card tera um icone de engrenagem e um botao de minimizar (chevron) no cabecalho, seguindo o padrao visual da imagem.
 
 ## Detalhes Tecnicos
 
 ### Arquivo: `src/pages/Lancamentos.tsx`
 
-Na celula de Valor (linhas 740-745), substituir a renderizacao atual:
+**1. Calcular os novos valores no bloco `totals` (useMemo, linhas ~338-353):**
 
-```tsx
-// ANTES (dois valores)
-{formatBRL(r.amount)}
-{hasDue && r.amountPaid > 0 && (
-  <div className="text-[10px] text-muted-foreground">Pago: {formatBRL(r.amountPaid)}</div>
-)}
+Adicionar ao objeto `totals`:
+- `saldoPeriodo`: `allReceitas - allDespesas` (ja existem essas variaveis)
+- `saldoAcumulado`: `previousBalance + saldoPeriodo`
 
-// DEPOIS (valor unico - sempre o mais recente)
-{formatBRL(r.amountPaid > 0 ? r.amountPaid : r.amount)}
+**2. Adicionar o card "Saldos" no painel lateral (linhas ~851-858):**
+
+Inserir um novo `Card` antes do card de "Filtro Rapido", com a seguinte estrutura:
+
+```text
++------------------------------------+
+| [icone] Saldos              [^]   |
++------------------------------------+
+| Saldo Anterior                     |
+| 31/01/2026            24.043,18    |
++------------------------------------+
+| Saldo do Periodo                   |
+| 01 a 28/02/2026       10.327,42   |
++------------------------------------+
+| Saldo Acumulado                    |
+| 28/02/2026            13.715,76    |
++------------------------------------+
+| Saldo Atual                        |
+|                       13.715,76    |
++------------------------------------+
 ```
 
-Tambem remover a linha de percentual pago na descricao (linhas 704-706), ja que com um unico valor exibido essa informacao se torna redundante.
+- Cada linha sera um `div` com borda inferior, contendo titulo (texto pequeno, muted), subtitulo (data, texto menor) e valor alinhado a direita
+- Valores positivos em verde (`text-success`), negativos em vermelho (`text-destructive`)
+- "Saldo Atual" tera fundo levemente verde e fonte maior/bold
+- O card usara o mesmo componente `FilterSection` ou um header com chevron para permitir minimizar
+- As datas serao calculadas dinamicamente com base em `selectedMonth` e `selectedYear`
 
+**3. Tambem exibir no Sheet mobile (linhas ~590-597):**
+
+Adicionar o card Saldos acima do FilterPanel dentro do SheetContent para mobile.
