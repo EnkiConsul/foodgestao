@@ -718,26 +718,6 @@ export default function Lancamentos() {
                     })
                   )}
                 </TableBody>
-                {displayRows.length > 0 && (
-                  <TableFooter>
-                    <TableRow className="bg-muted/60 font-semibold">
-                      <TableCell colSpan={4} className="text-xs py-3">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="font-bold uppercase">Total Lançamentos</span>
-                          <span className="text-success">- Receitas: {formatBRL(totals.allReceitas)}</span>
-                          <span className="text-destructive">- Despesas: {formatBRL(totals.allDespesas)}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell colSpan={2} className="text-xs py-3 text-muted-foreground">
-                        Saldo do Período
-                      </TableCell>
-                      <TableCell className={`text-xs text-right py-3 font-bold ${(totals.allReceitas - totals.allDespesas) >= 0 ? "text-success" : "text-destructive"}`}>
-                        {formatBRL(totals.allReceitas - totals.allDespesas)}
-                      </TableCell>
-                      <TableCell className="py-3" />
-                    </TableRow>
-                  </TableFooter>
-                )}
               </Table>
             </div>
           )}
