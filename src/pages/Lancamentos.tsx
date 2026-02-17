@@ -458,33 +458,33 @@ export default function Lancamentos() {
       { label: "Saldo Acumulado", date: saldoDates.curEnd, value: totals.saldoAcumulado },
     ];
     return (
-      <Card className="shadow-sm mb-4">
+      <Card className="shadow-sm mb-3">
         <button
           onClick={() => setOpen(prev => !prev)}
-          className="flex items-center justify-between w-full px-4 py-3"
+          className="flex items-center justify-between w-full px-1.5 py-1.5"
         >
-          <div className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-semibold">Saldos</span>
+          <div className="flex items-center gap-1.5">
+            <DollarSign className="h-3 w-3 text-muted-foreground" />
+            <span className="text-[11px] font-semibold">Saldos</span>
           </div>
-          <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", open && "rotate-180")} />
+          <ChevronDown className={cn("h-3 w-3 text-muted-foreground transition-transform", open && "rotate-180")} />
         </button>
         {open && (
-          <div className="px-4 pb-4">
+          <div className="px-1.5 pb-1.5">
             {rows.map((r, i) => (
-              <div key={i} className="flex items-end justify-between py-2 border-b last:border-b-0">
+              <div key={i} className="flex items-end justify-between py-1 border-b last:border-b-0">
                 <div>
-                  <p className="text-xs text-muted-foreground">{r.label}</p>
-                  <p className="text-[11px] text-muted-foreground/70">{r.date}</p>
+                  <p className="text-[10px] text-muted-foreground leading-tight">{r.label}</p>
+                  <p className="text-[9px] text-muted-foreground/70 leading-tight">{r.date}</p>
                 </div>
-                <span className={cn("text-sm font-medium", r.value >= 0 ? "text-success" : "text-destructive")}>
+                <span className={cn("text-[11px] font-medium", r.value >= 0 ? "text-success" : "text-destructive")}>
                   {formatBRL(r.value)}
                 </span>
               </div>
             ))}
-            <div className="mt-2 rounded-md bg-success/10 p-3 flex items-end justify-between">
-              <p className="text-xs text-muted-foreground">Saldo Atual</p>
-              <span className={cn("text-base font-bold", totals.saldoAcumulado >= 0 ? "text-success" : "text-destructive")}>
+            <div className="mt-1.5 rounded-md bg-success/10 p-2 flex items-end justify-between">
+              <p className="text-[10px] text-muted-foreground">Saldo Atual</p>
+              <span className={cn("text-[12px] font-bold", totals.saldoAcumulado >= 0 ? "text-success" : "text-destructive")}>
                 {formatBRL(totals.saldoAcumulado)}
               </span>
             </div>
