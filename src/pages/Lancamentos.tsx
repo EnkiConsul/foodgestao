@@ -701,9 +701,6 @@ export default function Lancamentos() {
                           {/* Descrição */}
                           <TableCell className="text-xs py-2">
                             <div className="truncate max-w-[200px]">{r.description}</div>
-                            {hasDue && r.amountPaid > 0 && r.billStatus !== "pago" && (
-                              <span className="text-[10px] text-success font-medium">({paidPercent.toFixed(0)}% pago)</span>
-                            )}
                           </TableCell>
 
                           {/* D/C */}
@@ -738,10 +735,7 @@ export default function Lancamentos() {
 
                           {/* Valor */}
                           <TableCell className={`text-xs text-right py-2 font-medium ${isReceita ? "text-success" : isDespesa ? "text-destructive" : "text-foreground"}`}>
-                            {formatBRL(r.amount)}
-                            {hasDue && r.amountPaid > 0 && (
-                              <div className="text-[10px] text-muted-foreground">Pago: {formatBRL(r.amountPaid)}</div>
-                            )}
+                            {formatBRL(r.amountPaid > 0 ? r.amountPaid : r.amount)}
                           </TableCell>
 
                           {/* Status */}
