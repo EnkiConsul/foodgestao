@@ -15,7 +15,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TransactionFormDialog } from "@/components/transactions/TransactionFormDialog";
-import { BillFormDialog } from "@/components/bills/BillFormDialog";
 import { PaymentDialog } from "@/components/bills/PaymentDialog";
 import {
   Plus, Search, ArrowLeftRight,
@@ -45,44 +44,34 @@ type Transaction = {
   category_id: string | null;
   account_id: string;
   payment_method_id: string | null;
-  categories: { name: string } | null;
-  accounts: { name: string } | null;
-  payment_methods: { name: string } | null;
-};
-
-type Bill = {
-  id: string;
-  description: string;
-  amount: number;
+  due_date: string | null;
   amount_paid: number;
-  bill_type: "receita" | "despesa";
-  due_date: string;
+  bill_status: BillStatus | null;
   payment_date: string | null;
-  status: BillStatus;
-  category_id: string | null;
-  account_id: string | null;
   contact_id: string | null;
   categories: { name: string } | null;
   accounts: { name: string } | null;
   payment_methods: { name: string } | null;
+  notes: string | null;
+  destination_account_id: string | null;
 };
 
-type UnifiedRow = {
+type DisplayRow = {
   id: string;
   description: string;
   amount: number;
   date: string;
-  rowType: "transaction" | "bill";
   transactionType: "receita" | "despesa" | "transferencia";
   categoryName: string | null;
   accountName: string | null;
   paymentMethodName: string | null;
-  txStatus: string | null;
+  txStatus: string;
   billStatus: BillStatus | null;
   amountPaid: number;
   dueDate: string | null;
   runningBalance: number;
-  original: Transaction | Bill;
+  hasDueDate: boolean;
+  original: Transaction;
 };
 
 type Account = { id: string; name: string };
@@ -101,10 +90,11 @@ const billStatusConfig: Record<BillStatus, { label: string; variant: "default" |
   parcial: { label: "Parcial", variant: "outline" },
 };
 
-function computeBillStatus(bill: Bill): BillStatus {
-  if (bill.status === "pago") return "pago";
-  if (bill.amount_paid > 0 && bill.amount_paid < bill.amount) return "parcial";
-  const due = new Date(bill.due_date + "T23:59:59");
+function computeBillStatus(tx: Transaction): BillStatus | null {
+  if (!tx.due_date) return null;
+  if (tx.amount_paid >= tx.amount) return "pago";
+  if (tx.amount_paid > 0) return "parcial";
+  const due = new Date(tx.due_date + "T23:59:59");
   const now = new Date();
   if (isPast(due) && now > due) return "atrasado";
   if (isAfter(due, now) && !isAfter(due, addDays(now, 7))) return "vence_em_breve";
@@ -121,14 +111,12 @@ export default function Lancamentos() {
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [bills, setBills] = useState<Bill[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [billDialogOpen, setBillDialogOpen] = useState(false);
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
-  const [paymentBill, setPaymentBill] = useState<Bill | null>(null);
+  const [paymentTx, setPaymentTx] = useState<Transaction | null>(null);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<string>("date");
   const [previousBalance, setPreviousBalance] = useState(0);
@@ -141,14 +129,13 @@ export default function Lancamentos() {
   const [filterRealizado, setFilterRealizado] = useState(true);
   const [filterPendente, setFilterPendente] = useState(true);
   const [filterPaymentMethod, setFilterPaymentMethod] = useState<string>("all");
-  // Bill-specific filters
-  const [filterBills, setFilterBills] = useState(true);
+  // Bill status filters
   const [filterBillEmDia, setFilterBillEmDia] = useState(true);
   const [filterBillAtrasado, setFilterBillAtrasado] = useState(true);
   const [filterBillPago, setFilterBillPago] = useState(true);
   const [filterBillParcial, setFilterBillParcial] = useState(true);
   const [filterBillVenceBreve, setFilterBillVenceBreve] = useState(true);
-  // Date range filter for bills
+  // Date range filter
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
@@ -172,18 +159,18 @@ export default function Lancamentos() {
       .then(({ data }) => setPaymentMethods(data ?? []));
   }, [user, contextType, selectedCompanyId]);
 
-  // Fetch transactions
+  // Fetch transactions (includes bills now via due_date)
   const fetchTransactions = useCallback(async () => {
     if (!user) return;
     setLoading(true);
 
+    // We need transactions that fall in the month by transaction_date OR by due_date
     let q = supabase
       .from("transactions")
-      .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, categories(name), accounts!transactions_account_id_fkey(name), payment_methods(name)")
+      .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, bill_status, payment_date, contact_id, notes, destination_account_id, categories(name), accounts!transactions_account_id_fkey(name), payment_methods(name)")
       .eq("user_id", user.id)
       .eq("context", contextType)
-      .gte("transaction_date", monthStart)
-      .lte("transaction_date", monthEnd)
+      .or(`and(transaction_date.gte.${monthStart},transaction_date.lte.${monthEnd}),and(due_date.gte.${monthStart},due_date.lte.${monthEnd})`)
       .order("transaction_date", { ascending: true });
 
     if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
@@ -196,28 +183,6 @@ export default function Lancamentos() {
       setTransactions((data as unknown as Transaction[]) ?? []);
     }
     setLoading(false);
-  }, [user, monthStart, monthEnd, contextType, selectedCompanyId]);
-
-  // Fetch bills
-  const fetchBills = useCallback(async () => {
-    if (!user) return;
-    let q = supabase
-      .from("bills")
-      .select("id, description, amount, amount_paid, bill_type, due_date, payment_date, status, category_id, account_id, contact_id, categories(name), accounts!bills_account_id_fkey(name), payment_methods(name)")
-      .eq("user_id", user.id)
-      .eq("context", contextType)
-      .gte("due_date", monthStart)
-      .lte("due_date", monthEnd)
-      .order("due_date", { ascending: true })
-      .limit(200);
-
-    if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
-
-    const { data, error } = await q;
-
-    if (!error) {
-      setBills((data as unknown as Bill[]) ?? []);
-    }
   }, [user, monthStart, monthEnd, contextType, selectedCompanyId]);
 
   // Fetch previous balance
@@ -247,51 +212,38 @@ export default function Lancamentos() {
 
   useEffect(() => {
     fetchTransactions();
-    fetchBills();
     fetchPreviousBalance();
-  }, [fetchTransactions, fetchBills, fetchPreviousBalance]);
+  }, [fetchTransactions, fetchPreviousBalance]);
 
   const refreshAll = () => {
     fetchTransactions();
-    fetchBills();
     fetchPreviousBalance();
   };
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [deleteType, setDeleteType] = useState<"transaction" | "bill">("transaction");
 
   const confirmDelete = async () => {
     if (!deleteId) return;
-    if (deleteType === "transaction") {
-      const tx = transactions.find((t) => t.id === deleteId);
-      const { error } = await supabase.from("transactions").delete().eq("id", deleteId);
-      if (error) toast.error("Erro ao excluir");
-      else {
-        await supabase.rpc("insert_audit_log", {
-          _action: "transaction_deleted",
-          _entity_type: "transaction",
-          _entity_id: deleteId,
-          _details: { target_name: tx?.description || "—" },
-        });
-        toast.success("Lançamento excluído");
-        refreshAll();
-      }
-    } else {
-      const { error } = await supabase.from("bills").delete().eq("id", deleteId);
-      if (error) toast.error("Erro ao excluir");
-      else {
-        toast.success("Conta excluída");
-        refreshAll();
-      }
+    const tx = transactions.find((t) => t.id === deleteId);
+    const { error } = await supabase.from("transactions").delete().eq("id", deleteId);
+    if (error) toast.error("Erro ao excluir");
+    else {
+      await supabase.rpc("insert_audit_log", {
+        _action: "transaction_deleted",
+        _entity_type: "transaction",
+        _entity_id: deleteId,
+        _details: { target_name: tx?.description || "—" },
+      });
+      toast.success("Lançamento excluído");
+      refreshAll();
     }
     setDeleteId(null);
   };
 
-  // Unified rows
-  const unifiedRows = useMemo(() => {
-    const rows: UnifiedRow[] = [];
+  // Display rows
+  const displayRows = useMemo(() => {
+    const rows: DisplayRow[] = [];
 
-    // Add transactions
     transactions.forEach((t) => {
       const matchSearch = !search || t.description.toLowerCase().includes(search.toLowerCase());
       if (!matchSearch) return;
@@ -303,117 +255,98 @@ export default function Lancamentos() {
       if (filterAccount !== "all" && t.account_id !== filterAccount) return;
       if (filterPaymentMethod !== "all" && t.payment_method_id !== filterPaymentMethod) return;
 
-      rows.push({
-        id: t.id,
-        description: t.description,
-        amount: t.amount,
-        date: t.transaction_date,
-        rowType: "transaction",
-        transactionType: t.transaction_type,
-        categoryName: t.categories?.name || null,
-        accountName: t.accounts?.name || null,
-        paymentMethodName: t.payment_methods?.name || null,
-        txStatus: t.status,
-        billStatus: null,
-        amountPaid: 0,
-        dueDate: null,
-        runningBalance: 0,
-        original: t,
-      });
-    });
+      const computed = computeBillStatus(t);
 
-    // Add bills
-    if (filterBills) {
-      bills.forEach((b) => {
-        const matchSearch = !search || b.description.toLowerCase().includes(search.toLowerCase());
-        if (!matchSearch) return;
-        const computed = computeBillStatus(b);
+      // Bill status filters
+      if (computed) {
         if (computed === "em_dia" && !filterBillEmDia) return;
         if (computed === "atrasado" && !filterBillAtrasado) return;
         if (computed === "pago" && !filterBillPago) return;
         if (computed === "parcial" && !filterBillParcial) return;
         if (computed === "vence_em_breve" && !filterBillVenceBreve) return;
-        // Date range filter
+      }
+
+      // Date range filter for due_date
+      if (t.due_date) {
         if (dateFrom) {
-          const dueD = new Date(b.due_date + "T12:00:00");
+          const dueD = new Date(t.due_date + "T12:00:00");
           if (dueD < dateFrom) return;
         }
         if (dateTo) {
-          const dueD = new Date(b.due_date + "T12:00:00");
+          const dueD = new Date(t.due_date + "T12:00:00");
           if (dueD > dateTo) return;
         }
+      }
 
-        rows.push({
-          id: b.id,
-          description: b.description,
-          amount: b.amount,
-          date: b.due_date,
-          rowType: "bill",
-          transactionType: b.bill_type as "receita" | "despesa",
-          categoryName: b.categories?.name || null,
-          accountName: b.accounts?.name || null,
-          paymentMethodName: b.payment_methods?.name || null,
-          txStatus: null,
-          billStatus: computed,
-          amountPaid: b.amount_paid,
-          dueDate: b.due_date,
-          runningBalance: 0,
-          original: b,
-        });
+      rows.push({
+        id: t.id,
+        description: t.description,
+        amount: t.amount,
+        date: t.transaction_date,
+        transactionType: t.transaction_type,
+        categoryName: t.categories?.name || null,
+        accountName: t.accounts?.name || null,
+        paymentMethodName: t.payment_methods?.name || null,
+        txStatus: t.status,
+        billStatus: computed,
+        amountPaid: t.amount_paid,
+        dueDate: t.due_date,
+        runningBalance: 0,
+        hasDueDate: !!t.due_date,
+        original: t,
       });
-    }
+    });
 
     // Sort
     if (sortBy === "date") rows.sort((a, b) => a.date.localeCompare(b.date));
     else if (sortBy === "value") rows.sort((a, b) => b.amount - a.amount);
     else if (sortBy === "description") rows.sort((a, b) => a.description.localeCompare(b.description));
 
-    // Running balance (only for transactions)
+    // Running balance (only confirmed transactions without due_date, or paid)
     let running = previousBalance;
     rows.forEach((r) => {
-      if (r.rowType === "transaction") {
+      if (r.txStatus === "confirmado") {
         if (r.transactionType === "receita") running += r.amount;
         else if (r.transactionType === "despesa") running -= r.amount;
-        r.runningBalance = running;
       }
+      r.runningBalance = running;
     });
 
     return rows;
-  }, [transactions, bills, search, filterCredito, filterDebito, filterTransferencia, filterRealizado, filterPendente, filterAccount, filterPaymentMethod, filterBills, filterBillEmDia, filterBillAtrasado, filterBillPago, filterBillParcial, filterBillVenceBreve, dateFrom, dateTo, sortBy, previousBalance]);
+  }, [transactions, search, filterCredito, filterDebito, filterTransferencia, filterRealizado, filterPendente, filterAccount, filterPaymentMethod, filterBillEmDia, filterBillAtrasado, filterBillPago, filterBillParcial, filterBillVenceBreve, dateFrom, dateTo, sortBy, previousBalance]);
 
   // Totals
   const totals = useMemo(() => {
-    const txRows = unifiedRows.filter((r) => r.rowType === "transaction");
-    const receitas = txRows.filter((r) => r.transactionType === "receita").reduce((s, r) => s + r.amount, 0);
-    const despesas = txRows.filter((r) => r.transactionType === "despesa").reduce((s, r) => s + r.amount, 0);
+    const confirmed = displayRows.filter((r) => r.txStatus === "confirmado");
+    const receitas = confirmed.filter((r) => r.transactionType === "receita").reduce((s, r) => s + r.amount, 0);
+    const despesas = confirmed.filter((r) => r.transactionType === "despesa").reduce((s, r) => s + r.amount, 0);
 
-    const billRows = unifiedRows.filter((r) => r.rowType === "bill");
-    const aPagar = billRows.filter((r) => r.transactionType === "despesa").reduce((s, r) => s + r.amount - r.amountPaid, 0);
-    const aReceber = billRows.filter((r) => r.transactionType === "receita").reduce((s, r) => s + r.amount - r.amountPaid, 0);
-    const atrasadas = billRows.filter((r) => r.billStatus === "atrasado").length;
+    const withDue = displayRows.filter((r) => r.hasDueDate && r.billStatus !== "pago");
+    const aPagar = withDue.filter((r) => r.transactionType === "despesa").reduce((s, r) => s + r.amount - r.amountPaid, 0);
+    const aReceber = withDue.filter((r) => r.transactionType === "receita").reduce((s, r) => s + r.amount - r.amountPaid, 0);
+    const atrasadas = displayRows.filter((r) => r.billStatus === "atrasado").length;
 
     return { receitas, despesas, aPagar, aReceber, atrasadas };
-  }, [unifiedRows]);
+  }, [displayRows]);
 
   const formatBRL = maskBRL;
 
   const exportCSV = () => {
-    const headers = ["Origem", "Data", "Descrição", "Tipo", "Valor", "Status", "Vencimento", "Valor Pago", "Categoria", "Conta", "Forma Pgto", "Saldo"];
-    const rows = unifiedRows.map((r) => [
-      r.rowType === "transaction" ? "Lançamento" : "Conta",
+    const headers = ["Data", "Descrição", "Tipo", "Valor", "Status", "Vencimento", "Valor Pago", "Categoria", "Conta", "Forma Pgto", "Saldo"];
+    const csvRows = displayRows.map((r) => [
       format(new Date(r.date + "T12:00:00"), "dd/MM/yyyy"),
       `"${r.description.replace(/"/g, '""')}"`,
       r.transactionType === "receita" ? "Crédito" : r.transactionType === "despesa" ? "Débito" : "Transferência",
       r.amount.toFixed(2).replace(".", ","),
-      r.rowType === "transaction" ? (r.txStatus === "confirmado" ? "Realizado" : "Pendente") : (r.billStatus ? billStatusConfig[r.billStatus].label : ""),
+      r.billStatus ? billStatusConfig[r.billStatus].label : (r.txStatus === "confirmado" ? "Realizado" : "Pendente"),
       r.dueDate ? format(new Date(r.dueDate + "T12:00:00"), "dd/MM/yyyy") : "",
-      r.rowType === "bill" ? r.amountPaid.toFixed(2).replace(".", ",") : "",
+      r.amountPaid > 0 ? r.amountPaid.toFixed(2).replace(".", ",") : "",
       r.categoryName || "",
       r.accountName || "",
       r.paymentMethodName || "",
-      r.rowType === "transaction" ? r.runningBalance.toFixed(2).replace(".", ",") : "",
+      r.runningBalance.toFixed(2).replace(".", ","),
     ]);
-    const csv = [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
+    const csv = [headers.join(";"), ...csvRows.map((r) => r.join(";"))].join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -432,7 +365,6 @@ export default function Lancamentos() {
     setFilterTransferencia(true);
     setFilterRealizado(true);
     setFilterPendente(true);
-    setFilterBills(true);
     setFilterBillEmDia(true);
     setFilterBillAtrasado(true);
     setFilterBillPago(true);
@@ -467,7 +399,7 @@ export default function Lancamentos() {
       </div>
 
       <div>
-        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tipo (Lançamentos)</label>
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tipo</label>
         <div className="space-y-2 mt-1.5">
           <label className="flex items-center gap-2 text-sm">
             <Checkbox checked={filterCredito} onCheckedChange={(v) => setFilterCredito(!!v)} />
@@ -485,7 +417,7 @@ export default function Lancamentos() {
       </div>
 
       <div>
-        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status (Lançamentos)</label>
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</label>
         <div className="space-y-2 mt-1.5">
           <label className="flex items-center gap-2 text-sm">
             <Checkbox checked={filterRealizado} onCheckedChange={(v) => setFilterRealizado(!!v)} />
@@ -499,36 +431,28 @@ export default function Lancamentos() {
       </div>
 
       <div>
-        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Contas a Pagar/Receber</label>
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status de Vencimento</label>
         <div className="space-y-2 mt-1.5">
           <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={filterBills} onCheckedChange={(v) => setFilterBills(!!v)} />
-            Exibir contas
+            <Checkbox checked={filterBillEmDia} onCheckedChange={(v) => setFilterBillEmDia(!!v)} />
+            Em dia
           </label>
-          {filterBills && (
-            <div className="pl-5 space-y-2 border-l-2 border-muted ml-1">
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox checked={filterBillEmDia} onCheckedChange={(v) => setFilterBillEmDia(!!v)} />
-                Em dia
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox checked={filterBillVenceBreve} onCheckedChange={(v) => setFilterBillVenceBreve(!!v)} />
-                Vence em breve
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox checked={filterBillAtrasado} onCheckedChange={(v) => setFilterBillAtrasado(!!v)} />
-                Atrasado
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox checked={filterBillPago} onCheckedChange={(v) => setFilterBillPago(!!v)} />
-                Pago
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox checked={filterBillParcial} onCheckedChange={(v) => setFilterBillParcial(!!v)} />
-                Parcial
-              </label>
-            </div>
-          )}
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox checked={filterBillVenceBreve} onCheckedChange={(v) => setFilterBillVenceBreve(!!v)} />
+            Vence em breve
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox checked={filterBillAtrasado} onCheckedChange={(v) => setFilterBillAtrasado(!!v)} />
+            Atrasado
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox checked={filterBillPago} onCheckedChange={(v) => setFilterBillPago(!!v)} />
+            Pago
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox checked={filterBillParcial} onCheckedChange={(v) => setFilterBillParcial(!!v)} />
+            Parcial
+          </label>
         </div>
       </div>
 
@@ -581,13 +505,10 @@ export default function Lancamentos() {
           <Button onClick={() => { setEditTransaction(null); setDialogOpen(true); }} size="sm">
             <Plus className="h-4 w-4 mr-1" /> Lançamento
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setBillDialogOpen(true)}>
-            <CreditCard className="h-4 w-4 mr-1" /> Nova Conta
-          </Button>
           <Button variant="outline" size="sm" onClick={() => { setEditTransaction(null); setDialogOpen(true); }}>
             <ArrowLeftRight className="h-4 w-4 mr-1" /> Transferência
           </Button>
-          <Button variant="outline" size="sm" onClick={exportCSV} disabled={unifiedRows.length === 0}>
+          <Button variant="outline" size="sm" onClick={exportCSV} disabled={displayRows.length === 0}>
             <Download className="h-4 w-4 mr-1" /> CSV
           </Button>
         </div>
@@ -725,25 +646,25 @@ export default function Lancamentos() {
                     <TableCell className="py-2" />
                   </TableRow>
 
-                  {unifiedRows.length === 0 ? (
+                  {displayRows.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={9} className="text-center py-8 text-muted-foreground text-sm">
                         Nenhum registro neste mês
                       </TableCell>
                     </TableRow>
                   ) : (
-                    unifiedRows.map((r) => {
+                    displayRows.map((r) => {
                       const isReceita = r.transactionType === "receita";
                       const isDespesa = r.transactionType === "despesa";
                       const isTransf = r.transactionType === "transferencia";
-                      const isBill = r.rowType === "bill";
-                      const paidPercent = isBill && r.amount > 0 ? Math.min((r.amountPaid / r.amount) * 100, 100) : 0;
+                      const hasDue = r.hasDueDate;
+                      const paidPercent = hasDue && r.amount > 0 ? Math.min((r.amountPaid / r.amount) * 100, 100) : 0;
 
                       return (
-                        <TableRow key={`${r.rowType}-${r.id}`} className={cn("group", isBill && "bg-accent/30")}>
+                        <TableRow key={r.id} className={cn("group", hasDue && r.billStatus !== "pago" && "bg-accent/30")}>
                           {/* Tipo indicator */}
                           <TableCell className="py-2">
-                            {isBill ? (
+                            {hasDue ? (
                               <div className={`flex h-6 w-6 items-center justify-center rounded ${isDespesa ? "bg-destructive/10" : "bg-success/10"}`}>
                                 {isDespesa ? <CreditCard className="h-3 w-3 text-destructive" /> : <HandCoins className="h-3 w-3 text-success" />}
                               </div>
@@ -764,7 +685,7 @@ export default function Lancamentos() {
                               {r.accountName && <span className="text-[10px] text-muted-foreground">{r.accountName}</span>}
                               {r.categoryName && <span className="text-[10px] text-muted-foreground">• {r.categoryName}</span>}
                               {r.paymentMethodName && <span className="text-[10px] text-muted-foreground">• {r.paymentMethodName}</span>}
-                              {isBill && r.amountPaid > 0 && r.billStatus !== "pago" && (
+                              {hasDue && r.amountPaid > 0 && r.billStatus !== "pago" && (
                                 <span className="text-[10px] text-success font-medium">({paidPercent.toFixed(0)}% pago)</span>
                               )}
                             </div>
@@ -780,22 +701,22 @@ export default function Lancamentos() {
                           {/* Valor */}
                           <TableCell className={`text-xs text-right py-2 font-medium ${isReceita ? "text-success" : isDespesa ? "text-destructive" : "text-foreground"}`}>
                             {formatBRL(r.amount)}
-                            {isBill && r.amountPaid > 0 && (
+                            {hasDue && r.amountPaid > 0 && (
                               <div className="text-[10px] text-muted-foreground">Pago: {formatBRL(r.amountPaid)}</div>
                             )}
                           </TableCell>
 
                           {/* Status */}
                           <TableCell className="py-2">
-                            {isBill && r.billStatus ? (
+                            {r.billStatus ? (
                               <Badge variant={billStatusConfig[r.billStatus].variant} className="text-[10px] h-5 px-1.5">
                                 {billStatusConfig[r.billStatus].label}
                               </Badge>
-                            ) : r.txStatus ? (
+                            ) : (
                               <Badge variant={r.txStatus === "confirmado" ? "default" : "secondary"} className="text-[10px] h-5 px-1.5">
                                 {r.txStatus === "confirmado" ? "Realizado" : "Pendente"}
                               </Badge>
-                            ) : null}
+                            )}
                           </TableCell>
 
                           {/* Vencimento */}
@@ -804,39 +725,37 @@ export default function Lancamentos() {
                           </TableCell>
 
                           {/* Saldo */}
-                          <TableCell className={`text-xs text-right py-2 font-medium ${!isBill ? (r.runningBalance >= 0 ? "text-success" : "text-destructive") : "text-muted-foreground"}`}>
-                            {isBill ? "—" : formatBRL(r.runningBalance)}
+                          <TableCell className={`text-xs text-right py-2 font-medium ${r.runningBalance >= 0 ? "text-success" : "text-destructive"}`}>
+                            {formatBRL(r.runningBalance)}
                           </TableCell>
 
                           {/* Ações */}
                           <TableCell className="py-2">
                             <div className="flex items-center gap-0.5">
-                              {isBill && r.billStatus !== "pago" && (
+                              {hasDue && r.billStatus !== "pago" && (
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   className="h-7 w-7 text-success hover:text-success"
-                                  onClick={() => setPaymentBill(r.original as Bill)}
+                                  onClick={() => setPaymentTx(r.original)}
                                   title="Registrar pagamento"
                                 >
                                   <DollarSign className="h-3 w-3" />
                                 </Button>
                               )}
-                              {!isBill && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                  onClick={() => { setEditTransaction(r.original as Transaction); setDialogOpen(true); }}
-                                >
-                                  <Pencil className="h-3 w-3" />
-                                </Button>
-                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                onClick={() => { setEditTransaction(r.original); setDialogOpen(true); }}
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                                onClick={() => { setDeleteId(r.id); setDeleteType(r.rowType); }}
+                                onClick={() => setDeleteId(r.id)}
                               >
                                 <Trash2 className="h-3 w-3" />
                               </Button>
@@ -877,19 +796,26 @@ export default function Lancamentos() {
         transaction={editTransaction}
       />
 
-      <BillFormDialog open={billDialogOpen} onOpenChange={setBillDialogOpen} onCreated={refreshAll} />
-
       <PaymentDialog
-        open={!!paymentBill}
-        onOpenChange={(open) => { if (!open) setPaymentBill(null); }}
-        bill={paymentBill}
+        open={!!paymentTx}
+        onOpenChange={(open) => { if (!open) setPaymentTx(null); }}
+        bill={paymentTx ? {
+          id: paymentTx.id,
+          description: paymentTx.description,
+          amount: paymentTx.amount,
+          amount_paid: paymentTx.amount_paid,
+          transaction_type: paymentTx.transaction_type as "receita" | "despesa",
+          account_id: paymentTx.account_id,
+          category_id: paymentTx.category_id,
+          contact_id: paymentTx.contact_id,
+        } : null}
         onPaid={refreshAll}
       />
 
       <AlertDialog open={!!deleteId} onOpenChange={(o) => { if (!o) setDeleteId(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir {deleteType === "transaction" ? "lançamento" : "conta"}?</AlertDialogTitle>
+            <AlertDialogTitle>Excluir lançamento?</AlertDialogTitle>
             <AlertDialogDescription>
               Essa ação não pode ser desfeita. O registro será removido permanentemente.
             </AlertDialogDescription>

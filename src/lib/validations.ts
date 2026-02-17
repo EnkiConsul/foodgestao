@@ -39,19 +39,9 @@ export const transactionSchema = z.object({
   category_id: z.string().uuid().optional().nullable().or(z.literal("")),
   notes: z.string().trim().max(500).optional().nullable(),
   payment_method_id: z.string().uuid().optional().nullable().or(z.literal("")),
+  due_date: z.string().optional().nullable(),
 });
 
-// ---- Bill ----
-export const billSchema = z.object({
-  description: z.string().trim().min(1, "Descrição é obrigatória").max(200),
-  amount: z.number().positive("Valor deve ser positivo").finite(),
-  bill_type: z.enum(["receita", "despesa"]),
-  due_date: z.string().min(1, "Vencimento é obrigatório"),
-  account_id: z.string().uuid().optional().nullable().or(z.literal("")),
-  category_id: z.string().uuid().optional().nullable().or(z.literal("")),
-  notes: z.string().trim().max(500).optional().nullable(),
-  payment_method_id: z.string().uuid().optional().nullable().or(z.literal("")),
-});
 
 // ---- Category ----
 export const categorySchema = z.object({

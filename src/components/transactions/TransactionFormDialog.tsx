@@ -27,6 +27,7 @@ interface EditableTransaction {
   destination_account_id?: string | null;
   category_id?: string | null;
   notes?: string | null;
+  due_date?: string | null;
 }
 
 interface Props {
@@ -43,6 +44,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [dueDate, setDueDate] = useState("");
   const [accountId, setAccountId] = useState("");
   const [destinationAccountId, setDestinationAccountId] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -91,6 +93,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       setDestinationAccountId(transaction.destination_account_id ?? "");
       setCategoryId(transaction.category_id ?? "");
       setNotes(transaction.notes ?? "");
+      setDueDate(transaction.due_date ?? "");
     } else if (!transaction && open) {
       resetForm();
     }
@@ -114,6 +117,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     setDescription("");
     setAmount("");
     setDate(new Date().toISOString().split("T")[0]);
+    setDueDate("");
     setAccountId(accounts[0]?.id ?? "");
     setDestinationAccountId("");
     setCategoryId("");
@@ -132,13 +136,16 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       destination_account_id: type === "transferencia" ? destinationAccountId || "" : null,
       category_id: categoryId || null, notes: notes || null,
       payment_method_id: paymentMethodId || null,
+      due_date: dueDate || null,
     }, toast.error);
     if (!validated) return;
     if (type === "transferencia" && !destinationAccountId) return toast.error("Selecione a conta de destino");
 
     setSaving(true);
 
-    const payload = {
+    const hasDueDate = !!dueDate && type !== "transferencia";
+
+    const payload: any = {
       transaction_type: type,
       description: description.trim(),
       amount: numAmount,
@@ -150,6 +157,9 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       payment_method_id: paymentMethodId || null,
       context: contextType,
       company_id: contextType === "pj" ? selectedCompanyId : null,
+      due_date: hasDueDate ? dueDate : null,
+      bill_status: hasDueDate ? "em_dia" : null,
+      status: hasDueDate ? "pendente" : "confirmado",
     };
 
     const { error } = isEditing
@@ -226,6 +236,26 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
               />
             </div>
           </div>
+
+          {/* Due date - only for receita/despesa */}
+          {type !== "transferencia" && (
+            <div className="space-y-2">
+              <Label>Data de vencimento (opcional)</Label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="pl-10"
+                  placeholder="Sem vencimento"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Se preenchido, o lançamento será tratado como compromisso pendente.
+              </p>
+            </div>
+          )}
 
           {/* Account */}
           <div className="space-y-2">

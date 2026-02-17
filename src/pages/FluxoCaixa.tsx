@@ -22,19 +22,13 @@ import {
   endOfMonth,
   eachDayOfInterval,
   eachWeekOfInterval,
-  startOfWeek,
   endOfWeek,
   addMonths,
-  isSameDay,
-  isSameWeek,
   parseISO,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 type Granularity = "diario" | "semanal" | "mensal";
-
-const formatBRLRaw = (v: number) =>
-  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const chartConfig: ChartConfig = {
   receitas: { label: "Receitas", color: "hsl(145, 50%, 42%)" },
@@ -49,7 +43,7 @@ export default function FluxoCaixa() {
   const formatBRL = maskBRL;
   const [granularity, setGranularity] = useState<Granularity>("diario");
 
-  // Fetch transactions for current month + next month (projection)
+  // Fetch all transactions (realized + projected via due_date)
   const { data: transactions = [] } = useQuery({
     queryKey: ["fluxo-caixa-transactions", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
@@ -58,33 +52,11 @@ export default function FluxoCaixa() {
       const end = endOfMonth(addMonths(new Date(), 1));
       let q = supabase
         .from("transactions")
-        .select("amount, transaction_type, transaction_date, status")
+        .select("amount, amount_paid, transaction_type, transaction_date, status, due_date, bill_status")
         .eq("user_id", user!.id)
         .eq("context", contextType)
-        .gte("transaction_date", format(start, "yyyy-MM-dd"))
-        .lte("transaction_date", format(end, "yyyy-MM-dd"))
-        .neq("status", "cancelado");
-      if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
-      const { data } = await q;
-      return data ?? [];
-    },
-  });
-
-  // Fetch bills for projection
-  const { data: bills = [] } = useQuery({
-    queryKey: ["fluxo-caixa-bills", user?.id, contextType, selectedCompanyId],
-    enabled: !!user,
-    queryFn: async () => {
-      const start = new Date();
-      const end = endOfMonth(addMonths(new Date(), 1));
-      let q = supabase
-        .from("bills")
-        .select("amount, amount_paid, bill_type, due_date, status")
-        .eq("user_id", user!.id)
-        .eq("context", contextType)
-        .gte("due_date", format(start, "yyyy-MM-dd"))
-        .lte("due_date", format(end, "yyyy-MM-dd"))
-        .neq("status", "pago");
+        .neq("status", "cancelado")
+        .or(`and(transaction_date.gte.${format(start, "yyyy-MM-dd")},transaction_date.lte.${format(end, "yyyy-MM-dd")}),and(due_date.gte.${format(start, "yyyy-MM-dd")},due_date.lte.${format(end, "yyyy-MM-dd")})`);
       if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
       const { data } = await q;
       return data ?? [];
@@ -117,24 +89,24 @@ export default function FluxoCaixa() {
     const start = startOfMonth(new Date());
     const end = endOfMonth(addMonths(new Date(), 1));
 
-    // Build daily map of realized transactions
     const dailyMap: Record<string, { receitas: number; despesas: number }> = {};
 
     for (const t of transactions) {
-      const key = t.transaction_date;
-      if (!dailyMap[key]) dailyMap[key] = { receitas: 0, despesas: 0 };
-      if (t.transaction_type === "receita") dailyMap[key].receitas += Number(t.amount);
-      else if (t.transaction_type === "despesa") dailyMap[key].despesas += Number(t.amount);
-    }
-
-    // Add projected bills
-    for (const b of bills) {
-      const remaining = Number(b.amount) - Number(b.amount_paid);
-      if (remaining <= 0) continue;
-      const key = b.due_date;
-      if (!dailyMap[key]) dailyMap[key] = { receitas: 0, despesas: 0 };
-      if (b.bill_type === "receita") dailyMap[key].receitas += remaining;
-      else dailyMap[key].despesas += remaining;
+      // For transactions with due_date and not fully paid, use due_date for projection
+      if (t.due_date && t.bill_status !== "pago") {
+        const remaining = Number(t.amount) - Number(t.amount_paid);
+        if (remaining <= 0) continue;
+        const key = t.due_date;
+        if (!dailyMap[key]) dailyMap[key] = { receitas: 0, despesas: 0 };
+        if (t.transaction_type === "receita") dailyMap[key].receitas += remaining;
+        else if (t.transaction_type === "despesa") dailyMap[key].despesas += remaining;
+      } else {
+        // Realized transactions
+        const key = t.transaction_date;
+        if (!dailyMap[key]) dailyMap[key] = { receitas: 0, despesas: 0 };
+        if (t.transaction_type === "receita") dailyMap[key].receitas += Number(t.amount);
+        else if (t.transaction_type === "despesa") dailyMap[key].despesas += Number(t.amount);
+      }
     }
 
     if (granularity === "diario") {
@@ -200,7 +172,7 @@ export default function FluxoCaixa() {
         saldo: runningBalance,
       };
     });
-  }, [transactions, bills, granularity, currentBalance]);
+  }, [transactions, granularity, currentBalance]);
 
   const projectedTotals = useMemo(() => {
     const totalReceitas = chartData.reduce((s, d) => s + d.receitas, 0);
