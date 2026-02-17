@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -318,7 +318,10 @@ export default function Lancamentos() {
     const aReceber = withDue.filter((r) => r.transactionType === "receita").reduce((s, r) => s + r.amount - r.amountPaid, 0);
     const atrasadas = displayRows.filter((r) => r.billStatus === "atrasado").length;
 
-    return { receitas, despesas, aPagar, aReceber, atrasadas };
+    const allReceitas = displayRows.filter((r) => r.transactionType === "receita").reduce((s, r) => s + r.amount, 0);
+    const allDespesas = displayRows.filter((r) => r.transactionType === "despesa").reduce((s, r) => s + r.amount, 0);
+
+    return { receitas, despesas, aPagar, aReceber, atrasadas, allReceitas, allDespesas };
   }, [displayRows]);
 
   const formatBRL = maskBRL;
@@ -715,6 +718,26 @@ export default function Lancamentos() {
                     })
                   )}
                 </TableBody>
+                {displayRows.length > 0 && (
+                  <TableFooter>
+                    <TableRow className="bg-muted/60 font-semibold">
+                      <TableCell colSpan={3} className="text-xs py-2 font-bold uppercase">
+                        Totais
+                      </TableCell>
+                      <TableCell className="text-xs text-right py-2">
+                        <div className="text-success font-bold">{formatBRL(totals.allReceitas)}</div>
+                        <div className="text-destructive font-bold">{formatBRL(totals.allDespesas)}</div>
+                      </TableCell>
+                      <TableCell colSpan={2} className="text-xs py-2 text-muted-foreground">
+                        Saldo do Período
+                      </TableCell>
+                      <TableCell className={`text-xs text-right py-2 font-bold ${(totals.allReceitas - totals.allDespesas) >= 0 ? "text-success" : "text-destructive"}`}>
+                        {formatBRL(totals.allReceitas - totals.allDespesas)}
+                      </TableCell>
+                      <TableCell className="py-2" />
+                    </TableRow>
+                  </TableFooter>
+                )}
               </Table>
             </div>
           )}
