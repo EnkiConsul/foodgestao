@@ -884,7 +884,7 @@ export default function Lancamentos() {
                           {/* Status */}
                           {visibleColumns.status && (
                           <TableCell className="py-2">
-                            <Badge variant={displayStatusConfig[r.billStatus].variant} className="text-[10px] h-5 px-1.5">
+                            <Badge variant={displayStatusConfig[r.billStatus].variant} className="text-[10px] h-5 px-1.5 whitespace-nowrap">
                               {displayStatusConfig[r.billStatus].label}
                             </Badge>
                           </TableCell>
