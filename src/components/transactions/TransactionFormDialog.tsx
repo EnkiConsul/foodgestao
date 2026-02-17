@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CurrencyInput, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { toast } from "sonner";
@@ -36,6 +36,53 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   onCreated: () => void;
   transaction?: EditableTransaction | null;
+}
+
+type CategoryNode = Tables<"categories"> & { children: CategoryNode[]; depth: number };
+
+function buildCategoryTree(cats: Tables<"categories">[]): CategoryNode[] {
+  const sorted = [...cats].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+  const map = new Map<string, CategoryNode>();
+  const roots: CategoryNode[] = [];
+  sorted.forEach((c) => map.set(c.id, { ...c, children: [], depth: 0 }));
+  sorted.forEach((c) => {
+    const node = map.get(c.id)!;
+    if (c.parent_id && map.has(c.parent_id)) {
+      const parent = map.get(c.parent_id)!;
+      node.depth = parent.depth + 1;
+      parent.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  });
+  return roots;
+}
+
+function renderCategoryNodes(nodes: CategoryNode[]): React.ReactNode[] {
+  const result: React.ReactNode[] = [];
+  nodes.forEach((node) => {
+    if (node.children.length > 0) {
+      result.push(
+        <SelectGroup key={`group-${node.id}`}>
+          <SelectLabel className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">
+            {node.name}
+          </SelectLabel>
+          <SelectItem value={node.id} className="pl-6 text-sm">
+            {node.name}
+          </SelectItem>
+          {renderCategoryNodes(node.children)}
+        </SelectGroup>
+      );
+    } else {
+      const paddingClass = node.depth === 0 ? "" : node.depth === 1 ? "pl-6" : "pl-10";
+      result.push(
+        <SelectItem key={node.id} value={node.id} className={`${paddingClass} text-sm`}>
+          {node.name}
+        </SelectItem>
+      );
+    }
+  });
+  return result;
 }
 
 export function TransactionFormDialog({ open, onOpenChange, onCreated, transaction }: Props) {
@@ -127,6 +174,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     }
     return true;
   });
+
+  const categoryTree = buildCategoryTree(filteredCategories);
 
   const filteredContacts = contacts.filter((c) => {
     if (contextType === "pf") return c.visible_pf;
@@ -316,7 +365,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
             </div>
           )}
 
-          {/* Category */}
+          {/* Category - hierarchical display */}
           {type !== "transferencia" && (
             <div className="space-y-2">
               <Label>Categoria (opcional)</Label>
@@ -325,9 +374,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                   <SelectValue placeholder="Selecione a categoria" />
                 </SelectTrigger>
                 <SelectContent>
-                  {filteredCategories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                  ))}
+                  {renderCategoryNodes(categoryTree)}
                 </SelectContent>
               </Select>
             </div>
