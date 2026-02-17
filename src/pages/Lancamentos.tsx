@@ -19,7 +19,7 @@ import { PaymentDialog } from "@/components/bills/PaymentDialog";
 import {
   Plus, Search, ArrowLeftRight,
   Trash2, Pencil, ChevronLeft, ChevronRight, Filter, SlidersHorizontal,
-  Download, DollarSign, CalendarIcon, CreditCard, HandCoins, X,
+  Download, DollarSign, CalendarIcon, CreditCard, HandCoins, X, Settings2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, endOfMonth, isPast } from "date-fns";
@@ -136,6 +136,27 @@ export default function Lancamentos() {
   // Date range filter
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+
+  // Column visibility
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem("lancamentos_columns");
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return { dc: true, status: true, vencimento: true, saldo: true };
+  });
+
+  useEffect(() => {
+    localStorage.setItem("lancamentos_columns", JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
+
+  const toggleColumn = (col: string) => {
+    setVisibleColumns((prev) => ({ ...prev, [col]: !prev[col] }));
+  };
+
+  const visibleOptionalCount = Object.values(visibleColumns).filter(Boolean).length;
+  // 4 fixed columns (Data, Descrição, Valor, Ações) + optional
+  const totalColumns = 4 + visibleOptionalCount;
 
   const monthStart = useMemo(() => {
     const d = new Date(selectedYear, selectedMonth, 1);
@@ -481,6 +502,37 @@ export default function Lancamentos() {
           <Button variant="outline" size="sm" onClick={exportCSV} disabled={displayRows.length === 0}>
             <Download className="h-4 w-4 mr-1" /> CSV
           </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Settings2 className="h-4 w-4 mr-1" /> Colunas
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-3" align="end">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Colunas visíveis</p>
+              <div className="space-y-2">
+                {[
+                  { key: "data", label: "Data", fixed: true },
+                  { key: "descricao", label: "Descrição", fixed: true },
+                  { key: "dc", label: "D/C", fixed: false },
+                  { key: "valor", label: "Valor", fixed: true },
+                  { key: "status", label: "Status", fixed: false },
+                  { key: "vencimento", label: "Vencimento", fixed: false },
+                  { key: "saldo", label: "Saldo", fixed: false },
+                  { key: "acoes", label: "Ações", fixed: true },
+                ].map((col) => (
+                  <label key={col.key} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={col.fixed ? true : !!visibleColumns[col.key]}
+                      disabled={col.fixed}
+                      onCheckedChange={() => !col.fixed && toggleColumn(col.key)}
+                    />
+                    {col.label}
+                  </label>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
         <div className="flex items-center gap-2">
           <Select value={sortBy} onValueChange={setSortBy}>
@@ -596,28 +648,30 @@ export default function Lancamentos() {
                   <TableRow className="bg-muted/50">
                     <TableHead className="text-xs w-[80px]">Data</TableHead>
                     <TableHead className="text-xs">Descrição</TableHead>
-                    <TableHead className="text-xs w-[40px] text-center">D/C</TableHead>
+                    {visibleColumns.dc && <TableHead className="text-xs w-[40px] text-center">D/C</TableHead>}
                     <TableHead className="text-xs w-[100px] text-right">Valor</TableHead>
-                    <TableHead className="text-xs w-[90px]">Status</TableHead>
-                    <TableHead className="text-xs w-[80px]">Vencimento</TableHead>
-                    <TableHead className="text-xs w-[100px] text-right">Saldo</TableHead>
+                    {visibleColumns.status && <TableHead className="text-xs w-[90px]">Status</TableHead>}
+                    {visibleColumns.vencimento && <TableHead className="text-xs w-[80px]">Vencimento</TableHead>}
+                    {visibleColumns.saldo && <TableHead className="text-xs w-[100px] text-right">Saldo</TableHead>}
                     <TableHead className="text-xs w-[80px]" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   <TableRow className="bg-muted/30 font-semibold">
-                    <TableCell colSpan={6} className="text-xs py-2">
+                    <TableCell colSpan={totalColumns - (visibleColumns.saldo ? 2 : 1)} className="text-xs py-2">
                       SALDO ANTERIOR
                     </TableCell>
-                    <TableCell className={`text-xs text-right py-2 ${previousBalance >= 0 ? "text-success" : "text-destructive"}`}>
-                      {formatBRL(previousBalance)}
-                    </TableCell>
+                    {visibleColumns.saldo && (
+                      <TableCell className={`text-xs text-right py-2 ${previousBalance >= 0 ? "text-success" : "text-destructive"}`}>
+                        {formatBRL(previousBalance)}
+                      </TableCell>
+                    )}
                     <TableCell className="py-2" />
                   </TableRow>
 
                   {displayRows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground text-sm">
+                      <TableCell colSpan={totalColumns} className="text-center py-8 text-muted-foreground text-sm">
                         Nenhum registro neste mês
                       </TableCell>
                     </TableRow>
@@ -650,11 +704,13 @@ export default function Lancamentos() {
                           </TableCell>
 
                           {/* D/C */}
+                          {visibleColumns.dc && (
                           <TableCell className="text-center py-2">
                             {isReceita && <span className="text-xs font-bold text-success">C</span>}
                             {isDespesa && <span className="text-xs font-bold text-destructive">D</span>}
                             {isTransf && <span className="text-xs font-bold text-primary">T</span>}
                           </TableCell>
+                          )}
 
                           {/* Valor */}
                           <TableCell className={`text-xs text-right py-2 font-medium ${isReceita ? "text-success" : isDespesa ? "text-destructive" : "text-foreground"}`}>
@@ -665,21 +721,28 @@ export default function Lancamentos() {
                           </TableCell>
 
                           {/* Status */}
+                          {visibleColumns.status && (
                           <TableCell className="py-2">
                             <Badge variant={displayStatusConfig[r.billStatus].variant} className="text-[10px] h-5 px-1.5">
                               {displayStatusConfig[r.billStatus].label}
                             </Badge>
                           </TableCell>
+                          )}
 
                           {/* Vencimento */}
+                          {visibleColumns.vencimento && (
                           <TableCell className="text-xs py-2 text-muted-foreground">
                             {r.dueDate ? format(new Date(r.dueDate + "T12:00:00"), "dd/MM", { locale: ptBR }) : "—"}
                           </TableCell>
+                          )}
 
                           {/* Saldo */}
+                          {visibleColumns.saldo && (
                           <TableCell className={`text-xs text-right py-2 font-medium ${r.runningBalance >= 0 ? "text-success" : "text-destructive"}`}>
                             {formatBRL(r.runningBalance)}
                           </TableCell>
+                          )}
+
 
                           {/* Ações */}
                           <TableCell className="py-2">
