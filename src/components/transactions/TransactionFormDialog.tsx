@@ -166,7 +166,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
   const filteredCategories = categories.filter((c) => {
     if (type === "transferencia") return true;
-    if (c.transaction_type !== type) return false;
+    
     if (contextType === "pf") return (c as any).visible_pf !== false;
     if (contextType === "pj" && selectedCompanyId) {
       const companyIds = categoryCompanyIds.get(c.id) || [];
