@@ -119,6 +119,7 @@ export default function Lancamentos() {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [filterCollapsed, setFilterCollapsed] = useState(false);
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
   const [paymentTx, setPaymentTx] = useState<Transaction | null>(null);
   const [search, setSearch] = useState("");
@@ -825,8 +826,18 @@ export default function Lancamentos() {
         {!isMobile && (
           <Card className="shadow-sm h-fit">
             <CardContent className="p-4">
-              <h3 className="text-sm font-semibold mb-4">Filtro Rápido</h3>
-              <FilterPanel />
+              <button
+                onClick={() => setFilterCollapsed(prev => !prev)}
+                className="flex items-center justify-between w-full"
+              >
+                <h3 className="text-sm font-semibold">Filtro Rápido</h3>
+                {filterCollapsed ? <ChevronLeft className="h-4 w-4 text-muted-foreground" /> : <X className="h-4 w-4 text-muted-foreground" />}
+              </button>
+              {!filterCollapsed && (
+                <div className="mt-4">
+                  <FilterPanel />
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
