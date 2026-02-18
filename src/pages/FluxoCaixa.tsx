@@ -56,8 +56,10 @@ function getPeriodRange(preset: PeriodPreset): { from: Date; to: Date } {
 }
 
 const chartConfig: ChartConfig = {
-  receitas: { label: "Receitas", color: "hsl(145, 50%, 42%)" },
-  despesas: { label: "Despesas", color: "hsl(4, 78%, 57%)" },
+  receitasReal: { label: "Receitas (Realizado)", color: "hsl(145, 50%, 42%)" },
+  receitasProj: { label: "Receitas (Projetado)", color: "hsl(145, 40%, 62%)" },
+  despesasReal: { label: "Despesas (Realizado)", color: "hsl(4, 78%, 57%)" },
+  despesasProj: { label: "Despesas (Projetado)", color: "hsl(4, 60%, 75%)" },
   saldo: { label: "Saldo Acumulado", color: "hsl(210, 52%, 23%)" },
 };
 
@@ -156,12 +158,14 @@ export default function FluxoCaixa() {
       return days.map((day) => {
         const key = format(day, "yyyy-MM-dd");
         const d = dailyMap[key] || { receitas: 0, despesas: 0, receitasProj: 0, despesasProj: 0 };
-        // Only project future movements onto the balance
+        const isFuture = key > todayStr;
         runningBalance += d.receitasProj - d.despesasProj;
         return {
           label: format(day, "dd/MM"),
-          receitas: d.receitas,
-          despesas: d.despesas,
+          receitasReal: isFuture ? 0 : d.receitas,
+          receitasProj: isFuture ? d.receitas : 0,
+          despesasReal: isFuture ? 0 : d.despesas,
+          despesasProj: isFuture ? d.despesas : 0,
           saldo: runningBalance,
         };
       });
@@ -174,22 +178,28 @@ export default function FluxoCaixa() {
         const wEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
         let receitas = 0;
         let despesas = 0;
-        let receitasProj = 0;
-        let despesasProj = 0;
+        let recProj = 0;
+        let desProj = 0;
+        let isFuture = false;
         Object.entries(dailyMap).forEach(([dateStr, val]) => {
           const d = parseISO(dateStr);
           if (d >= weekStart && d <= wEnd) {
             receitas += val.receitas;
             despesas += val.despesas;
-            receitasProj += val.receitasProj;
-            despesasProj += val.despesasProj;
+            recProj += val.receitasProj;
+            desProj += val.despesasProj;
+            if (dateStr > todayStr) isFuture = true;
           }
         });
-        runningBalance += receitasProj - despesasProj;
+        // If week is entirely in the future
+        const weekIsFuture = format(weekStart, "yyyy-MM-dd") > todayStr;
+        runningBalance += recProj - desProj;
         return {
           label: `${format(weekStart, "dd/MM")} - ${format(wEnd, "dd/MM")}`,
-          receitas,
-          despesas,
+          receitasReal: weekIsFuture ? 0 : receitas,
+          receitasProj: weekIsFuture ? receitas : 0,
+          despesasReal: weekIsFuture ? 0 : despesas,
+          despesasProj: weekIsFuture ? despesas : 0,
           saldo: runningBalance,
         };
       });
@@ -203,22 +213,25 @@ export default function FluxoCaixa() {
       const mEnd = endOfMonth(m);
       let receitas = 0;
       let despesas = 0;
-      let receitasProj = 0;
-      let despesasProj = 0;
+      let recProj = 0;
+      let desProj = 0;
       Object.entries(dailyMap).forEach(([dateStr, val]) => {
         const d = parseISO(dateStr);
         if (d >= mStart && d <= mEnd) {
           receitas += val.receitas;
           despesas += val.despesas;
-          receitasProj += val.receitasProj;
-          despesasProj += val.despesasProj;
+          recProj += val.receitasProj;
+          desProj += val.despesasProj;
         }
       });
-      runningBalance += receitasProj - despesasProj;
+      const monthIsFuture = format(mStart, "yyyy-MM-dd") > todayStr;
+      runningBalance += recProj - desProj;
       return {
         label: format(m, "MMM yyyy", { locale: ptBR }),
-        receitas,
-        despesas,
+        receitasReal: monthIsFuture ? 0 : receitas,
+        receitasProj: monthIsFuture ? receitas : 0,
+        despesasReal: monthIsFuture ? 0 : despesas,
+        despesasProj: monthIsFuture ? despesas : 0,
         saldo: runningBalance,
       };
     });
@@ -231,8 +244,8 @@ export default function FluxoCaixa() {
   }, [chartData]);
 
   const projectedTotals = useMemo(() => {
-    const totalReceitas = chartData.reduce((s, d) => s + d.receitas, 0);
-    const totalDespesas = chartData.reduce((s, d) => s + d.despesas, 0);
+    const totalReceitas = chartData.reduce((s, d) => s + (d.receitasReal + d.receitasProj), 0);
+    const totalDespesas = chartData.reduce((s, d) => s + (d.despesasReal + d.despesasProj), 0);
     const projectedBalance = chartData.length > 0 ? chartData[chartData.length - 1].saldo : currentBalance;
     return { totalReceitas, totalDespesas, projectedBalance };
   }, [chartData, currentBalance]);
@@ -361,9 +374,21 @@ export default function FluxoCaixa() {
                     <stop offset="5%" stopColor="hsl(145, 50%, 42%)" stopOpacity={0.3} />
                     <stop offset="95%" stopColor="hsl(145, 50%, 42%)" stopOpacity={0} />
                   </linearGradient>
-                  <linearGradient id="gradDespesas" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="gradReceitasReal" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(145, 50%, 42%)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="hsl(145, 50%, 42%)" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="gradReceitasProj" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(145, 40%, 62%)" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="hsl(145, 40%, 62%)" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="gradDespesasReal" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="hsl(4, 78%, 57%)" stopOpacity={0.3} />
                     <stop offset="95%" stopColor="hsl(4, 78%, 57%)" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="gradDespesasProj" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(4, 60%, 75%)" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="hsl(4, 60%, 75%)" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="gradSaldo" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="hsl(210, 52%, 23%)" stopOpacity={0.2} />
@@ -401,17 +426,33 @@ export default function FluxoCaixa() {
                 <ChartLegend content={<ChartLegendContent />} />
                 <Area
                   type="monotone"
-                  dataKey="receitas"
-                  stroke="var(--color-receitas)"
-                  fill="url(#gradReceitas)"
+                  dataKey="receitasReal"
+                  stroke="var(--color-receitasReal)"
+                  fill="url(#gradReceitasReal)"
                   strokeWidth={2}
                 />
                 <Area
                   type="monotone"
-                  dataKey="despesas"
-                  stroke="var(--color-despesas)"
-                  fill="url(#gradDespesas)"
+                  dataKey="receitasProj"
+                  stroke="var(--color-receitasProj)"
+                  fill="url(#gradReceitasProj)"
                   strokeWidth={2}
+                  strokeDasharray="5 5"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="despesasReal"
+                  stroke="var(--color-despesasReal)"
+                  fill="url(#gradDespesasReal)"
+                  strokeWidth={2}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="despesasProj"
+                  stroke="var(--color-despesasProj)"
+                  fill="url(#gradDespesasProj)"
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
                 />
                 <Area
                   type="monotone"
