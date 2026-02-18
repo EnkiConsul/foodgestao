@@ -493,7 +493,10 @@ export default function Relatorios() {
                     .header-row { background: #f0f0f0; font-weight: bold; }
                     .cat-row td:first-child { padding-left: 24px; }
                     @page { size: landscape; margin: 10mm; }
-                    @media print { body { padding: 0; } }
+                    @media print {
+                      body { padding: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+                      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+                    }
                   </style></head><body>
                   <h2>Fluxo de Caixa — ${periodLabel}</h2>
                   <p style="font-size:11px;color:#666;margin-bottom:8px;">Exportado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</p>
