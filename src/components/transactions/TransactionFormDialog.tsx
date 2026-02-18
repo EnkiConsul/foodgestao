@@ -136,8 +136,9 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceType, setRecurrenceType] = useState("mensal");
   const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
-  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
-  const [existingAttachmentUrl, setExistingAttachmentUrl] = useState<string | null>(null);
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
+  const [existingAttachments, setExistingAttachments] = useState<{ id: string; file_name: string; file_url: string }[]>([]);
+  const [removedAttachmentIds, setRemovedAttachmentIds] = useState<string[]>([]);
 
   const [accounts, setAccounts] = useState<Tables<"accounts">[]>([]);
   const [categories, setCategories] = useState<Tables<"categories">[]>([]);
@@ -199,8 +200,14 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       setIsRecurring(transaction.is_recurring ?? false);
       setRecurrenceType(transaction.recurrence_type ?? "mensal");
       setRecurrenceEndDate(transaction.recurrence_end_date ?? "");
-      setAttachmentFile(null);
-      setExistingAttachmentUrl(transaction.attachment_url ?? null);
+      setAttachmentFiles([]);
+      setRemovedAttachmentIds([]);
+      // Load existing attachments from new table
+      supabase
+        .from("transaction_attachments")
+        .select("id, file_name, file_url")
+        .eq("transaction_id", transaction.id)
+        .then(({ data }) => setExistingAttachments(data ?? []));
     } else if (!transaction && open) {
       resetForm();
     }
@@ -245,25 +252,40 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     setIsRecurring(false);
     setRecurrenceType("mensal");
     setRecurrenceEndDate("");
-    setAttachmentFile(null);
-    setExistingAttachmentUrl(null);
+    setAttachmentFiles([]);
+    setExistingAttachments([]);
+    setRemovedAttachmentIds([]);
   };
 
-  const uploadAttachment = async (transactionId: string): Promise<string | null> => {
-    if (!attachmentFile || !user) return existingAttachmentUrl;
-    const ext = attachmentFile.name.split(".").pop();
-    const filePath = `${user.id}/${transactionId}.${ext}`;
-    const { error } = await supabase.storage
-      .from("transaction-attachments")
-      .upload(filePath, attachmentFile, { upsert: true });
-    if (error) {
-      toast.error("Erro ao enviar anexo", { description: error.message });
-      return null;
+  const uploadAttachments = async (transactionId: string) => {
+    if (!user) return;
+    // Remove deleted attachments
+    if (removedAttachmentIds.length > 0) {
+      await supabase.from("transaction_attachments").delete().in("id", removedAttachmentIds);
     }
-    const { data: urlData } = supabase.storage
-      .from("transaction-attachments")
-      .getPublicUrl(filePath);
-    return urlData.publicUrl;
+    // Upload new files
+    for (const file of attachmentFiles) {
+      const ext = file.name.split(".").pop();
+      const filePath = `${user.id}/${transactionId}/${Date.now()}_${file.name}`;
+      const { error } = await supabase.storage
+        .from("transaction-attachments")
+        .upload(filePath, file, { upsert: true });
+      if (error) {
+        toast.error(`Erro ao enviar ${file.name}`, { description: error.message });
+        continue;
+      }
+      const { data: urlData } = supabase.storage
+        .from("transaction-attachments")
+        .getPublicUrl(filePath);
+      await supabase.from("transaction_attachments").insert({
+        transaction_id: transactionId,
+        user_id: user.id,
+        file_name: file.name,
+        file_url: urlData.publicUrl,
+        file_size: file.size,
+        file_type: file.type || ext || null,
+      });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -308,8 +330,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     };
 
     if (isEditing) {
-      const attachmentUrl = await uploadAttachment(transaction.id);
-      const { error } = await supabase.from("transactions").update({ ...payload, attachment_url: attachmentUrl }).eq("id", transaction.id);
+      await uploadAttachments(transaction.id);
+      const { error } = await supabase.from("transactions").update(payload).eq("id", transaction.id);
       if (error) {
         toast.error("Erro ao salvar", { description: error.message });
       } else {
@@ -334,11 +356,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       if (error || !inserted) {
         toast.error("Erro ao salvar", { description: error?.message });
       } else {
-        // Upload attachment and update transaction
-        const attachmentUrl = await uploadAttachment(inserted.id);
-        if (attachmentUrl) {
-          await supabase.from("transactions").update({ attachment_url: attachmentUrl }).eq("id", inserted.id);
-        }
+        // Upload attachments to new table
+        await uploadAttachments(inserted.id);
         // Generate future recurring transactions
         if (isRecurring) {
           const futureDates = generateRecurrenceDates(date, recurrenceType, recurrenceEndDate || undefined);
@@ -604,68 +623,68 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
             />
           </div>
 
-          {/* Attachment */}
+          {/* Attachments */}
           <div className="space-y-2">
-            <Label>Anexo (opcional)</Label>
-            {(attachmentFile || existingAttachmentUrl) ? (
-              <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">
+            <Label>Anexos (opcional)</Label>
+            {/* Existing attachments */}
+            {existingAttachments.filter(a => !removedAttachmentIds.includes(a.id)).map((att) => (
+              <div key={att.id} className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">
                 <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="text-sm truncate flex-1">
-                  {attachmentFile ? attachmentFile.name : "Arquivo anexado"}
-                </span>
-                {existingAttachmentUrl && !attachmentFile && (
-                  <a href={existingAttachmentUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline shrink-0">
-                    Ver
-                  </a>
-                )}
-                <button
-                  type="button"
-                  onClick={() => { setAttachmentFile(null); setExistingAttachmentUrl(null); }}
-                  className="text-muted-foreground hover:text-destructive shrink-0"
-                >
+                <span className="text-sm truncate flex-1">{att.file_name}</span>
+                <a href={att.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline shrink-0">Ver</a>
+                <button type="button" onClick={() => setRemovedAttachmentIds(prev => [...prev, att.id])} className="text-muted-foreground hover:text-destructive shrink-0">
                   <X className="h-4 w-4" />
                 </button>
               </div>
-            ) : (
-              <label
-                className="flex flex-col items-center gap-2 p-4 border-2 border-dashed rounded-md cursor-pointer hover:bg-muted/50 hover:border-primary/50 transition-colors data-[dragging=true]:bg-primary/10 data-[dragging=true]:border-primary"
-                data-dragging={undefined}
-                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.dataset.dragging = "true"; }}
-                onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.dataset.dragging = "true"; }}
-                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.dataset.dragging = "false"; }}
-                onDrop={(e) => {
-                  e.preventDefault(); e.stopPropagation();
-                  e.currentTarget.dataset.dragging = "false";
-                  const file = e.dataTransfer.files?.[0];
-                  if (file) {
-                    if (file.size > 10 * 1024 * 1024) {
-                      toast.error("Arquivo muito grande", { description: "Máximo 10MB" });
-                      return;
-                    }
-                    setAttachmentFile(file);
-                  }
+            ))}
+            {/* New files queued */}
+            {attachmentFiles.map((file, idx) => (
+              <div key={idx} className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">
+                <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-sm truncate flex-1">{file.name}</span>
+                <span className="text-xs text-muted-foreground shrink-0">{(file.size / 1024).toFixed(0)}KB</span>
+                <button type="button" onClick={() => setAttachmentFiles(prev => prev.filter((_, i) => i !== idx))} className="text-muted-foreground hover:text-destructive shrink-0">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+            {/* Drop zone */}
+            <label
+              className="flex flex-col items-center gap-2 p-4 border-2 border-dashed rounded-md cursor-pointer hover:bg-muted/50 hover:border-primary/50 transition-colors data-[dragging=true]:bg-primary/10 data-[dragging=true]:border-primary"
+              data-dragging={undefined}
+              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.dataset.dragging = "true"; }}
+              onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.dataset.dragging = "true"; }}
+              onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.dataset.dragging = "false"; }}
+              onDrop={(e) => {
+                e.preventDefault(); e.stopPropagation();
+                e.currentTarget.dataset.dragging = "false";
+                const files = Array.from(e.dataTransfer.files);
+                const valid = files.filter(f => {
+                  if (f.size > 10 * 1024 * 1024) { toast.error(`${f.name}: máximo 10MB`); return false; }
+                  return true;
+                });
+                if (valid.length) setAttachmentFiles(prev => [...prev, ...valid]);
+              }}
+            >
+              <Upload className="h-5 w-5 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground text-center">Arraste arquivos aqui ou clique para selecionar</span>
+              <span className="text-xs text-muted-foreground/70">Imagens, PDF, DOC, XLS, TXT — máx. 10MB cada</span>
+              <input
+                type="file"
+                className="hidden"
+                multiple
+                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                onChange={(e) => {
+                  const files = Array.from(e.target.files ?? []);
+                  const valid = files.filter(f => {
+                    if (f.size > 10 * 1024 * 1024) { toast.error(`${f.name}: máximo 10MB`); return false; }
+                    return true;
+                  });
+                  if (valid.length) setAttachmentFiles(prev => [...prev, ...valid]);
+                  e.target.value = "";
                 }}
-              >
-                <Upload className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground text-center">Arraste um arquivo aqui ou clique para selecionar</span>
-                <span className="text-xs text-muted-foreground/70">Imagens, PDF, DOC, XLS, TXT — máx. 10MB</span>
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      if (file.size > 10 * 1024 * 1024) {
-                        toast.error("Arquivo muito grande", { description: "Máximo 10MB" });
-                        return;
-                      }
-                      setAttachmentFile(file);
-                    }
-                  }}
-                />
-              </label>
-            )}
+              />
+            </label>
           </div>
 
           <Button type="submit" className="w-full" disabled={saving}>
