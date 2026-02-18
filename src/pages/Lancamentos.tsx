@@ -58,7 +58,7 @@ type Transaction = {
   destination_account_id: string | null;
   is_recurring: boolean;
   parent_transaction_id: string | null;
-  attachment_url: string | null;
+  attachment_url: string | null; // legacy, kept for query compat
 };
 
 type DisplayRow = {
@@ -78,7 +78,7 @@ type DisplayRow = {
   hasDueDate: boolean;
   isRecurring: boolean;
   isRecurrenceChild: boolean;
-  attachmentUrl: string | null;
+  attachmentCount: number;
   original: Transaction;
 };
 
@@ -129,7 +129,9 @@ export default function Lancamentos() {
   const [filterCollapsed, setFilterCollapsed] = useState(false);
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
   const [paymentTx, setPaymentTx] = useState<Transaction | null>(null);
-  const [previewAttachmentUrl, setPreviewAttachmentUrl] = useState<string | null>(null);
+  const [previewAttachments, setPreviewAttachments] = useState<{ id: string; file_name: string; file_url: string }[]>([]);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [attachmentCounts, setAttachmentCounts] = useState<Map<string, number>>(new Map());
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<string>("date");
   const [previousBalance, setPreviousBalance] = useState(0);
@@ -213,7 +215,23 @@ export default function Lancamentos() {
     if (error) {
       toast.error("Erro ao carregar lançamentos");
     } else {
-      setTransactions((data as unknown as Transaction[]) ?? []);
+      const txs = (data as unknown as Transaction[]) ?? [];
+      setTransactions(txs);
+      // Fetch attachment counts for these transactions
+      if (txs.length > 0) {
+        const txIds = txs.map(t => t.id);
+        const { data: attData } = await supabase
+          .from("transaction_attachments")
+          .select("transaction_id")
+          .in("transaction_id", txIds);
+        const countMap = new Map<string, number>();
+        (attData ?? []).forEach(a => {
+          countMap.set(a.transaction_id, (countMap.get(a.transaction_id) || 0) + 1);
+        });
+        setAttachmentCounts(countMap);
+      } else {
+        setAttachmentCounts(new Map());
+      }
     }
     setLoading(false);
   }, [user, monthStart, monthEnd, contextType, selectedCompanyId]);
@@ -342,7 +360,7 @@ export default function Lancamentos() {
         hasDueDate: !!t.due_date,
         isRecurring: t.is_recurring,
         isRecurrenceChild: !!t.parent_transaction_id,
-        attachmentUrl: t.attachment_url,
+        attachmentCount: attachmentCounts.get(t.id) || 0,
         original: t,
       });
     });
@@ -830,19 +848,29 @@ export default function Lancamentos() {
                                   </Tooltip>
                                 </TooltipProvider>
                               )}
-                              {r.attachmentUrl && (
+                              {r.attachmentCount > 0 && (
                                 <TooltipProvider delayDuration={200}>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <button
                                         type="button"
-                                        onClick={(e) => { e.stopPropagation(); setPreviewAttachmentUrl(r.attachmentUrl); }}
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          const { data } = await supabase
+                                            .from("transaction_attachments")
+                                            .select("id, file_name, file_url")
+                                            .eq("transaction_id", r.id);
+                                          setPreviewAttachments(data ?? []);
+                                          setPreviewOpen(true);
+                                        }}
                                         className="inline-flex"
                                       >
                                         <Paperclip className="h-3 w-3 shrink-0 text-muted-foreground hover:text-foreground" />
                                       </button>
                                     </TooltipTrigger>
-                                    <TooltipContent side="top" className="text-xs">Visualizar anexo</TooltipContent>
+                                    <TooltipContent side="top" className="text-xs">
+                                      {r.attachmentCount} anexo{r.attachmentCount > 1 ? "s" : ""}
+                                    </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
                               )}
@@ -1042,43 +1070,40 @@ export default function Lancamentos() {
       </AlertDialog>
 
       {/* Attachment Preview Modal */}
-      <Dialog open={!!previewAttachmentUrl} onOpenChange={(open) => { if (!open) setPreviewAttachmentUrl(null); }}>
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] p-0 overflow-hidden">
-          {previewAttachmentUrl && (
-            <div className="flex flex-col h-full">
-              <div className="flex items-center justify-between px-4 pt-4 pb-2">
-                <span className="text-sm font-medium text-foreground">Visualização do anexo</span>
-                <a
-                  href={previewAttachmentUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-primary hover:underline"
-                >
-                  Abrir em nova aba
-                </a>
-              </div>
-              <div className="flex-1 overflow-auto p-4 pt-0">
-                {/\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?.*)?$/i.test(previewAttachmentUrl) ? (
-                  <img src={previewAttachmentUrl} alt="Anexo" className="max-w-full h-auto rounded-md mx-auto" />
-                ) : /\.pdf(\?.*)?$/i.test(previewAttachmentUrl) ? (
-                  <iframe src={previewAttachmentUrl} className="w-full h-[70vh] rounded-md border" title="PDF Preview" />
-                ) : (
-                  <div className="flex flex-col items-center justify-center gap-3 py-12">
-                    <Paperclip className="h-10 w-10 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Pré-visualização não disponível para este tipo de arquivo.</p>
-                    <a
-                      href={previewAttachmentUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-primary hover:underline"
-                    >
-                      Baixar arquivo
+          <div className="flex flex-col h-full">
+            <div className="flex items-center justify-between px-4 pt-4 pb-2">
+              <span className="text-sm font-medium text-foreground">
+                Anexos ({previewAttachments.length})
+              </span>
+            </div>
+            <div className="flex-1 overflow-auto p-4 pt-0 space-y-4">
+              {previewAttachments.map((att) => (
+                <div key={att.id} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-foreground truncate">{att.file_name}</span>
+                    <a href={att.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline shrink-0">
+                      Abrir em nova aba
                     </a>
                   </div>
-                )}
-              </div>
+                  {/\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?.*)?$/i.test(att.file_url) ? (
+                    <img src={att.file_url} alt={att.file_name} className="max-w-full h-auto rounded-md mx-auto" />
+                  ) : /\.pdf(\?.*)?$/i.test(att.file_url) ? (
+                    <iframe src={att.file_url} className="w-full h-[50vh] rounded-md border" title={att.file_name} />
+                  ) : (
+                    <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/50">
+                      <Paperclip className="h-5 w-5 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Pré-visualização não disponível</span>
+                      <a href={att.file_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline ml-auto">
+                        Baixar
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
-          )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
