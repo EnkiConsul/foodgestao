@@ -17,8 +17,8 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 
 const DONUT_COLORS = [
-  "hsl(210, 52%, 23%)",
-  "hsl(145, 50%, 42%)",
+  "hsl(210, 52%, 45%)",
+  "hsl(145, 55%, 42%)",
   "hsl(36, 90%, 55%)",
   "hsl(4, 78%, 57%)",
   "hsl(270, 50%, 55%)",
@@ -126,7 +126,7 @@ export default function Dashboard() {
       .map(([catId, total], i) => ({
         name: catMap[catId]?.name ?? "Sem categoria",
         value: total,
-        fill: catMap[catId]?.color ?? DONUT_COLORS[i % DONUT_COLORS.length],
+        fill: DONUT_COLORS[i % DONUT_COLORS.length],
       }));
 
     return { monthlyData: sorted, topCategories: top5, totalReceitas: totalR, totalDespesas: totalD };
