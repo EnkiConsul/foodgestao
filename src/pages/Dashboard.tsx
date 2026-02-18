@@ -14,7 +14,7 @@ import {
   ChartLegendContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, AreaChart, Area } from "recharts";
 
 const DONUT_COLORS = [
   "hsl(210, 52%, 45%)",
@@ -96,7 +96,7 @@ export default function Dashboard() {
     [categories]
   );
 
-  const { monthlyData, topCategories, totalReceitas, totalDespesas } = useMemo(() => {
+  const { monthlyData, balanceEvolution, topCategories, totalReceitas, totalDespesas } = useMemo(() => {
     const months: Record<string, { receitas: number; despesas: number }> = {};
     const catTotals: Record<string, number> = {};
     let totalR = 0;
@@ -119,13 +119,22 @@ export default function Dashboard() {
     }
 
     const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-    const sorted = Object.entries(months)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, val]) => ({
+    const sortedKeys = Object.keys(months).sort();
+    const sorted = sortedKeys.map((key) => ({
+      month: monthNames[parseInt(key.split("-")[1]) - 1],
+      receitas: months[key].receitas,
+      despesas: months[key].despesas,
+    }));
+
+    // Balance evolution: cumulative (receitas - despesas) per month
+    let cumulative = 0;
+    const balEvo = sortedKeys.map((key) => {
+      cumulative += months[key].receitas - months[key].despesas;
+      return {
         month: monthNames[parseInt(key.split("-")[1]) - 1],
-        receitas: val.receitas,
-        despesas: val.despesas,
-      }));
+        saldo: cumulative,
+      };
+    });
 
     const top5 = Object.entries(catTotals)
       .sort(([, a], [, b]) => b - a)
@@ -136,7 +145,7 @@ export default function Dashboard() {
         fill: DONUT_COLORS[i % DONUT_COLORS.length],
       }));
 
-    return { monthlyData: sorted, topCategories: top5, totalReceitas: totalR, totalDespesas: totalD };
+    return { monthlyData: sorted, balanceEvolution: balEvo, topCategories: top5, totalReceitas: totalR, totalDespesas: totalD };
   }, [transactions, catMap]);
 
   const saldo = totalReceitas - totalDespesas;
@@ -237,7 +246,32 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Bank Account Balances */}
+      {/* Balance Evolution */}
+      {balanceEvolution.length > 1 && (
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base">Evolução do Saldo</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={{ saldo: { label: "Saldo", color: "hsl(210, 52%, 45%)" } }} className="h-48 w-full">
+              <AreaChart data={balanceEvolution} accessibilityLayer>
+                <defs>
+                  <linearGradient id="saldoGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(210, 52%, 45%)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="hsl(210, 52%, 45%)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
+                <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} width={40} />
+                <ChartTooltip content={<ChartTooltipContent formatter={(value) => maskBRL(Number(value))} />} />
+                <Area type="monotone" dataKey="saldo" stroke="hsl(210, 52%, 45%)" fill="url(#saldoGradient)" strokeWidth={2} />
+              </AreaChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      )}
+
       {accounts.length > 0 && (
         <Card className="shadow-sm">
           <CardHeader>
