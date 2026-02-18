@@ -40,12 +40,31 @@ import {
   startOfMonth,
   endOfMonth,
   subMonths,
+  startOfYear,
+  endOfYear,
   parseISO,
   eachMonthOfInterval,
   isWithinInterval,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+
+type PeriodPreset = "month" | "3months" | "6months" | "year" | "custom";
+
+function getPeriodRange(preset: PeriodPreset): { from: Date; to: Date } {
+  const now = new Date();
+  switch (preset) {
+    case "month":
+      return { from: startOfMonth(now), to: endOfMonth(now) };
+    case "3months":
+      return { from: startOfMonth(subMonths(now, 2)), to: endOfMonth(now) };
+    case "6months":
+      return { from: startOfMonth(subMonths(now, 5)), to: endOfMonth(now) };
+    case "year":
+    default:
+      return { from: startOfYear(now), to: endOfYear(now) };
+  }
+}
 
 const formatBRLRaw = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -76,9 +95,13 @@ export default function Relatorios() {
   const { maskBRL } = usePrivacy();
   const formatBRL = maskBRL;
   const [tab, setTab] = useState<ReportTab>("resumo");
-  const [startDate, setStartDate] = useState<Date>(subMonths(startOfMonth(new Date()), 5));
-  const [endDate, setEndDate] = useState<Date>(endOfMonth(new Date()));
+  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("6months");
+  const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>(getPeriodRange("6months"));
   const reportRef = useRef<HTMLDivElement>(null);
+
+  const activeRange = periodPreset === "custom" ? customRange : getPeriodRange(periodPreset);
+  const startDate = activeRange.from;
+  const endDate = activeRange.to;
 
   const { data: transactions = [] } = useQuery({
     queryKey: ["relatorios-tx", user?.id, startDate, endDate, contextType, selectedCompanyId],
@@ -263,66 +286,54 @@ export default function Relatorios() {
         </Button>
       </div>
 
-      {/* Quick period shortcuts */}
-      <div className="flex gap-2 flex-wrap">
-        {[
-          { label: "Último mês", start: startOfMonth(subMonths(new Date(), 1)), end: endOfMonth(subMonths(new Date(), 1)) },
-          { label: "Últimos 3 meses", start: startOfMonth(subMonths(new Date(), 2)), end: endOfMonth(new Date()) },
-          { label: "Últimos 6 meses", start: startOfMonth(subMonths(new Date(), 5)), end: endOfMonth(new Date()) },
-          { label: "Este ano", start: new Date(new Date().getFullYear(), 0, 1), end: endOfMonth(new Date()) },
-        ].map((p) => (
-          <Button
-            key={p.label}
-            variant="outline"
-            size="sm"
-            className={cn(
-              "text-xs",
-              startDate.getTime() === p.start.getTime() && endDate.getTime() === p.end.getTime() && "bg-primary text-primary-foreground hover:bg-primary/90"
-            )}
-            onClick={() => { setStartDate(p.start); setEndDate(p.end); }}
-          >
-            {p.label}
-          </Button>
-        ))}
-      </div>
-
-      {/* Period filter */}
-      <div className="flex gap-3 flex-wrap items-center">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className={cn("justify-start text-left font-normal min-w-[150px]")}>
-              <CalendarIcon className="h-4 w-4 mr-2" />
-              {format(startDate, "dd/MM/yyyy")}
+      {/* Period filter + Tabs */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2">
+          {([
+            { key: "month", label: "Mês" },
+            { key: "3months", label: "3 Meses" },
+            { key: "6months", label: "6 Meses" },
+            { key: "year", label: "Ano" },
+          ] as { key: PeriodPreset; label: string }[]).map((p) => (
+            <Button
+              key={p.key}
+              variant={periodPreset === p.key ? "default" : "outline"}
+              size="sm"
+              onClick={() => setPeriodPreset(p.key)}
+            >
+              {p.label}
             </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={startDate}
-              onSelect={(d) => d && setStartDate(d)}
-              initialFocus
-              className={cn("p-3 pointer-events-auto")}
-            />
-          </PopoverContent>
-        </Popover>
-        <span className="text-sm text-muted-foreground">até</span>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className={cn("justify-start text-left font-normal min-w-[150px]")}>
-              <CalendarIcon className="h-4 w-4 mr-2" />
-              {format(endDate, "dd/MM/yyyy")}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={endDate}
-              onSelect={(d) => d && setEndDate(d)}
-              initialFocus
-              className={cn("p-3 pointer-events-auto")}
-            />
-          </PopoverContent>
-        </Popover>
+          ))}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={periodPreset === "custom" ? "default" : "outline"}
+                size="sm"
+                className="gap-1"
+              >
+                <CalendarIcon className="h-3.5 w-3.5" />
+                {periodPreset === "custom"
+                  ? `${format(customRange.from, "dd/MM/yy")} - ${format(customRange.to, "dd/MM/yy")}`
+                  : "Personalizado"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="range"
+                selected={{ from: customRange.from, to: customRange.to }}
+                onSelect={(range) => {
+                  if (range?.from) {
+                    setCustomRange({ from: range.from, to: range.to ?? range.from });
+                    setPeriodPreset("custom");
+                  }
+                }}
+                numberOfMonths={2}
+                locale={ptBR}
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
         <Tabs value={tab} onValueChange={(v) => setTab(v as ReportTab)}>
           <TabsList>
             <TabsTrigger value="resumo">Resumo</TabsTrigger>
