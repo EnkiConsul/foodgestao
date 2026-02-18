@@ -273,23 +273,25 @@ export default function Relatorios() {
   return (
     <div className="space-y-6" ref={reportRef}>
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Relatórios</h1>
-          <p className="text-sm text-muted-foreground">Analise suas finanças com relatórios detalhados</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Relatórios</h1>
+            <p className="text-sm text-muted-foreground">Analise suas finanças com relatórios detalhados</p>
+          </div>
+          <Button
+            variant={showFilters ? "default" : "outline"}
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setShowFilters((v) => !v)}
+          >
+            <Filter className="h-3.5 w-3.5" /> Filtros
+            {(filterAccountId !== "all" || filterCategoryId !== "all") && (
+              <span className="ml-1 h-5 w-5 rounded-full bg-primary-foreground text-primary text-xs flex items-center justify-center font-bold">
+                {(filterAccountId !== "all" ? 1 : 0) + (filterCategoryId !== "all" ? 1 : 0)}
+              </span>
+            )}
+          </Button>
         </div>
-        <Button
-          variant={showFilters ? "default" : "outline"}
-          size="sm"
-          className="gap-1.5"
-          onClick={() => setShowFilters((v) => !v)}
-        >
-          <Filter className="h-3.5 w-3.5" /> Filtros
-          {(filterAccountId !== "all" || filterCategoryId !== "all") && (
-            <span className="ml-1 h-5 w-5 rounded-full bg-primary-foreground text-primary text-xs flex items-center justify-center font-bold">
-              {(filterAccountId !== "all" ? 1 : 0) + (filterCategoryId !== "all" ? 1 : 0)}
-            </span>
-          )}
-        </Button>
       </div>
 
       {showFilters && (
