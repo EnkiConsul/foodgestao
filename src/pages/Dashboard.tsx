@@ -44,7 +44,7 @@ export default function Dashboard() {
       const startOfYear = new Date(now.getFullYear(), 0, 1).toISOString().split("T")[0];
       let q = supabase
         .from("transactions")
-        .select("amount, transaction_type, transaction_date, category_id, status")
+        .select("amount, amount_paid, transaction_type, transaction_date, category_id, status, due_date")
         .eq("user_id", user!.id)
         .eq("context", contextType)
         .gte("transaction_date", startOfYear)
@@ -98,23 +98,30 @@ export default function Dashboard() {
 
   const { monthlyData, balanceEvolution, topCategories, totalReceitas, totalDespesas } = useMemo(() => {
     const months: Record<string, { receitas: number; despesas: number }> = {};
+    const confirmedMonths: Record<string, { receitas: number; despesas: number }> = {};
     const catTotals: Record<string, number> = {};
     let totalR = 0;
     let totalD = 0;
 
+    const isEffective = (t: typeof transactions[0]) =>
+      t.status === "confirmado" || (t.due_date && Number(t.amount_paid) >= Number(t.amount));
+
     for (const t of transactions) {
       const month = t.transaction_date.slice(0, 7); // YYYY-MM
       if (!months[month]) months[month] = { receitas: 0, despesas: 0 };
+      if (!confirmedMonths[month]) confirmedMonths[month] = { receitas: 0, despesas: 0 };
 
       if (t.transaction_type === "receita") {
         months[month].receitas += Number(t.amount);
         totalR += Number(t.amount);
+        if (isEffective(t)) confirmedMonths[month].receitas += Number(t.amount);
       } else if (t.transaction_type === "despesa") {
         months[month].despesas += Number(t.amount);
         totalD += Number(t.amount);
         if (t.category_id) {
           catTotals[t.category_id] = (catTotals[t.category_id] ?? 0) + Number(t.amount);
         }
+        if (isEffective(t)) confirmedMonths[month].despesas += Number(t.amount);
       }
     }
 
@@ -126,10 +133,12 @@ export default function Dashboard() {
       despesas: months[key].despesas,
     }));
 
-    // Balance evolution: cumulative (receitas - despesas) per month
+    // Balance evolution: cumulative only from confirmed/effective transactions
     let cumulative = 0;
-    const balEvo = sortedKeys.map((key) => {
-      cumulative += months[key].receitas - months[key].despesas;
+    const allKeys = [...new Set([...Object.keys(months), ...Object.keys(confirmedMonths)])].sort();
+    const balEvo = allKeys.map((key) => {
+      const cm = confirmedMonths[key] || { receitas: 0, despesas: 0 };
+      cumulative += cm.receitas - cm.despesas;
       return {
         month: monthNames[parseInt(key.split("-")[1]) - 1],
         saldo: cumulative,
