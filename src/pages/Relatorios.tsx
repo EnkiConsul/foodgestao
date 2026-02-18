@@ -7,10 +7,19 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   ChevronLeft,
   ChevronRight,
   Printer,
   ChevronsUpDown,
+  Filter,
+  X,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -26,6 +35,9 @@ export default function Relatorios() {
   const reportRef = useRef<HTMLDivElement>(null);
   const [fluxoYear, setFluxoYear] = useState(new Date().getFullYear());
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+  const [filterAccountId, setFilterAccountId] = useState<string>("all");
+  const [filterCategoryId, setFilterCategoryId] = useState<string>("all");
+  const [showFilters, setShowFilters] = useState(false);
 
   const collectParentIds = (nodes: any[]): string[] => {
     const ids: string[] = [];
@@ -71,6 +83,22 @@ export default function Relatorios() {
     },
   });
 
+  const { data: accounts = [] } = useQuery({
+    queryKey: ["relatorios-accounts", user?.id, contextType, selectedCompanyId],
+    enabled: !!user,
+    queryFn: async () => {
+      let q = supabase
+        .from("accounts")
+        .select("id, name, account_type")
+        .eq("user_id", user!.id)
+        .eq("context", contextType)
+        .eq("is_active", true);
+      if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
+      const { data } = await q;
+      return data ?? [];
+    },
+  });
+
   // Fluxo de Caixa - full year query
   const { data: fluxoTransactions = [] } = useQuery({
     queryKey: ["relatorios-fluxo", user?.id, fluxoYear, contextType, selectedCompanyId],
@@ -78,7 +106,7 @@ export default function Relatorios() {
     queryFn: async () => {
       let q = supabase
         .from("transactions")
-        .select("amount, amount_paid, transaction_type, transaction_date, category_id, status, due_date")
+        .select("amount, amount_paid, transaction_type, transaction_date, category_id, account_id, status, due_date")
         .eq("user_id", user!.id)
         .eq("context", contextType)
         .gte("transaction_date", `${fluxoYear}-01-01`)
@@ -89,6 +117,29 @@ export default function Relatorios() {
       return data ?? [];
     },
   });
+
+  // Apply filters to transactions
+  const filteredTransactions = useMemo(() => {
+    let txs = fluxoTransactions;
+    if (filterAccountId !== "all") {
+      txs = txs.filter((t) => t.account_id === filterAccountId);
+    }
+    if (filterCategoryId !== "all") {
+      // Include the selected category and all its descendants
+      const descendants = new Set<string>([filterCategoryId]);
+      const findDescendants = (parentId: string) => {
+        for (const cat of categories) {
+          if (cat.parent_id === parentId) {
+            descendants.add(cat.id);
+            findDescendants(cat.id);
+          }
+        }
+      };
+      findDescendants(filterCategoryId);
+      txs = txs.filter((t) => t.category_id && descendants.has(t.category_id));
+    }
+    return txs;
+  }, [fluxoTransactions, filterAccountId, filterCategoryId, categories]);
 
   // Fluxo de Caixa data processing with hierarchy
   type FluxoNode = {
@@ -110,7 +161,7 @@ export default function Relatorios() {
     const totalReceitas = new Array(12).fill(0);
     const totalDespesas = new Array(12).fill(0);
 
-    for (const t of fluxoTransactions) {
+    for (const t of filteredTransactions) {
       if (t.transaction_type === "transferencia") continue;
       const month = new Date(t.transaction_date).getMonth();
       const amt = Number(t.amount);
@@ -202,7 +253,7 @@ export default function Relatorios() {
       sumArr,
       avgArr,
     };
-  }, [fluxoTransactions, categories]);
+  }, [filteredTransactions, categories]);
 
   // Flatten tree respecting collapsed state
   const flattenTree = (nodes: FluxoNode[], depth: number): FluxoNode[] => {
@@ -226,7 +277,75 @@ export default function Relatorios() {
           <h1 className="text-2xl font-bold tracking-tight">Relatórios</h1>
           <p className="text-sm text-muted-foreground">Analise suas finanças com relatórios detalhados</p>
         </div>
+        <Button
+          variant={showFilters ? "default" : "outline"}
+          size="sm"
+          className="gap-1.5"
+          onClick={() => setShowFilters((v) => !v)}
+        >
+          <Filter className="h-3.5 w-3.5" /> Filtros
+          {(filterAccountId !== "all" || filterCategoryId !== "all") && (
+            <span className="ml-1 h-5 w-5 rounded-full bg-primary-foreground text-primary text-xs flex items-center justify-center font-bold">
+              {(filterAccountId !== "all" ? 1 : 0) + (filterCategoryId !== "all" ? 1 : 0)}
+            </span>
+          )}
+        </Button>
       </div>
+
+      {showFilters && (
+        <Card className="shadow-sm">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="space-y-1.5 min-w-[180px]">
+                <label className="text-xs font-medium text-muted-foreground">Conta Bancária</label>
+                <Select value={filterAccountId} onValueChange={setFilterAccountId}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Todas as contas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as contas</SelectItem>
+                    {accounts.map((acc) => (
+                      <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 min-w-[180px]">
+                <label className="text-xs font-medium text-muted-foreground">Categoria</label>
+                <Select value={filterCategoryId} onValueChange={setFilterCategoryId}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Todas as categorias" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as categorias</SelectItem>
+                    {categories
+                      .filter((c) => !c.parent_id)
+                      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                      .map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.hierarchy_index ? `${cat.hierarchy_index}. ` : ""}{cat.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {(filterAccountId !== "all" || filterCategoryId !== "all") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1 text-muted-foreground"
+                  onClick={() => {
+                    setFilterAccountId("all");
+                    setFilterCategoryId("all");
+                  }}
+                >
+                  <X className="h-3.5 w-3.5" /> Limpar filtros
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between pb-4">
@@ -402,9 +521,9 @@ export default function Relatorios() {
               )}
             </tbody>
           </table>
-          {fluxoTransactions.length === 0 && (
+          {filteredTransactions.length === 0 && (
             <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
-              Nenhuma movimentação em {fluxoYear}
+              {fluxoTransactions.length === 0 ? `Nenhuma movimentação em ${fluxoYear}` : "Nenhum resultado com os filtros selecionados"}
             </div>
           )}
         </CardContent>
