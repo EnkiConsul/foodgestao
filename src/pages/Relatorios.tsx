@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  ChevronLeft,
   ChevronRight,
   Printer,
   ChevronsUpDown,
@@ -53,7 +54,7 @@ export default function Relatorios() {
   const { maskBRL } = usePrivacy();
   const formatBRL = maskBRL;
   const reportRef = useRef<HTMLDivElement>(null);
-  // fluxoYear kept for backward compat but not used directly anymore
+  const [fluxoYear, setFluxoYear] = useState(new Date().getFullYear());
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const [filterAccountId, setFilterAccountId] = useState<string>("all");
   const [filterCategoryId, setFilterCategoryId] = useState<string>("all");
@@ -122,7 +123,13 @@ export default function Relatorios() {
   });
 
   // Compute active date range
-  const activeRange = periodPreset === "custom" ? customRange : getPeriodRange(periodPreset);
+  const activeRange = useMemo(() => {
+    if (periodPreset === "custom") return customRange;
+    if (periodPreset === "year") {
+      return { from: new Date(fluxoYear, 0, 1), to: new Date(fluxoYear, 11, 31) };
+    }
+    return getPeriodRange(periodPreset);
+  }, [periodPreset, customRange, fluxoYear]);
   const startDate = format(activeRange.from, "yyyy-MM-dd");
   const endDate = format(activeRange.to, "yyyy-MM-dd");
 
@@ -317,6 +324,25 @@ export default function Relatorios() {
           <p className="text-sm text-muted-foreground">Analise suas finanças com relatórios detalhados</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setFluxoYear((y) => y - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm font-semibold min-w-[3rem] text-center">{fluxoYear}</span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setFluxoYear((y) => y + 1)}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
           <Button
             variant={showFilters ? "default" : "outline"}
             size="sm"
