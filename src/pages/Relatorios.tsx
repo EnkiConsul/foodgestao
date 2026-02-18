@@ -447,20 +447,17 @@ export default function Relatorios() {
                         { label: c.name, color: PIE_COLORS[i % PIE_COLORS.length] },
                       ])
                     )}
-                    className="h-72 w-full"
+                    className="h-80 w-full"
                   >
-                    <PieChart>
+                    <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                       <Pie
                         data={categoryData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
+                        innerRadius={50}
+                        outerRadius={90}
                         dataKey="value"
                         nameKey="name"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        labelLine
-                        fontSize={11}
                         paddingAngle={2}
                         cornerRadius={4}
                       >
@@ -533,20 +530,17 @@ export default function Relatorios() {
                         { label: c.name, color: PIE_COLORS[i % PIE_COLORS.length] },
                       ])
                     )}
-                    className="h-72 w-full"
+                    className="h-80 w-full"
                   >
-                    <PieChart>
+                    <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                       <Pie
                         data={receitaCategoryData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
+                        innerRadius={50}
+                        outerRadius={90}
                         dataKey="value"
                         nameKey="name"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        labelLine
-                        fontSize={11}
                         paddingAngle={2}
                         cornerRadius={4}
                       >
