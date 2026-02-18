@@ -645,7 +645,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                 <SelectItem value="confirmado">
                   <span className="flex items-center gap-2">
                     <CheckCircle className="h-3.5 w-3.5 text-success" />
-                    Confirmado
+                    Pago
                   </span>
                 </SelectItem>
                 <SelectItem value="pendente">

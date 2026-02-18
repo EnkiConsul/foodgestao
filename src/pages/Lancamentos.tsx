@@ -335,7 +335,7 @@ export default function Lancamentos() {
     if (error) {
       toast.error("Erro ao atualizar status");
     } else {
-      toast.success(`Status alterado para ${newStatus === "confirmado" ? "Confirmado" : newStatus === "pendente" ? "Pendente" : "Cancelado"}`);
+      toast.success(`Status alterado para ${newStatus === "confirmado" ? "Pago" : newStatus === "pendente" ? "Pendente" : "Cancelado"}`);
       refreshAll();
     }
   };
@@ -978,7 +978,7 @@ export default function Lancamentos() {
                                     onClick={() => updateTransactionStatus(r.id, "confirmado")}
                                   >
                                     <Check className="h-3 w-3 text-success" />
-                                    Confirmado
+                                    Pago
                                   </button>
                                   <button
                                     type="button"
