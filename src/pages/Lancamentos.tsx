@@ -312,15 +312,23 @@ export default function Lancamentos() {
 
   const updateTransactionStatus = async (txId: string, newStatus: string) => {
     const updateData: Record<string, unknown> = { status: newStatus };
-    // If confirming, set payment_date to today if not set
+    const tx = transactions.find(t => t.id === txId);
     if (newStatus === "confirmado") {
-      const tx = transactions.find(t => t.id === txId);
       if (tx && !tx.payment_date) {
         updateData.payment_date = format(new Date(), "yyyy-MM-dd");
       }
       if (tx && tx.amount_paid === 0) {
         updateData.amount_paid = tx.amount;
       }
+      updateData.bill_status = "pago";
+    } else if (newStatus === "pendente") {
+      updateData.amount_paid = 0;
+      updateData.payment_date = null;
+      updateData.bill_status = null;
+    } else if (newStatus === "cancelado") {
+      updateData.amount_paid = 0;
+      updateData.payment_date = null;
+      updateData.bill_status = null;
     }
     const { error } = await supabase.from("transactions").update(updateData).eq("id", txId);
     if (error) {
