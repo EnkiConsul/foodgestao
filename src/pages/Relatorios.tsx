@@ -440,41 +440,51 @@ export default function Relatorios() {
                     Nenhuma despesa no período
                   </div>
                 ) : (
-                  <ChartContainer
-                    config={Object.fromEntries(
-                      categoryData.map((c, i) => [
-                        c.id,
-                        { label: c.name, color: PIE_COLORS[i % PIE_COLORS.length] },
-                      ])
-                    )}
-                    className="h-80 w-full"
-                  >
-                    <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                      <Pie
-                        data={categoryData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={90}
-                        dataKey="value"
-                        nameKey="name"
-                        paddingAngle={2}
-                        cornerRadius={4}
-                      >
-                        {categoryData.map((_entry, index) => (
-                          <Cell key={_entry.id} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <ChartTooltip
-                        content={
-                          <ChartTooltipContent
-                            formatter={(value) => formatBRL(Number(value))}
-                            nameKey="name"
-                          />
-                        }
-                      />
-                    </PieChart>
-                  </ChartContainer>
+                  <>
+                    <ChartContainer
+                      config={Object.fromEntries(
+                        categoryData.map((c, i) => [
+                          c.id,
+                          { label: c.name, color: PIE_COLORS[i % PIE_COLORS.length] },
+                        ])
+                      )}
+                      className="h-80 w-full"
+                    >
+                      <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                        <Pie
+                          data={categoryData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={90}
+                          dataKey="value"
+                          nameKey="name"
+                          paddingAngle={2}
+                          cornerRadius={4}
+                        >
+                          {categoryData.map((_entry, index) => (
+                            <Cell key={_entry.id} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <ChartTooltip
+                          content={
+                            <ChartTooltipContent
+                              formatter={(value) => formatBRL(Number(value))}
+                              nameKey="name"
+                            />
+                          }
+                        />
+                      </PieChart>
+                    </ChartContainer>
+                    <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-3">
+                      {categoryData.map((cat, i) => (
+                        <div key={cat.id} className="flex items-center gap-1.5">
+                          <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                          <span className="text-xs text-muted-foreground">{cat.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -523,41 +533,51 @@ export default function Relatorios() {
                     Nenhuma receita no período
                   </div>
                 ) : (
-                  <ChartContainer
-                    config={Object.fromEntries(
-                      receitaCategoryData.map((c, i) => [
-                        c.id,
-                        { label: c.name, color: PIE_COLORS[i % PIE_COLORS.length] },
-                      ])
-                    )}
-                    className="h-80 w-full"
-                  >
-                    <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                      <Pie
-                        data={receitaCategoryData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={90}
-                        dataKey="value"
-                        nameKey="name"
-                        paddingAngle={2}
-                        cornerRadius={4}
-                      >
-                        {receitaCategoryData.map((_entry, index) => (
-                          <Cell key={_entry.id} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <ChartTooltip
-                        content={
-                          <ChartTooltipContent
-                            formatter={(value) => formatBRL(Number(value))}
-                            nameKey="name"
-                          />
-                        }
-                      />
-                    </PieChart>
-                  </ChartContainer>
+                  <>
+                    <ChartContainer
+                      config={Object.fromEntries(
+                        receitaCategoryData.map((c, i) => [
+                          c.id,
+                          { label: c.name, color: PIE_COLORS[i % PIE_COLORS.length] },
+                        ])
+                      )}
+                      className="h-80 w-full"
+                    >
+                      <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                        <Pie
+                          data={receitaCategoryData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={90}
+                          dataKey="value"
+                          nameKey="name"
+                          paddingAngle={2}
+                          cornerRadius={4}
+                        >
+                          {receitaCategoryData.map((_entry, index) => (
+                            <Cell key={_entry.id} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <ChartTooltip
+                          content={
+                            <ChartTooltipContent
+                              formatter={(value) => formatBRL(Number(value))}
+                              nameKey="name"
+                            />
+                          }
+                        />
+                      </PieChart>
+                    </ChartContainer>
+                    <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-3">
+                      {receitaCategoryData.map((cat, i) => (
+                        <div key={cat.id} className="flex items-center gap-1.5">
+                          <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                          <span className="text-xs text-muted-foreground">{cat.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>
