@@ -34,7 +34,18 @@ import {
   TrendingUp,
   TrendingDown,
   BarChart3,
+  ChevronLeft,
+  ChevronRight,
+  Printer,
 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   format,
   startOfMonth,
@@ -87,7 +98,7 @@ const barConfig: ChartConfig = {
   despesas: { label: "Despesas", color: "hsl(4, 78%, 57%)" },
 };
 
-type ReportTab = "resumo" | "categorias";
+type ReportTab = "resumo" | "categorias" | "fluxo-caixa";
 
 export default function Relatorios() {
   const { user } = useAuth();
@@ -98,7 +109,7 @@ export default function Relatorios() {
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("6months");
   const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>(getPeriodRange("6months"));
   const reportRef = useRef<HTMLDivElement>(null);
-
+  const [fluxoYear, setFluxoYear] = useState(new Date().getFullYear());
   const activeRange = periodPreset === "custom" ? customRange : getPeriodRange(periodPreset);
   const startDate = activeRange.from;
   const endDate = activeRange.to;
@@ -135,6 +146,83 @@ export default function Relatorios() {
       return data ?? [];
     },
   });
+
+  // Fluxo de Caixa - full year query
+  const { data: fluxoTransactions = [] } = useQuery({
+    queryKey: ["relatorios-fluxo", user?.id, fluxoYear, contextType, selectedCompanyId],
+    enabled: !!user && tab === "fluxo-caixa",
+    queryFn: async () => {
+      let q = supabase
+        .from("transactions")
+        .select("amount, amount_paid, transaction_type, transaction_date, category_id, status, due_date")
+        .eq("user_id", user!.id)
+        .eq("context", contextType)
+        .gte("transaction_date", `${fluxoYear}-01-01`)
+        .lte("transaction_date", `${fluxoYear}-12-31`)
+        .neq("status", "cancelado");
+      if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
+      const { data } = await q;
+      return data ?? [];
+    },
+  });
+
+  // Fluxo de Caixa data processing
+  const fluxoCaixaData = useMemo(() => {
+    const MONTH_LABELS = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+    const catMap = Object.fromEntries(categories.map((c) => [c.id, c]));
+
+    // Build monthly totals by category
+    const catMonthly: Record<string, { name: string; type: string; months: number[] }> = {};
+    const totalReceitas = new Array(12).fill(0);
+    const totalDespesas = new Array(12).fill(0);
+
+    for (const t of fluxoTransactions) {
+      const d = parseISO(t.transaction_date);
+      const monthIdx = d.getMonth();
+      const catId = t.category_id ?? "sem-categoria";
+      const amount = Number(t.amount);
+
+      if (!catMonthly[catId]) {
+        const cat = catMap[catId];
+        catMonthly[catId] = {
+          name: cat?.name ?? "Sem categoria",
+          type: t.transaction_type,
+          months: new Array(12).fill(0),
+        };
+      }
+      catMonthly[catId].months[monthIdx] += amount;
+
+      if (t.transaction_type === "receita") totalReceitas[monthIdx] += amount;
+      else if (t.transaction_type === "despesa") totalDespesas[monthIdx] += amount;
+    }
+
+    const totalSaldo = totalReceitas.map((r, i) => r - totalDespesas[i]);
+
+    const sumArr = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
+    const avgArr = (arr: number[]) => {
+      const nonZero = arr.filter((v) => v !== 0);
+      return nonZero.length > 0 ? sumArr(arr) / nonZero.length : 0;
+    };
+
+    // Separate categories by type
+    const receitaCats = Object.entries(catMonthly)
+      .filter(([, v]) => v.type === "receita")
+      .sort((a, b) => sumArr(b[1].months) - sumArr(a[1].months));
+    const despesaCats = Object.entries(catMonthly)
+      .filter(([, v]) => v.type === "despesa")
+      .sort((a, b) => sumArr(b[1].months) - sumArr(a[1].months));
+
+    return {
+      MONTH_LABELS,
+      totalReceitas,
+      totalDespesas,
+      totalSaldo,
+      receitaCats,
+      despesaCats,
+      sumArr,
+      avgArr,
+    };
+  }, [fluxoTransactions, categories]);
 
   // Monthly comparison data
   const monthlyData = useMemo(() => {
@@ -357,6 +445,7 @@ export default function Relatorios() {
           <TabsList>
             <TabsTrigger value="resumo">Resumo</TabsTrigger>
             <TabsTrigger value="categorias">Categorias</TabsTrigger>
+            <TabsTrigger value="fluxo-caixa">Fluxo de Caixa</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -425,7 +514,7 @@ export default function Relatorios() {
             )}
           </CardContent>
         </Card>
-      ) : (
+      ) : tab === "categorias" ? (
         <div className="space-y-6">
           {/* Despesas */}
           <h2 className="text-lg font-semibold">Despesas por Categoria</h2>
@@ -613,7 +702,163 @@ export default function Relatorios() {
             </Card>
           </div>
         </div>
-      )}
+      ) : tab === "fluxo-caixa" ? (
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-4">
+            <CardTitle className="text-base">Fluxo de Caixa Anual</CardTitle>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setFluxoYear((y) => y - 1)}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-semibold w-12 text-center">{fluxoYear}</span>
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setFluxoYear((y) => y + 1)}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-2 gap-1"
+                onClick={() => {
+                  const printWindow = window.open("", "_blank");
+                  if (!printWindow) return;
+                  const tableEl = document.getElementById("fluxo-caixa-table");
+                  if (!tableEl) return;
+                  printWindow.document.write(`
+                    <!DOCTYPE html><html><head><title>Fluxo de Caixa ${fluxoYear}</title>
+                    <style>
+                      body { font-family: Arial, sans-serif; font-size: 10px; }
+                      table { width: 100%; border-collapse: collapse; }
+                      th, td { padding: 4px 6px; border: 1px solid #ddd; text-align: right; white-space: nowrap; }
+                      th { background: #f5f5f5; }
+                      td:first-child, th:first-child { text-align: left; }
+                      .receita { color: #16a34a; } .despesa { color: #dc2626; } .saldo-pos { color: #2563eb; } .saldo-neg { color: #dc2626; }
+                      .header-row { background: #f0f0f0; font-weight: bold; }
+                      .cat-row td:first-child { padding-left: 24px; }
+                      @media print { body { padding: 0; } }
+                    </style></head><body>
+                    <h2>Fluxo de Caixa — ${fluxoYear}</h2>
+                    ${tableEl.outerHTML}
+                    </body></html>
+                  `);
+                  printWindow.document.close();
+                  printWindow.print();
+                }}
+              >
+                <Printer className="h-3.5 w-3.5" /> Imprimir
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            <table id="fluxo-caixa-table" className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 px-2 font-semibold text-muted-foreground sticky left-0 bg-card min-w-[180px]"></th>
+                  {fluxoCaixaData.MONTH_LABELS.map((m) => (
+                    <th key={m} className="text-right py-2 px-2 font-semibold text-muted-foreground min-w-[90px]">{m}</th>
+                  ))}
+                  <th className="text-right py-2 px-2 font-semibold text-muted-foreground min-w-[90px]">MÉDIA</th>
+                  <th className="text-right py-2 px-2 font-semibold text-muted-foreground min-w-[100px]">TOTAL</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* Receitas row */}
+                <tr className="border-b bg-muted/30 font-semibold">
+                  <td className="py-2 px-2 text-success sticky left-0 bg-muted/30">Receitas</td>
+                  {fluxoCaixaData.totalReceitas.map((v, i) => (
+                    <td key={i} className="text-right py-2 px-2 text-success tabular-nums">
+                      {v > 0 ? formatBRL(v) : "-"}
+                    </td>
+                  ))}
+                  <td className="text-right py-2 px-2 text-success tabular-nums">{formatBRL(fluxoCaixaData.avgArr(fluxoCaixaData.totalReceitas))}</td>
+                  <td className="text-right py-2 px-2 text-success tabular-nums font-bold">{formatBRL(fluxoCaixaData.sumArr(fluxoCaixaData.totalReceitas))}</td>
+                </tr>
+                {/* Despesas row */}
+                <tr className="border-b bg-muted/30 font-semibold">
+                  <td className="py-2 px-2 text-destructive sticky left-0 bg-muted/30">Despesas</td>
+                  {fluxoCaixaData.totalDespesas.map((v, i) => (
+                    <td key={i} className="text-right py-2 px-2 text-destructive tabular-nums">
+                      {v > 0 ? formatBRL(v) : "-"}
+                    </td>
+                  ))}
+                  <td className="text-right py-2 px-2 text-destructive tabular-nums">{formatBRL(fluxoCaixaData.avgArr(fluxoCaixaData.totalDespesas))}</td>
+                  <td className="text-right py-2 px-2 text-destructive tabular-nums font-bold">{formatBRL(fluxoCaixaData.sumArr(fluxoCaixaData.totalDespesas))}</td>
+                </tr>
+                {/* Saldo row */}
+                <tr className="border-b-2 bg-muted/50 font-bold">
+                  <td className="py-2 px-2 text-primary sticky left-0 bg-muted/50">SALDO</td>
+                  {fluxoCaixaData.totalSaldo.map((v, i) => (
+                    <td key={i} className={cn("text-right py-2 px-2 tabular-nums", v >= 0 ? "text-primary" : "text-destructive")}>
+                      {v !== 0 ? formatBRL(v) : "-"}
+                    </td>
+                  ))}
+                  <td className={cn("text-right py-2 px-2 tabular-nums", fluxoCaixaData.avgArr(fluxoCaixaData.totalSaldo) >= 0 ? "text-primary" : "text-destructive")}>
+                    {formatBRL(fluxoCaixaData.avgArr(fluxoCaixaData.totalSaldo))}
+                  </td>
+                  <td className={cn("text-right py-2 px-2 tabular-nums font-bold", fluxoCaixaData.sumArr(fluxoCaixaData.totalSaldo) >= 0 ? "text-primary" : "text-destructive")}>
+                    {formatBRL(fluxoCaixaData.sumArr(fluxoCaixaData.totalSaldo))}
+                  </td>
+                </tr>
+
+                {/* Spacer */}
+                <tr><td colSpan={15} className="py-1 px-2 text-muted-foreground font-semibold text-xs border-b bg-muted/20">Categorias (Detalhamento)</td></tr>
+
+                {/* Receitas categories */}
+                {fluxoCaixaData.receitaCats.length > 0 && (
+                  <>
+                    <tr className="border-b bg-success/5">
+                      <td className="py-1.5 px-2 font-semibold text-success sticky left-0 bg-success/5">RECEITAS</td>
+                      {fluxoCaixaData.totalReceitas.map((v, i) => (
+                        <td key={i} className="text-right py-1.5 px-2 text-success tabular-nums font-medium">{v > 0 ? formatBRL(v) : "-"}</td>
+                      ))}
+                      <td className="text-right py-1.5 px-2 text-success tabular-nums font-medium">{formatBRL(fluxoCaixaData.avgArr(fluxoCaixaData.totalReceitas))}</td>
+                      <td className="text-right py-1.5 px-2 text-success tabular-nums font-bold">{formatBRL(fluxoCaixaData.sumArr(fluxoCaixaData.totalReceitas))}</td>
+                    </tr>
+                    {fluxoCaixaData.receitaCats.map(([catId, cat]) => (
+                      <tr key={catId} className="border-b hover:bg-muted/30">
+                        <td className="py-1.5 px-2 pl-6 text-muted-foreground sticky left-0 bg-card">{cat.name}</td>
+                        {cat.months.map((v, i) => (
+                          <td key={i} className="text-right py-1.5 px-2 tabular-nums text-foreground">{v > 0 ? formatBRL(v) : "-"}</td>
+                        ))}
+                        <td className="text-right py-1.5 px-2 tabular-nums text-foreground">{formatBRL(fluxoCaixaData.avgArr(cat.months))}</td>
+                        <td className="text-right py-1.5 px-2 tabular-nums font-medium">{formatBRL(fluxoCaixaData.sumArr(cat.months))}</td>
+                      </tr>
+                    ))}
+                  </>
+                )}
+
+                {/* Despesas categories */}
+                {fluxoCaixaData.despesaCats.length > 0 && (
+                  <>
+                    <tr className="border-b bg-destructive/5">
+                      <td className="py-1.5 px-2 font-semibold text-destructive sticky left-0 bg-destructive/5">DESPESAS</td>
+                      {fluxoCaixaData.totalDespesas.map((v, i) => (
+                        <td key={i} className="text-right py-1.5 px-2 text-destructive tabular-nums font-medium">{v > 0 ? formatBRL(v) : "-"}</td>
+                      ))}
+                      <td className="text-right py-1.5 px-2 text-destructive tabular-nums font-medium">{formatBRL(fluxoCaixaData.avgArr(fluxoCaixaData.totalDespesas))}</td>
+                      <td className="text-right py-1.5 px-2 text-destructive tabular-nums font-bold">{formatBRL(fluxoCaixaData.sumArr(fluxoCaixaData.totalDespesas))}</td>
+                    </tr>
+                    {fluxoCaixaData.despesaCats.map(([catId, cat]) => (
+                      <tr key={catId} className="border-b hover:bg-muted/30">
+                        <td className="py-1.5 px-2 pl-6 text-muted-foreground sticky left-0 bg-card">{cat.name}</td>
+                        {cat.months.map((v, i) => (
+                          <td key={i} className="text-right py-1.5 px-2 tabular-nums text-foreground">{v > 0 ? formatBRL(v) : "-"}</td>
+                        ))}
+                        <td className="text-right py-1.5 px-2 tabular-nums text-foreground">{formatBRL(fluxoCaixaData.avgArr(cat.months))}</td>
+                        <td className="text-right py-1.5 px-2 tabular-nums font-medium">{formatBRL(fluxoCaixaData.sumArr(cat.months))}</td>
+                      </tr>
+                    ))}
+                  </>
+                )}
+              </tbody>
+            </table>
+            {fluxoTransactions.length === 0 && (
+              <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+                Nenhuma movimentação em {fluxoYear}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }
