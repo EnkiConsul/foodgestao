@@ -351,8 +351,7 @@ export default function Relatorios() {
 
       <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between pb-4">
-          <CardTitle className="text-base">Fluxo de Caixa Anual</CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setFluxoYear((y) => y - 1)}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -360,6 +359,9 @@ export default function Relatorios() {
             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setFluxoYear((y) => y + 1)}>
               <ChevronRight className="h-4 w-4" />
             </Button>
+            <CardTitle className="text-base ml-2">Fluxo de Caixa Anual</CardTitle>
+          </div>
+          <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" className="gap-1" onClick={expandAll}>
               <ChevronsUpDown className="h-3.5 w-3.5" /> Expandir
             </Button>
