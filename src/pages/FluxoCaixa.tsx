@@ -5,7 +5,10 @@ import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import {
   ChartContainer,
   ChartTooltip,
@@ -15,20 +18,41 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
-import { TrendingUp, TrendingDown, Wallet, CalendarDays } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, CalendarDays, CalendarIcon } from "lucide-react";
 import {
   format,
   startOfMonth,
   endOfMonth,
+  subMonths,
+  startOfYear,
+  endOfYear,
+  addMonths,
   eachDayOfInterval,
   eachWeekOfInterval,
+  eachMonthOfInterval,
   endOfWeek,
-  addMonths,
   parseISO,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 type Granularity = "diario" | "semanal" | "mensal";
+type PeriodPreset = "month" | "3months" | "6months" | "year" | "custom";
+
+function getPeriodRange(preset: PeriodPreset): { from: Date; to: Date } {
+  const now = new Date();
+  switch (preset) {
+    case "month":
+      return { from: startOfMonth(now), to: endOfMonth(addMonths(now, 1)) };
+    case "3months":
+      return { from: startOfMonth(now), to: endOfMonth(addMonths(now, 2)) };
+    case "6months":
+      return { from: startOfMonth(now), to: endOfMonth(addMonths(now, 5)) };
+    case "year":
+    default:
+      return { from: startOfYear(now), to: endOfYear(now) };
+  }
+}
 
 const chartConfig: ChartConfig = {
   receitas: { label: "Receitas", color: "hsl(145, 50%, 42%)" },
@@ -42,21 +66,25 @@ export default function FluxoCaixa() {
   const { maskBRL } = usePrivacy();
   const formatBRL = maskBRL;
   const [granularity, setGranularity] = useState<Granularity>("diario");
+  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("month");
+  const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>(getPeriodRange("month"));
+
+  const activeRange = periodPreset === "custom" ? customRange : getPeriodRange(periodPreset);
 
   // Fetch all transactions (realized + projected via due_date)
   const { data: transactions = [] } = useQuery({
-    queryKey: ["fluxo-caixa-transactions", user?.id, contextType, selectedCompanyId],
+    queryKey: ["fluxo-caixa-transactions", user?.id, contextType, selectedCompanyId, periodPreset, customRange.from.toISOString(), customRange.to.toISOString()],
     enabled: !!user,
     queryFn: async () => {
-      const start = startOfMonth(new Date());
-      const end = endOfMonth(addMonths(new Date(), 1));
+      const startDate = format(activeRange.from, "yyyy-MM-dd");
+      const endDate = format(activeRange.to, "yyyy-MM-dd");
       let q = supabase
         .from("transactions")
         .select("amount, amount_paid, transaction_type, transaction_date, status, due_date, bill_status")
         .eq("user_id", user!.id)
         .eq("context", contextType)
         .neq("status", "cancelado")
-        .or(`and(transaction_date.gte.${format(start, "yyyy-MM-dd")},transaction_date.lte.${format(end, "yyyy-MM-dd")}),and(due_date.gte.${format(start, "yyyy-MM-dd")},due_date.lte.${format(end, "yyyy-MM-dd")})`);
+        .or(`and(transaction_date.gte.${startDate},transaction_date.lte.${endDate}),and(due_date.gte.${startDate},due_date.lte.${endDate})`);
       if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
       const { data } = await q;
       return data ?? [];
@@ -86,13 +114,12 @@ export default function FluxoCaixa() {
   );
 
   const chartData = useMemo(() => {
-    const start = startOfMonth(new Date());
-    const end = endOfMonth(addMonths(new Date(), 1));
+    const start = activeRange.from;
+    const end = activeRange.to;
 
     const dailyMap: Record<string, { receitas: number; despesas: number }> = {};
 
     for (const t of transactions) {
-      // For transactions with due_date and not fully paid, use due_date for projection
       if (t.due_date && t.bill_status !== "pago") {
         const remaining = Number(t.amount) - Number(t.amount_paid);
         if (remaining <= 0) continue;
@@ -101,7 +128,6 @@ export default function FluxoCaixa() {
         if (t.transaction_type === "receita") dailyMap[key].receitas += remaining;
         else if (t.transaction_type === "despesa") dailyMap[key].despesas += remaining;
       } else {
-        // Realized transactions
         const key = t.transaction_date;
         if (!dailyMap[key]) dailyMap[key] = { receitas: 0, despesas: 0 };
         if (t.transaction_type === "receita") dailyMap[key].receitas += Number(t.amount);
@@ -150,9 +176,9 @@ export default function FluxoCaixa() {
     }
 
     // mensal
-    const months = [start, addMonths(start, 1)];
+    const months = eachMonthOfInterval({ start, end });
     let runningBalance = currentBalance;
-    return months.map((m) => {
+    return months.map((m: Date) => {
       const mStart = startOfMonth(m);
       const mEnd = endOfMonth(m);
       let receitas = 0;
@@ -172,7 +198,7 @@ export default function FluxoCaixa() {
         saldo: runningBalance,
       };
     });
-  }, [transactions, granularity, currentBalance]);
+  }, [transactions, granularity, currentBalance, activeRange]);
 
   const projectedTotals = useMemo(() => {
     const totalReceitas = chartData.reduce((s, d) => s + d.receitas, 0);
@@ -183,7 +209,7 @@ export default function FluxoCaixa() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Fluxo de Caixa</h1>
           <p className="text-sm text-muted-foreground">Acompanhe entradas, saídas e projeções</p>
@@ -195,6 +221,54 @@ export default function FluxoCaixa() {
             <TabsTrigger value="mensal">Mensal</TabsTrigger>
           </TabsList>
         </Tabs>
+      </div>
+
+      {/* Period filter */}
+      <div className="flex flex-wrap items-center gap-2">
+        {([
+          { key: "month", label: "Mês" },
+          { key: "3months", label: "3 Meses" },
+          { key: "6months", label: "6 Meses" },
+          { key: "year", label: "Ano" },
+        ] as { key: PeriodPreset; label: string }[]).map((p) => (
+          <Button
+            key={p.key}
+            variant={periodPreset === p.key ? "default" : "outline"}
+            size="sm"
+            onClick={() => setPeriodPreset(p.key)}
+          >
+            {p.label}
+          </Button>
+        ))}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant={periodPreset === "custom" ? "default" : "outline"}
+              size="sm"
+              className="gap-1"
+            >
+              <CalendarIcon className="h-3.5 w-3.5" />
+              {periodPreset === "custom"
+                ? `${format(customRange.from, "dd/MM/yy")} - ${format(customRange.to, "dd/MM/yy")}`
+                : "Personalizado"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <Calendar
+              mode="range"
+              selected={{ from: customRange.from, to: customRange.to }}
+              onSelect={(range) => {
+                if (range?.from) {
+                  setCustomRange({ from: range.from, to: range.to ?? range.from });
+                  setPeriodPreset("custom");
+                }
+              }}
+              numberOfMonths={2}
+              locale={ptBR}
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Summary cards */}
