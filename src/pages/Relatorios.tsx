@@ -37,7 +37,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Printer,
-  
+  ChevronsUpDown,
 } from "lucide-react";
 import {
   Table,
@@ -113,7 +113,27 @@ export default function Relatorios() {
   const [fluxoYear, setFluxoYear] = useState(new Date().getFullYear());
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
 
-  const toggleCollapse = (id: string) => {
+  const collectParentIds = (nodes: any[]): string[] => {
+    const ids: string[] = [];
+    for (const n of nodes) {
+      if (n.children && n.children.length > 0) {
+        ids.push(n.id);
+        ids.push(...collectParentIds(n.children));
+      }
+    }
+    return ids;
+  };
+
+  const expandAll = () => setCollapsedIds(new Set());
+  const collapseAll = () => {
+    const allParents = [
+      ...collectParentIds(fluxoCaixaData.receitaTree),
+      ...collectParentIds(fluxoCaixaData.despesaTree),
+    ];
+    setCollapsedIds(new Set(allParents));
+  };
+
+   const toggleCollapse = (id: string) => {
     setCollapsedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -819,6 +839,12 @@ export default function Relatorios() {
               <span className="text-sm font-semibold w-12 text-center">{fluxoYear}</span>
               <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setFluxoYear((y) => y + 1)}>
                 <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="sm" className="gap-1" onClick={expandAll}>
+                <ChevronsUpDown className="h-3.5 w-3.5" /> Expandir
+              </Button>
+              <Button variant="outline" size="sm" className="gap-1" onClick={collapseAll}>
+                <ChevronsUpDown className="h-3.5 w-3.5 rotate-90" /> Colapsar
               </Button>
               <Button
                 variant="outline"
