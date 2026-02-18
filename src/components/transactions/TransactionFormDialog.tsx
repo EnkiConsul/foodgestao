@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CurrencyInput, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { toast } from "sonner";
 import { transactionSchema, validateWithToast } from "@/lib/validations";
-import { Calendar, Repeat } from "lucide-react";
+import { Calendar, Repeat, Paperclip, X, FileText } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -34,6 +34,7 @@ interface EditableTransaction {
   is_recurring?: boolean;
   recurrence_type?: string | null;
   recurrence_end_date?: string | null;
+  attachment_url?: string | null;
 }
 
 interface Props {
@@ -135,6 +136,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceType, setRecurrenceType] = useState("mensal");
   const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [existingAttachmentUrl, setExistingAttachmentUrl] = useState<string | null>(null);
 
   const [accounts, setAccounts] = useState<Tables<"accounts">[]>([]);
   const [categories, setCategories] = useState<Tables<"categories">[]>([]);
@@ -196,6 +199,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       setIsRecurring(transaction.is_recurring ?? false);
       setRecurrenceType(transaction.recurrence_type ?? "mensal");
       setRecurrenceEndDate(transaction.recurrence_end_date ?? "");
+      setAttachmentFile(null);
+      setExistingAttachmentUrl(transaction.attachment_url ?? null);
     } else if (!transaction && open) {
       resetForm();
     }
@@ -240,6 +245,25 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     setIsRecurring(false);
     setRecurrenceType("mensal");
     setRecurrenceEndDate("");
+    setAttachmentFile(null);
+    setExistingAttachmentUrl(null);
+  };
+
+  const uploadAttachment = async (transactionId: string): Promise<string | null> => {
+    if (!attachmentFile || !user) return existingAttachmentUrl;
+    const ext = attachmentFile.name.split(".").pop();
+    const filePath = `${user.id}/${transactionId}.${ext}`;
+    const { error } = await supabase.storage
+      .from("transaction-attachments")
+      .upload(filePath, attachmentFile, { upsert: true });
+    if (error) {
+      toast.error("Erro ao enviar anexo", { description: error.message });
+      return null;
+    }
+    const { data: urlData } = supabase.storage
+      .from("transaction-attachments")
+      .getPublicUrl(filePath);
+    return urlData.publicUrl;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -284,7 +308,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     };
 
     if (isEditing) {
-      const { error } = await supabase.from("transactions").update(payload).eq("id", transaction.id);
+      const attachmentUrl = await uploadAttachment(transaction.id);
+      const { error } = await supabase.from("transactions").update({ ...payload, attachment_url: attachmentUrl }).eq("id", transaction.id);
       if (error) {
         toast.error("Erro ao salvar", { description: error.message });
       } else {
@@ -309,6 +334,11 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       if (error || !inserted) {
         toast.error("Erro ao salvar", { description: error?.message });
       } else {
+        // Upload attachment and update transaction
+        const attachmentUrl = await uploadAttachment(inserted.id);
+        if (attachmentUrl) {
+          await supabase.from("transactions").update({ attachment_url: attachmentUrl }).eq("id", inserted.id);
+        }
         // Generate future recurring transactions
         if (isRecurring) {
           const futureDates = generateRecurrenceDates(date, recurrenceType, recurrenceEndDate || undefined);
@@ -572,6 +602,51 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
               rows={2}
               maxLength={500}
             />
+          </div>
+
+          {/* Attachment */}
+          <div className="space-y-2">
+            <Label>Anexo (opcional)</Label>
+            {(attachmentFile || existingAttachmentUrl) ? (
+              <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">
+                <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-sm truncate flex-1">
+                  {attachmentFile ? attachmentFile.name : "Arquivo anexado"}
+                </span>
+                {existingAttachmentUrl && !attachmentFile && (
+                  <a href={existingAttachmentUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline shrink-0">
+                    Ver
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={() => { setAttachmentFile(null); setExistingAttachmentUrl(null); }}
+                  className="text-muted-foreground hover:text-destructive shrink-0"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center gap-2 p-2 border border-dashed rounded-md cursor-pointer hover:bg-muted/50 transition-colors">
+                <Paperclip className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Clique para anexar arquivo</span>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      if (file.size > 10 * 1024 * 1024) {
+                        toast.error("Arquivo muito grande", { description: "Máximo 10MB" });
+                        return;
+                      }
+                      setAttachmentFile(file);
+                    }
+                  }}
+                />
+              </label>
+            )}
           </div>
 
           <Button type="submit" className="w-full" disabled={saving}>
