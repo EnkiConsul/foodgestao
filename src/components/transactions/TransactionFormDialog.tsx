@@ -485,7 +485,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           )}
 
           {/* Recurrence */}
-          {type !== "transferencia" && (
+          {(
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
