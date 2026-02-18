@@ -37,6 +37,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Printer,
+  
 } from "lucide-react";
 import {
   Table,
@@ -110,6 +111,16 @@ export default function Relatorios() {
   const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>(getPeriodRange("6months"));
   const reportRef = useRef<HTMLDivElement>(null);
   const [fluxoYear, setFluxoYear] = useState(new Date().getFullYear());
+  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+
+  const toggleCollapse = (id: string) => {
+    setCollapsedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
   const activeRange = periodPreset === "custom" ? customRange : getPeriodRange(periodPreset);
   const startDate = activeRange.from;
   const endDate = activeRange.to;
@@ -290,36 +301,36 @@ export default function Relatorios() {
       return roots;
     }
 
-    // Flatten tree for rendering
-    function flattenTree(nodes: FluxoNode[], depth: number): FluxoNode[] {
-      const result: FluxoNode[] = [];
-      for (const node of nodes) {
-        result.push({ ...node, depth });
-        if (node.children.length > 0) {
-          result.push(...flattenTree(node.children, depth + 1));
-        }
-      }
-      return result;
-    }
-
     const receitaTree = buildTree("receita");
     const despesaTree = buildTree("despesa");
-    const flatReceitas = flattenTree(receitaTree, 0);
-    const flatDespesas = flattenTree(despesaTree, 0);
 
     return {
       MONTH_LABELS,
       totalReceitas,
       totalDespesas,
       totalSaldo,
-      flatReceitas,
-      flatDespesas,
+      receitaTree,
+      despesaTree,
       sumArr,
       avgArr,
     };
   }, [fluxoTransactions, categories]);
 
-  // Monthly comparison data
+  // Flatten tree respecting collapsed state
+  const flattenTree = (nodes: FluxoNode[], depth: number): FluxoNode[] => {
+    const result: FluxoNode[] = [];
+    for (const node of nodes) {
+      result.push({ ...node, depth });
+      if (node.children.length > 0 && !collapsedIds.has(node.id)) {
+        result.push(...flattenTree(node.children, depth + 1));
+      }
+    }
+    return result;
+  };
+
+  const flatReceitas = useMemo(() => flattenTree(fluxoCaixaData.receitaTree, 0), [fluxoCaixaData.receitaTree, collapsedIds]);
+  const flatDespesas = useMemo(() => flattenTree(fluxoCaixaData.despesaTree, 0), [fluxoCaixaData.despesaTree, collapsedIds]);
+
   const monthlyData = useMemo(() => {
     const months = eachMonthOfInterval({ start: startDate, end: endDate });
     return months.map((m) => {
@@ -898,7 +909,7 @@ export default function Relatorios() {
                 <tr><td colSpan={15} className="py-1 px-2 text-muted-foreground font-semibold text-xs border-b bg-muted/20">Categorias (Detalhamento)</td></tr>
 
                 {/* Receitas categories */}
-                {fluxoCaixaData.flatReceitas.length > 0 && (
+                {flatReceitas.length > 0 && (
                   <>
                     <tr className="border-b bg-success/5">
                       <td className="py-1.5 px-2 font-semibold text-success sticky left-0 bg-success/5">RECEITAS</td>
@@ -908,16 +919,23 @@ export default function Relatorios() {
                       <td className="text-right py-1.5 px-2 text-success tabular-nums font-medium">{formatBRL(fluxoCaixaData.avgArr(fluxoCaixaData.totalReceitas))}</td>
                       <td className="text-right py-1.5 px-2 text-success tabular-nums font-bold">{formatBRL(fluxoCaixaData.sumArr(fluxoCaixaData.totalReceitas))}</td>
                     </tr>
-                    {fluxoCaixaData.flatReceitas.map((node) => {
+                    {flatReceitas.map((node) => {
                       const hasChildren = node.children.length > 0;
+                      const isCollapsed = collapsedIds.has(node.id);
                       const paddingLeft = 12 + node.depth * 16;
                       return (
                         <tr key={node.id + "-" + node.depth} className={cn("border-b hover:bg-muted/30", hasChildren && "bg-muted/10")}>
                           <td
-                            className={cn("py-1.5 px-2 sticky left-0 bg-card", hasChildren ? "font-semibold text-foreground" : "text-muted-foreground")}
+                            className={cn("py-1.5 px-2 sticky left-0", hasChildren ? "font-semibold text-foreground cursor-pointer select-none bg-muted/10" : "text-muted-foreground bg-card")}
                             style={{ paddingLeft }}
+                            onClick={hasChildren ? () => toggleCollapse(node.id) : undefined}
                           >
-                            {node.hierarchyIndex ? `${node.hierarchyIndex}. ` : ""}{node.name}
+                            <span className="inline-flex items-center gap-1">
+                              {hasChildren && (
+                                <ChevronRight className={cn("h-3.5 w-3.5 transition-transform shrink-0", !isCollapsed && "rotate-90")} />
+                              )}
+                              {node.hierarchyIndex ? `${node.hierarchyIndex}. ` : ""}{node.name}
+                            </span>
                           </td>
                           {node.months.map((v, i) => (
                             <td key={i} className={cn("text-right py-1.5 px-2 tabular-nums", hasChildren ? "font-medium text-foreground" : "text-foreground")}>
@@ -933,7 +951,7 @@ export default function Relatorios() {
                 )}
 
                 {/* Despesas categories */}
-                {fluxoCaixaData.flatDespesas.length > 0 && (
+                {flatDespesas.length > 0 && (
                   <>
                     <tr className="border-b bg-destructive/5">
                       <td className="py-1.5 px-2 font-semibold text-destructive sticky left-0 bg-destructive/5">DESPESAS</td>
@@ -943,16 +961,23 @@ export default function Relatorios() {
                       <td className="text-right py-1.5 px-2 text-destructive tabular-nums font-medium">{formatBRL(fluxoCaixaData.avgArr(fluxoCaixaData.totalDespesas))}</td>
                       <td className="text-right py-1.5 px-2 text-destructive tabular-nums font-bold">{formatBRL(fluxoCaixaData.sumArr(fluxoCaixaData.totalDespesas))}</td>
                     </tr>
-                    {fluxoCaixaData.flatDespesas.map((node) => {
+                    {flatDespesas.map((node) => {
                       const hasChildren = node.children.length > 0;
+                      const isCollapsed = collapsedIds.has(node.id);
                       const paddingLeft = 12 + node.depth * 16;
                       return (
                         <tr key={node.id + "-" + node.depth} className={cn("border-b hover:bg-muted/30", hasChildren && "bg-muted/10")}>
                           <td
-                            className={cn("py-1.5 px-2 sticky left-0 bg-card", hasChildren ? "font-semibold text-foreground" : "text-muted-foreground")}
+                            className={cn("py-1.5 px-2 sticky left-0", hasChildren ? "font-semibold text-foreground cursor-pointer select-none bg-muted/10" : "text-muted-foreground bg-card")}
                             style={{ paddingLeft }}
+                            onClick={hasChildren ? () => toggleCollapse(node.id) : undefined}
                           >
-                            {node.hierarchyIndex ? `${node.hierarchyIndex}. ` : ""}{node.name}
+                            <span className="inline-flex items-center gap-1">
+                              {hasChildren && (
+                                <ChevronRight className={cn("h-3.5 w-3.5 transition-transform shrink-0", !isCollapsed && "rotate-90")} />
+                              )}
+                              {node.hierarchyIndex ? `${node.hierarchyIndex}. ` : ""}{node.name}
+                            </span>
                           </td>
                           {node.months.map((v, i) => (
                             <td key={i} className={cn("text-right py-1.5 px-2 tabular-nums", hasChildren ? "font-medium text-foreground" : "text-foreground")}>
