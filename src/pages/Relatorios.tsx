@@ -419,31 +419,42 @@ export default function Relatorios() {
                   Nenhuma despesa no período
                 </div>
               ) : (
-                <div className="h-72">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={categoryData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
-                        dataKey="value"
-                        nameKey="name"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        labelLine={false}
-                        fontSize={11}
-                      >
-                        {categoryData.map((entry, index) => (
-                          <Cell key={entry.id} fill={entry.color || PIE_COLORS[index % PIE_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <ChartTooltip
-                        content={<ChartTooltipContent formatter={(value) => formatBRL(Number(value))} />}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+                <ChartContainer
+                  config={Object.fromEntries(
+                    categoryData.map((c, i) => [
+                      c.id,
+                      { label: c.name, color: c.color || PIE_COLORS[i % PIE_COLORS.length] },
+                    ])
+                  )}
+                  className="h-72 w-full"
+                >
+                  <PieChart>
+                    <Pie
+                      data={categoryData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      dataKey="value"
+                      nameKey="name"
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      labelLine={false}
+                      fontSize={11}
+                    >
+                      {categoryData.map((entry, index) => (
+                        <Cell key={entry.id} fill={entry.color || PIE_COLORS[index % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <ChartTooltip
+                      content={
+                        <ChartTooltipContent
+                          formatter={(value) => formatBRL(Number(value))}
+                          nameKey="name"
+                        />
+                      }
+                    />
+                  </PieChart>
+                </ChartContainer>
               )}
             </CardContent>
           </Card>
