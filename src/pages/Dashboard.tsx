@@ -139,8 +139,9 @@ export default function Dashboard() {
     const balEvo = allKeys.map((key) => {
       const cm = confirmedMonths[key] || { receitas: 0, despesas: 0 };
       cumulative += cm.receitas - cm.despesas;
+      const [year, monthNum] = key.split("-");
       return {
-        month: monthNames[parseInt(key.split("-")[1]) - 1],
+        month: `${monthNames[parseInt(monthNum) - 1]}/${year.slice(2)}`,
         saldo: cumulative,
       };
     });
