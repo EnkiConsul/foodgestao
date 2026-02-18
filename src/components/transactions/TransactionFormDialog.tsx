@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CurrencyInput, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { toast } from "sonner";
 import { transactionSchema, validateWithToast } from "@/lib/validations";
-import { Calendar, Repeat, Paperclip, X, FileText, Upload } from "lucide-react";
+import { Calendar, Repeat, Paperclip, X, FileText, Upload, CheckCircle, Clock, XCircle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -35,6 +35,8 @@ interface EditableTransaction {
   recurrence_type?: string | null;
   recurrence_end_date?: string | null;
   attachment_url?: string | null;
+  status?: string;
+  amount_paid?: number;
 }
 
 interface Props {
@@ -135,6 +137,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const [contactId, setContactId] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<"confirmado" | "pendente" | "cancelado">("confirmado");
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceType, setRecurrenceType] = useState("mensal");
   const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
@@ -199,6 +202,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       setContactId(transaction.contact_id ?? "");
       setNotes(transaction.notes ?? "");
       setDueDate(transaction.due_date ?? "");
+      setStatus((transaction.status as any) ?? "confirmado");
       setIsRecurring(transaction.is_recurring ?? false);
       setRecurrenceType(transaction.recurrence_type ?? "mensal");
       setRecurrenceEndDate(transaction.recurrence_end_date ?? "");
@@ -253,6 +257,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     setContactId("");
     setNotes("");
     setPaymentMethodId("");
+    setStatus("confirmado");
     setIsRecurring(false);
     setRecurrenceType("mensal");
     setRecurrenceEndDate("");
@@ -326,12 +331,26 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       context: contextType,
       company_id: contextType === "pj" ? selectedCompanyId : null,
       due_date: hasDueDate ? dueDate : null,
-      bill_status: hasDueDate ? "em_dia" : null,
-      status: hasDueDate ? "pendente" : "confirmado",
+      status: status,
       is_recurring: isRecurring,
       recurrence_type: isRecurring ? recurrenceType : null,
       recurrence_end_date: isRecurring && recurrenceEndDate ? recurrenceEndDate : null,
     };
+
+    // Handle payment fields based on status
+    if (status === "confirmado") {
+      payload.amount_paid = numAmount;
+      payload.payment_date = date;
+      payload.bill_status = hasDueDate ? "pago" : null;
+    } else if (status === "pendente") {
+      payload.amount_paid = 0;
+      payload.payment_date = null;
+      payload.bill_status = hasDueDate ? "em_dia" : null;
+    } else if (status === "cancelado") {
+      payload.amount_paid = 0;
+      payload.payment_date = null;
+      payload.bill_status = null;
+    }
 
     if (isEditing) {
       await uploadAttachments(transaction.id);
@@ -613,6 +632,41 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Status */}
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <Select value={status} onValueChange={(v) => setStatus(v as "confirmado" | "pendente" | "cancelado")}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="confirmado">
+                  <span className="flex items-center gap-2">
+                    <CheckCircle className="h-3.5 w-3.5 text-success" />
+                    Confirmado
+                  </span>
+                </SelectItem>
+                <SelectItem value="pendente">
+                  <span className="flex items-center gap-2">
+                    <Clock className="h-3.5 w-3.5 text-warning" />
+                    Pendente
+                  </span>
+                </SelectItem>
+                <SelectItem value="cancelado">
+                  <span className="flex items-center gap-2">
+                    <XCircle className="h-3.5 w-3.5 text-destructive" />
+                    Cancelado
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            {status === "cancelado" && (
+              <p className="text-[11px] text-destructive">
+                O valor pago será zerado e não será considerado nos saldos.
+              </p>
+            )}
           </div>
 
           {/* Notes */}
