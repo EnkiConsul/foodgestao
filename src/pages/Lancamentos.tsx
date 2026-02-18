@@ -273,6 +273,7 @@ export default function Lancamentos() {
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteWithChildren, setDeleteWithChildren] = useState(false);
+  const [cancelStatusId, setCancelStatusId] = useState<string | null>(null);
 
   const deletingTx = deleteId ? transactions.find((t) => t.id === deleteId) : null;
   const isDeleteTargetRecurringParent = deletingTx?.is_recurring === true;
@@ -990,7 +991,7 @@ export default function Lancamentos() {
                                   <button
                                     type="button"
                                     className={cn("flex items-center gap-2 px-2 py-1.5 text-xs rounded-md hover:bg-accent transition-colors text-left", r.original.status === "cancelado" && "bg-accent font-medium")}
-                                    onClick={() => updateTransactionStatus(r.id, "cancelado")}
+                                    onClick={() => setCancelStatusId(r.id)}
                                   >
                                     <X className="h-3 w-3 text-destructive" />
                                     Cancelado
@@ -1131,7 +1132,27 @@ export default function Lancamentos() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Attachment Preview Modal */}
+      <AlertDialog open={!!cancelStatusId} onOpenChange={(o) => { if (!o) setCancelStatusId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar lançamento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O lançamento será marcado como cancelado, o valor pago será zerado e não será mais considerado nos saldos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (cancelStatusId) { updateTransactionStatus(cancelStatusId, "cancelado"); setCancelStatusId(null); } }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Confirmar cancelamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] p-0 overflow-hidden">
           <div className="flex flex-col h-full">
