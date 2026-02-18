@@ -37,6 +37,7 @@ interface EditableTransaction {
   attachment_url?: string | null;
   status?: string;
   amount_paid?: number;
+  payment_method_id?: string | null;
 }
 
 interface Props {
@@ -169,7 +170,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       setCategories(catRes.data ?? []);
       setPaymentMethods(pmRes.data ?? []);
       setContacts(contactRes.data ?? []);
-      if (accRes.data?.[0] && !accountId) setAccountId(accRes.data[0].id);
+      // Only set default account if NOT editing (to avoid overriding the populated value)
+      if (!transaction && accRes.data?.[0] && !accountId) setAccountId(accRes.data[0].id);
 
       const map = new Map<string, string[]>();
       (ccRes.data ?? []).forEach((cc) => {
@@ -203,6 +205,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       setContactId(transaction.contact_id ?? "");
       setNotes(transaction.notes ?? "");
       setDueDate(transaction.due_date ?? "");
+      setPaymentMethodId(transaction.payment_method_id ?? "");
       setStatus((transaction.status as any) ?? "confirmado");
       setIsRecurring(transaction.is_recurring ?? false);
       setRecurrenceType(transaction.recurrence_type ?? "mensal");
