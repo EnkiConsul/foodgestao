@@ -138,7 +138,7 @@ export default function Relatorios() {
     queryFn: async () => {
       let q = supabase
         .from("categories")
-        .select("id, name, color, transaction_type")
+        .select("id, name, color, transaction_type, parent_id, hierarchy_index, sort_order")
         .eq("user_id", user!.id);
       if (contextType === "pf") q = q.or("context.is.null,context.eq.pf");
       else q = q.or("context.is.null,context.eq.pj");
@@ -166,13 +166,23 @@ export default function Relatorios() {
     },
   });
 
-  // Fluxo de Caixa data processing
+  // Fluxo de Caixa data processing with hierarchy
+  type FluxoNode = {
+    id: string;
+    name: string;
+    hierarchyIndex: string;
+    type: string;
+    months: number[];
+    children: FluxoNode[];
+    depth: number;
+  };
+
   const fluxoCaixaData = useMemo(() => {
     const MONTH_LABELS = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
     const catMap = Object.fromEntries(categories.map((c) => [c.id, c]));
 
-    // Build monthly totals by category
-    const catMonthly: Record<string, { name: string; type: string; months: number[] }> = {};
+    // Build monthly totals by leaf category
+    const catMonthly: Record<string, number[]> = {};
     const totalReceitas = new Array(12).fill(0);
     const totalDespesas = new Array(12).fill(0);
 
@@ -182,15 +192,8 @@ export default function Relatorios() {
       const catId = t.category_id ?? "sem-categoria";
       const amount = Number(t.amount);
 
-      if (!catMonthly[catId]) {
-        const cat = catMap[catId];
-        catMonthly[catId] = {
-          name: cat?.name ?? "Sem categoria",
-          type: t.transaction_type,
-          months: new Array(12).fill(0),
-        };
-      }
-      catMonthly[catId].months[monthIdx] += amount;
+      if (!catMonthly[catId]) catMonthly[catId] = new Array(12).fill(0);
+      catMonthly[catId][monthIdx] += amount;
 
       if (t.transaction_type === "receita") totalReceitas[monthIdx] += amount;
       else if (t.transaction_type === "despesa") totalDespesas[monthIdx] += amount;
@@ -204,21 +207,113 @@ export default function Relatorios() {
       return nonZero.length > 0 ? sumArr(arr) / nonZero.length : 0;
     };
 
-    // Separate categories by type
-    const receitaCats = Object.entries(catMonthly)
-      .filter(([, v]) => v.type === "receita")
-      .sort((a, b) => sumArr(b[1].months) - sumArr(a[1].months));
-    const despesaCats = Object.entries(catMonthly)
-      .filter(([, v]) => v.type === "despesa")
-      .sort((a, b) => sumArr(b[1].months) - sumArr(a[1].months));
+    // Build hierarchical tree for each type
+    function buildTree(type: string): FluxoNode[] {
+      // Get all categories of this type that have data (directly or via children)
+      const relevantCatIds = new Set<string>();
+      
+      // First, find all leaf cats with data
+      for (const catId of Object.keys(catMonthly)) {
+        const cat = catMap[catId];
+        if (!cat) {
+          if (type === "despesa") relevantCatIds.add(catId); // sem-categoria defaults to despesa
+          continue;
+        }
+        if (cat.transaction_type === type) relevantCatIds.add(catId);
+      }
+
+      // Walk up to include all ancestors
+      for (const catId of [...relevantCatIds]) {
+        let current = catMap[catId];
+        while (current?.parent_id) {
+          relevantCatIds.add(current.parent_id);
+          current = catMap[current.parent_id];
+        }
+      }
+
+      // Build nodes
+      const nodeMap: Record<string, FluxoNode> = {};
+      for (const catId of relevantCatIds) {
+        const cat = catMap[catId];
+        nodeMap[catId] = {
+          id: catId,
+          name: cat?.name ?? "Sem categoria",
+          hierarchyIndex: cat?.hierarchy_index ?? "",
+          type,
+          months: catMonthly[catId] ? [...catMonthly[catId]] : new Array(12).fill(0),
+          children: [],
+          depth: 0,
+        };
+      }
+
+      // Link parent-child
+      const roots: FluxoNode[] = [];
+      for (const catId of relevantCatIds) {
+        const cat = catMap[catId];
+        const node = nodeMap[catId];
+        if (cat?.parent_id && nodeMap[cat.parent_id]) {
+          nodeMap[cat.parent_id].children.push(node);
+        } else {
+          roots.push(node);
+        }
+      }
+
+      // Aggregate children months into parents (bottom-up)
+      function aggregate(node: FluxoNode): number[] {
+        if (node.children.length === 0) return node.months;
+        let childSum = new Array(12).fill(0);
+        for (const child of node.children) {
+          const childMonths = aggregate(child);
+          childSum = childSum.map((v, i) => v + childMonths[i]);
+        }
+        // Parent months = own direct months + children sum
+        node.months = node.months.map((v, i) => v + childSum[i]);
+        return node.months;
+      }
+
+      // Sort children by hierarchy_index or sort_order
+      function sortNodes(nodes: FluxoNode[]) {
+        nodes.sort((a, b) => {
+          const catA = catMap[a.id];
+          const catB = catMap[b.id];
+          const orderA = catA?.sort_order ?? 0;
+          const orderB = catB?.sort_order ?? 0;
+          if (orderA !== orderB) return orderA - orderB;
+          return (a.hierarchyIndex || a.name).localeCompare(b.hierarchyIndex || b.name);
+        });
+        for (const n of nodes) sortNodes(n.children);
+      }
+
+      for (const root of roots) aggregate(root);
+      sortNodes(roots);
+
+      return roots;
+    }
+
+    // Flatten tree for rendering
+    function flattenTree(nodes: FluxoNode[], depth: number): FluxoNode[] {
+      const result: FluxoNode[] = [];
+      for (const node of nodes) {
+        result.push({ ...node, depth });
+        if (node.children.length > 0) {
+          result.push(...flattenTree(node.children, depth + 1));
+        }
+      }
+      return result;
+    }
+
+    const receitaTree = buildTree("receita");
+    const despesaTree = buildTree("despesa");
+    const flatReceitas = flattenTree(receitaTree, 0);
+    const flatDespesas = flattenTree(despesaTree, 0);
 
     return {
       MONTH_LABELS,
       totalReceitas,
       totalDespesas,
       totalSaldo,
-      receitaCats,
-      despesaCats,
+      flatReceitas,
+      flatDespesas,
       sumArr,
       avgArr,
     };
@@ -803,7 +898,7 @@ export default function Relatorios() {
                 <tr><td colSpan={15} className="py-1 px-2 text-muted-foreground font-semibold text-xs border-b bg-muted/20">Categorias (Detalhamento)</td></tr>
 
                 {/* Receitas categories */}
-                {fluxoCaixaData.receitaCats.length > 0 && (
+                {fluxoCaixaData.flatReceitas.length > 0 && (
                   <>
                     <tr className="border-b bg-success/5">
                       <td className="py-1.5 px-2 font-semibold text-success sticky left-0 bg-success/5">RECEITAS</td>
@@ -813,21 +908,32 @@ export default function Relatorios() {
                       <td className="text-right py-1.5 px-2 text-success tabular-nums font-medium">{formatBRL(fluxoCaixaData.avgArr(fluxoCaixaData.totalReceitas))}</td>
                       <td className="text-right py-1.5 px-2 text-success tabular-nums font-bold">{formatBRL(fluxoCaixaData.sumArr(fluxoCaixaData.totalReceitas))}</td>
                     </tr>
-                    {fluxoCaixaData.receitaCats.map(([catId, cat]) => (
-                      <tr key={catId} className="border-b hover:bg-muted/30">
-                        <td className="py-1.5 px-2 pl-6 text-muted-foreground sticky left-0 bg-card">{cat.name}</td>
-                        {cat.months.map((v, i) => (
-                          <td key={i} className="text-right py-1.5 px-2 tabular-nums text-foreground">{v > 0 ? formatBRL(v) : "-"}</td>
-                        ))}
-                        <td className="text-right py-1.5 px-2 tabular-nums text-foreground">{formatBRL(fluxoCaixaData.avgArr(cat.months))}</td>
-                        <td className="text-right py-1.5 px-2 tabular-nums font-medium">{formatBRL(fluxoCaixaData.sumArr(cat.months))}</td>
-                      </tr>
-                    ))}
+                    {fluxoCaixaData.flatReceitas.map((node) => {
+                      const hasChildren = node.children.length > 0;
+                      const paddingLeft = 12 + node.depth * 16;
+                      return (
+                        <tr key={node.id + "-" + node.depth} className={cn("border-b hover:bg-muted/30", hasChildren && "bg-muted/10")}>
+                          <td
+                            className={cn("py-1.5 px-2 sticky left-0 bg-card", hasChildren ? "font-semibold text-foreground" : "text-muted-foreground")}
+                            style={{ paddingLeft }}
+                          >
+                            {node.hierarchyIndex ? `${node.hierarchyIndex}. ` : ""}{node.name}
+                          </td>
+                          {node.months.map((v, i) => (
+                            <td key={i} className={cn("text-right py-1.5 px-2 tabular-nums", hasChildren ? "font-medium text-foreground" : "text-foreground")}>
+                              {v > 0 ? formatBRL(v) : "-"}
+                            </td>
+                          ))}
+                          <td className={cn("text-right py-1.5 px-2 tabular-nums", hasChildren && "font-medium")}>{formatBRL(fluxoCaixaData.avgArr(node.months))}</td>
+                          <td className={cn("text-right py-1.5 px-2 tabular-nums", hasChildren ? "font-bold" : "font-medium")}>{formatBRL(fluxoCaixaData.sumArr(node.months))}</td>
+                        </tr>
+                      );
+                    })}
                   </>
                 )}
 
                 {/* Despesas categories */}
-                {fluxoCaixaData.despesaCats.length > 0 && (
+                {fluxoCaixaData.flatDespesas.length > 0 && (
                   <>
                     <tr className="border-b bg-destructive/5">
                       <td className="py-1.5 px-2 font-semibold text-destructive sticky left-0 bg-destructive/5">DESPESAS</td>
@@ -837,16 +943,27 @@ export default function Relatorios() {
                       <td className="text-right py-1.5 px-2 text-destructive tabular-nums font-medium">{formatBRL(fluxoCaixaData.avgArr(fluxoCaixaData.totalDespesas))}</td>
                       <td className="text-right py-1.5 px-2 text-destructive tabular-nums font-bold">{formatBRL(fluxoCaixaData.sumArr(fluxoCaixaData.totalDespesas))}</td>
                     </tr>
-                    {fluxoCaixaData.despesaCats.map(([catId, cat]) => (
-                      <tr key={catId} className="border-b hover:bg-muted/30">
-                        <td className="py-1.5 px-2 pl-6 text-muted-foreground sticky left-0 bg-card">{cat.name}</td>
-                        {cat.months.map((v, i) => (
-                          <td key={i} className="text-right py-1.5 px-2 tabular-nums text-foreground">{v > 0 ? formatBRL(v) : "-"}</td>
-                        ))}
-                        <td className="text-right py-1.5 px-2 tabular-nums text-foreground">{formatBRL(fluxoCaixaData.avgArr(cat.months))}</td>
-                        <td className="text-right py-1.5 px-2 tabular-nums font-medium">{formatBRL(fluxoCaixaData.sumArr(cat.months))}</td>
-                      </tr>
-                    ))}
+                    {fluxoCaixaData.flatDespesas.map((node) => {
+                      const hasChildren = node.children.length > 0;
+                      const paddingLeft = 12 + node.depth * 16;
+                      return (
+                        <tr key={node.id + "-" + node.depth} className={cn("border-b hover:bg-muted/30", hasChildren && "bg-muted/10")}>
+                          <td
+                            className={cn("py-1.5 px-2 sticky left-0 bg-card", hasChildren ? "font-semibold text-foreground" : "text-muted-foreground")}
+                            style={{ paddingLeft }}
+                          >
+                            {node.hierarchyIndex ? `${node.hierarchyIndex}. ` : ""}{node.name}
+                          </td>
+                          {node.months.map((v, i) => (
+                            <td key={i} className={cn("text-right py-1.5 px-2 tabular-nums", hasChildren ? "font-medium text-foreground" : "text-foreground")}>
+                              {v > 0 ? formatBRL(v) : "-"}
+                            </td>
+                          ))}
+                          <td className={cn("text-right py-1.5 px-2 tabular-nums", hasChildren && "font-medium")}>{formatBRL(fluxoCaixaData.avgArr(node.months))}</td>
+                          <td className={cn("text-right py-1.5 px-2 tabular-nums", hasChildren ? "font-bold" : "font-medium")}>{formatBRL(fluxoCaixaData.sumArr(node.months))}</td>
+                        </tr>
+                      );
+                    })}
                   </>
                 )}
               </tbody>
