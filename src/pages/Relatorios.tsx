@@ -311,12 +311,12 @@ export default function Relatorios() {
 
   return (
     <div className="space-y-6" ref={reportRef}>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Relatórios</h1>
-            <p className="text-sm text-muted-foreground">Analise suas finanças com relatórios detalhados</p>
-          </div>
+      <div className="flex flex-col gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Relatórios</h1>
+          <p className="text-sm text-muted-foreground">Analise suas finanças com relatórios detalhados</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant={showFilters ? "default" : "outline"}
             size="sm"
@@ -330,9 +330,6 @@ export default function Relatorios() {
               </span>
             )}
           </Button>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
           {([
             { key: "month", label: "Mês" },
             { key: "3months", label: "3 Meses" },
@@ -361,7 +358,7 @@ export default function Relatorios() {
                   : "Personalizado"}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
+            <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="range"
                 selected={{ from: customRange.from, to: customRange.to }}
