@@ -17,6 +17,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TransactionFormDialog } from "@/components/transactions/TransactionFormDialog";
 import { PaymentDialog } from "@/components/bills/PaymentDialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   Plus, Search, ArrowLeftRight,
   Trash2, Pencil, ChevronLeft, ChevronRight, ChevronDown, Filter, SlidersHorizontal,
@@ -128,6 +129,7 @@ export default function Lancamentos() {
   const [filterCollapsed, setFilterCollapsed] = useState(false);
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
   const [paymentTx, setPaymentTx] = useState<Transaction | null>(null);
+  const [previewAttachmentUrl, setPreviewAttachmentUrl] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<string>("date");
   const [previousBalance, setPreviousBalance] = useState(0);
@@ -832,11 +834,15 @@ export default function Lancamentos() {
                                 <TooltipProvider delayDuration={200}>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <a href={r.attachmentUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); setPreviewAttachmentUrl(r.attachmentUrl); }}
+                                        className="inline-flex"
+                                      >
                                         <Paperclip className="h-3 w-3 shrink-0 text-muted-foreground hover:text-foreground" />
-                                      </a>
+                                      </button>
                                     </TooltipTrigger>
-                                    <TooltipContent side="top" className="text-xs">Anexo disponível</TooltipContent>
+                                    <TooltipContent side="top" className="text-xs">Visualizar anexo</TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
                               )}
@@ -1034,6 +1040,47 @@ export default function Lancamentos() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Attachment Preview Modal */}
+      <Dialog open={!!previewAttachmentUrl} onOpenChange={(open) => { if (!open) setPreviewAttachmentUrl(null); }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] p-0 overflow-hidden">
+          {previewAttachmentUrl && (
+            <div className="flex flex-col h-full">
+              <div className="flex items-center justify-between px-4 pt-4 pb-2">
+                <span className="text-sm font-medium text-foreground">Visualização do anexo</span>
+                <a
+                  href={previewAttachmentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline"
+                >
+                  Abrir em nova aba
+                </a>
+              </div>
+              <div className="flex-1 overflow-auto p-4 pt-0">
+                {/\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?.*)?$/i.test(previewAttachmentUrl) ? (
+                  <img src={previewAttachmentUrl} alt="Anexo" className="max-w-full h-auto rounded-md mx-auto" />
+                ) : /\.pdf(\?.*)?$/i.test(previewAttachmentUrl) ? (
+                  <iframe src={previewAttachmentUrl} className="w-full h-[70vh] rounded-md border" title="PDF Preview" />
+                ) : (
+                  <div className="flex flex-col items-center justify-center gap-3 py-12">
+                    <Paperclip className="h-10 w-10 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Pré-visualização não disponível para este tipo de arquivo.</p>
+                    <a
+                      href={previewAttachmentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Baixar arquivo
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
