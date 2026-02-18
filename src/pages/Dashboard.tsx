@@ -1,11 +1,17 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Wallet, Target, Landmark } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, Target, Landmark, CalendarIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import {
   ChartContainer,
   ChartTooltip,
@@ -31,23 +37,46 @@ const DONUT_COLORS = [
   "hsl(300, 40%, 50%)",
 ];
 
+type PeriodPreset = "month" | "3months" | "6months" | "year" | "custom";
+
+function getPeriodRange(preset: PeriodPreset): { from: Date; to: Date } {
+  const now = new Date();
+  switch (preset) {
+    case "month":
+      return { from: startOfMonth(now), to: endOfMonth(now) };
+    case "3months":
+      return { from: startOfMonth(subMonths(now, 2)), to: endOfMonth(now) };
+    case "6months":
+      return { from: startOfMonth(subMonths(now, 5)), to: endOfMonth(now) };
+    case "year":
+    default:
+      return { from: startOfYear(now), to: endOfYear(now) };
+  }
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const { maskBRL } = usePrivacy();
 
+  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("year");
+  const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>(getPeriodRange("year"));
+
+  const activeRange = periodPreset === "custom" ? customRange : getPeriodRange(periodPreset);
+
   const { data: transactions = [] } = useQuery({
-    queryKey: ["dashboard-transactions", user?.id, contextType, selectedCompanyId],
+    queryKey: ["dashboard-transactions", user?.id, contextType, selectedCompanyId, periodPreset, customRange.from.toISOString(), customRange.to.toISOString()],
     enabled: !!user,
     queryFn: async () => {
-      const now = new Date();
-      const startOfYear = new Date(now.getFullYear(), 0, 1).toISOString().split("T")[0];
+      const startDate = activeRange.from.toISOString().split("T")[0];
+      const endDate = activeRange.to.toISOString().split("T")[0];
       let q = supabase
         .from("transactions")
         .select("amount, amount_paid, transaction_type, transaction_date, category_id, status, due_date")
         .eq("user_id", user!.id)
         .eq("context", contextType)
-        .gte("transaction_date", startOfYear)
+        .gte("transaction_date", startDate)
+        .lte("transaction_date", endDate)
         .neq("status", "cancelado");
       if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
       const { data } = await q;
@@ -180,9 +209,58 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Visão geral das suas finanças</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Visão geral das suas finanças</p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {([
+            { key: "month", label: "Mês" },
+            { key: "3months", label: "3 Meses" },
+            { key: "6months", label: "6 Meses" },
+            { key: "year", label: "Ano" },
+          ] as { key: PeriodPreset; label: string }[]).map((p) => (
+            <Button
+              key={p.key}
+              variant={periodPreset === p.key ? "default" : "outline"}
+              size="sm"
+              onClick={() => setPeriodPreset(p.key)}
+            >
+              {p.label}
+            </Button>
+          ))}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={periodPreset === "custom" ? "default" : "outline"}
+                size="sm"
+                className="gap-1"
+              >
+                <CalendarIcon className="h-3.5 w-3.5" />
+                {periodPreset === "custom"
+                  ? `${format(customRange.from, "dd/MM/yy")} - ${format(customRange.to, "dd/MM/yy")}`
+                  : "Personalizado"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="range"
+                selected={{ from: customRange.from, to: customRange.to }}
+                onSelect={(range) => {
+                  if (range?.from) {
+                    setCustomRange({ from: range.from, to: range.to ?? range.from });
+                    setPeriodPreset("custom");
+                  }
+                }}
+                numberOfMonths={2}
+                locale={ptBR}
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
