@@ -159,11 +159,30 @@ export default function Relatorios() {
     });
   }, [transactions, startDate, endDate]);
 
-  // Category breakdown
+  // Category breakdown - Despesas
   const categoryData = useMemo(() => {
     const map: Record<string, number> = {};
     for (const t of transactions) {
       if (t.transaction_type !== "despesa") continue;
+      const catId = t.category_id ?? "sem-categoria";
+      map[catId] = (map[catId] ?? 0) + Number(t.amount);
+    }
+    const catMap = Object.fromEntries(categories.map((c) => [c.id, c]));
+    return Object.entries(map)
+      .map(([id, value]) => ({
+        id,
+        name: catMap[id]?.name ?? "Sem categoria",
+        color: catMap[id]?.color ?? "#94a3b8",
+        value,
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, [transactions, categories]);
+
+  // Category breakdown - Receitas
+  const receitaCategoryData = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const t of transactions) {
+      if (t.transaction_type !== "receita") continue;
       const catId = t.category_id ?? "sem-categoria";
       map[catId] = (map[catId] ?? 0) + Number(t.amount);
     }
@@ -407,88 +426,174 @@ export default function Relatorios() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Pie chart */}
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-base">Despesas por Categoria</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {categoryData.length === 0 ? (
-                <div className="flex items-center justify-center h-64 text-muted-foreground text-sm">
-                  Nenhuma despesa no período
-                </div>
-              ) : (
-                <ChartContainer
-                  config={Object.fromEntries(
-                    categoryData.map((c, i) => [
-                      c.id,
-                      { label: c.name, color: c.color || PIE_COLORS[i % PIE_COLORS.length] },
-                    ])
-                  )}
-                  className="h-72 w-full"
-                >
-                  <PieChart>
-                    <Pie
-                      data={categoryData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      dataKey="value"
-                      nameKey="name"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      labelLine={false}
-                      fontSize={11}
-                    >
-                      {categoryData.map((entry, index) => (
-                        <Cell key={entry.id} fill={entry.color || PIE_COLORS[index % PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <ChartTooltip
-                      content={
-                        <ChartTooltipContent
-                          formatter={(value) => formatBRL(Number(value))}
-                          nameKey="name"
-                        />
-                      }
-                    />
-                  </PieChart>
-                </ChartContainer>
-              )}
-            </CardContent>
-          </Card>
+        <div className="space-y-6">
+          {/* Despesas */}
+          <h2 className="text-lg font-semibold">Despesas por Categoria</h2>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card className="shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-base">Distribuição</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {categoryData.length === 0 ? (
+                  <div className="flex items-center justify-center h-64 text-muted-foreground text-sm">
+                    Nenhuma despesa no período
+                  </div>
+                ) : (
+                  <ChartContainer
+                    config={Object.fromEntries(
+                      categoryData.map((c, i) => [
+                        c.id,
+                        { label: c.name, color: c.color || PIE_COLORS[i % PIE_COLORS.length] },
+                      ])
+                    )}
+                    className="h-72 w-full"
+                  >
+                    <PieChart>
+                      <Pie
+                        data={categoryData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={100}
+                        dataKey="value"
+                        nameKey="name"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        labelLine={false}
+                        fontSize={11}
+                      >
+                        {categoryData.map((entry, index) => (
+                          <Cell key={entry.id} fill={entry.color || PIE_COLORS[index % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <ChartTooltip
+                        content={
+                          <ChartTooltipContent
+                            formatter={(value) => formatBRL(Number(value))}
+                            nameKey="name"
+                          />
+                        }
+                      />
+                    </PieChart>
+                  </ChartContainer>
+                )}
+              </CardContent>
+            </Card>
 
-          {/* Category table */}
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-base">Detalhamento</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {categoryData.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">Sem dados</p>
-              ) : (
-                <div className="space-y-3">
-                  {categoryData.map((cat, i) => {
-                    const pct = totals.despesas > 0 ? (cat.value / totals.despesas) * 100 : 0;
-                    return (
-                      <div key={cat.id} className="flex items-center gap-3">
-                        <div
-                          className="h-3 w-3 rounded-full shrink-0"
-                          style={{ backgroundColor: cat.color || PIE_COLORS[i % PIE_COLORS.length] }}
-                        />
-                        <span className="text-sm flex-1 truncate">{cat.name}</span>
-                        <span className="text-sm font-medium tabular-nums">{formatBRL(cat.value)}</span>
-                        <span className="text-xs text-muted-foreground w-12 text-right tabular-nums">
-                          {pct.toFixed(1)}%
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            <Card className="shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-base">Detalhamento</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {categoryData.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">Sem dados</p>
+                ) : (
+                  <div className="space-y-3">
+                    {categoryData.map((cat, i) => {
+                      const pct = totals.despesas > 0 ? (cat.value / totals.despesas) * 100 : 0;
+                      return (
+                        <div key={cat.id} className="flex items-center gap-3">
+                          <div
+                            className="h-3 w-3 rounded-full shrink-0"
+                            style={{ backgroundColor: cat.color || PIE_COLORS[i % PIE_COLORS.length] }}
+                          />
+                          <span className="text-sm flex-1 truncate">{cat.name}</span>
+                          <span className="text-sm font-medium tabular-nums">{formatBRL(cat.value)}</span>
+                          <span className="text-xs text-muted-foreground w-12 text-right tabular-nums">
+                            {pct.toFixed(1)}%
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Receitas */}
+          <h2 className="text-lg font-semibold">Receitas por Categoria</h2>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card className="shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-base">Distribuição</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {receitaCategoryData.length === 0 ? (
+                  <div className="flex items-center justify-center h-64 text-muted-foreground text-sm">
+                    Nenhuma receita no período
+                  </div>
+                ) : (
+                  <ChartContainer
+                    config={Object.fromEntries(
+                      receitaCategoryData.map((c, i) => [
+                        c.id,
+                        { label: c.name, color: c.color || PIE_COLORS[i % PIE_COLORS.length] },
+                      ])
+                    )}
+                    className="h-72 w-full"
+                  >
+                    <PieChart>
+                      <Pie
+                        data={receitaCategoryData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={100}
+                        dataKey="value"
+                        nameKey="name"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        labelLine={false}
+                        fontSize={11}
+                      >
+                        {receitaCategoryData.map((entry, index) => (
+                          <Cell key={entry.id} fill={entry.color || PIE_COLORS[index % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <ChartTooltip
+                        content={
+                          <ChartTooltipContent
+                            formatter={(value) => formatBRL(Number(value))}
+                            nameKey="name"
+                          />
+                        }
+                      />
+                    </PieChart>
+                  </ChartContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-base">Detalhamento</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {receitaCategoryData.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">Sem dados</p>
+                ) : (
+                  <div className="space-y-3">
+                    {receitaCategoryData.map((cat, i) => {
+                      const pct = totals.receitas > 0 ? (cat.value / totals.receitas) * 100 : 0;
+                      return (
+                        <div key={cat.id} className="flex items-center gap-3">
+                          <div
+                            className="h-3 w-3 rounded-full shrink-0"
+                            style={{ backgroundColor: cat.color || PIE_COLORS[i % PIE_COLORS.length] }}
+                          />
+                          <span className="text-sm flex-1 truncate">{cat.name}</span>
+                          <span className="text-sm font-medium tabular-nums">{formatBRL(cat.value)}</span>
+                          <span className="text-xs text-muted-foreground w-12 text-right tabular-nums">
+                            {pct.toFixed(1)}%
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
     </div>
