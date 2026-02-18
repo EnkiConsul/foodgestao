@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CurrencyInput, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { toast } from "sonner";
 import { transactionSchema, validateWithToast } from "@/lib/validations";
-import { Calendar, Repeat, Paperclip, X, FileText } from "lucide-react";
+import { Calendar, Repeat, Paperclip, X, FileText, Upload } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -627,9 +627,28 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                 </button>
               </div>
             ) : (
-              <label className="flex items-center gap-2 p-2 border border-dashed rounded-md cursor-pointer hover:bg-muted/50 transition-colors">
-                <Paperclip className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Clique para anexar arquivo</span>
+              <label
+                className="flex flex-col items-center gap-2 p-4 border-2 border-dashed rounded-md cursor-pointer hover:bg-muted/50 hover:border-primary/50 transition-colors data-[dragging=true]:bg-primary/10 data-[dragging=true]:border-primary"
+                data-dragging={undefined}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.dataset.dragging = "true"; }}
+                onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.dataset.dragging = "true"; }}
+                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.dataset.dragging = "false"; }}
+                onDrop={(e) => {
+                  e.preventDefault(); e.stopPropagation();
+                  e.currentTarget.dataset.dragging = "false";
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) {
+                    if (file.size > 10 * 1024 * 1024) {
+                      toast.error("Arquivo muito grande", { description: "Máximo 10MB" });
+                      return;
+                    }
+                    setAttachmentFile(file);
+                  }
+                }}
+              >
+                <Upload className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground text-center">Arraste um arquivo aqui ou clique para selecionar</span>
+                <span className="text-xs text-muted-foreground/70">Imagens, PDF, DOC, XLS, TXT — máx. 10MB</span>
                 <input
                   type="file"
                   className="hidden"
