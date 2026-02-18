@@ -76,7 +76,7 @@ export default function Dashboard() {
     queryFn: async () => {
       let q = supabase
         .from("accounts")
-        .select("current_balance, is_active")
+        .select("name, current_balance, color, is_active")
         .eq("user_id", user!.id)
         .eq("is_active", true)
         .eq("context", contextType);
@@ -236,6 +236,39 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Bank Account Balances */}
+      {accounts.length > 0 && (
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base">Saldo por Conta Bancária</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              {accounts.map((acc, i) => {
+                const balance = Number(acc.current_balance);
+                return (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div
+                        className="h-3 w-3 rounded-full shrink-0"
+                        style={{ backgroundColor: acc.color || "hsl(var(--primary))" }}
+                      />
+                      <span className="text-sm font-medium truncate">{acc.name}</span>
+                    </div>
+                    <span className={`text-sm font-bold shrink-0 ml-2 ${balance >= 0 ? "text-success" : "text-destructive"}`}>
+                      {maskBRL(balance)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
