@@ -444,7 +444,7 @@ export default function Relatorios() {
                     config={Object.fromEntries(
                       categoryData.map((c, i) => [
                         c.id,
-                        { label: c.name, color: c.color || PIE_COLORS[i % PIE_COLORS.length] },
+                        { label: c.name, color: PIE_COLORS[i % PIE_COLORS.length] },
                       ])
                     )}
                     className="h-72 w-full"
@@ -459,11 +459,13 @@ export default function Relatorios() {
                         dataKey="value"
                         nameKey="name"
                         label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        labelLine={false}
+                        labelLine
                         fontSize={11}
+                        paddingAngle={2}
+                        cornerRadius={4}
                       >
-                        {categoryData.map((entry, index) => (
-                          <Cell key={entry.id} fill={entry.color || PIE_COLORS[index % PIE_COLORS.length]} />
+                        {categoryData.map((_entry, index) => (
+                          <Cell key={_entry.id} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                         ))}
                       </Pie>
                       <ChartTooltip
@@ -495,7 +497,7 @@ export default function Relatorios() {
                         <div key={cat.id} className="flex items-center gap-3">
                           <div
                             className="h-3 w-3 rounded-full shrink-0"
-                            style={{ backgroundColor: cat.color || PIE_COLORS[i % PIE_COLORS.length] }}
+                            style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
                           />
                           <span className="text-sm flex-1 truncate">{cat.name}</span>
                           <span className="text-sm font-medium tabular-nums">{formatBRL(cat.value)}</span>
@@ -528,7 +530,7 @@ export default function Relatorios() {
                     config={Object.fromEntries(
                       receitaCategoryData.map((c, i) => [
                         c.id,
-                        { label: c.name, color: c.color || PIE_COLORS[i % PIE_COLORS.length] },
+                        { label: c.name, color: PIE_COLORS[i % PIE_COLORS.length] },
                       ])
                     )}
                     className="h-72 w-full"
@@ -543,11 +545,13 @@ export default function Relatorios() {
                         dataKey="value"
                         nameKey="name"
                         label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        labelLine={false}
+                        labelLine
                         fontSize={11}
+                        paddingAngle={2}
+                        cornerRadius={4}
                       >
-                        {receitaCategoryData.map((entry, index) => (
-                          <Cell key={entry.id} fill={entry.color || PIE_COLORS[index % PIE_COLORS.length]} />
+                        {receitaCategoryData.map((_entry, index) => (
+                          <Cell key={_entry.id} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                         ))}
                       </Pie>
                       <ChartTooltip
@@ -579,7 +583,7 @@ export default function Relatorios() {
                         <div key={cat.id} className="flex items-center gap-3">
                           <div
                             className="h-3 w-3 rounded-full shrink-0"
-                            style={{ backgroundColor: cat.color || PIE_COLORS[i % PIE_COLORS.length] }}
+                            style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
                           />
                           <span className="text-sm flex-1 truncate">{cat.name}</span>
                           <span className="text-sm font-medium tabular-nums">{formatBRL(cat.value)}</span>
