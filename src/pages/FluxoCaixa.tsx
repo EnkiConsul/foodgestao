@@ -17,7 +17,7 @@ import {
   ChartLegendContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ReferenceLine } from "recharts";
 import { TrendingUp, TrendingDown, Wallet, CalendarDays, CalendarIcon } from "lucide-react";
 import {
   format,
@@ -224,6 +224,12 @@ export default function FluxoCaixa() {
     });
   }, [transactions, granularity, currentBalance, activeRange]);
 
+  const todayLabel = useMemo(() => {
+    const today = format(new Date(), "dd/MM");
+    const found = chartData.find((d) => d.label === today || d.label.startsWith(today));
+    return found?.label ?? null;
+  }, [chartData]);
+
   const projectedTotals = useMemo(() => {
     const totalReceitas = chartData.reduce((s, d) => s + d.receitas, 0);
     const totalDespesas = chartData.reduce((s, d) => s + d.despesas, 0);
@@ -365,6 +371,15 @@ export default function FluxoCaixa() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid vertical={false} />
+                {todayLabel && (
+                  <ReferenceLine
+                    x={todayLabel}
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    strokeDasharray="4 4"
+                    label={{ value: "Hoje", position: "top", fill: "hsl(var(--primary))", fontSize: 11, fontWeight: 600 }}
+                  />
+                )}
                 <XAxis
                   dataKey="label"
                   tickLine={false}
