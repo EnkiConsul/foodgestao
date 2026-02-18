@@ -37,20 +37,21 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
 type Granularity = "diario" | "semanal" | "mensal";
-type PeriodPreset = "month" | "3months" | "6months" | "year" | "custom";
+type PeriodPreset = "2months" | "3months" | "6months" | "12months" | "custom";
 
 function getPeriodRange(preset: PeriodPreset): { from: Date; to: Date } {
   const now = new Date();
+  const from = startOfMonth(now);
   switch (preset) {
-    case "month":
-      return { from: startOfMonth(now), to: endOfMonth(addMonths(now, 1)) };
+    case "2months":
+      return { from, to: endOfMonth(addMonths(now, 1)) };
     case "3months":
-      return { from: startOfMonth(now), to: endOfMonth(addMonths(now, 2)) };
+      return { from, to: endOfMonth(addMonths(now, 2)) };
     case "6months":
-      return { from: startOfMonth(now), to: endOfMonth(addMonths(now, 5)) };
-    case "year":
+      return { from, to: endOfMonth(addMonths(now, 5)) };
+    case "12months":
     default:
-      return { from: startOfYear(now), to: endOfYear(now) };
+      return { from, to: endOfMonth(addMonths(now, 11)) };
   }
 }
 
@@ -66,8 +67,8 @@ export default function FluxoCaixa() {
   const { maskBRL } = usePrivacy();
   const formatBRL = maskBRL;
   const [granularity, setGranularity] = useState<Granularity>("diario");
-  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("month");
-  const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>(getPeriodRange("month"));
+  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("2months");
+  const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>(getPeriodRange("2months"));
 
   const activeRange = periodPreset === "custom" ? customRange : getPeriodRange(periodPreset);
 
@@ -116,32 +117,47 @@ export default function FluxoCaixa() {
   const chartData = useMemo(() => {
     const start = activeRange.from;
     const end = activeRange.to;
+    const todayStr = format(new Date(), "yyyy-MM-dd");
 
-    const dailyMap: Record<string, { receitas: number; despesas: number }> = {};
+    const dailyMap: Record<string, { receitas: number; despesas: number; receitasProj: number; despesasProj: number }> = {};
 
     for (const t of transactions) {
       if (t.due_date && t.bill_status !== "pago") {
+        // Pending bills: use due_date, remaining amount — these are projections
         const remaining = Number(t.amount) - Number(t.amount_paid);
         if (remaining <= 0) continue;
         const key = t.due_date;
-        if (!dailyMap[key]) dailyMap[key] = { receitas: 0, despesas: 0 };
-        if (t.transaction_type === "receita") dailyMap[key].receitas += remaining;
-        else if (t.transaction_type === "despesa") dailyMap[key].despesas += remaining;
+        if (!dailyMap[key]) dailyMap[key] = { receitas: 0, despesas: 0, receitasProj: 0, despesasProj: 0 };
+        if (t.transaction_type === "receita") {
+          dailyMap[key].receitas += remaining;
+          if (key > todayStr) dailyMap[key].receitasProj += remaining;
+        } else if (t.transaction_type === "despesa") {
+          dailyMap[key].despesas += remaining;
+          if (key > todayStr) dailyMap[key].despesasProj += remaining;
+        }
       } else {
+        // Realized transactions
         const key = t.transaction_date;
-        if (!dailyMap[key]) dailyMap[key] = { receitas: 0, despesas: 0 };
-        if (t.transaction_type === "receita") dailyMap[key].receitas += Number(t.amount);
-        else if (t.transaction_type === "despesa") dailyMap[key].despesas += Number(t.amount);
+        if (!dailyMap[key]) dailyMap[key] = { receitas: 0, despesas: 0, receitasProj: 0, despesasProj: 0 };
+        if (t.transaction_type === "receita") {
+          dailyMap[key].receitas += Number(t.amount);
+          if (key > todayStr) dailyMap[key].receitasProj += Number(t.amount);
+        } else if (t.transaction_type === "despesa") {
+          dailyMap[key].despesas += Number(t.amount);
+          if (key > todayStr) dailyMap[key].despesasProj += Number(t.amount);
+        }
       }
     }
 
+    // Running balance starts at currentBalance and only adds FUTURE transactions
     if (granularity === "diario") {
       const days = eachDayOfInterval({ start, end });
       let runningBalance = currentBalance;
       return days.map((day) => {
         const key = format(day, "yyyy-MM-dd");
-        const d = dailyMap[key] || { receitas: 0, despesas: 0 };
-        runningBalance += d.receitas - d.despesas;
+        const d = dailyMap[key] || { receitas: 0, despesas: 0, receitasProj: 0, despesasProj: 0 };
+        // Only project future movements onto the balance
+        runningBalance += d.receitasProj - d.despesasProj;
         return {
           label: format(day, "dd/MM"),
           receitas: d.receitas,
@@ -158,14 +174,18 @@ export default function FluxoCaixa() {
         const wEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
         let receitas = 0;
         let despesas = 0;
+        let receitasProj = 0;
+        let despesasProj = 0;
         Object.entries(dailyMap).forEach(([dateStr, val]) => {
           const d = parseISO(dateStr);
           if (d >= weekStart && d <= wEnd) {
             receitas += val.receitas;
             despesas += val.despesas;
+            receitasProj += val.receitasProj;
+            despesasProj += val.despesasProj;
           }
         });
-        runningBalance += receitas - despesas;
+        runningBalance += receitasProj - despesasProj;
         return {
           label: `${format(weekStart, "dd/MM")} - ${format(wEnd, "dd/MM")}`,
           receitas,
@@ -183,14 +203,18 @@ export default function FluxoCaixa() {
       const mEnd = endOfMonth(m);
       let receitas = 0;
       let despesas = 0;
+      let receitasProj = 0;
+      let despesasProj = 0;
       Object.entries(dailyMap).forEach(([dateStr, val]) => {
         const d = parseISO(dateStr);
         if (d >= mStart && d <= mEnd) {
           receitas += val.receitas;
           despesas += val.despesas;
+          receitasProj += val.receitasProj;
+          despesasProj += val.despesasProj;
         }
       });
-      runningBalance += receitas - despesas;
+      runningBalance += receitasProj - despesasProj;
       return {
         label: format(m, "MMM yyyy", { locale: ptBR }),
         receitas,
@@ -226,10 +250,10 @@ export default function FluxoCaixa() {
       {/* Period filter */}
       <div className="flex flex-wrap items-center gap-2">
         {([
-          { key: "month", label: "Mês" },
+          { key: "2months", label: "2 Meses" },
           { key: "3months", label: "3 Meses" },
           { key: "6months", label: "6 Meses" },
-          { key: "year", label: "Ano" },
+          { key: "12months", label: "12 Meses" },
         ] as { key: PeriodPreset; label: string }[]).map((p) => (
           <Button
             key={p.key}
