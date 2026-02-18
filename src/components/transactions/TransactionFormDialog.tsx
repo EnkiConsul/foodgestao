@@ -119,6 +119,8 @@ function generateRecurrenceDates(startDate: string, recType: string, endDate?: s
   return dates;
 }
 
+const MAX_ATTACHMENTS = 5;
+
 export function TransactionFormDialog({ open, onOpenChange, onCreated, transaction }: Props) {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
@@ -225,6 +227,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     }
     return true;
   });
+
+  const totalAttachments = existingAttachments.filter(a => !removedAttachmentIds.includes(a.id)).length + attachmentFiles.length;
 
   const categoryTree = buildCategoryTree(filteredCategories);
 
@@ -625,7 +629,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
           {/* Attachments */}
           <div className="space-y-2">
-            <Label>Anexos (opcional)</Label>
+            <Label>Anexos (opcional) — {totalAttachments}/5</Label>
             {/* Existing attachments */}
             {existingAttachments.filter(a => !removedAttachmentIds.includes(a.id)).map((att) => (
               <div key={att.id} className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">
@@ -648,43 +652,51 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                 </button>
               </div>
             ))}
-            {/* Drop zone */}
-            <label
-              className="flex flex-col items-center gap-2 p-4 border-2 border-dashed rounded-md cursor-pointer hover:bg-muted/50 hover:border-primary/50 transition-colors data-[dragging=true]:bg-primary/10 data-[dragging=true]:border-primary"
-              data-dragging={undefined}
-              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.dataset.dragging = "true"; }}
-              onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.dataset.dragging = "true"; }}
-              onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.dataset.dragging = "false"; }}
-              onDrop={(e) => {
-                e.preventDefault(); e.stopPropagation();
-                e.currentTarget.dataset.dragging = "false";
-                const files = Array.from(e.dataTransfer.files);
-                const valid = files.filter(f => {
-                  if (f.size > 10 * 1024 * 1024) { toast.error(`${f.name}: máximo 10MB`); return false; }
-                  return true;
-                });
-                if (valid.length) setAttachmentFiles(prev => [...prev, ...valid]);
-              }}
-            >
-              <Upload className="h-5 w-5 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground text-center">Arraste arquivos aqui ou clique para selecionar</span>
-              <span className="text-xs text-muted-foreground/70">Imagens, PDF, DOC, XLS, TXT — máx. 10MB cada</span>
-              <input
-                type="file"
-                className="hidden"
-                multiple
-                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
-                onChange={(e) => {
-                  const files = Array.from(e.target.files ?? []);
-                  const valid = files.filter(f => {
+            {/* Drop zone - only show if under limit */}
+            {totalAttachments < MAX_ATTACHMENTS ? (
+              <label
+                className="flex flex-col items-center gap-2 p-4 border-2 border-dashed rounded-md cursor-pointer hover:bg-muted/50 hover:border-primary/50 transition-colors data-[dragging=true]:bg-primary/10 data-[dragging=true]:border-primary"
+                data-dragging={undefined}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.dataset.dragging = "true"; }}
+                onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.dataset.dragging = "true"; }}
+                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.dataset.dragging = "false"; }}
+                onDrop={(e) => {
+                  e.preventDefault(); e.stopPropagation();
+                  e.currentTarget.dataset.dragging = "false";
+                  const files = Array.from(e.dataTransfer.files);
+                  const remaining = MAX_ATTACHMENTS - totalAttachments;
+                  if (files.length > remaining) toast.error(`Máximo ${MAX_ATTACHMENTS} anexos por lançamento`);
+                  const valid = files.slice(0, remaining).filter(f => {
                     if (f.size > 10 * 1024 * 1024) { toast.error(`${f.name}: máximo 10MB`); return false; }
                     return true;
                   });
                   if (valid.length) setAttachmentFiles(prev => [...prev, ...valid]);
-                  e.target.value = "";
                 }}
-              />
-            </label>
+              >
+                <Upload className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground text-center">Arraste arquivos aqui ou clique para selecionar</span>
+                <span className="text-xs text-muted-foreground/70">Imagens, PDF, DOC, XLS, TXT — máx. 10MB cada, até {MAX_ATTACHMENTS} arquivos</span>
+                <input
+                  type="file"
+                  className="hidden"
+                  multiple
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files ?? []);
+                    const remaining = MAX_ATTACHMENTS - totalAttachments;
+                    if (files.length > remaining) toast.error(`Máximo ${MAX_ATTACHMENTS} anexos por lançamento`);
+                    const valid = files.slice(0, remaining).filter(f => {
+                      if (f.size > 10 * 1024 * 1024) { toast.error(`${f.name}: máximo 10MB`); return false; }
+                      return true;
+                    });
+                    if (valid.length) setAttachmentFiles(prev => [...prev, ...valid]);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            ) : (
+              <p className="text-xs text-muted-foreground text-center py-2">Limite de {MAX_ATTACHMENTS} anexos atingido</p>
+            )}
           </div>
 
           <Button type="submit" className="w-full" disabled={saving}>
