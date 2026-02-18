@@ -474,39 +474,6 @@ export default function Relatorios() {
             <Button
               variant="outline"
               size="sm"
-              className="ml-2 gap-1"
-              onClick={() => {
-                const printWindow = window.open("", "_blank");
-                if (!printWindow) return;
-                const tableEl = document.getElementById("fluxo-caixa-table");
-                if (!tableEl) return;
-                const periodLabel = `${format(activeRange.from, "dd/MM/yyyy")} a ${format(activeRange.to, "dd/MM/yyyy")}`;
-                printWindow.document.write(`
-                  <!DOCTYPE html><html><head><title>Fluxo de Caixa ${periodLabel}</title>
-                  <style>
-                    body { font-family: Arial, sans-serif; font-size: 10px; }
-                    table { width: 100%; border-collapse: collapse; }
-                    th, td { padding: 4px 6px; border: 1px solid #ddd; text-align: right; white-space: nowrap; }
-                    th { background: #f5f5f5; }
-                    td:first-child, th:first-child { text-align: left; }
-                    .receita { color: #16a34a; } .despesa { color: #dc2626; } .saldo-pos { color: #2563eb; } .saldo-neg { color: #dc2626; }
-                    .header-row { background: #f0f0f0; font-weight: bold; }
-                    .cat-row td:first-child { padding-left: 24px; }
-                    @media print { body { padding: 0; } }
-                  </style></head><body>
-                  <h2>Fluxo de Caixa — ${periodLabel}</h2>
-                  ${tableEl.outerHTML}
-                  </body></html>
-                `);
-                printWindow.document.close();
-                printWindow.print();
-              }}
-            >
-              <Printer className="h-3.5 w-3.5" /> Imprimir
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
               className="gap-1"
               onClick={() => {
                 const tableEl = document.getElementById("fluxo-caixa-table");
