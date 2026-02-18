@@ -44,6 +44,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   onCreated: () => void;
   transaction?: EditableTransaction | null;
+  initialType?: TransactionType;
 }
 
 type CategoryNode = Tables<"categories"> & { children: CategoryNode[]; depth: number };
@@ -123,7 +124,7 @@ function generateRecurrenceDates(startDate: string, recType: string, endDate?: s
 
 const MAX_ATTACHMENTS = 5;
 
-export function TransactionFormDialog({ open, onOpenChange, onCreated, transaction }: Props) {
+export function TransactionFormDialog({ open, onOpenChange, onCreated, transaction, initialType }: Props) {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const [type, setType] = useState<TransactionType>("despesa");
@@ -216,6 +217,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
         .then(({ data }) => setExistingAttachments(data ?? []));
     } else if (!transaction && open) {
       resetForm();
+      if (initialType) setType(initialType);
     }
   }, [transaction, open]);
 
