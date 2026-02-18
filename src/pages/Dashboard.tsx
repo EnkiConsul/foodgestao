@@ -165,7 +165,7 @@ export default function Dashboard() {
   const kpis = [
     { label: "Saldo", value: maskBRL(saldo), change: totalReceitas > 0 ? `${((saldo / totalReceitas) * 100).toFixed(0)}% das Receitas` : undefined, icon: Wallet, positive: saldo >= 0 },
     { label: "Contas Bancárias", value: maskBRL(totalBankBalance), icon: Landmark, positive: totalBankBalance >= 0 },
-    { label: "Receitas", value: maskBRL(totalReceitas), change: (totalReceitas + totalDespesas) > 0 ? `${((totalReceitas / (totalReceitas + totalDespesas)) * 100).toFixed(0)}% do Total` : changeR, icon: TrendingUp, positive: true },
+    { label: "Receitas", value: maskBRL(totalReceitas), icon: TrendingUp, positive: true },
     { label: "Despesas", value: maskBRL(totalDespesas), change: totalReceitas > 0 ? `${((totalDespesas / totalReceitas) * 100).toFixed(0)}% das Receitas` : changeD, icon: TrendingDown, positive: false },
   ];
 
