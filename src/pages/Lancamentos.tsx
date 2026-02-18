@@ -126,6 +126,7 @@ export default function Lancamentos() {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogInitialType, setDialogInitialType] = useState<"receita" | "despesa" | "transferencia" | undefined>(undefined);
   const [filterCollapsed, setFilterCollapsed] = useState(false);
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
   const [paymentTx, setPaymentTx] = useState<Transaction | null>(null);
@@ -656,10 +657,10 @@ export default function Lancamentos() {
       {/* Top action bar */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <Button onClick={() => { setEditTransaction(null); setDialogOpen(true); }} size="sm">
+          <Button onClick={() => { setEditTransaction(null); setDialogInitialType(undefined); setDialogOpen(true); }} size="sm">
             <Plus className="h-4 w-4 mr-1" /> Lançamento
           </Button>
-          <Button variant="outline" size="sm" onClick={() => { setEditTransaction(null); setDialogOpen(true); }}>
+          <Button variant="outline" size="sm" onClick={() => { setEditTransaction(null); setDialogInitialType("transferencia"); setDialogOpen(true); }}>
             <ArrowLeftRight className="h-4 w-4 mr-1" /> Transferência
           </Button>
           <Button variant="outline" size="sm" onClick={exportCSV} disabled={displayRows.length === 0}>
@@ -1035,7 +1036,7 @@ export default function Lancamentos() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                onClick={() => { setEditTransaction(r.original); setDialogOpen(true); }}
+                                onClick={() => { setEditTransaction(r.original); setDialogInitialType(undefined); setDialogOpen(true); }}
                               >
                                 <Pencil className="h-3 w-3" />
                               </Button>
@@ -1074,7 +1075,7 @@ export default function Lancamentos() {
 
       {/* FAB mobile */}
       <button
-        onClick={() => { setEditTransaction(null); setDialogOpen(true); }}
+        onClick={() => { setEditTransaction(null); setDialogInitialType(undefined); setDialogOpen(true); }}
         className="fixed bottom-20 right-4 z-50 md:hidden flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
       >
         <Plus className="h-6 w-6" />
@@ -1085,6 +1086,7 @@ export default function Lancamentos() {
         onOpenChange={setDialogOpen}
         onCreated={refreshAll}
         transaction={editTransaction}
+        initialType={dialogInitialType}
       />
 
       <PaymentDialog
