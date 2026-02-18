@@ -14,15 +14,35 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  ChevronLeft,
   ChevronRight,
   Printer,
   ChevronsUpDown,
   Filter,
   X,
+  CalendarIcon,
 } from "lucide-react";
-import { format } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, eachMonthOfInterval } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+
+type PeriodPreset = "month" | "3months" | "6months" | "year" | "custom";
+
+function getPeriodRange(preset: PeriodPreset): { from: Date; to: Date } {
+  const now = new Date();
+  switch (preset) {
+    case "month":
+      return { from: startOfMonth(now), to: endOfMonth(now) };
+    case "3months":
+      return { from: startOfMonth(subMonths(now, 2)), to: endOfMonth(now) };
+    case "6months":
+      return { from: startOfMonth(subMonths(now, 5)), to: endOfMonth(now) };
+    case "year":
+    default:
+      return { from: startOfYear(now), to: endOfYear(now) };
+  }
+}
 
 const formatBRLRaw = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -33,11 +53,13 @@ export default function Relatorios() {
   const { maskBRL } = usePrivacy();
   const formatBRL = maskBRL;
   const reportRef = useRef<HTMLDivElement>(null);
-  const [fluxoYear, setFluxoYear] = useState(new Date().getFullYear());
+  // fluxoYear kept for backward compat but not used directly anymore
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const [filterAccountId, setFilterAccountId] = useState<string>("all");
   const [filterCategoryId, setFilterCategoryId] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("year");
+  const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>(getPeriodRange("year"));
 
   const collectParentIds = (nodes: any[]): string[] => {
     const ids: string[] = [];
@@ -99,9 +121,14 @@ export default function Relatorios() {
     },
   });
 
-  // Fluxo de Caixa - full year query
+  // Compute active date range
+  const activeRange = periodPreset === "custom" ? customRange : getPeriodRange(periodPreset);
+  const startDate = format(activeRange.from, "yyyy-MM-dd");
+  const endDate = format(activeRange.to, "yyyy-MM-dd");
+
+  // Fluxo de Caixa query with period filter
   const { data: fluxoTransactions = [] } = useQuery({
-    queryKey: ["relatorios-fluxo", user?.id, fluxoYear, contextType, selectedCompanyId],
+    queryKey: ["relatorios-fluxo", user?.id, startDate, endDate, contextType, selectedCompanyId],
     enabled: !!user,
     queryFn: async () => {
       let q = supabase
@@ -109,8 +136,8 @@ export default function Relatorios() {
         .select("amount, amount_paid, transaction_type, transaction_date, category_id, account_id, status, due_date")
         .eq("user_id", user!.id)
         .eq("context", contextType)
-        .gte("transaction_date", `${fluxoYear}-01-01`)
-        .lte("transaction_date", `${fluxoYear}-12-31`)
+        .gte("transaction_date", startDate)
+        .lte("transaction_date", endDate)
         .neq("status", "cancelado");
       if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
       const { data } = await q;
@@ -153,24 +180,40 @@ export default function Relatorios() {
   };
 
   const fluxoCaixaData = useMemo(() => {
-    const MONTH_LABELS = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+    // Generate dynamic month columns from the active date range
+    const monthIntervals = eachMonthOfInterval({ start: activeRange.from, end: activeRange.to });
+    const MONTH_SHORT = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+    const monthKeys = monthIntervals.map((d) => format(d, "yyyy-MM"));
+    const MONTH_LABELS = monthIntervals.map((d) => {
+      const m = d.getMonth();
+      const y = d.getFullYear().toString().slice(2);
+      return monthKeys.length > 12 ? `${MONTH_SHORT[m]}/${y}` : MONTH_SHORT[m];
+    });
+    const numMonths = monthKeys.length;
+
     const catMap = Object.fromEntries(categories.map((c) => [c.id, c]));
+
+    // Map YYYY-MM to column index
+    const monthIndexMap: Record<string, number> = {};
+    monthKeys.forEach((k, i) => { monthIndexMap[k] = i; });
 
     // Build monthly totals by leaf category
     const catMonthly: Record<string, number[]> = {};
-    const totalReceitas = new Array(12).fill(0);
-    const totalDespesas = new Array(12).fill(0);
+    const totalReceitas = new Array(numMonths).fill(0);
+    const totalDespesas = new Array(numMonths).fill(0);
 
     for (const t of filteredTransactions) {
       if (t.transaction_type === "transferencia") continue;
-      const month = new Date(t.transaction_date).getMonth();
+      const key = t.transaction_date.slice(0, 7);
+      const idx = monthIndexMap[key];
+      if (idx === undefined) continue;
       const amt = Number(t.amount);
-      if (t.transaction_type === "receita") totalReceitas[month] += amt;
-      else totalDespesas[month] += amt;
+      if (t.transaction_type === "receita") totalReceitas[idx] += amt;
+      else totalDespesas[idx] += amt;
 
       if (t.category_id) {
-        if (!catMonthly[t.category_id]) catMonthly[t.category_id] = new Array(12).fill(0);
-        catMonthly[t.category_id][month] += amt;
+        if (!catMonthly[t.category_id]) catMonthly[t.category_id] = new Array(numMonths).fill(0);
+        catMonthly[t.category_id][idx] += amt;
       }
     }
 
@@ -184,14 +227,11 @@ export default function Relatorios() {
     // Build tree for each type
     const buildTree = (type: string): FluxoNode[] => {
       const relevantCats = categories.filter((c) => c.transaction_type === type);
-      const relevantIds = new Set(relevantCats.map((c) => c.id));
 
-      // Find all categories that have data or whose descendants have data
       const catsWithData = new Set<string>();
       for (const catId of Object.keys(catMonthly)) {
         const cat = catMap[catId];
         if (!cat || cat.transaction_type !== type) continue;
-        // Mark this and all ancestors
         let current: string | null = catId;
         while (current) {
           catsWithData.add(current);
@@ -205,8 +245,7 @@ export default function Relatorios() {
           .filter((c) => c.parent_id === parentId && catsWithData.has(c.id))
           .map((c) => {
             const children = buildNodes(c.id);
-            const leafMonths = catMonthly[c.id] || new Array(12).fill(0);
-            // If has children, aggregate from children + own leaf data
+            const leafMonths = catMonthly[c.id] || new Array(numMonths).fill(0);
             const months = children.length > 0
               ? leafMonths.map((v, i) => v + children.reduce((sum, ch) => sum + ch.months[i], 0))
               : [...leafMonths];
@@ -253,7 +292,7 @@ export default function Relatorios() {
       sumArr,
       avgArr,
     };
-  }, [filteredTransactions, categories]);
+  }, [filteredTransactions, categories, activeRange]);
 
   // Flatten tree respecting collapsed state
   const flattenTree = (nodes: FluxoNode[], depth: number): FluxoNode[] => {
@@ -272,7 +311,7 @@ export default function Relatorios() {
 
   return (
     <div className="space-y-6" ref={reportRef}>
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Relatórios</h1>
@@ -291,6 +330,53 @@ export default function Relatorios() {
               </span>
             )}
           </Button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {([
+            { key: "month", label: "Mês" },
+            { key: "3months", label: "3 Meses" },
+            { key: "6months", label: "6 Meses" },
+            { key: "year", label: "Ano" },
+          ] as { key: PeriodPreset; label: string }[]).map((p) => (
+            <Button
+              key={p.key}
+              variant={periodPreset === p.key ? "default" : "outline"}
+              size="sm"
+              onClick={() => setPeriodPreset(p.key)}
+            >
+              {p.label}
+            </Button>
+          ))}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={periodPreset === "custom" ? "default" : "outline"}
+                size="sm"
+                className="gap-1"
+              >
+                <CalendarIcon className="h-3.5 w-3.5" />
+                {periodPreset === "custom"
+                  ? `${format(customRange.from, "dd/MM/yy")} - ${format(customRange.to, "dd/MM/yy")}`
+                  : "Personalizado"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="range"
+                selected={{ from: customRange.from, to: customRange.to }}
+                onSelect={(range) => {
+                  if (range?.from) {
+                    setCustomRange({ from: range.from, to: range.to ?? range.from });
+                    setPeriodPreset("custom");
+                  }
+                }}
+                numberOfMonths={2}
+                locale={ptBR}
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
@@ -351,16 +437,9 @@ export default function Relatorios() {
 
       <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between pb-4">
-          <div className="flex items-center gap-3">
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setFluxoYear((y) => y - 1)}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm font-semibold w-12 text-center">{fluxoYear}</span>
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setFluxoYear((y) => y + 1)}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <CardTitle className="text-base ml-2">Fluxo de Caixa Anual</CardTitle>
-          </div>
+          <CardTitle className="text-base">
+            Fluxo de Caixa — {format(activeRange.from, "dd/MM/yy")} a {format(activeRange.to, "dd/MM/yy")}
+          </CardTitle>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" className="gap-1" onClick={expandAll}>
               <ChevronsUpDown className="h-3.5 w-3.5" /> Expandir
@@ -377,8 +456,9 @@ export default function Relatorios() {
                 if (!printWindow) return;
                 const tableEl = document.getElementById("fluxo-caixa-table");
                 if (!tableEl) return;
+                const periodLabel = `${format(activeRange.from, "dd/MM/yyyy")} a ${format(activeRange.to, "dd/MM/yyyy")}`;
                 printWindow.document.write(`
-                  <!DOCTYPE html><html><head><title>Fluxo de Caixa ${fluxoYear}</title>
+                  <!DOCTYPE html><html><head><title>Fluxo de Caixa ${periodLabel}</title>
                   <style>
                     body { font-family: Arial, sans-serif; font-size: 10px; }
                     table { width: 100%; border-collapse: collapse; }
@@ -390,7 +470,7 @@ export default function Relatorios() {
                     .cat-row td:first-child { padding-left: 24px; }
                     @media print { body { padding: 0; } }
                   </style></head><body>
-                  <h2>Fluxo de Caixa — ${fluxoYear}</h2>
+                  <h2>Fluxo de Caixa — ${periodLabel}</h2>
                   ${tableEl.outerHTML}
                   </body></html>
                 `);
@@ -446,13 +526,13 @@ export default function Relatorios() {
               {/* Category detail */}
               {(flatReceitas.length > 0 || flatDespesas.length > 0) && (
                 <>
-                  <tr><td colSpan={15} className="py-3 px-2 text-xs font-bold text-muted-foreground uppercase tracking-wider bg-muted/30 sticky left-0">Categorias (Detalhamento)</td></tr>
+                  <tr><td colSpan={fluxoCaixaData.MONTH_LABELS.length + 3} className="py-3 px-2 text-xs font-bold text-muted-foreground uppercase tracking-wider bg-muted/30 sticky left-0">Categorias (Detalhamento)</td></tr>
 
                   {/* RECEITAS section */}
                   {flatReceitas.length > 0 && (
                     <>
                       <tr className="border-b bg-success/5">
-                        <td colSpan={15} className="py-1.5 px-2 font-bold text-success text-xs uppercase sticky left-0 bg-success/5">RECEITAS</td>
+                        <td colSpan={fluxoCaixaData.MONTH_LABELS.length + 3} className="py-1.5 px-2 font-bold text-success text-xs uppercase sticky left-0 bg-success/5">RECEITAS</td>
                       </tr>
                       {flatReceitas.map((node) => {
                         const hasChildren = node.children.length > 0;
@@ -489,7 +569,7 @@ export default function Relatorios() {
                   {flatDespesas.length > 0 && (
                     <>
                       <tr className="border-b bg-destructive/5">
-                        <td colSpan={15} className="py-1.5 px-2 font-bold text-destructive text-xs uppercase sticky left-0 bg-destructive/5">DESPESAS</td>
+                        <td colSpan={fluxoCaixaData.MONTH_LABELS.length + 3} className="py-1.5 px-2 font-bold text-destructive text-xs uppercase sticky left-0 bg-destructive/5">DESPESAS</td>
                       </tr>
                       {flatDespesas.map((node) => {
                         const hasChildren = node.children.length > 0;
@@ -527,7 +607,7 @@ export default function Relatorios() {
           </table>
           {filteredTransactions.length === 0 && (
             <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
-              {fluxoTransactions.length === 0 ? `Nenhuma movimentação em ${fluxoYear}` : "Nenhum resultado com os filtros selecionados"}
+              {fluxoTransactions.length === 0 ? "Nenhuma movimentação no período selecionado" : "Nenhum resultado com os filtros selecionados"}
             </div>
           )}
         </CardContent>
