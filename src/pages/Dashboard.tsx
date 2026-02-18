@@ -166,7 +166,7 @@ export default function Dashboard() {
     { label: "Saldo", value: maskBRL(saldo), change: totalReceitas > 0 ? `${((saldo / totalReceitas) * 100).toFixed(0)}% das Receitas` : undefined, icon: Wallet, positive: saldo >= 0 },
     { label: "Contas Bancárias", value: maskBRL(totalBankBalance), icon: Landmark, positive: totalBankBalance >= 0 },
     { label: "Receitas", value: maskBRL(totalReceitas), change: changeR, icon: TrendingUp, positive: true },
-    { label: "Despesas", value: maskBRL(totalDespesas), change: changeD, icon: TrendingDown, positive: false },
+    { label: "Despesas", value: maskBRL(totalDespesas), change: totalReceitas > 0 ? `${((totalDespesas / totalReceitas) * 100).toFixed(0)}% das Receitas` : changeD, icon: TrendingDown, positive: false },
   ];
 
   const barConfig: ChartConfig = {
