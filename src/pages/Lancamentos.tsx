@@ -20,7 +20,7 @@ import { PaymentDialog } from "@/components/bills/PaymentDialog";
 import {
   Plus, Search, ArrowLeftRight,
   Trash2, Pencil, ChevronLeft, ChevronRight, ChevronDown, Filter, SlidersHorizontal,
-  Download, DollarSign, CalendarIcon, CreditCard, HandCoins, X, Settings2, Repeat,
+  Download, DollarSign, CalendarIcon, CreditCard, HandCoins, X, Settings2, Repeat, Paperclip,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, endOfMonth, isPast } from "date-fns";
@@ -57,6 +57,7 @@ type Transaction = {
   destination_account_id: string | null;
   is_recurring: boolean;
   parent_transaction_id: string | null;
+  attachment_url: string | null;
 };
 
 type DisplayRow = {
@@ -76,6 +77,7 @@ type DisplayRow = {
   hasDueDate: boolean;
   isRecurring: boolean;
   isRecurrenceChild: boolean;
+  attachmentUrl: string | null;
   original: Transaction;
 };
 
@@ -196,7 +198,7 @@ export default function Lancamentos() {
     // We need transactions that fall in the month by transaction_date OR by due_date
     let q = supabase
       .from("transactions")
-      .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, bill_status, payment_date, contact_id, notes, destination_account_id, is_recurring, parent_transaction_id, categories(name), accounts!transactions_account_id_fkey(name), payment_methods(name)")
+      .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, bill_status, payment_date, contact_id, notes, destination_account_id, is_recurring, parent_transaction_id, attachment_url, categories(name), accounts!transactions_account_id_fkey(name), payment_methods(name)")
       .eq("user_id", user.id)
       .eq("context", contextType)
       .or(`and(transaction_date.gte.${monthStart},transaction_date.lte.${monthEnd}),and(due_date.gte.${monthStart},due_date.lte.${monthEnd})`)
@@ -338,6 +340,7 @@ export default function Lancamentos() {
         hasDueDate: !!t.due_date,
         isRecurring: t.is_recurring,
         isRecurrenceChild: !!t.parent_transaction_id,
+        attachmentUrl: t.attachment_url,
         original: t,
       });
     });
@@ -822,6 +825,18 @@ export default function Lancamentos() {
                                     <TooltipContent side="top" className="text-xs">
                                       {r.isRecurring ? "Lançamento recorrente (pai)" : "Gerado por recorrência"}
                                     </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                              {r.attachmentUrl && (
+                                <TooltipProvider delayDuration={200}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <a href={r.attachmentUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                                        <Paperclip className="h-3 w-3 shrink-0 text-muted-foreground hover:text-foreground" />
+                                      </a>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="text-xs">Anexo disponível</TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
                               )}
