@@ -21,7 +21,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   Plus, Search, ArrowLeftRight,
   Trash2, Pencil, ChevronLeft, ChevronRight, ChevronDown, Filter, SlidersHorizontal,
-  Download, DollarSign, CalendarIcon, CreditCard, HandCoins, X, Settings2, Repeat, Paperclip,
+  Download, DollarSign, CalendarIcon, CreditCard, HandCoins, X, Settings2, Repeat, Paperclip, Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, endOfMonth, isPast } from "date-fns";
@@ -310,7 +310,27 @@ export default function Lancamentos() {
     setDeleteWithChildren(false);
   };
 
-  // Display rows
+  const updateTransactionStatus = async (txId: string, newStatus: string) => {
+    const updateData: Record<string, unknown> = { status: newStatus };
+    // If confirming, set payment_date to today if not set
+    if (newStatus === "confirmado") {
+      const tx = transactions.find(t => t.id === txId);
+      if (tx && !tx.payment_date) {
+        updateData.payment_date = format(new Date(), "yyyy-MM-dd");
+      }
+      if (tx && tx.amount_paid === 0) {
+        updateData.amount_paid = tx.amount;
+      }
+    }
+    const { error } = await supabase.from("transactions").update(updateData).eq("id", txId);
+    if (error) {
+      toast.error("Erro ao atualizar status");
+    } else {
+      toast.success(`Status alterado para ${newStatus === "confirmado" ? "Confirmado" : newStatus === "pendente" ? "Pendente" : "Cancelado"}`);
+      refreshAll();
+    }
+  };
+
   const displayRows = useMemo(() => {
     const rows: DisplayRow[] = [];
 
@@ -933,9 +953,43 @@ export default function Lancamentos() {
                           {/* Status */}
                           {visibleColumns.status && (
                           <TableCell className="py-2">
-                            <Badge variant={displayStatusConfig[r.billStatus].variant} className="text-[10px] h-5 px-1.5 whitespace-nowrap">
-                              {displayStatusConfig[r.billStatus].label}
-                            </Badge>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button type="button" className="cursor-pointer">
+                                  <Badge variant={displayStatusConfig[r.billStatus].variant} className="text-[10px] h-5 px-1.5 whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity">
+                                    {displayStatusConfig[r.billStatus].label}
+                                  </Badge>
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-40 p-1" align="start">
+                                <div className="flex flex-col gap-0.5">
+                                  <button
+                                    type="button"
+                                    className={cn("flex items-center gap-2 px-2 py-1.5 text-xs rounded-md hover:bg-accent transition-colors text-left", r.original.status === "confirmado" && "bg-accent font-medium")}
+                                    onClick={() => updateTransactionStatus(r.id, "confirmado")}
+                                  >
+                                    <Check className="h-3 w-3 text-success" />
+                                    Confirmado
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={cn("flex items-center gap-2 px-2 py-1.5 text-xs rounded-md hover:bg-accent transition-colors text-left", r.original.status === "pendente" && "bg-accent font-medium")}
+                                    onClick={() => updateTransactionStatus(r.id, "pendente")}
+                                  >
+                                    <CalendarIcon className="h-3 w-3 text-muted-foreground" />
+                                    Pendente
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={cn("flex items-center gap-2 px-2 py-1.5 text-xs rounded-md hover:bg-accent transition-colors text-left", r.original.status === "cancelado" && "bg-accent font-medium")}
+                                    onClick={() => updateTransactionStatus(r.id, "cancelado")}
+                                  >
+                                    <X className="h-3 w-3 text-destructive" />
+                                    Cancelado
+                                  </button>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
                           </TableCell>
                           )}
 
