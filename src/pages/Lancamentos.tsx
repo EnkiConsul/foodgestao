@@ -811,20 +811,20 @@ export default function Lancamentos() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="table-fixed">
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    {visibleColumns.data !== false && <TableHead className="text-xs w-[80px]">Data</TableHead>}
+                    {visibleColumns.data !== false && <TableHead className="text-xs w-[75px]">Data</TableHead>}
                     <TableHead className="text-xs">Descrição</TableHead>
                     {visibleColumns.dc && <TableHead className="text-xs w-[40px] text-center">D/C</TableHead>}
-                    {visibleColumns.categoria && <TableHead className="text-xs w-[100px]">Categoria</TableHead>}
-                    {visibleColumns.conta && <TableHead className="text-xs w-[100px]">Conta</TableHead>}
+                    {visibleColumns.categoria && <TableHead className="text-xs w-[110px]">Categoria</TableHead>}
+                    {visibleColumns.conta && <TableHead className="text-xs w-[110px]">Conta</TableHead>}
                     {visibleColumns.formaPagamento && <TableHead className="text-xs w-[100px]">Forma Pgto</TableHead>}
-                    <TableHead className="text-xs w-[100px] text-right">Valor</TableHead>
-                    {visibleColumns.status && <TableHead className="text-xs w-[90px]">Status</TableHead>}
-                    {visibleColumns.vencimento && <TableHead className="text-xs w-[80px]">Vencimento</TableHead>}
-                    {visibleColumns.saldo && <TableHead className="text-xs w-[100px] text-right">Saldo</TableHead>}
-                    <TableHead className="text-xs w-[80px]" />
+                    <TableHead className="text-xs w-[95px] text-right">Valor</TableHead>
+                    {visibleColumns.status && <TableHead className="text-xs w-[85px]">Status</TableHead>}
+                    {visibleColumns.vencimento && <TableHead className="text-xs w-[75px]">Vencimento</TableHead>}
+                    {visibleColumns.saldo && <TableHead className="text-xs w-[95px] text-right">Saldo</TableHead>}
+                    <TableHead className="text-xs w-[90px]" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -864,8 +864,8 @@ export default function Lancamentos() {
                           )}
 
                           {/* Descrição */}
-                          <TableCell className="text-xs py-2">
-                            <div className="flex items-center gap-1 truncate max-w-[200px]">
+                          <TableCell className="text-xs py-2 overflow-hidden max-w-0">
+                            <div className="flex items-center gap-1 min-w-0 w-full">
                               {(r.isRecurring || r.isRecurrenceChild) && (
                                 <TooltipProvider delayDuration={200}>
                                   <Tooltip>
@@ -919,22 +919,22 @@ export default function Lancamentos() {
 
                           {/* Categoria */}
                           {visibleColumns.categoria && (
-                          <TableCell className="text-xs py-2 text-muted-foreground truncate max-w-[100px]">
-                            {r.categoryName || "—"}
+                          <TableCell className="text-xs py-2 text-muted-foreground overflow-hidden max-w-0">
+                            <span className="block truncate">{r.categoryName || "—"}</span>
                           </TableCell>
                           )}
 
                           {/* Conta */}
                           {visibleColumns.conta && (
-                          <TableCell className="text-xs py-2 text-muted-foreground truncate max-w-[100px]">
-                            {r.accountName || "—"}
+                          <TableCell className="text-xs py-2 text-muted-foreground overflow-hidden max-w-0">
+                            <span className="block truncate">{r.accountName || "—"}</span>
                           </TableCell>
                           )}
 
                           {/* Forma Pgto */}
                           {visibleColumns.formaPagamento && (
-                          <TableCell className="text-xs py-2 text-muted-foreground truncate max-w-[100px]">
-                            {r.paymentMethodName || "—"}
+                          <TableCell className="text-xs py-2 text-muted-foreground overflow-hidden max-w-0">
+                            <span className="block truncate">{r.paymentMethodName || "—"}</span>
                           </TableCell>
                           )}
 
