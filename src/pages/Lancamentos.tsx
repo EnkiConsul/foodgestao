@@ -820,10 +820,10 @@ export default function Lancamentos() {
                     {visibleColumns.categoria && <TableHead className="text-xs w-[110px]">Categoria</TableHead>}
                     {visibleColumns.conta && <TableHead className="text-xs w-[110px]">Conta</TableHead>}
                     {visibleColumns.formaPagamento && <TableHead className="text-xs w-[100px]">Forma Pgto</TableHead>}
-                    <TableHead className="text-xs w-[95px] text-right">Valor</TableHead>
+                    <TableHead className="text-xs w-[110px] text-right">Valor</TableHead>
                     {visibleColumns.status && <TableHead className="text-xs w-[85px]">Status</TableHead>}
                     {visibleColumns.vencimento && <TableHead className="text-xs w-[75px]">Vencimento</TableHead>}
-                    {visibleColumns.saldo && <TableHead className="text-xs w-[95px] text-right">Saldo</TableHead>}
+                    {visibleColumns.saldo && <TableHead className="text-xs w-[115px] text-right">Saldo</TableHead>}
                     <TableHead className="text-xs w-[90px]" />
                   </TableRow>
                 </TableHeader>
@@ -939,7 +939,7 @@ export default function Lancamentos() {
                           )}
 
                           {/* Valor */}
-                          <TableCell className={`text-xs text-right py-2 font-medium ${isReceita ? "text-success" : isDespesa ? "text-destructive" : "text-foreground"}`}>
+                          <TableCell className={`text-xs text-right py-2 font-medium whitespace-nowrap ${isReceita ? "text-success" : isDespesa ? "text-destructive" : "text-foreground"}`}>
                             {r.amountPaid > 0 && r.amountPaid !== r.amount ? (
                               <TooltipProvider delayDuration={200}>
                                 <Tooltip>
@@ -1012,7 +1012,7 @@ export default function Lancamentos() {
 
                           {/* Saldo */}
                           {visibleColumns.saldo && (
-                          <TableCell className={`text-xs text-right py-2 font-medium ${r.runningBalance >= 0 ? "text-success" : "text-destructive"}`}>
+                          <TableCell className={`text-xs text-right py-2 font-medium whitespace-nowrap ${r.runningBalance >= 0 ? "text-success" : "text-destructive"}`}>
                             {formatBRL(r.runningBalance)}
                           </TableCell>
                           )}
