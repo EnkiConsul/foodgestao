@@ -1,49 +1,36 @@
 
 
-## Adicionar Campos de Recorrencia ao Formulario de Lancamento
+## Corrigir Layout da Tabela de Lancamentos
 
-### O que sera feito
-Adicionar campos opcionais ao formulario de lancamento para configurar recorrencia, permitindo que o usuario marque um lancamento como recorrente e defina a frequencia e data de fim.
+### Problema
+As linhas da tabela de lancamentos estao crescendo verticalmente quando o conteudo das colunas tem muitos caracteres, quebrando o layout visual.
 
-### Campos a serem adicionados
-- **Switch "Lancamento recorrente"** - ativa/desativa a secao de recorrencia
-- **Select "Frequencia"** - opcoes: Diario, Semanal, Quinzenal, Mensal, Bimestral, Trimestral, Semestral, Anual
-- **Input date "Data final da recorrencia" (opcional)** - ate quando a recorrencia sera criada
+### Solucao
+Aplicar `table-fixed` na tabela e garantir que todas as celulas com texto tenham truncamento (`truncate`) e larguras maximas definidas, impedindo que o conteudo force o crescimento da linha.
 
-Os campos de recorrencia aparecerao apenas quando o switch estiver ativado, usando uma animacao suave de expansao.
+### Alteracoes Tecnicas
 
-### Alteracoes tecnicas
+**Arquivo: `src/pages/Lancamentos.tsx`**
 
-**Arquivo: `src/components/transactions/TransactionFormDialog.tsx`**
+1. **Tabela com layout fixo**: Adicionar a classe `table-fixed` ao componente `<Table>` para que as colunas respeitem as larguras definidas nos headers.
 
-1. **Novos estados**:
-   - `isRecurring: boolean` (default `false`)
-   - `recurrenceType: string` (default `"mensal"`)
-   - `recurrenceEndDate: string` (default `""`)
+2. **Ajustar larguras dos headers (`<TableHead>`)**: Definir larguras proporcionais e adequadas para cada coluna:
+   - Data: `w-[75px]`
+   - Descricao: sem largura fixa (ocupa o espaco restante)
+   - D/C: `w-[40px]`
+   - Categoria: `w-[110px]`
+   - Conta: `w-[110px]`
+   - Forma Pgto: `w-[100px]`
+   - Valor: `w-[95px]`
+   - Status: `w-[85px]`
+   - Vencimento: `w-[75px]`
+   - Saldo: `w-[95px]`
+   - Acoes: `w-[90px]`
 
-2. **Importacoes adicionais**:
-   - `Switch` de `@/components/ui/switch`
+3. **Truncamento nas celulas de dados (`<TableCell>`)**: Garantir que as celulas de Descricao, Categoria, Conta e Forma de Pagamento tenham `truncate`, `overflow-hidden` e `max-w-0` (truque para `table-fixed` respeitar truncamento).
 
-3. **Posicao no formulario**: Os campos de recorrencia serao inseridos apos o campo "Data de vencimento" e antes do campo "Conta", agrupados visualmente
+4. **Celula de Descricao**: Alterar o container interno de `max-w-[200px]` para `min-w-0 w-full` com `truncate` no span, permitindo que ocupe todo o espaco disponivel e trunque adequadamente.
 
-4. **Payload de submit**: Incluir `is_recurring`, `recurrence_type` e `recurrence_end_date` no payload enviado ao banco
+5. **Celulas de Categoria, Conta e Forma Pgto**: Substituir `max-w-[100px]` por `overflow-hidden` e adicionar um `<span>` interno com `truncate block` para garantir o corte do texto.
 
-5. **Interface `EditableTransaction`**: Adicionar `is_recurring`, `recurrence_type` e `recurrence_end_date` para suportar edicao
-
-6. **`resetForm`**: Limpar os novos campos (`isRecurring = false`, `recurrenceType = "mensal"`, `recurrenceEndDate = ""`)
-
-7. **Populate on edit**: Preencher os campos ao editar um lancamento recorrente existente
-
-### Estrutura visual no formulario
-```
-[Switch] Lancamento recorrente
-
-  (se ativado:)
-  Frequencia:        [Select: Mensal v]
-  Data final:        [____/____/____] (opcional)
-```
-
-### Observacao
-- Nao sera implementada neste momento a logica de geracao automatica de parcelas/lancamentos futuros, apenas o cadastro dos campos
-- A tabela `transactions` ja possui as colunas `is_recurring`, `recurrence_type` e `recurrence_end_date`, portanto nenhuma migracao sera necessaria
-
+Essas mudancas garantem que todas as linhas da tabela mantenham uma altura uniforme, independente do tamanho do conteudo, com texto longo sendo cortado com reticencias (`...`).
