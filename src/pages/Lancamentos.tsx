@@ -811,7 +811,7 @@ export default function Lancamentos() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <Table className="table-fixed">
+              <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     {visibleColumns.data !== false && <TableHead className="text-xs w-[75px]">Data</TableHead>}
@@ -864,8 +864,8 @@ export default function Lancamentos() {
                           )}
 
                           {/* Descrição */}
-                          <TableCell className="text-xs py-2 overflow-hidden max-w-0">
-                            <div className="flex items-center gap-1 min-w-0 w-full">
+                          <TableCell className="text-xs py-2">
+                            <div className="flex items-center gap-1 max-w-[280px]">
                               {(r.isRecurring || r.isRecurrenceChild) && (
                                 <TooltipProvider delayDuration={200}>
                                   <Tooltip>
@@ -919,22 +919,22 @@ export default function Lancamentos() {
 
                           {/* Categoria */}
                           {visibleColumns.categoria && (
-                          <TableCell className="text-xs py-2 text-muted-foreground overflow-hidden max-w-0">
-                            <span className="block truncate">{r.categoryName || "—"}</span>
+                          <TableCell className="text-xs py-2 text-muted-foreground whitespace-nowrap">
+                            {r.categoryName || "—"}
                           </TableCell>
                           )}
 
                           {/* Conta */}
                           {visibleColumns.conta && (
-                          <TableCell className="text-xs py-2 text-muted-foreground overflow-hidden max-w-0">
-                            <span className="block truncate">{r.accountName || "—"}</span>
+                          <TableCell className="text-xs py-2 text-muted-foreground whitespace-nowrap">
+                            {r.accountName || "—"}
                           </TableCell>
                           )}
 
                           {/* Forma Pgto */}
                           {visibleColumns.formaPagamento && (
-                          <TableCell className="text-xs py-2 text-muted-foreground overflow-hidden max-w-0">
-                            <span className="block truncate">{r.paymentMethodName || "—"}</span>
+                          <TableCell className="text-xs py-2 text-muted-foreground whitespace-nowrap">
+                            {r.paymentMethodName || "—"}
                           </TableCell>
                           )}
 
