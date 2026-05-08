@@ -219,6 +219,10 @@ export default function Configuracoes() {
         <Save className="h-4 w-4 mr-2" />
         {saving ? "Salvando..." : "Salvar Configurações"}
       </Button>
+
+      <Separator />
+
+      <ResetMyDataCard />
     </div>
   );
 }
