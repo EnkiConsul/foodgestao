@@ -3,6 +3,7 @@ import { AdminStats } from "@/components/admin/AdminStats";
 import { AdminUsers } from "@/components/admin/AdminUsers";
 import { AdminCompanies } from "@/components/admin/AdminCompanies";
 import { AdminAuditLogs } from "@/components/admin/AdminAuditLogs";
+import { AdminResetData } from "@/components/admin/AdminResetData";
 import { ShieldCheck } from "lucide-react";
 
 export default function Admin() {
