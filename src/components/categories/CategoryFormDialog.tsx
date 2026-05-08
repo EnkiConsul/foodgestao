@@ -89,7 +89,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       setName("");
       setType(defaultType ?? "despesa");
       setColor("#3b82f6");
-      setParentId(defaultParentId ?? null);
+      setParentId(defaultParentId || null);
       setVisiblePf(true);
       setSelectedCompanies(new Set(companies.map((c) => c.id)));
     }
