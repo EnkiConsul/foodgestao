@@ -154,7 +154,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
         transaction_type: type,
         color,
         context: contextType,
-        parent_id: parentId,
+        parent_id: parentId || null,
         visible_pf: visiblePf,
       } as any).select("id").single();
 
