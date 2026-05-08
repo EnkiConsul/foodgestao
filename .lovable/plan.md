@@ -1,36 +1,73 @@
+## Funcionalidade: Resetar Dados (Painel Admin)
 
+Adicionar uma seção "Zona de Perigo" no Painel Admin (`/admin`) que permite ao super admin apagar dados de forma seletiva, escolhendo exatamente o que limpar e de quem.
 
-## Corrigir Layout da Tabela de Lancamentos
+### Localização
+- Nova aba "Resetar Dados" em `src/pages/Admin.tsx`, ao lado das abas existentes (Stats, Usuários, Auditoria).
+- Restrita via `SuperAdminRoute` (já existe).
 
-### Problema
-As linhas da tabela de lancamentos estao crescendo verticalmente quando o conteudo das colunas tem muitos caracteres, quebrando o layout visual.
+### Interface (novo componente `src/components/admin/AdminResetData.tsx`)
 
-### Solucao
-Aplicar `table-fixed` na tabela e garantir que todas as celulas com texto tenham truncamento (`truncate`) e larguras maximas definidas, impedindo que o conteudo force o crescimento da linha.
+1. **Seleção de alvo** (radio):
+   - Um usuário específico (combobox listando usuários da tabela `profiles`)
+   - Uma empresa específica (combobox listando `companies`)
+   - Todos os meus dados (do super admin logado)
 
-### Alteracoes Tecnicas
+2. **Seleção de escopo** (checkboxes — usuário marca o que apagar):
+   - Lançamentos (`transactions` + `transaction_tags` + `transaction_attachments`)
+   - Contas bancárias (`accounts`)
+   - Categorias (`categories` + `category_companies`)
+   - Contatos (`contacts` + `contact_companies`)
+   - Formas de pagamento (`payment_methods` + `payment_method_companies`)
+   - Orçamentos (`budgets`)
+   - Centros de custo (`cost_centers`)
+   - Tags (`tags`)
+   - Empresas (`companies` + `company_members` + `company_invites`) — apenas quando alvo = usuário
+   - Logs de auditoria do alvo (`audit_logs`)
+   - Atalho "Marcar tudo"
 
-**Arquivo: `src/pages/Lancamentos.tsx`**
+3. **Filtro de contexto** (radio, aplicável aos itens com `context`):
+   - Apenas PF (`context = 'pf'`)
+   - Apenas PJ/empresa (`context = 'pj'`)
+   - Ambos
 
-1. **Tabela com layout fixo**: Adicionar a classe `table-fixed` ao componente `<Table>` para que as colunas respeitem as larguras definidas nos headers.
+4. **Confirmação dupla**:
+   - Modal de aviso explicando que a ação é irreversível
+   - Campo onde o usuário deve digitar `APAGAR` para liberar o botão final
+   - Resumo do que será apagado (alvo + escopo + contexto)
 
-2. **Ajustar larguras dos headers (`<TableHead>`)**: Definir larguras proporcionais e adequadas para cada coluna:
-   - Data: `w-[75px]`
-   - Descricao: sem largura fixa (ocupa o espaco restante)
-   - D/C: `w-[40px]`
-   - Categoria: `w-[110px]`
-   - Conta: `w-[110px]`
-   - Forma Pgto: `w-[100px]`
-   - Valor: `w-[95px]`
-   - Status: `w-[85px]`
-   - Vencimento: `w-[75px]`
-   - Saldo: `w-[95px]`
-   - Acoes: `w-[90px]`
+5. **Feedback**:
+   - Toast com contagem de registros apagados por tabela
+   - Registro automático em `audit_logs` (ação `reset_data`) com detalhes (alvo, escopo, contexto, contagens)
 
-3. **Truncamento nas celulas de dados (`<TableCell>`)**: Garantir que as celulas de Descricao, Categoria, Conta e Forma de Pagamento tenham `truncate`, `overflow-hidden` e `max-w-0` (truque para `table-fixed` respeitar truncamento).
+### Backend (Edge Function)
 
-4. **Celula de Descricao**: Alterar o container interno de `max-w-[200px]` para `min-w-0 w-full` com `truncate` no span, permitindo que ocupe todo o espaco disponivel e trunque adequadamente.
+Criar edge function `supabase/functions/admin-reset-data/index.ts`:
+- Valida JWT e checa `is_super_admin(user.id)` via service role
+- Recebe payload: `{ target: { type, userId?, companyId? }, scope: string[], context: 'pf'|'pj'|'both' }`
+- Valida com Zod
+- Usa `SUPABASE_SERVICE_ROLE_KEY` para executar deletes (bypassa RLS com segurança)
+- Ordem de delete respeitando dependências (filhos antes dos pais):
+  1. `transaction_tags`, `transaction_attachments` → `transactions`
+  2. `category_companies` → `categories`
+  3. `contact_companies` → `contacts`
+  4. `payment_method_companies` → `payment_methods`
+  5. `budgets`, `cost_centers`, `tags`
+  6. `accounts`
+  7. `company_invites`, `company_members` → `companies`
+- Filtra por `user_id` ou `company_id` conforme alvo, e por `context` quando aplicável
+- Retorna contagem de registros removidos por tabela
+- Chama `insert_audit_log` ao final
 
-5. **Celulas de Categoria, Conta e Forma Pgto**: Substituir `max-w-[100px]` por `overflow-hidden` e adicionar um `<span>` interno com `truncate block` para garantir o corte do texto.
+### Detalhes técnicos
 
-Essas mudancas garantem que todas as linhas da tabela mantenham uma altura uniforme, independente do tamanho do conteudo, com texto longo sendo cortado com reticencias (`...`).
+- **Não apaga**: `profiles`, `user_roles`, `auth.users` (preserva login e perfil)
+- **Storage**: ao apagar `transaction_attachments`, também remover arquivos do bucket `transaction-attachments` (loop pelos `file_url`)
+- **Anexos de empresa**: ao apagar empresa, deletar transações vinculadas primeiro
+- **Realtime/UI**: invalidar todas as queries do React Query após sucesso (`queryClient.invalidateQueries()`)
+- **Segurança**: edge function usa `verify_jwt = false` por padrão Lovable, mas valida JWT manualmente e exige `super_admin`
+
+### Arquivos a criar/editar
+- Criar `supabase/functions/admin-reset-data/index.ts`
+- Criar `src/components/admin/AdminResetData.tsx`
+- Editar `src/pages/Admin.tsx` (adicionar aba "Resetar Dados")

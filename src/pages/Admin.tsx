@@ -3,6 +3,7 @@ import { AdminStats } from "@/components/admin/AdminStats";
 import { AdminUsers } from "@/components/admin/AdminUsers";
 import { AdminCompanies } from "@/components/admin/AdminCompanies";
 import { AdminAuditLogs } from "@/components/admin/AdminAuditLogs";
+import { AdminResetData } from "@/components/admin/AdminResetData";
 import { ShieldCheck } from "lucide-react";
 
 export default function Admin() {
@@ -22,6 +23,7 @@ export default function Admin() {
           <TabsTrigger value="users">Usuários</TabsTrigger>
           <TabsTrigger value="companies">Perfis de Acesso</TabsTrigger>
           <TabsTrigger value="audit">Auditoria</TabsTrigger>
+          <TabsTrigger value="reset">Resetar Dados</TabsTrigger>
         </TabsList>
 
         <TabsContent value="stats">
@@ -35,6 +37,9 @@ export default function Admin() {
         </TabsContent>
         <TabsContent value="audit">
           <AdminAuditLogs />
+        </TabsContent>
+        <TabsContent value="reset">
+          <AdminResetData />
         </TabsContent>
       </Tabs>
     </div>

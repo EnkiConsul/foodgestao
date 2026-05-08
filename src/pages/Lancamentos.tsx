@@ -313,7 +313,7 @@ export default function Lancamentos() {
   };
 
   const updateTransactionStatus = async (txId: string, newStatus: string) => {
-    const updateData: Record<string, unknown> = { status: newStatus };
+    const updateData: any = { status: newStatus };
     const tx = transactions.find(t => t.id === txId);
     if (newStatus === "confirmado") {
       if (tx && !tx.payment_date) {
