@@ -212,7 +212,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
 
           <div className="space-y-2">
             <Label>Categoria Pai (opcional)</Label>
-            <Select value={parentId ?? "__none__"} onValueChange={(v) => setParentId(v === "__none__" ? null : v)}>
+            <Select value={parentId ?? "__none__"} onValueChange={(v) => setParentId(!v || v === "__none__" ? null : v)}>
               <SelectTrigger><SelectValue placeholder="Nenhuma (raiz)" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">Nenhuma (raiz)</SelectItem>
