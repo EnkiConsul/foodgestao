@@ -60,17 +60,14 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
-    // Check super admin
+    // Check super admin (optional — required only for non-self targets)
     const { data: roleData } = await admin
       .from("user_roles")
       .select("role")
       .eq("user_id", callerId)
       .eq("role", "super_admin")
       .maybeSingle();
-
-    if (!roleData) {
-      return json({ error: "Apenas super admins podem executar reset" }, 403);
-    }
+    const isSuperAdmin = !!roleData;
 
     const body = (await req.json()) as Payload;
     if (!body?.target?.type || !Array.isArray(body.scope)) {
@@ -85,11 +82,26 @@ Deno.serve(async (req) => {
     // Resolve target filter
     let userIdFilter: string | null = null;
     let companyIdFilter: string | null = null;
-    if (body.target.type === "user") {
-      userIdFilter = body.target.userId;
-    } else if (body.target.type === "self") {
+    if (body.target.type === "self") {
       userIdFilter = callerId;
+    } else if (body.target.type === "user") {
+      if (!isSuperAdmin && body.target.userId !== callerId) {
+        return json({ error: "Sem permissão para resetar dados de outro usuário" }, 403);
+      }
+      userIdFilter = body.target.userId;
     } else if (body.target.type === "company") {
+      if (!isSuperAdmin) {
+        // Regular users must be owner/admin of the company
+        const { data: member } = await admin
+          .from("company_members")
+          .select("role")
+          .eq("user_id", callerId)
+          .eq("company_id", body.target.companyId)
+          .maybeSingle();
+        if (!member || !["owner", "admin"].includes(member.role)) {
+          return json({ error: "Apenas administradores da empresa podem resetar seus dados" }, 403);
+        }
+      }
       companyIdFilter = body.target.companyId;
     } else {
       return json({ error: "Alvo inválido" }, 400);
