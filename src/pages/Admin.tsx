@@ -38,6 +38,9 @@ export default function Admin() {
         <TabsContent value="audit">
           <AdminAuditLogs />
         </TabsContent>
+        <TabsContent value="reset">
+          <AdminResetData />
+        </TabsContent>
       </Tabs>
     </div>
   );
