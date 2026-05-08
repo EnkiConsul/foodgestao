@@ -23,6 +23,7 @@ export default function Admin() {
           <TabsTrigger value="users">Usuários</TabsTrigger>
           <TabsTrigger value="companies">Perfis de Acesso</TabsTrigger>
           <TabsTrigger value="audit">Auditoria</TabsTrigger>
+          <TabsTrigger value="reset">Resetar Dados</TabsTrigger>
         </TabsList>
 
         <TabsContent value="stats">
