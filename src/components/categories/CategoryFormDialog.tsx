@@ -120,7 +120,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
     if (editCategory) {
       const { error } = await supabase
         .from("categories")
-        .update({ name: name.trim(), transaction_type: type, color, parent_id: parentId, visible_pf: visiblePf } as any)
+        .update({ name: name.trim(), transaction_type: type, color, parent_id: parentId || null, visible_pf: visiblePf } as any)
         .eq("id", editCategory.id);
       if (error) {
         toast.error("Erro ao atualizar", { description: error.message });
