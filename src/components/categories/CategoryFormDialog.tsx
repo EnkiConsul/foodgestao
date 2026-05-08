@@ -89,7 +89,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       setName("");
       setType(defaultType ?? "despesa");
       setColor("#3b82f6");
-      setParentId(defaultParentId ?? null);
+      setParentId(defaultParentId || null);
       setVisiblePf(true);
       setSelectedCompanies(new Set(companies.map((c) => c.id)));
     }
@@ -111,7 +111,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user?.id) return;
     const catValidated = validateWithToast(categorySchema, { name, transaction_type: type, color }, toast.error);
     if (!catValidated) return;
 
@@ -120,7 +120,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
     if (editCategory) {
       const { error } = await supabase
         .from("categories")
-        .update({ name: name.trim(), transaction_type: type, color, parent_id: parentId, visible_pf: visiblePf } as any)
+        .update({ name: name.trim(), transaction_type: type, color, parent_id: parentId || null, visible_pf: visiblePf } as any)
         .eq("id", editCategory.id);
       if (error) {
         toast.error("Erro ao atualizar", { description: error.message });
@@ -154,7 +154,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
         transaction_type: type,
         color,
         context: contextType,
-        parent_id: parentId,
+        parent_id: parentId || null,
         visible_pf: visiblePf,
       } as any).select("id").single();
 
@@ -212,7 +212,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
 
           <div className="space-y-2">
             <Label>Categoria Pai (opcional)</Label>
-            <Select value={parentId ?? "__none__"} onValueChange={(v) => setParentId(v === "__none__" ? null : v)}>
+            <Select value={parentId ?? "__none__"} onValueChange={(v) => setParentId(!v || v === "__none__" ? null : v)}>
               <SelectTrigger><SelectValue placeholder="Nenhuma (raiz)" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">Nenhuma (raiz)</SelectItem>

@@ -94,7 +94,7 @@ export default function Categorias() {
   const handleBatchChangeParent = async () => {
     if (selected.size === 0) return;
     setBatchSaving(true);
-    const newParentId = batchParentId === "__none__" ? null : batchParentId;
+    const newParentId = !batchParentId || batchParentId === "__none__" ? null : batchParentId;
     const updates = Array.from(selected).map((id) =>
       supabase.from("categories").update({ parent_id: newParentId }).eq("id", id)
     );
