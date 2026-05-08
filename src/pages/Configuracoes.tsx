@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { User, Globe, Shield, Save } from "lucide-react";
+import { ResetMyDataCard } from "@/components/settings/ResetMyDataCard";
 
 const CURRENCIES = [
   { value: "BRL", label: "R$ - Real Brasileiro" },
@@ -218,6 +219,10 @@ export default function Configuracoes() {
         <Save className="h-4 w-4 mr-2" />
         {saving ? "Salvando..." : "Salvar Configurações"}
       </Button>
+
+      <Separator />
+
+      <ResetMyDataCard />
     </div>
   );
 }
