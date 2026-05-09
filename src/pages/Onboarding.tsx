@@ -166,6 +166,7 @@ export default function Onboarding() {
         phone: data.phone || undefined,
         document: data.document || undefined,
         onboarding_completed: true,
+        onboarding_data: null,
       }).eq("user_id", user.id);
 
       if (isPJ && data.companyName) {
