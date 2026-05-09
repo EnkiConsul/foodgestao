@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -30,6 +31,12 @@ export default function Orcamento() {
   const { maskBRL } = usePrivacy();
   const formatBRL = maskBRL;
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Sincronização em tempo real (orçamento depende de transações de despesa)
+  useRealtimeSync({
+    tables: ["transactions"],
+    invalidateKeyPrefixes: ["budgets", "budget-spending"],
+  });
 
   const { data: budgets = [], refetch } = useQuery({
     queryKey: ["budgets", user?.id, contextType, selectedCompanyId],

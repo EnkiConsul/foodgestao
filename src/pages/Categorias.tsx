@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,13 @@ function buildTree(categories: Category[]): TreeNode[] {
 export default function Categorias() {
   const { user } = useAuth();
   const { contextType } = useCompanyContext();
+
+  // Sincronização em tempo real
+  useRealtimeSync({
+    tables: ["categories"],
+    invalidateKeyPrefixes: ["categories-page", "category-companies"],
+  });
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editCat, setEditCat] = useState<Category | null>(null);
   const [search, setSearch] = useState("");

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -73,6 +74,12 @@ export default function FluxoCaixa() {
   const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>(getPeriodRange("2months"));
 
   const activeRange = periodPreset === "custom" ? customRange : getPeriodRange(periodPreset);
+
+  // Sincronização em tempo real
+  useRealtimeSync({
+    tables: ["transactions", "accounts"],
+    invalidateKeyPrefixes: ["fluxo-caixa-"],
+  });
 
   // Fetch all transactions (realized + projected via due_date)
   const { data: transactions = [] } = useQuery({

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Wallet, Target, Landmark, CalendarIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -63,6 +64,12 @@ export default function Dashboard() {
   const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>(getPeriodRange("year"));
 
   const activeRange = periodPreset === "custom" ? customRange : getPeriodRange(periodPreset);
+
+  // Sincronização em tempo real (PJ colaborativo / PF próprio)
+  useRealtimeSync({
+    tables: ["transactions", "accounts", "categories"],
+    invalidateKeyPrefixes: ["dashboard-"],
+  });
 
   const { data: transactions = [] } = useQuery({
     queryKey: ["dashboard-transactions", user?.id, contextType, selectedCompanyId, periodPreset, customRange.from.toISOString(), customRange.to.toISOString()],

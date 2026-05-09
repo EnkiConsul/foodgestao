@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
@@ -257,10 +258,16 @@ export default function Lancamentos() {
     fetchPreviousBalance();
   }, [fetchTransactions, fetchPreviousBalance]);
 
-  const refreshAll = () => {
+  const refreshAll = useCallback(() => {
     fetchTransactions();
     fetchPreviousBalance();
-  };
+  }, [fetchTransactions, fetchPreviousBalance]);
+
+  // Sincronização em tempo real — recarrega quando outro membro altera transações
+  useRealtimeSync({
+    tables: ["transactions"],
+    onChange: refreshAll,
+  });
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteWithChildren, setDeleteWithChildren] = useState(false);
