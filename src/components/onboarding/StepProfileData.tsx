@@ -36,7 +36,7 @@ export function StepProfileData({ data, update }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label>CPF (opcional)</Label>
+            <Label>CPF</Label>
             <Input
               value={data.document}
               onChange={(e) => update({ document: e.target.value })}
@@ -46,7 +46,7 @@ export function StepProfileData({ data, update }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label>Telefone (opcional)</Label>
+            <Label>Telefone</Label>
             <Input
               value={data.phone}
               onChange={(e) => update({ phone: e.target.value })}
@@ -69,7 +69,7 @@ export function StepProfileData({ data, update }: Props) {
             />
           </div>
           <div className="space-y-2">
-            <Label>CNPJ (opcional)</Label>
+            <Label>CNPJ</Label>
             <Input
               value={data.companyCnpj}
               onChange={(e) => update({ companyCnpj: e.target.value })}
