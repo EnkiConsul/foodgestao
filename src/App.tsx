@@ -92,26 +92,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  const [checking, setChecking] = useState(true);
-  const [completed, setCompleted] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    if (!user) {
-      setChecking(false);
-      return;
-    }
-    supabase
-      .from("profiles")
-      .select("onboarding_completed")
-      .eq("user_id", user.id)
-      .single()
-      .then(({ data }) => {
-        setCompleted(data?.onboarding_completed ?? false);
-        setChecking(false);
-      });
-  }, [user]);
-
-  if (loading || checking) {
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
