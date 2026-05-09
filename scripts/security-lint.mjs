@@ -1,31 +1,49 @@
 #!/usr/bin/env node
 /**
- * Custom security linter — runs the same checks the Supabase linter flags
- * and exits non-zero on findings.
+ * Security linter — verifica regras de segurança no banco.
  *
- * Requirements:
- *   - `psql` available on PATH
- *   - `SUPABASE_DB_URL` (or PG* env vars) pointing at the project DB
+ * Flags:
+ *   --ci         Modo CI: logs verbosos (JSON + tabela) e falha apenas em findings críticos.
+ *   --json       Imprime relatório em JSON puro (sem cores) e sai.
+ *   --strict     Falha em qualquer finding (default fora do --ci).
  *
- * If neither requirement is met the script exits 0 with a warning so the
- * build does not break in environments without DB access (e.g. Lovable's
- * managed build pipeline).
+ * Severidades:
+ *   critical → exit 1 sempre
+ *   warning  → exit 1 só se --strict (ou modo default sem --ci)
  *
- * Wire-up: see `prebuild` script in package.json.
+ * Sem credenciais (psql/SUPABASE_DB_URL ausentes) → sai 0 com aviso.
  */
 import { spawnSync } from "node:child_process";
 
 const RED = "\x1b[31m";
 const YELLOW = "\x1b[33m";
 const GREEN = "\x1b[32m";
+const CYAN = "\x1b[36m";
+const DIM = "\x1b[2m";
+const BOLD = "\x1b[1m";
 const RESET = "\x1b[0m";
 
+const args = new Set(process.argv.slice(2));
+const CI = args.has("--ci");
+const JSON_ONLY = args.has("--json");
+const STRICT = args.has("--strict") || (!CI && !JSON_ONLY);
+
+function log(msg) {
+  if (!JSON_ONLY) console.log(msg);
+}
+function warn(msg) {
+  if (!JSON_ONLY) console.warn(msg);
+}
+function err(msg) {
+  if (!JSON_ONLY) console.error(msg);
+}
+
 function skip(reason) {
-  console.warn(`${YELLOW}[security-lint] skipped: ${reason}${RESET}`);
+  warn(`${YELLOW}[security-lint] skipped: ${reason}${RESET}`);
+  if (JSON_ONLY) console.log(JSON.stringify({ skipped: true, reason }));
   process.exit(0);
 }
 
-// Detect psql
 const which = spawnSync("which", ["psql"], { encoding: "utf8" });
 if (which.status !== 0) skip("psql not found on PATH");
 
@@ -33,12 +51,12 @@ const dbUrl = process.env.SUPABASE_DB_URL;
 const hasPgEnv = !!process.env.PGHOST;
 if (!dbUrl && !hasPgEnv) skip("no SUPABASE_DB_URL / PG* env vars");
 
-// Lint queries — keep aligned with Supabase splinter rules we care about.
 const checks = [
   {
     id: "0028_anon_security_definer",
+    severity: "critical",
     description:
-      "SECURITY DEFINER function in `public` schema executable by anon/PUBLIC",
+      "SECURITY DEFINER em `public` executável por anon/PUBLIC (escalada de privilégio para usuários não autenticados)",
     sql: `
       SELECT n.nspname || '.' || p.proname || '(' ||
              pg_catalog.pg_get_function_identity_arguments(p.oid) || ')' AS finding
@@ -46,32 +64,15 @@ const checks = [
       JOIN pg_namespace n ON n.oid = p.pronamespace
       CROSS JOIN LATERAL aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) a
       LEFT JOIN pg_roles r ON r.oid = a.grantee
-      WHERE n.nspname = 'public'
-        AND p.prosecdef = true
+      WHERE n.nspname = 'public' AND p.prosecdef = true
         AND a.privilege_type = 'EXECUTE'
         AND (a.grantee = 0 OR r.rolname = 'anon');
     `,
   },
   {
-    id: "0029_authenticated_security_definer",
-    description:
-      "SECURITY DEFINER function in `public` schema executable by authenticated",
-    sql: `
-      SELECT n.nspname || '.' || p.proname || '(' ||
-             pg_catalog.pg_get_function_identity_arguments(p.oid) || ')' AS finding
-      FROM pg_proc p
-      JOIN pg_namespace n ON n.oid = p.pronamespace
-      CROSS JOIN LATERAL aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) a
-      JOIN pg_roles r ON r.oid = a.grantee
-      WHERE n.nspname = 'public'
-        AND p.prosecdef = true
-        AND a.privilege_type = 'EXECUTE'
-        AND r.rolname = 'authenticated';
-    `,
-  },
-  {
     id: "rls_disabled",
-    description: "Table in `public` schema with RLS disabled",
+    severity: "critical",
+    description: "Tabela em `public` sem RLS habilitado (acesso irrestrito)",
     sql: `
       SELECT schemaname || '.' || tablename AS finding
       FROM pg_tables
@@ -79,15 +80,47 @@ const checks = [
     `,
   },
   {
-    id: "function_search_path_mutable",
+    id: "table_no_policies",
+    severity: "critical",
     description:
-      "SECURITY DEFINER function in `public` without an explicit search_path",
+      "Tabela em `public` com RLS habilitado mas SEM nenhuma policy (bloqueia tudo silenciosamente)",
+    sql: `
+      SELECT t.schemaname || '.' || t.tablename AS finding
+      FROM pg_tables t
+      WHERE t.schemaname = 'public' AND t.rowsecurity = true
+        AND NOT EXISTS (
+          SELECT 1 FROM pg_policies p
+          WHERE p.schemaname = t.schemaname AND p.tablename = t.tablename
+        );
+    `,
+  },
+  {
+    id: "0029_authenticated_security_definer",
+    severity: "warning",
+    description:
+      "SECURITY DEFINER em `public` executável por authenticated (recomendado mover para schema privado)",
+    sql: `
+      SELECT n.nspname || '.' || p.proname || '(' ||
+             pg_catalog.pg_get_function_identity_arguments(p.oid) || ')' AS finding
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+      CROSS JOIN LATERAL aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) a
+      JOIN pg_roles r ON r.oid = a.grantee
+      WHERE n.nspname = 'public' AND p.prosecdef = true
+        AND a.privilege_type = 'EXECUTE'
+        AND r.rolname = 'authenticated';
+    `,
+  },
+  {
+    id: "function_search_path_mutable",
+    severity: "warning",
+    description:
+      "SECURITY DEFINER sem `SET search_path` explícito (vulnerável a hijack de schema)",
     sql: `
       SELECT n.nspname || '.' || p.proname AS finding
       FROM pg_proc p
       JOIN pg_namespace n ON n.oid = p.pronamespace
-      WHERE n.nspname = 'public'
-        AND p.prosecdef = true
+      WHERE n.nspname = 'public' AND p.prosecdef = true
         AND NOT EXISTS (
           SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) c
           WHERE c LIKE 'search_path=%'
@@ -97,49 +130,101 @@ const checks = [
 ];
 
 function runQuery(sql) {
-  const args = ["-X", "-A", "-t", "-v", "ON_ERROR_STOP=1", "-c", sql];
-  if (dbUrl) args.unshift(dbUrl);
-  const res = spawnSync("psql", args, { encoding: "utf8" });
-  if (res.status !== 0) {
-    throw new Error(`psql failed: ${res.stderr || res.stdout}`);
-  }
+  const psqlArgs = ["-X", "-A", "-t", "-v", "ON_ERROR_STOP=1", "-c", sql];
+  if (dbUrl) psqlArgs.unshift(dbUrl);
+  const res = spawnSync("psql", psqlArgs, { encoding: "utf8" });
+  if (res.status !== 0) throw new Error(res.stderr || res.stdout);
   return res.stdout
     .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
 }
 
-let total = 0;
+const startedAt = Date.now();
+if (CI) {
+  log(`${BOLD}${CYAN}━━━ Security Linter (CI mode) ━━━${RESET}`);
+  log(`${DIM}target: ${dbUrl ? new URL(dbUrl).host : process.env.PGHOST}${RESET}`);
+  log(`${DIM}checks: ${checks.length} | strict: ${STRICT}${RESET}\n`);
+}
+
 const report = [];
+let critical = 0;
+let warning = 0;
 
 for (const check of checks) {
+  const t0 = Date.now();
   let findings;
   try {
     findings = runQuery(check.sql);
-  } catch (err) {
-    console.error(`${RED}[security-lint] ${check.id} query failed${RESET}`);
-    console.error(err.message);
+  } catch (e) {
+    err(`${RED}[security-lint] ${check.id} — query falhou${RESET}`);
+    err(e.message);
     process.exit(2);
   }
-  if (findings.length) {
-    total += findings.length;
+  const took = Date.now() - t0;
+  const status = findings.length === 0;
+  if (CI) {
+    const icon = status ? `${GREEN}✓${RESET}` : check.severity === "critical" ? `${RED}✗${RESET}` : `${YELLOW}⚠${RESET}`;
+    log(
+      `${icon} ${check.id.padEnd(40)} ${DIM}${check.severity.padEnd(8)}${took}ms${RESET}` +
+        (status ? "" : ` ${DIM}(${findings.length} finding${findings.length > 1 ? "s" : ""})${RESET}`),
+    );
+  }
+  if (!status) {
+    if (check.severity === "critical") critical += findings.length;
+    else warning += findings.length;
     report.push({ ...check, findings });
   }
 }
 
-if (total === 0) {
-  console.log(`${GREEN}[security-lint] OK — no findings${RESET}`);
+const tookTotal = Date.now() - startedAt;
+
+if (JSON_ONLY) {
+  console.log(
+    JSON.stringify(
+      {
+        ok: report.length === 0,
+        critical,
+        warning,
+        took_ms: tookTotal,
+        findings: report,
+      },
+      null,
+      2,
+    ),
+  );
+}
+
+if (report.length === 0) {
+  log(`\n${GREEN}${BOLD}✓ security-lint OK${RESET} ${DIM}(${tookTotal}ms)${RESET}`);
   process.exit(0);
 }
 
-console.error(
-  `${RED}[security-lint] ${total} finding(s) — failing build${RESET}`,
-);
-for (const r of report) {
-  console.error(`\n${RED}✗ ${r.id}${RESET} — ${r.description}`);
-  for (const f of r.findings) console.error(`    • ${f}`);
+if (!JSON_ONLY) {
+  log(
+    `\n${BOLD}Resumo:${RESET} ${RED}${critical} critical${RESET} · ${YELLOW}${warning} warning${RESET} ${DIM}(${tookTotal}ms)${RESET}`,
+  );
+  for (const r of report) {
+    const color = r.severity === "critical" ? RED : YELLOW;
+    log(`\n${color}${BOLD}● ${r.id}${RESET} ${DIM}[${r.severity}]${RESET}`);
+    log(`  ${r.description}`);
+    for (const f of r.findings) log(`    ${color}•${RESET} ${f}`);
+  }
 }
-console.error(
-  `\n${YELLOW}Fix these via a new SQL migration and re-run the build.${RESET}`,
+
+if (critical > 0) {
+  err(
+    `\n${RED}${BOLD}✗ Falha: ${critical} finding(s) crítico(s)${RESET}`,
+  );
+  process.exit(1);
+}
+if (STRICT && warning > 0) {
+  err(
+    `\n${YELLOW}${BOLD}✗ Falha (strict): ${warning} warning(s)${RESET}`,
+  );
+  process.exit(1);
+}
+log(
+  `\n${YELLOW}⚠ ${warning} warning(s) — não bloqueante em modo CI${RESET}`,
 );
-process.exit(1);
+process.exit(0);
