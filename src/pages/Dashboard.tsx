@@ -64,6 +64,12 @@ export default function Dashboard() {
 
   const activeRange = periodPreset === "custom" ? customRange : getPeriodRange(periodPreset);
 
+  // Sincronização em tempo real (PJ colaborativo / PF próprio)
+  useRealtimeSync({
+    tables: ["transactions", "accounts", "categories"],
+    invalidateKeyPrefixes: ["dashboard-"],
+  });
+
   const { data: transactions = [] } = useQuery({
     queryKey: ["dashboard-transactions", user?.id, contextType, selectedCompanyId, periodPreset, customRange.from.toISOString(), customRange.to.toISOString()],
     enabled: !!user,
