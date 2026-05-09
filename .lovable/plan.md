@@ -1,14 +1,25 @@
-## Alterar mensagem de erro de senha fraca no cadastro
+## Ocultar dados pessoais no onboarding para perfis empresariais
 
 ### Problema
-Ao criar conta com senha comprometida/fraca, o Supabase Auth retorna a mensagem em inglês:
-> "Password is known to be weak and easy to guess, please choose a different one."
+Na etapa 2 (Seus dados), os campos **Nome completo**, **CPF** e **Telefone** aparecem mesmo quando o usuário selecionou **MEI** ou **Microempresa**, que são perfis exclusivamente empresariais.
 
-### Solução
-Interceptar a mensagem de erro no frontend (`src/pages/Auth.tsx`) e exibir em português com orientações claras.
+### Comportamento esperado
+- **Pessoa Física** → mostra apenas dados pessoais (nome, CPF opcional, telefone).
+- **MEI / Microempresa** → mostra **apenas** dados da empresa (Nome da Empresa, CNPJ). O nome completo do responsável continua sendo capturado, mas reaproveitado do cadastro inicial — não aparece nesta etapa.
+- **Híbrido** → mostra **ambos** (pessoais + empresariais), como hoje.
 
-### Alteração
-1. Criar mapeamento/tradução para mensagens de erro do Supabase Auth no submit de cadastro.
-2. Substituir a mensagem de senha fraca por:
-   > "Senha comprometida ou muito fraca. Escolha uma senha diferente com no mínimo 6 caracteres, misturando letras, números e símbolos."
-3. Manter fallback para mensagens não mapeadas (exibe o texto original).
+### Alterações
+
+**1. `src/components/onboarding/StepProfileData.tsx`**
+- Adicionar flag `isPureCompany = ["mei", "microempresa"].includes(profileType)`.
+- Quando `isPureCompany`: ocultar bloco de Nome completo, CPF e Telefone; renderizar apenas os campos da empresa.
+- Quando `hibrido`: manter layout atual (pessoais + empresa).
+- Quando `pf`: manter layout atual (somente pessoais).
+- Ajustar texto introdutório conforme o caso ("Preencha os dados da sua empresa:" para empresarial puro).
+
+**2. `src/pages/Onboarding.tsx` — `validateStep("data")`**
+- Para `mei`/`microempresa`: exigir apenas `companyName`. Não exigir `fullName` (será preenchido automaticamente com o valor já vindo do cadastro/profile).
+- Para `hibrido`: exigir `fullName` **e** `companyName`.
+- Para `pf`: exigir `fullName`.
+
+Nenhuma mudança no schema do banco — apenas UI/validação.

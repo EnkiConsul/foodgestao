@@ -129,8 +129,10 @@ export default function Onboarding() {
       case "profile":
         return data.profileType ? null : "Selecione um tipo de perfil.";
       case "data":
-        if (!data.fullName.trim()) return "Informe seu nome completo.";
         if (isPJ && !data.companyName.trim()) return "Informe o nome da empresa.";
+        if (!isPJ || data.profileType === "hibrido") {
+          if (!data.fullName.trim()) return "Informe seu nome completo.";
+        }
         return null;
       case "account":
         return data.accountName.trim() ? null : "Informe o nome da conta.";
