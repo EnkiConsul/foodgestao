@@ -64,7 +64,7 @@ export function MfaChallenge({ onSuccess, onCancel }: Props) {
   };
 
   const cancel = async () => {
-    await supabase.auth.signOut();
+    await signOut();
     onCancel();
   };
 
