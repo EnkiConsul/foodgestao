@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,30 +41,84 @@ const STEPS: { key: StepKey; title: string; description: string }[] = [
   { key: "categories", title: "Categorias iniciais", description: "Escolha categorias para começar a lançar." },
 ];
 
+const DEFAULT_DATA: OnboardingData = {
+  profileType: "pf",
+  fullName: "",
+  document: "",
+  phone: "",
+  companyName: "",
+  companyCnpj: "",
+  accountName: "Conta Principal",
+  accountType: "corrente",
+  initialBalance: "0",
+  selectedCategories: [],
+};
+
+const DEFAULT_COMPLETED: Record<StepKey, boolean> = {
+  profile: false,
+  data: false,
+  account: false,
+  categories: false,
+};
+
 export default function Onboarding() {
-  const [completed, setCompleted] = useState<Record<StepKey, boolean>>({
-    profile: false,
-    data: false,
-    account: false,
-    categories: false,
-  });
+  const [completed, setCompleted] = useState<Record<StepKey, boolean>>(DEFAULT_COMPLETED);
   const [openItem, setOpenItem] = useState<string | undefined>("profile");
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [data, setData] = useState<OnboardingData>({
-    profileType: "pf",
-    fullName: "",
-    document: "",
-    phone: "",
-    companyName: "",
-    companyCnpj: "",
-    accountName: "Conta Principal",
-    accountType: "corrente",
-    initialBalance: "0",
-    selectedCategories: [],
-  });
+  const [data, setData] = useState<OnboardingData>(DEFAULT_DATA);
+  const hydratedRef = useRef(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Load saved progress on mount
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("onboarding_data, full_name, phone, document, profile_type")
+      .eq("user_id", user.id)
+      .single()
+      .then(({ data: profile }) => {
+        const saved = (profile?.onboarding_data ?? null) as
+          | { data?: Partial<OnboardingData>; completed?: Partial<Record<StepKey, boolean>>; openItem?: string }
+          | null;
+        setData((d) => ({
+          ...d,
+          fullName: profile?.full_name ?? d.fullName,
+          phone: profile?.phone ?? d.phone,
+          document: profile?.document ?? d.document,
+          profileType: profile?.profile_type ?? d.profileType,
+          ...(saved?.data ?? {}),
+        }));
+        if (saved?.completed) {
+          setCompleted({ ...DEFAULT_COMPLETED, ...saved.completed });
+        }
+        if (saved?.openItem) setOpenItem(saved.openItem);
+        hydratedRef.current = true;
+        setLoading(false);
+      });
+  }, [user]);
+
+  // Debounced autosave
+  useEffect(() => {
+    if (!user || !hydratedRef.current) return;
+    setAutoSaveStatus("saving");
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      await supabase
+        .from("profiles")
+        .update({ onboarding_data: { data, completed, openItem } as any })
+        .eq("user_id", user.id);
+      setAutoSaveStatus("saved");
+    }, 800);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [data, completed, openItem, user]);
 
   const update = (partial: Partial<OnboardingData>) => setData((d) => ({ ...d, ...partial }));
 
@@ -112,6 +166,7 @@ export default function Onboarding() {
         phone: data.phone || undefined,
         document: data.document || undefined,
         onboarding_completed: true,
+        onboarding_data: null,
       }).eq("user_id", user.id);
 
       if (isPJ && data.companyName) {
@@ -172,20 +227,34 @@ export default function Onboarding() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background p-4 py-10">
       <div className="mx-auto w-full max-w-2xl space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-primary/10 p-2">
-            <TreePine className="h-6 w-6 text-primary" />
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-primary/10 p-2">
+              <TreePine className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">Bem-vindo ao Gestor Plin</h1>
+              <p className="text-sm text-muted-foreground">
+                Conclua o checklist abaixo para liberar seu Dashboard.
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold">Bem-vindo ao Gestor Plin</h1>
-            <p className="text-sm text-muted-foreground">
-              Conclua o checklist abaixo para liberar seu Dashboard.
-            </p>
-          </div>
+          <span className="shrink-0 text-xs text-muted-foreground pt-2">
+            {autoSaveStatus === "saving" && "Salvando..."}
+            {autoSaveStatus === "saved" && "Progresso salvo"}
+          </span>
         </div>
 
         {/* Progress card */}
