@@ -150,6 +150,7 @@ const AppRoutes = () => (
       <Route path="/admin" element={<SuperAdminRoute><Admin /></SuperAdminRoute>} />
     </Route>
     <Route path="/convite/:token" element={<AcceptInvite />} />
+    <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
