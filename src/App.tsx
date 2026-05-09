@@ -24,6 +24,7 @@ import Empresas from "./pages/Empresas";
 import FormasPagamento from "./pages/FormasPagamento";
 import Admin from "./pages/Admin";
 import AcceptInvite from "./pages/AcceptInvite";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { SuperAdminRoute } from "@/components/admin/SuperAdminRoute";
 import { useEffect, useState } from "react";
