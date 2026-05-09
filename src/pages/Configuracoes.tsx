@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { User, Globe, Shield, Save } from "lucide-react";
 import { ResetMyDataCard } from "@/components/settings/ResetMyDataCard";
 import { TwoFactorCard } from "@/components/settings/TwoFactorCard";
+import { ResetOnboardingCard } from "@/components/settings/ResetOnboardingCard";
 
 const CURRENCIES = [
   { value: "BRL", label: "R$ - Real Brasileiro" },
