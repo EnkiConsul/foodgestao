@@ -96,11 +96,22 @@ export default function Auth() {
         <CardHeader className="text-center space-y-3">
           <CardTitle className="text-2xl font-bold">Gestor Plin</CardTitle>
           <CardDescription>
-            {isLogin ? "Entre na sua conta" : "Crie sua conta gratuita"}
+            {mfaRequired
+              ? "Verificação em duas etapas"
+              : isLogin
+              ? "Entre na sua conta"
+              : "Crie sua conta gratuita"}
           </CardDescription>
         </CardHeader>
 
-        <form onSubmit={handleSubmit}>
+        {mfaRequired ? (
+          <CardContent>
+            <MfaChallenge
+              onSuccess={() => navigate("/")}
+              onCancel={() => setMfaRequired(false)}
+            />
+          </CardContent>
+        ) : (
           <CardContent className="space-y-4">
             {!isLogin && (
               <div className="space-y-2">
