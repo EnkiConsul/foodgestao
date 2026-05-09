@@ -19,6 +19,7 @@ import { StepCategories } from "@/components/onboarding/StepCategories";
 import { CheckCircle2, Circle, Rocket, SkipForward, TreePine } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isValidCnpj } from "@/lib/cnpj";
+import { isValidCpf } from "@/lib/cpf";
 
 export type OnboardingData = {
   profileType: string;
