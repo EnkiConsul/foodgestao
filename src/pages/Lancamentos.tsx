@@ -258,10 +258,16 @@ export default function Lancamentos() {
     fetchPreviousBalance();
   }, [fetchTransactions, fetchPreviousBalance]);
 
-  const refreshAll = () => {
+  const refreshAll = useCallback(() => {
     fetchTransactions();
     fetchPreviousBalance();
-  };
+  }, [fetchTransactions, fetchPreviousBalance]);
+
+  // Sincronização em tempo real — recarrega quando outro membro altera transações
+  useRealtimeSync({
+    tables: ["transactions"],
+    onChange: refreshAll,
+  });
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteWithChildren, setDeleteWithChildren] = useState(false);
