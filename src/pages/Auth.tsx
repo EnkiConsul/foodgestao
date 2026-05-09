@@ -74,7 +74,7 @@ export default function Auth() {
         if (error) {
           toast.error("Erro ao entrar", { description: error.message });
         } else {
-          navigate("/");
+          await checkMfaAndRedirect();
         }
       } else {
         const { error } = await signUp(email, password, fullName);
