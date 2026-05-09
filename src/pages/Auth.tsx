@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Lock, User } from "lucide-react";
+import { MfaChallenge } from "@/components/auth/MfaChallenge";
 
 import { z } from "zod";
 import { toast } from "sonner";
@@ -31,8 +33,22 @@ export default function Auth() {
   const [fullName, setFullName] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [mfaRequired, setMfaRequired] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
+
+  const checkMfaAndRedirect = async () => {
+    const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (error) {
+      navigate("/");
+      return;
+    }
+    if (data.nextLevel === "aal2" && data.nextLevel !== data.currentLevel) {
+      setMfaRequired(true);
+    } else {
+      navigate("/");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +74,7 @@ export default function Auth() {
         if (error) {
           toast.error("Erro ao entrar", { description: error.message });
         } else {
-          navigate("/");
+          await checkMfaAndRedirect();
         }
       } else {
         const { error } = await signUp(email, password, fullName);
@@ -80,11 +96,23 @@ export default function Auth() {
         <CardHeader className="text-center space-y-3">
           <CardTitle className="text-2xl font-bold">Gestor Plin</CardTitle>
           <CardDescription>
-            {isLogin ? "Entre na sua conta" : "Crie sua conta gratuita"}
+            {mfaRequired
+              ? "Verificação em duas etapas"
+              : isLogin
+              ? "Entre na sua conta"
+              : "Crie sua conta gratuita"}
           </CardDescription>
         </CardHeader>
 
-        <form onSubmit={handleSubmit}>
+        {mfaRequired ? (
+          <CardContent>
+            <MfaChallenge
+              onSuccess={() => navigate("/")}
+              onCancel={() => setMfaRequired(false)}
+            />
+          </CardContent>
+        ) : (
+          <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             {!isLogin && (
               <div className="space-y-2">
@@ -170,7 +198,8 @@ export default function Auth() {
               {isLogin ? "Não tem conta? Cadastre-se" : "Já tem conta? Entre"}
             </button>
           </CardFooter>
-        </form>
+          </form>
+        )}
       </Card>
     </div>
   );

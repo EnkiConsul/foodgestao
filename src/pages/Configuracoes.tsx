@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { User, Globe, Shield, Save } from "lucide-react";
 import { ResetMyDataCard } from "@/components/settings/ResetMyDataCard";
+import { TwoFactorCard } from "@/components/settings/TwoFactorCard";
 
 const CURRENCIES = [
   { value: "BRL", label: "R$ - Real Brasileiro" },
@@ -212,6 +213,8 @@ export default function Configuracoes() {
           </div>
         </CardContent>
       </Card>
+
+      <TwoFactorCard />
 
       <Separator />
 
