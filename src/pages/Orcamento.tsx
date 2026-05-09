@@ -37,7 +37,7 @@ export default function Orcamento() {
     queryFn: async () => {
       let q = supabase
         .from("budgets")
-        .select("*, categories(name, color, icon)")
+        .select("*, categories!fk_budgets_category(name, color, icon)")
         .eq("user_id", user!.id)
         .eq("context", contextType)
         .order("created_at", { ascending: false });
