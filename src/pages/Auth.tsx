@@ -25,8 +25,10 @@ const signupSchema = loginSchema.extend({
   path: ["confirmPassword"],
 });
 
+type Mode = "login" | "signup" | "forgot";
+
 export default function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -37,6 +39,9 @@ export default function Auth() {
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const isLogin = mode === "login";
+  const isSignup = mode === "signup";
+  const isForgot = mode === "forgot";
 
   const getRedirectTarget = () => {
     const r = searchParams.get("redirect");
@@ -61,6 +66,31 @@ export default function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
+
+    if (isForgot) {
+      const emailParsed = z.string().trim().email("E-mail inválido").max(255).safeParse(email);
+      if (!emailParsed.success) {
+        setErrors({ email: emailParsed.error.errors[0].message });
+        return;
+      }
+      setSubmitting(true);
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(emailParsed.data, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) {
+          toast.error("Erro ao enviar", { description: error.message });
+        } else {
+          toast.success("E-mail enviado", {
+            description: "Se a conta existir, você receberá um link para redefinir a senha.",
+          });
+          setMode("login");
+        }
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
 
     const parsed = isLogin
       ? loginSchema.safeParse({ email, password })
@@ -98,6 +128,13 @@ export default function Auth() {
     }
   };
 
+  const switchMode = (next: Mode) => {
+    setMode(next);
+    setErrors({});
+    setPassword("");
+    setConfirmPassword("");
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md shadow-lg">
@@ -106,6 +143,8 @@ export default function Auth() {
           <CardDescription>
             {mfaRequired
               ? "Verificação em duas etapas"
+              : isForgot
+              ? "Recuperar senha"
               : isLogin
               ? "Entre na sua conta"
               : "Crie sua conta gratuita"}
@@ -122,7 +161,7 @@ export default function Auth() {
         ) : (
           <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
-            {!isLogin && (
+            {isSignup && (
               <div className="space-y-2">
                 <Label htmlFor="fullName">Nome completo</Label>
                 <div className="relative">
@@ -157,24 +196,37 @@ export default function Auth() {
               {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
-                  maxLength={128}
-                />
+            {!isForgot && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Senha</Label>
+                  {isLogin && (
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      onClick={() => switchMode("forgot")}
+                    >
+                      Esqueci minha senha
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10"
+                    maxLength={128}
+                  />
+                </div>
+                {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
               </div>
-              {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
-            </div>
+            )}
 
-            {!isLogin && (
+            {isSignup && (
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirmar senha</Label>
                 <div className="relative">
@@ -192,19 +244,41 @@ export default function Auth() {
                 {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword}</p>}
               </div>
             )}
+
+            {isForgot && (
+              <p className="text-xs text-muted-foreground">
+                Informe o e-mail da sua conta. Enviaremos um link para você redefinir sua senha.
+              </p>
+            )}
           </CardContent>
 
           <CardFooter className="flex flex-col gap-3">
             <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? "Aguarde..." : isLogin ? "Entrar" : "Criar conta"}
+              {submitting
+                ? "Aguarde..."
+                : isForgot
+                ? "Enviar link de recuperação"
+                : isLogin
+                ? "Entrar"
+                : "Criar conta"}
             </Button>
-            <button
-              type="button"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => { setIsLogin(!isLogin); setErrors({}); }}
-            >
-              {isLogin ? "Não tem conta? Cadastre-se" : "Já tem conta? Entre"}
-            </button>
+            {isForgot ? (
+              <button
+                type="button"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => switchMode("login")}
+              >
+                Voltar para o login
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => switchMode(isLogin ? "signup" : "login")}
+              >
+                {isLogin ? "Não tem conta? Cadastre-se" : "Já tem conta? Entre"}
+              </button>
+            )}
           </CardFooter>
           </form>
         )}

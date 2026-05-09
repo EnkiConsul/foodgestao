@@ -24,6 +24,7 @@ import Empresas from "./pages/Empresas";
 import FormasPagamento from "./pages/FormasPagamento";
 import Admin from "./pages/Admin";
 import AcceptInvite from "./pages/AcceptInvite";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { SuperAdminRoute } from "@/components/admin/SuperAdminRoute";
 import { useEffect, useState } from "react";
@@ -149,6 +150,7 @@ const AppRoutes = () => (
       <Route path="/admin" element={<SuperAdminRoute><Admin /></SuperAdminRoute>} />
     </Route>
     <Route path="/convite/:token" element={<AcceptInvite />} />
+    <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
