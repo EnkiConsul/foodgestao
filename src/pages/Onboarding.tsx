@@ -41,30 +41,84 @@ const STEPS: { key: StepKey; title: string; description: string }[] = [
   { key: "categories", title: "Categorias iniciais", description: "Escolha categorias para começar a lançar." },
 ];
 
+const DEFAULT_DATA: OnboardingData = {
+  profileType: "pf",
+  fullName: "",
+  document: "",
+  phone: "",
+  companyName: "",
+  companyCnpj: "",
+  accountName: "Conta Principal",
+  accountType: "corrente",
+  initialBalance: "0",
+  selectedCategories: [],
+};
+
+const DEFAULT_COMPLETED: Record<StepKey, boolean> = {
+  profile: false,
+  data: false,
+  account: false,
+  categories: false,
+};
+
 export default function Onboarding() {
-  const [completed, setCompleted] = useState<Record<StepKey, boolean>>({
-    profile: false,
-    data: false,
-    account: false,
-    categories: false,
-  });
+  const [completed, setCompleted] = useState<Record<StepKey, boolean>>(DEFAULT_COMPLETED);
   const [openItem, setOpenItem] = useState<string | undefined>("profile");
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [data, setData] = useState<OnboardingData>({
-    profileType: "pf",
-    fullName: "",
-    document: "",
-    phone: "",
-    companyName: "",
-    companyCnpj: "",
-    accountName: "Conta Principal",
-    accountType: "corrente",
-    initialBalance: "0",
-    selectedCategories: [],
-  });
+  const [data, setData] = useState<OnboardingData>(DEFAULT_DATA);
+  const hydratedRef = useRef(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Load saved progress on mount
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("onboarding_data, full_name, phone, document, profile_type")
+      .eq("user_id", user.id)
+      .single()
+      .then(({ data: profile }) => {
+        const saved = (profile?.onboarding_data ?? null) as
+          | { data?: Partial<OnboardingData>; completed?: Partial<Record<StepKey, boolean>>; openItem?: string }
+          | null;
+        setData((d) => ({
+          ...d,
+          fullName: profile?.full_name ?? d.fullName,
+          phone: profile?.phone ?? d.phone,
+          document: profile?.document ?? d.document,
+          profileType: profile?.profile_type ?? d.profileType,
+          ...(saved?.data ?? {}),
+        }));
+        if (saved?.completed) {
+          setCompleted({ ...DEFAULT_COMPLETED, ...saved.completed });
+        }
+        if (saved?.openItem) setOpenItem(saved.openItem);
+        hydratedRef.current = true;
+        setLoading(false);
+      });
+  }, [user]);
+
+  // Debounced autosave
+  useEffect(() => {
+    if (!user || !hydratedRef.current) return;
+    setAutoSaveStatus("saving");
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      await supabase
+        .from("profiles")
+        .update({ onboarding_data: { data, completed, openItem } as any })
+        .eq("user_id", user.id);
+      setAutoSaveStatus("saved");
+    }, 800);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [data, completed, openItem, user]);
 
   const update = (partial: Partial<OnboardingData>) => setData((d) => ({ ...d, ...partial }));
 
