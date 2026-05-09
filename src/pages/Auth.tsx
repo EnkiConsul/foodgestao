@@ -33,8 +33,22 @@ export default function Auth() {
   const [fullName, setFullName] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [mfaRequired, setMfaRequired] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
+
+  const checkMfaAndRedirect = async () => {
+    const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (error) {
+      navigate("/");
+      return;
+    }
+    if (data.nextLevel === "aal2" && data.nextLevel !== data.currentLevel) {
+      setMfaRequired(true);
+    } else {
+      navigate("/");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
