@@ -227,20 +227,34 @@ export default function Onboarding() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background p-4 py-10">
       <div className="mx-auto w-full max-w-2xl space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-primary/10 p-2">
-            <TreePine className="h-6 w-6 text-primary" />
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-primary/10 p-2">
+              <TreePine className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">Bem-vindo ao Gestor Plin</h1>
+              <p className="text-sm text-muted-foreground">
+                Conclua o checklist abaixo para liberar seu Dashboard.
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold">Bem-vindo ao Gestor Plin</h1>
-            <p className="text-sm text-muted-foreground">
-              Conclua o checklist abaixo para liberar seu Dashboard.
-            </p>
-          </div>
+          <span className="shrink-0 text-xs text-muted-foreground pt-2">
+            {autoSaveStatus === "saving" && "Salvando..."}
+            {autoSaveStatus === "saved" && "Progresso salvo"}
+          </span>
         </div>
 
         {/* Progress card */}
