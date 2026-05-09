@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { isValidCnpj, maskCnpj } from "@/lib/cnpj";
 import type { OnboardingData } from "@/pages/Onboarding";
 
 interface Props {
@@ -72,10 +73,14 @@ export function StepProfileData({ data, update }: Props) {
             <Label>CNPJ</Label>
             <Input
               value={data.companyCnpj}
-              onChange={(e) => update({ companyCnpj: e.target.value })}
+              onChange={(e) => update({ companyCnpj: maskCnpj(e.target.value) })}
               placeholder="00.000.000/0000-00"
               maxLength={18}
+              inputMode="numeric"
             />
+            {data.companyCnpj.replace(/\D/g, "").length === 14 && !isValidCnpj(data.companyCnpj) && (
+              <p className="text-xs text-destructive">CNPJ inválido</p>
+            )}
           </div>
         </>
       )}
