@@ -112,6 +112,7 @@ export default function Auth() {
             />
           </CardContent>
         ) : (
+          <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             {!isLogin && (
               <div className="space-y-2">
