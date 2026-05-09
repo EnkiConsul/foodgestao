@@ -160,13 +160,25 @@ export default function Onboarding() {
     if (!user || !allDone) return;
     setSaving(true);
     try {
+      // Cancel any pending debounced autosave and flush a final snapshot first
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+      setAutoSaveStatus("saving");
+      await supabase
+        .from("profiles")
+        .update({ onboarding_data: { data, completed, openItem } as any })
+        .eq("user_id", user.id);
+      setAutoSaveStatus("saved");
+
+      // Then mark onboarding as completed and persist final profile fields
       await supabase.from("profiles").update({
         profile_type: data.profileType as any,
         full_name: data.fullName || undefined,
         phone: data.phone || undefined,
         document: data.document || undefined,
         onboarding_completed: true,
-        onboarding_data: null,
       }).eq("user_id", user.id);
 
       if (isPJ && data.companyName) {
