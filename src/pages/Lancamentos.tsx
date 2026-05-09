@@ -203,7 +203,7 @@ export default function Lancamentos() {
     // We need transactions that fall in the month by transaction_date OR by due_date
     let q = supabase
       .from("transactions")
-      .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, bill_status, payment_date, contact_id, notes, destination_account_id, is_recurring, parent_transaction_id, attachment_url, categories(name), accounts!transactions_account_id_fkey(name), payment_methods(name)")
+      .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, bill_status, payment_date, contact_id, notes, destination_account_id, is_recurring, parent_transaction_id, attachment_url, categories!fk_transactions_category(name), accounts!fk_transactions_account(name), payment_methods!fk_transactions_payment_method(name)")
       .eq("user_id", user.id)
       .eq("context", contextType)
       .or(`and(transaction_date.gte.${monthStart},transaction_date.lte.${monthEnd}),and(due_date.gte.${monthStart},due_date.lte.${monthEnd})`)
