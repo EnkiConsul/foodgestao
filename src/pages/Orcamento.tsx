@@ -32,6 +32,12 @@ export default function Orcamento() {
   const formatBRL = maskBRL;
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  // Sincronização em tempo real (orçamento depende de transações de despesa)
+  useRealtimeSync({
+    tables: ["transactions"],
+    invalidateKeyPrefixes: ["budgets", "budget-spending"],
+  });
+
   const { data: budgets = [], refetch } = useQuery({
     queryKey: ["budgets", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
