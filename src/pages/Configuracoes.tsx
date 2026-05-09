@@ -214,6 +214,8 @@ export default function Configuracoes() {
         </CardContent>
       </Card>
 
+      <TwoFactorCard />
+
       <Separator />
 
       <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto">
