@@ -19,6 +19,7 @@ import { StepCategories } from "@/components/onboarding/StepCategories";
 import { CheckCircle2, Circle, Rocket, SkipForward, TreePine } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isValidCnpj } from "@/lib/cnpj";
+import { isValidCpf } from "@/lib/cpf";
 
 export type OnboardingData = {
   profileType: string;
@@ -138,6 +139,7 @@ export default function Onboarding() {
         if (!isPJ || data.profileType === "hibrido") {
           if (!data.fullName.trim()) return "Informe seu nome completo.";
           if (!data.document.trim()) return "Informe seu CPF.";
+          if (!isValidCpf(data.document)) return "CPF inválido. Verifique o número informado.";
           if (!data.phone.trim()) return "Informe seu telefone.";
         }
         return null;
