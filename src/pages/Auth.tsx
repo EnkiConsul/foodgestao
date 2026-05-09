@@ -198,7 +198,8 @@ export default function Auth() {
               {isLogin ? "Não tem conta? Cadastre-se" : "Já tem conta? Entre"}
             </button>
           </CardFooter>
-        </form>
+          </form>
+        )}
       </Card>
     </div>
   );
