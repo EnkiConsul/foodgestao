@@ -67,6 +67,31 @@ export default function Auth() {
     e.preventDefault();
     setErrors({});
 
+    if (isForgot) {
+      const emailParsed = z.string().trim().email("E-mail inválido").max(255).safeParse(email);
+      if (!emailParsed.success) {
+        setErrors({ email: emailParsed.error.errors[0].message });
+        return;
+      }
+      setSubmitting(true);
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(emailParsed.data, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) {
+          toast.error("Erro ao enviar", { description: error.message });
+        } else {
+          toast.success("E-mail enviado", {
+            description: "Se a conta existir, você receberá um link para redefinir a senha.",
+          });
+          setMode("login");
+        }
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
     const parsed = isLogin
       ? loginSchema.safeParse({ email, password })
       : signupSchema.safeParse({ email, password, confirmPassword, fullName });
@@ -101,6 +126,13 @@ export default function Auth() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const switchMode = (next: Mode) => {
+    setMode(next);
+    setErrors({});
+    setPassword("");
+    setConfirmPassword("");
   };
 
   return (
