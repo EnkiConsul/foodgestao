@@ -119,7 +119,6 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
     );
   }
   if (!user) return <Navigate to="/auth" replace />;
-  if (completed) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
