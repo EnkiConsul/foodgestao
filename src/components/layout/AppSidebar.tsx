@@ -153,10 +153,7 @@ export function AppSidebar() {
 
       <SidebarFooter className="p-4 border-t border-sidebar-border">
         <button
-          onClick={async () => {
-            const { supabase } = await import("@/integrations/supabase/client");
-            await supabase.auth.signOut();
-          }}
+          onClick={signOut}
           className="flex items-center gap-2 w-full px-3 py-2 text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent rounded-lg transition-colors"
         >
           <LogOut className="h-4 w-4" />
