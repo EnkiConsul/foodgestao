@@ -881,6 +881,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_balance_before: {
+        Args: {
+          _before_date: string
+          _company_id: string
+          _context: Database["public"]["Enums"]["context_type"]
+          _user_id: string
+        }
+        Returns: number
+      }
       get_company_role: {
         Args: { _company_id: string; _user_id: string }
         Returns: Database["public"]["Enums"]["company_role"]

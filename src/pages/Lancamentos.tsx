@@ -237,28 +237,18 @@ export default function Lancamentos() {
     setLoading(false);
   }, [user, monthStart, monthEnd, contextType, selectedCompanyId]);
 
-  // Fetch previous balance
+  // Fetch previous balance via RPC agregada (1 número em vez de N linhas)
   const fetchPreviousBalance = useCallback(async () => {
     if (!user) return;
-    let q = supabase
-      .from("transactions")
-      .select("amount, transaction_type")
-      .eq("user_id", user.id)
-      .eq("context", contextType)
-      .eq("status", "confirmado")
-      .lt("transaction_date", monthStart);
-
-    if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
-
-    const { data, error } = await q;
-
-    if (!error && data) {
-      const bal = data.reduce((acc, t) => {
-        if (t.transaction_type === "receita") return acc + Number(t.amount);
-        if (t.transaction_type === "despesa") return acc - Number(t.amount);
-        return acc;
-      }, 0);
-      setPreviousBalance(bal);
+    const companyId = contextType === "pj" && selectedCompanyId ? selectedCompanyId : null;
+    const { data, error } = await supabase.rpc("get_balance_before", {
+      _user_id: user.id,
+      _context: contextType,
+      _company_id: companyId,
+      _before_date: monthStart,
+    });
+    if (!error && data !== null && data !== undefined) {
+      setPreviousBalance(Number(data));
     }
   }, [user, monthStart, contextType, selectedCompanyId]);
 

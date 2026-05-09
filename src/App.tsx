@@ -29,7 +29,20 @@ import { SuperAdminRoute } from "@/components/admin/SuperAdminRoute";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Reduz refetches desnecessários e melhora cache em listagens
+      staleTime: 30_000, // 30s — dados considerados frescos
+      gcTime: 5 * 60_000, // 5min em cache após desuso
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+    mutations: {
+      retry: 0,
+    },
+  },
+});
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
