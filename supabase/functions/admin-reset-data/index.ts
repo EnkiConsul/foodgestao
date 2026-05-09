@@ -32,10 +32,16 @@ const SCOPE_KEYS = [
   "audit_logs",
 ] as const;
 
+// Hard cap to keep response under platform timeout (max 30s for edge funcs)
+const TIMEOUT_MS = 25_000;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const startedAt = Date.now();
+  const remaining = () => TIMEOUT_MS - (Date.now() - startedAt);
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -43,10 +49,7 @@ Deno.serve(async (req) => {
     const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     const authHeader = req.headers.get("Authorization") ?? "";
-    const token = authHeader.replace("Bearer ", "");
-    if (!token) {
-      return json({ error: "Não autenticado" }, 401);
-    }
+    if (!authHeader) return json({ error: "Não autenticado" }, 401);
 
     // Validate user from JWT
     const userClient = createClient(SUPABASE_URL, ANON_KEY, {
@@ -60,7 +63,7 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
-    // Check super admin (optional — required only for non-self targets)
+    // Permission check
     const { data: roleData } = await admin
       .from("user_roles")
       .select("role")
@@ -74,24 +77,28 @@ Deno.serve(async (req) => {
       return json({ error: "Payload inválido" }, 400);
     }
     const context: ContextFilter = body.context ?? "both";
-    const scope = new Set(body.scope.filter((s) => SCOPE_KEYS.includes(s as any)));
+    const scope = new Set(
+      body.scope.filter((s) => SCOPE_KEYS.includes(s as never)),
+    );
     if (scope.size === 0) {
       return json({ error: "Selecione ao menos um item para apagar" }, 400);
     }
 
-    // Resolve target filter
+    // Resolve target
     let userIdFilter: string | null = null;
     let companyIdFilter: string | null = null;
     if (body.target.type === "self") {
       userIdFilter = callerId;
     } else if (body.target.type === "user") {
       if (!isSuperAdmin && body.target.userId !== callerId) {
-        return json({ error: "Sem permissão para resetar dados de outro usuário" }, 403);
+        return json(
+          { error: "Sem permissão para resetar dados de outro usuário" },
+          403,
+        );
       }
       userIdFilter = body.target.userId;
     } else if (body.target.type === "company") {
       if (!isSuperAdmin) {
-        // Regular users must be owner/admin of the company
         const { data: member } = await admin
           .from("company_members")
           .select("role")
@@ -99,7 +106,13 @@ Deno.serve(async (req) => {
           .eq("company_id", body.target.companyId)
           .maybeSingle();
         if (!member || !["owner", "admin"].includes(member.role)) {
-          return json({ error: "Apenas administradores da empresa podem resetar seus dados" }, 403);
+          return json(
+            {
+              error:
+                "Apenas administradores da empresa podem resetar seus dados",
+            },
+            403,
+          );
         }
       }
       companyIdFilter = body.target.companyId;
@@ -109,52 +122,64 @@ Deno.serve(async (req) => {
 
     const counts: Record<string, number> = {};
 
-    // Helper: apply context filter to a query if column exists
-    const applyContext = (q: any) => {
+    // ─── Helpers ────────────────────────────────────────────────────────────
+    // FKs já cuidam de limpar filhos via CASCADE — só removemos as linhas-raiz.
+    // Storage não faz cascade, então removemos arquivos antes de deletar tx.
+
+    const applyContext = <T>(q: T): T => {
       if (context === "both") return q;
+      // @ts-expect-error chained builder
       return q.eq("context", context);
     };
 
-    // Helper: apply target filter
-    const applyTarget = (q: any, opts: { hasCompany?: boolean } = {}) => {
-      if (companyIdFilter) return q.eq("company_id", companyIdFilter);
+    const applyTarget = <T>(
+      q: T,
+      opts: { hasCompany?: boolean } = {},
+    ): T => {
+      if (companyIdFilter) {
+        // @ts-expect-error chained builder
+        return q.eq("company_id", companyIdFilter);
+      }
       if (userIdFilter) {
+        // @ts-expect-error chained builder
         let qq = q.eq("user_id", userIdFilter);
-        if (context === "pf" && opts.hasCompany) {
-          qq = qq.is("company_id", null);
-        } else if (context === "pj" && opts.hasCompany) {
+        if (context === "pf" && opts.hasCompany) qq = qq.is("company_id", null);
+        else if (context === "pj" && opts.hasCompany)
           qq = qq.not("company_id", "is", null);
-        }
         return qq;
       }
       return q;
     };
 
-    // 1) Transactions (and its children)
+    const checkTimeout = () => {
+      if (remaining() <= 0) throw new Error("Reset interrompido por timeout");
+    };
+
+    // ─── 1. Transactions: clean storage, then delete (cascades children) ───
     if (scope.has("transactions")) {
-      // Get target transaction ids
-      let txQ = admin.from("transactions").select("id, attachment_url");
+      checkTimeout();
+      let txQ = admin.from("transactions").select("id");
       txQ = applyTarget(txQ, { hasCompany: true });
       txQ = applyContext(txQ);
       const { data: txs } = await txQ;
-      const txIds = (txs ?? []).map((t: any) => t.id);
+      const txIds = (txs ?? []).map((t) => t.id as string);
 
       if (txIds.length > 0) {
-        // Delete attachments rows
+        // Storage cleanup (in batches of 500)
         const { data: atts } = await admin
           .from("transaction_attachments")
           .select("file_url")
           .in("transaction_id", txIds);
-        if (atts && atts.length > 0) {
-          const paths = atts
-            .map((a: any) => extractStoragePath(a.file_url))
+        const paths =
+          atts
+            ?.map((a) => extractStoragePath(a.file_url as string))
             .filter(Boolean) as string[];
-          if (paths.length > 0) {
-            await admin.storage.from("transaction-attachments").remove(paths);
-          }
+        for (let i = 0; i < paths.length; i += 500) {
+          await admin.storage
+            .from("transaction-attachments")
+            .remove(paths.slice(i, i + 500));
         }
-        await admin.from("transaction_attachments").delete().in("transaction_id", txIds);
-        await admin.from("transaction_tags").delete().in("transaction_id", txIds);
+        // CASCADE handles transaction_attachments + transaction_tags
         const { count } = await admin
           .from("transactions")
           .delete({ count: "exact" })
@@ -165,8 +190,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 2) Accounts
+    // ─── 2. Accounts ───
     if (scope.has("accounts")) {
+      checkTimeout();
       let q = admin.from("accounts").delete({ count: "exact" });
       q = applyTarget(q, { hasCompany: true });
       q = applyContext(q);
@@ -174,82 +200,59 @@ Deno.serve(async (req) => {
       counts.accounts = count ?? 0;
     }
 
-    // 3) Categories (user-scoped only)
+    // ─── 3. Categories (cascades category_companies) ───
     if (scope.has("categories") && userIdFilter) {
-      let catQ = admin.from("categories").select("id");
-      catQ = catQ.eq("user_id", userIdFilter);
-      if (context !== "both") catQ = catQ.eq("context", context);
-      const { data: cats } = await catQ;
-      const catIds = (cats ?? []).map((c: any) => c.id);
-      if (catIds.length > 0) {
-        await admin.from("category_companies").delete().in("category_id", catIds);
-        const { count } = await admin
-          .from("categories")
-          .delete({ count: "exact" })
-          .in("id", catIds);
-        counts.categories = count ?? catIds.length;
-      } else {
-        counts.categories = 0;
-      }
+      checkTimeout();
+      let q = admin
+        .from("categories")
+        .delete({ count: "exact" })
+        .eq("user_id", userIdFilter);
+      if (context !== "both") q = q.eq("context", context);
+      const { count } = await q;
+      counts.categories = count ?? 0;
     }
 
-    // 4) Contacts (user-scoped)
+    // ─── 4. Contacts (cascades contact_companies) ───
     if (scope.has("contacts") && userIdFilter) {
-      const { data: cs } = await admin
+      checkTimeout();
+      const { count } = await admin
         .from("contacts")
-        .select("id")
+        .delete({ count: "exact" })
         .eq("user_id", userIdFilter);
-      const ids = (cs ?? []).map((c: any) => c.id);
-      if (ids.length > 0) {
-        await admin.from("contact_companies").delete().in("contact_id", ids);
-        const { count } = await admin
-          .from("contacts")
-          .delete({ count: "exact" })
-          .in("id", ids);
-        counts.contacts = count ?? ids.length;
-      } else {
-        counts.contacts = 0;
-      }
+      counts.contacts = count ?? 0;
     }
 
-    // 5) Payment methods (user-scoped)
+    // ─── 5. Payment methods (cascades payment_method_companies) ───
     if (scope.has("payment_methods") && userIdFilter) {
-      const { data: pms } = await admin
+      checkTimeout();
+      const { count } = await admin
         .from("payment_methods")
-        .select("id")
+        .delete({ count: "exact" })
         .eq("user_id", userIdFilter);
-      const ids = (pms ?? []).map((p: any) => p.id);
-      if (ids.length > 0) {
-        await admin.from("payment_method_companies").delete().in("payment_method_id", ids);
-        const { count } = await admin
-          .from("payment_methods")
-          .delete({ count: "exact" })
-          .in("id", ids);
-        counts.payment_methods = count ?? ids.length;
-      } else {
-        counts.payment_methods = 0;
-      }
+      counts.payment_methods = count ?? 0;
     }
 
-    // 6) Budgets (user-scoped)
+    // ─── 6-8. Budgets / cost_centers / tags ───
     if (scope.has("budgets") && userIdFilter) {
-      let q = admin.from("budgets").delete({ count: "exact" }).eq("user_id", userIdFilter);
+      checkTimeout();
+      let q = admin
+        .from("budgets")
+        .delete({ count: "exact" })
+        .eq("user_id", userIdFilter);
       if (context !== "both") q = q.eq("context", context);
       const { count } = await q;
       counts.budgets = count ?? 0;
     }
-
-    // 7) Cost centers (user-scoped)
     if (scope.has("cost_centers") && userIdFilter) {
+      checkTimeout();
       const { count } = await admin
         .from("cost_centers")
         .delete({ count: "exact" })
         .eq("user_id", userIdFilter);
       counts.cost_centers = count ?? 0;
     }
-
-    // 8) Tags (user-scoped)
     if (scope.has("tags") && userIdFilter) {
+      checkTimeout();
       const { count } = await admin
         .from("tags")
         .delete({ count: "exact" })
@@ -257,28 +260,19 @@ Deno.serve(async (req) => {
       counts.tags = count ?? 0;
     }
 
-    // 9) Companies (only for user target)
+    // ─── 9. Companies (cascades company_members + company_invites) ───
     if (scope.has("companies") && userIdFilter) {
-      const { data: comps } = await admin
+      checkTimeout();
+      const { count } = await admin
         .from("companies")
-        .select("id")
+        .delete({ count: "exact" })
         .eq("user_id", userIdFilter);
-      const ids = (comps ?? []).map((c: any) => c.id);
-      if (ids.length > 0) {
-        await admin.from("company_invites").delete().in("company_id", ids);
-        await admin.from("company_members").delete().in("company_id", ids);
-        const { count } = await admin
-          .from("companies")
-          .delete({ count: "exact" })
-          .in("id", ids);
-        counts.companies = count ?? ids.length;
-      } else {
-        counts.companies = 0;
-      }
+      counts.companies = count ?? 0;
     }
 
-    // 10) Audit logs
+    // ─── 10. Audit logs ───
     if (scope.has("audit_logs") && userIdFilter) {
+      checkTimeout();
       const { count } = await admin
         .from("audit_logs")
         .delete({ count: "exact" })
@@ -286,7 +280,7 @@ Deno.serve(async (req) => {
       counts.audit_logs = count ?? 0;
     }
 
-    // Log the action
+    // Audit the action itself
     await admin.from("audit_logs").insert({
       user_id: callerId,
       action: "reset_data",
@@ -297,13 +291,20 @@ Deno.serve(async (req) => {
         scope: Array.from(scope),
         context,
         counts,
+        took_ms: Date.now() - startedAt,
       },
     });
 
-    return json({ success: true, counts });
+    return json({
+      success: true,
+      counts,
+      took_ms: Date.now() - startedAt,
+    });
   } catch (e) {
+    const message = (e as Error).message ?? "erro desconhecido";
     console.error("admin-reset-data error", e);
-    return json({ error: (e as Error).message }, 500);
+    const isTimeout = message.includes("timeout");
+    return json({ error: message }, isTimeout ? 408 : 500);
   }
 });
 
