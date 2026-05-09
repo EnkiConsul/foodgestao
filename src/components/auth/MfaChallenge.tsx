@@ -13,6 +13,7 @@ interface Props {
 }
 
 export function MfaChallenge({ onSuccess, onCancel }: Props) {
+  const { signOut } = useAuth();
   const [factorId, setFactorId] = useState<string | null>(null);
   const [challengeId, setChallengeId] = useState<string | null>(null);
   const [code, setCode] = useState("");
