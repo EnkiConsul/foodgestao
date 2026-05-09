@@ -27,6 +27,23 @@ const signupSchema = loginSchema.extend({
 
 type Mode = "login" | "signup" | "forgot";
 
+function translateAuthError(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes("weak") || m.includes("pwned") || m.includes("known to be")) {
+    return "Senha comprometida ou muito fraca. Escolha outra com no mínimo 6 caracteres, combinando letras maiúsculas, minúsculas, números e símbolos.";
+  }
+  if (m.includes("already registered") || m.includes("user already")) {
+    return "Este e-mail já está cadastrado. Tente entrar ou recuperar sua senha.";
+  }
+  if (m.includes("password should be at least")) {
+    return "A senha deve ter no mínimo 6 caracteres.";
+  }
+  if (m.includes("invalid") && m.includes("email")) {
+    return "E-mail inválido.";
+  }
+  return message;
+}
+
 export default function Auth() {
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
