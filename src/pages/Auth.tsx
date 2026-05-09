@@ -117,7 +117,7 @@ export default function Auth() {
       } else {
         const { error } = await signUp(email, password, fullName);
         if (error) {
-          toast.error("Erro ao cadastrar", { description: error.message });
+          toast.error("Erro ao cadastrar", { description: translateAuthError(error.message) });
         } else {
           toast.success("Cadastro realizado!");
           navigate("/onboarding");
