@@ -4,12 +4,20 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { toast } from "sonner";
 import { StepProfileType } from "@/components/onboarding/StepProfileType";
 import { StepProfileData } from "@/components/onboarding/StepProfileData";
 import { StepAccount } from "@/components/onboarding/StepAccount";
 import { StepCategories } from "@/components/onboarding/StepCategories";
-import { ChevronLeft, ChevronRight, SkipForward } from "lucide-react";
+import { CheckCircle2, Circle, Rocket, SkipForward, TreePine } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export type OnboardingData = {
   profileType: string;
@@ -24,10 +32,23 @@ export type OnboardingData = {
   selectedCategories: string[];
 };
 
-const STEPS = ["Tipo de Perfil", "Seus Dados", "Conta Financeira", "Categorias"];
+type StepKey = "profile" | "data" | "account" | "categories";
+
+const STEPS: { key: StepKey; title: string; description: string }[] = [
+  { key: "profile", title: "Tipo de perfil", description: "Defina se você é PF, MEI, Microempresa ou Híbrido." },
+  { key: "data", title: "Seus dados", description: "Nome, documento e telefone (e dados da empresa, se PJ)." },
+  { key: "account", title: "Primeira conta financeira", description: "Cadastre uma conta com saldo inicial." },
+  { key: "categories", title: "Categorias iniciais", description: "Escolha categorias para começar a lançar." },
+];
 
 export default function Onboarding() {
-  const [step, setStep] = useState(0);
+  const [completed, setCompleted] = useState<Record<StepKey, boolean>>({
+    profile: false,
+    data: false,
+    account: false,
+    categories: false,
+  });
+  const [openItem, setOpenItem] = useState<string | undefined>("profile");
   const [saving, setSaving] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -47,11 +68,44 @@ export default function Onboarding() {
 
   const update = (partial: Partial<OnboardingData>) => setData((d) => ({ ...d, ...partial }));
 
+  const isPJ = ["mei", "microempresa", "hibrido"].includes(data.profileType);
+
+  const validateStep = (key: StepKey): string | null => {
+    switch (key) {
+      case "profile":
+        return data.profileType ? null : "Selecione um tipo de perfil.";
+      case "data":
+        if (!data.fullName.trim()) return "Informe seu nome completo.";
+        if (isPJ && !data.companyName.trim()) return "Informe o nome da empresa.";
+        return null;
+      case "account":
+        return data.accountName.trim() ? null : "Informe o nome da conta.";
+      case "categories":
+        return data.selectedCategories.length > 0 ? null : "Selecione ao menos uma categoria.";
+    }
+  };
+
+  const handleConfirmStep = (key: StepKey) => {
+    const err = validateStep(key);
+    if (err) {
+      toast.error(err);
+      return;
+    }
+    setCompleted((c) => ({ ...c, [key]: true }));
+    const order: StepKey[] = ["profile", "data", "account", "categories"];
+    const next = order.find((k) => !{ ...completed, [key]: true }[k]);
+    setOpenItem(next);
+    toast.success("Etapa concluída!");
+  };
+
+  const allDone = Object.values(completed).every(Boolean);
+  const completedCount = Object.values(completed).filter(Boolean).length;
+  const progress = (completedCount / STEPS.length) * 100;
+
   const handleFinish = async () => {
-    if (!user) return;
+    if (!user || !allDone) return;
     setSaving(true);
     try {
-      // Update profile
       await supabase.from("profiles").update({
         profile_type: data.profileType as any,
         full_name: data.fullName || undefined,
@@ -60,8 +114,7 @@ export default function Onboarding() {
         onboarding_completed: true,
       }).eq("user_id", user.id);
 
-      // Create company if PJ
-      if (["mei", "microempresa", "hibrido"].includes(data.profileType) && data.companyName) {
+      if (isPJ && data.companyName) {
         await supabase.from("companies").insert({
           user_id: user.id,
           name: data.companyName,
@@ -69,7 +122,6 @@ export default function Onboarding() {
         });
       }
 
-      // Create account
       const balance = parseFloat(data.initialBalance.replace(/[^\d,-]/g, "").replace(",", ".")) || 0;
       await supabase.from("accounts").insert({
         user_id: user.id,
@@ -80,7 +132,6 @@ export default function Onboarding() {
         context: ["mei", "microempresa"].includes(data.profileType) ? "pj" : "pf",
       });
 
-      // Create selected categories
       if (data.selectedCategories.length > 0) {
         const categories = data.selectedCategories.map((name) => ({
           user_id: user.id,
@@ -91,7 +142,7 @@ export default function Onboarding() {
         await supabase.from("categories").insert(categories);
       }
 
-      toast.success("Tudo pronto!", { description: "Seu perfil foi configurado." });
+      toast.success("Tudo pronto!", { description: "Seu painel foi liberado." });
       navigate("/");
     } catch {
       toast.error("Erro ao salvar dados");
@@ -108,51 +159,106 @@ export default function Onboarding() {
     setSaving(false);
   };
 
-  const progress = ((step + 1) / STEPS.length) * 100;
+  const renderStepContent = (key: StepKey) => {
+    switch (key) {
+      case "profile":
+        return <StepProfileType data={data} update={update} />;
+      case "data":
+        return <StepProfileData data={data} update={update} />;
+      case "account":
+        return <StepAccount data={data} update={update} />;
+      case "categories":
+        return <StepCategories data={data} update={update} />;
+    }
+  };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-lg space-y-6">
+    <div className="min-h-screen bg-background p-4 py-10">
+      <div className="mx-auto w-full max-w-2xl space-y-6">
         {/* Header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold">Configurar sua conta</h1>
-          <p className="text-sm text-muted-foreground">
-            Etapa {step + 1} de {STEPS.length} — {STEPS[step]}
-          </p>
-          <Progress value={progress} className="h-2" />
+        <div className="flex items-center gap-3">
+          <div className="rounded-lg bg-primary/10 p-2">
+            <TreePine className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Bem-vindo ao Gestor Plin</h1>
+            <p className="text-sm text-muted-foreground">
+              Conclua o checklist abaixo para liberar seu Dashboard.
+            </p>
+          </div>
         </div>
 
-        {/* Step content */}
-        <div className="min-h-[320px]">
-          {step === 0 && <StepProfileType data={data} update={update} />}
-          {step === 1 && <StepProfileData data={data} update={update} />}
-          {step === 2 && <StepAccount data={data} update={update} />}
-          {step === 3 && <StepCategories data={data} update={update} />}
-        </div>
+        {/* Progress card */}
+        <Card>
+          <CardContent className="space-y-3 p-4">
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-medium">
+                {completedCount} de {STEPS.length} etapas concluídas
+              </span>
+              <span className="text-muted-foreground">{Math.round(progress)}%</span>
+            </div>
+            <Progress value={progress} className="h-2" />
+          </CardContent>
+        </Card>
 
-        {/* Navigation */}
-        <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            onClick={() => setStep((s) => s - 1)}
-            disabled={step === 0}
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
-          </Button>
+        {/* Checklist */}
+        <Accordion
+          type="single"
+          collapsible
+          value={openItem}
+          onValueChange={setOpenItem}
+          className="space-y-3"
+        >
+          {STEPS.map((s, idx) => {
+            const done = completed[s.key];
+            return (
+              <AccordionItem
+                key={s.key}
+                value={s.key}
+                className={cn(
+                  "rounded-lg border bg-card px-4 transition-colors",
+                  done && "border-primary/40 bg-primary/5"
+                )}
+              >
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center gap-3 text-left">
+                    {done ? (
+                      <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />
+                    ) : (
+                      <Circle className="h-5 w-5 shrink-0 text-muted-foreground" />
+                    )}
+                    <div>
+                      <p className={cn("text-sm font-semibold", done && "text-primary")}>
+                        {idx + 1}. {s.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{s.description}</p>
+                    </div>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-2">
+                  <div className="space-y-4">
+                    {renderStepContent(s.key)}
+                    <div className="flex justify-end">
+                      <Button onClick={() => handleConfirmStep(s.key)} size="sm">
+                        {done ? "Atualizar etapa" : "Marcar como concluída"}
+                      </Button>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
 
+        {/* Footer actions */}
+        <div className="flex items-center justify-between gap-3 pt-2">
           <Button variant="ghost" size="sm" onClick={handleSkip} disabled={saving}>
-            <SkipForward className="h-4 w-4 mr-1" /> Pular
+            <SkipForward className="mr-1 h-4 w-4" /> Pular onboarding
           </Button>
-
-          {step < STEPS.length - 1 ? (
-            <Button onClick={() => setStep((s) => s + 1)}>
-              Próximo <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
-          ) : (
-            <Button onClick={handleFinish} disabled={saving}>
-              {saving ? "Salvando..." : "Concluir"}
-            </Button>
-          )}
+          <Button onClick={handleFinish} disabled={!allDone || saving} size="lg">
+            <Rocket className="mr-2 h-4 w-4" />
+            {saving ? "Liberando..." : "Liberar Dashboard"}
+          </Button>
         </div>
       </div>
     </div>
