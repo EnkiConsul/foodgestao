@@ -217,6 +217,8 @@ export default function Configuracoes() {
 
       <TwoFactorCard />
 
+      <ResetOnboardingCard />
+
       <Separator />
 
       <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto">
