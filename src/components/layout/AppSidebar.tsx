@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Sidebar,
   SidebarContent,
@@ -55,6 +56,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { isSuperAdmin } = useSuperAdmin();
+  const { signOut } = useAuth();
 
   return (
     <Sidebar className="border-r-0" collapsible="icon">
@@ -151,10 +153,7 @@ export function AppSidebar() {
 
       <SidebarFooter className="p-4 border-t border-sidebar-border">
         <button
-          onClick={async () => {
-            const { supabase } = await import("@/integrations/supabase/client");
-            await supabase.auth.signOut();
-          }}
+          onClick={signOut}
           className="flex items-center gap-2 w-full px-3 py-2 text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent rounded-lg transition-colors"
         >
           <LogOut className="h-4 w-4" />

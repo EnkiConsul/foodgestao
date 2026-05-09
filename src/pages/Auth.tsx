@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -36,17 +36,25 @@ export default function Auth() {
   const [mfaRequired, setMfaRequired] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const getRedirectTarget = () => {
+    const r = searchParams.get("redirect");
+    if (r && r.startsWith("/") && !r.startsWith("//")) return r;
+    return "/";
+  };
 
   const checkMfaAndRedirect = async () => {
+    const target = getRedirectTarget();
     const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     if (error) {
-      navigate("/");
+      navigate(target, { replace: true });
       return;
     }
     if (data.nextLevel === "aal2" && data.nextLevel !== data.currentLevel) {
       setMfaRequired(true);
     } else {
-      navigate("/");
+      navigate(target, { replace: true });
     }
   };
 
@@ -107,7 +115,7 @@ export default function Auth() {
         {mfaRequired ? (
           <CardContent>
             <MfaChallenge
-              onSuccess={() => navigate("/")}
+              onSuccess={() => navigate(getRedirectTarget(), { replace: true })}
               onCancel={() => setMfaRequired(false)}
             />
           </CardContent>

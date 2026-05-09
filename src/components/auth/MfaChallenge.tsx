@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function MfaChallenge({ onSuccess, onCancel }: Props) {
+  const { signOut } = useAuth();
   const [factorId, setFactorId] = useState<string | null>(null);
   const [challengeId, setChallengeId] = useState<string | null>(null);
   const [code, setCode] = useState("");
@@ -62,7 +64,7 @@ export function MfaChallenge({ onSuccess, onCancel }: Props) {
   };
 
   const cancel = async () => {
-    await supabase.auth.signOut();
+    await signOut();
     onCancel();
   };
 
