@@ -1123,6 +1123,7 @@ export type Database = {
           id: string
           is_active: boolean
           onboarding_completed: boolean
+          onboarding_data: Json | null
           phone: string | null
           privacy_mode: boolean
           profile_type: Database["public"]["Enums"]["profile_type"]
@@ -1139,6 +1140,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           onboarding_completed?: boolean
+          onboarding_data?: Json | null
           phone?: string | null
           privacy_mode?: boolean
           profile_type?: Database["public"]["Enums"]["profile_type"]
@@ -1155,6 +1157,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           onboarding_completed?: boolean
+          onboarding_data?: Json | null
           phone?: string | null
           privacy_mode?: boolean
           profile_type?: Database["public"]["Enums"]["profile_type"]
