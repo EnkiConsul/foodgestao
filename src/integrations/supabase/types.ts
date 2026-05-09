@@ -890,11 +890,6 @@ export type Database = {
         }
         Returns: number
       }
-      get_company_role: {
-        Args: { _company_id: string; _user_id: string }
-        Returns: Database["public"]["Enums"]["company_role"]
-      }
-      get_user_company_ids: { Args: { _user_id: string }; Returns: string[] }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -910,14 +905,6 @@ export type Database = {
           _entity_type: string
         }
         Returns: undefined
-      }
-      is_company_admin_or_owner: {
-        Args: { _company_id: string; _user_id: string }
-        Returns: boolean
-      }
-      is_company_member: {
-        Args: { _company_id: string; _user_id: string }
-        Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
