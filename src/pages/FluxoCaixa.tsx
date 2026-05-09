@@ -75,6 +75,12 @@ export default function FluxoCaixa() {
 
   const activeRange = periodPreset === "custom" ? customRange : getPeriodRange(periodPreset);
 
+  // Sincronização em tempo real
+  useRealtimeSync({
+    tables: ["transactions", "accounts"],
+    invalidateKeyPrefixes: ["fluxo-caixa-"],
+  });
+
   // Fetch all transactions (realized + projected via due_date)
   const { data: transactions = [] } = useQuery({
     queryKey: ["fluxo-caixa-transactions", user?.id, contextType, selectedCompanyId, periodPreset, customRange.from.toISOString(), customRange.to.toISOString()],
