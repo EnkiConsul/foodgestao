@@ -139,6 +139,7 @@ export default function Onboarding() {
         if (!isPJ || data.profileType === "hibrido") {
           if (!data.fullName.trim()) return "Informe seu nome completo.";
           if (!data.document.trim()) return "Informe seu CPF.";
+          if (!isValidCpf(data.document)) return "CPF inválido. Verifique o número informado.";
           if (!data.phone.trim()) return "Informe seu telefone.";
         }
         return null;
