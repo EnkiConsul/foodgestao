@@ -41,10 +41,14 @@ export function StepProfileData({ data, update }: Props) {
             <Label>CPF</Label>
             <Input
               value={data.document}
-              onChange={(e) => update({ document: e.target.value })}
+              onChange={(e) => update({ document: maskCpf(e.target.value) })}
               placeholder="000.000.000-00"
-              maxLength={18}
+              maxLength={14}
+              inputMode="numeric"
             />
+            {data.document.replace(/\D/g, "").length === 11 && !isValidCpf(data.document) && (
+              <p className="text-xs text-destructive">CPF inválido</p>
+            )}
           </div>
 
           <div className="space-y-2">
