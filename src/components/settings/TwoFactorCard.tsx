@@ -45,7 +45,7 @@ export function TwoFactorCard() {
     setLoading(true);
     const { data, error } = await supabase.auth.mfa.listFactors();
     if (error) toast.error("Erro ao carregar fatores", { description: error.message });
-    setFactors(((data?.totp ?? []) as Factor[]) ?? []);
+    setFactors((data?.totp ?? []) as Factor[]);
     setLoading(false);
   };
 
