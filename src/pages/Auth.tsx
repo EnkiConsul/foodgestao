@@ -25,8 +25,10 @@ const signupSchema = loginSchema.extend({
   path: ["confirmPassword"],
 });
 
+type Mode = "login" | "signup" | "forgot";
+
 export default function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -37,6 +39,9 @@ export default function Auth() {
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const isLogin = mode === "login";
+  const isSignup = mode === "signup";
+  const isForgot = mode === "forgot";
 
   const getRedirectTarget = () => {
     const r = searchParams.get("redirect");
