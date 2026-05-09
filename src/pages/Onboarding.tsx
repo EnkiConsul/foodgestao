@@ -18,6 +18,7 @@ import { StepAccount } from "@/components/onboarding/StepAccount";
 import { StepCategories } from "@/components/onboarding/StepCategories";
 import { CheckCircle2, Circle, Rocket, SkipForward, TreePine } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isValidCnpj } from "@/lib/cnpj";
 
 export type OnboardingData = {
   profileType: string;
@@ -132,6 +133,7 @@ export default function Onboarding() {
         if (isPJ) {
           if (!data.companyName.trim()) return "Informe o nome da empresa.";
           if (!data.companyCnpj.trim()) return "Informe o CNPJ.";
+          if (!isValidCnpj(data.companyCnpj)) return "CNPJ inválido. Verifique o número informado.";
         }
         if (!isPJ || data.profileType === "hibrido") {
           if (!data.fullName.trim()) return "Informe seu nome completo.";
