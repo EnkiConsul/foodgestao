@@ -57,7 +57,7 @@ const secondaryItems = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const { isSuperAdmin } = useSuperAdmin();
+  
   const { signOut } = useAuth();
 
   return (
