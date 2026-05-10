@@ -146,6 +146,7 @@ const MAX_ATTACHMENTS = 5;
 export function TransactionFormDialog({ open, onOpenChange, onCreated, transaction, initialType }: Props) {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
+  const { isRequired } = useTransactionFieldSettings();
   const [type, setType] = useState<TransactionType>("despesa");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
