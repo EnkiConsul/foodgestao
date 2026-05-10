@@ -161,41 +161,53 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const [paymentMethodId, setPaymentMethodId] = useState("");
   const [categoryCompanyIds, setCategoryCompanyIds] = useState<Map<string, string[]>>(new Map());
 
+  const [accountDialogOpen, setAccountDialogOpen] = useState(false);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState(false);
+  const [accountTarget, setAccountTarget] = useState<"origin" | "destination">("origin");
+
+  const reloadLookups = async () => {
+    if (!user) return;
+    const [accRes, catRes, pmRes, ccRes, contactRes, contCompRes] = await Promise.all([
+      supabase.from("accounts").select("*").eq("user_id", user.id).eq("is_active", true),
+      supabase.from("categories").select("*").eq("user_id", user.id).order("transaction_type").order("sort_order").order("name"),
+      supabase.from("payment_methods").select("*").eq("user_id", user.id).eq("is_active", true),
+      supabase.from("category_companies").select("category_id, company_id"),
+      supabase.from("contacts").select("*").eq("user_id", user.id).eq("is_active", true).order("name"),
+      supabase.from("contact_companies").select("contact_id, company_id"),
+    ]);
+    setAccounts(accRes.data ?? []);
+    setCategories(catRes.data ?? []);
+    setPaymentMethods(pmRes.data ?? []);
+    setContacts(contactRes.data ?? []);
+
+    const map = new Map<string, string[]>();
+    (ccRes.data ?? []).forEach((cc) => {
+      const list = map.get(cc.category_id) || [];
+      list.push(cc.company_id);
+      map.set(cc.category_id, list);
+    });
+    setCategoryCompanyIds(map);
+
+    const contMap = new Map<string, string[]>();
+    (contCompRes.data ?? []).forEach((cc) => {
+      const list = contMap.get(cc.contact_id) || [];
+      list.push(cc.company_id);
+      contMap.set(cc.contact_id, list);
+    });
+    setContactCompanyIds(contMap);
+
+    return accRes.data ?? [];
+  };
+
   useEffect(() => {
     if (!user || !open) return;
-    const loadData = async () => {
-      const [accRes, catRes, pmRes, ccRes, contactRes, contCompRes] = await Promise.all([
-        supabase.from("accounts").select("*").eq("user_id", user.id).eq("is_active", true),
-        supabase.from("categories").select("*").eq("user_id", user.id).order("transaction_type").order("sort_order").order("name"),
-        supabase.from("payment_methods").select("*").eq("user_id", user.id).eq("is_active", true),
-        supabase.from("category_companies").select("category_id, company_id"),
-        supabase.from("contacts").select("*").eq("user_id", user.id).eq("is_active", true).order("name"),
-        supabase.from("contact_companies").select("contact_id, company_id"),
-      ]);
-      setAccounts(accRes.data ?? []);
-      setCategories(catRes.data ?? []);
-      setPaymentMethods(pmRes.data ?? []);
-      setContacts(contactRes.data ?? []);
+    (async () => {
+      const accs = await reloadLookups();
       // Only set default account if NOT editing (to avoid overriding the populated value)
-      if (!transaction && accRes.data?.[0] && !accountId) setAccountId(accRes.data[0].id);
-
-      const map = new Map<string, string[]>();
-      (ccRes.data ?? []).forEach((cc) => {
-        const list = map.get(cc.category_id) || [];
-        list.push(cc.company_id);
-        map.set(cc.category_id, list);
-      });
-      setCategoryCompanyIds(map);
-
-      const contMap = new Map<string, string[]>();
-      (contCompRes.data ?? []).forEach((cc) => {
-        const list = contMap.get(cc.contact_id) || [];
-        list.push(cc.company_id);
-        contMap.set(cc.contact_id, list);
-      });
-      setContactCompanyIds(contMap);
-    };
-    loadData();
+      if (!transaction && accs && accs[0] && !accountId) setAccountId(accs[0].id);
+    })();
   }, [user, open]);
 
   // Populate form when editing
