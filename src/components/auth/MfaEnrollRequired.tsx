@@ -244,7 +244,10 @@ export function MfaEnrollRequired({ onSuccess }: Props) {
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="totp-code">Código de verificação</Label>
+        <div className="flex items-center justify-between gap-2">
+          <Label htmlFor="totp-code">Código de verificação</Label>
+          <TotpCountdown />
+        </div>
         <Input
           id="totp-code"
           inputMode="numeric"
