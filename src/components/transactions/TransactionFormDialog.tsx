@@ -349,7 +349,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     // Handle payment fields based on status
     if (status === "confirmado") {
       payload.amount_paid = numAmount;
-      payload.payment_date = date;
+      payload.payment_date = paymentDate || date;
       payload.bill_status = hasDueDate ? "pago" : null;
     } else if (status === "pendente") {
       payload.amount_paid = 0;
