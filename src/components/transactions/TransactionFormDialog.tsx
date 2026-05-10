@@ -13,9 +13,13 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CurrencyInput, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { toast } from "sonner";
 import { transactionSchema, validateWithToast } from "@/lib/validations";
-import { Calendar, Repeat, Paperclip, X, FileText, Upload, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Calendar, Repeat, Paperclip, X, FileText, Upload, CheckCircle, Clock, XCircle, Plus } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import type { Tables } from "@/integrations/supabase/types";
+import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
+import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
+import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
+import { PaymentMethodFormDialog } from "@/components/payment-methods/PaymentMethodFormDialog";
 
 type TransactionType = "receita" | "despesa" | "transferencia";
 
