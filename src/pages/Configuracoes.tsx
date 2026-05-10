@@ -8,12 +8,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { User, Globe, Shield, Save } from "lucide-react";
+import { User, Globe, Shield, Save, ListChecks } from "lucide-react";
 import { ResetMyDataCard } from "@/components/settings/ResetMyDataCard";
 import { TwoFactorCard } from "@/components/settings/TwoFactorCard";
 import { ResetOnboardingCard } from "@/components/settings/ResetOnboardingCard";
+import {
+  TRANSACTION_FIELDS,
+  TRANSACTION_FIELD_LABELS,
+  type FieldRequirement,
+  type TransactionField,
+  type TransactionFieldSettings,
+} from "@/hooks/useTransactionFieldSettings";
 
 const CURRENCIES = [
   { value: "BRL", label: "R$ - Real Brasileiro" },
