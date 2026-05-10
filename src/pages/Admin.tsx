@@ -4,6 +4,9 @@ import { AdminUsers } from "@/components/admin/AdminUsers";
 import { AdminCompanies } from "@/components/admin/AdminCompanies";
 import { AdminAuditLogs } from "@/components/admin/AdminAuditLogs";
 import { AdminResetData } from "@/components/admin/AdminResetData";
+import { AdminPlans } from "@/components/admin/AdminPlans";
+import { AdminSubscriptions } from "@/components/admin/AdminSubscriptions";
+import { AdminBilling } from "@/components/admin/AdminBilling";
 import { ShieldCheck } from "lucide-react";
 
 export default function Admin() {
@@ -18,29 +21,25 @@ export default function Admin() {
       </div>
 
       <Tabs defaultValue="stats" className="space-y-4">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="stats">Estatísticas</TabsTrigger>
-          <TabsTrigger value="users">Usuários</TabsTrigger>
+          <TabsTrigger value="users">Clientes</TabsTrigger>
+          <TabsTrigger value="plans">Planos</TabsTrigger>
+          <TabsTrigger value="subscriptions">Assinaturas</TabsTrigger>
+          <TabsTrigger value="billing">Faturamento</TabsTrigger>
           <TabsTrigger value="companies">Perfis de Acesso</TabsTrigger>
           <TabsTrigger value="audit">Auditoria</TabsTrigger>
           <TabsTrigger value="reset">Resetar Dados</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="stats">
-          <AdminStats />
-        </TabsContent>
-        <TabsContent value="users">
-          <AdminUsers />
-        </TabsContent>
-        <TabsContent value="companies">
-          <AdminCompanies />
-        </TabsContent>
-        <TabsContent value="audit">
-          <AdminAuditLogs />
-        </TabsContent>
-        <TabsContent value="reset">
-          <AdminResetData />
-        </TabsContent>
+        <TabsContent value="stats"><AdminStats /></TabsContent>
+        <TabsContent value="users"><AdminUsers /></TabsContent>
+        <TabsContent value="plans"><AdminPlans /></TabsContent>
+        <TabsContent value="subscriptions"><AdminSubscriptions /></TabsContent>
+        <TabsContent value="billing"><AdminBilling /></TabsContent>
+        <TabsContent value="companies"><AdminCompanies /></TabsContent>
+        <TabsContent value="audit"><AdminAuditLogs /></TabsContent>
+        <TabsContent value="reset"><AdminResetData /></TabsContent>
       </Tabs>
     </div>
   );
