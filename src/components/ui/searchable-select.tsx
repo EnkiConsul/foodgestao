@@ -24,6 +24,8 @@ interface Props {
   emptyText?: string;
   className?: string;
   disabled?: boolean;
+  /** Debounce in ms applied to the search input before filtering. Default: 200. Use 0 to disable. */
+  searchDebounceMs?: number;
 }
 
 const ITEM_HEIGHT = 36;
