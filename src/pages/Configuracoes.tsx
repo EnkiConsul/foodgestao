@@ -97,6 +97,7 @@ export default function Configuracoes() {
         currency,
         timezone,
         privacy_mode: privacyMode,
+        transaction_field_settings: fieldSettings as any,
       })
       .eq("user_id", user.id);
 
@@ -106,6 +107,7 @@ export default function Configuracoes() {
       toast.success("Configurações salvas!");
       queryClient.invalidateQueries({ queryKey: ["profile-settings"] });
       queryClient.invalidateQueries({ queryKey: ["privacy-mode"] });
+      queryClient.invalidateQueries({ queryKey: ["transaction-field-settings"] });
     }
     setSaving(false);
   };
