@@ -74,8 +74,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         setOnboardingCompleted(data?.onboarding_completed ?? false);
         setCheckingOnboarding(false);
       });
-    supabase.auth.mfa.getAuthenticatorAssuranceLevel().then(({ data, error }) => {
-      if (!error && data && data.nextLevel === "aal2" && data.nextLevel !== data.currentLevel) {
+    Promise.all([
+      supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
+      supabase.auth.mfa.listFactors(),
+    ]).then(([{ data: aal }, { data: factors }]) => {
+      const hasVerified = (factors?.totp ?? []).some((f) => f.status === "verified");
+      const needsAal2 = !!aal && aal.nextLevel === "aal2" && aal.nextLevel !== aal.currentLevel;
+      if (!hasVerified || needsAal2) {
         setMfaRequired(true);
       }
       setMfaChecking(false);
