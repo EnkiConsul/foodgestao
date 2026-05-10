@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, ShieldAlert, ShieldCheck, Copy, AlertCircle, CheckCircle2, Smartphone, QrCode, KeyRound } from "lucide-react";
 import { toast } from "sonner";
+import { TotpCountdown } from "./TotpCountdown";
 
 interface Props {
   onSuccess: () => void;
