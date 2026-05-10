@@ -2,6 +2,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
 import { BottomNav } from "./BottomNav";
+import { SubscriptionBanner } from "@/components/billing/SubscriptionBanner";
 import { Outlet } from "react-router-dom";
 
 export function AppLayout() {
@@ -10,6 +11,7 @@ export function AppLayout() {
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <div className="flex flex-1 flex-col">
+          <SubscriptionBanner />
           <AppHeader />
           <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6">
             <Outlet />

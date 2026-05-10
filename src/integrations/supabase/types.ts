@@ -1047,6 +1047,183 @@ export type Database = {
         }
         Relationships: []
       }
+      coupon_redemptions: {
+        Row: {
+          coupon_id: string
+          id: string
+          invoice_id: string | null
+          redeemed_at: string
+          subscription_id: string | null
+          user_id: string
+        }
+        Insert: {
+          coupon_id: string
+          id?: string
+          invoice_id?: string | null
+          redeemed_at?: string
+          subscription_id?: string | null
+          user_id: string
+        }
+        Update: {
+          coupon_id?: string
+          id?: string
+          invoice_id?: string | null
+          redeemed_at?: string
+          subscription_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          applies_to_plan_ids: string[] | null
+          code: string
+          created_at: string
+          description: string | null
+          discount_type: Database["public"]["Enums"]["discount_type"]
+          discount_value: number
+          id: string
+          is_active: boolean
+          max_redemptions: number | null
+          times_redeemed: number
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          applies_to_plan_ids?: string[] | null
+          code: string
+          created_at?: string
+          description?: string | null
+          discount_type: Database["public"]["Enums"]["discount_type"]
+          discount_value: number
+          id?: string
+          is_active?: boolean
+          max_redemptions?: number | null
+          times_redeemed?: number
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          applies_to_plan_ids?: string[] | null
+          code?: string
+          created_at?: string
+          description?: string | null
+          discount_type?: Database["public"]["Enums"]["discount_type"]
+          discount_value?: number
+          id?: string
+          is_active?: boolean
+          max_redemptions?: number | null
+          times_redeemed?: number
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
+      invoices: {
+        Row: {
+          amount_cents: number
+          boleto_url: string | null
+          coupon_id: string | null
+          created_at: string
+          discount_cents: number
+          due_date: string
+          external_invoice_id: string | null
+          external_payment_url: string | null
+          id: string
+          notes: string | null
+          paid_at: string | null
+          payment_method:
+            | Database["public"]["Enums"]["invoice_payment_method"]
+            | null
+          period_end: string | null
+          period_start: string | null
+          pix_qrcode: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          boleto_url?: string | null
+          coupon_id?: string | null
+          created_at?: string
+          discount_cents?: number
+          due_date: string
+          external_invoice_id?: string | null
+          external_payment_url?: string | null
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_method?:
+            | Database["public"]["Enums"]["invoice_payment_method"]
+            | null
+          period_end?: string | null
+          period_start?: string | null
+          pix_qrcode?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          boleto_url?: string | null
+          coupon_id?: string | null
+          created_at?: string
+          discount_cents?: number
+          due_date?: string
+          external_invoice_id?: string | null
+          external_payment_url?: string | null
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_method?:
+            | Database["public"]["Enums"]["invoice_payment_method"]
+            | null
+          period_end?: string | null
+          period_start?: string | null
+          pix_qrcode?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_method_companies: {
         Row: {
           company_id: string
@@ -1113,6 +1290,54 @@ export type Database = {
         }
         Relationships: []
       }
+      plans: {
+        Row: {
+          billing_period: Database["public"]["Enums"]["billing_period"]
+          created_at: string
+          description: string | null
+          features: Json
+          id: string
+          is_active: boolean
+          is_public: boolean
+          name: string
+          price_cents: number
+          slug: string
+          sort_order: number
+          trial_days: number
+          updated_at: string
+        }
+        Insert: {
+          billing_period?: Database["public"]["Enums"]["billing_period"]
+          created_at?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          is_public?: boolean
+          name: string
+          price_cents?: number
+          slug: string
+          sort_order?: number
+          trial_days?: number
+          updated_at?: string
+        }
+        Update: {
+          billing_period?: Database["public"]["Enums"]["billing_period"]
+          created_at?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          is_public?: boolean
+          name?: string
+          price_cents?: number
+          slug?: string
+          sort_order?: number
+          trial_days?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1169,6 +1394,68 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          canceled_at: string | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string
+          external_customer_id: string | null
+          external_subscription_id: string | null
+          id: string
+          notes: string | null
+          plan_id: string
+          started_at: string
+          status: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string
+          external_customer_id?: string | null
+          external_subscription_id?: string | null
+          id?: string
+          notes?: string | null
+          plan_id: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string
+          external_customer_id?: string | null
+          external_subscription_id?: string | null
+          id?: string
+          notes?: string | null
+          plan_id?: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tags: {
         Row: {
@@ -1422,6 +1709,42 @@ export type Database = {
           },
         ]
       }
+      usage_counters: {
+        Row: {
+          ai_requests: number
+          attachments_count: number
+          companies_count: number
+          created_at: string
+          id: string
+          period_month: string
+          transactions_created: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_requests?: number
+          attachments_count?: number
+          companies_count?: number
+          created_at?: string
+          id?: string
+          period_month: string
+          transactions_created?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_requests?: number
+          attachments_count?: number
+          companies_count?: number
+          created_at?: string
+          id?: string
+          period_month?: string
+          transactions_created?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1457,6 +1780,7 @@ export type Database = {
         }
         Returns: number
       }
+      get_user_plan_features: { Args: { _user_id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1485,11 +1809,21 @@ export type Database = {
         | "outro"
       app_role: "super_admin" | "admin" | "user"
       bill_status: "em_dia" | "vence_em_breve" | "atrasado" | "pago" | "parcial"
+      billing_period: "monthly" | "yearly"
       budget_period: "mensal" | "anual"
       company_role: "owner" | "admin" | "member"
       contact_type: "cliente" | "fornecedor" | "ambos"
       context_type: "pf" | "pj"
+      discount_type: "percent" | "fixed"
       invite_status: "pending" | "accepted" | "rejected" | "expired"
+      invoice_payment_method: "pix" | "boleto" | "card" | "manual"
+      invoice_status:
+        | "draft"
+        | "open"
+        | "paid"
+        | "overdue"
+        | "canceled"
+        | "refunded"
       profile_type: "pf" | "mei" | "microempresa" | "hibrido"
       recurrence_type:
         | "diario"
@@ -1500,6 +1834,13 @@ export type Database = {
         | "trimestral"
         | "semestral"
         | "anual"
+      subscription_status:
+        | "trialing"
+        | "active"
+        | "past_due"
+        | "canceled"
+        | "expired"
+        | "pending"
       transaction_status: "pendente" | "confirmado" | "cancelado"
       transaction_type: "receita" | "despesa" | "transferencia"
     }
@@ -1639,11 +1980,22 @@ export const Constants = {
       ],
       app_role: ["super_admin", "admin", "user"],
       bill_status: ["em_dia", "vence_em_breve", "atrasado", "pago", "parcial"],
+      billing_period: ["monthly", "yearly"],
       budget_period: ["mensal", "anual"],
       company_role: ["owner", "admin", "member"],
       contact_type: ["cliente", "fornecedor", "ambos"],
       context_type: ["pf", "pj"],
+      discount_type: ["percent", "fixed"],
       invite_status: ["pending", "accepted", "rejected", "expired"],
+      invoice_payment_method: ["pix", "boleto", "card", "manual"],
+      invoice_status: [
+        "draft",
+        "open",
+        "paid",
+        "overdue",
+        "canceled",
+        "refunded",
+      ],
       profile_type: ["pf", "mei", "microempresa", "hibrido"],
       recurrence_type: [
         "diario",
@@ -1654,6 +2006,14 @@ export const Constants = {
         "trimestral",
         "semestral",
         "anual",
+      ],
+      subscription_status: [
+        "trialing",
+        "active",
+        "past_due",
+        "canceled",
+        "expired",
+        "pending",
       ],
       transaction_status: ["pendente", "confirmado", "cancelado"],
       transaction_type: ["receita", "despesa", "transferencia"],
