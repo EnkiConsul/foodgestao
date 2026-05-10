@@ -159,17 +159,11 @@ export function TwoFactorCard() {
             <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Carregando...
           </div>
         ) : verified && !enroll ? (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-1">
             <p className="text-sm text-muted-foreground">
-              Sua conta está protegida. Você precisará informar um código a cada novo login.
+              Sua conta está protegida. A autenticação em 2 fatores é obrigatória e não pode ser
+              desativada.
             </p>
-            <Button
-              variant="outline"
-              onClick={() => setConfirmRemove(verified.id)}
-              disabled={submitting}
-            >
-              Desativar 2FA
-            </Button>
           </div>
         ) : enroll ? (
           <div className="space-y-4">
