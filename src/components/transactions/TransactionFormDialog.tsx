@@ -38,6 +38,7 @@ interface EditableTransaction {
   status?: string;
   amount_paid?: number;
   payment_method_id?: string | null;
+  payment_date?: string | null;
 }
 
 interface Props {
