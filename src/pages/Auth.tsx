@@ -187,7 +187,9 @@ export default function Auth() {
         <CardHeader className="text-center space-y-3">
           <CardTitle className="text-2xl font-bold">Gestor Plin</CardTitle>
           <CardDescription>
-            {mfaRequired
+            {mfaEnrollRequired
+              ? "Configure a autenticação em 2 fatores"
+              : mfaRequired
               ? "Verificação em duas etapas"
               : isForgot
               ? "Recuperar senha"
@@ -197,7 +199,13 @@ export default function Auth() {
           </CardDescription>
         </CardHeader>
 
-        {mfaRequired ? (
+        {mfaEnrollRequired ? (
+          <CardContent>
+            <MfaEnrollRequired
+              onSuccess={() => navigate(getRedirectTarget(), { replace: true })}
+            />
+          </CardContent>
+        ) : mfaRequired ? (
           <CardContent>
             <MfaChallenge
               onSuccess={() => navigate(getRedirectTarget(), { replace: true })}
