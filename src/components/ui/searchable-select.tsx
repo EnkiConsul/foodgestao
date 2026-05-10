@@ -24,6 +24,8 @@ interface Props {
   emptyText?: string;
   className?: string;
   disabled?: boolean;
+  /** Debounce in ms applied to the search input before filtering. Default: 200. Use 0 to disable. */
+  searchDebounceMs?: number;
 }
 
 const ITEM_HEIGHT = 36;
@@ -45,6 +47,7 @@ export function SearchableSelect({
   emptyText = "Nenhum item encontrado",
   className,
   disabled,
+  searchDebounceMs = 200,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -55,11 +58,15 @@ export function SearchableSelect({
 
   const selected = options.find((o) => o.value === value);
 
-  // Debounce search input by 200ms
+  // Debounce search input (configurable; 0 = no debounce)
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 200);
+    if (searchDebounceMs <= 0) {
+      setDebouncedSearch(search);
+      return;
+    }
+    const t = setTimeout(() => setDebouncedSearch(search), searchDebounceMs);
     return () => clearTimeout(t);
-  }, [search]);
+  }, [search, searchDebounceMs]);
 
   const filtered = useMemo(() => {
     const q = normalize(debouncedSearch.trim());
