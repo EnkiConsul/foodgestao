@@ -52,6 +52,7 @@ export default function Configuracoes() {
   const [currency, setCurrency] = useState("BRL");
   const [timezone, setTimezone] = useState("America/Sao_Paulo");
   const [privacyMode, setPrivacyMode] = useState(false);
+  const [fieldSettings, setFieldSettings] = useState<TransactionFieldSettings>({});
   const [saving, setSaving] = useState(false);
 
   const { data: profile, isLoading } = useQuery({
