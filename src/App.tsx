@@ -22,7 +22,17 @@ import Configuracoes from "./pages/Configuracoes";
 import GestaoUsuarios from "./pages/GestaoUsuarios";
 import Empresas from "./pages/Empresas";
 import FormasPagamento from "./pages/FormasPagamento";
-import Admin from "./pages/Admin";
+import { AdminLayout } from "@/components/layout/AdminLayout";
+import AdminEstatisticas from "./pages/admin/Estatisticas";
+import AdminClientes from "./pages/admin/Clientes";
+import AdminPlanosPage from "./pages/admin/Planos";
+import AdminAssinaturas from "./pages/admin/Assinaturas";
+import AdminFaturamento from "./pages/admin/Faturamento";
+import AdminCuponsPage from "./pages/admin/Cupons";
+import AdminFaturasPage from "./pages/admin/Faturas";
+import AdminPerfisAcesso from "./pages/admin/PerfisAcesso";
+import AdminAuditoria from "./pages/admin/Auditoria";
+import AdminResetarDados from "./pages/admin/ResetarDados";
 import AcceptInvite from "./pages/AcceptInvite";
 import ResetPassword from "./pages/ResetPassword";
 import Planos from "./pages/Planos";
@@ -193,7 +203,27 @@ const AppRoutes = () => (
       <Route path="/gestao-usuarios" element={<GestaoUsuarios />} />
       <Route path="/empresas" element={<Empresas />} />
       <Route path="/formas-pagamento" element={<FormasPagamento />} />
-      <Route path="/admin" element={<SuperAdminRoute><Admin /></SuperAdminRoute>} />
+    </Route>
+    <Route
+      element={
+        <ProtectedRoute>
+          <SuperAdminRoute>
+            <AdminLayout />
+          </SuperAdminRoute>
+        </ProtectedRoute>
+      }
+    >
+      <Route path="/admin" element={<Navigate to="/admin/estatisticas" replace />} />
+      <Route path="/admin/estatisticas" element={<AdminEstatisticas />} />
+      <Route path="/admin/clientes" element={<AdminClientes />} />
+      <Route path="/admin/planos" element={<AdminPlanosPage />} />
+      <Route path="/admin/assinaturas" element={<AdminAssinaturas />} />
+      <Route path="/admin/faturamento" element={<AdminFaturamento />} />
+      <Route path="/admin/cupons" element={<AdminCuponsPage />} />
+      <Route path="/admin/faturas" element={<AdminFaturasPage />} />
+      <Route path="/admin/perfis-acesso" element={<AdminPerfisAcesso />} />
+      <Route path="/admin/auditoria" element={<AdminAuditoria />} />
+      <Route path="/admin/resetar-dados" element={<AdminResetarDados />} />
     </Route>
     <Route path="/convite/:token" element={<AcceptInvite />} />
     <Route path="/reset-password" element={<ResetPassword />} />
