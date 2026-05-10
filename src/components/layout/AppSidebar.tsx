@@ -14,7 +14,7 @@ import {
   Settings,
   LogOut,
   TreePine,
-  ShieldCheck,
+  
   Sparkles,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
