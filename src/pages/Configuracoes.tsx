@@ -76,8 +76,13 @@ export default function Configuracoes() {
       setCurrency(profile.currency);
       setTimezone(profile.timezone);
       setPrivacyMode(profile.privacy_mode);
+      setFieldSettings(((profile as any).transaction_field_settings ?? {}) as TransactionFieldSettings);
     }
   }, [profile]);
+
+  const setFieldRequirement = (field: TransactionField, req: FieldRequirement) => {
+    setFieldSettings((prev) => ({ ...prev, [field]: req }));
+  };
 
   const handleSave = async () => {
     if (!user || !profile) return;
