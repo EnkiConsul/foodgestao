@@ -54,21 +54,37 @@ export default function Auth() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaEnrollRequired, setMfaEnrollRequired] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  const checkMfaState = async () => {
+    const [{ data: aal }, { data: factors }] = await Promise.all([
+      supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
+      supabase.auth.mfa.listFactors(),
+    ]);
+    const hasVerified = (factors?.totp ?? []).some((f) => f.status === "verified");
+    const needsAal2 = !!aal && aal.nextLevel === "aal2" && aal.nextLevel !== aal.currentLevel;
+    return { hasVerified, needsAal2 };
+  };
+
   useEffect(() => {
     if (!user) {
       setMfaRequired(false);
+      setMfaEnrollRequired(false);
       return;
     }
-    supabase.auth.mfa.getAuthenticatorAssuranceLevel().then(({ data, error }) => {
-      if (!error && data && data.nextLevel === "aal2" && data.nextLevel !== data.currentLevel) {
+    checkMfaState().then(({ hasVerified, needsAal2 }) => {
+      if (!hasVerified) {
+        setMfaEnrollRequired(true);
+      } else if (needsAal2) {
         setMfaRequired(true);
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
   const isLogin = mode === "login";
   const isSignup = mode === "signup";
   const isForgot = mode === "forgot";
@@ -81,12 +97,12 @@ export default function Auth() {
 
   const checkMfaAndRedirect = async () => {
     const target = getRedirectTarget();
-    const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (error) {
-      navigate(target, { replace: true });
+    const { hasVerified, needsAal2 } = await checkMfaState();
+    if (!hasVerified) {
+      setMfaEnrollRequired(true);
       return;
     }
-    if (data.nextLevel === "aal2" && data.nextLevel !== data.currentLevel) {
+    if (needsAal2) {
       setMfaRequired(true);
     } else {
       navigate(target, { replace: true });
