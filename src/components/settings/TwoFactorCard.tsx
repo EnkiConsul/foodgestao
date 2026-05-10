@@ -27,7 +27,6 @@ export function TwoFactorCard() {
   const [enroll, setEnroll] = useState<EnrollData | null>(null);
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
 
   const verified = factors.find((f) => f.status === "verified");
 
