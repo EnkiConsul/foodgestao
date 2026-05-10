@@ -15,6 +15,7 @@ import {
   LogOut,
   TreePine,
   ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
