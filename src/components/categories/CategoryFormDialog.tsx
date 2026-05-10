@@ -21,7 +21,7 @@ const COLOR_OPTIONS = [
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSaved: () => void;
+  onSaved: (newId?: string) => void;
   editCategory?: Tables<"categories"> | null;
   defaultParentId?: string | null;
   defaultType?: "receita" | "despesa";
@@ -182,7 +182,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       toast.success("Categoria criada!");
       setName("");
       onOpenChange(false);
-      onSaved();
+      onSaved(newCat?.id);
     }
     setSaving(false);
   };

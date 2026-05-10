@@ -13,9 +13,13 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CurrencyInput, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { toast } from "sonner";
 import { transactionSchema, validateWithToast } from "@/lib/validations";
-import { Calendar, Repeat, Paperclip, X, FileText, Upload, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Calendar, Repeat, Paperclip, X, FileText, Upload, CheckCircle, Clock, XCircle, Plus } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import type { Tables } from "@/integrations/supabase/types";
+import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
+import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
+import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
+import { PaymentMethodFormDialog } from "@/components/payment-methods/PaymentMethodFormDialog";
 
 type TransactionType = "receita" | "despesa" | "transferencia";
 
@@ -157,41 +161,53 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const [paymentMethodId, setPaymentMethodId] = useState("");
   const [categoryCompanyIds, setCategoryCompanyIds] = useState<Map<string, string[]>>(new Map());
 
+  const [accountDialogOpen, setAccountDialogOpen] = useState(false);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState(false);
+  const [accountTarget, setAccountTarget] = useState<"origin" | "destination">("origin");
+
+  const reloadLookups = async () => {
+    if (!user) return;
+    const [accRes, catRes, pmRes, ccRes, contactRes, contCompRes] = await Promise.all([
+      supabase.from("accounts").select("*").eq("user_id", user.id).eq("is_active", true),
+      supabase.from("categories").select("*").eq("user_id", user.id).order("transaction_type").order("sort_order").order("name"),
+      supabase.from("payment_methods").select("*").eq("user_id", user.id).eq("is_active", true),
+      supabase.from("category_companies").select("category_id, company_id"),
+      supabase.from("contacts").select("*").eq("user_id", user.id).eq("is_active", true).order("name"),
+      supabase.from("contact_companies").select("contact_id, company_id"),
+    ]);
+    setAccounts(accRes.data ?? []);
+    setCategories(catRes.data ?? []);
+    setPaymentMethods(pmRes.data ?? []);
+    setContacts(contactRes.data ?? []);
+
+    const map = new Map<string, string[]>();
+    (ccRes.data ?? []).forEach((cc) => {
+      const list = map.get(cc.category_id) || [];
+      list.push(cc.company_id);
+      map.set(cc.category_id, list);
+    });
+    setCategoryCompanyIds(map);
+
+    const contMap = new Map<string, string[]>();
+    (contCompRes.data ?? []).forEach((cc) => {
+      const list = contMap.get(cc.contact_id) || [];
+      list.push(cc.company_id);
+      contMap.set(cc.contact_id, list);
+    });
+    setContactCompanyIds(contMap);
+
+    return accRes.data ?? [];
+  };
+
   useEffect(() => {
     if (!user || !open) return;
-    const loadData = async () => {
-      const [accRes, catRes, pmRes, ccRes, contactRes, contCompRes] = await Promise.all([
-        supabase.from("accounts").select("*").eq("user_id", user.id).eq("is_active", true),
-        supabase.from("categories").select("*").eq("user_id", user.id).order("transaction_type").order("sort_order").order("name"),
-        supabase.from("payment_methods").select("*").eq("user_id", user.id).eq("is_active", true),
-        supabase.from("category_companies").select("category_id, company_id"),
-        supabase.from("contacts").select("*").eq("user_id", user.id).eq("is_active", true).order("name"),
-        supabase.from("contact_companies").select("contact_id, company_id"),
-      ]);
-      setAccounts(accRes.data ?? []);
-      setCategories(catRes.data ?? []);
-      setPaymentMethods(pmRes.data ?? []);
-      setContacts(contactRes.data ?? []);
+    (async () => {
+      const accs = await reloadLookups();
       // Only set default account if NOT editing (to avoid overriding the populated value)
-      if (!transaction && accRes.data?.[0] && !accountId) setAccountId(accRes.data[0].id);
-
-      const map = new Map<string, string[]>();
-      (ccRes.data ?? []).forEach((cc) => {
-        const list = map.get(cc.category_id) || [];
-        list.push(cc.company_id);
-        map.set(cc.category_id, list);
-      });
-      setCategoryCompanyIds(map);
-
-      const contMap = new Map<string, string[]>();
-      (contCompRes.data ?? []).forEach((cc) => {
-        const list = contMap.get(cc.contact_id) || [];
-        list.push(cc.company_id);
-        contMap.set(cc.contact_id, list);
-      });
-      setContactCompanyIds(contMap);
-    };
-    loadData();
+      if (!transaction && accs && accs[0] && !accountId) setAccountId(accs[0].id);
+    })();
   }, [user, open]);
 
   // Populate form when editing
@@ -587,32 +603,56 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           {/* Account */}
           <div className="space-y-2">
             <Label>{type === "transferencia" ? "Conta de origem" : "Conta"}</Label>
-            <Select value={accountId} onValueChange={setAccountId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a conta" />
-              </SelectTrigger>
-              <SelectContent>
-                {accounts.map((acc) => (
-                  <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select value={accountId} onValueChange={setAccountId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a conta" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map((acc) => (
+                    <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="shrink-0"
+                title="Criar nova conta"
+                onClick={() => { setAccountTarget("origin"); setAccountDialogOpen(true); }}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Destination account (transfer) */}
           {type === "transferencia" && (
             <div className="space-y-2">
               <Label>Conta de destino</Label>
-              <Select value={destinationAccountId} onValueChange={setDestinationAccountId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o destino" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts.filter((a) => a.id !== accountId).map((acc) => (
-                    <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={destinationAccountId} onValueChange={setDestinationAccountId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o destino" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accounts.filter((a) => a.id !== accountId).map((acc) => (
+                      <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  title="Criar nova conta"
+                  onClick={() => { setAccountTarget("destination"); setAccountDialogOpen(true); }}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
 
@@ -620,14 +660,26 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           {type !== "transferencia" && (
             <div className="space-y-2">
               <Label>Categoria (opcional)</Label>
-              <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {renderCategoryNodes(categoryTree)}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={categoryId} onValueChange={setCategoryId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {renderCategoryNodes(categoryTree)}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  title="Criar nova categoria"
+                  onClick={() => setCategoryDialogOpen(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
 
@@ -635,32 +687,56 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           {type !== "transferencia" && (
             <div className="space-y-2">
               <Label>Cliente/Fornecedor (opcional)</Label>
-              <Select value={contactId} onValueChange={setContactId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o contato" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredContacts.map((ct) => (
-                    <SelectItem key={ct.id} value={ct.id}>{ct.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={contactId} onValueChange={setContactId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o contato" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredContacts.map((ct) => (
+                      <SelectItem key={ct.id} value={ct.id}>{ct.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  title="Criar novo cliente/fornecedor"
+                  onClick={() => setContactDialogOpen(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
 
           {/* Payment Method */}
           <div className="space-y-2">
             <Label>Forma de pagamento (opcional)</Label>
-            <Select value={paymentMethodId} onValueChange={setPaymentMethodId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione" />
-              </SelectTrigger>
-              <SelectContent>
-                {paymentMethods.map((pm) => (
-                  <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select value={paymentMethodId} onValueChange={setPaymentMethodId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentMethods.map((pm) => (
+                    <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="shrink-0"
+                title="Criar nova forma de pagamento"
+                onClick={() => setPaymentMethodDialogOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Status */}
@@ -787,6 +863,46 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           </Button>
         </form>
       </DialogContent>
+
+      <AccountFormDialog
+        open={accountDialogOpen}
+        onOpenChange={setAccountDialogOpen}
+        onSaved={async (newId) => {
+          await reloadLookups();
+          if (newId) {
+            if (accountTarget === "destination") setDestinationAccountId(newId);
+            else setAccountId(newId);
+          }
+        }}
+      />
+
+      <CategoryFormDialog
+        open={categoryDialogOpen}
+        onOpenChange={setCategoryDialogOpen}
+        defaultType={type === "receita" ? "receita" : "despesa"}
+        onSaved={async (newId) => {
+          await reloadLookups();
+          if (newId) setCategoryId(newId);
+        }}
+      />
+
+      <ContactFormDialog
+        open={contactDialogOpen}
+        onOpenChange={setContactDialogOpen}
+        onSaved={async (newId) => {
+          await reloadLookups();
+          if (newId) setContactId(newId);
+        }}
+      />
+
+      <PaymentMethodFormDialog
+        open={paymentMethodDialogOpen}
+        onOpenChange={setPaymentMethodDialogOpen}
+        onSaved={async (newId) => {
+          await reloadLookups();
+          if (newId) setPaymentMethodId(newId);
+        }}
+      />
     </Dialog>
   );
 }

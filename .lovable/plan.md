@@ -1,33 +1,35 @@
 ## Objetivo
 
-Adicionar o campo **Data de Pagamento** no formulário de lançamento, permitindo registro manual da data em que o pagamento/recebimento foi efetivado.
+No diálogo de novo/editar Lançamento, permitir criar rapidamente uma **Conta**, **Categoria**, **Cliente/Fornecedor** ou **Forma de Pagamento** sem sair da tela, reaproveitando os formulários já existentes.
 
-## Banco de dados
+## Comportamento
 
-A coluna `payment_date` (date, nullable) **já existe** na tabela `transactions` — não é necessária migração para criar tabela ou coluna. Hoje ela é preenchida automaticamente como cópia de `transaction_date` quando o status é "confirmado". Vamos passar a respeitar o valor informado pelo usuário.
+Ao lado de cada Select correspondente, será adicionado um pequeno botão `+` (ícone `Plus`, variante ghost/outline). Ao clicar:
 
-Se ainda assim quiser uma migração para garantir o estado, posso adicionar uma "no-op" defensiva, mas não é necessário.
+1. Abre o dialog de cadastro do recurso (já existente).
+2. Após salvar com sucesso, o dialog fecha, a lista do Lançamento é recarregada e o item recém-criado fica **automaticamente selecionado** no Select.
+3. O dialog do Lançamento permanece aberto, com os demais campos preservados.
 
-## Mudanças no formulário (`TransactionFormDialog.tsx`)
+Aplicado a:
 
-1. **Novo estado** `paymentDate` (string, formato `YYYY-MM-DD`).
-2. **Novo input** "Data de pagamento" com ícone de calendário, exibido logo após o campo "Data de vencimento", apenas para `receita`/`despesa` (oculto em transferências).
-3. **Pré-preenchimento inteligente**:
-   - Ao abrir em modo criação com status "confirmado": default = data do lançamento.
-   - Ao editar: usa `transaction.payment_date` existente.
-   - Ao alternar status para "pendente"/"cancelado": limpa o campo.
-4. **Persistência** (handleSubmit):
-   - Status `confirmado` → `payment_date = paymentDate || date`.
-   - Status `pendente` ou `cancelado` → `payment_date = null`.
-5. **Recorrências futuras**: aplica o mesmo offset usado em `due_date` para gerar `payment_date` quando aplicável (status confirmado).
-6. **Edição existente**: carrega `payment_date` no `useEffect` que popula o form.
+- **Conta** (origem e destino na transferência) → `AccountFormDialog`
+- **Categoria** → `CategoryFormDialog`
+- **Cliente/Fornecedor** → `ContactFormDialog`
+- **Forma de Pagamento** → `PaymentMethodFormDialog`
 
-## Pagamentos parciais
+## Detalhes técnicos
 
-`PaymentDialog.tsx` já grava `payment_date` corretamente — sem alteração.
+Arquivo único alterado: `src/components/transactions/TransactionFormDialog.tsx`.
 
-## Resumo técnico
+1. Adicionar 4 estados booleanos para abrir cada subdialog: `accountDialogOpen`, `categoryDialogOpen`, `contactDialogOpen`, `paymentMethodDialogOpen`.
+2. Refatorar o `loadData` em uma função reutilizável (`reloadLookups`) para poder ser chamada após a criação de qualquer recurso.
+3. Cada subdialog precisa de um callback `onCreated` que retorne o `id` do novo registro. Verificar se os dialogs já expõem isso; se não, adicionar um parâmetro opcional `onCreated?: (id: string) => void` (mudança mínima e retrocompatível).
+4. No callback: chamar `reloadLookups()` e setar o estado correspondente (`setAccountId`, `setCategoryId`, etc.) com o novo id.
+5. Layout: envolver cada `Select` num `flex gap-2`, com o botão `+` (`size="icon"`, `variant="outline"`, `h-10 w-10`) ao lado direito. Tooltip "Criar nova conta", etc.
+6. Respeitar o contexto atual (PF/PJ) — os subdialogs já recebem `contextType`/`selectedCompanyId` via seus próprios hooks; o filtro de visibilidade é reaplicado no `reloadLookups`.
 
-- 1 arquivo editado: `src/components/transactions/TransactionFormDialog.tsx`.
-- Sem migração de banco (coluna já existe).
-- Sem mudança de regras de RLS.
+## Não incluído
+
+- Sem alterações no schema do banco.
+- Sem mudanças em RLS ou edge functions.
+- Sem refactor visual fora do `TransactionFormDialog`.

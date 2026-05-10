@@ -16,7 +16,7 @@ import type { Tables } from "@/integrations/supabase/types";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSaved: () => void;
+  onSaved: (newId?: string) => void;
   editContact?: Tables<"contacts"> | null;
 }
 
@@ -119,7 +119,7 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact }: 
         _entity_id: (newContact as any).id,
         _details: { target_name: name },
       });
-      toast.success("Contato criado!"); onOpenChange(false); onSaved();
+      toast.success("Contato criado!"); onOpenChange(false); onSaved((newContact as any).id);
     }
     setSaving(false);
   };

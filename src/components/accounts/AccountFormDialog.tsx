@@ -27,7 +27,7 @@ const accountTypeLabels: Record<AccountType, string> = {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSaved: () => void;
+  onSaved: (newId?: string) => void;
   account?: Account | null;
 }
 
@@ -92,7 +92,7 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
         toast.success("Conta atualizada"); onSaved(); onOpenChange(false);
       }
     } else {
-      const { error } = await supabase.from("accounts").insert({
+      const { data: inserted, error } = await supabase.from("accounts").insert({
         user_id: user.id,
         name: name.trim(),
         account_type: accountType,
@@ -100,15 +100,16 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
         current_balance: balance,
         context: ownerType,
         company_id: ownerType === "pj" ? ownerCompanyId : null,
-      });
-      if (error) toast.error("Erro ao criar conta");
+      }).select("id").single();
+      if (error || !inserted) toast.error("Erro ao criar conta");
       else {
         await supabase.rpc("insert_audit_log", {
           _action: "account_created",
           _entity_type: "account",
+          _entity_id: inserted.id,
           _details: { target_name: name.trim() },
         });
-        toast.success("Conta criada"); onSaved(); onOpenChange(false);
+        toast.success("Conta criada"); onSaved(inserted.id); onOpenChange(false);
       }
     }
     setSaving(false);

@@ -25,8 +25,8 @@ interface FormValues {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSaved: () => void;
-  editItem: { id: string; name: string; is_active: boolean; visible_pf?: boolean } | null;
+  onSaved: (newId?: string) => void;
+  editItem?: { id: string; name: string; is_active: boolean; visible_pf?: boolean } | null;
 }
 
 export function PaymentMethodFormDialog({ open, onOpenChange, onSaved, editItem }: Props) {
@@ -110,6 +110,9 @@ export function PaymentMethodFormDialog({ open, onOpenChange, onSaved, editItem 
         );
       }
       toast.success("Forma de pagamento criada");
+      onSaved((inserted as any).id);
+      onOpenChange(false);
+      return;
     }
     onSaved();
     onOpenChange(false);
