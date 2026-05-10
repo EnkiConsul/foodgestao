@@ -203,7 +203,27 @@ const AppRoutes = () => (
       <Route path="/gestao-usuarios" element={<GestaoUsuarios />} />
       <Route path="/empresas" element={<Empresas />} />
       <Route path="/formas-pagamento" element={<FormasPagamento />} />
-      <Route path="/admin" element={<SuperAdminRoute><Admin /></SuperAdminRoute>} />
+    </Route>
+    <Route
+      element={
+        <ProtectedRoute>
+          <SuperAdminRoute>
+            <AdminLayout />
+          </SuperAdminRoute>
+        </ProtectedRoute>
+      }
+    >
+      <Route path="/admin" element={<Navigate to="/admin/estatisticas" replace />} />
+      <Route path="/admin/estatisticas" element={<AdminEstatisticas />} />
+      <Route path="/admin/clientes" element={<AdminClientes />} />
+      <Route path="/admin/planos" element={<AdminPlanosPage />} />
+      <Route path="/admin/assinaturas" element={<AdminAssinaturas />} />
+      <Route path="/admin/faturamento" element={<AdminFaturamento />} />
+      <Route path="/admin/cupons" element={<AdminCuponsPage />} />
+      <Route path="/admin/faturas" element={<AdminFaturasPage />} />
+      <Route path="/admin/perfis-acesso" element={<AdminPerfisAcesso />} />
+      <Route path="/admin/auditoria" element={<AdminAuditoria />} />
+      <Route path="/admin/resetar-dados" element={<AdminResetarDados />} />
     </Route>
     <Route path="/convite/:token" element={<AcceptInvite />} />
     <Route path="/reset-password" element={<ResetPassword />} />
