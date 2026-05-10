@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, ShieldAlert, ShieldCheck, Copy, AlertCircle, CheckCircle2, Smartphone, QrCode, KeyRound } from "lucide-react";
 import { toast } from "sonner";
+import { TotpCountdown } from "./TotpCountdown";
 
 interface Props {
   onSuccess: () => void;
@@ -243,7 +244,10 @@ export function MfaEnrollRequired({ onSuccess }: Props) {
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="totp-code">Código de verificação</Label>
+        <div className="flex items-center justify-between gap-2">
+          <Label htmlFor="totp-code">Código de verificação</Label>
+          <TotpCountdown />
+        </div>
         <Input
           id="totp-code"
           inputMode="numeric"

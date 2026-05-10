@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { TotpCountdown } from "./TotpCountdown";
 
 interface Props {
   onSuccess: () => void;
@@ -83,7 +84,10 @@ export function MfaChallenge({ onSuccess, onCancel }: Props) {
         Insira o código de 6 dígitos do seu app autenticador.
       </div>
       <div className="space-y-2">
-        <Label htmlFor="mfa-code">Código de verificação</Label>
+        <div className="flex items-center justify-between gap-2">
+          <Label htmlFor="mfa-code">Código de verificação</Label>
+          <TotpCountdown />
+        </div>
         <Input
           id="mfa-code"
           inputMode="numeric"
