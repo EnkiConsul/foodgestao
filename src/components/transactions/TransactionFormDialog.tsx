@@ -101,6 +101,18 @@ function renderCategoryNodes(nodes: CategoryNode[]): React.ReactNode[] {
   return result;
 }
 
+function flattenCategoryTree(nodes: CategoryNode[]): SearchableSelectOption[] {
+  const out: SearchableSelectOption[] = [];
+  const walk = (list: CategoryNode[]) => {
+    list.forEach((n) => {
+      out.push({ value: n.id, label: n.name, depth: n.depth });
+      if (n.children.length) walk(n.children);
+    });
+  };
+  walk(nodes);
+  return out;
+}
+
 function getNextRecurrenceDate(current: Date, recType: string): Date {
   switch (recType) {
     case "diario": return addDays(current, 1);
