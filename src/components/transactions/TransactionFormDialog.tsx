@@ -38,6 +38,7 @@ interface EditableTransaction {
   status?: string;
   amount_paid?: number;
   payment_method_id?: string | null;
+  payment_date?: string | null;
 }
 
 interface Props {
@@ -133,6 +134,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState("");
+  const [paymentDate, setPaymentDate] = useState("");
   const [accountId, setAccountId] = useState("");
   const [destinationAccountId, setDestinationAccountId] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -205,6 +207,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       setContactId(transaction.contact_id ?? "");
       setNotes(transaction.notes ?? "");
       setDueDate(transaction.due_date ?? "");
+      setPaymentDate(transaction.payment_date ?? "");
       setPaymentMethodId(transaction.payment_method_id ?? "");
       setStatus((transaction.status as any) ?? "confirmado");
       setIsRecurring(transaction.is_recurring ?? false);
@@ -256,6 +259,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     setAmount("");
     setDate(new Date().toISOString().split("T")[0]);
     setDueDate("");
+    setPaymentDate("");
     setAccountId(accounts[0]?.id ?? "");
     setDestinationAccountId("");
     setCategoryId("");
@@ -345,7 +349,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     // Handle payment fields based on status
     if (status === "confirmado") {
       payload.amount_paid = numAmount;
-      payload.payment_date = date;
+      payload.payment_date = paymentDate || date;
       payload.bill_status = hasDueDate ? "pago" : null;
     } else if (status === "pendente") {
       payload.amount_paid = 0;
@@ -504,6 +508,26 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
               </div>
               <p className="text-[11px] text-muted-foreground">
                 Se preenchido, o lançamento será tratado como compromisso pendente.
+              </p>
+            </div>
+          )}
+
+          {/* Payment date - only for receita/despesa with confirmed status */}
+          {type !== "transferencia" && status === "confirmado" && (
+            <div className="space-y-2">
+              <Label>Data de pagamento</Label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="date"
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                  className="pl-10"
+                  placeholder="Data do efetivo pagamento"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Se vazio, será considerada a data do lançamento.
               </p>
             </div>
           )}
