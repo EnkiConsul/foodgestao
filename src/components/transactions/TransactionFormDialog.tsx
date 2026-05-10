@@ -21,6 +21,7 @@ import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { PaymentMethodFormDialog } from "@/components/payment-methods/PaymentMethodFormDialog";
 import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/searchable-select";
+import { useTransactionFieldSettings, TRANSACTION_FIELD_LABELS, type TransactionField } from "@/hooks/useTransactionFieldSettings";
 
 type TransactionType = "receita" | "despesa" | "transferencia";
 
@@ -146,6 +147,7 @@ const MAX_ATTACHMENTS = 5;
 export function TransactionFormDialog({ open, onOpenChange, onCreated, transaction, initialType }: Props) {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
+  const { isRequired } = useTransactionFieldSettings();
   const [type, setType] = useState<TransactionType>("despesa");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -351,6 +353,26 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     if (!validated) return;
     if (type === "transferencia" && !destinationAccountId) return toast.error("Selecione a conta de destino");
 
+    // Custom required-field validation based on user settings
+    const requiredErrors: TransactionField[] = [];
+    if (type !== "transferencia") {
+      if (isRequired("category") && !categoryId) requiredErrors.push("category");
+      if (isRequired("contact") && !contactId) requiredErrors.push("contact");
+      if (isRequired("due_date") && !dueDate) requiredErrors.push("due_date");
+      if (isRequired("payment_date") && status === "confirmado" && !paymentDate) requiredErrors.push("payment_date");
+    }
+    if (isRequired("payment_method") && !paymentMethodId) requiredErrors.push("payment_method");
+    if (isRequired("notes") && !notes.trim()) requiredErrors.push("notes");
+    if (isRequired("attachments")) {
+      const remaining = existingAttachments.filter((a) => !removedAttachmentIds.includes(a.id)).length + attachmentFiles.length;
+      if (remaining === 0) requiredErrors.push("attachments");
+    }
+    if (requiredErrors.length > 0) {
+      const first = requiredErrors[0];
+      toast.error(`${TRANSACTION_FIELD_LABELS[first]} é obrigatório`);
+      return;
+    }
+
     setSaving(true);
 
     const hasDueDate = !!dueDate && type !== "transferencia";
@@ -467,6 +489,13 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     setSaving(false);
   };
 
+  const fieldSuffix = (field: TransactionField) =>
+    isRequired(field) ? (
+      <span className="text-destructive ml-0.5">*</span>
+    ) : (
+      <span className="text-muted-foreground font-normal"> (opcional)</span>
+    );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
@@ -524,7 +553,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           {/* Due date - only for receita/despesa */}
           {type !== "transferencia" && (
             <div className="space-y-2">
-              <Label>Data de vencimento (opcional)</Label>
+              <Label>Data de vencimento{fieldSuffix("due_date")}</Label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -544,7 +573,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           {/* Payment date - only for receita/despesa with confirmed status */}
           {type !== "transferencia" && status === "confirmado" && (
             <div className="space-y-2">
-              <Label>Data de pagamento</Label>
+              <Label>Data de pagamento{fieldSuffix("payment_date")}</Label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -666,7 +695,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           {/* Category - hierarchical display */}
           {type !== "transferencia" && (
             <div className="space-y-2">
-              <Label>Categoria (opcional)</Label>
+              <Label>Categoria{fieldSuffix("category")}</Label>
               <div className="flex gap-2">
                 <SearchableSelect
                   value={categoryId}
@@ -692,7 +721,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           {/* Contact (Cliente/Fornecedor) */}
           {type !== "transferencia" && (
             <div className="space-y-2">
-              <Label>Cliente/Fornecedor (opcional)</Label>
+              <Label>Cliente/Fornecedor{fieldSuffix("contact")}</Label>
               <div className="flex gap-2">
                 <SearchableSelect
                   value={contactId}
@@ -717,7 +746,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
           {/* Payment Method */}
           <div className="space-y-2">
-            <Label>Forma de pagamento (opcional)</Label>
+            <Label>Forma de pagamento{fieldSuffix("payment_method")}</Label>
             <div className="flex gap-2">
               <SearchableSelect
                 value={paymentMethodId}
@@ -776,7 +805,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
           {/* Notes */}
           <div className="space-y-2">
-            <Label>Observações (opcional)</Label>
+            <Label>Observações{fieldSuffix("notes")}</Label>
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -788,7 +817,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
           {/* Attachments */}
           <div className="space-y-2">
-            <Label>Anexos (opcional) — {totalAttachments}/5</Label>
+            <Label>Anexos{fieldSuffix("attachments")} — {totalAttachments}/5</Label>
             {/* Existing attachments */}
             {existingAttachments.filter(a => !removedAttachmentIds.includes(a.id)).map((att) => (
               <div key={att.id} className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">

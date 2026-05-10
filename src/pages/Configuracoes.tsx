@@ -8,12 +8,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { User, Globe, Shield, Save } from "lucide-react";
+import { User, Globe, Shield, Save, ListChecks } from "lucide-react";
 import { ResetMyDataCard } from "@/components/settings/ResetMyDataCard";
 import { TwoFactorCard } from "@/components/settings/TwoFactorCard";
 import { ResetOnboardingCard } from "@/components/settings/ResetOnboardingCard";
+import {
+  TRANSACTION_FIELDS,
+  TRANSACTION_FIELD_LABELS,
+  type FieldRequirement,
+  type TransactionField,
+  type TransactionFieldSettings,
+} from "@/hooks/useTransactionFieldSettings";
 
 const CURRENCIES = [
   { value: "BRL", label: "R$ - Real Brasileiro" },
@@ -44,6 +52,7 @@ export default function Configuracoes() {
   const [currency, setCurrency] = useState("BRL");
   const [timezone, setTimezone] = useState("America/Sao_Paulo");
   const [privacyMode, setPrivacyMode] = useState(false);
+  const [fieldSettings, setFieldSettings] = useState<TransactionFieldSettings>({});
   const [saving, setSaving] = useState(false);
 
   const { data: profile, isLoading } = useQuery({
@@ -67,8 +76,13 @@ export default function Configuracoes() {
       setCurrency(profile.currency);
       setTimezone(profile.timezone);
       setPrivacyMode(profile.privacy_mode);
+      setFieldSettings(((profile as any).transaction_field_settings ?? {}) as TransactionFieldSettings);
     }
   }, [profile]);
+
+  const setFieldRequirement = (field: TransactionField, req: FieldRequirement) => {
+    setFieldSettings((prev) => ({ ...prev, [field]: req }));
+  };
 
   const handleSave = async () => {
     if (!user || !profile) return;
@@ -83,6 +97,7 @@ export default function Configuracoes() {
         currency,
         timezone,
         privacy_mode: privacyMode,
+        transaction_field_settings: fieldSettings as any,
       })
       .eq("user_id", user.id);
 
@@ -92,6 +107,7 @@ export default function Configuracoes() {
       toast.success("Configurações salvas!");
       queryClient.invalidateQueries({ queryKey: ["profile-settings"] });
       queryClient.invalidateQueries({ queryKey: ["privacy-mode"] });
+      queryClient.invalidateQueries({ queryKey: ["transaction-field-settings"] });
     }
     setSaving(false);
   };
@@ -190,6 +206,50 @@ export default function Configuracoes() {
               </SelectContent>
             </Select>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Transaction field requirements */}
+      <Card>
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-2">
+            <ListChecks className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">Campos do Lançamento</CardTitle>
+          </div>
+          <CardDescription>
+            Defina quais campos são obrigatórios ao criar ou editar um lançamento.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {TRANSACTION_FIELDS.map((field) => {
+            const current: FieldRequirement = fieldSettings[field] ?? "optional";
+            return (
+              <div
+                key={field}
+                className="flex items-center justify-between gap-4 py-2 border-b last:border-b-0"
+              >
+                <Label className="text-sm font-medium">{TRANSACTION_FIELD_LABELS[field]}</Label>
+                <RadioGroup
+                  value={current}
+                  onValueChange={(v) => setFieldRequirement(field, v as FieldRequirement)}
+                  className="flex gap-4"
+                >
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="optional" id={`${field}-optional`} />
+                    <Label htmlFor={`${field}-optional`} className="text-xs cursor-pointer font-normal">
+                      Opcional
+                    </Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="required" id={`${field}-required`} />
+                    <Label htmlFor={`${field}-required`} className="text-xs cursor-pointer font-normal">
+                      Obrigatório
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            );
+          })}
         </CardContent>
       </Card>
 
