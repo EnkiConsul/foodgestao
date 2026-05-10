@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Lock, User } from "lucide-react";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
+import { MfaEnrollRequired } from "@/components/auth/MfaEnrollRequired";
 
 import { z } from "zod";
 import { toast } from "sonner";
