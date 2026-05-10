@@ -215,22 +215,6 @@ export function TwoFactorCard() {
         )}
       </CardContent>
 
-      <AlertDialog open={!!confirmRemove} onOpenChange={(o) => !o && setConfirmRemove(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Desativar autenticação em 2 fatores?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Sua conta voltará a usar apenas e-mail e senha. Você poderá reativar a qualquer momento.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => confirmRemove && removeFactor(confirmRemove)}>
-              Desativar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Card>
   );
 }
