@@ -489,6 +489,13 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     setSaving(false);
   };
 
+  const fieldSuffix = (field: TransactionField) =>
+    isRequired(field) ? (
+      <span className="text-destructive ml-0.5">*</span>
+    ) : (
+      <span className="text-muted-foreground font-normal"> (opcional)</span>
+    );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
