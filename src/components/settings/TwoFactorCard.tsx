@@ -5,16 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { ShieldCheck, ShieldAlert, Loader2, Copy } from "lucide-react";
 
@@ -37,7 +27,6 @@ export function TwoFactorCard() {
   const [enroll, setEnroll] = useState<EnrollData | null>(null);
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
 
   const verified = factors.find((f) => f.status === "verified");
 
@@ -112,18 +101,6 @@ export function TwoFactorCard() {
     refresh();
   };
 
-  const removeFactor = async (id: string) => {
-    setSubmitting(true);
-    const { error } = await supabase.auth.mfa.unenroll({ factorId: id });
-    setSubmitting(false);
-    setConfirmRemove(null);
-    if (error) {
-      toast.error("Erro ao remover", { description: error.message });
-      return;
-    }
-    toast.success("Autenticação de dois fatores desativada");
-    refresh();
-  };
 
   const copySecret = async () => {
     if (!enroll) return;
@@ -159,17 +136,11 @@ export function TwoFactorCard() {
             <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Carregando...
           </div>
         ) : verified && !enroll ? (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-1">
             <p className="text-sm text-muted-foreground">
-              Sua conta está protegida. Você precisará informar um código a cada novo login.
+              Sua conta está protegida. A autenticação em 2 fatores é obrigatória e não pode ser
+              desativada.
             </p>
-            <Button
-              variant="outline"
-              onClick={() => setConfirmRemove(verified.id)}
-              disabled={submitting}
-            >
-              Desativar 2FA
-            </Button>
           </div>
         ) : enroll ? (
           <div className="space-y-4">
@@ -221,22 +192,6 @@ export function TwoFactorCard() {
         )}
       </CardContent>
 
-      <AlertDialog open={!!confirmRemove} onOpenChange={(o) => !o && setConfirmRemove(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Desativar autenticação em 2 fatores?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Sua conta voltará a usar apenas e-mail e senha. Você poderá reativar a qualquer momento.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => confirmRemove && removeFactor(confirmRemove)}>
-              Desativar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Card>
   );
 }

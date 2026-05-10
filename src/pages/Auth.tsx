@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Lock, User } from "lucide-react";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
+import { MfaEnrollRequired } from "@/components/auth/MfaEnrollRequired";
 
 import { z } from "zod";
 import { toast } from "sonner";
@@ -53,21 +54,37 @@ export default function Auth() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaEnrollRequired, setMfaEnrollRequired] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  const checkMfaState = async () => {
+    const [{ data: aal }, { data: factors }] = await Promise.all([
+      supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
+      supabase.auth.mfa.listFactors(),
+    ]);
+    const hasVerified = (factors?.totp ?? []).some((f) => f.status === "verified");
+    const needsAal2 = !!aal && aal.nextLevel === "aal2" && aal.nextLevel !== aal.currentLevel;
+    return { hasVerified, needsAal2 };
+  };
+
   useEffect(() => {
     if (!user) {
       setMfaRequired(false);
+      setMfaEnrollRequired(false);
       return;
     }
-    supabase.auth.mfa.getAuthenticatorAssuranceLevel().then(({ data, error }) => {
-      if (!error && data && data.nextLevel === "aal2" && data.nextLevel !== data.currentLevel) {
+    checkMfaState().then(({ hasVerified, needsAal2 }) => {
+      if (!hasVerified) {
+        setMfaEnrollRequired(true);
+      } else if (needsAal2) {
         setMfaRequired(true);
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
   const isLogin = mode === "login";
   const isSignup = mode === "signup";
   const isForgot = mode === "forgot";
@@ -80,12 +97,12 @@ export default function Auth() {
 
   const checkMfaAndRedirect = async () => {
     const target = getRedirectTarget();
-    const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (error) {
-      navigate(target, { replace: true });
+    const { hasVerified, needsAal2 } = await checkMfaState();
+    if (!hasVerified) {
+      setMfaEnrollRequired(true);
       return;
     }
-    if (data.nextLevel === "aal2" && data.nextLevel !== data.currentLevel) {
+    if (needsAal2) {
       setMfaRequired(true);
     } else {
       navigate(target, { replace: true });
@@ -170,7 +187,9 @@ export default function Auth() {
         <CardHeader className="text-center space-y-3">
           <CardTitle className="text-2xl font-bold">Gestor Plin</CardTitle>
           <CardDescription>
-            {mfaRequired
+            {mfaEnrollRequired
+              ? "Configure a autenticação em 2 fatores"
+              : mfaRequired
               ? "Verificação em duas etapas"
               : isForgot
               ? "Recuperar senha"
@@ -180,7 +199,13 @@ export default function Auth() {
           </CardDescription>
         </CardHeader>
 
-        {mfaRequired ? (
+        {mfaEnrollRequired ? (
+          <CardContent>
+            <MfaEnrollRequired
+              onSuccess={() => navigate(getRedirectTarget(), { replace: true })}
+            />
+          </CardContent>
+        ) : mfaRequired ? (
           <CardContent>
             <MfaChallenge
               onSuccess={() => navigate(getRedirectTarget(), { replace: true })}
