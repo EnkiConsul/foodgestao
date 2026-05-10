@@ -101,18 +101,6 @@ export function TwoFactorCard() {
     refresh();
   };
 
-  const removeFactor = async (id: string) => {
-    setSubmitting(true);
-    const { error } = await supabase.auth.mfa.unenroll({ factorId: id });
-    setSubmitting(false);
-    setConfirmRemove(null);
-    if (error) {
-      toast.error("Erro ao remover", { description: error.message });
-      return;
-    }
-    toast.success("Autenticação de dois fatores desativada");
-    refresh();
-  };
 
   const copySecret = async () => {
     if (!enroll) return;
