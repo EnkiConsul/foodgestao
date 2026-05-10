@@ -21,6 +21,7 @@ import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { PaymentMethodFormDialog } from "@/components/payment-methods/PaymentMethodFormDialog";
 import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/searchable-select";
+import { useTransactionFieldSettings, TRANSACTION_FIELD_LABELS, type TransactionField } from "@/hooks/useTransactionFieldSettings";
 
 type TransactionType = "receita" | "despesa" | "transferencia";
 
