@@ -56,10 +56,14 @@ export function StepProfileData({ data, update }: Props) {
             <Label>Telefone</Label>
             <Input
               value={data.phone}
-              onChange={(e) => update({ phone: e.target.value })}
+              onChange={(e) => update({ phone: maskPhone(e.target.value) })}
               placeholder="(11) 99999-9999"
-              maxLength={20}
+              maxLength={16}
+              inputMode="numeric"
             />
+            {data.phone.replace(/\D/g, "").length >= 10 && !isValidPhone(data.phone) && (
+              <p className="text-xs text-destructive">Telefone inválido</p>
+            )}
           </div>
         </>
       )}
