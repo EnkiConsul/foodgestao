@@ -207,6 +207,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       setContactId(transaction.contact_id ?? "");
       setNotes(transaction.notes ?? "");
       setDueDate(transaction.due_date ?? "");
+      setPaymentDate(transaction.payment_date ?? "");
       setPaymentMethodId(transaction.payment_method_id ?? "");
       setStatus((transaction.status as any) ?? "confirmado");
       setIsRecurring(transaction.is_recurring ?? false);
