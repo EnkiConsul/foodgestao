@@ -1128,6 +1128,7 @@ export type Database = {
           privacy_mode: boolean
           profile_type: Database["public"]["Enums"]["profile_type"]
           timezone: string
+          transaction_field_settings: Json
           updated_at: string
           user_id: string
         }
@@ -1145,6 +1146,7 @@ export type Database = {
           privacy_mode?: boolean
           profile_type?: Database["public"]["Enums"]["profile_type"]
           timezone?: string
+          transaction_field_settings?: Json
           updated_at?: string
           user_id: string
         }
@@ -1162,6 +1164,7 @@ export type Database = {
           privacy_mode?: boolean
           profile_type?: Database["public"]["Enums"]["profile_type"]
           timezone?: string
+          transaction_field_settings?: Json
           updated_at?: string
           user_id?: string
         }

@@ -1,35 +1,93 @@
 ## Objetivo
 
-No diálogo de novo/editar Lançamento, permitir criar rapidamente uma **Conta**, **Categoria**, **Cliente/Fornecedor** ou **Forma de Pagamento** sem sair da tela, reaproveitando os formulários já existentes.
+Permitir que o usuário, em **Configurações**, decida quais campos do diálogo de Lançamento devem ser **obrigatórios** ou **opcionais**, com valores aplicados automaticamente na criação/edição.
 
-## Comportamento
+## Campos configuráveis
 
-Ao lado de cada Select correspondente, será adicionado um pequeno botão `+` (ícone `Plus`, variante ghost/outline). Ao clicar:
+Os campos abaixo serão configuráveis (dois estados: `obrigatório` / `opcional`). Os demais (Tipo, Valor, Descrição, Data, Conta de origem, Status, e Conta de destino em transferências) permanecem **sempre obrigatórios**, pois sustentam a integridade financeira.
 
-1. Abre o dialog de cadastro do recurso (já existente).
-2. Após salvar com sucesso, o dialog fecha, a lista do Lançamento é recarregada e o item recém-criado fica **automaticamente selecionado** no Select.
-3. O dialog do Lançamento permanece aberto, com os demais campos preservados.
+| Campo | Padrão |
+|---|---|
+| Categoria | opcional |
+| Cliente/Fornecedor | opcional |
+| Forma de pagamento | opcional |
+| Data de vencimento | opcional |
+| Data de pagamento | opcional |
+| Observações | opcional |
+| Anexos | opcional |
 
-Aplicado a:
+## UX em Configurações
 
-- **Conta** (origem e destino na transferência) → `AccountFormDialog`
-- **Categoria** → `CategoryFormDialog`
-- **Cliente/Fornecedor** → `ContactFormDialog`
-- **Forma de Pagamento** → `PaymentMethodFormDialog`
+Novo card **"Campos do Lançamento"** (ícone `ListChecks`) com uma linha por campo:
+
+```text
+[ Categoria              ]  ( ) Opcional   (•) Obrigatório
+[ Cliente/Fornecedor     ]  (•) Opcional   ( ) Obrigatório
+...
+```
+
+Usar `RadioGroup` (Opcional/Obrigatório) por linha. As alterações são salvas junto com o restante das configurações no botão **Salvar Configurações** já existente.
+
+## UX no Lançamento
+
+- O label dos campos obrigatórios deixa de ter "(opcional)" e ganha um asterisco vermelho.
+- Validação no submit verifica os campos marcados como obrigatórios. Em caso de falha, mostra `toast.error("X é obrigatório")`.
+- Atalho: se Anexos é obrigatório, exige pelo menos 1 anexo (existente ou novo).
 
 ## Detalhes técnicos
 
-Arquivo único alterado: `src/components/transactions/TransactionFormDialog.tsx`.
+### 1. Banco
 
-1. Adicionar 4 estados booleanos para abrir cada subdialog: `accountDialogOpen`, `categoryDialogOpen`, `contactDialogOpen`, `paymentMethodDialogOpen`.
-2. Refatorar o `loadData` em uma função reutilizável (`reloadLookups`) para poder ser chamada após a criação de qualquer recurso.
-3. Cada subdialog precisa de um callback `onCreated` que retorne o `id` do novo registro. Verificar se os dialogs já expõem isso; se não, adicionar um parâmetro opcional `onCreated?: (id: string) => void` (mudança mínima e retrocompatível).
-4. No callback: chamar `reloadLookups()` e setar o estado correspondente (`setAccountId`, `setCategoryId`, etc.) com o novo id.
-5. Layout: envolver cada `Select` num `flex gap-2`, com o botão `+` (`size="icon"`, `variant="outline"`, `h-10 w-10`) ao lado direito. Tooltip "Criar nova conta", etc.
-6. Respeitar o contexto atual (PF/PJ) — os subdialogs já recebem `contextType`/`selectedCompanyId` via seus próprios hooks; o filtro de visibilidade é reaplicado no `reloadLookups`.
+Migração adicionando coluna em `profiles`:
+
+```sql
+ALTER TABLE public.profiles
+ADD COLUMN transaction_field_settings jsonb NOT NULL DEFAULT '{}'::jsonb;
+```
+
+Formato esperado:
+```json
+{
+  "category": "required",
+  "contact": "optional",
+  "payment_method": "optional",
+  "due_date": "optional",
+  "payment_date": "optional",
+  "notes": "optional",
+  "attachments": "optional"
+}
+```
+
+Sem alterações de RLS (políticas atuais de `profiles` já cobrem).
+
+### 2. Hook compartilhado
+
+Criar `src/hooks/useTransactionFieldSettings.tsx`:
+
+- Usa `useQuery` para ler `profiles.transaction_field_settings` do usuário atual.
+- Retorna helper `isRequired(field: TransactionField): boolean` com fallback `false` para chaves ausentes.
+- Cache por user_id; invalidado quando Configurações for salva.
+
+### 3. Configurações (`src/pages/Configuracoes.tsx`)
+
+- Carregar `transaction_field_settings` do `profile`.
+- Adicionar estado local `fieldSettings: Record<string, "required" | "optional">`.
+- Renderizar novo `Card` com 7 linhas (`RadioGroup` por linha) acima do bloco de privacidade.
+- No `handleSave`, incluir `transaction_field_settings: fieldSettings` no `update`.
+- Após salvar, invalidar query `["transaction-field-settings"]`.
+
+### 4. TransactionFormDialog
+
+- Importar e usar `useTransactionFieldSettings()`.
+- Para cada campo configurável: trocar o sufixo `(opcional)` no `<Label>` por `*` quando `isRequired(field)` for verdadeiro.
+- Em `handleSubmit`, antes do insert/update, validar manualmente:
+  - Categoria/Contato/Forma → checar string vazia.
+  - Datas → checar string vazia.
+  - Anexos → checar `existingAttachments.length - removed + attachmentFiles.length > 0`.
+- Mostrar toast com nome do campo faltante.
 
 ## Não incluído
 
-- Sem alterações no schema do banco.
-- Sem mudanças em RLS ou edge functions.
-- Sem refactor visual fora do `TransactionFormDialog`.
+- Estado "oculto" para campos (somente obrigatório/opcional).
+- Configurações por contexto PF/PJ separadas (uma única preferência por usuário).
+- Customização dos campos sempre obrigatórios (Tipo, Valor, Descrição, Data, Conta, Status).
