@@ -2,6 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { isValidCnpj, maskCnpj } from "@/lib/cnpj";
 import { isValidCpf, maskCpf } from "@/lib/cpf";
+import { isValidPhone, maskPhone } from "@/lib/phone";
 import type { OnboardingData } from "@/pages/Onboarding";
 
 interface Props {
