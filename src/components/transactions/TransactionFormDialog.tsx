@@ -353,6 +353,26 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     if (!validated) return;
     if (type === "transferencia" && !destinationAccountId) return toast.error("Selecione a conta de destino");
 
+    // Custom required-field validation based on user settings
+    const requiredErrors: TransactionField[] = [];
+    if (type !== "transferencia") {
+      if (isRequired("category") && !categoryId) requiredErrors.push("category");
+      if (isRequired("contact") && !contactId) requiredErrors.push("contact");
+      if (isRequired("due_date") && !dueDate) requiredErrors.push("due_date");
+      if (isRequired("payment_date") && status === "confirmado" && !paymentDate) requiredErrors.push("payment_date");
+    }
+    if (isRequired("payment_method") && !paymentMethodId) requiredErrors.push("payment_method");
+    if (isRequired("notes") && !notes.trim()) requiredErrors.push("notes");
+    if (isRequired("attachments")) {
+      const remaining = existingAttachments.filter((a) => !removedAttachmentIds.includes(a.id)).length + attachmentFiles.length;
+      if (remaining === 0) requiredErrors.push("attachments");
+    }
+    if (requiredErrors.length > 0) {
+      const first = requiredErrors[0];
+      toast.error(`${TRANSACTION_FIELD_LABELS[first]} é obrigatório`);
+      return;
+    }
+
     setSaving(true);
 
     const hasDueDate = !!dueDate && type !== "transferencia";
