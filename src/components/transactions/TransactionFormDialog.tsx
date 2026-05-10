@@ -259,6 +259,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     setAmount("");
     setDate(new Date().toISOString().split("T")[0]);
     setDueDate("");
+    setPaymentDate("");
     setAccountId(accounts[0]?.id ?? "");
     setDestinationAccountId("");
     setCategoryId("");
