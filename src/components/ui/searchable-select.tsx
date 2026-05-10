@@ -48,24 +48,32 @@ export function SearchableSelect({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const parentRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const selected = options.find((o) => o.value === value);
 
+  // Debounce search input by 200ms
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 200);
+    return () => clearTimeout(t);
+  }, [search]);
+
   const filtered = useMemo(() => {
-    const q = normalize(search.trim());
+    const q = normalize(debouncedSearch.trim());
     if (!q) return options;
     return options.filter((o) =>
       normalize(`${o.label} ${o.keywords ?? ""}`).includes(q)
     );
-  }, [options, search]);
+  }, [options, debouncedSearch]);
 
   // Reset state on open/close
   useEffect(() => {
     if (open) {
       setSearch("");
+      setDebouncedSearch("");
       const idx = options.findIndex((o) => o.value === value);
       setActiveIndex(idx >= 0 ? idx : 0);
       // focus input next tick (Popover mounts content)
@@ -75,7 +83,7 @@ export function SearchableSelect({
 
   useEffect(() => {
     setActiveIndex(0);
-  }, [search]);
+  }, [debouncedSearch]);
 
   const rowVirtualizer = useVirtualizer({
     count: filtered.length,
