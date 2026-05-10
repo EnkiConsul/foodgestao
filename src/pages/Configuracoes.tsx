@@ -209,6 +209,50 @@ export default function Configuracoes() {
         </CardContent>
       </Card>
 
+      {/* Transaction field requirements */}
+      <Card>
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-2">
+            <ListChecks className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">Campos do Lançamento</CardTitle>
+          </div>
+          <CardDescription>
+            Defina quais campos são obrigatórios ao criar ou editar um lançamento.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {TRANSACTION_FIELDS.map((field) => {
+            const current: FieldRequirement = fieldSettings[field] ?? "optional";
+            return (
+              <div
+                key={field}
+                className="flex items-center justify-between gap-4 py-2 border-b last:border-b-0"
+              >
+                <Label className="text-sm font-medium">{TRANSACTION_FIELD_LABELS[field]}</Label>
+                <RadioGroup
+                  value={current}
+                  onValueChange={(v) => setFieldRequirement(field, v as FieldRequirement)}
+                  className="flex gap-4"
+                >
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="optional" id={`${field}-optional`} />
+                    <Label htmlFor={`${field}-optional`} className="text-xs cursor-pointer font-normal">
+                      Opcional
+                    </Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="required" id={`${field}-required`} />
+                    <Label htmlFor={`${field}-required`} className="text-xs cursor-pointer font-normal">
+                      Obrigatório
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
       {/* Privacy */}
       <Card>
         <CardHeader className="pb-4">
