@@ -56,10 +56,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
+  const [mfaChecking, setMfaChecking] = useState(true);
+  const [mfaRequired, setMfaRequired] = useState(false);
 
   useEffect(() => {
     if (!user) {
       setCheckingOnboarding(false);
+      setMfaChecking(false);
       return;
     }
     supabase
@@ -71,9 +74,15 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         setOnboardingCompleted(data?.onboarding_completed ?? false);
         setCheckingOnboarding(false);
       });
+    supabase.auth.mfa.getAuthenticatorAssuranceLevel().then(({ data, error }) => {
+      if (!error && data && data.nextLevel === "aal2" && data.nextLevel !== data.currentLevel) {
+        setMfaRequired(true);
+      }
+      setMfaChecking(false);
+    });
   }, [user]);
 
-  if (loading || checkingOnboarding) {
+  if (loading || checkingOnboarding || mfaChecking) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
@@ -82,6 +91,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
+    const redirect = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/auth?redirect=${redirect}`} replace />;
+  }
+  if (mfaRequired) {
     const redirect = encodeURIComponent(location.pathname + location.search);
     return <Navigate to={`/auth?redirect=${redirect}`} replace />;
   }
@@ -106,8 +119,27 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
 function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const [searchParams] = useSearchParams();
+  const [mfaChecking, setMfaChecking] = useState(true);
+  const [mfaRequired, setMfaRequired] = useState(false);
 
-  if (loading) {
+  useEffect(() => {
+    if (!user) {
+      setMfaChecking(false);
+      setMfaRequired(false);
+      return;
+    }
+    setMfaChecking(true);
+    supabase.auth.mfa.getAuthenticatorAssuranceLevel().then(({ data, error }) => {
+      if (!error && data && data.nextLevel === "aal2" && data.nextLevel !== data.currentLevel) {
+        setMfaRequired(true);
+      } else {
+        setMfaRequired(false);
+      }
+      setMfaChecking(false);
+    });
+  }, [user]);
+
+  if (loading || (user && mfaChecking)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
@@ -115,7 +147,7 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (user) {
+  if (user && !mfaRequired) {
     return <Navigate to={safeRedirect(searchParams.get("redirect"))} replace />;
   }
 
