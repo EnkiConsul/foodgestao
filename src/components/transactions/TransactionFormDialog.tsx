@@ -20,6 +20,7 @@ import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
 import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { PaymentMethodFormDialog } from "@/components/payment-methods/PaymentMethodFormDialog";
+import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/searchable-select";
 
 type TransactionType = "receita" | "despesa" | "transferencia";
 
@@ -98,6 +99,18 @@ function renderCategoryNodes(nodes: CategoryNode[]): React.ReactNode[] {
     }
   });
   return result;
+}
+
+function flattenCategoryTree(nodes: CategoryNode[]): SearchableSelectOption[] {
+  const out: SearchableSelectOption[] = [];
+  const walk = (list: CategoryNode[]) => {
+    list.forEach((n) => {
+      out.push({ value: n.id, label: n.name, depth: n.depth });
+      if (n.children.length) walk(n.children);
+    });
+  };
+  walk(nodes);
+  return out;
 }
 
 function getNextRecurrenceDate(current: Date, recType: string): Date {
@@ -604,16 +617,13 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           <div className="space-y-2">
             <Label>{type === "transferencia" ? "Conta de origem" : "Conta"}</Label>
             <div className="flex gap-2">
-              <Select value={accountId} onValueChange={setAccountId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a conta" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts.map((acc) => (
-                    <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={accountId}
+                onValueChange={setAccountId}
+                options={accounts.map((acc) => ({ value: acc.id, label: acc.name }))}
+                placeholder="Selecione a conta"
+                searchPlaceholder="Buscar conta..."
+              />
               <Button
                 type="button"
                 variant="outline"
@@ -632,16 +642,13 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
             <div className="space-y-2">
               <Label>Conta de destino</Label>
               <div className="flex gap-2">
-                <Select value={destinationAccountId} onValueChange={setDestinationAccountId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o destino" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {accounts.filter((a) => a.id !== accountId).map((acc) => (
-                      <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={destinationAccountId}
+                  onValueChange={setDestinationAccountId}
+                  options={accounts.filter((a) => a.id !== accountId).map((acc) => ({ value: acc.id, label: acc.name }))}
+                  placeholder="Selecione o destino"
+                  searchPlaceholder="Buscar conta..."
+                />
                 <Button
                   type="button"
                   variant="outline"
@@ -661,14 +668,13 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
             <div className="space-y-2">
               <Label>Categoria (opcional)</Label>
               <div className="flex gap-2">
-                <Select value={categoryId} onValueChange={setCategoryId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {renderCategoryNodes(categoryTree)}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={categoryId}
+                  onValueChange={setCategoryId}
+                  options={flattenCategoryTree(categoryTree)}
+                  placeholder="Selecione a categoria"
+                  searchPlaceholder="Buscar categoria..."
+                />
                 <Button
                   type="button"
                   variant="outline"
@@ -688,16 +694,13 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
             <div className="space-y-2">
               <Label>Cliente/Fornecedor (opcional)</Label>
               <div className="flex gap-2">
-                <Select value={contactId} onValueChange={setContactId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o contato" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredContacts.map((ct) => (
-                      <SelectItem key={ct.id} value={ct.id}>{ct.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={contactId}
+                  onValueChange={setContactId}
+                  options={filteredContacts.map((ct) => ({ value: ct.id, label: ct.name }))}
+                  placeholder="Selecione o contato"
+                  searchPlaceholder="Buscar cliente/fornecedor..."
+                />
                 <Button
                   type="button"
                   variant="outline"
@@ -716,16 +719,13 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           <div className="space-y-2">
             <Label>Forma de pagamento (opcional)</Label>
             <div className="flex gap-2">
-              <Select value={paymentMethodId} onValueChange={setPaymentMethodId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {paymentMethods.map((pm) => (
-                    <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={paymentMethodId}
+                onValueChange={setPaymentMethodId}
+                options={paymentMethods.map((pm) => ({ value: pm.id, label: pm.name }))}
+                placeholder="Selecione"
+                searchPlaceholder="Buscar forma de pagamento..."
+              />
               <Button
                 type="button"
                 variant="outline"
