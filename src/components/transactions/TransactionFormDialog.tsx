@@ -863,6 +863,46 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           </Button>
         </form>
       </DialogContent>
+
+      <AccountFormDialog
+        open={accountDialogOpen}
+        onOpenChange={setAccountDialogOpen}
+        onSaved={async (newId) => {
+          await reloadLookups();
+          if (newId) {
+            if (accountTarget === "destination") setDestinationAccountId(newId);
+            else setAccountId(newId);
+          }
+        }}
+      />
+
+      <CategoryFormDialog
+        open={categoryDialogOpen}
+        onOpenChange={setCategoryDialogOpen}
+        defaultType={type === "receita" ? "receita" : "despesa"}
+        onSaved={async (newId) => {
+          await reloadLookups();
+          if (newId) setCategoryId(newId);
+        }}
+      />
+
+      <ContactFormDialog
+        open={contactDialogOpen}
+        onOpenChange={setContactDialogOpen}
+        onSaved={async (newId) => {
+          await reloadLookups();
+          if (newId) setContactId(newId);
+        }}
+      />
+
+      <PaymentMethodFormDialog
+        open={paymentMethodDialogOpen}
+        onOpenChange={setPaymentMethodDialogOpen}
+        onSaved={async (newId) => {
+          await reloadLookups();
+          if (newId) setPaymentMethodId(newId);
+        }}
+      />
     </Dialog>
   );
 }
