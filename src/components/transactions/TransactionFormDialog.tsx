@@ -603,32 +603,56 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           {/* Account */}
           <div className="space-y-2">
             <Label>{type === "transferencia" ? "Conta de origem" : "Conta"}</Label>
-            <Select value={accountId} onValueChange={setAccountId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a conta" />
-              </SelectTrigger>
-              <SelectContent>
-                {accounts.map((acc) => (
-                  <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select value={accountId} onValueChange={setAccountId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a conta" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map((acc) => (
+                    <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="shrink-0"
+                title="Criar nova conta"
+                onClick={() => { setAccountTarget("origin"); setAccountDialogOpen(true); }}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Destination account (transfer) */}
           {type === "transferencia" && (
             <div className="space-y-2">
               <Label>Conta de destino</Label>
-              <Select value={destinationAccountId} onValueChange={setDestinationAccountId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o destino" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts.filter((a) => a.id !== accountId).map((acc) => (
-                    <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={destinationAccountId} onValueChange={setDestinationAccountId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o destino" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accounts.filter((a) => a.id !== accountId).map((acc) => (
+                      <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  title="Criar nova conta"
+                  onClick={() => { setAccountTarget("destination"); setAccountDialogOpen(true); }}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
 
@@ -636,14 +660,26 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           {type !== "transferencia" && (
             <div className="space-y-2">
               <Label>Categoria (opcional)</Label>
-              <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {renderCategoryNodes(categoryTree)}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={categoryId} onValueChange={setCategoryId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {renderCategoryNodes(categoryTree)}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  title="Criar nova categoria"
+                  onClick={() => setCategoryDialogOpen(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
 
@@ -651,32 +687,56 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           {type !== "transferencia" && (
             <div className="space-y-2">
               <Label>Cliente/Fornecedor (opcional)</Label>
-              <Select value={contactId} onValueChange={setContactId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o contato" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredContacts.map((ct) => (
-                    <SelectItem key={ct.id} value={ct.id}>{ct.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={contactId} onValueChange={setContactId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o contato" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredContacts.map((ct) => (
+                      <SelectItem key={ct.id} value={ct.id}>{ct.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  title="Criar novo cliente/fornecedor"
+                  onClick={() => setContactDialogOpen(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
 
           {/* Payment Method */}
           <div className="space-y-2">
             <Label>Forma de pagamento (opcional)</Label>
-            <Select value={paymentMethodId} onValueChange={setPaymentMethodId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione" />
-              </SelectTrigger>
-              <SelectContent>
-                {paymentMethods.map((pm) => (
-                  <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select value={paymentMethodId} onValueChange={setPaymentMethodId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentMethods.map((pm) => (
+                    <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="shrink-0"
+                title="Criar nova forma de pagamento"
+                onClick={() => setPaymentMethodDialogOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Status */}
