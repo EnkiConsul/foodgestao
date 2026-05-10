@@ -512,6 +512,26 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
             </div>
           )}
 
+          {/* Payment date - only for receita/despesa with confirmed status */}
+          {type !== "transferencia" && status === "confirmado" && (
+            <div className="space-y-2">
+              <Label>Data de pagamento</Label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="date"
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                  className="pl-10"
+                  placeholder="Data do efetivo pagamento"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Se vazio, será considerada a data do lançamento.
+              </p>
+            </div>
+          )}
+
           {/* Recurrence */}
           {(
             <div className="space-y-3">
