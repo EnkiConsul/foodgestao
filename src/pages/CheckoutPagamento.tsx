@@ -12,6 +12,7 @@ export default function CheckoutPagamento() {
   const { invoiceId } = useParams<{ invoiceId: string }>();
   const navigate = useNavigate();
   const [paid, setPaid] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const { data: invoice, refetch } = useQuery({
     queryKey: ["checkout-invoice", invoiceId],
@@ -31,6 +32,22 @@ export default function CheckoutPagamento() {
       toast.success("Pagamento confirmado!");
     }
   }, [invoice?.status]);
+
+  useEffect(() => {
+    if (!invoice || refreshing) return;
+    if (invoice.payment_method !== "pix") return;
+    if ((invoice as any).pix_qrcode_image) return;
+    if (invoice.status !== "open") return;
+    setRefreshing(true);
+    supabase.functions
+      .invoke("asaas-refresh-pix", { body: { invoiceId: invoice.id } })
+      .then(({ error }) => {
+        if (error) toast.error("Não foi possível gerar o QR Code do Pix");
+        else refetch();
+      })
+      .finally(() => setRefreshing(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invoice?.id, (invoice as any)?.pix_qrcode_image]);
 
   const copy = (text: string, label = "Copiado!") => {
     navigator.clipboard.writeText(text);
