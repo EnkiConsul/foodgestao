@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TreePine, Loader2, Copy, ExternalLink, CheckCircle2 } from "lucide-react";
+import { TreePine, Loader2, Copy, ExternalLink, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
 import { formatCents } from "@/lib/billing";
 import { toast } from "sonner";
 
@@ -13,6 +13,7 @@ export default function CheckoutPagamento() {
   const navigate = useNavigate();
   const [paid, setPaid] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
 
   const { data: invoice, refetch } = useQuery({
     queryKey: ["checkout-invoice", invoiceId],
@@ -33,19 +34,30 @@ export default function CheckoutPagamento() {
     }
   }, [invoice?.status]);
 
+  const refreshPix = async (manual = false) => {
+    if (!invoice) return;
+    setRefreshing(true);
+    setRefreshError(null);
+    const { data, error } = await supabase.functions.invoke("asaas-refresh-pix", {
+      body: { invoiceId: invoice.id },
+    });
+    setRefreshing(false);
+    const errMsg = error?.message || (data as any)?.error;
+    if (errMsg) {
+      setRefreshError(errMsg);
+      if (manual) toast.error("Não foi possível gerar o QR Code do Pix");
+    } else {
+      setRefreshError(null);
+      refetch();
+    }
+  };
+
   useEffect(() => {
-    if (!invoice || refreshing) return;
+    if (!invoice || refreshing || refreshError) return;
     if (invoice.payment_method !== "pix") return;
     if ((invoice as any).pix_qrcode_image) return;
     if (invoice.status !== "open") return;
-    setRefreshing(true);
-    supabase.functions
-      .invoke("asaas-refresh-pix", { body: { invoiceId: invoice.id } })
-      .then(({ error }) => {
-        if (error) toast.error("Não foi possível gerar o QR Code do Pix");
-        else refetch();
-      })
-      .finally(() => setRefreshing(false));
+    refreshPix(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invoice?.id, (invoice as any)?.pix_qrcode_image]);
 
@@ -104,9 +116,20 @@ export default function CheckoutPagamento() {
                           alt="QR Code Pix"
                           className="w-64 h-64 border rounded-md bg-white p-2"
                         />
+                      ) : refreshError ? (
+                        <div className="w-64 border border-destructive/40 bg-destructive/5 rounded-md p-4 flex flex-col items-center gap-2 text-center">
+                          <AlertCircle className="h-8 w-8 text-destructive" />
+                          <p className="text-sm font-medium">Falha ao gerar o QR Code</p>
+                          <p className="text-xs text-muted-foreground break-words">{refreshError}</p>
+                          <Button size="sm" variant="outline" onClick={() => refreshPix(true)} disabled={refreshing}>
+                            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+                            Tentar novamente
+                          </Button>
+                        </div>
                       ) : (
-                        <div className="w-64 h-64 border rounded-md flex items-center justify-center bg-muted">
+                        <div className="w-64 h-64 border rounded-md flex flex-col items-center justify-center gap-2 bg-muted">
                           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                          <p className="text-xs text-muted-foreground">Gerando QR Code…</p>
                         </div>
                       )}
                       {invoice.external_payment_url && (
