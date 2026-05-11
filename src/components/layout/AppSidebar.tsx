@@ -16,6 +16,7 @@ import {
   TreePine,
   
   Sparkles,
+  Receipt,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 
