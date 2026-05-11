@@ -13,6 +13,7 @@ export default function CheckoutPagamento() {
   const navigate = useNavigate();
   const [paid, setPaid] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshErrorCode, setRefreshErrorCode] = useState<string | null>(null);
   const [refreshError, setRefreshError] = useState<string | null>(null);
 
   const { data: invoice, refetch } = useQuery({
