@@ -1193,6 +1193,7 @@ export type Database = {
           period_end: string | null
           period_start: string | null
           pix_qrcode: string | null
+          pix_qrcode_image: string | null
           status: Database["public"]["Enums"]["invoice_status"]
           subscription_id: string | null
           updated_at: string
@@ -1216,6 +1217,7 @@ export type Database = {
           period_end?: string | null
           period_start?: string | null
           pix_qrcode?: string | null
+          pix_qrcode_image?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           subscription_id?: string | null
           updated_at?: string
@@ -1239,6 +1241,7 @@ export type Database = {
           period_end?: string | null
           period_start?: string | null
           pix_qrcode?: string | null
+          pix_qrcode_image?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           subscription_id?: string | null
           updated_at?: string
