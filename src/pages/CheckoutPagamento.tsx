@@ -146,10 +146,16 @@ export default function CheckoutPagamento() {
                           <AlertCircle className="h-8 w-8 text-destructive" />
                           <p className="text-sm font-medium">Falha ao gerar o QR Code</p>
                           <p className="text-xs text-muted-foreground break-words">{refreshError}</p>
-                          <Button size="sm" variant="outline" onClick={() => refreshPix(true)} disabled={refreshing}>
-                            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
-                            Tentar novamente
-                          </Button>
+                          {refreshErrorCode === "NO_EXTERNAL_PAYMENT" ? (
+                            <Button size="sm" onClick={() => navigate("/checkout")}>
+                              Refazer checkout
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="outline" onClick={() => refreshPix(true)} disabled={refreshing}>
+                              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+                              Tentar novamente
+                            </Button>
+                          )}
                         </div>
                       ) : (
                         <div className="w-64 h-64 border rounded-md flex flex-col items-center justify-center gap-2 bg-muted">
