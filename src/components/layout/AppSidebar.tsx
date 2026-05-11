@@ -51,6 +51,7 @@ const secondaryItems = [
   { title: "Categorias", url: "/categorias", icon: FolderTree },
   { title: "Usuários", url: "/gestao-usuarios", icon: UserCog },
   { title: "Meu Plano", url: "/planos", icon: Sparkles },
+  { title: "Minhas Faturas", url: "/faturas", icon: Receipt },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 
