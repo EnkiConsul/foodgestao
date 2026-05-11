@@ -14,7 +14,9 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, RefreshCw, Eye, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { Loader2, RefreshCw, Eye, CheckCircle2, AlertCircle, Clock, Send } from "lucide-react";
+import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
 
 type WebhookEvent = {
   id: string;
@@ -33,6 +35,40 @@ export function AdminAsaasWebhooks() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "processed" | "pending" | "error">("all");
   const [selected, setSelected] = useState<WebhookEvent | null>(null);
+  const [testOpen, setTestOpen] = useState(false);
+  const [testEventType, setTestEventType] = useState("PAYMENT_CONFIRMED");
+  const [testPaymentId, setTestPaymentId] = useState("");
+  const [testDuplicateOf, setTestDuplicateOf] = useState("");
+  const [testSending, setTestSending] = useState(false);
+  const [testResult, setTestResult] = useState<any>(null);
+
+  const sendTest = async () => {
+    setTestSending(true);
+    setTestResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("asaas-webhook-test", {
+        body: {
+          eventType: testEventType,
+          paymentId: testPaymentId.trim() || undefined,
+          duplicateOf: testDuplicateOf.trim() || undefined,
+        },
+      });
+      if (error) throw error;
+      setTestResult(data);
+      if (data?.ok) {
+        toast.success("Webhook de teste enviado com sucesso");
+        refetch();
+        stats.refetch();
+      } else {
+        toast.error(`Webhook retornou status ${data?.status}`);
+      }
+    } catch (e: any) {
+      toast.error(e.message ?? "Falha ao enviar webhook de teste");
+      setTestResult({ error: e.message });
+    } finally {
+      setTestSending(false);
+    }
+  };
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["asaas-webhook-events", page, search, statusFilter],
@@ -127,6 +163,9 @@ export function AdminAsaasWebhooks() {
                 <SelectItem value="error">Com erro</SelectItem>
               </SelectContent>
             </Select>
+            <Button variant="default" size="sm" onClick={() => { setTestResult(null); setTestOpen(true); }}>
+              <Send className="h-4 w-4 mr-1" /> Testar webhook
+            </Button>
             <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
               <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
             </Button>
@@ -254,6 +293,77 @@ export function AdminAsaasWebhooks() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Test webhook dialog */}
+      <Dialog open={testOpen} onOpenChange={setTestOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Enviar evento de teste ao webhook</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm">
+            <p className="text-xs text-muted-foreground">
+              Envia um payload sintético ao endpoint <code>asaas-webhook</code> usando o
+              token configurado, simulando uma notificação do Asaas. Útil para validar
+              recepção, deduplicação e processamento sem precisar gerar uma cobrança real.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Tipo de evento</Label>
+                <Select value={testEventType} onValueChange={setTestEventType}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PAYMENT_CONFIRMED">PAYMENT_CONFIRMED</SelectItem>
+                    <SelectItem value="PAYMENT_RECEIVED">PAYMENT_RECEIVED</SelectItem>
+                    <SelectItem value="PAYMENT_OVERDUE">PAYMENT_OVERDUE</SelectItem>
+                    <SelectItem value="PAYMENT_REFUNDED">PAYMENT_REFUNDED</SelectItem>
+                    <SelectItem value="PAYMENT_DELETED">PAYMENT_DELETED</SelectItem>
+                    <SelectItem value="PAYMENT_CHARGEBACK_REQUESTED">PAYMENT_CHARGEBACK_REQUESTED</SelectItem>
+                    <SelectItem value="SUBSCRIPTION_DELETED">SUBSCRIPTION_DELETED</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">external_invoice_id (opcional)</Label>
+                <Input
+                  placeholder="ex: pay_xxx — associa a uma fatura existente"
+                  value={testPaymentId}
+                  onChange={(e) => setTestPaymentId(e.target.value)}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Label className="text-xs">Duplicar evento (reenviar mesmo event_id)</Label>
+                <Input
+                  placeholder="Cole um event_id existente para testar deduplicação"
+                  value={testDuplicateOf}
+                  onChange={(e) => setTestDuplicateOf(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setTestOpen(false)} disabled={testSending}>
+                Fechar
+              </Button>
+              <Button onClick={sendTest} disabled={testSending}>
+                {testSending
+                  ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Enviando…</>
+                  : <><Send className="h-4 w-4 mr-1" /> Enviar evento</>}
+              </Button>
+            </div>
+
+            {testResult && (
+              <div className="space-y-2 pt-2 border-t">
+                <p className="text-xs font-medium">Resposta do webhook</p>
+                <pre className="text-xs bg-muted p-3 rounded overflow-x-auto max-h-72">
+                  {JSON.stringify(testResult, null, 2)}
+                </pre>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
