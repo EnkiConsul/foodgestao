@@ -13,6 +13,7 @@ export default function CheckoutPagamento() {
   const navigate = useNavigate();
   const [paid, setPaid] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshErrorCode, setRefreshErrorCode] = useState<string | null>(null);
   const [refreshError, setRefreshError] = useState<string | null>(null);
 
   const { data: invoice, refetch } = useQuery({
@@ -38,16 +39,40 @@ export default function CheckoutPagamento() {
     if (!invoice) return;
     setRefreshing(true);
     setRefreshError(null);
-    const { data, error } = await supabase.functions.invoke("asaas-refresh-pix", {
-      body: { invoiceId: invoice.id },
-    });
+    setRefreshErrorCode(null);
+    let errMsg: string | null = null;
+    let errCode: string | null = null;
+    try {
+      const { data, error } = await supabase.functions.invoke("asaas-refresh-pix", {
+        body: { invoiceId: invoice.id },
+      });
+      if (error) {
+        // Try to read the response body returned by the edge function on non-2xx
+        try {
+          const ctx: any = (error as any).context;
+          if (ctx && typeof ctx.json === "function") {
+            const parsed = await ctx.json();
+            errMsg = parsed?.error || error.message;
+            errCode = parsed?.code ?? null;
+          } else {
+            errMsg = error.message;
+          }
+        } catch {
+          errMsg = error.message;
+        }
+      } else if ((data as any)?.error) {
+        errMsg = (data as any).error;
+        errCode = (data as any).code ?? null;
+      }
+    } catch (e: any) {
+      errMsg = e?.message ?? "Erro desconhecido";
+    }
     setRefreshing(false);
-    const errMsg = error?.message || (data as any)?.error;
     if (errMsg) {
       setRefreshError(errMsg);
+      setRefreshErrorCode(errCode);
       if (manual) toast.error("Não foi possível gerar o QR Code do Pix");
     } else {
-      setRefreshError(null);
       refetch();
     }
   };
@@ -121,10 +146,16 @@ export default function CheckoutPagamento() {
                           <AlertCircle className="h-8 w-8 text-destructive" />
                           <p className="text-sm font-medium">Falha ao gerar o QR Code</p>
                           <p className="text-xs text-muted-foreground break-words">{refreshError}</p>
-                          <Button size="sm" variant="outline" onClick={() => refreshPix(true)} disabled={refreshing}>
-                            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
-                            Tentar novamente
-                          </Button>
+                          {refreshErrorCode === "NO_EXTERNAL_PAYMENT" ? (
+                            <Button size="sm" onClick={() => navigate("/checkout")}>
+                              Refazer checkout
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="outline" onClick={() => refreshPix(true)} disabled={refreshing}>
+                              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+                              Tentar novamente
+                            </Button>
+                          )}
                         </div>
                       ) : (
                         <div className="w-64 h-64 border rounded-md flex flex-col items-center justify-center gap-2 bg-muted">

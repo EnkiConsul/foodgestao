@@ -61,7 +61,12 @@ Deno.serve(async (req) => {
         }
       }
     }
-    if (!paymentId) return json({ error: "No external payment id" }, 400);
+    if (!paymentId) {
+      return json({
+        error: "Esta fatura não está vinculada a um pagamento no Asaas. Refaça o checkout para gerar um novo QR Code.",
+        code: "NO_EXTERNAL_PAYMENT",
+      }, 400);
+    }
 
     const qr = await asaasFetch(`/payments/${paymentId}/pixQrCode`);
     if (!qr?.encodedImage || !qr?.payload) {
