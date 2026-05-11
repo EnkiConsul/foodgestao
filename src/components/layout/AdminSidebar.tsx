@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   ArrowLeft,
   LogOut,
+  Webhook,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -39,6 +40,7 @@ const billingItems = [
   { title: "Faturamento", url: "/admin/faturamento", icon: Receipt },
   { title: "Cupons", url: "/admin/cupons", icon: Tag },
   { title: "Faturas", url: "/admin/faturas", icon: Receipt },
+  { title: "Webhooks Asaas", url: "/admin/webhooks-asaas", icon: Webhook },
 ];
 
 const tenantItems = [

@@ -30,6 +30,7 @@ import AdminAssinaturas from "./pages/admin/Assinaturas";
 import AdminFaturamento from "./pages/admin/Faturamento";
 import AdminCuponsPage from "./pages/admin/Cupons";
 import AdminFaturasPage from "./pages/admin/Faturas";
+import AdminWebhooksAsaasPage from "./pages/admin/WebhooksAsaas";
 import AdminPerfisAcesso from "./pages/admin/PerfisAcesso";
 import AdminAuditoria from "./pages/admin/Auditoria";
 import AdminResetarDados from "./pages/admin/ResetarDados";
@@ -222,6 +223,7 @@ const AppRoutes = () => (
       <Route path="/admin/faturamento" element={<AdminFaturamento />} />
       <Route path="/admin/cupons" element={<AdminCuponsPage />} />
       <Route path="/admin/faturas" element={<AdminFaturasPage />} />
+      <Route path="/admin/webhooks-asaas" element={<AdminWebhooksAsaasPage />} />
       <Route path="/admin/perfis-acesso" element={<AdminPerfisAcesso />} />
       <Route path="/admin/auditoria" element={<AdminAuditoria />} />
       <Route path="/admin/resetar-dados" element={<AdminResetarDados />} />
