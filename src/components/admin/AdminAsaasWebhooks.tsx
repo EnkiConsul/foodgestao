@@ -14,7 +14,9 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, RefreshCw, Eye, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { Loader2, RefreshCw, Eye, CheckCircle2, AlertCircle, Clock, Send } from "lucide-react";
+import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
 
 type WebhookEvent = {
   id: string;
