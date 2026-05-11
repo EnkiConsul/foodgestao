@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TreePine, Loader2, Copy, ExternalLink, CheckCircle2 } from "lucide-react";
+import { TreePine, Loader2, Copy, ExternalLink, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
 import { formatCents } from "@/lib/billing";
 import { toast } from "sonner";
 
