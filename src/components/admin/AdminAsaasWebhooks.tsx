@@ -35,6 +35,40 @@ export function AdminAsaasWebhooks() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "processed" | "pending" | "error">("all");
   const [selected, setSelected] = useState<WebhookEvent | null>(null);
+  const [testOpen, setTestOpen] = useState(false);
+  const [testEventType, setTestEventType] = useState("PAYMENT_CONFIRMED");
+  const [testPaymentId, setTestPaymentId] = useState("");
+  const [testDuplicateOf, setTestDuplicateOf] = useState("");
+  const [testSending, setTestSending] = useState(false);
+  const [testResult, setTestResult] = useState<any>(null);
+
+  const sendTest = async () => {
+    setTestSending(true);
+    setTestResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("asaas-webhook-test", {
+        body: {
+          eventType: testEventType,
+          paymentId: testPaymentId.trim() || undefined,
+          duplicateOf: testDuplicateOf.trim() || undefined,
+        },
+      });
+      if (error) throw error;
+      setTestResult(data);
+      if (data?.ok) {
+        toast.success("Webhook de teste enviado com sucesso");
+        refetch();
+        stats.refetch();
+      } else {
+        toast.error(`Webhook retornou status ${data?.status}`);
+      }
+    } catch (e: any) {
+      toast.error(e.message ?? "Falha ao enviar webhook de teste");
+      setTestResult({ error: e.message });
+    } finally {
+      setTestSending(false);
+    }
+  };
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["asaas-webhook-events", page, search, statusFilter],
