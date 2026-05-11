@@ -37,6 +37,7 @@ import AcceptInvite from "./pages/AcceptInvite";
 import ResetPassword from "./pages/ResetPassword";
 import Planos from "./pages/Planos";
 import Checkout from "./pages/Checkout";
+import CheckoutPagamento from "./pages/CheckoutPagamento";
 import NotFound from "./pages/NotFound";
 import { SuperAdminRoute } from "@/components/admin/SuperAdminRoute";
 import { useEffect, useState } from "react";
