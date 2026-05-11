@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -14,13 +14,16 @@ import { TreePine, Loader2 } from "lucide-react";
 import { formatCents } from "@/lib/billing";
 import { toast } from "sonner";
 
+type Method = "PIX" | "BOLETO" | "CREDIT_CARD";
+
 export default function Checkout() {
   const { planSlug } = useParams<{ planSlug: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const qc = useQueryClient();
   const [coupon, setCoupon] = useState("");
-  const [method, setMethod] = useState<"pix" | "boleto" | "card">("pix");
+  const [method, setMethod] = useState<Method>("PIX");
+  const [cpfCnpj, setCpfCnpj] = useState("");
+  const [phone, setPhone] = useState("");
   const [validatedCoupon, setValidatedCoupon] = useState<any | null>(null);
 
   const { data: plan, isLoading } = useQuery({
@@ -32,6 +35,18 @@ export default function Checkout() {
       return data;
     },
     enabled: !!planSlug,
+  });
+
+  const { data: profile } = useQuery({
+    queryKey: ["profile-checkout", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles")
+        .select("document, phone, full_name").eq("user_id", user!.id).maybeSingle();
+      if (data?.document) setCpfCnpj(data.document);
+      if (data?.phone) setPhone(data.phone);
+      return data;
+    },
   });
 
   const validate = async () => {
@@ -61,79 +76,31 @@ export default function Checkout() {
   const subscribe = useMutation({
     mutationFn: async () => {
       if (!user || !plan) throw new Error("Não autenticado");
-
-      // Cancel previous active subscription
-      await supabase
-        .from("subscriptions")
-        .update({ status: "canceled", canceled_at: new Date().toISOString() })
-        .eq("user_id", user.id)
-        .in("status", ["trialing", "active", "past_due", "pending"]);
-
-      // Compute price with coupon
-      let amount = plan.price_cents;
-      let discount = 0;
-      if (validatedCoupon) {
-        if (validatedCoupon.discount_type === "percent") {
-          discount = Math.round(amount * (validatedCoupon.discount_value / 100));
-        } else {
-          discount = Math.round(validatedCoupon.discount_value * 100);
-        }
+      const cleaned = cpfCnpj.replace(/\D/g, "");
+      if (cleaned.length !== 11 && cleaned.length !== 14) {
+        throw new Error("Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido");
       }
 
-      const trialDays = plan.trial_days || 0;
-      const now = new Date();
-      const periodEnd = new Date(now);
-      if (plan.billing_period === "yearly") periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-      else periodEnd.setMonth(periodEnd.getMonth() + 1);
-
-      // Create subscription
-      const { data: sub, error: subErr } = await supabase
-        .from("subscriptions")
-        .insert({
-          user_id: user.id,
-          plan_id: plan.id,
-          status: trialDays > 0 ? "trialing" : (plan.price_cents === 0 ? "active" : "pending"),
-          trial_ends_at: trialDays > 0 ? new Date(now.getTime() + trialDays * 86400_000).toISOString() : null,
-          current_period_start: now.toISOString(),
-          current_period_end: periodEnd.toISOString(),
-        })
-        .select()
-        .single();
-      if (subErr) throw subErr;
-
-      // Create invoice if paid plan
-      if (plan.price_cents > 0) {
-        const { error: invErr } = await supabase.from("invoices").insert({
-          subscription_id: sub.id,
-          user_id: user.id,
-          amount_cents: amount,
-          discount_cents: discount,
-          status: "open",
-          due_date: new Date(now.getTime() + 7 * 86400_000).toISOString().slice(0, 10),
-          period_start: now.toISOString().slice(0, 10),
-          period_end: periodEnd.toISOString().slice(0, 10),
-          payment_method: method,
-          coupon_id: validatedCoupon?.id ?? null,
-        });
-        if (invErr) throw invErr;
-
-        if (validatedCoupon) {
-          await supabase.from("coupon_redemptions").insert({
-            coupon_id: validatedCoupon.id,
-            user_id: user.id,
-            subscription_id: sub.id,
-          });
-          await supabase
-            .from("coupons")
-            .update({ times_redeemed: validatedCoupon.times_redeemed + 1 })
-            .eq("id", validatedCoupon.id);
-        }
-      }
+      const { data, error } = await supabase.functions.invoke("asaas-create-checkout", {
+        body: {
+          planId: plan.id,
+          paymentMethod: method,
+          couponCode: validatedCoupon?.code,
+          holder: { cpfCnpj: cleaned, phone },
+        },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      return data;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["current-subscription"] });
-      toast.success(plan!.price_cents === 0 ? "Plano ativado!" : "Assinatura criada — aguardando pagamento");
-      navigate("/");
+    onSuccess: (data: any) => {
+      if (data?.free) {
+        toast.success("Plano ativado!");
+        navigate("/");
+        return;
+      }
+      toast.success("Cobrança criada — finalize o pagamento");
+      navigate(`/checkout/pagamento/${data.invoiceId}`);
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao processar"),
   });
@@ -155,9 +122,9 @@ export default function Checkout() {
   let discount = 0;
   if (validatedCoupon) {
     if (validatedCoupon.discount_type === "percent") {
-      discount = Math.round(amount * (validatedCoupon.discount_value / 100));
+      discount = Math.round(amount * (Number(validatedCoupon.discount_value) / 100));
     } else {
-      discount = Math.round(validatedCoupon.discount_value * 100);
+      discount = Math.round(Number(validatedCoupon.discount_value) * 100);
     }
   }
   const total = Math.max(0, amount - discount);
@@ -183,15 +150,35 @@ export default function Checkout() {
             <CardContent className="space-y-4">
               <div>
                 <Label>Método</Label>
-                <Select value={method} onValueChange={(v: any) => setMethod(v)}>
+                <Select value={method} onValueChange={(v: Method) => setMethod(v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pix">Pix</SelectItem>
-                    <SelectItem value="boleto">Boleto</SelectItem>
-                    <SelectItem value="card">Cartão de crédito</SelectItem>
+                    <SelectItem value="PIX">Pix</SelectItem>
+                    <SelectItem value="BOLETO">Boleto</SelectItem>
+                    <SelectItem value="CREDIT_CARD">Cartão de crédito</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
+              <div>
+                <Label>CPF ou CNPJ *</Label>
+                <Input
+                  value={cpfCnpj}
+                  onChange={(e) => setCpfCnpj(e.target.value)}
+                  placeholder="Somente números"
+                  inputMode="numeric"
+                />
+              </div>
+
+              <div>
+                <Label>Telefone</Label>
+                <Input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="(11) 99999-9999"
+                />
+              </div>
+
               <div>
                 <Label>Cupom de desconto</Label>
                 <div className="flex gap-2">
@@ -225,10 +212,10 @@ export default function Checkout() {
                 disabled={subscribe.isPending}
                 onClick={() => subscribe.mutate()}
               >
-                {subscribe.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar assinatura"}
+                {subscribe.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Gerar cobrança"}
               </Button>
               <p className="text-xs text-muted-foreground text-center">
-                A integração com gateway de pagamento será habilitada em breve.
+                Processado com segurança pelo Asaas.
               </p>
             </CardContent>
           </Card>
