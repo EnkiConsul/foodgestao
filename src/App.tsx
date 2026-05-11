@@ -30,6 +30,7 @@ import AdminAssinaturas from "./pages/admin/Assinaturas";
 import AdminFaturamento from "./pages/admin/Faturamento";
 import AdminCuponsPage from "./pages/admin/Cupons";
 import AdminFaturasPage from "./pages/admin/Faturas";
+import AdminWebhooksAsaasPage from "./pages/admin/WebhooksAsaas";
 import AdminPerfisAcesso from "./pages/admin/PerfisAcesso";
 import AdminAuditoria from "./pages/admin/Auditoria";
 import AdminResetarDados from "./pages/admin/ResetarDados";
