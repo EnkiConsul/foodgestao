@@ -116,9 +116,20 @@ export default function CheckoutPagamento() {
                           alt="QR Code Pix"
                           className="w-64 h-64 border rounded-md bg-white p-2"
                         />
+                      ) : refreshError ? (
+                        <div className="w-64 border border-destructive/40 bg-destructive/5 rounded-md p-4 flex flex-col items-center gap-2 text-center">
+                          <AlertCircle className="h-8 w-8 text-destructive" />
+                          <p className="text-sm font-medium">Falha ao gerar o QR Code</p>
+                          <p className="text-xs text-muted-foreground break-words">{refreshError}</p>
+                          <Button size="sm" variant="outline" onClick={() => refreshPix(true)} disabled={refreshing}>
+                            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+                            Tentar novamente
+                          </Button>
+                        </div>
                       ) : (
-                        <div className="w-64 h-64 border rounded-md flex items-center justify-center bg-muted">
+                        <div className="w-64 h-64 border rounded-md flex flex-col items-center justify-center gap-2 bg-muted">
                           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                          <p className="text-xs text-muted-foreground">Gerando QR Code…</p>
                         </div>
                       )}
                       {invoice.external_payment_url && (
