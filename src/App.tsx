@@ -39,6 +39,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Planos from "./pages/Planos";
 import Checkout from "./pages/Checkout";
 import CheckoutPagamento from "./pages/CheckoutPagamento";
+import Faturas from "./pages/Faturas";
 import NotFound from "./pages/NotFound";
 import { SuperAdminRoute } from "@/components/admin/SuperAdminRoute";
 import { useEffect, useState } from "react";
@@ -233,6 +234,7 @@ const AppRoutes = () => (
     <Route path="/planos" element={<ProtectedRoute><Planos /></ProtectedRoute>} />
     <Route path="/checkout/:planSlug" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
     <Route path="/checkout/pagamento/:invoiceId" element={<ProtectedRoute><CheckoutPagamento /></ProtectedRoute>} />
+    <Route path="/faturas" element={<ProtectedRoute><Faturas /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
