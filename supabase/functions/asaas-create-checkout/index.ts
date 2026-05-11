@@ -226,6 +226,7 @@ Deno.serve(async (req) => {
       external_invoice_id: firstPayment?.id ?? null,
       external_payment_url: invoiceUrl,
       pix_qrcode: pixCopyPaste,
+      pix_qrcode_image: pixQrCode,
       boleto_url: boletoUrl,
     }).select().single();
     if (invErr) throw invErr;
