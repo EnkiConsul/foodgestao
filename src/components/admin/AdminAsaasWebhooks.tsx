@@ -163,6 +163,9 @@ export function AdminAsaasWebhooks() {
                 <SelectItem value="error">Com erro</SelectItem>
               </SelectContent>
             </Select>
+            <Button variant="default" size="sm" onClick={() => { setTestResult(null); setTestOpen(true); }}>
+              <Send className="h-4 w-4 mr-1" /> Testar webhook
+            </Button>
             <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
               <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
             </Button>
