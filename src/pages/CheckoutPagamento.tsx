@@ -13,6 +13,7 @@ export default function CheckoutPagamento() {
   const navigate = useNavigate();
   const [paid, setPaid] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
 
   const { data: invoice, refetch } = useQuery({
     queryKey: ["checkout-invoice", invoiceId],
@@ -33,19 +34,30 @@ export default function CheckoutPagamento() {
     }
   }, [invoice?.status]);
 
+  const refreshPix = async (manual = false) => {
+    if (!invoice) return;
+    setRefreshing(true);
+    setRefreshError(null);
+    const { data, error } = await supabase.functions.invoke("asaas-refresh-pix", {
+      body: { invoiceId: invoice.id },
+    });
+    setRefreshing(false);
+    const errMsg = error?.message || (data as any)?.error;
+    if (errMsg) {
+      setRefreshError(errMsg);
+      if (manual) toast.error("Não foi possível gerar o QR Code do Pix");
+    } else {
+      setRefreshError(null);
+      refetch();
+    }
+  };
+
   useEffect(() => {
-    if (!invoice || refreshing) return;
+    if (!invoice || refreshing || refreshError) return;
     if (invoice.payment_method !== "pix") return;
     if ((invoice as any).pix_qrcode_image) return;
     if (invoice.status !== "open") return;
-    setRefreshing(true);
-    supabase.functions
-      .invoke("asaas-refresh-pix", { body: { invoiceId: invoice.id } })
-      .then(({ error }) => {
-        if (error) toast.error("Não foi possível gerar o QR Code do Pix");
-        else refetch();
-      })
-      .finally(() => setRefreshing(false));
+    refreshPix(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invoice?.id, (invoice as any)?.pix_qrcode_image]);
 
