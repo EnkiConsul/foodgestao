@@ -234,6 +234,7 @@ const AppRoutes = () => (
     <Route path="/planos" element={<ProtectedRoute><Planos /></ProtectedRoute>} />
     <Route path="/checkout/:planSlug" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
     <Route path="/checkout/pagamento/:invoiceId" element={<ProtectedRoute><CheckoutPagamento /></ProtectedRoute>} />
+    <Route path="/faturas" element={<ProtectedRoute><Faturas /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
