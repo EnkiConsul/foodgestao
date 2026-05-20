@@ -191,6 +191,7 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
 
 const AppRoutes = () => (
   <Routes>
+    <Route path="/" element={<RootGate />} />
     <Route path="/auth" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
     <Route
       path="/onboarding"
