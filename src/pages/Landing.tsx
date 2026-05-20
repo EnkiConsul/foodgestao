@@ -639,7 +639,7 @@ function FinalCta() {
 
 function PublicFooter() {
   return (
-    <footer className="border-t border-border/60 bg-background py-10">
+    <footer className="border-t border-border/60 bg-background py-8 sm:py-10">
       <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 sm:flex-row">
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
