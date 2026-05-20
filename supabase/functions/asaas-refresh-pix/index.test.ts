@@ -1,6 +1,6 @@
 // Tests for asaas-refresh-pix edge function
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { handleRefreshPix, type InvoiceRow, type RefreshDeps } from "./index.ts";
+import { corsHeaders, handleRefreshPix, type InvoiceRow, type RefreshDeps } from "./index.ts";
 
 function makeReq(body: unknown, auth = "Bearer test-token"): Request {
   return new Request("http://localhost/asaas-refresh-pix", {
@@ -188,4 +188,39 @@ Deno.test("backfills external_invoice_id via subscription when missing", async (
   assertEquals(res.status, 200);
   await res.json();
   assertEquals(backfilled, "pay-99");
+});
+
+Deno.test("OPTIONS request returns 200 with CORS headers", async () => {
+  const req = new Request("http://localhost/asaas-refresh-pix", { method: "OPTIONS" });
+  const res = await handleRefreshPix(req, baseDeps());
+  await res.body?.cancel();
+  assertEquals(res.status, 200);
+  assertEquals(res.headers.get("Access-Control-Allow-Origin"), "*");
+  assertEquals(
+    res.headers.get("Access-Control-Allow-Headers"),
+    "authorization, x-client-info, apikey, content-type",
+  );
+});
+
+Deno.test("OPTIONS exposes the same CORS headers as the shared corsHeaders constant", async () => {
+  const req = new Request("http://localhost/asaas-refresh-pix", { method: "OPTIONS" });
+  const res = await handleRefreshPix(req, baseDeps());
+  await res.body?.cancel();
+  for (const [k, v] of Object.entries(corsHeaders)) {
+    assertEquals(res.headers.get(k), v);
+  }
+});
+
+Deno.test("error responses include CORS headers", async () => {
+  const res = await handleRefreshPix(
+    makeReq({ invoiceId: "inv-1" }),
+    baseDeps({ getUserId: async () => null }),
+  );
+  await res.json();
+  assertEquals(res.status, 401);
+  assertEquals(res.headers.get("Access-Control-Allow-Origin"), "*");
+  assertEquals(
+    res.headers.get("Access-Control-Allow-Headers"),
+    "authorization, x-client-info, apikey, content-type",
+  );
 });
