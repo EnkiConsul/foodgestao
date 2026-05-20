@@ -1,6 +1,6 @@
 // Tests for asaas-refresh-pix edge function
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { handleRefreshPix, type InvoiceRow, type RefreshDeps } from "./index.ts";
+import { corsHeaders, handleRefreshPix, type InvoiceRow, type RefreshDeps } from "./index.ts";
 
 function makeReq(body: unknown, auth = "Bearer test-token"): Request {
   return new Request("http://localhost/asaas-refresh-pix", {
