@@ -138,7 +138,7 @@ Deno.test("returns 502 when Asaas pix QR fetch returns null", async () => {
   const res = await handleRefreshPix(makeReq({ invoiceId: "inv-1" }), deps);
   assertEquals(res.status, 502);
   const json = await res.json();
-  assertEquals(Object.keys(json), ["error"]);
+  assertEquals(json.code, "ASAAS_QR_UNAVAILABLE");
   assertEquals(json.error, "Asaas did not return QR code");
 });
 
@@ -223,4 +223,72 @@ Deno.test("error responses include CORS headers", async () => {
     res.headers.get("Access-Control-Allow-Headers"),
     "authorization, x-client-info, apikey, content-type",
   );
+});
+
+// ---- Error contract: every error response must include { error: string, code: string } ----
+
+async function assertErrorContract(res: Response, expectedStatus: number, expectedCode: string) {
+  assertEquals(res.status, expectedStatus);
+  assertEquals(res.headers.get("Content-Type"), "application/json");
+  const json = await res.json();
+  assertEquals(typeof json.error, "string");
+  assertEquals(json.error.length > 0, true);
+  assertEquals(typeof json.code, "string");
+  assertEquals(json.code, expectedCode);
+}
+
+Deno.test("error contract: 401 UNAUTHORIZED", async () => {
+  const res = await handleRefreshPix(makeReq({ invoiceId: "inv-1" }), baseDeps({ getUserId: async () => null }));
+  await assertErrorContract(res, 401, "UNAUTHORIZED");
+});
+
+Deno.test("error contract: 400 INVOICE_ID_REQUIRED", async () => {
+  const res = await handleRefreshPix(makeReq({}), baseDeps());
+  await assertErrorContract(res, 400, "INVOICE_ID_REQUIRED");
+});
+
+Deno.test("error contract: 404 INVOICE_NOT_FOUND", async () => {
+  const res = await handleRefreshPix(
+    makeReq({ invoiceId: "missing" }),
+    baseDeps({ fetchInvoice: async () => null }),
+  );
+  await assertErrorContract(res, 404, "INVOICE_NOT_FOUND");
+});
+
+Deno.test("error contract: 403 FORBIDDEN", async () => {
+  const res = await handleRefreshPix(
+    makeReq({ invoiceId: "inv-1" }),
+    baseDeps({ fetchInvoice: async () => ({ ...ORPHAN_INVOICE, user_id: "other" }) }),
+  );
+  await assertErrorContract(res, 403, "FORBIDDEN");
+});
+
+Deno.test("error contract: 400 NOT_PIX_INVOICE", async () => {
+  const res = await handleRefreshPix(
+    makeReq({ invoiceId: "inv-1" }),
+    baseDeps({ fetchInvoice: async () => ({ ...ORPHAN_INVOICE, payment_method: "boleto", external_invoice_id: "pay-1" }) }),
+  );
+  await assertErrorContract(res, 400, "NOT_PIX_INVOICE");
+});
+
+Deno.test("error contract: 400 NO_EXTERNAL_PAYMENT", async () => {
+  const res = await handleRefreshPix(makeReq({ invoiceId: "inv-1" }), baseDeps());
+  await assertErrorContract(res, 400, "NO_EXTERNAL_PAYMENT");
+});
+
+Deno.test("error contract: 502 ASAAS_QR_UNAVAILABLE", async () => {
+  const deps = baseDeps({
+    fetchInvoice: async () => ({ ...ORPHAN_INVOICE, external_invoice_id: "pay-1" }),
+    fetchPixQrCode: async () => null,
+  });
+  const res = await handleRefreshPix(makeReq({ invoiceId: "inv-1" }), deps);
+  await assertErrorContract(res, 502, "ASAAS_QR_UNAVAILABLE");
+});
+
+Deno.test("error contract: 500 INTERNAL_ERROR on unexpected throw", async () => {
+  const deps = baseDeps({
+    fetchInvoice: async () => { throw new Error("boom"); },
+  });
+  const res = await handleRefreshPix(makeReq({ invoiceId: "inv-1" }), deps);
+  await assertErrorContract(res, 500, "INTERNAL_ERROR");
 });
