@@ -607,9 +607,9 @@ function FaqSection() {
 
 function FinalCta() {
   return (
-    <section className="py-20 lg:py-24">
+    <section className="py-14 sm:py-20 lg:py-24">
       <div className="container mx-auto px-4">
-        <div className="relative mx-auto max-w-5xl overflow-hidden rounded-2xl bg-sidebar p-10 text-center text-sidebar-foreground sm:p-14">
+        <div className="relative mx-auto max-w-5xl overflow-hidden rounded-2xl bg-sidebar p-6 text-center text-sidebar-foreground sm:p-10 lg:p-14">
           <div
             className="absolute inset-0 -z-0 opacity-50"
             style={{
@@ -618,13 +618,13 @@ function FinalCta() {
             }}
           />
           <div className="relative z-10">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
               Pronto para colocar suas finanças no piloto automático?
             </h2>
-            <p className="mx-auto mt-4 max-w-xl text-sidebar-foreground/80">
+            <p className="mx-auto mt-3 max-w-xl text-sm text-sidebar-foreground/80 sm:mt-4 sm:text-base">
               14 dias grátis. Sem cartão de crédito. Cancele quando quiser.
             </p>
-            <Button asChild size="lg" className="mt-8 text-base" variant="default">
+            <Button asChild size="lg" className="mt-6 w-full text-base sm:mt-8 sm:w-auto" variant="default">
               <Link to="/auth?tab=signup">
                 Iniciar teste de 14 dias
                 <ArrowRight className="ml-1.5 h-4 w-4" />
