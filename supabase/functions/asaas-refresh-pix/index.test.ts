@@ -138,7 +138,7 @@ Deno.test("returns 502 when Asaas pix QR fetch returns null", async () => {
   const res = await handleRefreshPix(makeReq({ invoiceId: "inv-1" }), deps);
   assertEquals(res.status, 502);
   const json = await res.json();
-  assertEquals(Object.keys(json), ["error"]);
+  assertEquals(json.code, "ASAAS_QR_UNAVAILABLE");
   assertEquals(json.error, "Asaas did not return QR code");
 });
 
