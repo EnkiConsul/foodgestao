@@ -275,32 +275,32 @@ function HeroSection() {
             "radial-gradient(60% 50% at 50% 0%, hsl(var(--primary) / 0.12), transparent 70%)",
         }}
       />
-      <div className="container mx-auto grid gap-12 px-4 py-20 lg:grid-cols-2 lg:items-center lg:gap-16 lg:py-28">
+      <div className="container mx-auto grid gap-10 px-4 py-12 sm:py-16 lg:grid-cols-2 lg:items-center lg:gap-16 lg:py-28">
         <div>
-          <Badge variant="secondary" className="mb-5 gap-1.5">
+          <Badge variant="secondary" className="mb-4 gap-1.5 sm:mb-5">
             <Sparkles className="h-3.5 w-3.5" />
             Novo · Teste grátis por 14 dias
           </Badge>
-          <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+          <h1 className="text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl">
             Suas finanças <span className="text-primary">pessoais</span> e da{" "}
             <span className="text-primary">empresa</span> em um só lugar.
           </h1>
-          <p className="mt-5 max-w-xl text-lg text-muted-foreground">
+          <p className="mt-4 max-w-xl text-base text-muted-foreground sm:mt-5 sm:text-lg">
             O Gestor Plin une controle de contas a pagar e receber, orçamentos, fluxo de caixa e
             relatórios — alternando entre Pessoa Física e Pessoa Jurídica na mesma conta.
           </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Button asChild size="lg" className="text-base">
+          <div className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row">
+            <Button asChild size="lg" className="w-full text-base sm:w-auto">
               <Link to="/auth?tab=signup">
                 Iniciar teste de 14 dias
                 <ArrowRight className="ml-1.5 h-4 w-4" />
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="text-base">
+            <Button asChild size="lg" variant="outline" className="w-full text-base sm:w-auto">
               <a href="#planos">Ver planos</a>
             </Button>
           </div>
-          <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+          <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground sm:mt-6 sm:gap-x-6 sm:text-sm">
             <span className="flex items-center gap-1.5">
               <Check className="h-4 w-4 text-success" /> Sem cartão de crédito
             </span>
