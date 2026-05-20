@@ -571,7 +571,7 @@ function PricingSection() {
                 );
               })}
         </div>
-        {idx => null}
+        
       </div>
     </section>
   );
