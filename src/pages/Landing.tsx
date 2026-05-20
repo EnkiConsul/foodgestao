@@ -122,12 +122,12 @@ function PublicHeader() {
   ];
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-md">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
+      <div className="container mx-auto flex h-14 items-center justify-between px-3 sm:h-16 sm:px-4">
         <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <TreePine className="h-5 w-5" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground sm:h-9 sm:w-9">
+            <TreePine className="h-4 w-4 sm:h-5 sm:w-5" />
           </div>
-          <span className="text-lg font-bold tracking-tight text-foreground">
+          <span className="text-base font-bold tracking-tight text-foreground sm:text-lg">
             Gestor <span className="text-primary">Plin</span>
           </span>
         </Link>
@@ -142,17 +142,20 @@ function PublicHeader() {
             </a>
           ))}
         </nav>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
             <Link to="/auth">Entrar</Link>
           </Button>
-          <Button asChild size="sm" className="hidden sm:inline-flex">
-            <Link to="/auth?tab=signup">Iniciar teste grátis</Link>
+          <Button asChild size="sm" className="h-9 px-3 text-xs sm:text-sm">
+            <Link to="/auth?tab=signup">
+              <span className="sm:hidden">Testar grátis</span>
+              <span className="hidden sm:inline">Iniciar teste grátis</span>
+            </Link>
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
+            className="h-9 w-9 md:hidden"
             onClick={() => setOpen((v) => !v)}
             aria-label="Abrir menu"
           >
