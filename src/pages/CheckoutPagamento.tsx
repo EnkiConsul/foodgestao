@@ -142,21 +142,28 @@ export default function CheckoutPagamento() {
                           className="w-64 h-64 border rounded-md bg-white p-2"
                         />
                       ) : refreshError ? (
-                        <div className="w-64 border border-destructive/40 bg-destructive/5 rounded-md p-4 flex flex-col items-center gap-2 text-center">
-                          <AlertCircle className="h-8 w-8 text-destructive" />
-                          <p className="text-sm font-medium">Falha ao gerar o QR Code</p>
-                          <p className="text-xs text-muted-foreground break-words">{refreshError}</p>
-                          {refreshErrorCode === "NO_EXTERNAL_PAYMENT" ? (
-                            <Button size="sm" onClick={() => navigate("/checkout")}>
+                        refreshErrorCode === "NO_EXTERNAL_PAYMENT" ? (
+                          <div className="w-full max-w-sm border border-amber-500/40 bg-amber-500/5 rounded-md p-4 flex flex-col items-center gap-2 text-center">
+                            <AlertCircle className="h-8 w-8 text-amber-600" />
+                            <p className="text-sm font-semibold">Fatura sem cobrança vinculada</p>
+                            <p className="text-xs text-muted-foreground">
+                              Esta fatura não está vinculada a um pagamento no Asaas, por isso não é possível gerar o QR Code do Pix. Refaça o checkout para criar uma nova cobrança.
+                            </p>
+                            <Button size="sm" className="mt-1" onClick={() => navigate("/checkout")}>
                               Refazer checkout
                             </Button>
-                          ) : (
+                          </div>
+                        ) : (
+                          <div className="w-64 border border-destructive/40 bg-destructive/5 rounded-md p-4 flex flex-col items-center gap-2 text-center">
+                            <AlertCircle className="h-8 w-8 text-destructive" />
+                            <p className="text-sm font-medium">Falha ao gerar o QR Code</p>
+                            <p className="text-xs text-muted-foreground break-words">{refreshError}</p>
                             <Button size="sm" variant="outline" onClick={() => refreshPix(true)} disabled={refreshing}>
                               <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
                               Tentar novamente
                             </Button>
-                          )}
-                        </div>
+                          </div>
+                        )
                       ) : (
                         <div className="w-64 h-64 border rounded-md flex flex-col items-center justify-center gap-2 bg-muted">
                           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
