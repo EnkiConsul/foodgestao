@@ -130,6 +130,52 @@ Deno.test("returns 400 when invoice payment_method is null", async () => {
   assertEquals(json.error, "Not a PIX invoice");
 });
 
+Deno.test("returns 502 when Asaas pix QR fetch returns null", async () => {
+  const deps = baseDeps({
+    fetchInvoice: async () => ({ ...ORPHAN_INVOICE, external_invoice_id: "pay-1" }),
+    fetchPixQrCode: async () => null,
+  });
+  const res = await handleRefreshPix(makeReq({ invoiceId: "inv-1" }), deps);
+  assertEquals(res.status, 502);
+  const json = await res.json();
+  assertEquals(Object.keys(json), ["error"]);
+  assertEquals(json.error, "Asaas did not return QR code");
+});
+
+Deno.test("returns 502 when Asaas pix QR has null encodedImage", async () => {
+  const deps = baseDeps({
+    fetchInvoice: async () => ({ ...ORPHAN_INVOICE, external_invoice_id: "pay-1" }),
+    fetchPixQrCode: async () => ({ encodedImage: null as unknown as string, payload: "pl" }),
+  });
+  const res = await handleRefreshPix(makeReq({ invoiceId: "inv-1" }), deps);
+  assertEquals(res.status, 502);
+  const json = await res.json();
+  assertEquals(json.error, "Asaas did not return QR code");
+});
+
+Deno.test("returns 502 when Asaas pix QR has null payload", async () => {
+  const deps = baseDeps({
+    fetchInvoice: async () => ({ ...ORPHAN_INVOICE, external_invoice_id: "pay-1" }),
+    fetchPixQrCode: async () => ({ encodedImage: "img", payload: null as unknown as string }),
+  });
+  const res = await handleRefreshPix(makeReq({ invoiceId: "inv-1" }), deps);
+  assertEquals(res.status, 502);
+  const json = await res.json();
+  assertEquals(json.error, "Asaas did not return QR code");
+});
+
+Deno.test("does not call updateInvoicePix when QR fetch fails", async () => {
+  let updateCalled = false;
+  const deps = baseDeps({
+    fetchInvoice: async () => ({ ...ORPHAN_INVOICE, external_invoice_id: "pay-1" }),
+    fetchPixQrCode: async () => null,
+    updateInvoicePix: async () => { updateCalled = true; },
+  });
+  const res = await handleRefreshPix(makeReq({ invoiceId: "inv-1" }), deps);
+  await res.json();
+  assertEquals(updateCalled, false);
+});
+
 Deno.test("backfills external_invoice_id via subscription when missing", async () => {
   let backfilled: string | null = null;
   const deps = baseDeps({
