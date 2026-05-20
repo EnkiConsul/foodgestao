@@ -41,6 +41,7 @@ import Checkout from "./pages/Checkout";
 import CheckoutPagamento from "./pages/CheckoutPagamento";
 import Faturas from "./pages/Faturas";
 import NotFound from "./pages/NotFound";
+import Landing from "./pages/Landing";
 import { SuperAdminRoute } from "@/components/admin/SuperAdminRoute";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,9 +62,22 @@ const queryClient = new QueryClient({
 });
 
 function safeRedirect(value: string | null): string {
-  if (!value) return "/";
-  if (!value.startsWith("/") || value.startsWith("//")) return "/";
+  if (!value) return "/dashboard";
+  if (!value.startsWith("/") || value.startsWith("//")) return "/dashboard";
   return value;
+}
+
+function RootGate() {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+  if (user) return <Navigate to="/dashboard" replace />;
+  return <Landing />;
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -177,6 +191,7 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
 
 const AppRoutes = () => (
   <Routes>
+    <Route path="/" element={<RootGate />} />
     <Route path="/auth" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
     <Route
       path="/onboarding"
@@ -193,7 +208,7 @@ const AppRoutes = () => (
         </ProtectedRoute>
       }
     >
-      <Route path="/" element={<Dashboard />} />
+      <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/lancamentos" element={<Lancamentos />} />
       
       <Route path="/fluxo-caixa" element={<FluxoCaixa />} />
