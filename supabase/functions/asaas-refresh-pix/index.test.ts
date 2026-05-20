@@ -110,6 +110,26 @@ Deno.test("succeeds when external_invoice_id is set and Asaas returns QR", async
   assertEquals(pixUpdated, true);
 });
 
+Deno.test("returns 400 when invoice payment_method is not pix", async () => {
+  const deps = baseDeps({
+    fetchInvoice: async () => ({ ...ORPHAN_INVOICE, payment_method: "boleto", external_invoice_id: "pay-1" }),
+  });
+  const res = await handleRefreshPix(makeReq({ invoiceId: "inv-1" }), deps);
+  assertEquals(res.status, 400);
+  const json = await res.json();
+  assertEquals(json.error, "Not a PIX invoice");
+});
+
+Deno.test("returns 400 when invoice payment_method is null", async () => {
+  const deps = baseDeps({
+    fetchInvoice: async () => ({ ...ORPHAN_INVOICE, payment_method: null, external_invoice_id: "pay-1" }),
+  });
+  const res = await handleRefreshPix(makeReq({ invoiceId: "inv-1" }), deps);
+  assertEquals(res.status, 400);
+  const json = await res.json();
+  assertEquals(json.error, "Not a PIX invoice");
+});
+
 Deno.test("backfills external_invoice_id via subscription when missing", async () => {
   let backfilled: string | null = null;
   const deps = baseDeps({
