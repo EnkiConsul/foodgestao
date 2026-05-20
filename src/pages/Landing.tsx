@@ -487,23 +487,23 @@ function PricingSection() {
   };
 
   return (
-    <section id="planos" className="py-20 lg:py-24">
+    <section id="planos" className="py-14 sm:py-20 lg:py-24">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary">Planos</p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary sm:text-sm">Planos</p>
+          <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
             Comece grátis. Evolua quando precisar.
           </h2>
-          <p className="mt-4 text-muted-foreground">
+          <p className="mt-3 text-sm text-muted-foreground sm:mt-4 sm:text-base">
             Todos os planos pagos incluem 14 dias de teste, sem cartão de crédito.
           </p>
         </div>
 
-        <div className="mx-auto mt-12 grid max-w-6xl gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mx-auto mt-10 grid max-w-6xl gap-5 pt-3 sm:mt-12 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {loading
             ? Array.from({ length: 4 }).map((_, i) => (
                 <Card key={i} className="border-border/60">
-                  <CardContent className="space-y-4 p-6">
+                  <CardContent className="space-y-4 p-5 sm:p-6">
                     <div className="h-5 w-20 animate-pulse rounded bg-muted" />
                     <div className="h-10 w-32 animate-pulse rounded bg-muted" />
                     <div className="space-y-2">
@@ -514,7 +514,7 @@ function PricingSection() {
                   </CardContent>
                 </Card>
               ))
-            : plans.map((p, idx) => {
+            : plans.map((p) => {
                 const featured = p.slug === "pro";
                 const entries = p.features ? Object.entries(p.features) : [];
                 const labels = entries
@@ -530,13 +530,13 @@ function PricingSection() {
                     {featured && (
                       <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">Mais popular</Badge>
                     )}
-                    <CardContent className="flex h-full flex-col p-6">
+                    <CardContent className="flex h-full flex-col p-5 sm:p-6">
                       <h3 className="text-lg font-semibold">{p.name}</h3>
                       {p.description && (
                         <p className="mt-1 text-sm text-muted-foreground">{p.description}</p>
                       )}
-                      <div className="mt-5">
-                        <span className="text-4xl font-bold tracking-tight">
+                      <div className="mt-4 sm:mt-5">
+                        <span className="text-3xl font-bold tracking-tight sm:text-4xl">
                           {formatPrice(p.price_cents)}
                         </span>
                         {p.price_cents > 0 && (
