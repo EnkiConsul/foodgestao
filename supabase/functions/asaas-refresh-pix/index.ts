@@ -38,16 +38,16 @@ export async function handleRefreshPix(req: Request, deps: RefreshDeps): Promise
   try {
     const authHeader = req.headers.get("Authorization") ?? "";
     const userId = await deps.getUserId(authHeader);
-    if (!userId) return json({ error: "Unauthorized" }, 401);
+    if (!userId) return json({ error: "Unauthorized", code: "UNAUTHORIZED" }, 401);
 
     const body = await req.json().catch(() => ({}));
     const invoiceId: string | undefined = body.invoiceId;
-    if (!invoiceId) return json({ error: "invoiceId required" }, 400);
+    if (!invoiceId) return json({ error: "invoiceId required", code: "INVOICE_ID_REQUIRED" }, 400);
 
     const invoice = await deps.fetchInvoice(invoiceId);
-    if (!invoice) return json({ error: "Invoice not found" }, 404);
-    if (invoice.user_id !== userId) return json({ error: "Forbidden" }, 403);
-    if (invoice.payment_method !== "pix") return json({ error: "Not a PIX invoice" }, 400);
+    if (!invoice) return json({ error: "Invoice not found", code: "INVOICE_NOT_FOUND" }, 404);
+    if (invoice.user_id !== userId) return json({ error: "Forbidden", code: "FORBIDDEN" }, 403);
+    if (invoice.payment_method !== "pix") return json({ error: "Not a PIX invoice", code: "NOT_PIX_INVOICE" }, 400);
 
     let paymentId = invoice.external_invoice_id;
 
@@ -68,7 +68,7 @@ export async function handleRefreshPix(req: Request, deps: RefreshDeps): Promise
 
     const qr = await deps.fetchPixQrCode(paymentId);
     if (!qr?.encodedImage || !qr?.payload) {
-      return json({ error: "Asaas did not return QR code" }, 502);
+      return json({ error: "Asaas did not return QR code", code: "ASAAS_QR_UNAVAILABLE" }, 502);
     }
 
     await deps.updateInvoicePix(invoice.id, qr.payload, qr.encodedImage);
@@ -76,7 +76,7 @@ export async function handleRefreshPix(req: Request, deps: RefreshDeps): Promise
   } catch (e) {
     console.error("asaas-refresh-pix error:", e);
     const msg = e instanceof Error ? e.message : "Unknown error";
-    return json({ error: msg }, 500);
+    return json({ error: msg, code: "INTERNAL_ERROR" }, 500);
   }
 }
 
