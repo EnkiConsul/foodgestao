@@ -202,22 +202,24 @@ function HeroMockup() {
         }}
       />
       <Card className="overflow-hidden border-border/60 shadow-2xl">
-        <div className="flex items-center gap-1.5 border-b border-border/60 bg-muted/50 px-4 py-2.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-destructive/70" />
-          <span className="h-2.5 w-2.5 rounded-full bg-warning/70" />
-          <span className="h-2.5 w-2.5 rounded-full bg-success/70" />
-          <span className="ml-3 text-xs text-muted-foreground">app.gestorplin.com / dashboard</span>
+        <div className="flex items-center gap-1.5 border-b border-border/60 bg-muted/50 px-3 py-2 sm:px-4 sm:py-2.5">
+          <span className="h-2 w-2 rounded-full bg-destructive/70 sm:h-2.5 sm:w-2.5" />
+          <span className="h-2 w-2 rounded-full bg-warning/70 sm:h-2.5 sm:w-2.5" />
+          <span className="h-2 w-2 rounded-full bg-success/70 sm:h-2.5 sm:w-2.5" />
+          <span className="ml-2 truncate text-[10px] text-muted-foreground sm:ml-3 sm:text-xs">
+            app.gestorplin.com / dashboard
+          </span>
         </div>
-        <CardContent className="space-y-4 p-5">
-          <div className="grid grid-cols-3 gap-3">
+        <CardContent className="space-y-3 p-3 sm:space-y-4 sm:p-5">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {[
-              { label: "Saldo total", value: "R$ 48.230", tone: "text-foreground" },
-              { label: "A receber", value: "R$ 12.450", tone: "text-success" },
-              { label: "A pagar", value: "R$ 6.890", tone: "text-warning" },
+              { label: "Saldo", value: "R$ 48.2k", tone: "text-foreground" },
+              { label: "A receber", value: "R$ 12.4k", tone: "text-success" },
+              { label: "A pagar", value: "R$ 6.8k", tone: "text-warning" },
             ].map((k) => (
-              <div key={k.label} className="rounded-lg border border-border/60 bg-card p-3">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{k.label}</p>
-                <p className={`mt-1 text-lg font-semibold ${k.tone}`}>{k.value}</p>
+              <div key={k.label} className="rounded-lg border border-border/60 bg-card p-2 sm:p-3">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground sm:text-[11px]">{k.label}</p>
+                <p className={`mt-1 text-sm font-semibold sm:text-lg ${k.tone}`}>{k.value}</p>
               </div>
             ))}
           </div>
