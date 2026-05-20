@@ -411,20 +411,20 @@ function PfPjSection() {
 
 function HowItWorks() {
   return (
-    <section className="border-y border-border/60 bg-muted/30 py-20 lg:py-24">
+    <section className="border-y border-border/60 bg-muted/30 py-14 sm:py-20 lg:py-24">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary">Como funciona</p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary sm:text-sm">Como funciona</p>
+          <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
             Pronto para usar em menos de 2 minutos
           </h2>
         </div>
-        <div className="mx-auto mt-12 grid max-w-5xl gap-6 md:grid-cols-3">
+        <div className="mx-auto mt-10 grid max-w-5xl gap-4 sm:mt-12 sm:gap-6 md:grid-cols-3">
           {steps.map((s) => (
             <Card key={s.n} className="border-border/60">
-              <CardContent className="p-6">
-                <p className="text-4xl font-bold text-primary/30">{s.n}</p>
-                <h3 className="mt-3 text-lg font-semibold">{s.title}</h3>
+              <CardContent className="p-5 sm:p-6">
+                <p className="text-3xl font-bold text-primary/30 sm:text-4xl">{s.n}</p>
+                <h3 className="mt-3 text-base font-semibold sm:text-lg">{s.title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{s.desc}</p>
               </CardContent>
             </Card>
