@@ -859,7 +859,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                 <SearchableSelect
                   value={contactId}
                   onValueChange={setContactId}
-                  options={filteredContacts.map((ct) => ({ value: ct.id, label: ct.name }))}
+                  options={contactOptions}
                   placeholder="Selecione o contato"
                   searchPlaceholder="Buscar cliente/fornecedor..."
                 />
