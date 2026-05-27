@@ -833,7 +833,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                 <SearchableSelect
                   value={categoryId}
                   onValueChange={setCategoryId}
-                  options={flattenCategoryTree(categoryTree)}
+                  options={flatCategoryOptions}
                   placeholder="Selecione a categoria"
                   searchPlaceholder="Buscar categoria..."
                 />
