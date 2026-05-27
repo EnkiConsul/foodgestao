@@ -1,61 +1,33 @@
+# Dialog de Lançamento responsivo no mobile
+
 ## Problema
+No viewport mobile (390px), o `DialogContent` do formulário de Novo/Editar Lançamento usa `w-full max-w-lg` sem margens laterais, ficando colado nas bordas, e `max-h-[90vh]` com conteúdo denso — header/footer rolam junto e a digitação fica apertada. O layout não se adapta ao tamanho da tela.
 
-No formulário "Novo Lançamento", os selects de **Conta**, **Categoria**, **Cliente/Fornecedor** e **Forma de pagamento** abrem com o contador correto (ex.: "17") mas a lista renderiza em branco. Além disso, ao criar um item em outro módulo, o select só atualiza após fechar e reabrir o modal — e os itens aparecem só como texto, sem cor/ícone/badge do módulo de origem.
+## Escopo
+Apenas presentation/UI. Sem mexer em lógica, queries ou schema.
 
-## Causa raiz
+## Mudanças
 
-1. **Bug de render**: `SearchableSelect` usa `@tanstack/react-virtual` dentro do `Popover` do Radix. Quando o popover monta dentro do Dialog, o `parentRef` mede `clientHeight = 0` antes do popover ser posicionado; o virtualizador calcula `getVirtualItems() = []` e nunca remede, resultando em lista vazia mesmo com `filtered.length = 17`.
-2. **Sem realtime**: o form carrega lookups com `useState` + `reloadLookups()` em `useEffect([open])`. Itens criados em outras telas (ou em outra aba) não chegam até reabrir.
-3. **Visual genérico**: as opções renderizam apenas `label` string; perdem cor da conta/categoria, badge do contato, etc.
+### 1. `src/components/ui/dialog.tsx` (base)
+Ajustar `DialogContent` para ter comportamento responsivo padrão em todo o app:
+- Largura: `w-[calc(100%-1rem)]` no mobile (margem lateral de 8px), mantendo `sm:max-w-lg`.
+- Padding: `p-4 sm:p-6` (reduz aperto no mobile).
+- Altura: adicionar `max-h-[calc(100dvh-2rem)]` por padrão para nunca passar da viewport (usa `dvh` para lidar com barra de endereço no iOS/Android).
+- Manter o resto (animações, posicionamento centralizado, `sm:rounded-lg`).
 
-## O que será feito
+### 2. `src/components/transactions/TransactionFormDialog.tsx`
+Reestruturar o `DialogContent` para layout coluna com header fixo, corpo rolável e footer fixo — em vez de rolar o dialog inteiro:
+- `DialogContent` recebe `className="sm:max-w-md p-0 gap-0 flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]"`.
+- `DialogHeader` ganha `p-4 sm:p-6 pb-2 border-b shrink-0`.
+- `<form>` vira `flex flex-col flex-1 min-h-0`:
+  - corpo: `<div class="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4">` envolvendo todos os campos.
+  - footer de botões (Cancelar / Salvar) vai para `<div class="p-4 sm:p-6 pt-3 border-t shrink-0">` ao final do form (não-scroll), com botões `w-full sm:w-auto` empilhados no mobile.
+- Garantir que grids internos (ex.: data/competência lado a lado) usem `grid-cols-1 sm:grid-cols-2` quando aplicável para evitar overflow no 390px.
 
-### 1. Corrigir renderização do `SearchableSelect`
-Substituir a virtualização por lista simples com `max-height: 320px` + `overflow-auto`. Listas no app têm dezenas (não milhares) de itens, então virtualizar é overhead e está quebrando dentro do Popover. Manter busca debounced, navegação por teclado, indentação por `depth` e contador.
-
-### 2. Suporte a conteúdo rico em `SearchableSelectOption`
-Estender o tipo para aceitar elementos visuais opcionais:
-
-```ts
-interface SearchableSelectOption {
-  value: string;
-  label: string;
-  depth?: number;
-  keywords?: string;
-  leading?: ReactNode;   // ícone/cor/avatar à esquerda
-  trailing?: ReactNode;  // badge à direita
-  description?: ReactNode; // linha secundária pequena
-}
-```
-
-O trigger (botão fechado) também passa a renderizar `leading` da opção selecionada.
-
-### 3. Espelhar visual de cada módulo nos selects
-
-- **Conta** (`ContasBancarias`): bolinha colorida `account.color` + ícone `account.icon` (Lucide) + nome.
-- **Categoria** (`Categorias`): bolinha colorida `category.color` + nome, com indentação hierárquica já existente via `depth`.
-- **Cliente/Fornecedor** (`Contatos`): avatar circular com iniciais sobre `bg-primary/10` + nome + badge de tipo (`cliente`/`fornecedor`/`ambos`) com as mesmas cores do módulo.
-- **Forma de pagamento** (`FormasPagamento`): nome + badge "Pessoal"/empresa quando aplicável (mesmo padrão de visibilidade).
-
-### 4. Sincronização em tempo real
-
-- Migrar os 4 lookups do form (`accounts`, `categories`, `contacts`, `payment_methods` + as junctions `category_companies` e `contact_companies`) para `useQuery` com `queryKey` estável por usuário.
-- Estender `useRealtimeSync` para aceitar `"contacts" | "payment_methods"` além das tabelas atuais.
-- No `TransactionFormDialog`, subscrever as 4 tabelas via `useRealtimeSync` e invalidar os queryKeys correspondentes (`["form-accounts", userId]`, etc.). Resultado: criar uma categoria na aba Categorias atualiza o select aberto no modal sem fechar.
-- Migration: garantir que `categories`, `accounts`, `contacts`, `payment_methods`, `category_companies`, `contact_companies` estão em `supabase_realtime` (`ALTER PUBLICATION ... ADD TABLE`, idempotente via DO block).
-
-### 5. Manter dialogs inline funcionando
-Os botões `+` ao lado de cada select já abrem o dialog do módulo. Após salvar, em vez de chamar `reloadLookups()`, basta invalidar a query — o efeito é o mesmo do realtime, garantindo update imediato mesmo se o realtime falhar.
-
-## Arquivos afetados
-
-- `src/components/ui/searchable-select.tsx` — remover virtualizer, adicionar `leading`/`trailing`/`description`.
-- `src/components/transactions/TransactionFormDialog.tsx` — converter lookups para React Query, mapear opções com visual rico, subscrever realtime, invalidar nas callbacks dos `+`.
-- `src/hooks/useRealtimeSync.tsx` — adicionar `"contacts"` e `"payment_methods"` ao union `RealtimeTable`.
-- Nova migration: `ALTER PUBLICATION supabase_realtime ADD TABLE` para as tabelas que faltarem (idempotente).
-- Memória atualizada: `mem://features/transaction-form` para refletir realtime + visual rico nos selects.
+### 3. Verificações rápidas
+- Conferir visualmente nos viewports 390x844 e 768x1024 que o dialog respeita as margens, rola apenas o corpo, e os botões ficam sempre visíveis.
+- Confirmar que os dropdowns `SearchableSelect` continuam abrindo dentro do dialog sem cortar.
 
 ## Fora de escopo
-
-- Não alterar o esquema do banco nem regras de RLS/visibilidade.
-- Não tocar nos demais formulários (Orçamento, etc.) — embora o fix do `SearchableSelect` beneficie qualquer lugar que o use.
+- Outros dialogs do app (faremos apenas o de Lançamento agora; o ajuste em `dialog.tsx` já melhora todos passivamente, sem reestruturar layout interno deles).
+- Conversão para `Sheet`/drawer full-screen no mobile — pode ser uma próxima iteração se você quiser experiência tipo app nativo.
