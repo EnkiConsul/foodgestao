@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,12 +69,16 @@ export default function Auth() {
     return { hasVerified, needsAal2 };
   };
 
+  const mfaCheckedForUser = useRef<string | null>(null);
   useEffect(() => {
     if (!user) {
+      mfaCheckedForUser.current = null;
       setMfaRequired(false);
       setMfaEnrollRequired(false);
       return;
     }
+    if (mfaCheckedForUser.current === user.id) return;
+    mfaCheckedForUser.current = user.id;
     checkMfaState().then(({ hasVerified, needsAal2 }) => {
       if (!hasVerified) {
         setMfaEnrollRequired(true);
@@ -83,7 +87,7 @@ export default function Auth() {
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user?.id]);
 
   const isLogin = mode === "login";
   const isSignup = mode === "signup";

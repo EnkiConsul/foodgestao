@@ -114,7 +114,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       }
       setMfaChecking(false);
     });
-  }, [user]);
+  }, [user?.id]);
 
   if (loading || checkingOnboarding || mfaChecking) {
     return (
@@ -162,17 +162,21 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
       setMfaRequired(false);
       return;
     }
-    setMfaChecking(true);
+    let cancelled = false;
     Promise.all([
       supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
       supabase.auth.mfa.listFactors(),
     ]).then(([{ data: aal }, { data: factors }]) => {
+      if (cancelled) return;
       const hasVerified = (factors?.totp ?? []).some((f) => f.status === "verified");
       const needsAal2 = !!aal && aal.nextLevel === "aal2" && aal.nextLevel !== aal.currentLevel;
       setMfaRequired(!hasVerified || needsAal2);
       setMfaChecking(false);
     });
-  }, [user]);
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   if (loading || (user && mfaChecking)) {
     return (
