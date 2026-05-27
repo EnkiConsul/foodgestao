@@ -884,7 +884,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
               <SearchableSelect
                 value={paymentMethodId}
                 onValueChange={setPaymentMethodId}
-                options={paymentMethods.map((pm) => ({ value: pm.id, label: pm.name }))}
+                options={paymentMethodOptions}
                 placeholder="Selecione"
                 searchPlaceholder="Buscar forma de pagamento..."
               />
