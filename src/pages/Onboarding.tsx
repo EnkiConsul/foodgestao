@@ -280,11 +280,6 @@ export default function Onboarding() {
         return <StepCategories data={data} update={update} />;
     }
   };
-        return <StepAccount data={data} update={update} />;
-      case "categories":
-        return <StepCategories data={data} update={update} />;
-    }
-  };
 
   if (loading) {
     return (
