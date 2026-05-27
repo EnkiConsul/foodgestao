@@ -129,6 +129,10 @@ export default function Faturas() {
           </div>
         </div>
 
+        <div className="mb-6">
+          <SandboxTestCard />
+        </div>
+
         {/* Summary cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
           {cards.map(({ key, label, icon: Icon, color, bg, border, data }) => {
