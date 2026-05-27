@@ -114,7 +114,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       }
       setMfaChecking(false);
     });
-  }, [user]);
+  }, [user?.id]);
 
   if (loading || checkingOnboarding || mfaChecking) {
     return (

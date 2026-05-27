@@ -1,58 +1,40 @@
-# Ajustes de responsividade da Landing Page
+# Por que a tela fica alternando
 
-Refinar o `src/pages/Landing.tsx` para que a LP fique bem apresentada em telas pequenas (≤ 414px), médias (tablet) e desktop, mantendo o mesmo design system azul. Nenhuma alteração de funcionalidade ou conteúdo — só tipografia, espaçamentos, grids e elementos visuais responsivos.
+O replay mostra: formulário de login → "Preparando configuração..." → navegação para `/auth?redirect=/dashboard` → formulário de login, repetindo a cada ~1,5s.
 
-## Pontos a corrigir
+A causa é uma cadeia entre 3 pontos:
 
-1. **Header público**
-   - Em mobile o botão "Iniciar teste grátis" some (fica só o menu hamburguer). Manter o CTA visível mesmo no mobile como botão compacto ("Testar grátis") e deixar "Entrar" só no menu mobile.
-   - Reduzir altura do header em mobile (`h-14`) e padding do container.
+1. **`PublicOnlyRoute` (em `src/App.tsx`)** roda o `useEffect` de checagem de MFA toda vez que a referência de `user` muda. Como `useAuth` dispara `onAuthStateChange` em `TOKEN_REFRESHED` (e em vários outros eventos), o objeto `user` ganha referência nova mesmo quando o id é o mesmo. Isso recoloca `mfaChecking=true`, faz a tela trocar para spinner / desmontar a Auth.
 
-2. **Hero**
-   - Reduzir tamanho do H1 em telas muito pequenas (`text-3xl` no mobile, escalando para `text-6xl` no desktop) e ajustar `leading` para evitar quebras feias.
-   - Subtítulo menor no mobile (`text-base`).
-   - Botões de CTA em coluna full-width no mobile (`w-full`) e lado a lado a partir de `sm`.
-   - Diminuir padding vertical da seção em mobile (`py-12` → `lg:py-28`).
-   - Chips de prova ("Sem cartão de crédito" etc.) com gap menor e wrap garantido.
+2. **`Auth.tsx`** tem o mesmo padrão no `useEffect([user])` — ao receber novo `user`, chama `checkMfaState` e, se não há fator verificado, ativa `MfaEnrollRequired`.
 
-3. **HeroMockup**
-   - Os 3 KPIs em `grid-cols-3` ficam apertados em ~360px. Em mobile usar `grid-cols-1` ou mostrar só 2 KPIs principais; voltar para 3 colunas a partir de `sm`.
-   - Reduzir tamanho dos valores e padding interno no mobile.
-   - Esconder a barra "fake browser" decorativa em telas muito pequenas? Não — manter mas com texto truncado.
+3. **`MfaEnrollRequired`** roda no mount um `listFactors → unenroll(todos não verificados) → enroll(novo)`. Cada `enroll/unenroll` mexe na sessão, o Supabase emite novo evento de auth, `user` ganha nova referência, `PublicOnlyRoute` re-renderiza, o componente desmonta/remonta e o ciclo recomeça (criando fatores TOTP descartáveis a cada volta).
 
-4. **Grid de recursos**
-   - Padding vertical menor no mobile (`py-14` → `lg:py-24`).
-   - Manter 1 coluna no mobile (já está), gap menor.
+O `navigate` para `/auth?redirect=/dashboard` aparece porque, entre dois ciclos, o `ProtectedRoute` chega a ser renderizado e empurra de volta para `/auth`.
 
-5. **PF x PJ**
-   - Corrigir bug atual: o switch tem `inline-flex w-full max-w-sm ... sm:flex` (combinação confusa). Trocar por `flex w-full max-w-sm mx-auto`.
-   - O Card interno vira `grid-cols-1` no mobile e `sm:grid-cols-2` (já está, mas reduzir padding `p-6 sm:p-8`).
+# O que mudar
 
-6. **Como funciona**
-   - Cards já empilham bem; só reduzir padding vertical da seção no mobile.
+Mantém a funcionalidade (login + MFA obrigatório) intacta, só estabiliza os efeitos.
 
-7. **Planos**
-   - Em mobile, 1 coluna (já está). Reduzir tamanho do preço (`text-3xl` mobile → `text-4xl` desktop).
-   - Garantir que o badge "Mais popular" não sobreponha o card vizinho — adicionar `mt-3` no grid em mobile para dar espaço ao badge.
+## 1. `src/App.tsx` — `PublicOnlyRoute` e `ProtectedRoute`
+- Trocar a dependência dos `useEffect` de MFA de `[user]` para `[user?.id]`, para não re-disparar a checagem quando só a referência do objeto muda (token refresh, etc.).
+- Em `PublicOnlyRoute`, não voltar a `mfaChecking=true` quando o id do usuário continua o mesmo (evita o flicker para spinner que desmonta `Auth`).
 
-8. **FAQ**
-   - Já fica 1 coluna no mobile; só reduzir padding.
+## 2. `src/pages/Auth.tsx`
+- Mesma troca: `useEffect([user?.id])`.
+- Guardar com um `ref` para não re-executar `checkMfaState` se já decidimos o estado para aquele `user.id`.
 
-9. **CTA final**
-   - Padding interno do card menor no mobile (`p-6 sm:p-10 lg:p-14`).
-   - Título `text-2xl sm:text-3xl lg:text-4xl`.
-   - Botão `w-full sm:w-auto`.
+## 3. `src/components/auth/MfaEnrollRequired.tsx`
+- Proteger o `useEffect` de bootstrap com um `useRef` (`didEnrollRef`) para garantir execução única por montagem real, evitando que StrictMode/remounts criem múltiplos fatores TOTP.
+- Antes de chamar `enroll`, se `listFactors` já retornar um fator **não verificado** recente, reutilizar (ler `id`/`secret` via um novo `enroll` só se necessário) em vez de unenroll+enroll cego — reduz tráfego e elimina o efeito colateral na sessão.
 
-10. **Footer**
-    - Empilha bem; só reduzir gap e tamanhos no mobile.
+## Detalhes técnicos
+- Nenhuma mudança em RLS, edge functions ou banco.
+- Sem mudança de UI/visual; só estabilização de efeitos.
+- Após a correção: ao logar com MFA obrigatório, o usuário vê **uma vez** "Preparando configuração..." e em seguida o QR code, sem piscar.
 
-## Princípios
-
-- Mobile-first: começar com tamanhos compactos e escalar para cima com `sm:` / `md:` / `lg:`.
-- Continuar usando exclusivamente tokens semânticos do design system.
-- Nenhum novo asset, nenhuma nova dependência.
-- Sem mexer em rotas, conteúdo de planos, copy ou design desktop existente.
-
-## Arquivos
-
-- `src/pages/Landing.tsx` — único arquivo alterado.
+## Validação
+- Recarregar `/auth` deslogado → form estável.
+- Logar com conta que tem MFA pendente → vai para tela de enroll e permanece.
+- Logar com conta que já tem TOTP verificado → vai para `MfaChallenge` e permanece.
+- Conferir no painel do Supabase Auth que **não** ficam acumulando fatores TOTP "unverified" a cada tentativa.
