@@ -1020,10 +1020,13 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
               <p className="text-xs text-muted-foreground text-center py-2">Limite de {MAX_ATTACHMENTS} anexos atingido</p>
             )}
           </div>
+          </div>
 
-          <Button type="submit" className="w-full" disabled={saving}>
-            {saving ? "Salvando..." : isEditing ? "Atualizar Lançamento" : "Salvar Lançamento"}
-          </Button>
+          <div className="p-4 sm:p-6 pt-3 border-t shrink-0">
+            <Button type="submit" className="w-full" disabled={saving}>
+              {saving ? "Salvando..." : isEditing ? "Atualizar Lançamento" : "Salvar Lançamento"}
+            </Button>
+          </div>
         </form>
       </DialogContent>
 
