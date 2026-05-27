@@ -953,8 +953,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       <AccountFormDialog
         open={accountDialogOpen}
         onOpenChange={setAccountDialogOpen}
-        onSaved={async (newId) => {
-          await reloadLookups();
+        onSaved={(newId) => {
+          invalidateLookups();
           if (newId) {
             if (accountTarget === "destination") setDestinationAccountId(newId);
             else setAccountId(newId);
@@ -966,8 +966,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
         open={categoryDialogOpen}
         onOpenChange={setCategoryDialogOpen}
         defaultType={type === "receita" ? "receita" : "despesa"}
-        onSaved={async (newId) => {
-          await reloadLookups();
+        onSaved={(newId) => {
+          invalidateLookups();
           if (newId) setCategoryId(newId);
         }}
       />
@@ -975,8 +975,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       <ContactFormDialog
         open={contactDialogOpen}
         onOpenChange={setContactDialogOpen}
-        onSaved={async (newId) => {
-          await reloadLookups();
+        onSaved={(newId) => {
+          invalidateLookups();
           if (newId) setContactId(newId);
         }}
       />
@@ -984,8 +984,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       <PaymentMethodFormDialog
         open={paymentMethodDialogOpen}
         onOpenChange={setPaymentMethodDialogOpen}
-        onSaved={async (newId) => {
-          await reloadLookups();
+        onSaved={(newId) => {
+          invalidateLookups();
           if (newId) setPaymentMethodId(newId);
         }}
       />
