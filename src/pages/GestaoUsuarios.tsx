@@ -83,12 +83,12 @@ export default function GestaoUsuarios() {
 
       // Fetch profile info for each member
       const userIds = data.map((m) => m.user_id);
-      const { data: profiles } = await supabase
-        .from("company_member_profiles" as any)
+      const { data: profiles } = await (supabase as any)
+        .from("company_member_profiles")
         .select("user_id, full_name")
         .in("user_id", userIds);
 
-      const profileMap = new Map((profiles ?? []).map((p) => [p.user_id, p]));
+      const profileMap = new Map(((profiles ?? []) as Array<{ user_id: string; full_name: string | null }>).map((p) => [p.user_id, p]));
 
       return data.map((m) => ({
         ...m,
