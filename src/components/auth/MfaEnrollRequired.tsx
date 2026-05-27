@@ -47,7 +47,10 @@ export function MfaEnrollRequired({ onSuccess }: Props) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [fieldError, setFieldError] = useState<string | null>(null);
 
+  const didBootstrap = useRef(false);
   useEffect(() => {
+    if (didBootstrap.current) return;
+    didBootstrap.current = true;
     (async () => {
       try {
         const { data: list, error: listErr } = await supabase.auth.mfa.listFactors();
