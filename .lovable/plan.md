@@ -1,40 +1,62 @@
-# Por que a tela fica alternando
 
-O replay mostra: formulário de login → "Preparando configuração..." → navegação para `/auth?redirect=/dashboard` → formulário de login, repetindo a cada ~1,5s.
+## Objetivo
 
-A causa é uma cadeia entre 3 pontos:
+Transformar a home `/` (Landing.tsx) numa LP otimizada para campanhas pagas (Meta/Google) com foco em iniciar trial de 14 dias sem cartão. Manter identidade azul atual (#2D6EB5, tokens existentes) e SEO da rota raiz.
 
-1. **`PublicOnlyRoute` (em `src/App.tsx`)** roda o `useEffect` de checagem de MFA toda vez que a referência de `user` muda. Como `useAuth` dispara `onAuthStateChange` em `TOKEN_REFRESHED` (e em vários outros eventos), o objeto `user` ganha referência nova mesmo quando o id é o mesmo. Isso recoloca `mfaChecking=true`, faz a tela trocar para spinner / desmontar a Auth.
+## Estrutura da nova LP (ordem dos blocos)
 
-2. **`Auth.tsx`** tem o mesmo padrão no `useEffect([user])` — ao receber novo `user`, chama `checkMfaState` e, se não há fator verificado, ativa `MfaEnrollRequired`.
+1. **Header sticky enxuto** — logo + 1 CTA "Testar 14 dias grátis". Sem menu de âncoras (reduz fuga em tráfego pago). Versão mobile colapsa para só o CTA.
 
-3. **`MfaEnrollRequired`** roda no mount um `listFactors → unenroll(todos não verificados) → enroll(novo)`. Cada `enroll/unenroll` mexe na sessão, o Supabase emite novo evento de auth, `user` ganha nova referência, `PublicOnlyRoute` re-renderiza, o componente desmonta/remonta e o ciclo recomeça (criando fatores TOTP descartáveis a cada volta).
+2. **Hero (acima da dobra)**
+   - H1 forte: "Controle financeiro pessoal e da sua empresa, sem planilha."
+   - Subtítulo: 1 linha cobrindo MEI, PJ e PF.
+   - Bullets curtos com check (3): "Sem cartão", "Cancelamento em 1 clique", "Dados protegidos (LGPD)".
+   - CTA primário "Começar teste grátis" + CTA secundário "Ver demonstração" (scroll para mockup).
+   - Selos: "+X usuários", "Nota 4.9", "Multiempresa" (placeholders editáveis).
+   - À direita: mockup já existente `HeroMockup` — reaproveitar.
 
-O `navigate` para `/auth?redirect=/dashboard` aparece porque, entre dois ciclos, o `ProtectedRoute` chega a ser renderizado e empurra de volta para `/auth`.
+3. **Faixa de logos/segmentos** — chips com "MEI", "Autônomos", "Pequenas empresas", "Famílias", "Casais" (sem logos falsos).
 
-# O que mudar
+4. **Bloco "Planilha vs Gestor Plin"** — tabela comparativa em 2 colunas (Excel/Sheets ❌ vs Gestor Plin ✅) com 6-7 linhas: atualização manual, erro de fórmula, fluxo de caixa projetado, alertas de vencimento, multiusuário, acesso mobile, LGPD/backup. CTA inline.
 
-Mantém a funcionalidade (login + MFA obrigatório) intacta, só estabiliza os efeitos.
+5. **Para quem é** — 3 cards (MEI, Empresa, Pessoal) com 3 bullets cada e CTA "Testar grátis com meu perfil" que leva a `/auth?tab=signup&persona=mei|pj|pf` (parâmetro só para pré-seleção futura).
 
-## 1. `src/App.tsx` — `PublicOnlyRoute` e `ProtectedRoute`
-- Trocar a dependência dos `useEffect` de MFA de `[user]` para `[user?.id]`, para não re-disparar a checagem quando só a referência do objeto muda (token refresh, etc.).
-- Em `PublicOnlyRoute`, não voltar a `mfaChecking=true` quando o id do usuário continua o mesmo (evita o flicker para spinner que desmonta `Auth`).
+6. **Recursos principais** — reusar grid `features` existente (6 itens), enxugando para os 4 de maior apelo em ads: contas a pagar/receber, dashboard, fluxo projetado, multiusuário.
 
-## 2. `src/pages/Auth.tsx`
-- Mesma troca: `useEffect([user?.id])`.
-- Guardar com um `ref` para não re-executar `checkMfaState` se já decidimos o estado para aquele `user.id`.
+7. **Como funciona em 3 passos** — reaproveitar `steps`.
 
-## 3. `src/components/auth/MfaEnrollRequired.tsx`
-- Proteger o `useEffect` de bootstrap com um `useRef` (`didEnrollRef`) para garantir execução única por montagem real, evitando que StrictMode/remounts criem múltiplos fatores TOTP.
-- Antes de chamar `enroll`, se `listFactors` já retornar um fator **não verificado** recente, reutilizar (ler `id`/`secret` via um novo `enroll` só se necessário) em vez de unenroll+enroll cego — reduz tráfego e elimina o efeito colateral na sessão.
+8. **Garantia + risco zero** — faixa destacada: "14 dias grátis · sem cartão · cancele quando quiser".
 
-## Detalhes técnicos
-- Nenhuma mudança em RLS, edge functions ou banco.
-- Sem mudança de UI/visual; só estabilização de efeitos.
-- Após a correção: ao logar com MFA obrigatório, o usuário vê **uma vez** "Preparando configuração..." e em seguida o QR code, sem piscar.
+9. **Planos resumidos** — manter fetch de `plans` do Supabase, mas mostrar apenas plano destaque + link "ver todos os planos" para `/planos` (ou âncora). Reduz fricção.
 
-## Validação
-- Recarregar `/auth` deslogado → form estável.
-- Logar com conta que tem MFA pendente → vai para tela de enroll e permanece.
-- Logar com conta que já tem TOTP verificado → vai para `MfaChallenge` e permanece.
-- Conferir no painel do Supabase Auth que **não** ficam acumulando fatores TOTP "unverified" a cada tentativa.
+10. **FAQ curto** — reusar `faqs` (4 itens).
+
+11. **CTA final full-width** — repete oferta + botão grande.
+
+12. **Footer minimalista** — links institucionais + termos/privacidade.
+
+## Itens técnicos
+
+- **Arquivo**: editar `src/pages/Landing.tsx` (substitui a atual; rota `/` continua igual em `App.tsx`).
+- **SEO/Head**: adicionar `react-helmet-async` no `main.tsx` (HelmetProvider) e `<Helmet>` na Landing com `<title>` (<60ch), `description` (<160ch), canonical `https://gestorplin.com/`, og:title/description/url/type, JSON-LD `SoftwareApplication` + `Organization`. Atualizar `index.html` para remover canonical duplicado.
+- **Tracking para patrocinado**:
+  - Suporte a UTM: ler `utm_source/medium/campaign/term/content` da URL e propagar nos CTAs para `/auth?tab=signup` (querystring preservada) para attribution pós-cadastro.
+  - Placeholders comentados para Meta Pixel e Google Ads/Analytics em `index.html` (apenas estrutura, sem IDs — usuário cola depois). Pixel `<noscript>` no `<body>`, não no `<head>`.
+  - Evento de conversão sugerido: disparar `dataLayer.push({event:'cta_click_trial'})` nos botões de CTA principal (sem dependência externa).
+- **Performance**: lazy-load das seções abaixo da dobra via `loading="lazy"` em imagens (se houver) e divisão do componente em subcomponentes locais. Sem libs novas.
+- **Identidade**: usar tokens semânticos (`bg-primary`, `text-primary`, `bg-success/10` etc.) — sem cores hardcoded.
+- **Responsivo**: foco em 360-414px (maior parte do tráfego de ads vem de mobile); revisar hero, comparativo e cards.
+
+## Fora de escopo
+
+- Geração de novas imagens/vídeo do produto (uso do `HeroMockup` em SVG/HTML já existente).
+- Integração real com Pixel/GA (apenas estrutura/placeholder — IDs entram depois).
+- Criação de página `/planos` separada (link já levará para âncora `#planos` se ainda existir; senão fica para próxima iteração).
+- Backend, RLS, migrations — nenhum.
+
+## Critério de pronto
+
+- `/` renderiza nova LP, mobile e desktop ok.
+- CTAs preservam UTMs ao navegar para `/auth?tab=signup`.
+- Lighthouse SEO ≥ 95 na home (title/description/canonical/JSON-LD presentes).
+- Comparativo "Planilha vs Gestor Plin" visível e legível no mobile 360px.
