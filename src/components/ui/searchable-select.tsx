@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronsUpDown, Search } from "lucide-react";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +12,12 @@ export interface SearchableSelectOption {
   depth?: number;
   /** Optional searchable text appended to label. */
   keywords?: string;
+  /** Optional element rendered to the left of the label (icon, color dot, avatar). */
+  leading?: ReactNode;
+  /** Optional element rendered to the right of the label (badge). */
+  trailing?: ReactNode;
+  /** Optional secondary line below the label. */
+  description?: ReactNode;
 }
 
 interface Props {
@@ -24,12 +29,11 @@ interface Props {
   emptyText?: string;
   className?: string;
   disabled?: boolean;
-  /** Debounce in ms applied to the search input before filtering. Default: 200. Use 0 to disable. */
+  /** Debounce in ms applied to the search input before filtering. Default: 150. Use 0 to disable. */
   searchDebounceMs?: number;
 }
 
-const ITEM_HEIGHT = 36;
-const MAX_VISIBLE_ITEMS = 8;
+const MAX_LIST_HEIGHT = 320;
 
 function normalize(s: string): string {
   return s
@@ -47,18 +51,17 @@ export function SearchableSelect({
   emptyText = "Nenhum item encontrado",
   className,
   disabled,
-  searchDebounceMs = 200,
+  searchDebounceMs = 150,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
-  const parentRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const selected = options.find((o) => o.value === value);
 
-  // Debounce search input (configurable; 0 = no debounce)
   useEffect(() => {
     if (searchDebounceMs <= 0) {
       setDebouncedSearch(search);
@@ -72,18 +75,16 @@ export function SearchableSelect({
     const q = normalize(debouncedSearch.trim());
     if (!q) return options;
     return options.filter((o) =>
-      normalize(`${o.label} ${o.keywords ?? ""}`).includes(q)
+      normalize(`${o.label} ${o.keywords ?? ""}`).includes(q),
     );
   }, [options, debouncedSearch]);
 
-  // Reset state on open/close
   useEffect(() => {
     if (open) {
       setSearch("");
       setDebouncedSearch("");
       const idx = options.findIndex((o) => o.value === value);
       setActiveIndex(idx >= 0 ? idx : 0);
-      // focus input next tick (Popover mounts content)
       requestAnimationFrame(() => inputRef.current?.focus());
     }
   }, [open]);
@@ -92,18 +93,11 @@ export function SearchableSelect({
     setActiveIndex(0);
   }, [debouncedSearch]);
 
-  const rowVirtualizer = useVirtualizer({
-    count: filtered.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => ITEM_HEIGHT,
-    overscan: 6,
-  });
-
   // Keep active item visible
   useEffect(() => {
-    if (open && filtered.length > 0) {
-      rowVirtualizer.scrollToIndex(activeIndex, { align: "auto" });
-    }
+    if (!open || filtered.length === 0) return;
+    const el = listRef.current?.querySelector<HTMLElement>(`[data-idx="${activeIndex}"]`);
+    el?.scrollIntoView({ block: "nearest" });
   }, [activeIndex, open, filtered.length]);
 
   const handleSelect = (idx: number) => {
@@ -135,8 +129,6 @@ export function SearchableSelect({
     }
   };
 
-  const listHeight = Math.min(filtered.length, MAX_VISIBLE_ITEMS) * ITEM_HEIGHT;
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -152,11 +144,19 @@ export function SearchableSelect({
             className,
           )}
         >
-          <span className="truncate">{selected ? selected.label : placeholder}</span>
+          <span className="flex items-center gap-2 min-w-0 flex-1">
+            {selected?.leading}
+            <span className="truncate">{selected ? selected.label : placeholder}</span>
+            {selected?.trailing}
+          </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <PopoverContent
+        className="p-0 w-[--radix-popover-trigger-width]"
+        align="start"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <div className="flex items-center border-b px-3">
           <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
           <Input
@@ -176,54 +176,51 @@ export function SearchableSelect({
           <div className="py-6 text-center text-sm text-muted-foreground">{emptyText}</div>
         ) : (
           <div
-            ref={parentRef}
-            className="overflow-auto"
-            style={{ height: listHeight, maxHeight: MAX_VISIBLE_ITEMS * ITEM_HEIGHT }}
+            ref={listRef}
+            className="overflow-auto py-1"
+            style={{ maxHeight: MAX_LIST_HEIGHT }}
           >
-            <div
-              style={{
-                height: `${rowVirtualizer.getTotalSize()}px`,
-                position: "relative",
-                width: "100%",
-              }}
-            >
-              {rowVirtualizer.getVirtualItems().map((vRow) => {
-                const opt = filtered[vRow.index];
-                const isActive = vRow.index === activeIndex;
-                const isSelected = opt.value === value;
-                return (
-                  <div
-                    key={opt.value}
-                    role="option"
-                    aria-selected={isSelected}
-                    onMouseEnter={() => setActiveIndex(vRow.index)}
-                    onMouseDown={(e) => {
-                      // mouse down so we don't lose input focus before click triggers
-                      e.preventDefault();
-                      handleSelect(vRow.index);
-                    }}
+            {filtered.map((opt, idx) => {
+              const isActive = idx === activeIndex;
+              const isSelected = opt.value === value;
+              const depth = opt.depth ?? 0;
+              return (
+                <div
+                  key={opt.value}
+                  data-idx={idx}
+                  role="option"
+                  aria-selected={isSelected}
+                  onMouseEnter={() => setActiveIndex(idx)}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSelect(idx);
+                  }}
+                  className={cn(
+                    "flex w-full cursor-pointer items-center gap-2 px-2 py-2 text-sm",
+                    isActive && "bg-accent text-accent-foreground",
+                    depth === 1 && "pl-6",
+                    depth >= 2 && "pl-10",
+                  )}
+                >
+                  <Check
                     className={cn(
-                      "absolute left-0 top-0 flex w-full cursor-pointer items-center px-2 text-sm",
-                      isActive && "bg-accent text-accent-foreground",
-                      (opt.depth ?? 0) === 1 && "pl-6",
-                      (opt.depth ?? 0) >= 2 && "pl-10",
+                      "h-4 w-4 shrink-0",
+                      isSelected ? "opacity-100" : "opacity-0",
                     )}
-                    style={{
-                      height: `${vRow.size}px`,
-                      transform: `translateY(${vRow.start}px)`,
-                    }}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4 shrink-0",
-                        isSelected ? "opacity-100" : "opacity-0",
-                      )}
-                    />
-                    <span className="truncate">{opt.label}</span>
+                  />
+                  {opt.leading}
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate">{opt.label}</div>
+                    {opt.description && (
+                      <div className="truncate text-[11px] text-muted-foreground">
+                        {opt.description}
+                      </div>
+                    )}
                   </div>
-                );
-              })}
-            </div>
+                  {opt.trailing}
+                </div>
+              );
+            })}
           </div>
         )}
       </PopoverContent>

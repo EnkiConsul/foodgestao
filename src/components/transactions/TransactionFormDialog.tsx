@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { addDays, addWeeks, addMonths, addYears } from "date-fns";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,11 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CurrencyInput, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { toast } from "sonner";
 import { transactionSchema, validateWithToast } from "@/lib/validations";
-import { Calendar, Repeat, Paperclip, X, FileText, Upload, CheckCircle, Clock, XCircle, Plus } from "lucide-react";
+import { Calendar, Repeat, Paperclip, X, FileText, Upload, CheckCircle, Clock, XCircle, Plus, Wallet } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import type { Tables } from "@/integrations/supabase/types";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
@@ -148,6 +151,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const { isRequired } = useTransactionFieldSettings();
+  const queryClient = useQueryClient();
   const [type, setType] = useState<TransactionType>("despesa");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -167,14 +171,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
   const [existingAttachments, setExistingAttachments] = useState<{ id: string; file_name: string; file_url: string }[]>([]);
   const [removedAttachmentIds, setRemovedAttachmentIds] = useState<string[]>([]);
-
-  const [accounts, setAccounts] = useState<Tables<"accounts">[]>([]);
-  const [categories, setCategories] = useState<Tables<"categories">[]>([]);
-  const [contacts, setContacts] = useState<Tables<"contacts">[]>([]);
-  const [contactCompanyIds, setContactCompanyIds] = useState<Map<string, string[]>>(new Map());
-  const [paymentMethods, setPaymentMethods] = useState<Tables<"payment_methods">[]>([]);
   const [paymentMethodId, setPaymentMethodId] = useState("");
-  const [categoryCompanyIds, setCategoryCompanyIds] = useState<Map<string, string[]>>(new Map());
 
   const [accountDialogOpen, setAccountDialogOpen] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
@@ -182,48 +179,108 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState(false);
   const [accountTarget, setAccountTarget] = useState<"origin" | "destination">("origin");
 
-  const reloadLookups = async () => {
-    if (!user) return;
-    const [accRes, catRes, pmRes, ccRes, contactRes, contCompRes] = await Promise.all([
-      supabase.from("accounts").select("*").eq("user_id", user.id).eq("is_active", true),
-      supabase.from("categories").select("*").eq("user_id", user.id).order("transaction_type").order("sort_order").order("name"),
-      supabase.from("payment_methods").select("*").eq("user_id", user.id).eq("is_active", true),
-      supabase.from("category_companies").select("category_id, company_id"),
-      supabase.from("contacts").select("*").eq("user_id", user.id).eq("is_active", true).order("name"),
-      supabase.from("contact_companies").select("contact_id, company_id"),
-    ]);
-    setAccounts(accRes.data ?? []);
-    setCategories(catRes.data ?? []);
-    setPaymentMethods(pmRes.data ?? []);
-    setContacts(contactRes.data ?? []);
+  // --- Lookup queries (React Query so realtime invalidation works) ---
+  const accountsQuery = useQuery({
+    queryKey: ["form-accounts", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("accounts").select("*")
+        .eq("user_id", user!.id).eq("is_active", true).order("name");
+      return data ?? [];
+    },
+  });
+  const categoriesQuery = useQuery({
+    queryKey: ["form-categories", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("categories").select("*")
+        .eq("user_id", user!.id)
+        .order("transaction_type").order("sort_order").order("name");
+      return data ?? [];
+    },
+  });
+  const contactsQuery = useQuery({
+    queryKey: ["form-contacts", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("contacts").select("*")
+        .eq("user_id", user!.id).eq("is_active", true).order("name");
+      return data ?? [];
+    },
+  });
+  const paymentMethodsQuery = useQuery({
+    queryKey: ["form-payment-methods", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("payment_methods").select("*")
+        .eq("user_id", user!.id).eq("is_active", true).order("name");
+      return data ?? [];
+    },
+  });
+  const categoryCompaniesQuery = useQuery({
+    queryKey: ["form-category-companies", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase.from("category_companies").select("category_id, company_id");
+      return data ?? [];
+    },
+  });
+  const contactCompaniesQuery = useQuery({
+    queryKey: ["form-contact-companies", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase.from("contact_companies").select("contact_id, company_id");
+      return data ?? [];
+    },
+  });
 
+  const accounts = accountsQuery.data ?? [];
+  const categories = categoriesQuery.data ?? [];
+  const contacts = contactsQuery.data ?? [];
+  const paymentMethods = paymentMethodsQuery.data ?? [];
+
+  const categoryCompanyIds = useMemo(() => {
     const map = new Map<string, string[]>();
-    (ccRes.data ?? []).forEach((cc) => {
+    (categoryCompaniesQuery.data ?? []).forEach((cc) => {
       const list = map.get(cc.category_id) || [];
       list.push(cc.company_id);
       map.set(cc.category_id, list);
     });
-    setCategoryCompanyIds(map);
+    return map;
+  }, [categoryCompaniesQuery.data]);
 
-    const contMap = new Map<string, string[]>();
-    (contCompRes.data ?? []).forEach((cc) => {
-      const list = contMap.get(cc.contact_id) || [];
+  const contactCompanyIds = useMemo(() => {
+    const map = new Map<string, string[]>();
+    (contactCompaniesQuery.data ?? []).forEach((cc) => {
+      const list = map.get(cc.contact_id) || [];
       list.push(cc.company_id);
-      contMap.set(cc.contact_id, list);
+      map.set(cc.contact_id, list);
     });
-    setContactCompanyIds(contMap);
+    return map;
+  }, [contactCompaniesQuery.data]);
 
-    return accRes.data ?? [];
+  // Realtime: invalidate lookup queries when items change anywhere
+  useRealtimeSync({
+    tables: ["accounts", "categories", "contacts", "payment_methods"],
+    invalidateKeyPrefixes: ["form-"],
+    enabled: !!user && open,
+  });
+
+  const invalidateLookups = () => {
+    queryClient.invalidateQueries({
+      predicate: (q) => typeof q.queryKey[0] === "string" && (q.queryKey[0] as string).startsWith("form-"),
+    });
   };
 
+  // Default account when opening for new transaction
   useEffect(() => {
-    if (!user || !open) return;
-    (async () => {
-      const accs = await reloadLookups();
-      // Only set default account if NOT editing (to avoid overriding the populated value)
-      if (!transaction && accs && accs[0] && !accountId) setAccountId(accs[0].id);
-    })();
-  }, [user, open]);
+    if (!open || transaction) return;
+    if (!accountId && accounts[0]) setAccountId(accounts[0].id);
+  }, [open, transaction, accounts, accountId]);
 
   // Populate form when editing
   useEffect(() => {
@@ -283,6 +340,82 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     }
     return true;
   });
+
+  // --- Option builders with rich visuals matching each module ---
+  const accountOptions: SearchableSelectOption[] = accounts.map((acc) => ({
+    value: acc.id,
+    label: acc.name,
+    keywords: acc.account_type,
+    leading: (
+      <span
+        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+        style={{ backgroundColor: (acc.color || "#1B3A5C") + "22" }}
+      >
+        <Wallet className="h-3 w-3" style={{ color: acc.color || "#1B3A5C" }} />
+      </span>
+    ),
+  }));
+
+  const flatCategoryOptions: SearchableSelectOption[] = (function () {
+    const out: SearchableSelectOption[] = [];
+    const walk = (list: CategoryNode[]) => {
+      list.forEach((n) => {
+        out.push({
+          value: n.id,
+          label: n.name,
+          depth: n.depth,
+          leading: (
+            <span
+              className="h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ backgroundColor: n.color || "hsl(var(--muted-foreground))" }}
+            />
+          ),
+        });
+        if (n.children.length) walk(n.children);
+      });
+    };
+    walk(buildCategoryTree(filteredCategories));
+    return out;
+  })();
+
+  const CONTACT_BADGE_CLS: Record<string, string> = {
+    cliente: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    fornecedor: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+    ambos: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
+  };
+  const CONTACT_BADGE_LBL: Record<string, string> = {
+    cliente: "Cliente",
+    fornecedor: "Fornecedor",
+    ambos: "Ambos",
+  };
+
+  const contactOptions: SearchableSelectOption[] = filteredContacts.map((ct) => ({
+    value: ct.id,
+    label: ct.name,
+    keywords: `${ct.email ?? ""} ${ct.phone ?? ""} ${ct.document ?? ""}`,
+    leading: (
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+        {ct.name.slice(0, 2).toUpperCase()}
+      </span>
+    ),
+    trailing: (
+      <Badge
+        variant="secondary"
+        className={`shrink-0 border-0 text-[10px] h-4 px-1.5 ${CONTACT_BADGE_CLS[ct.contact_type] ?? ""}`}
+      >
+        {CONTACT_BADGE_LBL[ct.contact_type] ?? ct.contact_type}
+      </Badge>
+    ),
+  }));
+
+  const paymentMethodOptions: SearchableSelectOption[] = paymentMethods.map((pm) => ({
+    value: pm.id,
+    label: pm.name,
+    trailing: pm.visible_pf ? (
+      <Badge variant="outline" className="shrink-0 text-[10px] h-4 px-1.5">Pessoal</Badge>
+    ) : undefined,
+  }));
+
 
   const resetForm = () => {
     setType("despesa");
@@ -649,7 +782,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
               <SearchableSelect
                 value={accountId}
                 onValueChange={setAccountId}
-                options={accounts.map((acc) => ({ value: acc.id, label: acc.name }))}
+                options={accountOptions}
                 placeholder="Selecione a conta"
                 searchPlaceholder="Buscar conta..."
               />
@@ -674,7 +807,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                 <SearchableSelect
                   value={destinationAccountId}
                   onValueChange={setDestinationAccountId}
-                  options={accounts.filter((a) => a.id !== accountId).map((acc) => ({ value: acc.id, label: acc.name }))}
+                  options={accountOptions.filter((o) => o.value !== accountId)}
                   placeholder="Selecione o destino"
                   searchPlaceholder="Buscar conta..."
                 />
@@ -700,7 +833,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                 <SearchableSelect
                   value={categoryId}
                   onValueChange={setCategoryId}
-                  options={flattenCategoryTree(categoryTree)}
+                  options={flatCategoryOptions}
                   placeholder="Selecione a categoria"
                   searchPlaceholder="Buscar categoria..."
                 />
@@ -726,7 +859,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                 <SearchableSelect
                   value={contactId}
                   onValueChange={setContactId}
-                  options={filteredContacts.map((ct) => ({ value: ct.id, label: ct.name }))}
+                  options={contactOptions}
                   placeholder="Selecione o contato"
                   searchPlaceholder="Buscar cliente/fornecedor..."
                 />
@@ -751,7 +884,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
               <SearchableSelect
                 value={paymentMethodId}
                 onValueChange={setPaymentMethodId}
-                options={paymentMethods.map((pm) => ({ value: pm.id, label: pm.name }))}
+                options={paymentMethodOptions}
                 placeholder="Selecione"
                 searchPlaceholder="Buscar forma de pagamento..."
               />
@@ -896,8 +1029,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       <AccountFormDialog
         open={accountDialogOpen}
         onOpenChange={setAccountDialogOpen}
-        onSaved={async (newId) => {
-          await reloadLookups();
+        onSaved={(newId) => {
+          invalidateLookups();
           if (newId) {
             if (accountTarget === "destination") setDestinationAccountId(newId);
             else setAccountId(newId);
@@ -909,8 +1042,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
         open={categoryDialogOpen}
         onOpenChange={setCategoryDialogOpen}
         defaultType={type === "receita" ? "receita" : "despesa"}
-        onSaved={async (newId) => {
-          await reloadLookups();
+        onSaved={(newId) => {
+          invalidateLookups();
           if (newId) setCategoryId(newId);
         }}
       />
@@ -918,8 +1051,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       <ContactFormDialog
         open={contactDialogOpen}
         onOpenChange={setContactDialogOpen}
-        onSaved={async (newId) => {
-          await reloadLookups();
+        onSaved={(newId) => {
+          invalidateLookups();
           if (newId) setContactId(newId);
         }}
       />
@@ -927,8 +1060,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       <PaymentMethodFormDialog
         open={paymentMethodDialogOpen}
         onOpenChange={setPaymentMethodDialogOpen}
-        onSaved={async (newId) => {
-          await reloadLookups();
+        onSaved={(newId) => {
+          invalidateLookups();
           if (newId) setPaymentMethodId(newId);
         }}
       />
