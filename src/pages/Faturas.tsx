@@ -12,6 +12,7 @@ import {
   Clock, CheckCircle2, AlertTriangle, QrCode,
 } from "lucide-react";
 import { formatCents, INVOICE_STATUS_LABELS, INVOICE_STATUS_VARIANT } from "@/lib/billing";
+import { SandboxTestCard } from "@/components/billing/SandboxTestCard";
 
 type StatusFilter = "all" | "pending" | "paid" | "overdue";
 
@@ -126,6 +127,10 @@ export default function Faturas() {
               Ver planos
             </Button>
           </div>
+        </div>
+
+        <div className="mb-6">
+          <SandboxTestCard />
         </div>
 
         {/* Summary cards */}
