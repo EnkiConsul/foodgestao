@@ -79,6 +79,8 @@ export default function Onboarding() {
   const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { data: currentSub } = useCurrentSubscription();
+  useBillingRealtime();
 
   const [data, setData] = useState<OnboardingData>(DEFAULT_DATA);
   const hydratedRef = useRef(false);
