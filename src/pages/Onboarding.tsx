@@ -16,6 +16,9 @@ import { StepProfileType } from "@/components/onboarding/StepProfileType";
 import { StepProfileData } from "@/components/onboarding/StepProfileData";
 import { StepAccount } from "@/components/onboarding/StepAccount";
 import { StepCategories } from "@/components/onboarding/StepCategories";
+import { StepPlan } from "@/components/onboarding/StepPlan";
+import { useCurrentSubscription } from "@/hooks/useCurrentSubscription";
+import { useBillingRealtime } from "@/hooks/useBillingRealtime";
 import { CheckCircle2, Circle, Rocket, SkipForward, TreePine } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isValidCnpj } from "@/lib/cnpj";
@@ -33,12 +36,14 @@ export type OnboardingData = {
   accountType: string;
   initialBalance: string;
   selectedCategories: string[];
+  selectedPlanSlug: string;
 };
 
-type StepKey = "profile" | "data" | "account" | "categories";
+type StepKey = "profile" | "plan" | "data" | "account" | "categories";
 
 const STEPS: { key: StepKey; title: string; description: string }[] = [
   { key: "profile", title: "Tipo de perfil", description: "Defina se você é PF, MEI, Microempresa ou Híbrido." },
+  { key: "plan", title: "Escolha seu plano", description: "Selecione o plano ideal para você. Comece grátis e evolua quando quiser." },
   { key: "data", title: "Seus dados", description: "Nome, documento e telefone (e dados da empresa, se PJ)." },
   { key: "account", title: "Primeira conta financeira", description: "Cadastre uma conta com saldo inicial." },
   { key: "categories", title: "Categorias iniciais", description: "Escolha categorias para começar a lançar." },
@@ -55,10 +60,12 @@ const DEFAULT_DATA: OnboardingData = {
   accountType: "corrente",
   initialBalance: "0",
   selectedCategories: [],
+  selectedPlanSlug: "free",
 };
 
 const DEFAULT_COMPLETED: Record<StepKey, boolean> = {
   profile: false,
+  plan: false,
   data: false,
   account: false,
   categories: false,
@@ -72,6 +79,8 @@ export default function Onboarding() {
   const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { data: currentSub } = useCurrentSubscription();
+  useBillingRealtime();
 
   const [data, setData] = useState<OnboardingData>(DEFAULT_DATA);
   const hydratedRef = useRef(false);
@@ -131,6 +140,24 @@ export default function Onboarding() {
     switch (key) {
       case "profile":
         return data.profileType ? null : "Selecione um tipo de perfil.";
+      case "plan": {
+        if (!data.selectedPlanSlug) return "Selecione um plano para continuar.";
+        const selected = (currentSub?.plan as any) ?? null;
+        const selectedIsPaid = selected ? (selected.price_cents ?? 0) > 0 : false;
+        // If user picked a paid plan that isn't yet active, require checkout
+        if (data.selectedPlanSlug !== "free") {
+          const isActiveOnSelected =
+            currentSub?.plan?.slug === data.selectedPlanSlug &&
+            ["trialing", "active"].includes(currentSub?.status ?? "");
+          if (!isActiveOnSelected && !selectedIsPaid) {
+            return "Conclua o pagamento do plano selecionado para continuar.";
+          }
+          if (!isActiveOnSelected) {
+            return "Conclua o pagamento do plano selecionado para continuar.";
+          }
+        }
+        return null;
+      }
       case "data":
         if (isPJ) {
           if (!data.companyName.trim()) return "Informe o nome da empresa.";
@@ -159,7 +186,7 @@ export default function Onboarding() {
       return;
     }
     setCompleted((c) => ({ ...c, [key]: true }));
-    const order: StepKey[] = ["profile", "data", "account", "categories"];
+    const order: StepKey[] = STEPS.map((s) => s.key);
     const next = order.find((k) => !{ ...completed, [key]: true }[k]);
     setOpenItem(next);
     toast.success("Etapa concluída!");
@@ -243,6 +270,8 @@ export default function Onboarding() {
     switch (key) {
       case "profile":
         return <StepProfileType data={data} update={update} />;
+      case "plan":
+        return <StepPlan data={data} update={update} />;
       case "data":
         return <StepProfileData data={data} update={update} />;
       case "account":
