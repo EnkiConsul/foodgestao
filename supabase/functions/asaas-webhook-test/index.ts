@@ -135,6 +135,7 @@ Deno.serve(async (req) => {
       status: res.status,
       eventId,
       eventType,
+      createdInvoiceId,
       sentPayload: payload,
       webhookResponse: parsed,
     }), {
