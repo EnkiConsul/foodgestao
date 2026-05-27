@@ -186,7 +186,7 @@ export default function Onboarding() {
       return;
     }
     setCompleted((c) => ({ ...c, [key]: true }));
-    const order: StepKey[] = ["profile", "data", "account", "categories"];
+    const order: StepKey[] = STEPS.map((s) => s.key);
     const next = order.find((k) => !{ ...completed, [key]: true }[k]);
     setOpenItem(next);
     toast.success("Etapa concluída!");
