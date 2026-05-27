@@ -43,9 +43,46 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const eventType: string = body.eventType ?? "PAYMENT_CONFIRMED";
-    const paymentId: string | null = body.paymentId ?? null;
+    let paymentId: string | null = body.paymentId ?? null;
     const subscriptionId: string | null = body.subscriptionId ?? null;
     const duplicateOf: string | null = body.duplicateOf ?? null;
+    const createSampleInvoice: boolean = body.createSampleInvoice === true;
+    const targetUserId: string = body.targetUserId ?? userData.user.id;
+
+    let createdInvoiceId: string | null = null;
+    let paymentValue = 9990;
+    let resolvedSubscriptionId: string | null = subscriptionId;
+
+    if (createSampleInvoice) {
+      const { data: sub } = await admin
+        .from("subscriptions")
+        .select("id, plan:plans(price_cents)")
+        .eq("user_id", targetUserId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      resolvedSubscriptionId = sub?.id ?? null;
+      const planPrice = (sub as any)?.plan?.price_cents;
+      if (typeof planPrice === "number" && planPrice > 0) paymentValue = planPrice;
+      paymentId = paymentId ?? `pay_sample_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: inv, error: invErr } = await admin.from("invoices").insert({
+        user_id: targetUserId,
+        subscription_id: resolvedSubscriptionId,
+        amount_cents: paymentValue,
+        due_date: today,
+        status: "open",
+        payment_method: "pix",
+        external_invoice_id: paymentId,
+        notes: "Fatura de teste (Modo Sandbox)",
+      }).select("id").single();
+      if (invErr) {
+        return new Response(JSON.stringify({ error: `Falha ao criar fatura de teste: ${invErr.message}` }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      createdInvoiceId = inv.id;
+    }
 
     const eventId = duplicateOf ?? `evt_test_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -59,11 +96,11 @@ Deno.serve(async (req) => {
       payload.payment = {
         id: paymentId ?? `pay_test_${Date.now()}`,
         status: eventType === "PAYMENT_CONFIRMED" || eventType === "PAYMENT_RECEIVED" ? "RECEIVED" : "PENDING",
-        value: 9990,
+        value: paymentValue,
         billingType: "PIX",
         dueDate: new Date().toISOString().slice(0, 10),
         customer: "cus_test",
-        subscription: subscriptionId,
+        subscription: resolvedSubscriptionId,
       };
     }
     if (eventType.startsWith("SUBSCRIPTION_")) {
