@@ -782,7 +782,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
               <SearchableSelect
                 value={accountId}
                 onValueChange={setAccountId}
-                options={accounts.map((acc) => ({ value: acc.id, label: acc.name }))}
+                options={accountOptions}
                 placeholder="Selecione a conta"
                 searchPlaceholder="Buscar conta..."
               />
