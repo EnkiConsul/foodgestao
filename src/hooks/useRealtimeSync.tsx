@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 
-type RealtimeTable = "transactions" | "accounts" | "categories";
+type RealtimeTable = "transactions" | "accounts" | "categories" | "contacts" | "payment_methods" | "category_companies" | "contact_companies";
 
 interface Options {
   /** Tabelas a monitorar */
