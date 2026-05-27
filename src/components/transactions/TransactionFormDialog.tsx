@@ -631,12 +631,13 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md p-0 gap-0 flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+        <DialogHeader className="p-4 sm:p-6 pb-3 border-b shrink-0">
           <DialogTitle>{isEditing ? "Editar Lançamento" : "Novo Lançamento"}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4">
           {/* Type tabs */}
           <Tabs value={type} onValueChange={(v) => setType(v as TransactionType)}>
             <TabsList className="w-full grid grid-cols-3">
