@@ -51,13 +51,30 @@ Deno.serve(async (req) => {
 
         if (inv) {
           if (["PAYMENT_CONFIRMED", "PAYMENT_RECEIVED", "PAYMENT_RECEIVED_IN_CASH"].includes(eventType)) {
+            const nowIso = new Date().toISOString();
             await admin.from("invoices").update({
               status: "paid",
-              paid_at: new Date().toISOString(),
+              paid_at: nowIso,
             }).eq("id", inv.id);
             if (inv.subscription_id) {
-              await admin.from("subscriptions").update({ status: "active" })
-                .eq("id", inv.subscription_id);
+              // Fetch subscription + plan to compute new period end
+              const { data: sub } = await admin
+                .from("subscriptions")
+                .select("id, plan:plans(billing_period)")
+                .eq("id", inv.subscription_id)
+                .maybeSingle();
+              const period = (sub?.plan as any)?.billing_period ?? "monthly";
+              const nextEnd = new Date();
+              if (period === "yearly") nextEnd.setFullYear(nextEnd.getFullYear() + 1);
+              else if (period === "quarterly") nextEnd.setMonth(nextEnd.getMonth() + 3);
+              else nextEnd.setMonth(nextEnd.getMonth() + 1);
+              await admin.from("subscriptions").update({
+                status: "active",
+                current_period_start: nowIso,
+                current_period_end: nextEnd.toISOString(),
+                canceled_at: null,
+                cancel_at_period_end: false,
+              }).eq("id", inv.subscription_id);
             }
           } else if (eventType === "PAYMENT_OVERDUE") {
             await admin.from("invoices").update({ status: "overdue" }).eq("id", inv.id);
