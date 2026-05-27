@@ -140,6 +140,24 @@ export default function Onboarding() {
     switch (key) {
       case "profile":
         return data.profileType ? null : "Selecione um tipo de perfil.";
+      case "plan": {
+        if (!data.selectedPlanSlug) return "Selecione um plano para continuar.";
+        const selected = (currentSub?.plan as any) ?? null;
+        const selectedIsPaid = selected ? (selected.price_cents ?? 0) > 0 : false;
+        // If user picked a paid plan that isn't yet active, require checkout
+        if (data.selectedPlanSlug !== "free") {
+          const isActiveOnSelected =
+            currentSub?.plan?.slug === data.selectedPlanSlug &&
+            ["trialing", "active"].includes(currentSub?.status ?? "");
+          if (!isActiveOnSelected && !selectedIsPaid) {
+            return "Conclua o pagamento do plano selecionado para continuar.";
+          }
+          if (!isActiveOnSelected) {
+            return "Conclua o pagamento do plano selecionado para continuar.";
+          }
+        }
+        return null;
+      }
       case "data":
         if (isPJ) {
           if (!data.companyName.trim()) return "Informe o nome da empresa.";
