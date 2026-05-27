@@ -3,9 +3,11 @@ import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
 import { BottomNav } from "./BottomNav";
 import { SubscriptionBanner } from "@/components/billing/SubscriptionBanner";
+import { useBillingRealtime } from "@/hooks/useBillingRealtime";
 import { Outlet } from "react-router-dom";
 
 export function AppLayout() {
+  useBillingRealtime();
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
