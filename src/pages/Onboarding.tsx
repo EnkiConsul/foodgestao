@@ -270,9 +270,16 @@ export default function Onboarding() {
     switch (key) {
       case "profile":
         return <StepProfileType data={data} update={update} />;
+      case "plan":
+        return <StepPlan data={data} update={update} />;
       case "data":
         return <StepProfileData data={data} update={update} />;
       case "account":
+        return <StepAccount data={data} update={update} />;
+      case "categories":
+        return <StepCategories data={data} update={update} />;
+    }
+  };
         return <StepAccount data={data} update={update} />;
       case "categories":
         return <StepCategories data={data} update={update} />;
