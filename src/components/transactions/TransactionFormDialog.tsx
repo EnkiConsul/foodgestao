@@ -341,6 +341,82 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     return true;
   });
 
+  // --- Option builders with rich visuals matching each module ---
+  const accountOptions: SearchableSelectOption[] = accounts.map((acc) => ({
+    value: acc.id,
+    label: acc.name,
+    keywords: acc.account_type,
+    leading: (
+      <span
+        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+        style={{ backgroundColor: (acc.color || "#1B3A5C") + "22" }}
+      >
+        <Wallet className="h-3 w-3" style={{ color: acc.color || "#1B3A5C" }} />
+      </span>
+    ),
+  }));
+
+  const flatCategoryOptions: SearchableSelectOption[] = (function () {
+    const out: SearchableSelectOption[] = [];
+    const walk = (list: CategoryNode[]) => {
+      list.forEach((n) => {
+        out.push({
+          value: n.id,
+          label: n.name,
+          depth: n.depth,
+          leading: (
+            <span
+              className="h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ backgroundColor: n.color || "hsl(var(--muted-foreground))" }}
+            />
+          ),
+        });
+        if (n.children.length) walk(n.children);
+      });
+    };
+    walk(buildCategoryTree(filteredCategories));
+    return out;
+  })();
+
+  const CONTACT_BADGE_CLS: Record<string, string> = {
+    cliente: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    fornecedor: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+    ambos: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
+  };
+  const CONTACT_BADGE_LBL: Record<string, string> = {
+    cliente: "Cliente",
+    fornecedor: "Fornecedor",
+    ambos: "Ambos",
+  };
+
+  const contactOptions: SearchableSelectOption[] = filteredContacts.map((ct) => ({
+    value: ct.id,
+    label: ct.name,
+    keywords: `${ct.email ?? ""} ${ct.phone ?? ""} ${ct.document ?? ""}`,
+    leading: (
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+        {ct.name.slice(0, 2).toUpperCase()}
+      </span>
+    ),
+    trailing: (
+      <Badge
+        variant="secondary"
+        className={`shrink-0 border-0 text-[10px] h-4 px-1.5 ${CONTACT_BADGE_CLS[ct.contact_type] ?? ""}`}
+      >
+        {CONTACT_BADGE_LBL[ct.contact_type] ?? ct.contact_type}
+      </Badge>
+    ),
+  }));
+
+  const paymentMethodOptions: SearchableSelectOption[] = paymentMethods.map((pm) => ({
+    value: pm.id,
+    label: pm.name,
+    trailing: pm.visible_pf ? (
+      <Badge variant="outline" className="shrink-0 text-[10px] h-4 px-1.5">Pessoal</Badge>
+    ) : undefined,
+  }));
+
+
   const resetForm = () => {
     setType("despesa");
     setDescription("");
