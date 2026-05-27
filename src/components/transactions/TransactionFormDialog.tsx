@@ -151,6 +151,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const { isRequired } = useTransactionFieldSettings();
+  const queryClient = useQueryClient();
   const [type, setType] = useState<TransactionType>("despesa");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -170,14 +171,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
   const [existingAttachments, setExistingAttachments] = useState<{ id: string; file_name: string; file_url: string }[]>([]);
   const [removedAttachmentIds, setRemovedAttachmentIds] = useState<string[]>([]);
-
-  const [accounts, setAccounts] = useState<Tables<"accounts">[]>([]);
-  const [categories, setCategories] = useState<Tables<"categories">[]>([]);
-  const [contacts, setContacts] = useState<Tables<"contacts">[]>([]);
-  const [contactCompanyIds, setContactCompanyIds] = useState<Map<string, string[]>>(new Map());
-  const [paymentMethods, setPaymentMethods] = useState<Tables<"payment_methods">[]>([]);
   const [paymentMethodId, setPaymentMethodId] = useState("");
-  const [categoryCompanyIds, setCategoryCompanyIds] = useState<Map<string, string[]>>(new Map());
 
   const [accountDialogOpen, setAccountDialogOpen] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
@@ -185,48 +179,108 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState(false);
   const [accountTarget, setAccountTarget] = useState<"origin" | "destination">("origin");
 
-  const reloadLookups = async () => {
-    if (!user) return;
-    const [accRes, catRes, pmRes, ccRes, contactRes, contCompRes] = await Promise.all([
-      supabase.from("accounts").select("*").eq("user_id", user.id).eq("is_active", true),
-      supabase.from("categories").select("*").eq("user_id", user.id).order("transaction_type").order("sort_order").order("name"),
-      supabase.from("payment_methods").select("*").eq("user_id", user.id).eq("is_active", true),
-      supabase.from("category_companies").select("category_id, company_id"),
-      supabase.from("contacts").select("*").eq("user_id", user.id).eq("is_active", true).order("name"),
-      supabase.from("contact_companies").select("contact_id, company_id"),
-    ]);
-    setAccounts(accRes.data ?? []);
-    setCategories(catRes.data ?? []);
-    setPaymentMethods(pmRes.data ?? []);
-    setContacts(contactRes.data ?? []);
+  // --- Lookup queries (React Query so realtime invalidation works) ---
+  const accountsQuery = useQuery({
+    queryKey: ["form-accounts", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("accounts").select("*")
+        .eq("user_id", user!.id).eq("is_active", true).order("name");
+      return data ?? [];
+    },
+  });
+  const categoriesQuery = useQuery({
+    queryKey: ["form-categories", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("categories").select("*")
+        .eq("user_id", user!.id)
+        .order("transaction_type").order("sort_order").order("name");
+      return data ?? [];
+    },
+  });
+  const contactsQuery = useQuery({
+    queryKey: ["form-contacts", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("contacts").select("*")
+        .eq("user_id", user!.id).eq("is_active", true).order("name");
+      return data ?? [];
+    },
+  });
+  const paymentMethodsQuery = useQuery({
+    queryKey: ["form-payment-methods", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("payment_methods").select("*")
+        .eq("user_id", user!.id).eq("is_active", true).order("name");
+      return data ?? [];
+    },
+  });
+  const categoryCompaniesQuery = useQuery({
+    queryKey: ["form-category-companies", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase.from("category_companies").select("category_id, company_id");
+      return data ?? [];
+    },
+  });
+  const contactCompaniesQuery = useQuery({
+    queryKey: ["form-contact-companies", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase.from("contact_companies").select("contact_id, company_id");
+      return data ?? [];
+    },
+  });
 
+  const accounts = accountsQuery.data ?? [];
+  const categories = categoriesQuery.data ?? [];
+  const contacts = contactsQuery.data ?? [];
+  const paymentMethods = paymentMethodsQuery.data ?? [];
+
+  const categoryCompanyIds = useMemo(() => {
     const map = new Map<string, string[]>();
-    (ccRes.data ?? []).forEach((cc) => {
+    (categoryCompaniesQuery.data ?? []).forEach((cc) => {
       const list = map.get(cc.category_id) || [];
       list.push(cc.company_id);
       map.set(cc.category_id, list);
     });
-    setCategoryCompanyIds(map);
+    return map;
+  }, [categoryCompaniesQuery.data]);
 
-    const contMap = new Map<string, string[]>();
-    (contCompRes.data ?? []).forEach((cc) => {
-      const list = contMap.get(cc.contact_id) || [];
+  const contactCompanyIds = useMemo(() => {
+    const map = new Map<string, string[]>();
+    (contactCompaniesQuery.data ?? []).forEach((cc) => {
+      const list = map.get(cc.contact_id) || [];
       list.push(cc.company_id);
-      contMap.set(cc.contact_id, list);
+      map.set(cc.contact_id, list);
     });
-    setContactCompanyIds(contMap);
+    return map;
+  }, [contactCompaniesQuery.data]);
 
-    return accRes.data ?? [];
+  // Realtime: invalidate lookup queries when items change anywhere
+  useRealtimeSync({
+    tables: ["accounts", "categories", "contacts", "payment_methods"],
+    invalidateKeyPrefixes: ["form-"],
+    enabled: !!user && open,
+  });
+
+  const invalidateLookups = () => {
+    queryClient.invalidateQueries({
+      predicate: (q) => typeof q.queryKey[0] === "string" && (q.queryKey[0] as string).startsWith("form-"),
+    });
   };
 
+  // Default account when opening for new transaction
   useEffect(() => {
-    if (!user || !open) return;
-    (async () => {
-      const accs = await reloadLookups();
-      // Only set default account if NOT editing (to avoid overriding the populated value)
-      if (!transaction && accs && accs[0] && !accountId) setAccountId(accs[0].id);
-    })();
-  }, [user, open]);
+    if (!open || transaction) return;
+    if (!accountId && accounts[0]) setAccountId(accounts[0].id);
+  }, [open, transaction, accounts, accountId]);
 
   // Populate form when editing
   useEffect(() => {
