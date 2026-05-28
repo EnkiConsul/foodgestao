@@ -910,7 +910,8 @@ export default function Lancamentos() {
                 </TableHeader>
                 <TableBody>
                   <TableRow className="bg-muted/30 font-semibold">
-                    <TableCell colSpan={totalColumns - (visibleColumns.saldo ? 2 : 1)} className="text-xs py-2">
+                    <TableCell className="py-2 px-2" />
+                    <TableCell colSpan={totalColumns - (visibleColumns.saldo ? 3 : 2)} className="text-xs py-2">
                       SALDO ANTERIOR
                     </TableCell>
                     {visibleColumns.saldo && (
@@ -934,9 +935,17 @@ export default function Lancamentos() {
                       const isTransf = r.transactionType === "transferencia";
                       const hasDue = r.hasDueDate;
                       const paidPercent = hasDue && r.amount > 0 ? Math.min((r.amountPaid / r.amount) * 100, 100) : 0;
+                      const isSelected = selectedIds.has(r.id);
 
                       return (
-                        <TableRow key={r.id} className={cn("group", hasDue && r.billStatus !== "pago" && "bg-accent/30")}>
+                        <TableRow key={r.id} className={cn("group", hasDue && r.billStatus !== "pago" && "bg-accent/30", isSelected && "bg-primary/5")}>
+                          <TableCell className="py-2 px-2">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleSelected(r.id)}
+                              aria-label="Selecionar lançamento"
+                            />
+                          </TableCell>
                           {/* Data */}
                           {visibleColumns.data !== false && (
                           <TableCell className="text-xs py-2">
