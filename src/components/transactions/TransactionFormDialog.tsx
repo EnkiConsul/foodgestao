@@ -712,7 +712,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           </div>
 
           {/* Date */}
-          <div className="space-y-2">
+          <div className="space-y-2" data-field="transaction_date">
             <Label>Data</Label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
