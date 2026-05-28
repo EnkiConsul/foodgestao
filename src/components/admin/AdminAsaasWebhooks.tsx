@@ -246,7 +246,7 @@ export function AdminAsaasWebhooks() {
           </DialogHeader>
           {selected && (
             <div className="space-y-4 text-sm">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <p className="text-xs text-muted-foreground">Tipo</p>
                   <code>{selected.event_type}</code>
