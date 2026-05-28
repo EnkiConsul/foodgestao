@@ -121,7 +121,7 @@ export function PlanEditorDialog({
         <div className="space-y-3 pt-4 border-t">
           <h3 className="font-semibold text-sm">Limites e recursos</h3>
           <p className="text-xs text-muted-foreground">Use -1 para ilimitado.</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">Máx. empresas</Label>
               <Input type="number" value={form.features.max_companies}
