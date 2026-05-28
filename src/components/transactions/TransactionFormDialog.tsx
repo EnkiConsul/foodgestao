@@ -727,7 +727,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
           {/* Due date - only for receita/despesa */}
           {type !== "transferencia" && (
-            <div className="space-y-2">
+            <div className="space-y-2" data-field="due_date">
               <Label>Data de vencimento{fieldSuffix("due_date")}</Label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
