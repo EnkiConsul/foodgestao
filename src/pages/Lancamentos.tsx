@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from "@/components/ui/table";
@@ -270,43 +271,72 @@ export default function Lancamentos() {
   });
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [deleteWithChildren, setDeleteWithChildren] = useState(false);
+  const [deleteScope, setDeleteScope] = useState<"single" | "forward" | "all">("single");
   const [cancelStatusId, setCancelStatusId] = useState<string | null>(null);
 
   const deletingTx = deleteId ? transactions.find((t) => t.id === deleteId) : null;
-  const isDeleteTargetRecurringParent = deletingTx?.is_recurring === true;
+  const isPartOfRecurringSeries = !!(deletingTx && (deletingTx.is_recurring || deletingTx.parent_transaction_id));
 
   const confirmDelete = async () => {
-    if (!deleteId) return;
-    const tx = transactions.find((t) => t.id === deleteId);
+    if (!deleteId || !deletingTx) return;
+    const tx = deletingTx;
+    const seriesParentId = tx.parent_transaction_id ?? tx.id;
+    const scope = isPartOfRecurringSeries ? deleteScope : "single";
 
-    // If deleting children too, delete them first
-    if (deleteWithChildren && isDeleteTargetRecurringParent) {
-      const { error: childErr } = await supabase
-        .from("transactions")
-        .delete()
-        .eq("parent_transaction_id", deleteId)
-        .neq("status", "confirmado");
-      if (childErr) {
-        toast.error("Erro ao excluir recorrências", { description: childErr.message });
-        return;
+    try {
+      if (scope === "all") {
+        // Delete all children + the parent
+        const { error: cErr } = await supabase
+          .from("transactions")
+          .delete()
+          .eq("parent_transaction_id", seriesParentId);
+        if (cErr) throw cErr;
+        const { error: pErr } = await supabase
+          .from("transactions")
+          .delete()
+          .eq("id", seriesParentId);
+        if (pErr) throw pErr;
+      } else if (scope === "forward") {
+        // Delete future children of the series with date >= clicked tx date
+        const { error: cErr } = await supabase
+          .from("transactions")
+          .delete()
+          .eq("parent_transaction_id", seriesParentId)
+          .gte("transaction_date", tx.transaction_date);
+        if (cErr) throw cErr;
+        // Delete the clicked transaction itself (could be the parent or a child)
+        const { error: sErr } = await supabase
+          .from("transactions")
+          .delete()
+          .eq("id", tx.id);
+        if (sErr) throw sErr;
+      } else {
+        // single
+        const { error } = await supabase.from("transactions").delete().eq("id", deleteId);
+        if (error) throw error;
       }
-    }
 
-    const { error } = await supabase.from("transactions").delete().eq("id", deleteId);
-    if (error) toast.error("Erro ao excluir");
-    else {
       await supabase.rpc("insert_audit_log", {
         _action: "transaction_deleted",
         _entity_type: "transaction",
         _entity_id: deleteId,
-        _details: { target_name: tx?.description || "—", deleted_children: deleteWithChildren },
+        _details: { target_name: tx?.description || "—", delete_scope: scope },
       });
-      toast.success(deleteWithChildren ? "Lançamento e recorrências excluídos" : "Lançamento excluído");
+
+      const successMsg =
+        scope === "all"
+          ? "Série de lançamentos excluída"
+          : scope === "forward"
+            ? "Lançamento e ocorrências futuras excluídos"
+            : "Lançamento excluído";
+      toast.success(successMsg);
       refreshAll();
+    } catch (err: any) {
+      toast.error("Erro ao excluir", { description: err?.message });
     }
+
     setDeleteId(null);
-    setDeleteWithChildren(false);
+    setDeleteScope("single");
   };
 
   const updateTransactionStatus = async (txId: string, newStatus: string) => {
@@ -1102,34 +1132,41 @@ export default function Lancamentos() {
         onPaid={refreshAll}
       />
 
-      <AlertDialog open={!!deleteId} onOpenChange={(o) => { if (!o) { setDeleteId(null); setDeleteWithChildren(false); } }}>
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => { if (!o) { setDeleteId(null); setDeleteScope("single"); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir lançamento?</AlertDialogTitle>
             <AlertDialogDescription>
-              Essa ação não pode ser desfeita. O registro será removido permanentemente.
+              {isPartOfRecurringSeries
+                ? "Este lançamento faz parte de uma série recorrente. Escolha o que deseja excluir:"
+                : "Essa ação não pode ser desfeita. O registro será removido permanentemente."}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {isDeleteTargetRecurringParent && (
-            <div className="flex items-center gap-2 px-1">
-              <Checkbox
-                id="delete-children"
-                checked={deleteWithChildren}
-                onCheckedChange={(v) => setDeleteWithChildren(!!v)}
-              />
-              <label htmlFor="delete-children" className="text-sm cursor-pointer">
-                Excluir também todas as ocorrências futuras pendentes
-              </label>
-            </div>
+          {isPartOfRecurringSeries && (
+            <RadioGroup value={deleteScope} onValueChange={(v) => setDeleteScope(v as any)} className="gap-2 px-1">
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="single" id="scope-single" />
+                <label htmlFor="scope-single" className="text-sm cursor-pointer">Somente este lançamento</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="forward" id="scope-forward" />
+                <label htmlFor="scope-forward" className="text-sm cursor-pointer">Este e os próximos</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="all" id="scope-all" />
+                <label htmlFor="scope-all" className="text-sm cursor-pointer">Todos os lançamentos da série</label>
+              </div>
+            </RadioGroup>
           )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Excluir{deleteWithChildren ? " tudo" : ""}
+              Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
 
       <AlertDialog open={!!cancelStatusId} onOpenChange={(o) => { if (!o) setCancelStatusId(null); }}>
         <AlertDialogContent>

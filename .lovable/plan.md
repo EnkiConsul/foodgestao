@@ -1,25 +1,38 @@
-## Causa
+## Objetivo
 
-No `TransactionFormDialog.tsx` (linha ~622-638), ao gerar as parcelas futuras de uma recorrência, o código faz `{ ...payload, ... }` — ou seja, copia **todo** o payload do lançamento original, incluindo `status: "confirmado"`, `payment_date` e `bill_status: "pago"`.
+Quando o usuário clicar em excluir um lançamento que faz parte de uma série recorrente, oferecer 3 opções (estilo Google Calendar) em vez do checkbox atual:
 
-Resultado: se você criou o lançamento atual como "Pago" (status confirmado), todas as ocorrências futuras nascem também como pagas, com a mesma `payment_date` da original — o que está errado, porque elas ainda nem aconteceram.
+1. **Somente este lançamento** — exclui apenas o registro clicado
+2. **Este e os futuros** — exclui o clicado + todos com `transaction_date >= deste.transaction_date` da mesma série
+3. **Todos os lançamentos da série** — exclui o pai + todos os filhos
 
-## Correção proposta
+## Identificação da série
 
-Ajustar a geração de `futurePayloads` para que as ocorrências futuras sempre nasçam como **pendentes / a vencer**, independentemente do status do lançamento-pai:
+Um lançamento pertence a uma série se:
+- É pai recorrente (`is_recurring = true`), ou
+- É filho (`parent_transaction_id IS NOT NULL`)
 
-- `status` → `"pendente"`
-- `payment_date` → `null`
-- `bill_status` → `"em_dia"` se houver `due_date`, senão `null`
-- `paid_amount` / `amount_paid` (se aplicável) → `null` / `0`
+O `parentId` da série é `tx.parent_transaction_id ?? tx.id`.
 
-A ocorrência original (o "pai") mantém o status que o usuário escolheu. Apenas as futuras passam a nascer como pendentes.
+Para lançamentos avulsos (sem recorrência), manter o diálogo simples atual ("Excluir lançamento?" sem opções).
 
-## Arquivos afetados
+## Mudanças
 
-- `src/components/transactions/TransactionFormDialog.tsx` — bloco de geração de `futurePayloads` (linhas ~619-639).
+### `src/pages/Lancamentos.tsx`
+
+1. Substituir o state `deleteWithChildren: boolean` por `deleteScope: "single" | "forward" | "all"` (default `"single"`).
+2. Calcular `isPartOfRecurringSeries` = `tx.is_recurring || !!tx.parent_transaction_id`.
+3. Refazer `confirmDelete`:
+   - Obter `seriesParentId = tx.parent_transaction_id ?? tx.id`.
+   - **single**: delete por `id`.
+   - **forward**: delete onde `(id = seriesParentId AND seriesParentId = tx.id) OR parent_transaction_id = seriesParentId`, filtrado por `transaction_date >= tx.transaction_date`. Implementação prática: duas queries — uma para o pai (se aplicável) e uma `.delete().eq("parent_transaction_id", seriesParentId).gte("transaction_date", tx.transaction_date)`, mais delete do próprio `tx.id` se for filho.
+   - **all**: delete pai (`id = seriesParentId`) e todos os filhos (`parent_transaction_id = seriesParentId`).
+4. Atualizar o `AlertDialog` para mostrar 3 RadioGroup options quando `isPartOfRecurringSeries`, ou manter o diálogo simples para avulsos.
+5. Mensagens de toast adaptadas a cada escopo.
+6. Atualizar `audit_log` details com `delete_scope`.
 
 ## Fora de escopo
 
-- Não alterar lançamentos recorrentes já criados no banco (correção é apenas para novos cadastros).
-- Não mudar comportamento de edição de transações existentes.
+- Não alterar a lógica de criação de recorrências.
+- Não tocar em outros pontos de exclusão (transferências em lote, super admin reset).
+- Não remover o filtro de "não excluir confirmados" — agora todas as opções excluem qualquer status, pois o usuário escolheu explicitamente o escopo.
