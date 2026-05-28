@@ -1022,7 +1022,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           </div>
           </div>
 
-          <div className="p-4 sm:p-6 pt-3 border-t shrink-0">
+          <div className="px-4 sm:px-6 pt-3 border-t shrink-0 [padding-bottom:max(1rem,env(safe-area-inset-bottom))] sm:[padding-bottom:1.5rem]">
             <Button type="submit" className="w-full" disabled={saving}>
               {saving ? "Salvando..." : isEditing ? "Atualizar Lançamento" : "Salvar Lançamento"}
             </Button>
