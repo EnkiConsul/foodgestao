@@ -382,23 +382,28 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
   const flatCategoryOptions: SearchableSelectOption[] = (function () {
     const out: SearchableSelectOption[] = [];
-    const walk = (list: CategoryNode[]) => {
-      list.forEach((n) => {
+    const walk = (list: CategoryNode[], parentIndex: string) => {
+      list.forEach((n, i) => {
+        const idx = parentIndex ? `${parentIndex}.${i + 1}` : `${i + 1}`;
         out.push({
           value: n.id,
           label: n.name,
           depth: n.depth,
+          keywords: idx,
           leading: (
-            <span
-              className="h-2.5 w-2.5 shrink-0 rounded-full"
-              style={{ backgroundColor: n.color || "hsl(var(--muted-foreground))" }}
-            />
+            <span className="flex items-center gap-1.5 shrink-0">
+              <span className="font-mono text-[11px] text-muted-foreground">{idx}.</span>
+              <span
+                className="h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: n.color || "hsl(var(--muted-foreground))" }}
+              />
+            </span>
           ),
         });
-        if (n.children.length) walk(n.children);
+        if (n.children.length) walk(n.children, idx);
       });
     };
-    walk(buildCategoryTree(filteredCategories));
+    walk(buildCategoryTree(filteredCategories), "");
     return out;
   })();
 
