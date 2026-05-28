@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { PrivacyProvider } from "@/hooks/usePrivacy";
 import { CompanyContextProvider } from "@/hooks/useCompanyContext";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { useVisualViewport } from "@/hooks/useVisualViewport";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
@@ -258,6 +259,11 @@ const AppRoutes = () => (
   </Routes>
 );
 
+const AppShell = () => {
+  useVisualViewport();
+  return <AppRoutes />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -267,7 +273,7 @@ const App = () => (
         <AuthProvider>
           <CompanyContextProvider>
             <PrivacyProvider>
-              <AppRoutes />
+              <AppShell />
             </PrivacyProvider>
           </CompanyContextProvider>
         </AuthProvider>
