@@ -991,7 +991,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           </div>
 
           {/* Attachments */}
-          <div className="space-y-2">
+          <div className="space-y-2" data-field="attachments">
             <Label>Anexos{fieldSuffix("attachments")} — {totalAttachments}/5</Label>
             {/* Existing attachments */}
             {existingAttachments.filter(a => !removedAttachmentIds.includes(a.id)).map((att) => (
