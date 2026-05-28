@@ -84,6 +84,11 @@ export type FooterContent = {
   link_login: string;
   link_plans: string;
   link_faq: string;
+  link_privacy: string;
+  link_terms: string;
+  link_cookies: string;
+  link_cookie_settings: string;
+  link_dpo: string;
 };
 
 export const LANDING_DEFAULTS = {
