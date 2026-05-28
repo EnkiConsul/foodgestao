@@ -1334,7 +1334,7 @@ export default function Lancamentos() {
         onApply={async (updates) => {
           const ids = Array.from(selectedIds);
           if (ids.length === 0) return;
-          const { error } = await supabase.from("transactions").update(updates).in("id", ids);
+          const { error } = await supabase.from("transactions").update(updates as any).in("id", ids);
           if (error) {
             toast.error("Erro ao atualizar lançamentos", { description: error.message });
           } else {
