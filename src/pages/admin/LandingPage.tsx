@@ -424,6 +424,13 @@ export default function AdminLandingPage() {
                   <TextField label="Link: Planos" value={s.link_plans} onChange={(v) => u("link_plans", v)} />
                   <TextField label="Link: FAQ" value={s.link_faq} onChange={(v) => u("link_faq", v)} />
                 </div>
+                <div className="grid sm:grid-cols-2 gap-3 pt-2 border-t border-border/60">
+                  <TextField label="Link: Privacidade" value={s.link_privacy} onChange={(v) => u("link_privacy", v)} />
+                  <TextField label="Link: Termos" value={s.link_terms} onChange={(v) => u("link_terms", v)} />
+                  <TextField label="Link: Cookies" value={s.link_cookies} onChange={(v) => u("link_cookies", v)} />
+                  <TextField label="Link: Gerenciar cookies" value={s.link_cookie_settings} onChange={(v) => u("link_cookie_settings", v)} />
+                  <TextField label="Link: Encarregado (DPO)" value={s.link_dpo} onChange={(v) => u("link_dpo", v)} />
+                </div>
               </>
             )}
           />
