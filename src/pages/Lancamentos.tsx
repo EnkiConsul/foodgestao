@@ -19,7 +19,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TransactionFormDialog } from "@/components/transactions/TransactionFormDialog";
 import { PaymentDialog } from "@/components/bills/PaymentDialog";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import {
   Plus, Search, ArrowLeftRight,
   Trash2, Pencil, ChevronLeft, ChevronRight, ChevronDown, Filter, SlidersHorizontal,
