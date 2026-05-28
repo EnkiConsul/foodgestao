@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Link } from "react-router-dom";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
 import { MfaEnrollRequired } from "@/components/auth/MfaEnrollRequired";
 
@@ -54,6 +56,7 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [mfaRequired, setMfaRequired] = useState(false);
@@ -149,7 +152,7 @@ export default function Auth() {
 
     const parsed = isLogin
       ? loginSchema.safeParse({ email, password })
-      : signupSchema.safeParse({ email, password, confirmPassword, fullName });
+      : signupSchema.safeParse({ email, password, confirmPassword, fullName, acceptTerms: acceptTerms as true });
 
     if (!parsed.success) {
       const fieldErrors: Record<string, string> = {};
@@ -174,6 +177,18 @@ export default function Auth() {
         if (error) {
           toast.error("Erro ao cadastrar", { description: translateAuthError(error.message) });
         } else {
+          // Log LGPD acceptance (best-effort, non-blocking)
+          try {
+            const { data: { user: newUser } } = await supabase.auth.getUser();
+            if (newUser) {
+              await supabase.from("legal_acceptances").insert([
+                { user_id: newUser.id, document_type: "terms", document_version: "1.0", user_agent: navigator.userAgent },
+                { user_id: newUser.id, document_type: "privacy", document_version: "1.0", user_agent: navigator.userAgent },
+              ]);
+            }
+          } catch (e) {
+            console.warn("Failed to log legal acceptance", e);
+          }
           toast.success("Cadastro realizado!");
           navigate("/onboarding");
         }
@@ -323,6 +338,31 @@ export default function Auth() {
                   </button>
                 </div>
                 {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword}</p>}
+              </div>
+            )}
+
+            {isSignup && (
+              <div className="space-y-2">
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    id="acceptTerms"
+                    checked={acceptTerms}
+                    onCheckedChange={(c) => setAcceptTerms(c === true)}
+                    className="mt-0.5"
+                  />
+                  <Label htmlFor="acceptTerms" className="text-xs font-normal leading-relaxed cursor-pointer">
+                    Li e aceito os{" "}
+                    <Link to="/termos" target="_blank" className="text-primary underline hover:no-underline">
+                      Termos de Uso
+                    </Link>{" "}
+                    e a{" "}
+                    <Link to="/privacidade" target="_blank" className="text-primary underline hover:no-underline">
+                      Política de Privacidade
+                    </Link>
+                    .
+                  </Label>
+                </div>
+                {errors.acceptTerms && <p className="text-xs text-destructive">{errors.acceptTerms}</p>}
               </div>
             )}
 

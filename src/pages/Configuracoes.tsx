@@ -291,6 +291,17 @@ export default function Configuracoes() {
       <Separator />
 
       <ResetMyDataCard />
+
+      <Separator />
+
+      <div>
+        <h2 className="text-lg font-semibold tracking-tight">Privacidade e Dados (LGPD)</h2>
+        <p className="text-sm text-muted-foreground">Exerça seus direitos previstos na LGPD</p>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <ExportMyDataCard />
+        <DeleteMyAccountCard />
+      </div>
     </div>
   );
 }
