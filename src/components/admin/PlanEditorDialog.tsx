@@ -173,6 +173,22 @@ export function PlanEditorDialog({
               </div>
             ))}
           </div>
+          <div>
+            <Label className="text-xs">Tipo de suporte</Label>
+            <Select
+              value={form.features.support ?? "none"}
+              onValueChange={(v) => setFeat("support", v === "none" ? null : v)}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem suporte exibido</SelectItem>
+                <SelectItem value="community">Suporte por comunidade</SelectItem>
+                <SelectItem value="email">Suporte por e-mail</SelectItem>
+                <SelectItem value="priority">Suporte prioritário</SelectItem>
+                <SelectItem value="dedicated">Suporte dedicado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <DialogFooter>
