@@ -920,7 +920,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           )}
 
           {/* Payment Method */}
-          <div className="space-y-2">
+          <div className="space-y-2" data-field="payment_method">
             <Label>Forma de pagamento{fieldSuffix("payment_method")}</Label>
             <div className="flex gap-2">
               <SearchableSelect
