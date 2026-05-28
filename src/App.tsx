@@ -258,6 +258,11 @@ const AppRoutes = () => (
   </Routes>
 );
 
+const AppShell = () => {
+  useVisualViewport();
+  return <AppRoutes />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -267,7 +272,7 @@ const App = () => (
         <AuthProvider>
           <CompanyContextProvider>
             <PrivacyProvider>
-              <AppRoutes />
+              <AppShell />
             </PrivacyProvider>
           </CompanyContextProvider>
         </AuthProvider>
