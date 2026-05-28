@@ -747,7 +747,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
           {/* Payment date - only for receita/despesa with confirmed status */}
           {type !== "transferencia" && status === "confirmado" && (
-            <div className="space-y-2">
+            <div className="space-y-2" data-field="payment_date">
               <Label>Data de pagamento{fieldSuffix("payment_date")}</Label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
