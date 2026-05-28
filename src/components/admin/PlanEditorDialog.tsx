@@ -143,7 +143,7 @@ export function PlanEditorDialog({
                 onChange={(e) => setFeat("max_attachments_per_transaction", parseInt(e.target.value || "0"))} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
               ["ai_enabled", "IA habilitada"],
               ["reports_advanced", "Relatórios avançados"],
