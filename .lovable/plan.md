@@ -1,36 +1,28 @@
 ## Objetivo
 
-Quando o usuário usa o seletor múltiplo para excluir lançamentos, se algum dos selecionados pertencer a uma série recorrente, oferecer as mesmas opções da exclusão individual: **somente os selecionados**, **selecionados + ocorrências futuras** ou **série inteira (passadas, atuais e futuras)**.
+No diálogo de **editar Conta Bancária** (`AccountFormDialog.tsx`), permitir alterar o **Saldo Atual** da conta, que hoje só é mostrado em modo de criação como "Saldo Inicial".
 
-## Mudanças em `src/pages/Lancamentos.tsx`
+## Mudanças em `src/components/accounts/AccountFormDialog.tsx`
 
-1. **Estado novo**: `bulkDeleteScope: "single" | "forward" | "all"` (default `"single"`).
+1. **Novo estado**: `currentBalance` (string formatada) preenchido no `useEffect` quando `account` carrega: `formatCurrency(String(Math.round(account.current_balance * 100)))`.
 
-2. **Detecção de série**: derivar `bulkHasRecurring` a partir dos IDs selecionados — verdadeiro se qualquer transação selecionada tem `is_recurring === true` ou `parent_transaction_id !== null`.
+2. **UI em modo edição** (`isEdit === true`): exibir dois campos lado a lado (stack no mobile):
+   - **Saldo Inicial** (`initialBalance`, já existe) — agora editável também em modo edição.
+   - **Saldo Atual** (`currentBalance`) — novo campo `CurrencyInput`.
+   - Texto de apoio curto abaixo: "O saldo atual normalmente é calculado pelos lançamentos. Altere apenas para ajustes manuais."
 
-3. **`AlertDialog` de exclusão em massa**:
-   - Continua simples quando `bulkHasRecurring === false`.
-   - Quando `bulkHasRecurring === true`, mostrar `RadioGroup` com 3 opções (mesma copy do diálogo individual):
-     - "Excluir apenas os selecionados"
-     - "Excluir os selecionados e as ocorrências futuras"
-     - "Excluir todas as ocorrências da série (passadas e futuras)"
-   - Resetar `bulkDeleteScope` ao fechar.
+3. **Submit em modo edição**: incluir no `update` os campos `initial_balance: parseCurrencyToNumber(initialBalance)` e `current_balance: parseCurrencyToNumber(currentBalance)`.
 
-4. **`confirmBulkDelete`** passa a respeitar o escopo:
-   - **`single`**: comportamento atual — `delete().in("id", ids)`.
-   - **`forward`**: para cada selecionado que pertence a série (`seriesParentId = parent_transaction_id ?? id`), excluir filhos com `transaction_date >= tx.transaction_date` e o próprio `tx.id`. Selecionados que não são recorrentes são excluídos pelo `id`. Deduplicar por `seriesParentId` para não disparar a mesma query duas vezes.
-   - **`all`**: para cada série representada nos selecionados, calcular `seriesParentIds = unique(parent_transaction_id ?? id)`; excluir todos os filhos (`parent_transaction_id IN seriesParentIds`) e os próprios pais (`id IN seriesParentIds`). Selecionados não recorrentes seguem por `id`.
+4. **Audit log**: `account_updated` ganha `_details.balance_adjusted: true` quando o `current_balance` mudou em relação ao valor original, para rastrear ajustes manuais.
 
-5. **Audit log**: incluir `delete_scope` em `transactions_bulk_deleted` `_details` (mantém `count` e `ids`).
-
-6. **Toast**: mensagem adaptada — `"X lançamento(s) excluído(s)"`, `"X selecionado(s) + ocorrências futuras excluídos"`, `"Séries excluídas (X selecionado(s))"`.
+5. **Criação** (`!isEdit`) continua igual.
 
 ## Fora do escopo
 
-- Edição em massa (`BulkEditDialog`) não muda.
-- Exclusão individual já existente permanece igual.
-- Nenhuma alteração de schema/RLS.
+- Não criar lançamento de ajuste automático (apenas grava o novo saldo).
+- Não recalcular saldo a partir do histórico de transações.
+- Sem mudanças de schema/RLS — colunas `initial_balance` e `current_balance` já existem em `accounts`.
 
 ## Resultado esperado
 
-Ao clicar em "Excluir selecionados" com pelo menos um item de série recorrente entre os marcados, aparecem as 3 opções (somente / + futuras / série inteira). Quando nenhum item é recorrente, o diálogo continua simples como hoje.
+Ao editar uma conta bancária, os campos "Saldo Inicial" e "Saldo Atual" aparecem preenchidos e podem ser alterados; ao salvar, os valores são persistidos em `accounts.initial_balance` e `accounts.current_balance`.

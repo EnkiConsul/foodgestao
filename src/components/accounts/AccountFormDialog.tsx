@@ -39,6 +39,8 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
   const [name, setName] = useState("");
   const [accountType, setAccountType] = useState<AccountType>("corrente");
   const [initialBalance, setInitialBalance] = useState("");
+  const [currentBalance, setCurrentBalance] = useState("");
+  const [originalCurrentBalance, setOriginalCurrentBalance] = useState<number>(0);
   const [ownerType, setOwnerType] = useState<"pf" | "pj">("pf");
   const [ownerCompanyId, setOwnerCompanyId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -49,12 +51,16 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
         setName(account.name);
         setAccountType(account.account_type);
         setInitialBalance(formatCurrency(String(Math.round(account.initial_balance * 100))));
+        setCurrentBalance(formatCurrency(String(Math.round(account.current_balance * 100))));
+        setOriginalCurrentBalance(Number(account.current_balance));
         setOwnerType(account.context as "pf" | "pj");
         setOwnerCompanyId(account.company_id);
       } else {
         setName("");
         setAccountType("corrente");
         setInitialBalance("");
+        setCurrentBalance("");
+        setOriginalCurrentBalance(0);
         setOwnerType(contextType);
         setOwnerCompanyId(contextType === "pj" ? selectedCompanyId : null);
       }
@@ -72,11 +78,15 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
     setSaving(true);
 
     if (isEdit && account) {
+      const newCurrent = parseCurrencyToNumber(currentBalance);
+      const balanceAdjusted = Math.abs(newCurrent - originalCurrentBalance) > 0.005;
       const { error } = await supabase
         .from("accounts")
         .update({
           name: name.trim(),
           account_type: accountType,
+          initial_balance: balance,
+          current_balance: newCurrent,
           context: ownerType,
           company_id: ownerType === "pj" ? ownerCompanyId : null,
         })
@@ -87,7 +97,7 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
           _action: "account_updated",
           _entity_type: "account",
           _entity_id: account.id,
-          _details: { target_name: name.trim() },
+          _details: { target_name: name.trim(), balance_adjusted: balanceAdjusted },
         });
         toast.success("Conta atualizada"); onSaved(); onOpenChange(false);
       }
@@ -163,10 +173,26 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
             </Select>
           </div>
 
-          {!isEdit && (
+          {!isEdit ? (
             <div className="space-y-2">
               <Label>Saldo Inicial</Label>
               <CurrencyInput value={initialBalance} onValueChange={setInitialBalance} placeholder="0,00" />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Saldo Inicial</Label>
+                  <CurrencyInput value={initialBalance} onValueChange={setInitialBalance} placeholder="0,00" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Saldo Atual</Label>
+                  <CurrencyInput value={currentBalance} onValueChange={setCurrentBalance} placeholder="0,00" />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                O saldo atual normalmente é calculado pelos lançamentos. Altere apenas para ajustes manuais.
+              </p>
             </div>
           )}
 
