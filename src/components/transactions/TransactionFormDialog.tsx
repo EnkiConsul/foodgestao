@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { addDays, addWeeks, addMonths, addYears } from "date-fns";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -178,6 +178,30 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState(false);
   const [accountTarget, setAccountTarget] = useState<"origin" | "destination">("origin");
+
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [errorField, setErrorField] = useState<string | null>(null);
+
+  // Scroll to top whenever dialog opens
+  useEffect(() => {
+    if (open) {
+      setErrorField(null);
+      requestAnimationFrame(() => bodyRef.current?.scrollTo({ top: 0, behavior: "auto" }));
+    }
+  }, [open]);
+
+  // Scroll to first error field
+  useEffect(() => {
+    if (!errorField || !bodyRef.current) return;
+    const el = bodyRef.current.querySelector<HTMLElement>(`[data-field="${errorField}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      const focusable = el.querySelector<HTMLElement>("input,textarea,button,select,[role='combobox']");
+      focusable?.focus({ preventScroll: true });
+    }
+    const t = setTimeout(() => setErrorField(null), 1500);
+    return () => clearTimeout(t);
+  }, [errorField]);
 
   // --- Lookup queries (React Query so realtime invalidation works) ---
   const accountsQuery = useQuery({
@@ -475,16 +499,32 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     if (!user) return;
 
     const numAmount = parseCurrencyToNumber(amount);
-    const validated = validateWithToast(transactionSchema, {
+    const parseResult = transactionSchema.safeParse({
       description, amount: numAmount, transaction_type: type,
       transaction_date: date, account_id: accountId || "",
       destination_account_id: type === "transferencia" ? destinationAccountId || "" : null,
       category_id: categoryId || null, notes: notes || null,
       payment_method_id: paymentMethodId || null,
       due_date: dueDate || null,
-    }, toast.error);
-    if (!validated) return;
-    if (type === "transferencia" && !destinationAccountId) return toast.error("Selecione a conta de destino");
+    });
+    if (!parseResult.success) {
+      const firstErr = parseResult.error.errors[0];
+      toast.error(firstErr?.message ?? "Dados inválidos");
+      const path = String(firstErr?.path[0] ?? "");
+      const fieldMap: Record<string, string> = {
+        description: "description", amount: "amount",
+        transaction_date: "transaction_date", account_id: "account_id",
+        destination_account_id: "destination_account_id",
+        category_id: "category", notes: "notes",
+        payment_method_id: "payment_method", due_date: "due_date",
+      };
+      setErrorField(fieldMap[path] ?? null);
+      return;
+    }
+    if (type === "transferencia" && !destinationAccountId) {
+      setErrorField("destination_account_id");
+      return toast.error("Selecione a conta de destino");
+    }
 
     // Custom required-field validation based on user settings
     const requiredErrors: TransactionField[] = [];
@@ -503,6 +543,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     if (requiredErrors.length > 0) {
       const first = requiredErrors[0];
       toast.error(`${TRANSACTION_FIELD_LABELS[first]} é obrigatório`);
+      setErrorField(first);
       return;
     }
 
@@ -637,7 +678,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-          <div className="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 py-4 space-y-4 [-webkit-overflow-scrolling:touch]">
+          <div ref={bodyRef} className="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 py-4 space-y-4 [-webkit-overflow-scrolling:touch]">
           {/* Type tabs */}
           <Tabs value={type} onValueChange={(v) => setType(v as TransactionType)}>
             <TabsList className="w-full grid grid-cols-3">
@@ -654,13 +695,13 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           </Tabs>
 
           {/* Amount */}
-          <div className="space-y-2">
+          <div className="space-y-2" data-field="amount">
             <Label>Valor</Label>
             <CurrencyInput value={amount} onValueChange={setAmount} placeholder="0,00" />
           </div>
 
           {/* Description */}
-          <div className="space-y-2">
+          <div className="space-y-2" data-field="description">
             <Label>Descrição</Label>
             <Input
               value={description}
@@ -671,7 +712,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           </div>
 
           {/* Date */}
-          <div className="space-y-2">
+          <div className="space-y-2" data-field="transaction_date">
             <Label>Data</Label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -686,7 +727,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
           {/* Due date - only for receita/despesa */}
           {type !== "transferencia" && (
-            <div className="space-y-2">
+            <div className="space-y-2" data-field="due_date">
               <Label>Data de vencimento{fieldSuffix("due_date")}</Label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -706,7 +747,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
           {/* Payment date - only for receita/despesa with confirmed status */}
           {type !== "transferencia" && status === "confirmado" && (
-            <div className="space-y-2">
+            <div className="space-y-2" data-field="payment_date">
               <Label>Data de pagamento{fieldSuffix("payment_date")}</Label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -777,7 +818,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           )}
 
           {/* Account */}
-          <div className="space-y-2">
+          <div className="space-y-2" data-field="account_id">
             <Label>{type === "transferencia" ? "Conta de origem" : "Conta"}</Label>
             <div className="flex gap-2">
               <SearchableSelect
@@ -802,7 +843,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
           {/* Destination account (transfer) */}
           {type === "transferencia" && (
-            <div className="space-y-2">
+            <div className="space-y-2" data-field="destination_account_id">
               <Label>Conta de destino</Label>
               <div className="flex gap-2">
                 <SearchableSelect
@@ -828,7 +869,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
           {/* Category - hierarchical display */}
           {type !== "transferencia" && (
-            <div className="space-y-2">
+            <div className="space-y-2" data-field="category">
               <Label>Categoria{fieldSuffix("category")}</Label>
               <div className="flex gap-2">
                 <SearchableSelect
@@ -854,7 +895,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
           {/* Contact (Cliente/Fornecedor) */}
           {type !== "transferencia" && (
-            <div className="space-y-2">
+            <div className="space-y-2" data-field="contact">
               <Label>Cliente/Fornecedor{fieldSuffix("contact")}</Label>
               <div className="flex gap-2">
                 <SearchableSelect
@@ -879,7 +920,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           )}
 
           {/* Payment Method */}
-          <div className="space-y-2">
+          <div className="space-y-2" data-field="payment_method">
             <Label>Forma de pagamento{fieldSuffix("payment_method")}</Label>
             <div className="flex gap-2">
               <SearchableSelect
@@ -938,7 +979,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           </div>
 
           {/* Notes */}
-          <div className="space-y-2">
+          <div className="space-y-2" data-field="notes">
             <Label>Observações{fieldSuffix("notes")}</Label>
             <Textarea
               value={notes}
@@ -950,7 +991,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           </div>
 
           {/* Attachments */}
-          <div className="space-y-2">
+          <div className="space-y-2" data-field="attachments">
             <Label>Anexos{fieldSuffix("attachments")} — {totalAttachments}/5</Label>
             {/* Existing attachments */}
             {existingAttachments.filter(a => !removedAttachmentIds.includes(a.id)).map((att) => (
