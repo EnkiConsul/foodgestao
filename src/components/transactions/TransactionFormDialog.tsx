@@ -818,7 +818,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           )}
 
           {/* Account */}
-          <div className="space-y-2">
+          <div className="space-y-2" data-field="account_id">
             <Label>{type === "transferencia" ? "Conta de origem" : "Conta"}</Label>
             <div className="flex gap-2">
               <SearchableSelect
