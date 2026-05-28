@@ -210,7 +210,7 @@ export function SearchableSelect({
                   />
                   {opt.leading}
                   <div className="min-w-0 flex-1">
-                    <div className="truncate">{opt.label}</div>
+                    <div className={cn("truncate", depth === 0 && "font-semibold")}>{opt.label}</div>
                     {opt.description && (
                       <div className="truncate text-[11px] text-muted-foreground">
                         {opt.description}
