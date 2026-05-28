@@ -181,6 +181,12 @@ export default function Lancamentos() {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
 
+  // Clear selection when context/month/filters change
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [contextType, selectedCompanyId, selectedYear, selectedMonth, filterAccount, filterPaymentMethod, filterCategory, filterCredito, filterDebito, filterTransferencia, filterPago, filterAVencer, filterAtrasado]);
+
+
   const monthStart = useMemo(() => {
     const d = new Date(selectedYear, selectedMonth, 1);
     return format(d, "yyyy-MM-dd");
