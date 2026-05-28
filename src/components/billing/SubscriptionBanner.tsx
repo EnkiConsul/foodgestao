@@ -6,6 +6,18 @@ export function SubscriptionBanner() {
   const { data: sub } = useCurrentSubscription();
   if (!sub) return null;
 
+  if (sub.isExpired) {
+    return (
+      <div className="bg-destructive/10 border-b border-destructive/30 text-destructive px-4 py-2 text-sm flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4" />
+          <span>Seu período de teste expirou. Escolha um plano para reativar o acesso.</span>
+        </div>
+        <Link to="/planos" className="font-semibold hover:underline">Escolher plano</Link>
+      </div>
+    );
+  }
+
   if (sub.status === "past_due") {
     return (
       <div className="bg-destructive/10 border-b border-destructive/30 text-destructive px-4 py-2 text-sm flex items-center justify-between gap-4">
