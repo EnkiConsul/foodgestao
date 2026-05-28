@@ -20,6 +20,8 @@ const DEFAULT_PLAN = {
   trial_days: 0,
   is_active: true,
   is_public: true,
+  is_featured: false,
+  featured_label: "Mais popular",
   sort_order: 0,
   features: {
     max_companies: 1,
@@ -30,6 +32,7 @@ const DEFAULT_PLAN = {
     reports_advanced: false,
     export_pdf: false,
     export_csv: true,
+    support: "community",
   },
 };
 
