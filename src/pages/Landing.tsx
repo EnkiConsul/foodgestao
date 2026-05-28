@@ -547,7 +547,7 @@ function PricingSection({ utm }: { utm: string }) {
       const { data } = await supabase
         .from("plans")
         .select(
-          "id, slug, name, description, price_cents, billing_period, trial_days, sort_order, features"
+          "id, slug, name, description, price_cents, billing_period, trial_days, sort_order, is_featured, featured_label, features"
         )
         .eq("is_active", true)
         .eq("is_public", true)
