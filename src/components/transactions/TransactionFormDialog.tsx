@@ -499,16 +499,32 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     if (!user) return;
 
     const numAmount = parseCurrencyToNumber(amount);
-    const validated = validateWithToast(transactionSchema, {
+    const parseResult = transactionSchema.safeParse({
       description, amount: numAmount, transaction_type: type,
       transaction_date: date, account_id: accountId || "",
       destination_account_id: type === "transferencia" ? destinationAccountId || "" : null,
       category_id: categoryId || null, notes: notes || null,
       payment_method_id: paymentMethodId || null,
       due_date: dueDate || null,
-    }, toast.error);
-    if (!validated) return;
-    if (type === "transferencia" && !destinationAccountId) return toast.error("Selecione a conta de destino");
+    });
+    if (!parseResult.success) {
+      const firstErr = parseResult.error.errors[0];
+      toast.error(firstErr?.message ?? "Dados inválidos");
+      const path = String(firstErr?.path[0] ?? "");
+      const fieldMap: Record<string, string> = {
+        description: "description", amount: "amount",
+        transaction_date: "transaction_date", account_id: "account_id",
+        destination_account_id: "destination_account_id",
+        category_id: "category", notes: "notes",
+        payment_method_id: "payment_method", due_date: "due_date",
+      };
+      setErrorField(fieldMap[path] ?? null);
+      return;
+    }
+    if (type === "transferencia" && !destinationAccountId) {
+      setErrorField("destination_account_id");
+      return toast.error("Selecione a conta de destino");
+    }
 
     // Custom required-field validation based on user settings
     const requiredErrors: TransactionField[] = [];
@@ -527,6 +543,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     if (requiredErrors.length > 0) {
       const first = requiredErrors[0];
       toast.error(`${TRANSACTION_FIELD_LABELS[first]} é obrigatório`);
+      setErrorField(first);
       return;
     }
 
