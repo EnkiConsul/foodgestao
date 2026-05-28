@@ -84,6 +84,11 @@ export type FooterContent = {
   link_login: string;
   link_plans: string;
   link_faq: string;
+  link_privacy: string;
+  link_terms: string;
+  link_cookies: string;
+  link_cookie_settings: string;
+  link_dpo: string;
 };
 
 export const LANDING_DEFAULTS = {
@@ -208,6 +213,11 @@ export const LANDING_DEFAULTS = {
     link_login: "Entrar",
     link_plans: "Planos",
     link_faq: "FAQ",
+    link_privacy: "Política de Privacidade",
+    link_terms: "Termos de Uso",
+    link_cookies: "Política de Cookies",
+    link_cookie_settings: "Gerenciar cookies",
+    link_dpo: "Encarregado (DPO)",
   } satisfies FooterContent,
 } as const;
 
