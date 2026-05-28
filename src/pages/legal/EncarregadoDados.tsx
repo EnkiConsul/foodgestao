@@ -4,11 +4,11 @@ import { useLegalSection } from "@/hooks/useLegalContent";
 export default function EncarregadoDados() {
   const c = useLegalSection("legal_dpo");
   const body = c.body
-    .replaceAll("{dpo_name}", c.dpo_name)
-    .replaceAll("{dpo_email}", c.dpo_email)
-    .replaceAll("{controller_name}", c.controller_name)
-    .replaceAll("{controller_cnpj}", c.controller_cnpj)
-    .replaceAll("{controller_address}", c.controller_address);
+    .split("{dpo_name}").join(c.dpo_name)
+    .split("{dpo_email}").join(c.dpo_email)
+    .split("{controller_name}").join(c.controller_name)
+    .split("{controller_cnpj}").join(c.controller_cnpj)
+    .split("{controller_address}").join(c.controller_address);
   return (
     <LegalDocumentView
       title={c.title}
