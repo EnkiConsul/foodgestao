@@ -60,12 +60,12 @@ export function PlanEditorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>{plan ? "Editar plano" : "Novo plano"}</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label>Slug</Label>
             <Input value={form.slug} onChange={(e) => setF("slug", e.target.value)} placeholder="pro" />
@@ -121,7 +121,7 @@ export function PlanEditorDialog({
         <div className="space-y-3 pt-4 border-t">
           <h3 className="font-semibold text-sm">Limites e recursos</h3>
           <p className="text-xs text-muted-foreground">Use -1 para ilimitado.</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">Máx. empresas</Label>
               <Input type="number" value={form.features.max_companies}
@@ -143,7 +143,7 @@ export function PlanEditorDialog({
                 onChange={(e) => setFeat("max_attachments_per_transaction", parseInt(e.target.value || "0"))} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
               ["ai_enabled", "IA habilitada"],
               ["reports_advanced", "Relatórios avançados"],

@@ -102,7 +102,7 @@ export function AdminCoupons() {
           <DialogHeader>
             <DialogTitle>{form.id ? "Editar cupom" : "Novo cupom"}</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="col-span-2">
               <Label>Código</Label>
               <Input value={form.code} onChange={(e) => setF("code", e.target.value.toUpperCase())} />

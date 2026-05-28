@@ -107,7 +107,7 @@ export function PaymentDialog({ open, onOpenChange, bill, onPaid }: Props) {
           <DialogDescription>{bill.description}</DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-3 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
           <div>
             <span className="text-muted-foreground">Total</span>
             <p className="font-semibold">{formatBRL(bill.amount)}</p>
