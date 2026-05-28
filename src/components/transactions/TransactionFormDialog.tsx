@@ -343,7 +343,10 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
   const filteredCategories = categories.filter((c) => {
     if (type === "transferencia") return true;
-    
+
+    // Filtrar pelo tipo do lançamento (receita/despesa)
+    if (c.transaction_type !== type) return false;
+
     if (contextType === "pf") return (c as any).visible_pf !== false;
     if (contextType === "pj" && selectedCompanyId) {
       const companyIds = categoryCompanyIds.get(c.id) || [];
@@ -689,7 +692,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <div ref={bodyRef} className="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 py-4 space-y-4 [-webkit-overflow-scrolling:touch]">
           {/* Type tabs */}
-          <Tabs value={type} onValueChange={(v) => setType(v as TransactionType)}>
+          <Tabs value={type} onValueChange={(v) => { setType(v as TransactionType); setCategoryId(""); }}>
             <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="receita" className="data-[state=active]:bg-success data-[state=active]:text-success-foreground">
                 Receita
