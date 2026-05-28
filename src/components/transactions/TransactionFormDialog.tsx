@@ -979,7 +979,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           </div>
 
           {/* Notes */}
-          <div className="space-y-2">
+          <div className="space-y-2" data-field="notes">
             <Label>Observações{fieldSuffix("notes")}</Label>
             <Textarea
               value={notes}
