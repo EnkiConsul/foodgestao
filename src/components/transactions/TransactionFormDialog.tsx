@@ -695,7 +695,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           </Tabs>
 
           {/* Amount */}
-          <div className="space-y-2">
+          <div className="space-y-2" data-field="amount">
             <Label>Valor</Label>
             <CurrencyInput value={amount} onValueChange={setAmount} placeholder="0,00" />
           </div>
