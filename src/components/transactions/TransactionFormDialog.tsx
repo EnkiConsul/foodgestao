@@ -895,7 +895,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
           {/* Contact (Cliente/Fornecedor) */}
           {type !== "transferencia" && (
-            <div className="space-y-2">
+            <div className="space-y-2" data-field="contact">
               <Label>Cliente/Fornecedor{fieldSuffix("contact")}</Label>
               <div className="flex gap-2">
                 <SearchableSelect
