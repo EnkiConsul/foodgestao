@@ -20,6 +20,8 @@ const DEFAULT_PLAN = {
   trial_days: 0,
   is_active: true,
   is_public: true,
+  is_featured: false,
+  featured_label: "Mais popular",
   sort_order: 0,
   features: {
     max_companies: 1,
@@ -30,6 +32,7 @@ const DEFAULT_PLAN = {
     reports_advanced: false,
     export_pdf: false,
     export_csv: true,
+    support: "community",
   },
 };
 
@@ -116,6 +119,20 @@ export function PlanEditorDialog({
             <Label>Público</Label>
             <Switch checked={form.is_public} onCheckedChange={(v) => setF("is_public", v)} />
           </div>
+          <div className="flex items-center justify-between rounded-md border p-3">
+            <Label>Destaque (Mais popular)</Label>
+            <Switch checked={!!form.is_featured} onCheckedChange={(v) => setF("is_featured", v)} />
+          </div>
+          {form.is_featured && (
+            <div>
+              <Label>Texto do selo</Label>
+              <Input
+                value={form.featured_label ?? ""}
+                onChange={(e) => setF("featured_label", e.target.value)}
+                placeholder="Mais popular"
+              />
+            </div>
+          )}
         </div>
 
         <div className="space-y-3 pt-4 border-t">
@@ -155,6 +172,22 @@ export function PlanEditorDialog({
                 <Switch checked={!!form.features[k]} onCheckedChange={(v) => setFeat(k, v)} />
               </div>
             ))}
+          </div>
+          <div>
+            <Label className="text-xs">Tipo de suporte</Label>
+            <Select
+              value={form.features.support ?? "none"}
+              onValueChange={(v) => setFeat("support", v === "none" ? null : v)}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem suporte exibido</SelectItem>
+                <SelectItem value="community">Suporte por comunidade</SelectItem>
+                <SelectItem value="email">Suporte por e-mail</SelectItem>
+                <SelectItem value="priority">Suporte prioritário</SelectItem>
+                <SelectItem value="dedicated">Suporte dedicado</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

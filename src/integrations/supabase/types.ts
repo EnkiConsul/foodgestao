@@ -1328,9 +1328,11 @@ export type Database = {
           billing_period: Database["public"]["Enums"]["billing_period"]
           created_at: string
           description: string | null
+          featured_label: string
           features: Json
           id: string
           is_active: boolean
+          is_featured: boolean
           is_public: boolean
           name: string
           price_cents: number
@@ -1343,9 +1345,11 @@ export type Database = {
           billing_period?: Database["public"]["Enums"]["billing_period"]
           created_at?: string
           description?: string | null
+          featured_label?: string
           features?: Json
           id?: string
           is_active?: boolean
+          is_featured?: boolean
           is_public?: boolean
           name: string
           price_cents?: number
@@ -1358,9 +1362,11 @@ export type Database = {
           billing_period?: Database["public"]["Enums"]["billing_period"]
           created_at?: string
           description?: string | null
+          featured_label?: string
           features?: Json
           id?: string
           is_active?: boolean
+          is_featured?: boolean
           is_public?: boolean
           name?: string
           price_cents?: number

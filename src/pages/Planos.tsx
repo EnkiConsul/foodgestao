@@ -41,8 +41,12 @@ export default function Planos() {
             {visible.map((p: any) => {
               const f = p.features || {};
               const isCurrent = current?.plan_id === p.id;
+              const featured = !!p.is_featured;
               return (
-                <Card key={p.id} className={isCurrent ? "border-primary border-2" : ""}>
+                <Card key={p.id} className={`relative ${isCurrent ? "border-primary border-2" : featured ? "border-primary shadow-xl ring-1 ring-primary/40" : ""}`}>
+                  {featured && !isCurrent && (
+                    <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">{p.featured_label || "Mais popular"}</Badge>
+                  )}
                   <CardHeader className="space-y-1">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-bold">{p.name}</h3>

@@ -32,6 +32,8 @@ type Plan = {
   billing_period: string;
   trial_days: number;
   sort_order: number;
+  is_featured: boolean;
+  featured_label: string | null;
   features: Record<string, unknown> | null;
 };
 
@@ -545,7 +547,7 @@ function PricingSection({ utm }: { utm: string }) {
       const { data } = await supabase
         .from("plans")
         .select(
-          "id, slug, name, description, price_cents, billing_period, trial_days, sort_order, features"
+          "id, slug, name, description, price_cents, billing_period, trial_days, sort_order, is_featured, featured_label, features"
         )
         .eq("is_active", true)
         .eq("is_public", true)
@@ -620,7 +622,7 @@ function PricingSection({ utm }: { utm: string }) {
                 </Card>
               ))
             : plans.map((p) => {
-                const featured = p.slug === "pro";
+                const featured = !!p.is_featured;
                 const entries = p.features ? Object.entries(p.features) : [];
                 const labels = entries
                   .map(([k, v]) => featureLabel(k, v))
@@ -637,7 +639,7 @@ function PricingSection({ utm }: { utm: string }) {
                     }`}
                   >
                     {featured && (
-                      <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">Mais popular</Badge>
+                      <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">{p.featured_label || "Mais popular"}</Badge>
                     )}
                     <CardContent className="flex h-full flex-col p-5 sm:p-6">
                       <h3 className="text-lg font-semibold">{p.name}</h3>
