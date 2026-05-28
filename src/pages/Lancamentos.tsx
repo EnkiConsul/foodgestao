@@ -1132,34 +1132,41 @@ export default function Lancamentos() {
         onPaid={refreshAll}
       />
 
-      <AlertDialog open={!!deleteId} onOpenChange={(o) => { if (!o) { setDeleteId(null); setDeleteWithChildren(false); } }}>
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => { if (!o) { setDeleteId(null); setDeleteScope("single"); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir lançamento?</AlertDialogTitle>
             <AlertDialogDescription>
-              Essa ação não pode ser desfeita. O registro será removido permanentemente.
+              {isPartOfRecurringSeries
+                ? "Este lançamento faz parte de uma série recorrente. Escolha o que deseja excluir:"
+                : "Essa ação não pode ser desfeita. O registro será removido permanentemente."}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {isDeleteTargetRecurringParent && (
-            <div className="flex items-center gap-2 px-1">
-              <Checkbox
-                id="delete-children"
-                checked={deleteWithChildren}
-                onCheckedChange={(v) => setDeleteWithChildren(!!v)}
-              />
-              <label htmlFor="delete-children" className="text-sm cursor-pointer">
-                Excluir também todas as ocorrências futuras pendentes
-              </label>
-            </div>
+          {isPartOfRecurringSeries && (
+            <RadioGroup value={deleteScope} onValueChange={(v) => setDeleteScope(v as any)} className="gap-2 px-1">
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="single" id="scope-single" />
+                <label htmlFor="scope-single" className="text-sm cursor-pointer">Somente este lançamento</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="forward" id="scope-forward" />
+                <label htmlFor="scope-forward" className="text-sm cursor-pointer">Este e os próximos</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="all" id="scope-all" />
+                <label htmlFor="scope-all" className="text-sm cursor-pointer">Todos os lançamentos da série</label>
+              </div>
+            </RadioGroup>
           )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Excluir{deleteWithChildren ? " tudo" : ""}
+              Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
 
       <AlertDialog open={!!cancelStatusId} onOpenChange={(o) => { if (!o) setCancelStatusId(null); }}>
         <AlertDialogContent>
