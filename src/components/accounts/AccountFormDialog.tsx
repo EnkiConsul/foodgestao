@@ -173,10 +173,26 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
             </Select>
           </div>
 
-          {!isEdit && (
+          {!isEdit ? (
             <div className="space-y-2">
               <Label>Saldo Inicial</Label>
               <CurrencyInput value={initialBalance} onValueChange={setInitialBalance} placeholder="0,00" />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Saldo Inicial</Label>
+                  <CurrencyInput value={initialBalance} onValueChange={setInitialBalance} placeholder="0,00" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Saldo Atual</Label>
+                  <CurrencyInput value={currentBalance} onValueChange={setCurrentBalance} placeholder="0,00" />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                O saldo atual normalmente é calculado pelos lançamentos. Altere apenas para ajustes manuais.
+              </p>
             </div>
           )}
 
