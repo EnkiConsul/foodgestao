@@ -35,6 +35,7 @@ import AdminWebhooksAsaasPage from "./pages/admin/WebhooksAsaas";
 import AdminPerfisAcesso from "./pages/admin/PerfisAcesso";
 import AdminAuditoria from "./pages/admin/Auditoria";
 import AdminResetarDados from "./pages/admin/ResetarDados";
+import AdminLandingPage from "./pages/admin/LandingPage";
 import AcceptInvite from "./pages/AcceptInvite";
 import ResetPassword from "./pages/ResetPassword";
 import Planos from "./pages/Planos";
