@@ -73,6 +73,13 @@ Deno.serve(async (req) => {
       });
     }
 
+    if ((user.email ?? "").toLowerCase() !== (invite.invited_email ?? "").toLowerCase()) {
+      return new Response(JSON.stringify({ error: "Este convite foi enviado para outro e-mail. Faça login com o e-mail convidado." }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (new Date(invite.expires_at) < new Date()) {
       await adminClient
         .from("company_invites")

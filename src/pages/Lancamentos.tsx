@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { resolveAttachments } from "@/lib/attachments";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
@@ -1054,7 +1055,8 @@ export default function Lancamentos() {
                                             .from("transaction_attachments")
                                             .select("id, file_name, file_url")
                                             .eq("transaction_id", r.id);
-                                          setPreviewAttachments(data ?? []);
+                                          const resolved = await resolveAttachments(data ?? []);
+                                          setPreviewAttachments(resolved);
                                           setPreviewOpen(true);
                                         }}
                                         className="inline-flex"

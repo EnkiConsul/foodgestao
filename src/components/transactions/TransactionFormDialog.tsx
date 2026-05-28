@@ -16,6 +16,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CurrencyInput, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { toast } from "sonner";
 import { transactionSchema, validateWithToast } from "@/lib/validations";
+import { getSignedAttachmentUrl } from "@/lib/attachments";
 import { Calendar, Repeat, Paperclip, X, FileText, Upload, CheckCircle, Clock, XCircle, Plus, Wallet } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import type { Tables } from "@/integrations/supabase/types";
@@ -480,22 +481,20 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     // Upload new files
     for (const file of attachmentFiles) {
       const ext = file.name.split(".").pop();
-      const filePath = `${user.id}/${transactionId}/${Date.now()}_${file.name}`;
+      const safeName = file.name.replace(/[^\w.\-]+/g, "_");
+      const filePath = `${user.id}/${transactionId}/${Date.now()}_${safeName}`;
       const { error } = await supabase.storage
         .from("transaction-attachments")
-        .upload(filePath, file, { upsert: true });
+        .upload(filePath, file, { upsert: false });
       if (error) {
         toast.error(`Erro ao enviar ${file.name}`, { description: error.message });
         continue;
       }
-      const { data: urlData } = supabase.storage
-        .from("transaction-attachments")
-        .getPublicUrl(filePath);
       await supabase.from("transaction_attachments").insert({
         transaction_id: transactionId,
         user_id: user.id,
         file_name: file.name,
-        file_url: urlData.publicUrl,
+        file_url: filePath,
         file_size: file.size,
         file_type: file.type || ext || null,
       });
@@ -1010,7 +1009,16 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
               <div key={att.id} className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">
                 <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                 <span className="text-sm truncate flex-1">{att.file_name}</span>
-                <a href={att.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline shrink-0">Ver</a>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const url = await getSignedAttachmentUrl(att.file_url);
+                    window.open(url, "_blank", "noopener,noreferrer");
+                  }}
+                  className="text-xs text-primary hover:underline shrink-0"
+                >
+                  Ver
+                </button>
                 <button type="button" onClick={() => setRemovedAttachmentIds(prev => [...prev, att.id])} className="text-muted-foreground hover:text-destructive shrink-0">
                   <X className="h-4 w-4" />
                 </button>
