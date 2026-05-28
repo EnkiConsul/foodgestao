@@ -345,6 +345,38 @@ export default function Lancamentos() {
     setDeleteScope("single");
   };
 
+  // Bulk actions
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const confirmBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    const { error } = await supabase.from("transactions").delete().in("id", ids);
+    if (error) {
+      toast.error("Erro ao excluir lançamentos", { description: error.message });
+    } else {
+      await supabase.rpc("insert_audit_log", {
+        _action: "transactions_bulk_deleted",
+        _entity_type: "transaction",
+        _entity_id: null,
+        _details: { count: ids.length, ids },
+      });
+      toast.success(`${ids.length} lançamento(s) excluído(s)`);
+      clearSelection();
+      refreshAll();
+    }
+    setBulkDeleteOpen(false);
+  };
+
   const updateTransactionStatus = async (txId: string, newStatus: string) => {
     const updateData: any = { status: newStatus };
     const tx = transactions.find(t => t.id === txId);
