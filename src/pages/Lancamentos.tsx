@@ -885,6 +885,16 @@ export default function Lancamentos() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
+                    <TableHead className="w-[36px] px-2">
+                      <Checkbox
+                        checked={displayRows.length > 0 && displayRows.every((r) => selectedIds.has(r.id))}
+                        onCheckedChange={(v) => {
+                          if (v) setSelectedIds(new Set(displayRows.map((r) => r.id)));
+                          else clearSelection();
+                        }}
+                        aria-label="Selecionar todos"
+                      />
+                    </TableHead>
                     {visibleColumns.data !== false && <TableHead className="text-xs w-[75px]">Data</TableHead>}
                     <TableHead className="text-xs">Descrição</TableHead>
                     {visibleColumns.dc && <TableHead className="text-xs w-[40px] text-center">D/C</TableHead>}
