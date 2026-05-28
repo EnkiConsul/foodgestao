@@ -179,6 +179,7 @@ export default function Lancamentos() {
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleteScope, setBulkDeleteScope] = useState<"single" | "forward" | "all">("single");
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
 
   // Clear selection when context/month/filters change
@@ -363,24 +364,97 @@ export default function Lancamentos() {
     });
   };
 
+  const selectedTxs = transactions.filter((t) => selectedIds.has(t.id));
+  const bulkHasRecurring = selectedTxs.some((t) => t.is_recurring || !!t.parent_transaction_id);
+
   const confirmBulkDelete = async () => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
-    const { error } = await supabase.from("transactions").delete().in("id", ids);
-    if (error) {
-      toast.error("Erro ao excluir lançamentos", { description: error.message });
-    } else {
+    const scope = bulkHasRecurring ? bulkDeleteScope : "single";
+
+    try {
+      if (scope === "single") {
+        const { error } = await supabase.from("transactions").delete().in("id", ids);
+        if (error) throw error;
+      } else if (scope === "all") {
+        const recurringSel = selectedTxs.filter((t) => t.is_recurring || !!t.parent_transaction_id);
+        const nonRecurringIds = selectedTxs
+          .filter((t) => !t.is_recurring && !t.parent_transaction_id)
+          .map((t) => t.id);
+        const seriesParentIds = Array.from(
+          new Set(recurringSel.map((t) => t.parent_transaction_id ?? t.id)),
+        );
+        if (seriesParentIds.length > 0) {
+          const { error: cErr } = await supabase
+            .from("transactions")
+            .delete()
+            .in("parent_transaction_id", seriesParentIds);
+          if (cErr) throw cErr;
+          const { error: pErr } = await supabase
+            .from("transactions")
+            .delete()
+            .in("id", seriesParentIds);
+          if (pErr) throw pErr;
+        }
+        if (nonRecurringIds.length > 0) {
+          const { error } = await supabase.from("transactions").delete().in("id", nonRecurringIds);
+          if (error) throw error;
+        }
+      } else {
+        // forward
+        const recurringSel = selectedTxs.filter((t) => t.is_recurring || !!t.parent_transaction_id);
+        const nonRecurringIds = selectedTxs
+          .filter((t) => !t.is_recurring && !t.parent_transaction_id)
+          .map((t) => t.id);
+        // For each series, take the earliest selected date as the cutoff
+        const seriesMap = new Map<string, string>();
+        recurringSel.forEach((t) => {
+          const pid = t.parent_transaction_id ?? t.id;
+          const existing = seriesMap.get(pid);
+          if (!existing || t.transaction_date < existing) seriesMap.set(pid, t.transaction_date);
+        });
+        for (const [pid, fromDate] of seriesMap.entries()) {
+          const { error: cErr } = await supabase
+            .from("transactions")
+            .delete()
+            .eq("parent_transaction_id", pid)
+            .gte("transaction_date", fromDate);
+          if (cErr) throw cErr;
+        }
+        // Delete the selected recurring transactions themselves (parents or children)
+        const recurringIds = recurringSel.map((t) => t.id);
+        if (recurringIds.length > 0) {
+          const { error } = await supabase.from("transactions").delete().in("id", recurringIds);
+          if (error) throw error;
+        }
+        if (nonRecurringIds.length > 0) {
+          const { error } = await supabase.from("transactions").delete().in("id", nonRecurringIds);
+          if (error) throw error;
+        }
+      }
+
       await supabase.rpc("insert_audit_log", {
         _action: "transactions_bulk_deleted",
         _entity_type: "transaction",
         _entity_id: null,
-        _details: { count: ids.length, ids },
+        _details: { count: ids.length, ids, delete_scope: scope },
       });
-      toast.success(`${ids.length} lançamento(s) excluído(s)`);
+
+      const successMsg =
+        scope === "all"
+          ? `Séries excluídas (${ids.length} selecionado(s))`
+          : scope === "forward"
+            ? `${ids.length} selecionado(s) + ocorrências futuras excluídos`
+            : `${ids.length} lançamento(s) excluído(s)`;
+      toast.success(successMsg);
       clearSelection();
       refreshAll();
+    } catch (err: any) {
+      toast.error("Erro ao excluir lançamentos", { description: err?.message });
     }
+
     setBulkDeleteOpen(false);
+    setBulkDeleteScope("single");
   };
 
   const updateTransactionStatus = async (txId: string, newStatus: string) => {
@@ -1306,14 +1380,32 @@ export default function Lancamentos() {
       )}
 
       {/* Bulk delete confirmation */}
-      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={(o) => { setBulkDeleteOpen(o); if (!o) setBulkDeleteScope("single"); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir {selectedIds.size} lançamento(s)?</AlertDialogTitle>
             <AlertDialogDescription>
-              Essa ação não pode ser desfeita. Todos os registros selecionados serão removidos permanentemente.
+              {bulkHasRecurring
+                ? "Há lançamentos recorrentes entre os selecionados. Escolha o que deseja excluir:"
+                : "Essa ação não pode ser desfeita. Todos os registros selecionados serão removidos permanentemente."}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {bulkHasRecurring && (
+            <RadioGroup value={bulkDeleteScope} onValueChange={(v) => setBulkDeleteScope(v as any)} className="gap-2 px-1">
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="single" id="bulk-scope-single" />
+                <label htmlFor="bulk-scope-single" className="text-sm cursor-pointer">Excluir apenas os selecionados</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="forward" id="bulk-scope-forward" />
+                <label htmlFor="bulk-scope-forward" className="text-sm cursor-pointer">Excluir os selecionados e as ocorrências futuras</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="all" id="bulk-scope-all" />
+                <label htmlFor="bulk-scope-all" className="text-sm cursor-pointer">Excluir todas as ocorrências da série (passadas e futuras)</label>
+              </div>
+            </RadioGroup>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">

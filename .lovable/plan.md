@@ -1,24 +1,36 @@
-## Problema
+## Objetivo
 
-Em `src/components/transactions/TransactionFormDialog.tsx`, a lista de categorias do seletor não considera o tipo do lançamento atual (`type`: receita | despesa | transferência). Por isso o usuário vê categorias de despesa ao registrar uma receita (e vice-versa), parecendo que "não está buscando" as categorias certas.
+Quando o usuário usa o seletor múltiplo para excluir lançamentos, se algum dos selecionados pertencer a uma série recorrente, oferecer as mesmas opções da exclusão individual: **somente os selecionados**, **selecionados + ocorrências futuras** ou **série inteira (passadas, atuais e futuras)**.
 
-## Mudança
+## Mudanças em `src/pages/Lancamentos.tsx`
 
-1. No `filteredCategories`, adicionar filtro por `transaction_type`:
-   - Se `type === "receita"` → mostrar apenas categorias com `transaction_type === "receita"`.
-   - Se `type === "despesa"` → mostrar apenas categorias com `transaction_type === "despesa"`.
-   - Se `type === "transferencia"` → categorias ficam ocultas (já é o comportamento atual do bloco no JSX).
-   - Manter as regras existentes de visibilidade PF (`visible_pf`) e PJ (`category_companies` por empresa).
+1. **Estado novo**: `bulkDeleteScope: "single" | "forward" | "all"` (default `"single"`).
 
-2. Limpar `categoryId` quando o usuário trocar o tipo do lançamento, para não manter selecionada uma categoria que deixou de pertencer à nova lista (evita salvar um vínculo inconsistente).
+2. **Detecção de série**: derivar `bulkHasRecurring` a partir dos IDs selecionados — verdadeiro se qualquer transação selecionada tem `is_recurring === true` ou `parent_transaction_id !== null`.
 
-3. Atualizar o índice hierárquico (1., 1.1.) gerado em `flatCategoryOptions` para refletir somente as categorias visíveis após o filtro — já é o que acontece, mas confirmar que o `buildCategoryTree` recebe a lista filtrada.
+3. **`AlertDialog` de exclusão em massa**:
+   - Continua simples quando `bulkHasRecurring === false`.
+   - Quando `bulkHasRecurring === true`, mostrar `RadioGroup` com 3 opções (mesma copy do diálogo individual):
+     - "Excluir apenas os selecionados"
+     - "Excluir os selecionados e as ocorrências futuras"
+     - "Excluir todas as ocorrências da série (passadas e futuras)"
+   - Resetar `bulkDeleteScope` ao fechar.
+
+4. **`confirmBulkDelete`** passa a respeitar o escopo:
+   - **`single`**: comportamento atual — `delete().in("id", ids)`.
+   - **`forward`**: para cada selecionado que pertence a série (`seriesParentId = parent_transaction_id ?? id`), excluir filhos com `transaction_date >= tx.transaction_date` e o próprio `tx.id`. Selecionados que não são recorrentes são excluídos pelo `id`. Deduplicar por `seriesParentId` para não disparar a mesma query duas vezes.
+   - **`all`**: para cada série representada nos selecionados, calcular `seriesParentIds = unique(parent_transaction_id ?? id)`; excluir todos os filhos (`parent_transaction_id IN seriesParentIds`) e os próprios pais (`id IN seriesParentIds`). Selecionados não recorrentes seguem por `id`.
+
+5. **Audit log**: incluir `delete_scope` em `transactions_bulk_deleted` `_details` (mantém `count` e `ids`).
+
+6. **Toast**: mensagem adaptada — `"X lançamento(s) excluído(s)"`, `"X selecionado(s) + ocorrências futuras excluídos"`, `"Séries excluídas (X selecionado(s))"`.
 
 ## Fora do escopo
 
-- Nenhuma alteração de schema, RLS, ou na página `/categorias`.
-- Não mexer no `CategoryFormDialog` (criar categoria pelo "+" continua igual; sugestão futura: pré-selecionar o tipo, mas não nesta tarefa salvo se você pedir).
+- Edição em massa (`BulkEditDialog`) não muda.
+- Exclusão individual já existente permanece igual.
+- Nenhuma alteração de schema/RLS.
 
 ## Resultado esperado
 
-Ao alternar entre Receita e Despesa no formulário de lançamento, o seletor mostra apenas as categorias daquele tipo, com o índice e a bolinha colorida como no módulo Categorias.
+Ao clicar em "Excluir selecionados" com pelo menos um item de série recorrente entre os marcados, aparecem as 3 opções (somente / + futuras / série inteira). Quando nenhum item é recorrente, o diálogo continua simples como hoje.
