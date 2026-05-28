@@ -32,6 +32,8 @@ type Plan = {
   billing_period: string;
   trial_days: number;
   sort_order: number;
+  is_featured: boolean;
+  featured_label: string | null;
   features: Record<string, unknown> | null;
 };
 
