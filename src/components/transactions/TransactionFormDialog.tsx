@@ -843,7 +843,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
           {/* Destination account (transfer) */}
           {type === "transferencia" && (
-            <div className="space-y-2">
+            <div className="space-y-2" data-field="destination_account_id">
               <Label>Conta de destino</Label>
               <div className="flex gap-2">
                 <SearchableSelect
