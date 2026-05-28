@@ -173,8 +173,13 @@ export default function Lancamentos() {
   };
 
   const visibleOptionalCount = Object.values(visibleColumns).filter(Boolean).length;
-  // 3 fixed columns (Descrição, Valor, Ações) + optional
-  const totalColumns = 3 + visibleOptionalCount;
+  // 1 checkbox + 3 fixed columns (Descrição, Valor, Ações) + optional
+  const totalColumns = 4 + visibleOptionalCount;
+
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
 
   const monthStart = useMemo(() => {
     const d = new Date(selectedYear, selectedMonth, 1);
