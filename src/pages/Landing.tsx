@@ -708,10 +708,21 @@ function PublicFooter() {
           <span className="text-sm font-semibold">Gestor Plin</span>
         </div>
         <p className="text-xs text-muted-foreground">{copy}</p>
-        <div className="flex gap-4 text-xs text-muted-foreground">
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
           <Link to="/auth" className="hover:text-foreground">{c.link_login}</Link>
           <a href="#planos" className="hover:text-foreground">{c.link_plans}</a>
           <a href="#faq" className="hover:text-foreground">{c.link_faq}</a>
+          <Link to="/privacidade" className="hover:text-foreground">Privacidade</Link>
+          <Link to="/termos" className="hover:text-foreground">Termos</Link>
+          <Link to="/cookies" className="hover:text-foreground">Cookies</Link>
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("plin:cookie-settings-open"))}
+            className="hover:text-foreground"
+          >
+            Gerenciar cookies
+          </button>
+          <Link to="/encarregado-dados" className="hover:text-foreground">DPO</Link>
         </div>
       </div>
     </footer>

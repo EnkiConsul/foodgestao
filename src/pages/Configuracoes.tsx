@@ -15,6 +15,8 @@ import { User, Globe, Shield, Save, ListChecks } from "lucide-react";
 import { ResetMyDataCard } from "@/components/settings/ResetMyDataCard";
 import { TwoFactorCard } from "@/components/settings/TwoFactorCard";
 import { ResetOnboardingCard } from "@/components/settings/ResetOnboardingCard";
+import { ExportMyDataCard } from "@/components/settings/ExportMyDataCard";
+import { DeleteMyAccountCard } from "@/components/settings/DeleteMyAccountCard";
 import {
   TRANSACTION_FIELDS,
   TRANSACTION_FIELD_LABELS,
