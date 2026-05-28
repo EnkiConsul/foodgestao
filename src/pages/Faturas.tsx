@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { formatCents, INVOICE_STATUS_LABELS, INVOICE_STATUS_VARIANT } from "@/lib/billing";
 import { SandboxTestCard } from "@/components/billing/SandboxTestCard";
+import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 
 type StatusFilter = "all" | "pending" | "paid" | "overdue";
 
@@ -20,6 +21,7 @@ export default function Faturas() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [onlyPix, setOnlyPix] = useState(false);
+  const { isSuperAdmin } = useSuperAdmin();
 
   const { data: invoices, isLoading } = useQuery({
     queryKey: ["my-invoices"],
@@ -129,9 +131,11 @@ export default function Faturas() {
           </div>
         </div>
 
-        <div className="mb-6">
-          <SandboxTestCard />
-        </div>
+        {isSuperAdmin && (
+          <div className="mb-6">
+            <SandboxTestCard />
+          </div>
+        )}
 
         {/* Summary cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
