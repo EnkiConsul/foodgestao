@@ -1,52 +1,148 @@
-# Editor de conteúdo da Landing Page (super admin)
+## Conformidade LGPD/Brasil — Gestor Plin
 
-Hoje só os **cards de planos** são editáveis pelo super admin. Todo o resto da LP (Hero, comparativo, personas, recursos, garantia, FAQ, CTA final, rodapé) está **hardcoded** em `src/pages/Landing.tsx`. Esta proposta torna **todos os textos da LP** editáveis pelo painel admin, sem mexer em planos (que já estão prontos).
+Implementação completa das exigências legais brasileiras para SaaS, com base no padrão LGPD (Lei 13.709/2018), Marco Civil da Internet (Lei 12.965/2014) e CDC.
 
-## O que ficará editável
+### 1. Documentos legais (páginas públicas editáveis)
 
-1. **Hero** — badge superior, título (com destaque em azul), subtítulo, 3 bullets de garantia, rótulo dos 2 botões (primário/secundário), 3 selos de confiança (4.9 satisfação / usado por… / mobile e desktop).
-2. **Faixa de personas** — título da faixa + lista de tags ("MEI", "Autônomos"…).
-3. **Comparativo Planilha vs Plin** — eyebrow, título, subtítulo, linhas da tabela (recurso / planilha / Plin), rótulo do CTA.
-4. **Cards de personas** (Pessoal / MEI / Empresa) — tag, título, 3 bullets e rótulo do CTA de cada card.
-5. **Recursos** — eyebrow, título, e a lista de 6 cards (ícone, título, descrição).
-6. **Faixa de garantia** — título e subtítulo.
-7. **Seção de planos** — eyebrow, título e subtítulo (cards continuam vindo da tabela `plans`, já editável).
-8. **FAQ** — eyebrow, título e a lista de perguntas/respostas.
-9. **CTA final** — título, subtítulo e rótulo do botão.
-10. **Rodapé** — texto de copyright e links.
+Estendo o sistema CMS já existente da Landing Page para também gerenciar os documentos legais.
 
-Cores, layout, ícones e animações **não** entram no editor (mantidos no código).
+Novas seções em `landing_content` (JSONB editável pelo super admin):
+- `legal_privacy` — Política de Privacidade (LGPD)
+- `legal_terms` — Termos de Uso
+- `legal_cookies` — Política de Cookies
+- `legal_dpo` — Encarregado de Dados (DPO) + canal de contato + direitos do titular
 
-## Como funciona
+Novas rotas públicas:
+- `/privacidade` → renderiza `legal_privacy`
+- `/termos` → renderiza `legal_terms`
+- `/cookies` → renderiza `legal_cookies`
+- `/encarregado-dados` (alias `/dpo`) → renderiza `legal_dpo`
 
-- Uma nova página em `/admin/landing-page` no painel admin, organizada em **abas** (uma aba por seção da LP) com formulários simples (inputs, textareas e listas com adicionar/remover/reordenar para itens repetidos como bullets, FAQ, recursos, linhas da tabela).
-- Cada aba tem **Salvar** + **Restaurar padrão** (volta ao texto original).
-- A LP pública lê o conteúdo do banco; se algum campo ainda não foi salvo, usa o texto padrão atual como **fallback** (zero risco de página em branco).
-- Cache curto no client (60s) para não pesar no carregamento da LP.
+Cada página: layout limpo com `<Helmet>` (title/description/canonical), conteúdo em Markdown renderizado (via `react-markdown`), data de "última atualização", botão "Voltar".
 
-## Detalhes técnicos
+Defaults em `src/lib/legal-defaults.ts` com textos-modelo prontos para SaaS BR (Gestor Plin como controlador, Asaas/Supabase como operadores, base legal por finalidade, prazo de retenção, direitos LGPD art. 18, canal do DPO usando e-mail editável).
 
-- **Tabela nova**: `landing_content (id, section text unique, content jsonb, updated_at, updated_by)`.
-  - GRANTs: `SELECT` para `anon` e `authenticated` (LP é pública), `ALL` para `service_role`.
-  - RLS: `SELECT` liberado para todos; `INSERT/UPDATE/DELETE` apenas via `is_super_admin(auth.uid())`.
-  - Uma linha por seção (`hero`, `personas_strip`, `comparison`, `persona_cards`, `features`, `guarantee`, `pricing_intro`, `faq`, `final_cta`, `footer`).
-- **Defaults**: arquivo `src/lib/landing-defaults.ts` espelha exatamente o texto atual da LP (fonte da verdade para fallback e para o botão "Restaurar padrão").
-- **Hook** `useLandingContent(section)` com React Query (staleTime 60s) que faz merge `defaults ⟵ banco`.
-- **Refator do `Landing.tsx`**: cada subcomponente (`HeroSection`, `ComparisonSection`, etc.) passa a consumir o hook; nenhuma string visível fica hardcoded.
-- **Admin**: novo `src/pages/admin/LandingPage.tsx` + componentes por aba em `src/components/admin/landing/` (Hero, Comparison, PersonaCards, Features, Faq, etc.). Validação leve com Zod, toast de sucesso e `useUpsertLandingSection` (invalida o cache da LP).
-- **Rota**: adicionar `<Route path="/admin/landing-page" …/>` em `App.tsx` dentro do `SuperAdminRoute` e item no `AdminSidebar`.
-- **Auditoria**: cada salvamento chama `insert_audit_log('landing_section_updated', 'landing_content', section)`.
+### 2. Editor no Backoffice
 
-## Fora de escopo
+Nova página `/admin/legal` (sidebar admin: "Documentos Legais") com abas: Privacidade, Termos, Cookies, DPO.
 
-- Edição de planos (já existe em `/admin/planos`).
-- Edição de imagens/ícones do mockup do Hero (mantido visual).
-- Multi-idioma e versionamento/preview com rascunho — apenas publicação direta.
+Cada aba:
+- Campo `title`, `last_updated` (date), `body` (textarea grande Markdown), `dpo_email`/`dpo_name` quando aplicável
+- Preview lado a lado opcional
+- Botões "Salvar" e "Restaurar padrão" (mesmo padrão da Landing CMS)
+- Log em `audit_logs` a cada salvar
 
-## Entregáveis
+Reaproveita `useLandingContent` (renomeio mental para "content CMS") ou cria hook irmão `useLegalContent`.
 
-- 1 migração SQL (tabela + RLS + GRANTs).
-- `src/lib/landing-defaults.ts`, `src/hooks/useLandingContent.tsx`.
-- `Landing.tsx` refatorado para ler do hook (sem mudança visual).
-- `src/pages/admin/LandingPage.tsx` + componentes por aba.
-- Rota e item de menu no admin.
+### 3. Banner de Consentimento de Cookies
+
+Novo componente `src/components/legal/CookieConsentBanner.tsx`:
+- Aparece somente para visitantes não autenticados que ainda não decidiram
+- Persistência em `localStorage` (`plin_cookie_consent` = `{status: "accepted"|"rejected"|"custom", analytics: bool, marketing: bool, ts}`)
+- 3 botões: "Aceitar todos", "Recusar não essenciais", "Personalizar"
+- Modal "Personalizar" com switches por categoria (Necessários sempre ON; Analytics; Marketing)
+- Link "Saiba mais" → `/cookies`
+- Reabertura via link "Cookies" no footer (sempre acessível, requisito LGPD)
+- Hook `useCookieConsent()` exposto para futuros scripts de analytics
+
+Montado no `App.tsx` fora de rotas autenticadas (e também na Landing).
+
+### 4. Aceite de Termos no Cadastro
+
+Em `src/pages/Auth.tsx` (modo signup):
+- Novo checkbox obrigatório: "Li e aceito a [Política de Privacidade](/privacidade) e os [Termos de Uso](/termos)"
+- Validação no schema Zod: `acceptTerms: z.literal(true, { errorMap: () => ({ message: "Aceite obrigatório" }) })`
+- Bloqueia o submit se não aceito
+- Ao criar conta com sucesso, registra em nova tabela `legal_acceptances` o snapshot do aceite
+
+### 5. Banco — Tabela de aceites
+
+```sql
+CREATE TABLE public.legal_acceptances (
+  id uuid PK,
+  user_id uuid NOT NULL,
+  document_type text NOT NULL,  -- 'privacy' | 'terms' | 'cookies'
+  document_version text,         -- last_updated do documento aceito
+  accepted_at timestamptz default now(),
+  ip_address text,
+  user_agent text
+);
+```
+- GRANTs: authenticated SELECT/INSERT próprios, service_role ALL
+- RLS: usuário lê apenas seus aceites; super_admin lê todos
+- Sem UPDATE/DELETE (registro imutável para prova legal)
+
+### 6. Direitos do Titular — Configurações do Usuário
+
+Em `src/pages/Configuracoes.tsx`, nova seção "Privacidade e Dados (LGPD)":
+
+**Exportar meus dados (Portabilidade — art. 18 V)**
+- Card `ExportMyDataCard`
+- Botão "Baixar meus dados (JSON)"
+- Edge function `export-user-data`: roda com service_role, agrega dados do usuário (profiles, companies onde é owner, accounts, transactions, contacts, categories, budgets, payment_methods, attachments meta, subscriptions, invoices, audit_logs), devolve JSON com timestamp
+- Frontend faz download como `gestor-plin-meus-dados-YYYYMMDD.json`
+
+**Excluir minha conta (Eliminação — art. 18 VI)**
+- Card `DeleteMyAccountCard`
+- Dialog de confirmação dupla: digitar "EXCLUIR" + senha atual
+- Edge function `delete-user-account`: revalida senha, executa exclusão em cascata (mantém dados financeiros com `user_id` anonimizado se houver vínculo legal — ex: cobranças Asaas; demais dados são deletados; `auth.users` removido por último)
+- Logout automático + redirect para `/`
+- Log especial em `audit_logs`
+
+### 7. Footer público (Landing + páginas legais)
+
+Adiciono links no footer da Landing (e nas próprias páginas legais):
+- Política de Privacidade
+- Termos de Uso
+- Política de Cookies
+- Gerenciar Cookies (reabre banner)
+- Encarregado de Dados
+
+Esses links também ficam editáveis via CMS (extensão de `footer` em `LANDING_DEFAULTS`).
+
+### 8. Aspectos técnicos
+
+- Markdown: `bun add react-markdown remark-gfm`
+- IP do cliente capturado por edge function (header `x-forwarded-for`), não pelo browser
+- Senha confirmada na exclusão via `supabase.auth.signInWithPassword` em edge function
+- Sem MFA bypass: usuários com MFA precisam estar autenticados normalmente para acessar Configurações
+- Páginas legais públicas (sem auth) com SEO completo (Helmet)
+
+### 9. Estrutura de arquivos
+
+```text
+src/
+  pages/
+    legal/
+      Privacidade.tsx
+      Termos.tsx
+      Cookies.tsx
+      EncarregadoDados.tsx
+    admin/
+      DocumentosLegais.tsx
+  components/
+    legal/
+      CookieConsentBanner.tsx
+      LegalDocumentView.tsx
+    settings/
+      ExportMyDataCard.tsx
+      DeleteMyAccountCard.tsx
+  hooks/
+    useCookieConsent.tsx
+    useLegalContent.tsx        (ou estender useLandingContent)
+  lib/
+    legal-defaults.ts
+supabase/
+  migrations/<ts>_legal_compliance.sql
+  functions/
+    export-user-data/index.ts
+    delete-user-account/index.ts
+```
+
+### 10. Itens fora do escopo (informativo)
+
+- Registro formal do DPO na ANPD (ação administrativa do cliente, não do código)
+- RIPD (Relatório de Impacto) — documento jurídico externo
+- Contratos de operador com Supabase/Asaas — externos
+
+Pronto para implementar quando aprovado.
