@@ -78,11 +78,15 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
     setSaving(true);
 
     if (isEdit && account) {
+      const newCurrent = parseCurrencyToNumber(currentBalance);
+      const balanceAdjusted = Math.abs(newCurrent - originalCurrentBalance) > 0.005;
       const { error } = await supabase
         .from("accounts")
         .update({
           name: name.trim(),
           account_type: accountType,
+          initial_balance: balance,
+          current_balance: newCurrent,
           context: ownerType,
           company_id: ownerType === "pj" ? ownerCompanyId : null,
         })
@@ -93,7 +97,7 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
           _action: "account_updated",
           _entity_type: "account",
           _entity_id: account.id,
-          _details: { target_name: name.trim() },
+          _details: { target_name: name.trim(), balance_adjusted: balanceAdjusted },
         });
         toast.success("Conta atualizada"); onSaved(); onOpenChange(false);
       }
