@@ -634,6 +634,10 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                 due_date: futureDueDate,
                 parent_transaction_id: inserted.id,
                 is_recurring: false, // children are not recurring themselves
+                // Future occurrences always start as pending — they haven't happened yet
+                status: "pendente",
+                payment_date: null,
+                bill_status: futureDueDate ? "em_dia" : null,
               };
             });
             const { error: recError } = await supabase.from("transactions").insert(futurePayloads);
