@@ -701,7 +701,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           </div>
 
           {/* Description */}
-          <div className="space-y-2">
+          <div className="space-y-2" data-field="description">
             <Label>Descrição</Label>
             <Input
               value={description}
