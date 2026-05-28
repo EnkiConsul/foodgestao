@@ -44,6 +44,7 @@ import CheckoutPagamento from "./pages/CheckoutPagamento";
 import Faturas from "./pages/Faturas";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
+import Unsubscribe from "./pages/Unsubscribe";
 import Privacidade from "./pages/legal/Privacidade";
 import Termos from "./pages/legal/Termos";
 import CookiesPage from "./pages/legal/Cookies";
@@ -266,6 +267,7 @@ const AppRoutes = () => (
     <Route path="/cookies" element={<CookiesPage />} />
     <Route path="/encarregado-dados" element={<EncarregadoDados />} />
     <Route path="/dpo" element={<Navigate to="/encarregado-dados" replace />} />
+    <Route path="/unsubscribe" element={<Unsubscribe />} />
     <Route path="/planos" element={<ProtectedRoute><Planos /></ProtectedRoute>} />
     <Route path="/checkout/:planSlug" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
     <Route path="/checkout/pagamento/:invoiceId" element={<ProtectedRoute><CheckoutPagamento /></ProtectedRoute>} />
