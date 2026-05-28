@@ -56,6 +56,7 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [mfaRequired, setMfaRequired] = useState(false);
@@ -151,7 +152,7 @@ export default function Auth() {
 
     const parsed = isLogin
       ? loginSchema.safeParse({ email, password })
-      : signupSchema.safeParse({ email, password, confirmPassword, fullName });
+      : signupSchema.safeParse({ email, password, confirmPassword, fullName, acceptTerms: acceptTerms as true });
 
     if (!parsed.success) {
       const fieldErrors: Record<string, string> = {};
@@ -176,6 +177,18 @@ export default function Auth() {
         if (error) {
           toast.error("Erro ao cadastrar", { description: translateAuthError(error.message) });
         } else {
+          // Log LGPD acceptance (best-effort, non-blocking)
+          try {
+            const { data: { user: newUser } } = await supabase.auth.getUser();
+            if (newUser) {
+              await supabase.from("legal_acceptances").insert([
+                { user_id: newUser.id, document_type: "terms", document_version: "1.0", user_agent: navigator.userAgent },
+                { user_id: newUser.id, document_type: "privacy", document_version: "1.0", user_agent: navigator.userAgent },
+              ]);
+            }
+          } catch (e) {
+            console.warn("Failed to log legal acceptance", e);
+          }
           toast.success("Cadastro realizado!");
           navigate("/onboarding");
         }
