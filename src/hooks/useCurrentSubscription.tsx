@@ -27,7 +27,6 @@ export function useCurrentSubscription() {
         .from("subscriptions")
         .select("*, plan:plans(*)")
         .eq("user_id", user.id)
-        .in("status", ["trialing", "active", "past_due", "pending"])
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -40,13 +39,21 @@ export function useCurrentSubscription() {
         ? Math.ceil((trialEndsAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
         : null;
 
+      const isTrialing = data.status === "trialing";
+      const trialEnded =
+        isTrialing && trialEndsAt !== null && trialEndsAt.getTime() < Date.now();
+      const isExpired =
+        data.status === "expired" || data.status === "canceled" || trialEnded;
+
       return {
         ...data,
         features,
         trialDaysLeft: daysLeft,
-        isTrialing: data.status === "trialing",
+        isTrialing,
         isActive: data.status === "active",
         isPastDue: data.status === "past_due",
+        isExpired,
+        isBlocked: isExpired,
       };
     },
   });
