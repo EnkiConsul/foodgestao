@@ -565,9 +565,9 @@ export default function Lancamentos() {
     const receitas = effectiveRows.filter((r) => r.transactionType === "receita").reduce((s, r) => s + r.amount, 0);
     const despesas = effectiveRows.filter((r) => r.transactionType === "despesa").reduce((s, r) => s + r.amount, 0);
 
-    const withDue = displayRows.filter((r) => r.hasDueDate && r.billStatus !== "pago");
-    const aPagar = withDue.filter((r) => r.transactionType === "despesa").reduce((s, r) => s + r.amount - r.amountPaid, 0);
-    const aReceber = withDue.filter((r) => r.transactionType === "receita").reduce((s, r) => s + r.amount - r.amountPaid, 0);
+    const pending = displayRows.filter((r) => r.billStatus !== "pago");
+    const aPagar = pending.filter((r) => r.transactionType === "despesa").reduce((s, r) => s + r.amount - r.amountPaid, 0);
+    const aReceber = pending.filter((r) => r.transactionType === "receita").reduce((s, r) => s + r.amount - r.amountPaid, 0);
     const atrasadas = displayRows.filter((r) => r.billStatus === "atrasado").length;
 
     const allReceitas = displayRows.filter((r) => r.transactionType === "receita").reduce((s, r) => s + r.amount, 0);
