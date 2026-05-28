@@ -1380,14 +1380,32 @@ export default function Lancamentos() {
       )}
 
       {/* Bulk delete confirmation */}
-      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={(o) => { setBulkDeleteOpen(o); if (!o) setBulkDeleteScope("single"); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir {selectedIds.size} lançamento(s)?</AlertDialogTitle>
             <AlertDialogDescription>
-              Essa ação não pode ser desfeita. Todos os registros selecionados serão removidos permanentemente.
+              {bulkHasRecurring
+                ? "Há lançamentos recorrentes entre os selecionados. Escolha o que deseja excluir:"
+                : "Essa ação não pode ser desfeita. Todos os registros selecionados serão removidos permanentemente."}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {bulkHasRecurring && (
+            <RadioGroup value={bulkDeleteScope} onValueChange={(v) => setBulkDeleteScope(v as any)} className="gap-2 px-1">
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="single" id="bulk-scope-single" />
+                <label htmlFor="bulk-scope-single" className="text-sm cursor-pointer">Excluir apenas os selecionados</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="forward" id="bulk-scope-forward" />
+                <label htmlFor="bulk-scope-forward" className="text-sm cursor-pointer">Excluir os selecionados e as ocorrências futuras</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="all" id="bulk-scope-all" />
+                <label htmlFor="bulk-scope-all" className="text-sm cursor-pointer">Excluir todas as ocorrências da série (passadas e futuras)</label>
+              </div>
+            </RadioGroup>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
