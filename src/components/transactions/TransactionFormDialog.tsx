@@ -480,22 +480,20 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     // Upload new files
     for (const file of attachmentFiles) {
       const ext = file.name.split(".").pop();
-      const filePath = `${user.id}/${transactionId}/${Date.now()}_${file.name}`;
+      const safeName = file.name.replace(/[^\w.\-]+/g, "_");
+      const filePath = `${user.id}/${transactionId}/${Date.now()}_${safeName}`;
       const { error } = await supabase.storage
         .from("transaction-attachments")
-        .upload(filePath, file, { upsert: true });
+        .upload(filePath, file, { upsert: false });
       if (error) {
         toast.error(`Erro ao enviar ${file.name}`, { description: error.message });
         continue;
       }
-      const { data: urlData } = supabase.storage
-        .from("transaction-attachments")
-        .getPublicUrl(filePath);
       await supabase.from("transaction_attachments").insert({
         transaction_id: transactionId,
         user_id: user.id,
         file_name: file.name,
-        file_url: urlData.publicUrl,
+        file_url: filePath,
         file_size: file.size,
         file_type: file.type || ext || null,
       });
