@@ -1,8 +1,9 @@
-import { Bell, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ContextSelector } from "@/components/layout/ContextSelector";
+import { NotificationsBell } from "@/components/layout/NotificationsBell";
 
 
 export function AppHeader() {
@@ -30,10 +31,7 @@ export function AppHeader() {
         {privacyMode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
       </Button>
 
-      <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground relative">
-        <Bell className="h-4 w-4" />
-        <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
-      </Button>
+      <NotificationsBell />
     </header>
   );
 }
