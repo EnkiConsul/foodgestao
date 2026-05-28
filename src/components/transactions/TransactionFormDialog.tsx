@@ -179,6 +179,30 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState(false);
   const [accountTarget, setAccountTarget] = useState<"origin" | "destination">("origin");
 
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [errorField, setErrorField] = useState<string | null>(null);
+
+  // Scroll to top whenever dialog opens
+  useEffect(() => {
+    if (open) {
+      setErrorField(null);
+      requestAnimationFrame(() => bodyRef.current?.scrollTo({ top: 0, behavior: "auto" }));
+    }
+  }, [open]);
+
+  // Scroll to first error field
+  useEffect(() => {
+    if (!errorField || !bodyRef.current) return;
+    const el = bodyRef.current.querySelector<HTMLElement>(`[data-field="${errorField}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      const focusable = el.querySelector<HTMLElement>("input,textarea,button,select,[role='combobox']");
+      focusable?.focus({ preventScroll: true });
+    }
+    const t = setTimeout(() => setErrorField(null), 1500);
+    return () => clearTimeout(t);
+  }, [errorField]);
+
   // --- Lookup queries (React Query so realtime invalidation works) ---
   const accountsQuery = useQuery({
     queryKey: ["form-accounts", user?.id],
