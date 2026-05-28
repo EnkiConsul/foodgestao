@@ -341,6 +341,31 @@ export default function Auth() {
               </div>
             )}
 
+            {isSignup && (
+              <div className="space-y-2">
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    id="acceptTerms"
+                    checked={acceptTerms}
+                    onCheckedChange={(c) => setAcceptTerms(c === true)}
+                    className="mt-0.5"
+                  />
+                  <Label htmlFor="acceptTerms" className="text-xs font-normal leading-relaxed cursor-pointer">
+                    Li e aceito os{" "}
+                    <Link to="/termos" target="_blank" className="text-primary underline hover:no-underline">
+                      Termos de Uso
+                    </Link>{" "}
+                    e a{" "}
+                    <Link to="/privacidade" target="_blank" className="text-primary underline hover:no-underline">
+                      Política de Privacidade
+                    </Link>
+                    .
+                  </Label>
+                </div>
+                {errors.acceptTerms && <p className="text-xs text-destructive">{errors.acceptTerms}</p>}
+              </div>
+            )}
+
             {isForgot && (
               <p className="text-xs text-muted-foreground">
                 Informe o e-mail da sua conta. Enviaremos um link para você redefinir sua senha.
