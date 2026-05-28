@@ -55,6 +55,37 @@ import { HelmetProvider } from "react-helmet-async";
 import { SuperAdminRoute } from "@/components/admin/SuperAdminRoute";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useCurrentSubscription } from "@/hooks/useCurrentSubscription";
+import { useSuperAdmin } from "@/hooks/useSuperAdmin";
+import TrialExpired from "./pages/TrialExpired";
+
+// Rotas acessíveis mesmo com trial/assinatura expirada
+const TRIAL_EXPIRED_WHITELIST = [
+  "/trial-expirado",
+  "/planos",
+  "/checkout",
+  "/faturas",
+  "/admin",
+];
+
+function isWhitelistedForExpiredTrial(pathname: string) {
+  return TRIAL_EXPIRED_WHITELIST.some(
+    (p) => pathname === p || pathname.startsWith(p + "/"),
+  );
+}
+
+function SubscriptionGuard({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  const { data: sub, isLoading } = useCurrentSubscription();
+  const { isSuperAdmin, loading: roleLoading } = useSuperAdmin();
+
+  if (isLoading || roleLoading) return <>{children}</>;
+  if (isSuperAdmin) return <>{children}</>;
+  if (!sub?.isBlocked) return <>{children}</>;
+  if (isWhitelistedForExpiredTrial(location.pathname)) return <>{children}</>;
+
+  return <Navigate to="/trial-expirado" replace />;
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
