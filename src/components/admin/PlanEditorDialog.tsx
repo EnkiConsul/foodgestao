@@ -119,6 +119,20 @@ export function PlanEditorDialog({
             <Label>Público</Label>
             <Switch checked={form.is_public} onCheckedChange={(v) => setF("is_public", v)} />
           </div>
+          <div className="flex items-center justify-between rounded-md border p-3">
+            <Label>Destaque (Mais popular)</Label>
+            <Switch checked={!!form.is_featured} onCheckedChange={(v) => setF("is_featured", v)} />
+          </div>
+          {form.is_featured && (
+            <div>
+              <Label>Texto do selo</Label>
+              <Input
+                value={form.featured_label ?? ""}
+                onChange={(e) => setF("featured_label", e.target.value)}
+                placeholder="Mais popular"
+              />
+            </div>
+          )}
         </div>
 
         <div className="space-y-3 pt-4 border-t">
