@@ -257,9 +257,15 @@ const AppRoutes = () => (
       <Route path="/admin/auditoria" element={<AdminAuditoria />} />
       <Route path="/admin/resetar-dados" element={<AdminResetarDados />} />
       <Route path="/admin/landing-page" element={<AdminLandingPage />} />
+      <Route path="/admin/documentos-legais" element={<AdminDocumentosLegais />} />
     </Route>
     <Route path="/convite/:token" element={<AcceptInvite />} />
     <Route path="/reset-password" element={<ResetPassword />} />
+    <Route path="/privacidade" element={<Privacidade />} />
+    <Route path="/termos" element={<Termos />} />
+    <Route path="/cookies" element={<CookiesPage />} />
+    <Route path="/encarregado-dados" element={<EncarregadoDados />} />
+    <Route path="/dpo" element={<Navigate to="/encarregado-dados" replace />} />
     <Route path="/planos" element={<ProtectedRoute><Planos /></ProtectedRoute>} />
     <Route path="/checkout/:planSlug" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
     <Route path="/checkout/pagamento/:invoiceId" element={<ProtectedRoute><CheckoutPagamento /></ProtectedRoute>} />
@@ -270,25 +276,32 @@ const AppRoutes = () => (
 
 const AppShell = () => {
   useVisualViewport();
-  return <AppRoutes />;
+  return (
+    <>
+      <AppRoutes />
+      <CookieConsentBanner />
+    </>
+  );
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <CompanyContextProvider>
-            <PrivacyProvider>
-              <AppShell />
-            </PrivacyProvider>
-          </CompanyContextProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <HelmetProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <CompanyContextProvider>
+              <PrivacyProvider>
+                <AppShell />
+              </PrivacyProvider>
+            </CompanyContextProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </HelmetProvider>
 );
 
 export default App;

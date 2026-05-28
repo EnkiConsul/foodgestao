@@ -21,6 +21,9 @@ const loginSchema = z.object({
 const signupSchema = loginSchema.extend({
   fullName: z.string().trim().min(2, "Nome deve ter ao menos 2 caracteres").max(100),
   confirmPassword: z.string(),
+  acceptTerms: z.literal(true, {
+    errorMap: () => ({ message: "Você precisa aceitar os Termos e a Política de Privacidade" }),
+  }),
 }).refine((d) => d.password === d.confirmPassword, {
   message: "As senhas não coincidem",
   path: ["confirmPassword"],
