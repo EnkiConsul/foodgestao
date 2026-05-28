@@ -678,7 +678,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-          <div className="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 py-4 space-y-4 [-webkit-overflow-scrolling:touch]">
+          <div ref={bodyRef} className="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 py-4 space-y-4 [-webkit-overflow-scrolling:touch]">
           {/* Type tabs */}
           <Tabs value={type} onValueChange={(v) => setType(v as TransactionType)}>
             <TabsList className="w-full grid grid-cols-3">
