@@ -699,30 +699,47 @@ function PublicFooter() {
   const c = useLandingSection("footer");
   const copy = c.copyright.replace("{year}", String(new Date().getFullYear()));
   return (
-    <footer className="border-t border-border/60 bg-background py-8 sm:py-10">
-      <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 sm:flex-row">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <TreePine className="h-4 w-4" />
+    <footer className="border-t border-border/60 bg-background">
+      <div className="container mx-auto px-4 py-8 sm:py-10">
+        {/* Linha 1: Marca + navegação */}
+        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <TreePine className="h-4 w-4" />
+            </div>
+            <span className="text-sm font-semibold">Gestor Plin</span>
           </div>
-          <span className="text-sm font-semibold">Gestor Plin</span>
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+            <Link to="/auth" className="hover:text-foreground">{c.link_login}</Link>
+            <a href="#planos" className="hover:text-foreground">{c.link_plans}</a>
+            <a href="#faq" className="hover:text-foreground">{c.link_faq}</a>
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground">{copy}</p>
-        <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
-          <Link to="/auth" className="hover:text-foreground">{c.link_login}</Link>
-          <a href="#planos" className="hover:text-foreground">{c.link_plans}</a>
-          <a href="#faq" className="hover:text-foreground">{c.link_faq}</a>
-          <Link to="/privacidade" className="hover:text-foreground">Privacidade</Link>
-          <Link to="/termos" className="hover:text-foreground">Termos</Link>
-          <Link to="/cookies" className="hover:text-foreground">Cookies</Link>
-          <button
-            type="button"
-            onClick={() => window.dispatchEvent(new CustomEvent("plin:cookie-settings-open"))}
-            className="hover:text-foreground"
-          >
-            Gerenciar cookies
-          </button>
-          <Link to="/encarregado-dados" className="hover:text-foreground">DPO</Link>
+
+        {/* Linha 2: Bloco legal LGPD (destacado) */}
+        <div className="mt-6 border-t border-border/60 pt-6">
+          <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Privacidade & Conformidade LGPD
+            </p>
+            <nav
+              aria-label="Documentos legais"
+              className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs font-medium text-foreground/80"
+            >
+              <Link to="/privacidade" className="hover:text-primary hover:underline underline-offset-4">{c.link_privacy}</Link>
+              <Link to="/termos" className="hover:text-primary hover:underline underline-offset-4">{c.link_terms}</Link>
+              <Link to="/cookies" className="hover:text-primary hover:underline underline-offset-4">{c.link_cookies}</Link>
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent("plin:cookie-settings-open"))}
+                className="hover:text-primary hover:underline underline-offset-4"
+              >
+                {c.link_cookie_settings}
+              </button>
+              <Link to="/encarregado-dados" className="hover:text-primary hover:underline underline-offset-4">{c.link_dpo}</Link>
+            </nav>
+          </div>
+          <p className="mt-4 text-center text-[11px] text-muted-foreground sm:text-left">{copy}</p>
         </div>
       </div>
     </footer>
