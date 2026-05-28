@@ -23,6 +23,7 @@ import {
   Smartphone,
 } from "lucide-react";
 import { useLandingSection } from "@/hooks/useLandingContent";
+import { ContactSection } from "@/components/landing/ContactSection";
 
 type Plan = {
   id: string;
@@ -713,6 +714,7 @@ function PublicFooter() {
             <Link to="/auth" className="hover:text-foreground">{c.link_login}</Link>
             <a href="#planos" className="hover:text-foreground">{c.link_plans}</a>
             <a href="#faq" className="hover:text-foreground">{c.link_faq}</a>
+            <a href="#contato" className="hover:text-foreground">Contato</a>
           </div>
         </div>
 
@@ -761,6 +763,7 @@ export default function Landing() {
         <GuaranteeStrip utm={utm} />
         <PricingSection utm={utm} />
         <FaqSection />
+        <ContactSection />
         <FinalCta utm={utm} />
       </main>
       <PublicFooter />
