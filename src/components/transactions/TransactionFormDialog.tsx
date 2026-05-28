@@ -869,7 +869,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
           {/* Category - hierarchical display */}
           {type !== "transferencia" && (
-            <div className="space-y-2">
+            <div className="space-y-2" data-field="category">
               <Label>Categoria{fieldSuffix("category")}</Label>
               <div className="flex gap-2">
                 <SearchableSelect
