@@ -1054,7 +1054,8 @@ export default function Lancamentos() {
                                             .from("transaction_attachments")
                                             .select("id, file_name, file_url")
                                             .eq("transaction_id", r.id);
-                                          setPreviewAttachments(data ?? []);
+                                          const resolved = await resolveAttachments(data ?? []);
+                                          setPreviewAttachments(resolved);
                                           setPreviewOpen(true);
                                         }}
                                         className="inline-flex"
