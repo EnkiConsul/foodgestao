@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   LogOut,
   Webhook,
+  FileText,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
