@@ -208,6 +208,11 @@ export const LANDING_DEFAULTS = {
     link_login: "Entrar",
     link_plans: "Planos",
     link_faq: "FAQ",
+    link_privacy: "Política de Privacidade",
+    link_terms: "Termos de Uso",
+    link_cookies: "Política de Cookies",
+    link_cookie_settings: "Gerenciar cookies",
+    link_dpo: "Encarregado (DPO)",
   } satisfies FooterContent,
 } as const;
 
