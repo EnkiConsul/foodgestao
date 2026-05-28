@@ -249,6 +249,7 @@ const AppRoutes = () => (
       <Route path="/admin/perfis-acesso" element={<AdminPerfisAcesso />} />
       <Route path="/admin/auditoria" element={<AdminAuditoria />} />
       <Route path="/admin/resetar-dados" element={<AdminResetarDados />} />
+      <Route path="/admin/landing-page" element={<AdminLandingPage />} />
     </Route>
     <Route path="/convite/:token" element={<AcceptInvite />} />
     <Route path="/reset-password" element={<ResetPassword />} />
