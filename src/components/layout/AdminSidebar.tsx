@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   LogOut,
   Webhook,
+  FileText,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,6 +32,7 @@ import {
 
 const overviewItems = [
   { title: "Estatísticas", url: "/admin/estatisticas", icon: BarChart3 },
+  { title: "Landing Page", url: "/admin/landing-page", icon: FileText },
   { title: "Auditoria", url: "/admin/auditoria", icon: ScrollText },
 ];
 

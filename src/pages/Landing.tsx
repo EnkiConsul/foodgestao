@@ -22,6 +22,7 @@ import {
   Clock,
   Smartphone,
 } from "lucide-react";
+import { useLandingSection } from "@/hooks/useLandingContent";
 
 type Plan = {
   id: string;
@@ -79,7 +80,6 @@ function buildCta(base: string, utm: string, extra?: Record<string, string>) {
 
 function trackCta(label: string) {
   try {
-    // dataLayer push (consumed by GTM/Meta Pixel/Google Ads when configured)
     (window as unknown as { dataLayer?: unknown[] }).dataLayer =
       (window as unknown as { dataLayer?: unknown[] }).dataLayer || [];
     (window as unknown as { dataLayer: unknown[] }).dataLayer.push({
@@ -147,7 +147,7 @@ function PublicHeader({ utm }: { utm: string }) {
   );
 }
 
-/* ----------------------------- Hero mockup ----------------------------- */
+/* ----------------------------- Hero mockup (visual fixo) ----------------------------- */
 function HeroMockup() {
   return (
     <div className="relative">
@@ -226,6 +226,7 @@ function HeroMockup() {
 
 /* ----------------------------- Hero ----------------------------- */
 function HeroSection({ utm }: { utm: string }) {
+  const c = useLandingSection("hero");
   return (
     <section className="relative overflow-hidden">
       <div
@@ -239,22 +240,17 @@ function HeroSection({ utm }: { utm: string }) {
         <div>
           <Badge variant="secondary" className="mb-4 gap-1.5 sm:mb-5">
             <Sparkles className="h-3.5 w-3.5" />
-            Teste grátis 14 dias · sem cartão
+            {c.badge}
           </Badge>
           <h1 className="text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-            Controle financeiro <span className="text-primary">pessoal e da sua empresa</span>, sem planilha.
+            {c.title_prefix}<span className="text-primary">{c.title_highlight}</span>{c.title_suffix}
           </h1>
           <p className="mt-4 max-w-xl text-base text-muted-foreground sm:mt-5 sm:text-lg">
-            Para MEI, autônomos, pequenas empresas e finanças pessoais. Contas a pagar e receber,
-            fluxo de caixa projetado e relatórios — em uma só conta, com troca de PF/PJ em 1 clique.
+            {c.subtitle}
           </p>
 
           <ul className="mt-5 space-y-2 sm:mt-6">
-            {[
-              "Sem cartão de crédito para testar",
-              "Cancele em 1 clique, sem fidelidade",
-              "Dados protegidos (LGPD) e em servidores no Brasil",
-            ].map((b) => (
+            {c.bullets.map((b) => (
               <li key={b} className="flex items-center gap-2 text-sm text-foreground/90">
                 <Check className="h-4 w-4 text-success" /> {b}
               </li>
@@ -265,23 +261,23 @@ function HeroSection({ utm }: { utm: string }) {
             <CtaPrimary
               utm={utm}
               source="hero_primary"
-              label="Começar teste de 14 dias"
+              label={c.cta_primary}
               className="w-full text-base sm:w-auto"
             />
             <Button asChild size="lg" variant="outline" className="w-full text-base sm:w-auto">
-              <a href="#comparativo">Ver como funciona</a>
+              <a href="#comparativo">{c.cta_secondary}</a>
             </Button>
           </div>
 
           <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground sm:text-sm">
             <span className="flex items-center gap-1.5">
-              <Star className="h-4 w-4 fill-warning text-warning" /> 4.9 em satisfação
+              <Star className="h-4 w-4 fill-warning text-warning" /> {c.trust_satisfaction}
             </span>
             <span className="flex items-center gap-1.5">
-              <Users className="h-4 w-4 text-primary" /> Usado por MEIs e PMEs
+              <Users className="h-4 w-4 text-primary" /> {c.trust_users}
             </span>
             <span className="flex items-center gap-1.5">
-              <Smartphone className="h-4 w-4 text-primary" /> Mobile e desktop
+              <Smartphone className="h-4 w-4 text-primary" /> {c.trust_devices}
             </span>
           </div>
         </div>
@@ -293,15 +289,15 @@ function HeroSection({ utm }: { utm: string }) {
 
 /* ----------------------------- Personas strip ----------------------------- */
 function PersonasStrip() {
-  const items = ["MEI", "Autônomos", "Pequenas empresas", "Famílias", "Casais", "Freelancers"];
+  const c = useLandingSection("personas_strip");
   return (
     <section className="border-y border-border/60 bg-muted/30 py-6">
       <div className="container mx-auto px-4">
         <p className="text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Feito para
+          {c.label}
         </p>
         <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-          {items.map((i) => (
+          {c.items.map((i) => (
             <span
               key={i}
               className="rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-foreground/80 sm:text-sm"
@@ -317,39 +313,31 @@ function PersonasStrip() {
 
 /* ----------------------------- Spreadsheet vs Plin ----------------------------- */
 function ComparisonSection({ utm }: { utm: string }) {
-  const rows = [
-    { k: "Atualização", a: "Manual e demorada", b: "Lançamentos rápidos com categorização" },
-    { k: "Fluxo de caixa futuro", a: "Fórmulas que quebram", b: "Projeção automática por conta" },
-    { k: "Alertas de vencimento", a: "Você precisa lembrar", b: "Avisos de A Vencer e Atrasado" },
-    { k: "Multiusuário", a: "Conflito de versões", b: "Equipe com perfis de acesso" },
-    { k: "Acesso mobile", a: "Sofrível no celular", b: "Responsivo, otimizado para mobile" },
-    { k: "Backup e segurança", a: "Por sua conta", b: "Backup automático e LGPD" },
-    { k: "Relatórios", a: "Você monta do zero", b: "DRE, categorias e exportações prontos" },
-  ];
+  const c = useLandingSection("comparison");
   return (
     <section id="comparativo" className="py-14 sm:py-20 lg:py-24">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-xs font-semibold uppercase tracking-wider text-primary sm:text-sm">
-            Planilha vs Gestor Plin
+            {c.eyebrow}
           </p>
           <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
-            Saia da planilha sem perder o controle
+            {c.title}
           </h2>
           <p className="mt-3 text-sm text-muted-foreground sm:mt-4 sm:text-base">
-            Por que centenas de MEIs e pequenas empresas estão substituindo o Excel pelo Gestor Plin.
+            {c.subtitle}
           </p>
         </div>
 
         <Card className="mx-auto mt-8 max-w-5xl overflow-hidden border-border/60 sm:mt-10">
           <div className="grid grid-cols-[1.1fr_1fr_1fr] divide-x divide-border/60 border-b border-border/60 bg-muted/40 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
-            <div className="px-3 py-3 sm:px-5 sm:py-4">Recurso</div>
-            <div className="px-3 py-3 sm:px-5 sm:py-4">Planilha</div>
-            <div className="bg-primary/5 px-3 py-3 text-primary sm:px-5 sm:py-4">Gestor Plin</div>
+            <div className="px-3 py-3 sm:px-5 sm:py-4">{c.col_resource}</div>
+            <div className="px-3 py-3 sm:px-5 sm:py-4">{c.col_spreadsheet}</div>
+            <div className="bg-primary/5 px-3 py-3 text-primary sm:px-5 sm:py-4">{c.col_plin}</div>
           </div>
-          {rows.map((r, i) => (
+          {c.rows.map((r, i) => (
             <div
-              key={r.k}
+              key={`${r.k}-${i}`}
               className={`grid grid-cols-[1.1fr_1fr_1fr] divide-x divide-border/60 text-sm ${
                 i % 2 === 1 ? "bg-muted/20" : ""
               }`}
@@ -368,7 +356,7 @@ function ComparisonSection({ utm }: { utm: string }) {
         </Card>
 
         <div className="mt-8 flex justify-center">
-          <CtaPrimary utm={utm} source="comparison" label="Quero testar grátis" />
+          <CtaPrimary utm={utm} source="comparison" label={c.cta_label} />
         </div>
       </div>
     </section>
@@ -377,72 +365,54 @@ function ComparisonSection({ utm }: { utm: string }) {
 
 /* ----------------------------- Personas cards ----------------------------- */
 function PersonaCards({ utm }: { utm: string }) {
-  const personas = [
-    {
-      icon: User,
-      tag: "Pessoal",
-      title: "Para você e sua família",
-      bullets: ["Orçamento doméstico", "Cartões e contas", "Modo privacidade para apresentar"],
-      persona: "pf",
-    },
-    {
-      icon: Sparkles,
-      tag: "MEI",
-      title: "Para MEIs e autônomos",
-      bullets: ["DAS, NFs e clientes", "Lançamentos recorrentes", "Relatórios para o contador"],
-      persona: "mei",
-    },
-    {
-      icon: Building2,
-      tag: "Empresa",
-      title: "Para pequenas empresas",
-      bullets: ["Multiempresa isolada", "Equipe com permissões", "Contas a pagar/receber e DRE"],
-      persona: "pj",
-    },
-  ];
+  const c = useLandingSection("persona_cards");
+  const icons = { pf: User, mei: Sparkles, pj: Building2 } as const;
   return (
     <section className="border-t border-border/60 bg-muted/30 py-14 sm:py-20 lg:py-24">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-xs font-semibold uppercase tracking-wider text-primary sm:text-sm">
-            Para quem é
+            {c.eyebrow}
           </p>
           <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
-            Uma conta, três jeitos de usar
+            {c.title}
           </h2>
           <p className="mt-3 text-sm text-muted-foreground sm:mt-4 sm:text-base">
-            Alterne entre Pessoa Física e Pessoa Jurídica em 1 clique — dados isolados, mesma conta.
+            {c.subtitle}
           </p>
         </div>
 
         <div className="mx-auto mt-10 grid max-w-5xl gap-5 sm:mt-12 sm:gap-6 md:grid-cols-3">
-          {personas.map((p) => (
-            <Card key={p.tag} className="flex flex-col border-border/60">
-              <CardContent className="flex flex-1 flex-col p-5 sm:p-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <p.icon className="h-5 w-5" />
-                </div>
-                <Badge variant="secondary" className="mt-4 w-fit text-[10px]">{p.tag}</Badge>
-                <h3 className="mt-2 text-lg font-semibold">{p.title}</h3>
-                <ul className="mt-4 flex-1 space-y-2">
-                  {p.bullets.map((b) => (
-                    <li key={b} className="flex items-start gap-2 text-sm text-foreground/90">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                      <span>{b}</span>
-                    </li>
-                  ))}
-                </ul>
-                <CtaPrimary
-                  utm={utm}
-                  source={`persona_${p.persona}`}
-                  label="Testar grátis"
-                  className="mt-5 w-full"
-                  size="default"
-                  extra={{ persona: p.persona }}
-                />
-              </CardContent>
-            </Card>
-          ))}
+          {c.cards.map((p) => {
+            const Icon = icons[p.persona] ?? User;
+            return (
+              <Card key={p.tag} className="flex flex-col border-border/60">
+                <CardContent className="flex flex-1 flex-col p-5 sm:p-6">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <Badge variant="secondary" className="mt-4 w-fit text-[10px]">{p.tag}</Badge>
+                  <h3 className="mt-2 text-lg font-semibold">{p.title}</h3>
+                  <ul className="mt-4 flex-1 space-y-2">
+                    {p.bullets.map((b) => (
+                      <li key={b} className="flex items-start gap-2 text-sm text-foreground/90">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                        <span>{b}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <CtaPrimary
+                    utm={utm}
+                    source={`persona_${p.persona}`}
+                    label={p.cta_label}
+                    className="mt-5 w-full"
+                    size="default"
+                    extra={{ persona: p.persona }}
+                  />
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -451,64 +421,37 @@ function PersonaCards({ utm }: { utm: string }) {
 
 /* ----------------------------- Features ----------------------------- */
 function FeaturesGrid() {
-  const features = [
-    {
-      icon: Wallet,
-      title: "Contas a pagar e receber unificadas",
-      desc: "Todos os lançamentos com vencimentos, status, recorrências e anexos.",
-    },
-    {
-      icon: LineChart,
-      title: "Dashboard inteligente",
-      desc: "Saldos, evolução mensal e top categorias em tempo real.",
-    },
-    {
-      icon: TrendingUp,
-      title: "Fluxo de caixa projetado",
-      desc: "Veja o saldo futuro com base nas suas contas e lançamentos previstos.",
-    },
-    {
-      icon: Users,
-      title: "Multiusuário e perfis",
-      desc: "Convide sua equipe com permissões granulares por módulo.",
-    },
-    {
-      icon: ShieldCheck,
-      title: "Privacidade e LGPD",
-      desc: "Modo privacidade, dados isolados por usuário/empresa (RLS).",
-    },
-    {
-      icon: Clock,
-      title: "Pronto em 2 minutos",
-      desc: "Onboarding guiado: perfil, dados, primeira conta e categorias.",
-    },
-  ];
+  const c = useLandingSection("features");
+  const icons = [Wallet, LineChart, TrendingUp, Users, ShieldCheck, Clock];
   return (
     <section id="recursos" className="py-14 sm:py-20 lg:py-24">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-xs font-semibold uppercase tracking-wider text-primary sm:text-sm">
-            Recursos
+            {c.eyebrow}
           </p>
           <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
-            Tudo que você precisa para tirar o financeiro do papel
+            {c.title}
           </h2>
         </div>
         <div className="mt-10 grid gap-4 sm:mt-12 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
-          {features.map((f) => (
-            <Card
-              key={f.title}
-              className="border-border/60 transition-all hover:-translate-y-0.5 hover:shadow-lg"
-            >
-              <CardContent className="p-5 sm:p-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <f.icon className="h-5 w-5" />
-                </div>
-                <h3 className="mt-4 text-base font-semibold sm:text-lg">{f.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{f.desc}</p>
-              </CardContent>
-            </Card>
-          ))}
+          {c.items.map((f, i) => {
+            const Icon = icons[i % icons.length];
+            return (
+              <Card
+                key={`${f.title}-${i}`}
+                className="border-border/60 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+              >
+                <CardContent className="p-5 sm:p-6">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="mt-4 text-base font-semibold sm:text-lg">{f.title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">{f.desc}</p>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -517,6 +460,7 @@ function FeaturesGrid() {
 
 /* ----------------------------- Guarantee strip ----------------------------- */
 function GuaranteeStrip({ utm }: { utm: string }) {
+  const c = useLandingSection("guarantee");
   return (
     <section className="border-y border-border/60 bg-primary/5 py-8 sm:py-10">
       <div className="container mx-auto flex flex-col items-center gap-4 px-4 text-center sm:flex-row sm:justify-between sm:text-left">
@@ -525,13 +469,11 @@ function GuaranteeStrip({ utm }: { utm: string }) {
             <HeartHandshake className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-base font-semibold sm:text-lg">14 dias grátis · sem cartão · cancele quando quiser</p>
-            <p className="text-xs text-muted-foreground sm:text-sm">
-              Acesso completo durante o teste. Sem letrinhas miúdas.
-            </p>
+            <p className="text-base font-semibold sm:text-lg">{c.title}</p>
+            <p className="text-xs text-muted-foreground sm:text-sm">{c.subtitle}</p>
           </div>
         </div>
-        <CtaPrimary utm={utm} source="guarantee" label="Quero começar agora" />
+        <CtaPrimary utm={utm} source="guarantee" label={c.cta_label} />
       </div>
     </section>
   );
@@ -539,6 +481,7 @@ function GuaranteeStrip({ utm }: { utm: string }) {
 
 /* ----------------------------- Pricing ----------------------------- */
 function PricingSection({ utm }: { utm: string }) {
+  const intro = useLandingSection("pricing_intro");
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -596,13 +539,13 @@ function PricingSection({ utm }: { utm: string }) {
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-xs font-semibold uppercase tracking-wider text-primary sm:text-sm">
-            Planos
+            {intro.eyebrow}
           </p>
           <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
-            Comece grátis. Evolua quando precisar.
+            {intro.title}
           </h2>
           <p className="mt-3 text-sm text-muted-foreground sm:mt-4 sm:text-base">
-            Todos os planos pagos incluem 14 dias de teste, sem cartão de crédito.
+            {intro.subtitle}
           </p>
         </div>
 
@@ -688,38 +631,21 @@ function PricingSection({ utm }: { utm: string }) {
 
 /* ----------------------------- FAQ ----------------------------- */
 function FaqSection() {
-  const faqs = [
-    {
-      q: "Preciso de cartão de crédito para testar?",
-      a: "Não. O teste de 14 dias é liberado na hora, sem pedir cartão.",
-    },
-    {
-      q: "Funciona para MEI e pessoa física na mesma conta?",
-      a: "Sim. Você alterna entre Pessoa Física e Pessoa Jurídica com 1 clique, com dados totalmente isolados.",
-    },
-    {
-      q: "Meus dados estão seguros?",
-      a: "Criptografia em trânsito, isolamento por usuário/empresa (RLS) e conformidade com a LGPD. Você pode exportar ou excluir os dados a qualquer momento.",
-    },
-    {
-      q: "Posso cancelar quando quiser?",
-      a: "Sim. Sem fidelidade. Cancele em 1 clique nas configurações.",
-    },
-  ];
+  const c = useLandingSection("faq");
   return (
     <section id="faq" className="border-t border-border/60 bg-muted/30 py-14 sm:py-20 lg:py-24">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-xs font-semibold uppercase tracking-wider text-primary sm:text-sm">
-            Perguntas frequentes
+            {c.eyebrow}
           </p>
           <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
-            Tire suas dúvidas
+            {c.title}
           </h2>
         </div>
         <div className="mx-auto mt-8 grid max-w-4xl gap-4 sm:mt-10 md:grid-cols-2">
-          {faqs.map((f) => (
-            <Card key={f.q} className="border-border/60">
+          {c.items.map((f, i) => (
+            <Card key={`${f.q}-${i}`} className="border-border/60">
               <CardContent className="p-5">
                 <h3 className="text-base font-semibold">{f.q}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{f.a}</p>
@@ -734,6 +660,7 @@ function FaqSection() {
 
 /* ----------------------------- Final CTA ----------------------------- */
 function FinalCta({ utm }: { utm: string }) {
+  const c = useLandingSection("final_cta");
   return (
     <section className="py-14 sm:py-20 lg:py-24">
       <div className="container mx-auto px-4">
@@ -747,16 +674,16 @@ function FinalCta({ utm }: { utm: string }) {
           />
           <div className="relative z-10">
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
-              Pronto para tirar o financeiro da planilha?
+              {c.title}
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm text-sidebar-foreground/80 sm:mt-4 sm:text-base">
-              14 dias grátis. Sem cartão de crédito. Cancele quando quiser.
+              {c.subtitle}
             </p>
             <div className="mt-6 flex justify-center sm:mt-8">
               <CtaPrimary
                 utm={utm}
                 source="final_cta"
-                label="Iniciar teste de 14 dias"
+                label={c.cta_label}
                 className="w-full text-base sm:w-auto"
               />
             </div>
@@ -769,6 +696,8 @@ function FinalCta({ utm }: { utm: string }) {
 
 /* ----------------------------- Footer ----------------------------- */
 function PublicFooter() {
+  const c = useLandingSection("footer");
+  const copy = c.copyright.replace("{year}", String(new Date().getFullYear()));
   return (
     <footer className="border-t border-border/60 bg-background py-8 sm:py-10">
       <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 sm:flex-row">
@@ -778,13 +707,11 @@ function PublicFooter() {
           </div>
           <span className="text-sm font-semibold">Gestor Plin</span>
         </div>
-        <p className="text-xs text-muted-foreground">
-          © {new Date().getFullYear()} Gestor Plin. Todos os direitos reservados.
-        </p>
+        <p className="text-xs text-muted-foreground">{copy}</p>
         <div className="flex gap-4 text-xs text-muted-foreground">
-          <Link to="/auth" className="hover:text-foreground">Entrar</Link>
-          <a href="#planos" className="hover:text-foreground">Planos</a>
-          <a href="#faq" className="hover:text-foreground">FAQ</a>
+          <Link to="/auth" className="hover:text-foreground">{c.link_login}</Link>
+          <a href="#planos" className="hover:text-foreground">{c.link_plans}</a>
+          <a href="#faq" className="hover:text-foreground">{c.link_faq}</a>
         </div>
       </div>
     </footer>

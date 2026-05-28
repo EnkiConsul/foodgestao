@@ -1,43 +1,52 @@
-## Objetivo
+# Editor de conteúdo da Landing Page (super admin)
 
-Hoje o super admin já edita parte das informações dos planos em `/admin/planos` (nome, descrição, preço, trial, limites e alguns recursos booleanos). Porém, a landing page mostra alguns elementos que **não são editáveis** pelo admin:
+Hoje só os **cards de planos** são editáveis pelo super admin. Todo o resto da LP (Hero, comparativo, personas, recursos, garantia, FAQ, CTA final, rodapé) está **hardcoded** em `src/pages/Landing.tsx`. Esta proposta torna **todos os textos da LP** editáveis pelo painel admin, sem mexer em planos (que já estão prontos).
 
-1. **Selo "Mais popular"** — está fixo no código para o plano com `slug === "pro"`.
-2. **Tipo de suporte** ("Suporte por comunidade / e-mail / prioritário / dedicado") — vem de `features.support`, mas o editor de plano não tem esse campo.
-3. **Ordem em que o plano aparece** — já existe `sort_order`, mas vamos garantir que está claro no editor.
+## O que ficará editável
 
-O plano abaixo cobre essas lacunas para que o super admin controle 100% do que aparece nos cards de planos da LP.
+1. **Hero** — badge superior, título (com destaque em azul), subtítulo, 3 bullets de garantia, rótulo dos 2 botões (primário/secundário), 3 selos de confiança (4.9 satisfação / usado por… / mobile e desktop).
+2. **Faixa de personas** — título da faixa + lista de tags ("MEI", "Autônomos"…).
+3. **Comparativo Planilha vs Plin** — eyebrow, título, subtítulo, linhas da tabela (recurso / planilha / Plin), rótulo do CTA.
+4. **Cards de personas** (Pessoal / MEI / Empresa) — tag, título, 3 bullets e rótulo do CTA de cada card.
+5. **Recursos** — eyebrow, título, e a lista de 6 cards (ícone, título, descrição).
+6. **Faixa de garantia** — título e subtítulo.
+7. **Seção de planos** — eyebrow, título e subtítulo (cards continuam vindo da tabela `plans`, já editável).
+8. **FAQ** — eyebrow, título e a lista de perguntas/respostas.
+9. **CTA final** — título, subtítulo e rótulo do botão.
+10. **Rodapé** — texto de copyright e links.
 
-## O que será feito
+Cores, layout, ícones e animações **não** entram no editor (mantidos no código).
 
-### 1. Banco de dados (migration)
-- Adicionar coluna `is_featured boolean not null default false` na tabela `plans`. Esse será o controle do selo "Mais popular".
-- Adicionar coluna opcional `featured_label text` (default `'Mais popular'`) caso o admin queira customizar o texto do selo.
+## Como funciona
 
-### 2. Editor de plano (`PlanEditorDialog.tsx`)
-Adicionar novos controles:
-- **Switch "Destaque (Mais popular)"** → grava em `is_featured`.
-- **Input "Texto do selo de destaque"** → grava em `featured_label` (só aparece quando destaque está ligado).
-- **Select "Tipo de suporte"** com opções: Comunidade, E-mail, Prioritário, Dedicado, Nenhum → grava em `features.support`.
-- Pequeno texto de ajuda nos campos `sort_order`, `is_active`, `is_public` para deixar claro o efeito na LP.
+- Uma nova página em `/admin/landing-page` no painel admin, organizada em **abas** (uma aba por seção da LP) com formulários simples (inputs, textareas e listas com adicionar/remover/reordenar para itens repetidos como bullets, FAQ, recursos, linhas da tabela).
+- Cada aba tem **Salvar** + **Restaurar padrão** (volta ao texto original).
+- A LP pública lê o conteúdo do banco; se algum campo ainda não foi salvo, usa o texto padrão atual como **fallback** (zero risco de página em branco).
+- Cache curto no client (60s) para não pesar no carregamento da LP.
 
-### 3. Listagem admin (`AdminPlans.tsx`)
-- Mostrar badge "Destaque" no card quando `is_featured = true`.
-- Exibir o tipo de suporte resumido junto dos demais limites.
+## Detalhes técnicos
 
-### 4. Landing page (`src/pages/Landing.tsx`)
-- Buscar também `is_featured` e `featured_label` na query de `plans`.
-- Trocar `const featured = p.slug === "pro"` por `const featured = p.is_featured`.
-- Usar `p.featured_label ?? "Mais popular"` no `<Badge>`.
-- Nenhuma outra mudança visual — nome, descrição, preço, trial e lista de recursos já vêm da tabela.
+- **Tabela nova**: `landing_content (id, section text unique, content jsonb, updated_at, updated_by)`.
+  - GRANTs: `SELECT` para `anon` e `authenticated` (LP é pública), `ALL` para `service_role`.
+  - RLS: `SELECT` liberado para todos; `INSERT/UPDATE/DELETE` apenas via `is_super_admin(auth.uid())`.
+  - Uma linha por seção (`hero`, `personas_strip`, `comparison`, `persona_cards`, `features`, `guarantee`, `pricing_intro`, `faq`, `final_cta`, `footer`).
+- **Defaults**: arquivo `src/lib/landing-defaults.ts` espelha exatamente o texto atual da LP (fonte da verdade para fallback e para o botão "Restaurar padrão").
+- **Hook** `useLandingContent(section)` com React Query (staleTime 60s) que faz merge `defaults ⟵ banco`.
+- **Refator do `Landing.tsx`**: cada subcomponente (`HeroSection`, `ComparisonSection`, etc.) passa a consumir o hook; nenhuma string visível fica hardcoded.
+- **Admin**: novo `src/pages/admin/LandingPage.tsx` + componentes por aba em `src/components/admin/landing/` (Hero, Comparison, PersonaCards, Features, Faq, etc.). Validação leve com Zod, toast de sucesso e `useUpsertLandingSection` (invalida o cache da LP).
+- **Rota**: adicionar `<Route path="/admin/landing-page" …/>` em `App.tsx` dentro do `SuperAdminRoute` e item no `AdminSidebar`.
+- **Auditoria**: cada salvamento chama `insert_audit_log('landing_section_updated', 'landing_content', section)`.
 
-### 5. Página pública `/planos` (`src/pages/Planos.tsx`)
-- Mesma adaptação: usar `is_featured` para destacar visualmente o plano (borda/realce) e mostrar o selo, mantendo consistência com a LP.
+## Fora de escopo
 
-## Observações técnicas
-- Os tipos do Supabase (`src/integrations/supabase/types.ts`) são regenerados automaticamente após a migration.
-- Não muda RLS: `plans` já tem políticas para leitura pública e escrita restrita a super admin.
-- Não há mudança de business logic — apenas exibição/edição.
+- Edição de planos (já existe em `/admin/planos`).
+- Edição de imagens/ícones do mockup do Hero (mantido visual).
+- Multi-idioma e versionamento/preview com rascunho — apenas publicação direta.
 
-## Fora do escopo
-- Reordenar features arrastando, criar novos tipos de feature dinamicamente, ou editar textos genéricos da seção (título "Comece grátis. Evolua quando precisar.", FAQ etc.). Se quiser, posso planejar isso em uma etapa separada.
+## Entregáveis
+
+- 1 migração SQL (tabela + RLS + GRANTs).
+- `src/lib/landing-defaults.ts`, `src/hooks/useLandingContent.tsx`.
+- `Landing.tsx` refatorado para ler do hook (sem mudança visual).
+- `src/pages/admin/LandingPage.tsx` + componentes por aba.
+- Rota e item de menu no admin.
