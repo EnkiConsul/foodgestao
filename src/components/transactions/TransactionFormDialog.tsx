@@ -631,8 +631,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md p-0 gap-0 flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
-        <DialogHeader className="p-4 sm:p-6 pb-3 border-b shrink-0">
+      <DialogContent className="sm:max-w-md p-0 gap-0 flex flex-col max-h-[calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] sm:max-h-[90vh] [padding-top:0] [padding-bottom:0] [padding-left:0] [padding-right:0]">
+        <DialogHeader className="px-4 sm:px-6 pb-3 border-b shrink-0 [padding-top:max(1rem,env(safe-area-inset-top))] sm:[padding-top:1.5rem]">
           <DialogTitle>{isEditing ? "Editar Lançamento" : "Novo Lançamento"}</DialogTitle>
         </DialogHeader>
 
@@ -1022,7 +1022,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           </div>
           </div>
 
-          <div className="p-4 sm:p-6 pt-3 border-t shrink-0">
+          <div className="px-4 sm:px-6 pt-3 border-t shrink-0 [padding-bottom:max(1rem,env(safe-area-inset-bottom))] sm:[padding-bottom:1.5rem]">
             <Button type="submit" className="w-full" disabled={saving}>
               {saving ? "Salvando..." : isEditing ? "Atualizar Lançamento" : "Salvar Lançamento"}
             </Button>
