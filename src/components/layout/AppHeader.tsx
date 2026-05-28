@@ -1,13 +1,12 @@
 import { Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ContextSelector } from "@/components/layout/ContextSelector";
 import { NotificationsBell } from "@/components/layout/NotificationsBell";
-
+import { usePrivacy } from "@/hooks/usePrivacy";
 
 export function AppHeader() {
-  const [privacyMode, setPrivacyMode] = useState(false);
+  const { privacyMode, togglePrivacy } = usePrivacy();
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b bg-card px-4">
@@ -15,7 +14,6 @@ export function AppHeader() {
       <div className="md:hidden">
         <SidebarTrigger />
       </div>
-
 
       <ContextSelector />
 
@@ -25,7 +23,7 @@ export function AppHeader() {
         variant="ghost"
         size="icon"
         className="h-9 w-9 text-muted-foreground"
-        onClick={() => setPrivacyMode(!privacyMode)}
+        onClick={togglePrivacy}
         title={privacyMode ? "Mostrar valores" : "Ocultar valores"}
       >
         {privacyMode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
