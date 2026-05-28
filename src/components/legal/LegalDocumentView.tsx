@@ -1,0 +1,65 @@
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Link } from "react-router-dom";
+import { TreePine, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Helmet } from "react-helmet-async";
+
+type Props = {
+  title: string;
+  lastUpdated?: string;
+  body: string;
+  metaDescription?: string;
+  canonicalPath: string;
+};
+
+export function LegalDocumentView({ title, lastUpdated, body, metaDescription, canonicalPath }: Props) {
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <Helmet>
+        <title>{title} — Gestor Plin</title>
+        <meta name="description" content={metaDescription ?? `${title} — Gestor Plin`} />
+        <link rel="canonical" href={`https://gestorplin.com${canonicalPath}`} />
+      </Helmet>
+
+      <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/85 backdrop-blur-md">
+        <div className="container mx-auto flex h-14 items-center justify-between px-3 sm:h-16 sm:px-4">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground sm:h-9 sm:w-9">
+              <TreePine className="h-4 w-4 sm:h-5 sm:w-5" />
+            </div>
+            <span className="text-base font-bold tracking-tight text-foreground sm:text-lg">
+              Gestor <span className="text-primary">Plin</span>
+            </span>
+          </Link>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/">
+              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
+            </Link>
+          </Button>
+        </div>
+      </header>
+
+      <main className="container mx-auto max-w-3xl px-4 py-10 sm:py-14">
+        {lastUpdated && (
+          <p className="mb-6 text-xs uppercase tracking-wider text-muted-foreground">
+            Última atualização: {new Date(lastUpdated).toLocaleDateString("pt-BR")}
+          </p>
+        )}
+        <article className="prose prose-slate max-w-none dark:prose-invert prose-headings:tracking-tight prose-h1:text-3xl prose-h1:font-bold prose-h2:text-xl prose-h2:mt-8 prose-h3:text-base prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-li:my-1">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
+        </article>
+      </main>
+
+      <footer className="border-t border-border/60 py-8 text-center text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-center gap-4">
+          <Link to="/privacidade" className="hover:text-foreground">Privacidade</Link>
+          <Link to="/termos" className="hover:text-foreground">Termos</Link>
+          <Link to="/cookies" className="hover:text-foreground">Cookies</Link>
+          <Link to="/encarregado-dados" className="hover:text-foreground">DPO</Link>
+        </div>
+        <p className="mt-3">© {new Date().getFullYear()} Gestor Plin</p>
+      </footer>
+    </div>
+  );
+}
