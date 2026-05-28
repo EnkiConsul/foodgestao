@@ -179,6 +179,7 @@ export default function Lancamentos() {
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleteScope, setBulkDeleteScope] = useState<"single" | "forward" | "all">("single");
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
 
   // Clear selection when context/month/filters change
