@@ -249,7 +249,9 @@ const AppRoutes = () => (
     <Route
       element={
         <ProtectedRoute>
-          <AppLayout />
+          <SubscriptionGuard>
+            <AppLayout />
+          </SubscriptionGuard>
         </ProtectedRoute>
       }
     >
