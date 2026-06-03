@@ -1,22 +1,29 @@
-## Problema
+## Objetivo
 
-No card "Autenticação em 2 fatores" (Configurações → Segurança), quando o 2FA está ativado, a única forma de desativar é o Switch no canto superior do card — pouco visível e o texto auxiliar diz "use o botão acima", o que confunde.
+Garantir que o card "Autenticação em 2 fatores" atualize badge, switch e botões instantaneamente após ativar/desativar, sem esperar o round-trip de `listFactors()`.
 
-## Mudança proposta
+## Diagnóstico
 
-Editar `src/components/settings/TwoFactorCard.tsx` para tornar a desativação óbvia quando o 2FA está ativo:
+`TwoFactorCard.tsx` já chama `refresh()` após verificar e desativar, mas há uma janela curta (≈300-800ms) entre `setSubmitting(false)` e o retorno de `listFactors()` em que o estado `factors` ainda reflete o valor antigo. Em conexões lentas isso parece "não atualizou".
 
-1. Quando existe fator verificado, exibir no corpo do card um botão destacado **"Desativar 2FA"** (variant `destructive` outline, com ícone `ShieldOff`) logo abaixo da mensagem "Sua conta está protegida".
-2. O botão abre o mesmo `AlertDialog` de confirmação que já existe (`setConfirmDisable(true)`), que chama `disableMfa()` — remove todos os fatores TOTP via `supabase.auth.mfa.unenroll`.
-3. Manter o Switch no header como atalho redundante (não remover, para quem prefere toggle).
-4. Atualizar o texto auxiliar para: "Sua conta está protegida. Você pode desativar a qualquer momento."
+## Mudança
+
+Editar `src/components/settings/TwoFactorCard.tsx` para aplicar atualização otimista do estado local antes do `refresh()`:
+
+1. **`verifyEnroll`** (após sucesso): chamar `setFactors([{ id: enroll.factorId, factor_type: "totp", status: "verified" }])` antes do `refresh()`. Badge muda para "Ativada" e botão "Desativar 2FA" aparece no mesmo frame.
+
+2. **`disableMfa`** (após unenroll bem-sucedido): chamar `setFactors([])` e `setEnroll(null)` antes do `refresh()`. Badge volta para "Desativada", Switch desliga e botão de configuração reaparece imediatamente.
+
+3. **`cancelEnroll`**: limpar `factors` dos não-verificados localmente antes do `refresh()`.
+
+`refresh()` continua sendo chamado em seguida para reconciliar com a verdade do servidor (caso o unenroll tenha falhado parcialmente, por exemplo).
 
 ## Sem mudanças
 
-- Fluxo de ativação (QR + verificação) permanece igual.
-- Lógica de persistência (fatores MFA do Lovable Cloud) permanece igual.
-- Login continua exigindo o código apenas quando há fator verificado.
+- Fluxo de QR/verificação inalterado.
+- Diálogo de confirmação de desativação inalterado.
+- Nenhuma alteração de schema, edge function ou login.
 
 ## Validação
 
-Após implementar: abrir Configurações → Segurança com 2FA ativo → ver botão "Desativar 2FA" visível → clicar → confirmar → badge muda para "Desativada" → próximo login não pede código.
+Ativar 2FA → ao confirmar código, badge muda para "Ativada" e botão vermelho "Desativar 2FA" aparece sem delay. Clicar em desativar → confirmar → badge volta para "Desativada" e Switch desliga instantaneamente.
