@@ -42,8 +42,11 @@ export function useBillingRealtime() {
             });
             qc.invalidateQueries({ queryKey: ["my-invoices"] });
             qc.invalidateQueries({ queryKey: ["current-subscription"] });
+            qc.invalidateQueries({ queryKey: ["company-quota"] });
             qc.invalidateQueries({ queryKey: ["checkout-invoice", next.id] });
           }
+          // Always refresh invoice list on any change (recurring invoice created, value updated, etc.)
+          qc.invalidateQueries({ queryKey: ["my-invoices"] });
         },
       )
       .on(
