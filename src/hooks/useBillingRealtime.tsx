@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { CheckCircle2 } from "lucide-react";
 import { createElement } from "react";
+import { markFresh } from "@/hooks/useBillingFreshness";
 
 /**
  * Global listener: detects when one of the user's invoices is marked as paid
