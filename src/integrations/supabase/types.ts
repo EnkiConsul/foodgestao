@@ -1599,6 +1599,7 @@ export type Database = {
           current_period_start: string
           external_customer_id: string | null
           external_subscription_id: string | null
+          extra_companies: number
           id: string
           notes: string | null
           plan_id: string
@@ -1616,6 +1617,7 @@ export type Database = {
           current_period_start?: string
           external_customer_id?: string | null
           external_subscription_id?: string | null
+          extra_companies?: number
           id?: string
           notes?: string | null
           plan_id: string
@@ -1633,6 +1635,7 @@ export type Database = {
           current_period_start?: string
           external_customer_id?: string | null
           external_subscription_id?: string | null
+          extra_companies?: number
           id?: string
           notes?: string | null
           plan_id?: string

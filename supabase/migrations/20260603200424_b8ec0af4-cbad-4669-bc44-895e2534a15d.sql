@@ -1,0 +1,1 @@
+ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS extra_companies integer NOT NULL DEFAULT 0;
