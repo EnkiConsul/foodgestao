@@ -355,6 +355,13 @@ export default function GestaoUsuarios() {
         companyId={activeCompanyId}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ["company-invites", activeCompanyId] })}
       />
+
+      <EditMemberPermissionsDialog
+        open={!!editingMember}
+        onOpenChange={(o) => { if (!o) setEditingMember(null); }}
+        member={editingMember}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ["company-members", activeCompanyId] })}
+      />
     </div>
   );
 }
