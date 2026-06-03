@@ -1,77 +1,28 @@
-## Paywall de trial expirado + atualização automática + tela dedicada
+# Corrigir loop de login causado por 2FA
 
-Implementar bloqueio de acesso quando o período de teste de 14 dias terminar sem pagamento.
+## Problema
+Após o login, o app redireciona em loop entre `/auth` e `/dashboard`. A causa é o erro 422 `mfa_factor_name_conflict` ao tentar criar um fator TOTP — já existe um fator com o `friendlyName` "Authenticator YYYY-MM-DD" para o usuário, e a limpeza atual não consegue removê-lo.
 
-### 1. Tela dedicada "Trial expirado"
+## Mudanças
 
-Criar `src/pages/TrialExpired.tsx`:
-- Mensagem clara: "Seu período de teste gratuito terminou"
-- Resumo do que o usuário perdeu acesso (lançamentos, relatórios, etc.)
-- CTA primário: "Escolher um plano" → `/planos`
-- CTA secundário: "Sair" (logout)
-- Link discreto para suporte (`comercial@raptorsistemas.com`)
-- Visual alinhado à identidade Gestor Plin (paleta azul, TreePine)
+### 1. `src/components/auth/MfaEnrollRequired.tsx`
+- `friendlyName` único por tentativa: `` `Authenticator ${Date.now()}` `` em vez de data do dia.
+- Limpeza robusta: percorrer `listFactors()` e fazer `unenroll` de todo fator com `status !== "verified"`, capturando erros individuais (`Promise.allSettled`).
+- Tratar especificamente erro 422 `mfa_factor_name_conflict`: chamar a nova edge function `admin-reset-mfa` para limpar fatores órfãos e refazer o enroll uma vez antes de cair em `stage="error"`.
+- Mensagens de erro mais claras em `translateMfaError` para o código `mfa_factor_name_conflict`.
+- Botão "Resetar 2FA e tentar de novo" na tela de erro que chama `admin-reset-mfa` + recarrega.
 
-Adicionar rota `/trial-expirado` em `src/App.tsx` (fora de `ProtectedRoute` padrão, mas exige login).
+### 2. Nova edge function `supabase/functions/admin-reset-mfa/index.ts`
+- Autenticada (lê JWT do header `Authorization`, usa `supabase.auth.getUser` para obter `userId`).
+- Usa `SUPABASE_SERVICE_ROLE_KEY` com `auth.admin.mfa.listFactors({ userId })` para enxergar **todos** os fatores (incluindo os invisíveis ao client).
+- Faz `auth.admin.mfa.deleteFactor({ id })` em cada fator **não verificado**.
+- Não deleta fatores `verified` (segurança).
+- Registrada em `supabase/config.toml` com `verify_jwt = true`.
 
-### 2. Bloqueio via ProtectedRoute
+### 3. Validação
+- Logout → login novamente → confirmar que o QR code aparece sem 422 nos `auth_logs`.
+- Verificar no replay que não há mais loop `/auth ↔ /dashboard`.
 
-Em `src/App.tsx` / `ProtectedRoute`:
-- Após validar auth + onboarding, consultar `useCurrentSubscription`
-- Se `status = 'trialing'` e `trial_ends_at < now()`, OU `status IN ('expired','canceled')`, OU `status = 'past_due'` há mais de X dias → redirecionar para `/trial-expirado`
-- **Rotas permitidas mesmo com trial expirado** (whitelist):
-  - `/trial-expirado`
-  - `/planos`
-  - `/checkout/*`
-  - `/faturas`
-  - `/configuracoes/perfil` (para dados de cobrança)
-  - `/admin/*` (super_admin não é bloqueado)
-- Super admins nunca são bloqueados
-
-### 3. Atualização automática de status (`trialing` → `expired`)
-
-**Edge Function** `supabase/functions/expire-trials/index.ts`:
-- Usa `SUPABASE_SERVICE_ROLE_KEY`
-- `UPDATE subscriptions SET status='expired' WHERE status='trialing' AND trial_ends_at < now()`
-- Retorna contagem de registros atualizados
-- Sem auth pública (chamada apenas via cron)
-
-**Migration** (pg_cron + pg_net): agendar `expire-trials` para rodar 1x por dia às 03:00 BRT.
-
-**Enum**: garantir que `subscription_status` já contém `'expired'` (verificar; adicionar se faltar).
-
-### 4. Banner ajustado
-
-`SubscriptionBanner`:
-- Trial nos últimos 3 dias: aviso amarelo (já existe)
-- Trial expirado (caso o usuário esteja em rota permitida como `/planos`): banner vermelho "Trial expirado — escolha um plano para reativar"
-
-### Arquivos afetados
-
-**Criar**
-- `src/pages/TrialExpired.tsx`
-- `supabase/functions/expire-trials/index.ts`
-- Migration: enum `expired` (se necessário) + cron job
-
-**Editar**
-- `src/App.tsx` (rota + lógica de bloqueio no `ProtectedRoute`)
-- `src/components/layout/SubscriptionBanner.tsx` (variante "expirado")
-- `src/hooks/useCurrentSubscription.ts` (expor flag `isTrialExpired` / `isBlocked`)
-
-### Detalhes técnicos
-
-```text
-ProtectedRoute flow:
-  auth? ──► onboarding? ──► subscription check ──► render
-                                  │
-                                  ├─ active/trialing válido ► OK
-                                  ├─ trialing expirado ─────► /trial-expirado
-                                  ├─ expired/canceled ──────► /trial-expirado
-                                  └─ super_admin ───────────► OK (bypass)
-
-Whitelist (sem bloqueio):
-  /trial-expirado, /planos, /checkout/*, /faturas,
-  /configuracoes/perfil, /admin/*
-```
-
-O cron usa `pg_cron` + `pg_net` (já habilitados no projeto) e será inserido via `supabase--insert` (não migration), pois contém URL e anon key específicos do projeto.
+## Fora do escopo
+- Não alteramos `ProtectedRoute` / `PublicOnlyRoute` (a lógica deles está correta; o loop some quando o enroll funciona).
+- Não desabilitamos a obrigatoriedade de 2FA.
