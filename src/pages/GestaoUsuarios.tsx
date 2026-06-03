@@ -242,19 +242,23 @@ export default function GestaoUsuarios() {
                   {isAdminOrOwner && (
                     <TableCell className="text-right">
                       {member.role !== "owner" && member.user_id !== user?.id && (
-                        <div className="flex items-center justify-end gap-2">
-                          <Select
-                            value={member.role}
-                            onValueChange={(val) => handleChangeRole(member.id, val)}
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Editar permissões"
+                            onClick={() =>
+                              setEditingMember({
+                                id: member.id,
+                                full_name: member.full_name,
+                                role: member.role,
+                                permissions: member.permissions ?? {},
+                              })
+                            }
                           >
-                            <SelectTrigger className="w-[110px] h-8 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="admin">Admin</SelectItem>
-                              <SelectItem value="member">Membro</SelectItem>
-                            </SelectContent>
-                          </Select>
+                            <Settings2 className="h-4 w-4" />
+                          </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
