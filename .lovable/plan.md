@@ -1,28 +1,28 @@
-# Corrigir loop de login causado por 2FA
+# Tornar 2FA opcional
 
-## Problema
-Após o login, o app redireciona em loop entre `/auth` e `/dashboard`. A causa é o erro 422 `mfa_factor_name_conflict` ao tentar criar um fator TOTP — já existe um fator com o `friendlyName` "Authenticator YYYY-MM-DD" para o usuário, e a limpeza atual não consegue removê-lo.
+Hoje o app **força** o usuário a configurar 2FA no login. O card já existe em `Configurações` — basta remover a obrigatoriedade. O desafio MFA continua sendo pedido para quem **já tem** um fator verificado (não enfraquece a segurança de quem ativou).
 
 ## Mudanças
 
-### 1. `src/components/auth/MfaEnrollRequired.tsx`
-- `friendlyName` único por tentativa: `` `Authenticator ${Date.now()}` `` em vez de data do dia.
-- Limpeza robusta: percorrer `listFactors()` e fazer `unenroll` de todo fator com `status !== "verified"`, capturando erros individuais (`Promise.allSettled`).
-- Tratar especificamente erro 422 `mfa_factor_name_conflict`: chamar a nova edge function `admin-reset-mfa` para limpar fatores órfãos e refazer o enroll uma vez antes de cair em `stage="error"`.
-- Mensagens de erro mais claras em `translateMfaError` para o código `mfa_factor_name_conflict`.
-- Botão "Resetar 2FA e tentar de novo" na tela de erro que chama `admin-reset-mfa` + recarrega.
+### 1. `src/App.tsx` — remover bloqueio
+- Em `ProtectedRoute`: remover a verificação `!hasVerified` do `needsAal2`. Só redirecionar para `/auth` quando `aal.nextLevel === "aal2" && currentLevel !== "aal2"` (ou seja: o usuário já tem fator verificado e precisa elevar a sessão).
+- Em `PublicOnlyRoute`: mesmo ajuste — `mfaRequired` passa a ser apenas `needsAal2`, sem a parte de "não tem fator verificado".
 
-### 2. Nova edge function `supabase/functions/admin-reset-mfa/index.ts`
-- Autenticada (lê JWT do header `Authorization`, usa `supabase.auth.getUser` para obter `userId`).
-- Usa `SUPABASE_SERVICE_ROLE_KEY` com `auth.admin.mfa.listFactors({ userId })` para enxergar **todos** os fatores (incluindo os invisíveis ao client).
-- Faz `auth.admin.mfa.deleteFactor({ id })` em cada fator **não verificado**.
-- Não deleta fatores `verified` (segurança).
-- Registrada em `supabase/config.toml` com `verify_jwt = true`.
+### 2. `src/pages/Auth.tsx` — remover enrollment forçado
+- Remover o estado `mfaEnrollRequired` e a renderização do `<MfaEnrollRequired />`.
+- Manter apenas o `<MfaChallenge />` quando `needsAal2` for verdadeiro (usuários que já têm 2FA ativo).
+- Em `checkMfaState` / `checkMfaAndRedirect`: ignorar o caso `!hasVerified` — redirecionar direto para o destino.
 
-### 3. Validação
-- Logout → login novamente → confirmar que o QR code aparece sem 422 nos `auth_logs`.
-- Verificar no replay que não há mais loop `/auth ↔ /dashboard`.
+### 3. `src/components/auth/MfaEnrollRequired.tsx`
+- Manter o arquivo (não usado mais no fluxo de login, mas pode ser reaproveitado pelo `TwoFactorCard` no futuro). Sem alterações.
+
+### 4. `src/components/settings/TwoFactorCard.tsx`
+- Já existe e permite ativar/desativar 2FA. Nenhuma mudança necessária.
+
+### 5. Validação
+- Logout → login → vai direto para `/dashboard` sem pedir QR code.
+- Em `Configurações`, ativar 2FA → próximo login pede o código de 6 dígitos normalmente.
 
 ## Fora do escopo
-- Não alteramos `ProtectedRoute` / `PublicOnlyRoute` (a lógica deles está correta; o loop some quando o enroll funciona).
-- Não desabilitamos a obrigatoriedade de 2FA.
+- Não removemos a edge function `admin-reset-mfa` (continua útil quando o usuário trava ao ativar 2FA na tela de configurações).
+- Não mexemos no `TwoFactorCard`.
