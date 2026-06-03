@@ -160,8 +160,10 @@ export function PlanEditorDialog({
               <Label className="text-xs">Máx. anexos/lançamento</Label>
               <Input type="number" value={form.features.max_attachments_per_transaction}
                 onChange={(e) => setFeat("max_attachments_per_transaction", parseInt(e.target.value || "0"))} />
+            </div>
           </div>
           <div className="rounded-md border p-3 space-y-3">
+
             <h4 className="text-sm font-medium">Cobrança por perfil de acesso</h4>
             <p className="text-xs text-muted-foreground">
               Configure cobrança adicional por perfil de acesso (empresa) além do incluído. Deixe 0 para não permitir extras (usa apenas o limite máximo).
