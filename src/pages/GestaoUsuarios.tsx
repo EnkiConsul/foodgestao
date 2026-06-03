@@ -9,10 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Users, UserPlus, Crown, Shield, User, Trash2, Clock, Copy, XCircle } from "lucide-react";
+import { Users, UserPlus, Crown, Shield, User, Eye, Trash2, Clock, Copy, XCircle, Settings2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { InviteUserDialog } from "@/components/users/InviteUserDialog";
+import { EditMemberPermissionsDialog } from "@/components/users/EditMemberPermissionsDialog";
+import { CompanyRole, PermissionsMap } from "@/lib/permissions";
 
 const roleBadge = (role: string) => {
   switch (role) {
@@ -20,6 +22,8 @@ const roleBadge = (role: string) => {
       return <Badge className="bg-purple-500/15 text-purple-700 border-purple-200 dark:text-purple-400"><Crown className="h-3 w-3 mr-1" />Dono</Badge>;
     case "admin":
       return <Badge className="bg-blue-500/15 text-blue-700 border-blue-200 dark:text-blue-400"><Shield className="h-3 w-3 mr-1" />Admin</Badge>;
+    case "viewer":
+      return <Badge className="bg-amber-500/15 text-amber-700 border-amber-200 dark:text-amber-400"><Eye className="h-3 w-3 mr-1" />Visualizador</Badge>;
     default:
       return <Badge variant="secondary"><User className="h-3 w-3 mr-1" />Membro</Badge>;
   }
@@ -45,6 +49,7 @@ export default function GestaoUsuarios() {
   const queryClient = useQueryClient();
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState<{ id: string; full_name: string; role: CompanyRole; permissions: PermissionsMap } | null>(null);
 
   // Fetch companies where user is a member
   const { data: companies = [], isLoading: loadingCompanies } = useQuery({
@@ -75,13 +80,12 @@ export default function GestaoUsuarios() {
     queryFn: async () => {
       const { data } = await supabase
         .from("company_members")
-        .select("id, user_id, role, created_at")
+        .select("id, user_id, role, permissions, created_at")
         .eq("company_id", activeCompanyId)
         .order("created_at");
 
       if (!data) return [];
 
-      // Fetch profile info for each member
       const userIds = data.map((m) => m.user_id);
       const { data: profiles } = await (supabase as any)
         .from("company_member_profiles")
@@ -90,7 +94,7 @@ export default function GestaoUsuarios() {
 
       const profileMap = new Map(((profiles ?? []) as Array<{ user_id: string; full_name: string | null }>).map((p) => [p.user_id, p]));
 
-      return data.map((m) => ({
+      return data.map((m: any) => ({
         ...m,
         full_name: profileMap.get(m.user_id)?.full_name ?? "Usuário",
       }));
@@ -238,19 +242,23 @@ export default function GestaoUsuarios() {
                   {isAdminOrOwner && (
                     <TableCell className="text-right">
                       {member.role !== "owner" && member.user_id !== user?.id && (
-                        <div className="flex items-center justify-end gap-2">
-                          <Select
-                            value={member.role}
-                            onValueChange={(val) => handleChangeRole(member.id, val)}
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Editar permissões"
+                            onClick={() =>
+                              setEditingMember({
+                                id: member.id,
+                                full_name: member.full_name,
+                                role: member.role,
+                                permissions: member.permissions ?? {},
+                              })
+                            }
                           >
-                            <SelectTrigger className="w-[110px] h-8 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="admin">Admin</SelectItem>
-                              <SelectItem value="member">Membro</SelectItem>
-                            </SelectContent>
-                          </Select>
+                            <Settings2 className="h-4 w-4" />
+                          </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
@@ -346,6 +354,13 @@ export default function GestaoUsuarios() {
         onOpenChange={setInviteOpen}
         companyId={activeCompanyId}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ["company-invites", activeCompanyId] })}
+      />
+
+      <EditMemberPermissionsDialog
+        open={!!editingMember}
+        onOpenChange={(o) => { if (!o) setEditingMember(null); }}
+        member={editingMember}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ["company-members", activeCompanyId] })}
       />
     </div>
   );
