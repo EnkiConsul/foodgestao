@@ -170,10 +170,9 @@ export function PlanEditorDialog({
           </div>
           <div>
             <Label>Preço (R$)</Label>
-            <Input
-              inputMode="decimal"
+            <CurrencyInput
               value={priceReais}
-              onChange={(e) => setPriceReais(sanitizeMoneyInput(e.target.value))}
+              onValueChange={setPriceReais}
               onBlur={() => commitMoney(priceReais, (c) => setF("price_cents", c), setPriceReais)}
               placeholder="0,00"
             />
