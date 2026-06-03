@@ -42,8 +42,24 @@ export function useBillingRealtime() {
             });
             qc.invalidateQueries({ queryKey: ["my-invoices"] });
             qc.invalidateQueries({ queryKey: ["current-subscription"] });
+            qc.invalidateQueries({ queryKey: ["company-quota"] });
             qc.invalidateQueries({ queryKey: ["checkout-invoice", next.id] });
           }
+          // Always refresh invoice list on any change (recurring invoice created, value updated, etc.)
+          qc.invalidateQueries({ queryKey: ["my-invoices"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "invoices",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          qc.invalidateQueries({ queryKey: ["my-invoices"] });
+          qc.invalidateQueries({ queryKey: ["current-subscription"] });
         },
       )
       .on(
@@ -67,9 +83,11 @@ export function useBillingRealtime() {
             });
           }
           qc.invalidateQueries({ queryKey: ["current-subscription"] });
+          qc.invalidateQueries({ queryKey: ["company-quota"] });
         },
       )
       .subscribe();
+
 
     return () => {
       supabase.removeChannel(channel);
