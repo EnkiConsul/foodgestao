@@ -42,6 +42,7 @@ const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
           inputMode="numeric"
           value={value}
           onChange={handleChange}
+          onFocus={handleFocus}
           className={cn("pl-10 text-right", className)}
           maxLength={18}
           {...props}
