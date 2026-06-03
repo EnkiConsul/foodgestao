@@ -38,6 +38,36 @@ const DEFAULT_PLAN = {
   },
 };
 
+/** Parses "19,90" / "19.90" / "" → number of reais (NaN if invalid). */
+function parseReais(input: string): number {
+  const normalized = (input ?? "").toString().replace(/\s/g, "").replace(",", ".");
+  if (!normalized) return NaN;
+  return parseFloat(normalized);
+}
+
+/** Formats cents as "19,90" for display in pt-BR friendly inputs. */
+function formatReais(cents: number | null | undefined): string {
+  return (((cents ?? 0) / 100)).toFixed(2).replace(".", ",");
+}
+
+/** Allow only digits, one comma/period, and partial typing. */
+function sanitizeMoneyInput(raw: string): string {
+  // Keep digits and the first decimal separator only.
+  const cleaned = raw.replace(/[^\d.,]/g, "");
+  const firstSep = cleaned.search(/[.,]/);
+  if (firstSep === -1) return cleaned;
+  const head = cleaned.slice(0, firstSep + 1);
+  const tail = cleaned.slice(firstSep + 1).replace(/[.,]/g, "");
+  return head + tail;
+}
+
+function sanitizeIntInput(raw: string, allowNegative = false): string {
+  const cleaned = raw.replace(allowNegative ? /[^\d-]/g : /[^\d]/g, "");
+  if (!allowNegative) return cleaned;
+  // Keep '-' only at position 0.
+  return cleaned.replace(/(?!^)-/g, "");
+}
+
 export function PlanEditorDialog({
   open, onOpenChange, plan, onSave,
 }: {
@@ -47,21 +77,88 @@ export function PlanEditorDialog({
   onSave: (data: any) => void;
 }) {
   const [form, setForm] = useState<any>(DEFAULT_PLAN);
-  const [priceReais, setPriceReais] = useState("0");
+  // Free-typed string mirrors for numeric fields.
+  const [priceReais, setPriceReais] = useState("0,00");
+  const [extraReais, setExtraReais] = useState("0,00");
+  const [trialStr, setTrialStr] = useState("0");
+  const [orderStr, setOrderStr] = useState("0");
+  const [maxCompaniesStr, setMaxCompaniesStr] = useState("1");
+  const [maxTxStr, setMaxTxStr] = useState("50");
+  const [maxUsersStr, setMaxUsersStr] = useState("1");
+  const [maxAttachStr, setMaxAttachStr] = useState("1");
+  const [includedStr, setIncludedStr] = useState("1");
 
   useEffect(() => {
-    if (plan) {
-      setForm({ ...plan, features: { ...DEFAULT_PLAN.features, ...(plan.features || {}) } });
-      setPriceReais(((plan.price_cents ?? 0) / 100).toFixed(2));
-    } else {
-      setForm(DEFAULT_PLAN);
-      setPriceReais("0");
-    }
+    const base = plan
+      ? { ...plan, features: { ...DEFAULT_PLAN.features, ...(plan.features || {}) } }
+      : DEFAULT_PLAN;
+    setForm(base);
+    setPriceReais(formatReais(base.price_cents));
+    setExtraReais(formatReais(base.features.price_per_extra_company_cents));
+    setTrialStr(String(base.trial_days ?? 0));
+    setOrderStr(String(base.sort_order ?? 0));
+    setMaxCompaniesStr(String(base.features.max_companies ?? 1));
+    setMaxTxStr(String(base.features.max_transactions_per_month ?? 0));
+    setMaxUsersStr(String(base.features.max_users_per_company ?? 1));
+    setMaxAttachStr(String(base.features.max_attachments_per_transaction ?? 1));
+    setIncludedStr(String(base.features.included_companies ?? base.features.max_companies ?? 1));
   }, [plan, open]);
 
   const setF = (k: string, v: any) => setForm((s: any) => ({ ...s, [k]: v }));
   const setFeat = (k: string, v: any) =>
     setForm((s: any) => ({ ...s, features: { ...s.features, [k]: v } }));
+
+  // Commit helpers run on blur — keep form numeric values in sync with the string mirrors.
+  const commitMoney = (str: string, apply: (cents: number) => void, mirror: (s: string) => void) => {
+    const reais = parseReais(str);
+    const cents = Number.isFinite(reais) ? Math.round(reais * 100) : 0;
+    apply(cents);
+    mirror(formatReais(cents));
+  };
+  const commitInt = (str: string, fallback: number, apply: (n: number) => void, mirror: (s: string) => void, allowNegative = false) => {
+    const n = parseInt(str, 10);
+    const value = Number.isFinite(n) ? n : fallback;
+    const safe = allowNegative ? value : Math.max(0, value);
+    apply(safe);
+    mirror(String(safe));
+  };
+
+  const handleSave = () => {
+    // Force a final commit in case the user clicks Save while a field is focused.
+    commitMoney(priceReais, (c) => setF("price_cents", c), setPriceReais);
+    commitMoney(extraReais, (c) => setFeat("price_per_extra_company_cents", c), setExtraReais);
+    commitInt(trialStr, 0, (n) => setF("trial_days", n), setTrialStr);
+    commitInt(orderStr, 0, (n) => setF("sort_order", n), setOrderStr);
+    commitInt(maxCompaniesStr, 1, (n) => setFeat("max_companies", n), setMaxCompaniesStr, true);
+    commitInt(maxTxStr, 0, (n) => setFeat("max_transactions_per_month", n), setMaxTxStr, true);
+    commitInt(maxUsersStr, 1, (n) => setFeat("max_users_per_company", n), setMaxUsersStr, true);
+    commitInt(maxAttachStr, 1, (n) => setFeat("max_attachments_per_transaction", n), setMaxAttachStr, true);
+    commitInt(includedStr, 1, (n) => setFeat("included_companies", n), setIncludedStr);
+    // setState is async; build the payload synchronously from the committed values.
+    const priceCents = (() => { const r = parseReais(priceReais); return Number.isFinite(r) ? Math.round(r * 100) : 0; })();
+    const extraCents = (() => { const r = parseReais(extraReais); return Number.isFinite(r) ? Math.round(r * 100) : 0; })();
+    const toInt = (s: string, fb: number, allowNeg = false) => {
+      const n = parseInt(s, 10);
+      const v = Number.isFinite(n) ? n : fb;
+      return allowNeg ? v : Math.max(0, v);
+    };
+    const payload = {
+      ...form,
+      price_cents: priceCents,
+      trial_days: toInt(trialStr, 0),
+      sort_order: toInt(orderStr, 0),
+      features: {
+        ...form.features,
+        price_per_extra_company_cents: extraCents,
+        max_companies: toInt(maxCompaniesStr, 1, true),
+        max_transactions_per_month: toInt(maxTxStr, 0, true),
+        max_users_per_company: toInt(maxUsersStr, 1, true),
+        max_attachments_per_transaction: toInt(maxAttachStr, 1, true),
+        included_companies: toInt(includedStr, 1),
+      },
+    };
+    onSave(payload);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -86,13 +183,11 @@ export function PlanEditorDialog({
           <div>
             <Label>Preço (R$)</Label>
             <Input
-              type="number"
-              step="0.01"
+              inputMode="decimal"
               value={priceReais}
-              onChange={(e) => {
-                setPriceReais(e.target.value);
-                setF("price_cents", Math.round(parseFloat(e.target.value || "0") * 100));
-              }}
+              onChange={(e) => setPriceReais(sanitizeMoneyInput(e.target.value))}
+              onBlur={() => commitMoney(priceReais, (c) => setF("price_cents", c), setPriceReais)}
+              placeholder="0,00"
             />
           </div>
           <div>
@@ -107,11 +202,21 @@ export function PlanEditorDialog({
           </div>
           <div>
             <Label>Trial (dias)</Label>
-            <Input type="number" value={form.trial_days} onChange={(e) => setF("trial_days", parseInt(e.target.value || "0"))} />
+            <Input
+              inputMode="numeric"
+              value={trialStr}
+              onChange={(e) => setTrialStr(sanitizeIntInput(e.target.value))}
+              onBlur={() => commitInt(trialStr, 0, (n) => setF("trial_days", n), setTrialStr)}
+            />
           </div>
           <div>
             <Label>Ordem</Label>
-            <Input type="number" value={form.sort_order} onChange={(e) => setF("sort_order", parseInt(e.target.value || "0"))} />
+            <Input
+              inputMode="numeric"
+              value={orderStr}
+              onChange={(e) => setOrderStr(sanitizeIntInput(e.target.value))}
+              onBlur={() => commitInt(orderStr, 0, (n) => setF("sort_order", n), setOrderStr)}
+            />
           </div>
           <div className="flex items-center justify-between rounded-md border p-3">
             <Label>Ativo</Label>
@@ -143,23 +248,39 @@ export function PlanEditorDialog({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">Máx. empresas</Label>
-              <Input type="number" value={form.features.max_companies}
-                onChange={(e) => setFeat("max_companies", parseInt(e.target.value || "0"))} />
+              <Input
+                inputMode="numeric"
+                value={maxCompaniesStr}
+                onChange={(e) => setMaxCompaniesStr(sanitizeIntInput(e.target.value, true))}
+                onBlur={() => commitInt(maxCompaniesStr, 1, (n) => setFeat("max_companies", n), setMaxCompaniesStr, true)}
+              />
             </div>
             <div>
               <Label className="text-xs">Máx. lançamentos/mês</Label>
-              <Input type="number" value={form.features.max_transactions_per_month}
-                onChange={(e) => setFeat("max_transactions_per_month", parseInt(e.target.value || "0"))} />
+              <Input
+                inputMode="numeric"
+                value={maxTxStr}
+                onChange={(e) => setMaxTxStr(sanitizeIntInput(e.target.value, true))}
+                onBlur={() => commitInt(maxTxStr, 0, (n) => setFeat("max_transactions_per_month", n), setMaxTxStr, true)}
+              />
             </div>
             <div>
               <Label className="text-xs">Máx. usuários/empresa</Label>
-              <Input type="number" value={form.features.max_users_per_company}
-                onChange={(e) => setFeat("max_users_per_company", parseInt(e.target.value || "0"))} />
+              <Input
+                inputMode="numeric"
+                value={maxUsersStr}
+                onChange={(e) => setMaxUsersStr(sanitizeIntInput(e.target.value, true))}
+                onBlur={() => commitInt(maxUsersStr, 1, (n) => setFeat("max_users_per_company", n), setMaxUsersStr, true)}
+              />
             </div>
             <div>
               <Label className="text-xs">Máx. anexos/lançamento</Label>
-              <Input type="number" value={form.features.max_attachments_per_transaction}
-                onChange={(e) => setFeat("max_attachments_per_transaction", parseInt(e.target.value || "0"))} />
+              <Input
+                inputMode="numeric"
+                value={maxAttachStr}
+                onChange={(e) => setMaxAttachStr(sanitizeIntInput(e.target.value, true))}
+                onBlur={() => commitInt(maxAttachStr, 1, (n) => setFeat("max_attachments_per_transaction", n), setMaxAttachStr, true)}
+              />
             </div>
           </div>
           <div className="rounded-md border p-3 space-y-3">
@@ -172,20 +293,20 @@ export function PlanEditorDialog({
               <div>
                 <Label className="text-xs">Perfis inclusos no preço</Label>
                 <Input
-                  type="number"
-                  value={form.features.included_companies ?? form.features.max_companies ?? 1}
-                  onChange={(e) => setFeat("included_companies", parseInt(e.target.value || "0"))}
+                  inputMode="numeric"
+                  value={includedStr}
+                  onChange={(e) => setIncludedStr(sanitizeIntInput(e.target.value))}
+                  onBlur={() => commitInt(includedStr, 1, (n) => setFeat("included_companies", n), setIncludedStr)}
                 />
               </div>
               <div>
                 <Label className="text-xs">Valor por perfil adicional (R$)</Label>
                 <Input
-                  type="number"
-                  step="0.01"
-                  value={((form.features.price_per_extra_company_cents ?? 0) / 100).toFixed(2)}
-                  onChange={(e) =>
-                    setFeat("price_per_extra_company_cents", Math.round(parseFloat(e.target.value || "0") * 100))
-                  }
+                  inputMode="decimal"
+                  value={extraReais}
+                  onChange={(e) => setExtraReais(sanitizeMoneyInput(e.target.value))}
+                  onBlur={() => commitMoney(extraReais, (c) => setFeat("price_per_extra_company_cents", c), setExtraReais)}
+                  placeholder="0,00"
                 />
               </div>
             </div>
@@ -224,7 +345,7 @@ export function PlanEditorDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={() => onSave(form)}>Salvar</Button>
+          <Button onClick={handleSave}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
