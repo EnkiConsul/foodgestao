@@ -99,10 +99,9 @@ export function PlanEditorDialog({
 
   // Commit helpers run on blur — keep form numeric values in sync with the string mirrors.
   const commitMoney = (str: string, apply: (cents: number) => void, mirror: (s: string) => void) => {
-    const reais = parseReais(str);
-    const cents = Number.isFinite(reais) ? Math.round(reais * 100) : 0;
+    const cents = maskedToCents(str);
     apply(cents);
-    mirror(formatReais(cents));
+    mirror(centsToMasked(cents));
   };
   const commitInt = (str: string, fallback: number, apply: (n: number) => void, mirror: (s: string) => void, allowNegative = false) => {
     const n = parseInt(str, 10);
