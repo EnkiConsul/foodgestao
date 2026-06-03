@@ -14,13 +14,14 @@ import {
   Settings,
   LogOut,
   TreePine,
-  
+  Shield,
   Sparkles,
   Receipt,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 
 import { useAuth } from "@/hooks/useAuth";
+import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import {
   Sidebar,
   SidebarContent,
@@ -61,6 +62,11 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   
   const { signOut } = useAuth();
+  const { isSuperAdmin } = useSuperAdmin();
+
+  const visibleSecondaryItems = isSuperAdmin
+    ? [...secondaryItems, { title: "Backoffice", url: "/admin", icon: Shield }]
+    : secondaryItems;
 
   return (
     <Sidebar className="border-r-0" collapsible="icon">
@@ -112,7 +118,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {secondaryItems.map((item) => (
+              {visibleSecondaryItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
