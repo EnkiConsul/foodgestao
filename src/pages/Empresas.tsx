@@ -135,10 +135,19 @@ export default function Empresas() {
           <h1 className="text-2xl font-bold tracking-tight">Perfis de Acesso</h1>
           <p className="text-sm text-muted-foreground">Gerencie seus perfis de acesso cadastrados</p>
         </div>
-        <Button onClick={() => { setEditCompany(null); setDialogOpen(true); }} className="hidden md:flex">
+        <Button onClick={requestNewCompany} className="hidden md:flex">
           <Plus className="h-4 w-4 mr-2" /> Novo Perfil
         </Button>
       </div>
+
+      {quota && quota.pricePerExtraCents > 0 && (
+        <div className="text-xs text-muted-foreground bg-muted/40 border rounded-md px-3 py-2">
+          {quota.total} perfil(is) · {quota.included} incluso(s) no plano
+          {quota.extraBilled > 0 && (
+            <> · {quota.extraBilled} extra(s) sendo cobrado(s) ({formatCents(quota.extraBilled * quota.pricePerExtraCents)})</>
+          )}
+          {" · "}Adicional: {formatCents(quota.pricePerExtraCents)}/perfil</div>
+      )}
 
       {/* Summary */}
       <div className="grid grid-cols-2 gap-3">
