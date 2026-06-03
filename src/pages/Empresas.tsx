@@ -72,10 +72,35 @@ export default function Empresas() {
         _entity_id: deleteCompany.id,
         _details: { target_name: deletedName },
       });
-      toast.success("Empresa excluída"); fetchCompanies();
+      toast.success("Empresa excluída");
+      fetchCompanies();
+      syncQuota();
     }
     setDeleteCompany(null);
   };
+
+  const requestNewCompany = () => {
+    setEditCompany(null);
+    if (!quota) { setDialogOpen(true); return; }
+    if (quota.blocked) {
+      toast.error("Limite de perfis do plano atingido", {
+        description: "Faça upgrade do plano para adicionar mais perfis.",
+        action: { label: "Ver planos", onClick: () => navigate("/planos") },
+      });
+      return;
+    }
+    if (quota.requiresPaidExtra) {
+      setConfirmExtra(true);
+      return;
+    }
+    setDialogOpen(true);
+  };
+
+  const handleCompanySaved = () => {
+    fetchCompanies();
+    syncQuota();
+  };
+
 
   const handleToggleActive = async (company: Company) => {
     const { error } = await supabase
