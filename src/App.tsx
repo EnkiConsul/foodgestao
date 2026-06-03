@@ -146,11 +146,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       });
     Promise.all([
       supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
-      supabase.auth.mfa.listFactors(),
-    ]).then(([{ data: aal }, { data: factors }]) => {
-      const hasVerified = (factors?.totp ?? []).some((f) => f.status === "verified");
+    ]).then(([{ data: aal }]) => {
       const needsAal2 = !!aal && aal.nextLevel === "aal2" && aal.nextLevel !== aal.currentLevel;
-      if (!hasVerified || needsAal2) {
+      if (needsAal2) {
         setMfaRequired(true);
       }
       setMfaChecking(false);
@@ -206,12 +204,10 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     Promise.all([
       supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
-      supabase.auth.mfa.listFactors(),
-    ]).then(([{ data: aal }, { data: factors }]) => {
+    ]).then(([{ data: aal }]) => {
       if (cancelled) return;
-      const hasVerified = (factors?.totp ?? []).some((f) => f.status === "verified");
       const needsAal2 = !!aal && aal.nextLevel === "aal2" && aal.nextLevel !== aal.currentLevel;
-      setMfaRequired(!hasVerified || needsAal2);
+      setMfaRequired(needsAal2);
       setMfaChecking(false);
     });
     return () => {

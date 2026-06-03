@@ -10,7 +10,7 @@ import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
-import { MfaEnrollRequired } from "@/components/auth/MfaEnrollRequired";
+
 
 import { z } from "zod";
 import { toast } from "sonner";
@@ -60,7 +60,6 @@ export default function Auth() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [mfaRequired, setMfaRequired] = useState(false);
-  const [mfaEnrollRequired, setMfaEnrollRequired] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { signIn, signUp, user } = useAuth();
@@ -68,13 +67,9 @@ export default function Auth() {
   const [searchParams] = useSearchParams();
 
   const checkMfaState = async () => {
-    const [{ data: aal }, { data: factors }] = await Promise.all([
-      supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
-      supabase.auth.mfa.listFactors(),
-    ]);
-    const hasVerified = (factors?.totp ?? []).some((f) => f.status === "verified");
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     const needsAal2 = !!aal && aal.nextLevel === "aal2" && aal.nextLevel !== aal.currentLevel;
-    return { hasVerified, needsAal2 };
+    return { needsAal2 };
   };
 
   const mfaCheckedForUser = useRef<string | null>(null);
@@ -82,17 +77,12 @@ export default function Auth() {
     if (!user) {
       mfaCheckedForUser.current = null;
       setMfaRequired(false);
-      setMfaEnrollRequired(false);
       return;
     }
     if (mfaCheckedForUser.current === user.id) return;
     mfaCheckedForUser.current = user.id;
-    checkMfaState().then(({ hasVerified, needsAal2 }) => {
-      if (!hasVerified) {
-        setMfaEnrollRequired(true);
-      } else if (needsAal2) {
-        setMfaRequired(true);
-      }
+    checkMfaState().then(({ needsAal2 }) => {
+      if (needsAal2) setMfaRequired(true);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
@@ -109,11 +99,7 @@ export default function Auth() {
 
   const checkMfaAndRedirect = async () => {
     const target = getRedirectTarget();
-    const { hasVerified, needsAal2 } = await checkMfaState();
-    if (!hasVerified) {
-      setMfaEnrollRequired(true);
-      return;
-    }
+    const { needsAal2 } = await checkMfaState();
     if (needsAal2) {
       setMfaRequired(true);
     } else {
@@ -211,9 +197,7 @@ export default function Auth() {
         <CardHeader className="text-center space-y-3">
           <CardTitle className="text-2xl font-bold">Gestor Plin</CardTitle>
           <CardDescription>
-            {mfaEnrollRequired
-              ? "Configure a autenticação em 2 fatores"
-              : mfaRequired
+            {mfaRequired
               ? "Verificação em duas etapas"
               : isForgot
               ? "Recuperar senha"
@@ -223,13 +207,7 @@ export default function Auth() {
           </CardDescription>
         </CardHeader>
 
-        {mfaEnrollRequired ? (
-          <CardContent>
-            <MfaEnrollRequired
-              onSuccess={() => navigate(getRedirectTarget(), { replace: true })}
-            />
-          </CardContent>
-        ) : mfaRequired ? (
+        {mfaRequired ? (
           <CardContent>
             <MfaChallenge
               onSuccess={() => navigate(getRedirectTarget(), { replace: true })}
