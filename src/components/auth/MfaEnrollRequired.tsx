@@ -76,17 +76,26 @@ export function MfaEnrollRequired({ onSuccess }: Props) {
     if (didBootstrap.current) return;
     didBootstrap.current = true;
     (async () => {
-      try {
-        const { data: list, error: listErr } = await supabase.auth.mfa.listFactors();
-        if (listErr) throw listErr;
-        const unverified = (list?.totp ?? []).filter((f) => f.status !== "verified");
-        for (const f of unverified) {
-          await supabase.auth.mfa.unenroll({ factorId: f.id });
-        }
-        const { data, error } = await supabase.auth.mfa.enroll({
+      const tryEnroll = async () => {
+        return await supabase.auth.mfa.enroll({
           factorType: "totp",
-          friendlyName: `Authenticator ${new Date().toISOString().slice(0, 10)}`,
+          friendlyName: `Authenticator ${Date.now()}`,
         });
+      };
+
+      try {
+        await cleanupUnverifiedFactors();
+        let { data, error } = await tryEnroll();
+
+        // If still conflicting, try admin reset and one retry
+        if (error && /already exists/i.test(error.message ?? "")) {
+          const ok = await adminResetMfa();
+          if (ok) {
+            await cleanupUnverifiedFactors();
+            ({ data, error } = await tryEnroll());
+          }
+        }
+
         if (error || !data) throw error ?? new Error("Resposta vazia do servidor");
         setEnroll({
           factorId: data.id,
