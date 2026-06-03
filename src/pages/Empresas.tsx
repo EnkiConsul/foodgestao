@@ -10,18 +10,40 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { CompanyFormDialog } from "@/components/companies/CompanyFormDialog";
 import { Plus, Search, Building2, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCompanyQuota } from "@/hooks/useCompanyQuota";
+import { formatCents } from "@/lib/billing";
 import type { Database } from "@/integrations/supabase/types";
 
 type Company = Database["public"]["Tables"]["companies"]["Row"];
 
+
 export default function Empresas() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { data: quota, refetch: refetchQuota } = useCompanyQuota();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editCompany, setEditCompany] = useState<Company | null>(null);
   const [deleteCompany, setDeleteCompany] = useState<Company | null>(null);
+  const [confirmExtra, setConfirmExtra] = useState(false);
   const [search, setSearch] = useState("");
+
+  const syncQuota = useCallback(async () => {
+    try {
+      await supabase.functions.invoke("sync-extra-companies");
+    } catch (e) {
+      console.error("sync-extra-companies failed", e);
+    } finally {
+      await refetchQuota();
+      qc.invalidateQueries({ queryKey: ["current-subscription"] });
+    }
+  }, [refetchQuota, qc]);
+
+
 
   const fetchCompanies = useCallback(async () => {
     if (!user) return;
@@ -50,10 +72,35 @@ export default function Empresas() {
         _entity_id: deleteCompany.id,
         _details: { target_name: deletedName },
       });
-      toast.success("Empresa excluída"); fetchCompanies();
+      toast.success("Empresa excluída");
+      fetchCompanies();
+      syncQuota();
     }
     setDeleteCompany(null);
   };
+
+  const requestNewCompany = () => {
+    setEditCompany(null);
+    if (!quota) { setDialogOpen(true); return; }
+    if (quota.blocked) {
+      toast.error("Limite de perfis do plano atingido", {
+        description: "Faça upgrade do plano para adicionar mais perfis.",
+        action: { label: "Ver planos", onClick: () => navigate("/planos") },
+      });
+      return;
+    }
+    if (quota.requiresPaidExtra) {
+      setConfirmExtra(true);
+      return;
+    }
+    setDialogOpen(true);
+  };
+
+  const handleCompanySaved = () => {
+    fetchCompanies();
+    syncQuota();
+  };
+
 
   const handleToggleActive = async (company: Company) => {
     const { error } = await supabase
@@ -88,10 +135,19 @@ export default function Empresas() {
           <h1 className="text-2xl font-bold tracking-tight">Perfis de Acesso</h1>
           <p className="text-sm text-muted-foreground">Gerencie seus perfis de acesso cadastrados</p>
         </div>
-        <Button onClick={() => { setEditCompany(null); setDialogOpen(true); }} className="hidden md:flex">
+        <Button onClick={requestNewCompany} className="hidden md:flex">
           <Plus className="h-4 w-4 mr-2" /> Novo Perfil
         </Button>
       </div>
+
+      {quota && quota.pricePerExtraCents > 0 && (
+        <div className="text-xs text-muted-foreground bg-muted/40 border rounded-md px-3 py-2">
+          {quota.total} perfil(is) · {quota.included} incluso(s) no plano
+          {quota.extraBilled > 0 && (
+            <> · {quota.extraBilled} extra(s) sendo cobrado(s) ({formatCents(quota.extraBilled * quota.pricePerExtraCents)})</>
+          )}
+          {" · "}Adicional: {formatCents(quota.pricePerExtraCents)}/perfil</div>
+      )}
 
       {/* Summary */}
       <div className="grid grid-cols-2 gap-3">
@@ -126,7 +182,7 @@ export default function Empresas() {
             <CardContent className="flex flex-col items-center py-12 text-muted-foreground">
               <Building2 className="h-10 w-10 mb-3 opacity-40" />
               <p className="text-sm">Nenhuma empresa encontrada</p>
-              <Button variant="link" onClick={() => { setEditCompany(null); setDialogOpen(true); }} className="mt-2">
+              <Button variant="link" onClick={requestNewCompany} className="mt-2">
                 Cadastrar primeira empresa
               </Button>
             </CardContent>
@@ -187,7 +243,7 @@ export default function Empresas() {
 
       {/* FAB mobile */}
       <button
-        onClick={() => { setEditCompany(null); setDialogOpen(true); }}
+        onClick={requestNewCompany}
         className="fixed bottom-20 right-4 z-50 md:hidden flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
       >
         <Plus className="h-6 w-6" />
@@ -196,7 +252,7 @@ export default function Empresas() {
       <CompanyFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        onSaved={fetchCompanies}
+        onSaved={handleCompanySaved}
         company={editCompany}
       />
 
@@ -216,6 +272,26 @@ export default function Empresas() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={confirmExtra} onOpenChange={setConfirmExtra}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Adicionar perfil extra?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Seu plano inclui {quota?.included} perfil(is). Adicionar este novo perfil gera uma cobrança adicional de{" "}
+              <strong>{quota && formatCents(quota.pricePerExtraCents)}/mês</strong>{" "}
+              na próxima fatura. Você pode remover o perfil a qualquer momento para reduzir a cobrança.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmExtra(false); setDialogOpen(true); }}>
+              Confirmar e cadastrar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
