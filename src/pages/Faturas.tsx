@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { formatCents, INVOICE_STATUS_LABELS, INVOICE_STATUS_VARIANT } from "@/lib/billing";
 import { SandboxTestCard } from "@/components/billing/SandboxTestCard";
+import { FreshnessIndicator } from "@/components/billing/FreshnessIndicator";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 
 type StatusFilter = "all" | "pending" | "paid" | "overdue";
