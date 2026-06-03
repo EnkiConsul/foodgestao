@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCompanyQuota } from "@/hooks/useCompanyQuota";
 import { formatCents } from "@/lib/billing";
+import { FreshnessIndicator } from "@/components/billing/FreshnessIndicator";
 import type { Database } from "@/integrations/supabase/types";
 
 type Company = Database["public"]["Tables"]["companies"]["Row"];
