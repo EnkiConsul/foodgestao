@@ -25,6 +25,8 @@ const DEFAULT_PLAN = {
   sort_order: 0,
   features: {
     max_companies: 1,
+    included_companies: 1,
+    price_per_extra_company_cents: 0,
     max_transactions_per_month: 50,
     max_users_per_company: 1,
     max_attachments_per_transaction: 1,
