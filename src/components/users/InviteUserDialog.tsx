@@ -53,14 +53,37 @@ export function InviteUserDialog({ open, onOpenChange, companyId, onSuccess }: I
 
     const link = `${window.location.origin}/convite/${data.token}`;
 
+    // Look up company name + inviter name for the email
+    const [{ data: company }, { data: profile }] = await Promise.all([
+      supabase.from("companies").select("name").eq("id", companyId).maybeSingle(),
+      supabase.from("profiles").select("full_name").eq("user_id", user.id).maybeSingle(),
+    ]);
+
     // Fire-and-forget email send. If it fails, the link is still usable.
     supabase.functions
-      .invoke("send-company-invite", { body: { inviteId: data.id } })
-      .then(({ error: fnErr }) => {
+      .invoke("send-transactional-email", {
+        body: {
+          templateName: "company-invite",
+          recipientEmail: email.trim().toLowerCase(),
+          idempotencyKey: `company-invite-${data.id}`,
+          templateData: {
+            companyName: company?.name ?? "uma empresa",
+            inviterName: profile?.full_name ?? "Um administrador",
+            role,
+            inviteUrl: link,
+          },
+        },
+      })
+      .then(async ({ error: fnErr }) => {
         if (fnErr) {
           toast.warning("Convite criado, mas não foi possível enviar o e-mail automaticamente.", {
             description: "Copie o link e envie manualmente.",
           });
+        } else {
+          await supabase
+            .from("company_invites")
+            .update({ email_sent_at: new Date().toISOString() })
+            .eq("id", data.id);
         }
       });
 
