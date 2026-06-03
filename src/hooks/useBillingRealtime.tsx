@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { CheckCircle2 } from "lucide-react";
 import { createElement } from "react";
+import { markFresh } from "@/hooks/useBillingFreshness";
 
 /**
  * Global listener: detects when one of the user's invoices is marked as paid
@@ -44,6 +45,11 @@ export function useBillingRealtime() {
             qc.invalidateQueries({ queryKey: ["current-subscription"] });
             qc.invalidateQueries({ queryKey: ["company-quota"] });
             qc.invalidateQueries({ queryKey: ["checkout-invoice", next.id] });
+            markFresh("invoices", "payment_received");
+            markFresh("quota", "payment_received");
+            markFresh("subscription", "payment_received");
+          } else {
+            markFresh("invoices", "invoice_updated");
           }
           // Always refresh invoice list on any change (recurring invoice created, value updated, etc.)
           qc.invalidateQueries({ queryKey: ["my-invoices"] });
@@ -60,6 +66,7 @@ export function useBillingRealtime() {
         () => {
           qc.invalidateQueries({ queryKey: ["my-invoices"] });
           qc.invalidateQueries({ queryKey: ["current-subscription"] });
+          markFresh("invoices", "invoice_created");
         },
       )
       .on(
@@ -84,6 +91,8 @@ export function useBillingRealtime() {
           }
           qc.invalidateQueries({ queryKey: ["current-subscription"] });
           qc.invalidateQueries({ queryKey: ["company-quota"] });
+          markFresh("subscription", "subscription_updated");
+          markFresh("quota", "subscription_updated");
         },
       )
       .subscribe();
