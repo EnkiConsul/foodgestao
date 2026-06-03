@@ -10,9 +10,14 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { CompanyFormDialog } from "@/components/companies/CompanyFormDialog";
 import { Plus, Search, Building2, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCompanyQuota } from "@/hooks/useCompanyQuota";
+import { formatCents } from "@/lib/billing";
 import type { Database } from "@/integrations/supabase/types";
 
 type Company = Database["public"]["Tables"]["companies"]["Row"];
+
 
 export default function Empresas() {
   const { user } = useAuth();
