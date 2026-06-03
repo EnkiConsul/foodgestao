@@ -91,6 +91,8 @@ export function useBillingRealtime() {
           }
           qc.invalidateQueries({ queryKey: ["current-subscription"] });
           qc.invalidateQueries({ queryKey: ["company-quota"] });
+          markFresh("subscription", "subscription_updated");
+          markFresh("quota", "subscription_updated");
         },
       )
       .subscribe();
