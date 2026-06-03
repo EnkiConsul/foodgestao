@@ -14,13 +14,14 @@ import {
   Settings,
   LogOut,
   TreePine,
-  
+  Shield,
   Sparkles,
   Receipt,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 
 import { useAuth } from "@/hooks/useAuth";
+import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import {
   Sidebar,
   SidebarContent,
