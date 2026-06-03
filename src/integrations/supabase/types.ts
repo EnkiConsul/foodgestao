@@ -891,10 +891,12 @@ export type Database = {
         Row: {
           company_id: string
           created_at: string
+          email_sent_at: string | null
           expires_at: string
           id: string
           invited_by: string
           invited_email: string
+          permissions: Json
           role: Database["public"]["Enums"]["company_role"]
           status: Database["public"]["Enums"]["invite_status"]
           token: string
@@ -902,10 +904,12 @@ export type Database = {
         Insert: {
           company_id: string
           created_at?: string
+          email_sent_at?: string | null
           expires_at?: string
           id?: string
           invited_by: string
           invited_email: string
+          permissions?: Json
           role?: Database["public"]["Enums"]["company_role"]
           status?: Database["public"]["Enums"]["invite_status"]
           token?: string
@@ -913,10 +917,12 @@ export type Database = {
         Update: {
           company_id?: string
           created_at?: string
+          email_sent_at?: string | null
           expires_at?: string
           id?: string
           invited_by?: string
           invited_email?: string
+          permissions?: Json
           role?: Database["public"]["Enums"]["company_role"]
           status?: Database["public"]["Enums"]["invite_status"]
           token?: string
@@ -936,6 +942,7 @@ export type Database = {
           company_id: string
           created_at: string
           id: string
+          permissions: Json
           role: Database["public"]["Enums"]["company_role"]
           updated_at: string
           user_id: string
@@ -944,6 +951,7 @@ export type Database = {
           company_id: string
           created_at?: string
           id?: string
+          permissions?: Json
           role?: Database["public"]["Enums"]["company_role"]
           updated_at?: string
           user_id: string
@@ -952,6 +960,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           id?: string
+          permissions?: Json
           role?: Database["public"]["Enums"]["company_role"]
           updated_at?: string
           user_id?: string
@@ -2063,7 +2072,7 @@ export type Database = {
       bill_status: "em_dia" | "vence_em_breve" | "atrasado" | "pago" | "parcial"
       billing_period: "monthly" | "yearly"
       budget_period: "mensal" | "anual"
-      company_role: "owner" | "admin" | "member"
+      company_role: "owner" | "admin" | "member" | "viewer"
       contact_type: "cliente" | "fornecedor" | "ambos"
       context_type: "pf" | "pj"
       discount_type: "percent" | "fixed"
@@ -2234,7 +2243,7 @@ export const Constants = {
       bill_status: ["em_dia", "vence_em_breve", "atrasado", "pago", "parcial"],
       billing_period: ["monthly", "yearly"],
       budget_period: ["mensal", "anual"],
-      company_role: ["owner", "admin", "member"],
+      company_role: ["owner", "admin", "member", "viewer"],
       contact_type: ["cliente", "fornecedor", "ambos"],
       context_type: ["pf", "pj"],
       discount_type: ["percent", "fixed"],
