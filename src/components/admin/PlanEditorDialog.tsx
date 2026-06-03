@@ -123,8 +123,8 @@ export function PlanEditorDialog({
     commitInt(maxAttachStr, 1, (n) => setFeat("max_attachments_per_transaction", n), setMaxAttachStr, true);
     commitInt(includedStr, 1, (n) => setFeat("included_companies", n), setIncludedStr);
     // setState is async; build the payload synchronously from the committed values.
-    const priceCents = (() => { const r = parseReais(priceReais); return Number.isFinite(r) ? Math.round(r * 100) : 0; })();
-    const extraCents = (() => { const r = parseReais(extraReais); return Number.isFinite(r) ? Math.round(r * 100) : 0; })();
+    const priceCents = maskedToCents(priceReais);
+    const extraCents = maskedToCents(extraReais);
     const toInt = (s: string, fb: number, allowNeg = false) => {
       const n = parseInt(s, 10);
       const v = Number.isFinite(n) ? n : fb;
