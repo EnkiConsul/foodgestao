@@ -288,10 +288,9 @@ export function PlanEditorDialog({
               </div>
               <div>
                 <Label className="text-xs">Valor por perfil adicional (R$)</Label>
-                <Input
-                  inputMode="decimal"
+                <CurrencyInput
                   value={extraReais}
-                  onChange={(e) => setExtraReais(sanitizeMoneyInput(e.target.value))}
+                  onValueChange={setExtraReais}
                   onBlur={() => commitMoney(extraReais, (c) => setFeat("price_per_extra_company_cents", c), setExtraReais)}
                   placeholder="0,00"
                 />
