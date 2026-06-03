@@ -3,6 +3,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput, formatCurrency, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -38,27 +39,15 @@ const DEFAULT_PLAN = {
   },
 };
 
-/** Parses "19,90" / "19.90" / "" → number of reais (NaN if invalid). */
-function parseReais(input: string): number {
-  const normalized = (input ?? "").toString().replace(/\s/g, "").replace(",", ".");
-  if (!normalized) return NaN;
-  return parseFloat(normalized);
+/** Cents → formatted "1.234,56" (empty when 0 so placeholder shows on new plans). */
+function centsToMasked(cents: number | null | undefined): string {
+  if (!cents) return "";
+  return formatCurrency(String(cents));
 }
 
-/** Formats cents as "19,90" for display in pt-BR friendly inputs. */
-function formatReais(cents: number | null | undefined): string {
-  return (((cents ?? 0) / 100)).toFixed(2).replace(".", ",");
-}
-
-/** Allow only digits, one comma/period, and partial typing. */
-function sanitizeMoneyInput(raw: string): string {
-  // Keep digits and the first decimal separator only.
-  const cleaned = raw.replace(/[^\d.,]/g, "");
-  const firstSep = cleaned.search(/[.,]/);
-  if (firstSep === -1) return cleaned;
-  const head = cleaned.slice(0, firstSep + 1);
-  const tail = cleaned.slice(firstSep + 1).replace(/[.,]/g, "");
-  return head + tail;
+/** Formatted "1.234,56" → integer cents. */
+function maskedToCents(masked: string): number {
+  return Math.round(parseCurrencyToNumber(masked) * 100);
 }
 
 function sanitizeIntInput(raw: string, allowNegative = false): string {
@@ -93,8 +82,8 @@ export function PlanEditorDialog({
       ? { ...plan, features: { ...DEFAULT_PLAN.features, ...(plan.features || {}) } }
       : DEFAULT_PLAN;
     setForm(base);
-    setPriceReais(formatReais(base.price_cents));
-    setExtraReais(formatReais(base.features.price_per_extra_company_cents));
+    setPriceReais(centsToMasked(base.price_cents));
+    setExtraReais(centsToMasked(base.features.price_per_extra_company_cents));
     setTrialStr(String(base.trial_days ?? 0));
     setOrderStr(String(base.sort_order ?? 0));
     setMaxCompaniesStr(String(base.features.max_companies ?? 1));
@@ -110,10 +99,9 @@ export function PlanEditorDialog({
 
   // Commit helpers run on blur — keep form numeric values in sync with the string mirrors.
   const commitMoney = (str: string, apply: (cents: number) => void, mirror: (s: string) => void) => {
-    const reais = parseReais(str);
-    const cents = Number.isFinite(reais) ? Math.round(reais * 100) : 0;
+    const cents = maskedToCents(str);
     apply(cents);
-    mirror(formatReais(cents));
+    mirror(centsToMasked(cents));
   };
   const commitInt = (str: string, fallback: number, apply: (n: number) => void, mirror: (s: string) => void, allowNegative = false) => {
     const n = parseInt(str, 10);
@@ -135,8 +123,8 @@ export function PlanEditorDialog({
     commitInt(maxAttachStr, 1, (n) => setFeat("max_attachments_per_transaction", n), setMaxAttachStr, true);
     commitInt(includedStr, 1, (n) => setFeat("included_companies", n), setIncludedStr);
     // setState is async; build the payload synchronously from the committed values.
-    const priceCents = (() => { const r = parseReais(priceReais); return Number.isFinite(r) ? Math.round(r * 100) : 0; })();
-    const extraCents = (() => { const r = parseReais(extraReais); return Number.isFinite(r) ? Math.round(r * 100) : 0; })();
+    const priceCents = maskedToCents(priceReais);
+    const extraCents = maskedToCents(extraReais);
     const toInt = (s: string, fb: number, allowNeg = false) => {
       const n = parseInt(s, 10);
       const v = Number.isFinite(n) ? n : fb;
@@ -182,10 +170,9 @@ export function PlanEditorDialog({
           </div>
           <div>
             <Label>Preço (R$)</Label>
-            <Input
-              inputMode="decimal"
+            <CurrencyInput
               value={priceReais}
-              onChange={(e) => setPriceReais(sanitizeMoneyInput(e.target.value))}
+              onValueChange={setPriceReais}
               onBlur={() => commitMoney(priceReais, (c) => setF("price_cents", c), setPriceReais)}
               placeholder="0,00"
             />
@@ -301,10 +288,9 @@ export function PlanEditorDialog({
               </div>
               <div>
                 <Label className="text-xs">Valor por perfil adicional (R$)</Label>
-                <Input
-                  inputMode="decimal"
+                <CurrencyInput
                   value={extraReais}
-                  onChange={(e) => setExtraReais(sanitizeMoneyInput(e.target.value))}
+                  onValueChange={setExtraReais}
                   onBlur={() => commitMoney(extraReais, (c) => setFeat("price_per_extra_company_cents", c), setExtraReais)}
                   placeholder="0,00"
                 />
