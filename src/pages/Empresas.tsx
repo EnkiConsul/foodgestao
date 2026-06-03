@@ -21,12 +21,29 @@ type Company = Database["public"]["Tables"]["companies"]["Row"];
 
 export default function Empresas() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { data: quota, refetch: refetchQuota } = useCompanyQuota();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editCompany, setEditCompany] = useState<Company | null>(null);
   const [deleteCompany, setDeleteCompany] = useState<Company | null>(null);
+  const [confirmExtra, setConfirmExtra] = useState(false);
   const [search, setSearch] = useState("");
+
+  const syncQuota = useCallback(async () => {
+    try {
+      await supabase.functions.invoke("sync-extra-companies");
+    } catch (e) {
+      console.error("sync-extra-companies failed", e);
+    } finally {
+      await refetchQuota();
+      qc.invalidateQueries({ queryKey: ["current-subscription"] });
+    }
+  }, [refetchQuota, qc]);
+
+
 
   const fetchCompanies = useCallback(async () => {
     if (!user) return;
