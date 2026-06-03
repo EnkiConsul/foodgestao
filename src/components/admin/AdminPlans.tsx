@@ -71,6 +71,9 @@ export function AdminPlans() {
                     <div className="flex justify-between"><span className="text-muted-foreground">Empresas</span><span>{formatLimit(f.max_companies)}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Lançamentos/mês</span><span>{formatLimit(f.max_transactions_per_month)}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Anexos/lançamento</span><span>{formatLimit(f.max_attachments_per_transaction)}</span></div>
+                    {f.price_per_extra_company_cents > 0 && (
+                      <div className="flex justify-between"><span className="text-muted-foreground">Perfil extra</span><span>{formatCents(f.price_per_extra_company_cents)} (incl. {f.included_companies ?? f.max_companies})</span></div>
+                    )}
                     <div className="flex justify-between"><span className="text-muted-foreground">IA</span><span>{f.ai_enabled ? "Sim" : "Não"}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">PDF</span><span>{f.export_pdf ? "Sim" : "Não"}</span></div>
                   </div>
