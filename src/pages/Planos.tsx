@@ -58,6 +58,11 @@ export default function Planos() {
                       <span className="text-sm text-muted-foreground">
                         /{p.billing_period === "monthly" ? "mês" : "ano"}
                       </span>
+                      {f.price_per_extra_company_cents > 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          + {formatCents(f.price_per_extra_company_cents)} por perfil adicional
+                        </p>
+                      )}
                     </div>
                     {p.trial_days > 0 && (
                       <p className="text-xs text-emerald-600">{p.trial_days} dias de trial grátis</p>
