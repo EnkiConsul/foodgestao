@@ -62,6 +62,11 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   
   const { signOut } = useAuth();
+  const { isSuperAdmin } = useSuperAdmin();
+
+  const visibleSecondaryItems = isSuperAdmin
+    ? [...secondaryItems, { title: "Backoffice", url: "/admin", icon: Shield }]
+    : secondaryItems;
 
   return (
     <Sidebar className="border-r-0" collapsible="icon">
