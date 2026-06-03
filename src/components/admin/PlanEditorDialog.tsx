@@ -82,8 +82,8 @@ export function PlanEditorDialog({
       ? { ...plan, features: { ...DEFAULT_PLAN.features, ...(plan.features || {}) } }
       : DEFAULT_PLAN;
     setForm(base);
-    setPriceReais(formatReais(base.price_cents));
-    setExtraReais(formatReais(base.features.price_per_extra_company_cents));
+    setPriceReais(centsToMasked(base.price_cents));
+    setExtraReais(centsToMasked(base.features.price_per_extra_company_cents));
     setTrialStr(String(base.trial_days ?? 0));
     setOrderStr(String(base.sort_order ?? 0));
     setMaxCompaniesStr(String(base.features.max_companies ?? 1));
