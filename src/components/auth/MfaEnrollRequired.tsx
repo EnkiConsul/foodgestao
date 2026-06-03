@@ -23,6 +23,9 @@ type Stage = "loading" | "setup" | "confirmed" | "error";
 function translateMfaError(message: string | undefined): string {
   if (!message) return "Não foi possível validar o código. Tente novamente.";
   const m = message.toLowerCase();
+  if (m.includes("friendly name") && m.includes("already exists")) {
+    return "Já existe uma configuração de 2FA pendente nesta conta. Clique em \"Resetar 2FA e tentar de novo\" para limpar e recomeçar.";
+  }
   if (m.includes("invalid") && m.includes("code")) {
     return "Código incorreto. Verifique o número exibido no app e tente novamente — os códigos mudam a cada 30 segundos.";
   }
@@ -36,6 +39,27 @@ function translateMfaError(message: string | undefined): string {
     return "Falha de conexão. Verifique sua internet e tente novamente.";
   }
   return message;
+}
+
+async function cleanupUnverifiedFactors() {
+  try {
+    const { data: list } = await supabase.auth.mfa.listFactors();
+    const unverified = (list?.totp ?? []).filter((f) => f.status !== "verified");
+    await Promise.allSettled(
+      unverified.map((f) => supabase.auth.mfa.unenroll({ factorId: f.id })),
+    );
+  } catch {
+    // ignore
+  }
+}
+
+async function adminResetMfa(): Promise<boolean> {
+  try {
+    const { error } = await supabase.functions.invoke("admin-reset-mfa", { body: {} });
+    return !error;
+  } catch {
+    return false;
+  }
 }
 
 export function MfaEnrollRequired({ onSuccess }: Props) {
