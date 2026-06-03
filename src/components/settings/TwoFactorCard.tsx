@@ -5,6 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { ShieldCheck, ShieldAlert, Loader2, Copy } from "lucide-react";
 
@@ -27,6 +38,7 @@ export function TwoFactorCard() {
   const [enroll, setEnroll] = useState<EnrollData | null>(null);
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [confirmDisable, setConfirmDisable] = useState(false);
 
   const verified = factors.find((f) => f.status === "verified");
 
@@ -44,14 +56,14 @@ export function TwoFactorCard() {
 
   const startEnroll = async () => {
     setSubmitting(true);
-    // Clean up unverified leftovers
-    const unverified = factors.filter((f) => f.status !== "verified");
+    const { data: current } = await supabase.auth.mfa.listFactors();
+    const unverified = (current?.totp ?? []).filter((f) => f.status !== "verified");
     for (const f of unverified) {
       await supabase.auth.mfa.unenroll({ factorId: f.id });
     }
     const { data, error } = await supabase.auth.mfa.enroll({
       factorType: "totp",
-      friendlyName: `Authenticator ${new Date().toISOString().slice(0, 10)}`,
+      friendlyName: `Authenticator ${Date.now()}`,
     });
     setSubmitting(false);
     if (error || !data) {
@@ -101,12 +113,40 @@ export function TwoFactorCard() {
     refresh();
   };
 
+  const disableMfa = async () => {
+    setSubmitting(true);
+    const { data: current } = await supabase.auth.mfa.listFactors();
+    const all = current?.totp ?? [];
+    for (const f of all) {
+      const { error } = await supabase.auth.mfa.unenroll({ factorId: f.id });
+      if (error) {
+        setSubmitting(false);
+        toast.error("Erro ao desativar 2FA", { description: error.message });
+        return;
+      }
+    }
+    setSubmitting(false);
+    setConfirmDisable(false);
+    toast.success("Autenticação de dois fatores desativada");
+    refresh();
+  };
 
   const copySecret = async () => {
     if (!enroll) return;
     await navigator.clipboard.writeText(enroll.secret);
     toast.success("Chave copiada");
   };
+
+  const handleToggle = (checked: boolean) => {
+    if (checked) {
+      if (!verified && !enroll) startEnroll();
+    } else {
+      if (verified) setConfirmDisable(true);
+      else if (enroll) cancelEnroll();
+    }
+  };
+
+  const isOn = !!verified || !!enroll;
 
   return (
     <Card>
@@ -119,15 +159,21 @@ export function TwoFactorCard() {
               <ShieldAlert className="h-5 w-5 text-muted-foreground" />
             )}
             <CardTitle className="text-lg">Autenticação em 2 fatores</CardTitle>
+            {verified ? (
+              <Badge variant="default">Ativada</Badge>
+            ) : (
+              <Badge variant="outline">Desativada</Badge>
+            )}
           </div>
-          {verified ? (
-            <Badge variant="default">Ativada</Badge>
-          ) : (
-            <Badge variant="outline">Desativada</Badge>
-          )}
+          <Switch
+            checked={isOn}
+            disabled={loading || submitting}
+            onCheckedChange={handleToggle}
+            aria-label="Ativar 2FA"
+          />
         </div>
         <CardDescription>
-          Use o Google Authenticator (ou outro app TOTP) para proteger sua conta com um código adicional no login.
+          Opcional. Use o Google Authenticator (ou outro app TOTP) para proteger sua conta com um código adicional no login.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -136,12 +182,9 @@ export function TwoFactorCard() {
             <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Carregando...
           </div>
         ) : verified && !enroll ? (
-          <div className="flex flex-col gap-1">
-            <p className="text-sm text-muted-foreground">
-              Sua conta está protegida. A autenticação em 2 fatores é obrigatória e não pode ser
-              desativada.
-            </p>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            Sua conta está protegida. Para desativar, use o botão acima.
+          </p>
         ) : enroll ? (
           <div className="space-y-4">
             <ol className="text-sm space-y-1 list-decimal list-inside text-muted-foreground">
@@ -180,18 +223,34 @@ export function TwoFactorCard() {
               </Button>
               <Button onClick={verifyEnroll} disabled={submitting || code.length !== 6}>
                 {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Ativar 2FA
+                Confirmar ativação
               </Button>
             </div>
           </div>
         ) : (
-          <Button onClick={startEnroll} disabled={submitting}>
-            {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Configurar Google Authenticator
-          </Button>
+          <p className="text-sm text-muted-foreground">
+            Ative o interruptor acima para configurar o app autenticador.
+          </p>
         )}
       </CardContent>
 
+      <AlertDialog open={confirmDisable} onOpenChange={setConfirmDisable}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desativar autenticação em 2 fatores?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sua conta deixará de exigir o código adicional no login. Você pode reativar quando quiser.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={submitting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={disableMfa} disabled={submitting}>
+              {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Desativar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
