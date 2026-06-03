@@ -252,7 +252,7 @@ export default function Empresas() {
       <CompanyFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        onSaved={fetchCompanies}
+        onSaved={handleCompanySaved}
         company={editCompany}
       />
 
@@ -272,6 +272,26 @@ export default function Empresas() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={confirmExtra} onOpenChange={setConfirmExtra}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Adicionar perfil extra?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Seu plano inclui {quota?.included} perfil(is). Adicionar este novo perfil gera uma cobrança adicional de{" "}
+              <strong>{quota && formatCents(quota.pricePerExtraCents)}/mês</strong>{" "}
+              na próxima fatura. Você pode remover o perfil a qualquer momento para reduzir a cobrança.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmExtra(false); setDialogOpen(true); }}>
+              Confirmar e cadastrar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
