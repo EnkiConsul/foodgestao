@@ -52,6 +52,19 @@ export function useBillingRealtime() {
       .on(
         "postgres_changes",
         {
+          event: "INSERT",
+          schema: "public",
+          table: "invoices",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          qc.invalidateQueries({ queryKey: ["my-invoices"] });
+          qc.invalidateQueries({ queryKey: ["current-subscription"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
           event: "UPDATE",
           schema: "public",
           table: "subscriptions",
@@ -70,9 +83,11 @@ export function useBillingRealtime() {
             });
           }
           qc.invalidateQueries({ queryKey: ["current-subscription"] });
+          qc.invalidateQueries({ queryKey: ["company-quota"] });
         },
       )
       .subscribe();
+
 
     return () => {
       supabase.removeChannel(channel);
