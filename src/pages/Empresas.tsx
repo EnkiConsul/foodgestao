@@ -243,7 +243,7 @@ export default function Empresas() {
 
       {/* FAB mobile */}
       <button
-        onClick={() => { setEditCompany(null); setDialogOpen(true); }}
+        onClick={requestNewCompany}
         className="fixed bottom-20 right-4 z-50 md:hidden flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
       >
         <Plus className="h-6 w-6" />
