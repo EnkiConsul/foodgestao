@@ -120,6 +120,7 @@ Deno.serve(async (req) => {
         company_id: invite.company_id,
         user_id: user.id,
         role: invite.role,
+        permissions: invite.permissions ?? {},
       });
 
     if (memberError) {
