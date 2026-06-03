@@ -66,6 +66,7 @@ export function useBillingRealtime() {
         () => {
           qc.invalidateQueries({ queryKey: ["my-invoices"] });
           qc.invalidateQueries({ queryKey: ["current-subscription"] });
+          markFresh("invoices", "invoice_created");
         },
       )
       .on(
