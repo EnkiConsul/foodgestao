@@ -15,8 +15,7 @@ import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const formatBRLRaw = (v: number) =>
-  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+import { formatBRL as formatBRLRaw } from "@/lib/billing";
 
 function getAlertLevel(percent: number, alerts: { a70: boolean; a90: boolean; a100: boolean }) {
   if (percent >= 100 && alerts.a100) return { label: "Estourado", color: "destructive" as const };

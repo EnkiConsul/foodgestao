@@ -46,8 +46,7 @@ function getPeriodRange(preset: PeriodPreset): { from: Date; to: Date } {
   }
 }
 
-const formatBRLRaw = (v: number) =>
-  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+import { formatBRL as formatBRLRaw } from "@/lib/billing";
 
 export default function Relatorios() {
   const { user } = useAuth();
