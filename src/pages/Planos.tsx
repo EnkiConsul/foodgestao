@@ -70,7 +70,7 @@ export default function Planos() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <ul className="space-y-2 text-sm">
-                      <li className="flex gap-2"><Check className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />Até {formatLimit(f.max_companies)} {f.max_companies === 1 ? "perfil" : "perfis"}</li>
+                      <li className="flex gap-2"><Check className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />{f.price_per_extra_company_cents > 0 ? `${f.included_companies ?? f.max_companies} ${(f.included_companies ?? f.max_companies) === 1 ? "perfil incluso" : "perfis inclusos"} · extras sob demanda` : `Até ${formatLimit(f.max_companies)} ${f.max_companies === 1 ? "perfil" : "perfis"}`}</li>
                       <li className="flex gap-2"><Check className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />{formatLimit(f.max_transactions_per_month)} lançamentos/mês</li>
                       <li className="flex gap-2"><Check className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />{formatLimit(f.max_attachments_per_transaction)} anexos por lançamento</li>
                       <li className="flex gap-2">
