@@ -183,6 +183,17 @@ export function MfaEnrollRequired({ onSuccess }: Props) {
           <Button type="button" variant="ghost" onClick={cancel}>
             Sair
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={async () => {
+              await adminResetMfa();
+              await cleanupUnverifiedFactors();
+              window.location.reload();
+            }}
+          >
+            Resetar 2FA e tentar de novo
+          </Button>
           <Button type="button" onClick={() => window.location.reload()}>
             Tentar novamente
           </Button>
