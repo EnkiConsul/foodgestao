@@ -10,6 +10,7 @@ import { CurrencyInput, parseCurrencyToNumber } from "@/components/ui/currency-i
 import { toast } from "sonner";
 import { Calendar } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
+import { formatBRL as formatBRLShared } from "@/lib/billing";
 
 interface PaymentTransaction {
   id: string;
