@@ -2,6 +2,7 @@ import { createContext, useContext, ReactNode } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatBRL } from "@/lib/billing";
 
 interface PrivacyContextType {
   privacyMode: boolean;
@@ -14,7 +15,7 @@ const PrivacyContext = createContext<PrivacyContextType>({
   privacyMode: false,
   togglePrivacy: async () => {},
   mask: (v) => v,
-  maskBRL: (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+  maskBRL: (v) => formatBRL(v),
 });
 
 export function PrivacyProvider({ children }: { children: ReactNode }) {
@@ -55,7 +56,7 @@ export function PrivacyProvider({ children }: { children: ReactNode }) {
 
   const maskBRL = (value: number) => {
     if (privacyMode) return "R$ ••••";
-    return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    return formatBRL(value);
   };
 
   return (

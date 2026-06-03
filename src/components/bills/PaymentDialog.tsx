@@ -47,8 +47,7 @@ export function PaymentDialog({ open, onOpenChange, bill, onPaid }: Props) {
 
   const remaining = bill.amount - bill.amount_paid;
 
-  const formatBRL = (v: number) =>
-    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const formatBRL = (v: number) => formatBRLShared(v);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { cn } from "@/lib/utils";
+import { formatBRL } from "@/lib/billing";
 
 type Alert = {
   id: string;
@@ -17,9 +18,6 @@ type Alert = {
   description: string;
   href: string;
 };
-
-const formatBRL = (n: number) =>
-  n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const formatDate = (d: string) =>
   new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
