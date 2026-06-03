@@ -182,7 +182,7 @@ export default function Empresas() {
             <CardContent className="flex flex-col items-center py-12 text-muted-foreground">
               <Building2 className="h-10 w-10 mb-3 opacity-40" />
               <p className="text-sm">Nenhuma empresa encontrada</p>
-              <Button variant="link" onClick={() => { setEditCompany(null); setDialogOpen(true); }} className="mt-2">
+              <Button variant="link" onClick={requestNewCompany} className="mt-2">
                 Cadastrar primeira empresa
               </Button>
             </CardContent>
