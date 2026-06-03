@@ -182,9 +182,20 @@ export function TwoFactorCard() {
             <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Carregando...
           </div>
         ) : verified && !enroll ? (
-          <p className="text-sm text-muted-foreground">
-            Sua conta está protegida. Para desativar, use o botão acima.
-          </p>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Sua conta está protegida. Você pode desativar a qualquer momento.
+            </p>
+            <Button
+              variant="outline"
+              className="text-destructive hover:text-destructive border-destructive/40 hover:bg-destructive/10"
+              onClick={() => setConfirmDisable(true)}
+              disabled={submitting}
+            >
+              <ShieldOff className="h-4 w-4 mr-2" />
+              Desativar 2FA
+            </Button>
+          </div>
         ) : enroll ? (
           <div className="space-y-4">
             <ol className="text-sm space-y-1 list-decimal list-inside text-muted-foreground">
