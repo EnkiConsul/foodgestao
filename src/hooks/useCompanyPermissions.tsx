@@ -22,8 +22,9 @@ interface MemberInfo {
  */
 export function useCompanyPermissions() {
   const { user } = useAuth();
-  const { activeContext, activeCompanyId } = useCompanyContext() as any;
-  const isPersonal = activeContext === "pf" || !activeCompanyId;
+  const { contextType, selectedCompanyId } = useCompanyContext();
+  const activeCompanyId = selectedCompanyId;
+  const isPersonal = contextType === "pf" || !activeCompanyId;
 
   const { data: member } = useQuery<MemberInfo | null>({
     queryKey: ["company-member-self", user?.id, activeCompanyId],
