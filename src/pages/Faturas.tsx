@@ -113,9 +113,12 @@ export default function Faturas() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Minhas faturas</h1>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Acompanhe suas cobranças{onlyPix ? " via Pix" : ""} — pendentes, pagas e atrasadas
-            </p>
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <p className="text-muted-foreground text-sm">
+                Acompanhe suas cobranças{onlyPix ? " via Pix" : ""} — pendentes, pagas e atrasadas
+              </p>
+              <FreshnessIndicator freshnessKey="invoices" label="Faturas" />
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Button
