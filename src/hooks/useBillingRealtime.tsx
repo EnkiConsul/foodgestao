@@ -45,6 +45,11 @@ export function useBillingRealtime() {
             qc.invalidateQueries({ queryKey: ["current-subscription"] });
             qc.invalidateQueries({ queryKey: ["company-quota"] });
             qc.invalidateQueries({ queryKey: ["checkout-invoice", next.id] });
+            markFresh("invoices", "payment_received");
+            markFresh("quota", "payment_received");
+            markFresh("subscription", "payment_received");
+          } else {
+            markFresh("invoices", "invoice_updated");
           }
           // Always refresh invoice list on any change (recurring invoice created, value updated, etc.)
           qc.invalidateQueries({ queryKey: ["my-invoices"] });
