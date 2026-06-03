@@ -39,27 +39,15 @@ const DEFAULT_PLAN = {
   },
 };
 
-/** Parses "19,90" / "19.90" / "" → number of reais (NaN if invalid). */
-function parseReais(input: string): number {
-  const normalized = (input ?? "").toString().replace(/\s/g, "").replace(",", ".");
-  if (!normalized) return NaN;
-  return parseFloat(normalized);
+/** Cents → formatted "1.234,56" (empty when 0 so placeholder shows on new plans). */
+function centsToMasked(cents: number | null | undefined): string {
+  if (!cents) return "";
+  return formatCurrency(String(cents));
 }
 
-/** Formats cents as "19,90" for display in pt-BR friendly inputs. */
-function formatReais(cents: number | null | undefined): string {
-  return (((cents ?? 0) / 100)).toFixed(2).replace(".", ",");
-}
-
-/** Allow only digits, one comma/period, and partial typing. */
-function sanitizeMoneyInput(raw: string): string {
-  // Keep digits and the first decimal separator only.
-  const cleaned = raw.replace(/[^\d.,]/g, "");
-  const firstSep = cleaned.search(/[.,]/);
-  if (firstSep === -1) return cleaned;
-  const head = cleaned.slice(0, firstSep + 1);
-  const tail = cleaned.slice(firstSep + 1).replace(/[.,]/g, "");
-  return head + tail;
+/** Formatted "1.234,56" → integer cents. */
+function maskedToCents(masked: string): number {
+  return Math.round(parseCurrencyToNumber(masked) * 100);
 }
 
 function sanitizeIntInput(raw: string, allowNegative = false): string {
