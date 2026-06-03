@@ -160,8 +160,35 @@ export function PlanEditorDialog({
               <Label className="text-xs">Máx. anexos/lançamento</Label>
               <Input type="number" value={form.features.max_attachments_per_transaction}
                 onChange={(e) => setFeat("max_attachments_per_transaction", parseInt(e.target.value || "0"))} />
+          </div>
+          <div className="rounded-md border p-3 space-y-3">
+            <h4 className="text-sm font-medium">Cobrança por perfil de acesso</h4>
+            <p className="text-xs text-muted-foreground">
+              Configure cobrança adicional por perfil de acesso (empresa) além do incluído. Deixe 0 para não permitir extras (usa apenas o limite máximo).
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Perfis inclusos no preço</Label>
+                <Input
+                  type="number"
+                  value={form.features.included_companies ?? form.features.max_companies ?? 1}
+                  onChange={(e) => setFeat("included_companies", parseInt(e.target.value || "0"))}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Valor por perfil adicional (R$)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={((form.features.price_per_extra_company_cents ?? 0) / 100).toFixed(2)}
+                  onChange={(e) =>
+                    setFeat("price_per_extra_company_cents", Math.round(parseFloat(e.target.value || "0") * 100))
+                  }
+                />
+              </div>
             </div>
           </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
               ["ai_enabled", "IA habilitada"],
