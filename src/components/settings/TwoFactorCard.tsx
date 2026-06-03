@@ -101,6 +101,10 @@ export function TwoFactorCard() {
       return;
     }
     toast.success("Autenticação de dois fatores ativada");
+    // Optimistic — badge/botões mudam no mesmo frame
+    setFactors([
+      { id: enroll.factorId, factor_type: "totp", status: "verified" },
+    ]);
     setEnroll(null);
     setCode("");
     refresh();
@@ -110,6 +114,7 @@ export function TwoFactorCard() {
     if (enroll) await supabase.auth.mfa.unenroll({ factorId: enroll.factorId });
     setEnroll(null);
     setCode("");
+    setFactors((prev) => prev.filter((f) => f.status === "verified"));
     refresh();
   };
 
@@ -125,6 +130,10 @@ export function TwoFactorCard() {
         return;
       }
     }
+    // Optimistic — limpa estado imediatamente
+    setFactors([]);
+    setEnroll(null);
+    setCode("");
     setSubmitting(false);
     setConfirmDisable(false);
     toast.success("Autenticação de dois fatores desativada");
