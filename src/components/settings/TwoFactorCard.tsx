@@ -17,7 +17,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ShieldCheck, ShieldAlert, Loader2, Copy } from "lucide-react";
+import { ShieldCheck, ShieldAlert, ShieldOff, Loader2, Copy } from "lucide-react";
 
 interface Factor {
   id: string;
