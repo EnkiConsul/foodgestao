@@ -1,29 +1,24 @@
-## Problema
+# Corrigir erro ao atualizar saldo da conta bancária (PJ)
 
-Os campos numéricos no editor de planos (`PlanEditorDialog`) hoje impedem digitação fluida:
+## Causa raiz
+Logs do Postgres mostram: `permission denied for function member_can_edit`.
 
-- "Valor por perfil adicional (R$)" e "Preço (R$)" formatam o valor com `.toFixed(2)` a cada tecla, então digitar "19,90" reescreve para "0.00" → cursor pula, vírgula é bloqueada, não dá pra apagar o zero.
-- "Perfis inclusos", "Trial", "Ordem", "Máx. empresas/lançamentos/usuários/anexos" usam `parseInt` direto no `onChange` — apagar tudo vira `0`, não dá pra deixar o campo vazio enquanto digita.
+A política RLS de UPDATE em `public.accounts` chama `private.member_can_edit(auth.uid(), company_id, 'accounts')`. O role `authenticated` não tem privilégio `EXECUTE` nessa função (nem nas auxiliares `member_permission` e `is_company_member`), então a policy falha ao avaliar e a atualização é negada. O mesmo problema afeta qualquer outra tabela cujas policies dependam dessas funções (transactions, categories, contacts, payment_methods, budgets etc.).
 
-## Solução
+## Correção
+Migração única concedendo `EXECUTE` ao role `authenticated` (e `service_role`) em todas as funções do schema `private` usadas pelas RLS policies:
 
-Permitir digitação livre nos campos numéricos do `PlanEditorDialog.tsx`, mantendo o valor numérico final consistente no `form`.
+- `private.member_can_edit(uuid, uuid, text)`
+- `private.member_permission(uuid, uuid, text)`
+- `private.is_company_member(uuid, uuid)`
+- demais funções de `private` referenciadas por policies (vou listar via `pg_proc` e conceder em bloco para não deixar nenhuma de fora).
 
-### Campos monetários (R$)
-- Manter um estado local string (`priceReais` já existe; adicionar `extraReais`).
-- `onChange` apenas atualiza a string (sem formatar nem converter).
-- Aceitar vírgula ou ponto como separador decimal (normaliza no parse).
-- `onBlur` reformata para 2 casas (`19,90`) e grava o valor em centavos no `form`.
-- Ao abrir o diálogo, inicializar as strings com o valor atual formatado em pt-BR.
+Também garantir `GRANT USAGE ON SCHEMA private TO authenticated, service_role` (necessário para resolver o nome da função).
 
-### Campos inteiros (trial, ordem, limites, perfis inclusos)
-- Trocar o handler para aceitar string vazia/parcial sem forçar `0`.
-- Converter para número apenas quando há dígito; se vazio, manter `""` no input e gravar `null`/`0` no form só no `onBlur`.
-- Usar `inputMode="numeric"` para teclado correto no mobile.
+## Validação
+1. Após a migração, repetir a edição do saldo da conta `SuitPay - Raptor` como o usuário atual.
+2. Conferir que aparece o toast "Conta atualizada" e que `audit_logs` registra `account_updated`.
+3. Reexecutar `supabase--analytics_query` filtrando por `permission denied` para confirmar que o erro parou.
 
-### Observação
-Mudança puramente de UX no formulário — não altera schema, RLS, payload salvo, nem a lógica de cobrança. O valor final continua sendo `price_cents` / `price_per_extra_company_cents` em centavos e os limites continuam inteiros.
-
-## Arquivo afetado
-
-- `src/components/admin/PlanEditorDialog.tsx`
+## Fora do escopo (anotado para depois)
+- Os erros `invalid column for filter company_id` apontam para algum `.eq("company_id", ...)` em uma view/relação que não tem a coluna. Investigar separadamente — não afeta o saldo.
