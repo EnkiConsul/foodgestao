@@ -251,6 +251,7 @@ export function AdminAsaasWebhooks() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Recebido em</TableHead>
+                      <TableHead>Cliente</TableHead>
                       <TableHead>Evento</TableHead>
                       <TableHead>Event ID</TableHead>
                       <TableHead>Status</TableHead>
@@ -263,6 +264,9 @@ export function AdminAsaasWebhooks() {
                       <TableRow key={e.id}>
                         <TableCell className="whitespace-nowrap text-xs">
                           {new Date(e.created_at).toLocaleString("pt-BR")}
+                        </TableCell>
+                        <TableCell className="text-xs font-medium max-w-[180px] truncate" title={clientFor(e)}>
+                          {clientFor(e)}
                         </TableCell>
                         <TableCell>
                           <code className="text-xs">{e.event_type}</code>
