@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useUserNames } from "@/hooks/useUserNames";
+import { ClientCell } from "./ClientCell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,7 +45,7 @@ export function AdminAsaasWebhooks() {
   const [testDuplicateOf, setTestDuplicateOf] = useState("");
   const [testSending, setTestSending] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
-  const { displayName } = useUserNames();
+  
 
   // Debounce client search
   useEffect(() => {
@@ -142,12 +142,10 @@ export function AdminAsaasWebhooks() {
     },
   });
 
-  const clientFor = (e: WebhookEvent) => {
+  const userIdFor = (e: WebhookEvent): string | null => {
     const payId = e.payload?.payment?.id;
-    if (!payId) return "—";
-    const uid = data?.paymentToUser.get(payId);
-    if (!uid) return "—";
-    return displayName(uid);
+    if (!payId) return null;
+    return data?.paymentToUser.get(payId) ?? null;
   };
 
   const stats = useQuery({
@@ -265,8 +263,8 @@ export function AdminAsaasWebhooks() {
                         <TableCell className="whitespace-nowrap text-xs">
                           {new Date(e.created_at).toLocaleString("pt-BR")}
                         </TableCell>
-                        <TableCell className="text-xs font-medium max-w-[180px] truncate" title={clientFor(e)}>
-                          {clientFor(e)}
+                        <TableCell className="text-xs font-medium max-w-[180px] truncate">
+                          <ClientCell userId={userIdFor(e)} compact />
                         </TableCell>
                         <TableCell>
                           <code className="text-xs">{e.event_type}</code>
@@ -325,7 +323,7 @@ export function AdminAsaasWebhooks() {
                 </div>
                 <div className="col-span-2">
                   <p className="text-xs text-muted-foreground">Cliente</p>
-                  <p className="font-medium">{clientFor(selected)}</p>
+                  <ClientCell userId={userIdFor(selected)} />
                 </div>
                 <div className="col-span-2">
                   <p className="text-xs text-muted-foreground">Event ID</p>
