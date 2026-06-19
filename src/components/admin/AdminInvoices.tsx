@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAdminInvoices, useUpdateInvoice } from "@/hooks/useBilling";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -12,15 +12,39 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { formatCents, INVOICE_STATUS_LABELS, INVOICE_STATUS_VARIANT } from "@/lib/billing";
+import { useUserNames } from "@/hooks/useUserNames";
 import { ClientCell } from "./ClientCell";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 export function AdminInvoices() {
   const [status, setStatus] = useState<string>("all");
+  const [clientSortDir, setClientSortDir] = useState<"asc" | "desc" | null>(null);
   const { data: invoices = [], isLoading } = useAdminInvoices(
     status === "all" ? undefined : { status }
   );
+  const { displayName } = useUserNames();
   
   const update = useUpdateInvoice();
+
+  const sortedInvoices = useMemo(() => {
+    if (!clientSortDir) return invoices;
+    const key = (inv: any) => {
+      const name = displayName(inv.user_id);
+      return name || inv.user_id?.slice(0, 8) || "";
+    };
+    return [...invoices].sort((a, b) => {
+      const cmp = key(a).localeCompare(key(b), "pt-BR", { sensitivity: "base" });
+      return clientSortDir === "asc" ? cmp : -cmp;
+    });
+  }, [invoices, clientSortDir, displayName]);
+
+  const toggleClientSort = () => {
+    setClientSortDir((prev) => {
+      if (prev === null) return "asc";
+      if (prev === "asc") return "desc";
+      return null;
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -41,7 +65,12 @@ export function AdminInvoices() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Cliente</TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={toggleClientSort}>
+                <span className="inline-flex items-center gap-1">
+                  Cliente
+                  {clientSortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : clientSortDir === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 text-muted-foreground" />}
+                </span>
+              </TableHead>
               <TableHead>Plano</TableHead>
               <TableHead>Valor</TableHead>
               <TableHead>Vencimento</TableHead>
@@ -59,7 +88,7 @@ export function AdminInvoices() {
             ) : invoices.length === 0 ? (
               <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma fatura</TableCell></TableRow>
             ) : (
-              invoices.map((inv: any) => (
+              sortedInvoices.map((inv: any) => (
                 <TableRow key={inv.id}>
                   <TableCell className="font-medium">
                     <ClientCell userId={inv.user_id} />

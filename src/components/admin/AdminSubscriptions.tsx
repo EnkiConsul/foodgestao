@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAdminSubscriptions, useUpdateSubscription, useRemoveExemption } from "@/hooks/useBilling";
 import { usePlans } from "@/hooks/usePlans";
 import {
@@ -18,19 +18,43 @@ import {
   isExempt,
   exemptionLabel,
 } from "@/lib/billing";
+import { useUserNames } from "@/hooks/useUserNames";
 import { ExemptSubscriptionDialog } from "./ExemptSubscriptionDialog";
 import { ClientCell } from "./ClientCell";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 export function AdminSubscriptions() {
   const { data: subs = [], isLoading } = useAdminSubscriptions();
   const { data: plans = [] } = usePlans();
+  const { displayName } = useUserNames();
   
   const update = useUpdateSubscription();
   const removeExemption = useRemoveExemption();
   const [filter, setFilter] = useState<string>("all");
+  const [clientSortDir, setClientSortDir] = useState<"asc" | "desc" | null>(null);
   const [exemptTarget, setExemptTarget] = useState<{ id: string; planId: string } | null>(null);
 
   const filtered = filter === "all" ? subs : subs.filter((s: any) => s.status === filter);
+
+  const sortedFiltered = useMemo(() => {
+    if (!clientSortDir) return filtered;
+    const key = (s: any) => {
+      const name = displayName(s.user_id);
+      return name || s.user_id?.slice(0, 8) || "";
+    };
+    return [...filtered].sort((a, b) => {
+      const cmp = key(a).localeCompare(key(b), "pt-BR", { sensitivity: "base" });
+      return clientSortDir === "asc" ? cmp : -cmp;
+    });
+  }, [filtered, clientSortDir, displayName]);
+
+  const toggleClientSort = () => {
+    setClientSortDir((prev) => {
+      if (prev === null) return "asc";
+      if (prev === "asc") return "desc";
+      return null;
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -51,7 +75,12 @@ export function AdminSubscriptions() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Cliente</TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={toggleClientSort}>
+                <span className="inline-flex items-center gap-1">
+                  Cliente
+                  {clientSortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : clientSortDir === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 text-muted-foreground" />}
+                </span>
+              </TableHead>
               <TableHead>Plano</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Isenção</TableHead>
@@ -69,7 +98,7 @@ export function AdminSubscriptions() {
             ) : filtered.length === 0 ? (
               <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma assinatura</TableCell></TableRow>
             ) : (
-              filtered.map((s: any) => {
+              sortedFiltered.map((s: any) => {
                 const exempt = isExempt(s);
                 return (
                 <TableRow key={s.id}>

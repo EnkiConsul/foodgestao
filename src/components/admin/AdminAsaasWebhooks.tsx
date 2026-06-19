@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserNames } from "@/hooks/useUserNames";
 import { ClientCell } from "./ClientCell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +16,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, RefreshCw, Eye, CheckCircle2, AlertCircle, Clock, Send } from "lucide-react";
+import { Loader2, RefreshCw, Eye, CheckCircle2, AlertCircle, Clock, Send, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 
@@ -46,6 +47,16 @@ export function AdminAsaasWebhooks() {
   const [testSending, setTestSending] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
   
+  const { displayName } = useUserNames();
+  const [clientSortDir, setClientSortDir] = useState<"asc" | "desc" | null>(null);
+
+  const toggleClientSort = () => {
+    setClientSortDir((prev) => {
+      if (prev === null) return "asc";
+      if (prev === "asc") return "desc";
+      return null;
+    });
+  };
 
   // Debounce client search
   useEffect(() => {
@@ -148,6 +159,21 @@ export function AdminAsaasWebhooks() {
     return data?.paymentToUser.get(payId) ?? null;
   };
 
+  const sortedRows = useMemo(() => {
+    const rows = data?.rows ?? [];
+    if (!clientSortDir) return rows;
+    const key = (e: WebhookEvent) => {
+      const uid = userIdFor(e);
+      if (!uid) return "";
+      const name = displayName(uid);
+      return name || uid.slice(0, 8);
+    };
+    return [...rows].sort((a, b) => {
+      const cmp = key(a).localeCompare(key(b), "pt-BR", { sensitivity: "base" });
+      return clientSortDir === "asc" ? cmp : -cmp;
+    });
+  }, [data?.rows, clientSortDir, displayName]);
+
   const stats = useQuery({
     queryKey: ["asaas-webhook-stats"],
     queryFn: async () => {
@@ -249,7 +275,12 @@ export function AdminAsaasWebhooks() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Recebido em</TableHead>
-                      <TableHead>Cliente</TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={toggleClientSort}>
+                        <span className="inline-flex items-center gap-1">
+                          Cliente
+                          {clientSortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : clientSortDir === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 text-muted-foreground" />}
+                        </span>
+                      </TableHead>
                       <TableHead>Evento</TableHead>
                       <TableHead>Event ID</TableHead>
                       <TableHead>Status</TableHead>
@@ -258,7 +289,7 @@ export function AdminAsaasWebhooks() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {data.rows.map((e) => (
+                    {sortedRows.map((e) => (
                       <TableRow key={e.id}>
                         <TableCell className="whitespace-nowrap text-xs">
                           {new Date(e.created_at).toLocaleString("pt-BR")}
