@@ -51,7 +51,7 @@ export function AdminSubscriptions() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Usuário</TableHead>
+              <TableHead>Cliente</TableHead>
               <TableHead>Plano</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Isenção</TableHead>
