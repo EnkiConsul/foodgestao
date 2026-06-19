@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserNames } from "@/hooks/useUserNames";
 import { ClientCell } from "./ClientCell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +16,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, RefreshCw, Eye, CheckCircle2, AlertCircle, Clock, Send } from "lucide-react";
+import { Loader2, RefreshCw, Eye, CheckCircle2, AlertCircle, Clock, Send, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 
