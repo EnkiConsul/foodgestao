@@ -19,10 +19,12 @@ import {
   exemptionLabel,
 } from "@/lib/billing";
 import { ExemptSubscriptionDialog } from "./ExemptSubscriptionDialog";
+import { useUserNames } from "@/hooks/useUserNames";
 
 export function AdminSubscriptions() {
   const { data: subs = [], isLoading } = useAdminSubscriptions();
   const { data: plans = [] } = usePlans();
+  const { displayName } = useUserNames();
   const update = useUpdateSubscription();
   const removeExemption = useRemoveExemption();
   const [filter, setFilter] = useState<string>("all");
