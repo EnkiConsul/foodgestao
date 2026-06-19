@@ -324,6 +324,10 @@ export function AdminAsaasWebhooks() {
                   {renderStatus(selected)}
                 </div>
                 <div className="col-span-2">
+                  <p className="text-xs text-muted-foreground">Cliente</p>
+                  <p className="font-medium">{clientFor(selected)}</p>
+                </div>
+                <div className="col-span-2">
                   <p className="text-xs text-muted-foreground">Event ID</p>
                   <code className="text-xs break-all">{selected.event_id}</code>
                 </div>
