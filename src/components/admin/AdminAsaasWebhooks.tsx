@@ -45,7 +45,7 @@ export function AdminAsaasWebhooks() {
   const [testDuplicateOf, setTestDuplicateOf] = useState("");
   const [testSending, setTestSending] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
-  const { displayName } = useUserNames();
+  
 
   // Debounce client search
   useEffect(() => {
