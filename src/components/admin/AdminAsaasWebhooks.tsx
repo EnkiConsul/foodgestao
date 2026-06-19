@@ -142,12 +142,10 @@ export function AdminAsaasWebhooks() {
     },
   });
 
-  const clientFor = (e: WebhookEvent) => {
+  const userIdFor = (e: WebhookEvent): string | null => {
     const payId = e.payload?.payment?.id;
-    if (!payId) return "—";
-    const uid = data?.paymentToUser.get(payId);
-    if (!uid) return "—";
-    return displayName(uid);
+    if (!payId) return null;
+    return data?.paymentToUser.get(payId) ?? null;
   };
 
   const stats = useQuery({
