@@ -289,7 +289,7 @@ export function AdminAsaasWebhooks() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {data.rows.map((e) => (
+                    {sortedRows.map((e) => (
                       <TableRow key={e.id}>
                         <TableCell className="whitespace-nowrap text-xs">
                           {new Date(e.created_at).toLocaleString("pt-BR")}
