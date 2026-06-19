@@ -21,10 +21,27 @@ Deno.serve(async (req) => {
 
     if (error) throw error;
 
+    // Expire time-limited exemptions
+    const { data: exp, error: expErr } = await supabase
+      .from("subscriptions")
+      .update({
+        is_exempt: false,
+        exempt_until: null,
+        status: "past_due",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("is_exempt", true)
+      .not("exempt_until", "is", null)
+      .lt("exempt_until", new Date().toISOString())
+      .select("id");
+    if (expErr) throw expErr;
+
+
     return new Response(
-      JSON.stringify({ ok: true, expired_count: data?.length ?? 0 }),
+      JSON.stringify({ ok: true, expired_count: data?.length ?? 0, exemptions_expired: exp?.length ?? 0 }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
     );
+
   } catch (err) {
     console.error("[expire-trials] error", err);
     return new Response(

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAdminSubscriptions, useUpdateSubscription } from "@/hooks/useBilling";
+import { useAdminSubscriptions, useUpdateSubscription, useRemoveExemption } from "@/hooks/useBilling";
 import { usePlans } from "@/hooks/usePlans";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -12,13 +12,21 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { SUBSCRIPTION_STATUS_LABELS, SUBSCRIPTION_STATUS_VARIANT } from "@/lib/billing";
+import {
+  SUBSCRIPTION_STATUS_LABELS,
+  SUBSCRIPTION_STATUS_VARIANT,
+  isExempt,
+  exemptionLabel,
+} from "@/lib/billing";
+import { ExemptSubscriptionDialog } from "./ExemptSubscriptionDialog";
 
 export function AdminSubscriptions() {
   const { data: subs = [], isLoading } = useAdminSubscriptions();
   const { data: plans = [] } = usePlans();
   const update = useUpdateSubscription();
+  const removeExemption = useRemoveExemption();
   const [filter, setFilter] = useState<string>("all");
+  const [exemptTarget, setExemptTarget] = useState<{ id: string; planId: string } | null>(null);
 
   const filtered = filter === "all" ? subs : subs.filter((s: any) => s.status === filter);
 
@@ -44,6 +52,7 @@ export function AdminSubscriptions() {
               <TableHead>Usuário</TableHead>
               <TableHead>Plano</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Isenção</TableHead>
               <TableHead>Início</TableHead>
               <TableHead>Vence em</TableHead>
               <TableHead>Trial até</TableHead>
@@ -53,12 +62,14 @@ export function AdminSubscriptions() {
           <TableBody>
             {isLoading ? (
               Array.from({ length: 4 }).map((_, i) => (
-                <TableRow key={i}>{Array.from({ length: 7 }).map((_, j) => <TableCell key={j}><Skeleton className="h-4 w-20" /></TableCell>)}</TableRow>
+                <TableRow key={i}>{Array.from({ length: 8 }).map((_, j) => <TableCell key={j}><Skeleton className="h-4 w-20" /></TableCell>)}</TableRow>
               ))
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhuma assinatura</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma assinatura</TableCell></TableRow>
             ) : (
-              filtered.map((s: any) => (
+              filtered.map((s: any) => {
+                const exempt = isExempt(s);
+                return (
                 <TableRow key={s.id}>
                   <TableCell className="font-mono text-xs">{s.user_id.slice(0, 8)}…</TableCell>
                   <TableCell>
@@ -79,6 +90,13 @@ export function AdminSubscriptions() {
                       {SUBSCRIPTION_STATUS_LABELS[s.status]}
                     </Badge>
                   </TableCell>
+                  <TableCell>
+                    {exempt ? (
+                      <Badge variant="secondary">{exemptionLabel(s)}</Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {format(new Date(s.started_at), "dd/MM/yy", { locale: ptBR })}
                   </TableCell>
@@ -89,8 +107,8 @@ export function AdminSubscriptions() {
                     {s.trial_ends_at ? format(new Date(s.trial_ends_at), "dd/MM/yy", { locale: ptBR }) : "—"}
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-1">
-                      {s.status !== "canceled" && (
+                    <div className="flex gap-1 flex-wrap">
+                      {s.status !== "canceled" && !exempt && (
                         <Button size="sm" variant="ghost"
                           onClick={() => update.mutate({ id: s.id, status: "canceled", canceled_at: new Date().toISOString() })}>
                           Cancelar
@@ -112,14 +130,36 @@ export function AdminSubscriptions() {
                           +7d trial
                         </Button>
                       )}
+                      {exempt ? (
+                        <Button size="sm" variant="ghost"
+                          onClick={() => {
+                            if (confirm("Remover isenção? O cliente voltará ao fluxo normal de cobrança.")) {
+                              removeExemption.mutate(s.id);
+                            }
+                          }}>
+                          Remover isenção
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="ghost"
+                          onClick={() => setExemptTarget({ id: s.id, planId: s.plan_id })}>
+                          Isentar
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
+              );})
             )}
           </TableBody>
         </Table>
       </div>
+
+      <ExemptSubscriptionDialog
+        open={!!exemptTarget}
+        onOpenChange={(o) => !o && setExemptTarget(null)}
+        subscriptionId={exemptTarget?.id ?? null}
+        defaultPlanId={exemptTarget?.planId ?? null}
+      />
     </div>
   );
 }
