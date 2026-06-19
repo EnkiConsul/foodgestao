@@ -207,7 +207,13 @@ export function AdminAsaasWebhooks() {
               placeholder="Buscar por event_id ou tipo…"
               value={search}
               onChange={(e) => { setPage(0); setSearch(e.target.value); }}
-              className="w-64"
+              className="w-56"
+            />
+            <Input
+              placeholder="Filtrar por cliente…"
+              value={clientSearchInput}
+              onChange={(e) => setClientSearchInput(e.target.value)}
+              className="w-52"
             />
             <Select
               value={statusFilter}
