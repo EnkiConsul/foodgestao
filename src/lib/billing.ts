@@ -59,3 +59,17 @@ export const INVOICE_STATUS_VARIANT: Record<string, "default" | "secondary" | "d
   canceled: "outline",
   refunded: "outline",
 };
+
+export function isExempt(sub: { is_exempt?: boolean | null; exempt_until?: string | null } | null | undefined): boolean {
+  if (!sub?.is_exempt) return false;
+  if (!sub.exempt_until) return true;
+  return new Date(sub.exempt_until) > new Date();
+}
+
+export function exemptionLabel(sub: { is_exempt?: boolean | null; exempt_until?: string | null } | null | undefined): string | null {
+  if (!isExempt(sub)) return null;
+  if (!sub?.exempt_until) return "Isento (permanente)";
+  const d = new Date(sub.exempt_until);
+  return `Isento até ${d.toLocaleDateString("pt-BR")}`;
+}
+

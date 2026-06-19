@@ -63,3 +63,52 @@ export function useUpdateInvoice() {
     onError: (e: any) => toast.error(e.message ?? "Erro"),
   });
 }
+
+export function useExemptSubscription() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      subscriptionId: string;
+      planId: string;
+      mode: "permanent" | "until";
+      exemptUntil?: string | null;
+      reason?: string | null;
+    }) => {
+      const { data, error } = await supabase.functions.invoke("admin-exempt-subscription", { body: payload });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-subscriptions"] });
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      qc.invalidateQueries({ queryKey: ["current-subscription"] });
+      qc.invalidateQueries({ queryKey: ["admin-audit-logs"] });
+      toast.success("Cliente isentado da mensalidade");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao isentar"),
+  });
+}
+
+export function useRemoveExemption() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (subscriptionId: string) => {
+      const { data, error } = await supabase.functions.invoke("admin-remove-exemption", {
+        body: { subscriptionId },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-subscriptions"] });
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      qc.invalidateQueries({ queryKey: ["current-subscription"] });
+      qc.invalidateQueries({ queryKey: ["admin-audit-logs"] });
+      toast.success("Isenção removida");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao remover isenção"),
+  });
+}
+
