@@ -98,7 +98,7 @@ export function AdminSubscriptions() {
             ) : filtered.length === 0 ? (
               <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma assinatura</TableCell></TableRow>
             ) : (
-              filtered.map((s: any) => {
+              sortedFiltered.map((s: any) => {
                 const exempt = isExempt(s);
                 return (
                 <TableRow key={s.id}>
