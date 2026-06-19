@@ -65,7 +65,12 @@ export function AdminInvoices() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Cliente</TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={toggleClientSort}>
+                <span className="inline-flex items-center gap-1">
+                  Cliente
+                  {clientSortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : clientSortDir === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 text-muted-foreground" />}
+                </span>
+              </TableHead>
               <TableHead>Plano</TableHead>
               <TableHead>Valor</TableHead>
               <TableHead>Vencimento</TableHead>
