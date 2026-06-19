@@ -19,7 +19,7 @@ import {
   exemptionLabel,
 } from "@/lib/billing";
 import { ExemptSubscriptionDialog } from "./ExemptSubscriptionDialog";
-import { useUserNames } from "@/hooks/useUserNames";
+import { ClientCell } from "./ClientCell";
 
 export function AdminSubscriptions() {
   const { data: subs = [], isLoading } = useAdminSubscriptions();
