@@ -62,10 +62,7 @@ export function AdminInvoices() {
               invoices.map((inv: any) => (
                 <TableRow key={inv.id}>
                   <TableCell className="font-medium">
-                    <div className="flex flex-col">
-                      <span>{displayName(inv.user_id)}</span>
-                      <span className="font-mono text-[10px] text-muted-foreground">{inv.user_id.slice(0, 8)}…</span>
-                    </div>
+                    <ClientCell userId={inv.user_id} />
                   </TableCell>
                   <TableCell>{inv.subscription?.plan?.name ?? "—"}</TableCell>
                   <TableCell className="font-medium">{formatCents(inv.amount_cents - (inv.discount_cents || 0))}</TableCell>
