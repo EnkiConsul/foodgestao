@@ -83,8 +83,27 @@ export function AdminAsaasWebhooks() {
   };
 
   const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["asaas-webhook-events", page, search, statusFilter],
+    queryKey: ["asaas-webhook-events", page, search, statusFilter, clientSearch],
     queryFn: async () => {
+      // If filtering by client name, resolve to a set of asaas payment ids first
+      let paymentIdFilter: string[] | null = null;
+      if (clientSearch) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("user_id")
+          .ilike("full_name", `%${clientSearch}%`)
+          .limit(500);
+        const userIds = (profs ?? []).map((p: any) => p.user_id);
+        if (userIds.length === 0) return { rows: [] as WebhookEvent[], total: 0, paymentToUser: new Map<string, string>() };
+        const { data: invs } = await supabase
+          .from("invoices")
+          .select("external_invoice_id, user_id")
+          .in("user_id", userIds)
+          .not("external_invoice_id", "is", null);
+        paymentIdFilter = Array.from(new Set((invs ?? []).map((i: any) => i.external_invoice_id).filter(Boolean)));
+        if (paymentIdFilter.length === 0) return { rows: [] as WebhookEvent[], total: 0, paymentToUser: new Map<string, string>() };
+      }
+
       let q = supabase
         .from("asaas_webhook_events")
         .select("*", { count: "exact" })
@@ -97,12 +116,39 @@ export function AdminAsaasWebhooks() {
       if (statusFilter === "processed") q = q.not("processed_at", "is", null).is("error", null);
       if (statusFilter === "pending") q = q.is("processed_at", null).is("error", null);
       if (statusFilter === "error") q = q.not("error", "is", null);
+      if (paymentIdFilter) {
+        q = q.filter("payload->payment->>id", "in", `(${paymentIdFilter.map((id) => `"${id}"`).join(",")})`);
+      }
 
       const { data, error, count } = await q;
       if (error) throw error;
-      return { rows: (data ?? []) as WebhookEvent[], total: count ?? 0 };
+      const rows = (data ?? []) as WebhookEvent[];
+
+      // Resolve client names for rows in this page
+      const paymentIds = Array.from(new Set(
+        rows.map((e) => e.payload?.payment?.id).filter(Boolean) as string[]
+      ));
+      const paymentToUser = new Map<string, string>();
+      if (paymentIds.length > 0) {
+        const { data: invs } = await supabase
+          .from("invoices")
+          .select("external_invoice_id, user_id")
+          .in("external_invoice_id", paymentIds);
+        (invs ?? []).forEach((i: any) => {
+          if (i.external_invoice_id) paymentToUser.set(i.external_invoice_id, i.user_id);
+        });
+      }
+      return { rows, total: count ?? 0, paymentToUser };
     },
   });
+
+  const clientFor = (e: WebhookEvent) => {
+    const payId = e.payload?.payment?.id;
+    if (!payId) return "—";
+    const uid = data?.paymentToUser.get(payId);
+    if (!uid) return "—";
+    return displayName(uid);
+  };
 
   const stats = useQuery({
     queryKey: ["asaas-webhook-stats"],
