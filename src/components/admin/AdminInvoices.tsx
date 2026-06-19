@@ -18,11 +18,33 @@ import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 export function AdminInvoices() {
   const [status, setStatus] = useState<string>("all");
+  const [clientSortDir, setClientSortDir] = useState<"asc" | "desc" | null>(null);
   const { data: invoices = [], isLoading } = useAdminInvoices(
     status === "all" ? undefined : { status }
   );
+  const { displayName } = useUserNames();
   
   const update = useUpdateInvoice();
+
+  const sortedInvoices = useMemo(() => {
+    if (!clientSortDir) return invoices;
+    const key = (inv: any) => {
+      const name = displayName(inv.user_id);
+      return name || inv.user_id?.slice(0, 8) || "";
+    };
+    return [...invoices].sort((a, b) => {
+      const cmp = key(a).localeCompare(key(b), "pt-BR", { sensitivity: "base" });
+      return clientSortDir === "asc" ? cmp : -cmp;
+    });
+  }, [invoices, clientSortir, displayName]);
+
+  const toggleClientSort = () => {
+    setClientSortDir((prev) => {
+      if (prev === null) return "asc";
+      if (prev === "asc") return "desc";
+      return null;
+    });
+  };
 
   return (
     <div className="space-y-4">
