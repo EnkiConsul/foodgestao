@@ -159,6 +159,21 @@ export function AdminAsaasWebhooks() {
     return data?.paymentToUser.get(payId) ?? null;
   };
 
+  const sortedRows = useMemo(() => {
+    const rows = data?.rows ?? [];
+    if (!clientSortDir) return rows;
+    const key = (e: WebhookEvent) => {
+      const uid = userIdFor(e);
+      if (!uid) return "";
+      const name = displayName(uid);
+      return name || uid.slice(0, 8);
+    };
+    return [...rows].sort((a, b) => {
+      const cmp = key(a).localeCompare(key(b), "pt-BR", { sensitivity: "base" });
+      return clientSortDir === "asc" ? cmp : -cmp;
+    });
+  }, [data?.rows, clientSortDir, displayName]);
+
   const stats = useQuery({
     queryKey: ["asaas-webhook-stats"],
     queryFn: async () => {
