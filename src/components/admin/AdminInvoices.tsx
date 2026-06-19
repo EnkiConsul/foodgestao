@@ -88,7 +88,7 @@ export function AdminInvoices() {
             ) : invoices.length === 0 ? (
               <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma fatura</TableCell></TableRow>
             ) : (
-              invoices.map((inv: any) => (
+              sortedInvoices.map((inv: any) => (
                 <TableRow key={inv.id}>
                   <TableCell className="font-medium">
                     <ClientCell userId={inv.user_id} />
