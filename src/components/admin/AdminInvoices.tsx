@@ -41,7 +41,7 @@ export function AdminInvoices() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Usuário</TableHead>
+              <TableHead>Cliente</TableHead>
               <TableHead>Plano</TableHead>
               <TableHead>Valor</TableHead>
               <TableHead>Vencimento</TableHead>
