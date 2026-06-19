@@ -12,12 +12,14 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { formatCents, INVOICE_STATUS_LABELS, INVOICE_STATUS_VARIANT } from "@/lib/billing";
+import { useUserNames } from "@/hooks/useUserNames";
 
 export function AdminInvoices() {
   const [status, setStatus] = useState<string>("all");
   const { data: invoices = [], isLoading } = useAdminInvoices(
     status === "all" ? undefined : { status }
   );
+  const { displayName } = useUserNames();
   const update = useUpdateInvoice();
 
   return (
