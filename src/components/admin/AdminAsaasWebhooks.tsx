@@ -47,6 +47,16 @@ export function AdminAsaasWebhooks() {
   const [testSending, setTestSending] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
   
+  const { displayName } = useUserNames();
+  const [clientSortDir, setClientSortDir] = useState<"asc" | "desc" | null>(null);
+
+  const toggleClientSort = () => {
+    setClientSortDir((prev) => {
+      if (prev === null) return "asc";
+      if (prev === "asc") return "desc";
+      return null;
+    });
+  };
 
   // Debounce client search
   useEffect(() => {
