@@ -1597,10 +1597,15 @@ export type Database = {
           created_at: string
           current_period_end: string | null
           current_period_start: string
+          exempt_reason: string | null
+          exempt_until: string | null
+          exempted_at: string | null
+          exempted_by: string | null
           external_customer_id: string | null
           external_subscription_id: string | null
           extra_companies: number
           id: string
+          is_exempt: boolean
           notes: string | null
           plan_id: string
           started_at: string
@@ -1615,10 +1620,15 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string
+          exempt_reason?: string | null
+          exempt_until?: string | null
+          exempted_at?: string | null
+          exempted_by?: string | null
           external_customer_id?: string | null
           external_subscription_id?: string | null
           extra_companies?: number
           id?: string
+          is_exempt?: boolean
           notes?: string | null
           plan_id: string
           started_at?: string
@@ -1633,10 +1643,15 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string
+          exempt_reason?: string | null
+          exempt_until?: string | null
+          exempted_at?: string | null
+          exempted_by?: string | null
           external_customer_id?: string | null
           external_subscription_id?: string | null
           extra_companies?: number
           id?: string
+          is_exempt?: boolean
           notes?: string | null
           plan_id?: string
           started_at?: string
