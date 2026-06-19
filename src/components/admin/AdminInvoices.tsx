@@ -36,7 +36,7 @@ export function AdminInvoices() {
       const cmp = key(a).localeCompare(key(b), "pt-BR", { sensitivity: "base" });
       return clientSortDir === "asc" ? cmp : -cmp;
     });
-  }, [invoices, clientSortir, displayName]);
+  }, [invoices, clientSortDir, displayName]);
 
   const toggleClientSort = () => {
     setClientSortDir((prev) => {
