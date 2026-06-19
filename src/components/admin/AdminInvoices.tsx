@@ -19,7 +19,7 @@ export function AdminInvoices() {
   const { data: invoices = [], isLoading } = useAdminInvoices(
     status === "all" ? undefined : { status }
   );
-  const { displayName } = useUserNames();
+  
   const update = useUpdateInvoice();
 
   return (
