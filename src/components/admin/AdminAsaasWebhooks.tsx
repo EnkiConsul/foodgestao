@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserNames } from "@/hooks/useUserNames";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import { Loader2, RefreshCw, Eye, CheckCircle2, AlertCircle, Clock, Send } from 
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 
+
 type WebhookEvent = {
   id: string;
   event_id: string;
@@ -33,6 +35,8 @@ const PAGE_SIZE = 25;
 export function AdminAsaasWebhooks() {
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState("");
+  const [clientSearchInput, setClientSearchInput] = useState("");
+  const [clientSearch, setClientSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "processed" | "pending" | "error">("all");
   const [selected, setSelected] = useState<WebhookEvent | null>(null);
   const [testOpen, setTestOpen] = useState(false);
@@ -41,6 +45,14 @@ export function AdminAsaasWebhooks() {
   const [testDuplicateOf, setTestDuplicateOf] = useState("");
   const [testSending, setTestSending] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
+  const { displayName } = useUserNames();
+
+  // Debounce client search
+  useEffect(() => {
+    const t = setTimeout(() => { setClientSearch(clientSearchInput.trim()); setPage(0); }, 300);
+    return () => clearTimeout(t);
+  }, [clientSearchInput]);
+
 
   const sendTest = async () => {
     setTestSending(true);
@@ -71,8 +83,27 @@ export function AdminAsaasWebhooks() {
   };
 
   const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["asaas-webhook-events", page, search, statusFilter],
+    queryKey: ["asaas-webhook-events", page, search, statusFilter, clientSearch],
     queryFn: async () => {
+      // If filtering by client name, resolve to a set of asaas payment ids first
+      let paymentIdFilter: string[] | null = null;
+      if (clientSearch) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("user_id")
+          .ilike("full_name", `%${clientSearch}%`)
+          .limit(500);
+        const userIds = (profs ?? []).map((p: any) => p.user_id);
+        if (userIds.length === 0) return { rows: [] as WebhookEvent[], total: 0, paymentToUser: new Map<string, string>() };
+        const { data: invs } = await supabase
+          .from("invoices")
+          .select("external_invoice_id, user_id")
+          .in("user_id", userIds)
+          .not("external_invoice_id", "is", null);
+        paymentIdFilter = Array.from(new Set((invs ?? []).map((i: any) => i.external_invoice_id).filter(Boolean)));
+        if (paymentIdFilter.length === 0) return { rows: [] as WebhookEvent[], total: 0, paymentToUser: new Map<string, string>() };
+      }
+
       let q = supabase
         .from("asaas_webhook_events")
         .select("*", { count: "exact" })
@@ -85,12 +116,39 @@ export function AdminAsaasWebhooks() {
       if (statusFilter === "processed") q = q.not("processed_at", "is", null).is("error", null);
       if (statusFilter === "pending") q = q.is("processed_at", null).is("error", null);
       if (statusFilter === "error") q = q.not("error", "is", null);
+      if (paymentIdFilter) {
+        q = q.filter("payload->payment->>id", "in", `(${paymentIdFilter.map((id) => `"${id}"`).join(",")})`);
+      }
 
       const { data, error, count } = await q;
       if (error) throw error;
-      return { rows: (data ?? []) as WebhookEvent[], total: count ?? 0 };
+      const rows = (data ?? []) as WebhookEvent[];
+
+      // Resolve client names for rows in this page
+      const paymentIds = Array.from(new Set(
+        rows.map((e) => e.payload?.payment?.id).filter(Boolean) as string[]
+      ));
+      const paymentToUser = new Map<string, string>();
+      if (paymentIds.length > 0) {
+        const { data: invs } = await supabase
+          .from("invoices")
+          .select("external_invoice_id, user_id")
+          .in("external_invoice_id", paymentIds);
+        (invs ?? []).forEach((i: any) => {
+          if (i.external_invoice_id) paymentToUser.set(i.external_invoice_id, i.user_id);
+        });
+      }
+      return { rows, total: count ?? 0, paymentToUser };
     },
   });
+
+  const clientFor = (e: WebhookEvent) => {
+    const payId = e.payload?.payment?.id;
+    if (!payId) return "—";
+    const uid = data?.paymentToUser.get(payId);
+    if (!uid) return "—";
+    return displayName(uid);
+  };
 
   const stats = useQuery({
     queryKey: ["asaas-webhook-stats"],
@@ -149,7 +207,13 @@ export function AdminAsaasWebhooks() {
               placeholder="Buscar por event_id ou tipo…"
               value={search}
               onChange={(e) => { setPage(0); setSearch(e.target.value); }}
-              className="w-64"
+              className="w-56"
+            />
+            <Input
+              placeholder="Filtrar por cliente…"
+              value={clientSearchInput}
+              onChange={(e) => setClientSearchInput(e.target.value)}
+              className="w-52"
             />
             <Select
               value={statusFilter}
@@ -187,6 +251,7 @@ export function AdminAsaasWebhooks() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Recebido em</TableHead>
+                      <TableHead>Cliente</TableHead>
                       <TableHead>Evento</TableHead>
                       <TableHead>Event ID</TableHead>
                       <TableHead>Status</TableHead>
@@ -199,6 +264,9 @@ export function AdminAsaasWebhooks() {
                       <TableRow key={e.id}>
                         <TableCell className="whitespace-nowrap text-xs">
                           {new Date(e.created_at).toLocaleString("pt-BR")}
+                        </TableCell>
+                        <TableCell className="text-xs font-medium max-w-[180px] truncate" title={clientFor(e)}>
+                          {clientFor(e)}
                         </TableCell>
                         <TableCell>
                           <code className="text-xs">{e.event_type}</code>
@@ -254,6 +322,10 @@ export function AdminAsaasWebhooks() {
                 <div>
                   <p className="text-xs text-muted-foreground">Status</p>
                   {renderStatus(selected)}
+                </div>
+                <div className="col-span-2">
+                  <p className="text-xs text-muted-foreground">Cliente</p>
+                  <p className="font-medium">{clientFor(selected)}</p>
                 </div>
                 <div className="col-span-2">
                   <p className="text-xs text-muted-foreground">Event ID</p>
