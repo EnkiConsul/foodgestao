@@ -51,25 +51,26 @@ export default function Checkout() {
 
   const validate = async () => {
     if (!coupon.trim()) return setValidatedCoupon(null);
-    const { data } = await supabase
-      .from("coupons").select("*")
-      .eq("code", coupon.trim().toUpperCase())
-      .eq("is_active", true)
-      .maybeSingle();
-    if (!data) {
-      toast.error("Cupom inválido");
+    const { data, error } = await supabase.functions.invoke("validate-coupon", {
+      body: { code: coupon.trim(), planId: plan?.id },
+    });
+    if (error) {
+      toast.error("Erro ao validar cupom");
       setValidatedCoupon(null);
       return;
     }
-    if (data.valid_until && new Date(data.valid_until) < new Date()) {
-      toast.error("Cupom expirado");
+    if (!data?.valid) {
+      const reasons: Record<string, string> = {
+        not_found: "Cupom inválido",
+        expired: "Cupom expirado",
+        exhausted: "Cupom esgotado",
+        plan_not_eligible: "Cupom não aplicável a este plano",
+      };
+      toast.error(reasons[data?.reason] ?? "Cupom inválido");
+      setValidatedCoupon(null);
       return;
     }
-    if (data.max_redemptions && data.times_redeemed >= data.max_redemptions) {
-      toast.error("Cupom esgotado");
-      return;
-    }
-    setValidatedCoupon(data);
+    setValidatedCoupon(data.coupon);
     toast.success("Cupom aplicado");
   };
 
