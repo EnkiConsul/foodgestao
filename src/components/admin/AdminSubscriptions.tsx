@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAdminSubscriptions, useUpdateSubscription, useRemoveExemption } from "@/hooks/useBilling";
 import { usePlans } from "@/hooks/usePlans";
 import {
@@ -18,8 +18,10 @@ import {
   isExempt,
   exemptionLabel,
 } from "@/lib/billing";
+import { useUserNames } from "@/hooks/useUserNames";
 import { ExemptSubscriptionDialog } from "./ExemptSubscriptionDialog";
 import { ClientCell } from "./ClientCell";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 export function AdminSubscriptions() {
   const { data: subs = [], isLoading } = useAdminSubscriptions();
