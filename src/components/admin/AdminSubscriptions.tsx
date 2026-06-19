@@ -24,7 +24,7 @@ import { ClientCell } from "./ClientCell";
 export function AdminSubscriptions() {
   const { data: subs = [], isLoading } = useAdminSubscriptions();
   const { data: plans = [] } = usePlans();
-  const { displayName } = useUserNames();
+  
   const update = useUpdateSubscription();
   const removeExemption = useRemoveExemption();
   const [filter, setFilter] = useState<string>("all");
