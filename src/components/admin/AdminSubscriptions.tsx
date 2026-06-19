@@ -74,10 +74,7 @@ export function AdminSubscriptions() {
                 return (
                 <TableRow key={s.id}>
                   <TableCell className="font-medium">
-                    <div className="flex flex-col">
-                      <span>{displayName(s.user_id)}</span>
-                      <span className="font-mono text-[10px] text-muted-foreground">{s.user_id.slice(0, 8)}…</span>
-                    </div>
+                    <ClientCell userId={s.user_id} />
                   </TableCell>
                   <TableCell>
                     <Select
