@@ -26,13 +26,35 @@ import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 export function AdminSubscriptions() {
   const { data: subs = [], isLoading } = useAdminSubscriptions();
   const { data: plans = [] } = usePlans();
+  const { displayName } = useUserNames();
   
   const update = useUpdateSubscription();
   const removeExemption = useRemoveExemption();
   const [filter, setFilter] = useState<string>("all");
+  const [clientSortDir, setClientSortDir] = useState<"asc" | "desc" | null>(null);
   const [exemptTarget, setExemptTarget] = useState<{ id: string; planId: string } | null>(null);
 
   const filtered = filter === "all" ? subs : subs.filter((s: any) => s.status === filter);
+
+  const sortedFiltered = useMemo(() => {
+    if (!clientSortDir) return filtered;
+    const key = (s: any) => {
+      const name = displayName(s.user_id);
+      return name || s.user_id?.slice(0, 8) || "";
+    };
+    return [...filtered].sort((a, b) => {
+      const cmp = key(a).localeCompare(key(b), "pt-BR", { sensitivity: "base" });
+      return clientSortDir === "asc" ? cmp : -cmp;
+    });
+  }, [filtered, clientSortDir, displayName]);
+
+  const toggleClientSort = () => {
+    setClientSortDir((prev) => {
+      if (prev === null) return "asc";
+      if (prev === "asc") return "desc";
+      return null;
+    });
+  };
 
   return (
     <div className="space-y-4">
