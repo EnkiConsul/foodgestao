@@ -35,6 +35,8 @@ const PAGE_SIZE = 25;
 export function AdminAsaasWebhooks() {
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState("");
+  const [clientSearchInput, setClientSearchInput] = useState("");
+  const [clientSearch, setClientSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "processed" | "pending" | "error">("all");
   const [selected, setSelected] = useState<WebhookEvent | null>(null);
   const [testOpen, setTestOpen] = useState(false);
@@ -43,6 +45,14 @@ export function AdminAsaasWebhooks() {
   const [testDuplicateOf, setTestDuplicateOf] = useState("");
   const [testSending, setTestSending] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
+  const { displayName, data: userNamesMap } = useUserNames();
+
+  // Debounce client search
+  useEffect(() => {
+    const t = setTimeout(() => { setClientSearch(clientSearchInput.trim()); setPage(0); }, 300);
+    return () => clearTimeout(t);
+  }, [clientSearchInput]);
+
 
   const sendTest = async () => {
     setTestSending(true);
