@@ -263,8 +263,8 @@ export function AdminAsaasWebhooks() {
                         <TableCell className="whitespace-nowrap text-xs">
                           {new Date(e.created_at).toLocaleString("pt-BR")}
                         </TableCell>
-                        <TableCell className="text-xs font-medium max-w-[180px] truncate" title={clientFor(e)}>
-                          {clientFor(e)}
+                        <TableCell className="text-xs font-medium max-w-[180px] truncate">
+                          <ClientCell userId={userIdFor(e)} compact />
                         </TableCell>
                         <TableCell>
                           <code className="text-xs">{e.event_type}</code>
