@@ -323,7 +323,7 @@ export function AdminAsaasWebhooks() {
                 </div>
                 <div className="col-span-2">
                   <p className="text-xs text-muted-foreground">Cliente</p>
-                  <p className="font-medium">{clientFor(selected)}</p>
+                  <ClientCell userId={userIdFor(selected)} />
                 </div>
                 <div className="col-span-2">
                   <p className="text-xs text-muted-foreground">Event ID</p>
