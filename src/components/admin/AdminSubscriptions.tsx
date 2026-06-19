@@ -19,10 +19,12 @@ import {
   exemptionLabel,
 } from "@/lib/billing";
 import { ExemptSubscriptionDialog } from "./ExemptSubscriptionDialog";
+import { useUserNames } from "@/hooks/useUserNames";
 
 export function AdminSubscriptions() {
   const { data: subs = [], isLoading } = useAdminSubscriptions();
   const { data: plans = [] } = usePlans();
+  const { displayName } = useUserNames();
   const update = useUpdateSubscription();
   const removeExemption = useRemoveExemption();
   const [filter, setFilter] = useState<string>("all");
@@ -49,7 +51,7 @@ export function AdminSubscriptions() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Usuário</TableHead>
+              <TableHead>Cliente</TableHead>
               <TableHead>Plano</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Isenção</TableHead>
@@ -71,7 +73,12 @@ export function AdminSubscriptions() {
                 const exempt = isExempt(s);
                 return (
                 <TableRow key={s.id}>
-                  <TableCell className="font-mono text-xs">{s.user_id.slice(0, 8)}…</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex flex-col">
+                      <span>{displayName(s.user_id)}</span>
+                      <span className="font-mono text-[10px] text-muted-foreground">{s.user_id.slice(0, 8)}…</span>
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <Select
                       value={s.plan_id}
