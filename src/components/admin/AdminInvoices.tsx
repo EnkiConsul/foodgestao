@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAdminInvoices, useUpdateInvoice } from "@/hooks/useBilling";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -12,7 +12,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { formatCents, INVOICE_STATUS_LABELS, INVOICE_STATUS_VARIANT } from "@/lib/billing";
+import { useUserNames } from "@/hooks/useUserNames";
 import { ClientCell } from "./ClientCell";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 export function AdminInvoices() {
   const [status, setStatus] = useState<string>("all");
