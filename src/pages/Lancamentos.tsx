@@ -1183,6 +1183,13 @@ export default function Lancamentos() {
                           </TableCell>
                           )}
 
+                          {/* Data de Pagamento */}
+                          {visibleColumns.pagamento && (
+                          <TableCell className="text-xs py-2 text-muted-foreground">
+                            {r.paymentDate ? format(new Date(r.paymentDate + "T12:00:00"), "dd/MM", { locale: ptBR }) : "—"}
+                          </TableCell>
+                          )}
+
                           {/* Saldo */}
                           {visibleColumns.saldo && (
                           <TableCell className={`text-xs text-right py-2 font-medium whitespace-nowrap ${r.runningBalance >= 0 ? "text-success" : "text-destructive"}`}>
