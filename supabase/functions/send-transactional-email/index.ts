@@ -25,9 +25,30 @@ function generateToken(): string {
     .join('')
 }
 
-// Auth note: this function uses verify_jwt = true in config.toml, so Supabase's
-// gateway validates the caller's JWT (anon or service_role) before the request
-// reaches this code. No in-function auth check is needed.
+// Per-template authorization policy:
+//   - 'public'        : any caller (incl. anon) may invoke. Template MUST hard-code
+//                       its recipient via `to` in the registry so the caller cannot
+//                       target arbitrary inboxes for phishing/spam.
+//   - 'authenticated' : a signed-in user JWT is required. Additional per-template
+//                       checks run below (e.g. company-invite verifies a pending
+//                       invite exists for the recipient and was created by the
+//                       caller, so attackers can't spam Gestor Plin-branded invites).
+//   - 'service_role'  : only the service role key may invoke (default for unlisted
+//                       templates; used by server-to-server flows).
+const TEMPLATE_POLICY: Record<string, 'public' | 'authenticated' | 'service_role'> = {
+  'contact-lead': 'public',
+  'company-invite': 'authenticated',
+}
+
+type CallerRole = 'anon' | 'authenticated' | 'service_role'
+
+function unauthorized(message: string) {
+  return new Response(JSON.stringify({ error: message }), {
+    status: 403,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
