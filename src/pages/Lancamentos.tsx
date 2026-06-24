@@ -1205,7 +1205,18 @@ export default function Lancamentos() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                onClick={() => { setEditTransaction(r.original); setDialogInitialType(undefined); setDialogOpen(true); }}
+                                onClick={() => {
+                                  const tx = r.original;
+                                  setDialogInitialType(undefined);
+                                  if (tx.is_recurring || tx.parent_transaction_id) {
+                                    setEditScopeChoice("single");
+                                    setEditScopePrompt(tx);
+                                  } else {
+                                    setPendingEditScope("single");
+                                    setEditTransaction(tx);
+                                    setDialogOpen(true);
+                                  }
+                                }}
                               >
                                 <Pencil className="h-3 w-3" />
                               </Button>
