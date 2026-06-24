@@ -165,7 +165,7 @@ export default function Lancamentos() {
       const saved = localStorage.getItem("lancamentos_columns");
       if (saved) return JSON.parse(saved);
     } catch {}
-    return { data: true, dc: true, categoria: true, conta: true, formaPagamento: true, status: true, vencimento: true, saldo: true };
+    return { data: true, dc: true, categoria: true, conta: true, formaPagamento: true, status: true, vencimento: true, pagamento: true, saldo: true };
   });
 
   useEffect(() => {
