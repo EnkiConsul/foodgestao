@@ -133,6 +133,9 @@ export default function Lancamentos() {
   const [dialogInitialType, setDialogInitialType] = useState<"receita" | "despesa" | "transferencia" | undefined>(undefined);
   const [filterCollapsed, setFilterCollapsed] = useState(false);
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
+  const [editScopePrompt, setEditScopePrompt] = useState<Transaction | null>(null);
+  const [editScopeChoice, setEditScopeChoice] = useState<"single" | "forward" | "all">("single");
+  const [pendingEditScope, setPendingEditScope] = useState<"single" | "forward" | "all">("single");
   const [paymentTx, setPaymentTx] = useState<Transaction | null>(null);
   const [previewAttachments, setPreviewAttachments] = useState<{ id: string; file_name: string; file_url: string }[]>([]);
   const [previewOpen, setPreviewOpen] = useState(false);
