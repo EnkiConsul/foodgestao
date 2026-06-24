@@ -985,6 +985,7 @@ export default function Lancamentos() {
                     <TableHead className="text-xs w-[110px] text-right">Valor</TableHead>
                     {visibleColumns.status && <TableHead className="text-xs w-[85px]">Status</TableHead>}
                     {visibleColumns.vencimento && <TableHead className="text-xs w-[75px]">Vencimento</TableHead>}
+                    {visibleColumns.pagamento && <TableHead className="text-xs w-[80px]">Pagamento</TableHead>}
                     {visibleColumns.saldo && <TableHead className="text-xs w-[115px] text-right">Saldo</TableHead>}
                     <TableHead className="text-xs w-[90px]" />
                   </TableRow>
