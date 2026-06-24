@@ -11,7 +11,7 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
-function isStandalone() {
+export function isStandalone() {
   if (typeof window === "undefined") return false;
   const mqStandalone = window.matchMedia?.("(display-mode: standalone)").matches ?? false;
   const mqFullscreen = window.matchMedia?.("(display-mode: fullscreen)").matches ?? false;
@@ -23,7 +23,7 @@ function isStandalone() {
   return mqStandalone || mqFullscreen || mqMinimalUi || iosStandalone || androidApp;
 }
 
-function detectPlatform() {
+export function detectPlatform() {
   if (typeof window === "undefined") {
     return { isIos: false, isIpadOs: false, isSafari: false, isInAppBrowser: false, ua: "" };
   }
@@ -53,7 +53,7 @@ function detectPlatform() {
   return { isIos, isIpadOs: ipadOs, isSafari, isInAppBrowser, ua };
 }
 
-function wasRecentlyDismissed() {
+export function wasRecentlyDismissed() {
   try {
     const v = localStorage.getItem(DISMISS_KEY);
     if (!v) return false;
