@@ -78,6 +78,7 @@ type DisplayRow = {
   billStatus: TransactionDisplayStatus;
   amountPaid: number;
   dueDate: string | null;
+  paymentDate: string | null;
   runningBalance: number;
   hasDueDate: boolean;
   isRecurring: boolean;
@@ -165,7 +166,7 @@ export default function Lancamentos() {
       const saved = localStorage.getItem("lancamentos_columns");
       if (saved) return JSON.parse(saved);
     } catch {}
-    return { data: true, dc: true, categoria: true, conta: true, formaPagamento: true, status: true, vencimento: true, saldo: true };
+    return { data: true, dc: true, categoria: true, conta: true, formaPagamento: true, status: true, vencimento: true, pagamento: true, saldo: true };
   });
 
   useEffect(() => {
@@ -535,6 +536,7 @@ export default function Lancamentos() {
         billStatus: computed,
         amountPaid: t.amount_paid,
         dueDate: t.due_date,
+        paymentDate: t.payment_date,
         runningBalance: 0,
         hasDueDate: !!t.due_date,
         isRecurring: t.is_recurring,
@@ -834,6 +836,7 @@ export default function Lancamentos() {
                   { key: "valor", label: "Valor", fixed: true },
                   { key: "status", label: "Status", fixed: false },
                   { key: "vencimento", label: "Vencimento", fixed: false },
+                  { key: "pagamento", label: "Data Pagamento", fixed: false },
                   { key: "saldo", label: "Saldo", fixed: false },
                   { key: "acoes", label: "Ações", fixed: true },
                 ].map((col) => (
@@ -982,6 +985,7 @@ export default function Lancamentos() {
                     <TableHead className="text-xs w-[110px] text-right">Valor</TableHead>
                     {visibleColumns.status && <TableHead className="text-xs w-[85px]">Status</TableHead>}
                     {visibleColumns.vencimento && <TableHead className="text-xs w-[75px]">Vencimento</TableHead>}
+                    {visibleColumns.pagamento && <TableHead className="text-xs w-[80px]">Pagamento</TableHead>}
                     {visibleColumns.saldo && <TableHead className="text-xs w-[115px] text-right">Saldo</TableHead>}
                     <TableHead className="text-xs w-[90px]" />
                   </TableRow>
@@ -1176,6 +1180,13 @@ export default function Lancamentos() {
                           {visibleColumns.vencimento && (
                           <TableCell className="text-xs py-2 text-muted-foreground">
                             {r.dueDate ? format(new Date(r.dueDate + "T12:00:00"), "dd/MM", { locale: ptBR }) : "—"}
+                          </TableCell>
+                          )}
+
+                          {/* Data de Pagamento */}
+                          {visibleColumns.pagamento && (
+                          <TableCell className="text-xs py-2 text-muted-foreground">
+                            {r.paymentDate ? format(new Date(r.paymentDate + "T12:00:00"), "dd/MM", { locale: ptBR }) : "—"}
                           </TableCell>
                           )}
 
