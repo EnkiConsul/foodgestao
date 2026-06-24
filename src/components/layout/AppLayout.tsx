@@ -5,6 +5,7 @@ import { BottomNav } from "./BottomNav";
 import { SubscriptionBanner } from "@/components/billing/SubscriptionBanner";
 import { useBillingRealtime } from "@/hooks/useBillingRealtime";
 import { Outlet } from "react-router-dom";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 
 export function AppLayout() {
   useBillingRealtime();
@@ -21,6 +22,7 @@ export function AppLayout() {
         </div>
       </div>
       <BottomNav />
+      <InstallPrompt />
     </SidebarProvider>
   );
 }
