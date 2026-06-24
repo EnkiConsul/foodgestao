@@ -60,6 +60,9 @@ export const template = {
   subject: (d: Record<string, any>) =>
     d?.name ? `Novo lead: ${d.name}` : 'Novo lead do site Gestor Plin',
   displayName: 'Contato — Lead do site',
+  // Hard-coded recipient: the contact form is publicly callable, so the
+  // recipient must never be controlled by the caller.
+  to: 'comercial@raptorsistemas.com',
   previewData: {
     name: 'Maria Souza',
     email: 'maria@empresa.com.br',

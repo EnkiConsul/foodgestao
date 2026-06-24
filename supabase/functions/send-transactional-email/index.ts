@@ -25,9 +25,30 @@ function generateToken(): string {
     .join('')
 }
 
-// Auth note: this function uses verify_jwt = true in config.toml, so Supabase's
-// gateway validates the caller's JWT (anon or service_role) before the request
-// reaches this code. No in-function auth check is needed.
+// Per-template authorization policy:
+//   - 'public'        : any caller (incl. anon) may invoke. Template MUST hard-code
+//                       its recipient via `to` in the registry so the caller cannot
+//                       target arbitrary inboxes for phishing/spam.
+//   - 'authenticated' : a signed-in user JWT is required. Additional per-template
+//                       checks run below (e.g. company-invite verifies a pending
+//                       invite exists for the recipient and was created by the
+//                       caller, so attackers can't spam Gestor Plin-branded invites).
+//   - 'service_role'  : only the service role key may invoke (default for unlisted
+//                       templates; used by server-to-server flows).
+const TEMPLATE_POLICY: Record<string, 'public' | 'authenticated' | 'service_role'> = {
+  'contact-lead': 'public',
+  'company-invite': 'authenticated',
+}
+
+type CallerRole = 'anon' | 'authenticated' | 'service_role'
+
+function unauthorized(message: string) {
+  return new Response(JSON.stringify({ error: message }), {
+    status: 403,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
@@ -119,6 +140,93 @@ Deno.serve(async (req) => {
 
   // Create Supabase client with service role (bypasses RLS)
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+  // --- AUTHORIZATION GATE ----------------------------------------------------
+  // The function is exposed with verify_jwt = true, but Supabase's gateway
+  // accepts ANY valid JWT — including the public anon key bundled in every
+  // browser client. Without the checks below, an unauthenticated visitor
+  // could call this endpoint with arbitrary templateName/recipientEmail and
+  // send Gestor Plin-branded phishing/spam to any inbox.
+  const policy = TEMPLATE_POLICY[templateName] ?? 'service_role'
+
+  // Resolve caller role from the JWT (gateway already verified the signature).
+  let callerRole: CallerRole = 'anon'
+  let callerUserId: string | null = null
+  const authHeader = req.headers.get('Authorization') ?? ''
+  if (authHeader.startsWith('Bearer ')) {
+    const token = authHeader.slice(7)
+    try {
+      const { data: claimsRes } = await supabase.auth.getClaims(token)
+      const claims = claimsRes?.claims as Record<string, any> | undefined
+      const role = claims?.role
+      if (role === 'service_role') {
+        callerRole = 'service_role'
+      } else if (role === 'authenticated' && typeof claims?.sub === 'string') {
+        callerRole = 'authenticated'
+        callerUserId = claims.sub
+      }
+    } catch (e) {
+      console.warn('Failed to parse caller JWT claims', { error: String(e) })
+    }
+  }
+
+  // Enforce per-template policy.
+  if (policy === 'service_role' && callerRole !== 'service_role') {
+    console.warn('Blocked non-service caller for service-only template', {
+      templateName,
+      callerRole,
+    })
+    return unauthorized('This template can only be sent server-side.')
+  }
+
+  if (policy === 'authenticated' && callerRole === 'anon') {
+    console.warn('Blocked anonymous caller for authenticated-only template', {
+      templateName,
+    })
+    return unauthorized('Authentication required to send this template.')
+  }
+
+  // For public templates, the recipient MUST come from the template registry
+  // — never from the caller — so attackers cannot pick the inbox.
+  if (policy === 'public' && !template.to) {
+    console.error('Public template missing hard-coded recipient', { templateName })
+    return new Response(
+      JSON.stringify({ error: 'Template misconfigured: missing fixed recipient' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    )
+  }
+
+  // Template-specific authorization checks.
+  if (
+    templateName === 'company-invite' &&
+    callerRole === 'authenticated' &&
+    callerUserId
+  ) {
+    // The recipient must correspond to a pending invite created by THIS user.
+    // This prevents an attacker with a valid login from spamming
+    // Gestor Plin-branded invites to arbitrary addresses.
+    const { data: invite, error: inviteErr } = await supabase
+      .from('company_invites')
+      .select('id')
+      .eq('invited_email', effectiveRecipient.toLowerCase())
+      .eq('invited_by', callerUserId)
+      .eq('status', 'pending')
+      .limit(1)
+      .maybeSingle()
+
+    if (inviteErr || !invite) {
+      console.warn('Blocked company-invite send without matching pending invite', {
+        callerUserId,
+        recipient: effectiveRecipient,
+        error: inviteErr?.message,
+      })
+      return unauthorized(
+        'No pending invite found for this recipient under your account.',
+      )
+    }
+  }
+  // --- END AUTHORIZATION GATE ------------------------------------------------
+
 
   // 2. Check suppression list (fail-closed: if we can't verify, don't send)
   const { data: suppressed, error: suppressionError } = await supabase
