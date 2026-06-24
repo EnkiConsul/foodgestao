@@ -836,6 +836,7 @@ export default function Lancamentos() {
                   { key: "valor", label: "Valor", fixed: true },
                   { key: "status", label: "Status", fixed: false },
                   { key: "vencimento", label: "Vencimento", fixed: false },
+                  { key: "pagamento", label: "Data Pagamento", fixed: false },
                   { key: "saldo", label: "Saldo", fixed: false },
                   { key: "acoes", label: "Ações", fixed: true },
                 ].map((col) => (
