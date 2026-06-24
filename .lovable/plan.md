@@ -1,69 +1,79 @@
 ## Objetivo
 
-Permitir que o super admin isente um cliente da cobrança da mensalidade, de forma permanente ou por período definido, dando-lhe acesso a um plano específico escolhido, e cancelando a assinatura correspondente no Asaas.
+Ao clicar em **Editar** em um lançamento que faz parte de uma série recorrente, abrir antes um diálogo perguntando o escopo da alteração:
 
-## Como vai funcionar para o usuário
+- **Somente este** — altera apenas o lançamento clicado.
+- **Este e os próximos** — altera o clicado e todas as ocorrências futuras (mesma série, `transaction_date >= date do clicado`).
+- **Todos** — altera o pai e todos os filhos da série.
 
-### Tela "Assinaturas" (admin)
-- Nova coluna **Isenção** com badge: "Isento (permanente)", "Isento até dd/MM/yy" ou "—".
-- Nova ação por linha: **Isentar** (abre diálogo) ou **Remover isenção**.
+Para lançamentos não recorrentes, abrir o formulário direto como hoje (sem perguntar).
 
-### Tela "Clientes" (admin)
-- Nova coluna **Plano/Isenção** mostrando plano atual e, se houver, badge de isenção.
-- Ação no menu da linha: **Isentar mensalidade** / **Remover isenção**.
+## Como ficará para o usuário
 
-### Diálogo "Isentar mensalidade"
-Campos:
-1. **Plano liberado** — select com todos os planos ativos (default: o plano atual do cliente, se houver).
-2. **Tipo de isenção** — rádio: *Permanente* / *Até uma data*.
-3. **Data fim** — date picker (visível só quando "Até uma data"). Obrigatório nesse caso, deve ser futura.
-4. **Motivo** (texto opcional, salvo no audit log).
+1. Usuário clica em Editar num lançamento recorrente.
+2. Aparece um diálogo curto com 3 opções (radio) + Cancelar / Continuar.
+3. Após escolher, abre o formulário normal de edição.
+4. Ao salvar, a alteração é aplicada conforme o escopo escolhido, com toast indicando quantos lançamentos foram atualizados.
+5. Registro no log de auditoria inclui o escopo (`edit_scope: single | forward | all`), seguindo o mesmo padrão já usado em exclusão.
 
-Ao confirmar:
-- Cancela a assinatura ativa no Asaas (se existir `external_subscription_id`).
-- Atualiza a assinatura local para o plano escolhido, status `active`, marca como isenta com os campos abaixo.
-- Toast "Cliente isentado" e refresh das listas.
+Campos que NÃO se propagam mesmo em "forward/all" (porque são específicos de cada ocorrência):
 
-### Remover isenção
-- Confirmação simples. Limpa os campos de isenção; assinatura volta ao status `active` no plano atual. **Não** recria assinatura no Asaas automaticamente — quando o cliente quiser voltar a pagar, fará novo checkout (mesmo fluxo já existente quando a assinatura é cancelada). Mostramos esse aviso no diálogo de remoção.
+- `transaction_date`, `due_date`, `payment_date`
+- `status`, `bill_status`, `amount_paid`
+- `is_recurring`, `recurrence_type`, `recurrence_end_date`, `parent_transaction_id`
+- Anexos (upload acontece apenas no lançamento clicado)
 
-### Efeito no app do cliente
-- Enquanto isento (`is_exempt = true` e, se houver `exempt_until`, ainda não venceu), o backend trata a assinatura como ativa com o plano liberado. Cliente não vê banner de pagamento.
-- Quando `exempt_until` vence, um job já existente (`expire-trials`) é estendido para também encerrar isenções vencidas: marca `is_exempt = false` e coloca a assinatura como `past_due`, voltando ao fluxo normal de cobrança.
+Os demais campos (descrição, valor, categoria, conta, forma de pagamento, contato, notas, contexto/empresa, conta de destino) propagam.
 
-## Detalhes técnicos
+## Mudanças técnicas
 
-### Migration
-Adicionar à tabela `public.subscriptions`:
-- `is_exempt boolean not null default false`
-- `exempt_until timestamptz` (null = permanente)
-- `exempt_reason text`
-- `exempted_by uuid references auth.users(id)`
-- `exempted_at timestamptz`
+### `src/pages/Lancamentos.tsx`
 
-Atualizar `get_user_plan_features` (e qualquer view de status de assinatura) para considerar `is_exempt` ainda válida como ativa.
+- Novo estado `editScopePrompt: Transaction | null` e `editScope: "single" | "forward" | "all"`.
+- Trocar o handler do botão Editar:
+  - se `tx.is_recurring || tx.parent_transaction_id` → `setEditScopePrompt(tx)`;
+  - senão → fluxo atual (`setEditTransaction(tx); setDialogOpen(true)`).
+- Novo `<AlertDialog>` (mesma estética do delete-scope existente nas linhas 1385+) com `RadioGroup` das 3 opções. Ao confirmar:
+  - guardar o escopo num ref/estado (`pendingEditScope`);
+  - abrir `TransactionFormDialog` com o `transaction` clicado.
+- Aplicar o mesmo prompt nas ações de Editar do bulk bar quando `bulkHasRecurring`, ou (para simplificar este escopo) manter o bulk como está e tratar só o Editar individual — confirmar com o usuário se quer também o bulk.
 
-### Edge function `admin-exempt-subscription` (nova)
-- Verifica `is_super_admin(auth.uid())`.
-- Body: `{ subscriptionId, planId, mode: "permanent" | "until", exemptUntil?, reason? }` (Zod).
-- Carrega assinatura via service role.
-- Se `external_subscription_id`, chama `DELETE /subscriptions/{id}` no Asaas (reutilizando `asaasFetch` de `_shared/asaas.ts`), tolerando falha com log.
-- `update subscriptions set is_exempt=true, exempt_until, exempt_reason, exempted_by, exempted_at=now(), plan_id, status='active', external_subscription_id=null, canceled_at=null where id=...`.
-- Insere audit log `subscription_exempted`.
+### `src/components/transactions/TransactionFormDialog.tsx`
 
-### Edge function `admin-remove-exemption` (nova)
-- Mesma verificação de super admin.
-- Limpa campos de isenção e mantém `status='active'`. Audit log `subscription_exemption_removed`.
+- Aceitar nova prop opcional `editScope?: "single" | "forward" | "all"` (default `"single"`).
+- No branch `isEditing` (linha ~596), em vez de só `update().eq("id", transaction.id)`:
+  - construir `propagatePayload` removendo os campos não-propagáveis listados acima;
+  - `single`: comportamento atual (update no id, payload completo).
+  - `forward`:
+    - `seriesParentId = transaction.parent_transaction_id ?? transaction.id`;
+    - update no lançamento clicado com payload completo;
+    - update em `transactions` onde `parent_transaction_id = seriesParentId AND transaction_date > transaction.transaction_date` com `propagatePayload`;
+    - se o clicado for o pai, isso já cobre os filhos; se for um filho, o pai não é alterado (comportamento esperado de "este e os próximos").
+  - `all`:
+    - update no pai (`seriesParentId`) com payload completo (+ campos de recorrência) ;
+    - update em todos os filhos (`parent_transaction_id = seriesParentId`) com `propagatePayload`.
+- Toast com contagem: `Lançamento atualizado (N afetados)`.
+- Audit log inclui `edit_scope`.
 
-### Job `expire-trials`
-Adicionar passo: atualizar subs com `is_exempt = true and exempt_until < now()` para `is_exempt=false, exempt_until=null` e `status='past_due'`.
+### Sem mudanças de schema
 
-### Frontend
-- `src/hooks/useBilling.tsx`: novos hooks `useExemptSubscription` e `useRemoveExemption` que chamam as edge functions e invalidam `admin-subscriptions`, `admin-users`, `current-subscription`.
-- Novo componente `src/components/admin/ExemptSubscriptionDialog.tsx` com o formulário descrito (Zod via `validateWithToast`).
-- Atualizar `src/components/admin/AdminSubscriptions.tsx`: coluna Isenção, botão "Isentar"/"Remover isenção".
-- Atualizar `src/components/admin/AdminUsers.tsx`: buscar assinatura corrente (já disponível via join ou query extra por user_id), mostrar badge e ação de menu que abre o mesmo diálogo passando o `subscriptionId`.
-- `src/lib/billing.ts`: helpers `isExempt(sub)` e label de badge.
+A estrutura `parent_transaction_id` já existe; nenhuma migração necessária.
 
-### Logs/Auditoria
-- Ações `subscription_exempted` e `subscription_exemption_removed` registradas com `entity_type='subscription'`, detalhes `{ user_id, plan_id, mode, exempt_until, reason }`.
+## Diagrama do fluxo
+
+```text
+Editar clicado
+   │
+   ├─ recorrente? ── não ──► abre formulário (fluxo atual)
+   │
+   └─ sim ──► AlertDialog escopo
+                  ├─ Somente este     ─┐
+                  ├─ Este e os próximos ─┼─► abre formulário com editScope
+                  └─ Todos            ─┘        │
+                                                ▼
+                                          Salvar aplica escopo
+```
+
+## Pergunta antes de implementar
+
+Devo aplicar o mesmo prompt de escopo ao botão **Editar** da barra de ações em lote (quando algum selecionado é recorrente), ou manter o bulk inalterado nesta etapa?
