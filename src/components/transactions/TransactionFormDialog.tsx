@@ -600,20 +600,17 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     if (isEditing) {
       await uploadAttachments(transaction.id);
 
-      // Fields that should NOT be propagated to sibling/parent occurrences in a recurring series
-      const NON_PROPAGATING_KEYS = new Set([
-        "transaction_date",
-        "due_date",
-        "payment_date",
-        "status",
-        "bill_status",
-        "amount_paid",
-        "is_recurring",
-        "recurrence_type",
-        "recurrence_end_date",
-      ]);
+      // Payment/status fields are per-occurrence and must never propagate to siblings/parent
+      const PAYMENT_KEYS = new Set(["status", "amount_paid", "payment_date", "bill_status"]);
+      // Date fields belong to a single occurrence
+      const DATE_KEYS = new Set(["transaction_date", "due_date"]);
+      // Recurrence config lives only on the series parent
+      const RECURRENCE_KEYS = new Set(["is_recurring", "recurrence_type", "recurrence_end_date"]);
+
       const propagatePayload: any = Object.fromEntries(
-        Object.entries(payload).filter(([k]) => !NON_PROPAGATING_KEYS.has(k)),
+        Object.entries(payload).filter(
+          ([k]) => !PAYMENT_KEYS.has(k) && !DATE_KEYS.has(k) && !RECURRENCE_KEYS.has(k),
+        ),
       );
 
       const seriesParentId = transaction.parent_transaction_id ?? transaction.id;
@@ -621,29 +618,47 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       let error: any = null;
 
       if (editScope === "all") {
-        // Update the parent (full payload, preserves recurrence settings on the parent)
-        const { error: pErr } = await supabase
-          .from("transactions")
-          .update(payload)
-          .eq("id", seriesParentId);
-        if (pErr) error = pErr;
-        // Update all children with the propagating fields only
-        if (!error) {
-          const { error: cErr, count } = await supabase
-            .from("transactions")
-            .update(propagatePayload, { count: "exact" })
-            .eq("parent_transaction_id", seriesParentId);
-          if (cErr) error = cErr;
-          else affected = 1 + (count ?? 0);
-        }
-      } else if (editScope === "forward") {
-        // Update the clicked transaction with the full payload
+        // 1. Apply full payload (incl. payment state) ONLY to the clicked occurrence
         const { error: sErr } = await supabase
           .from("transactions")
           .update(payload)
           .eq("id", transaction.id);
         if (sErr) error = sErr;
-        // Update future occurrences in the same series (after the clicked date)
+
+        // 2. Update the series parent (if different from clicked) with shared fields + recurrence config
+        if (!error && seriesParentId !== transaction.id) {
+          const parentPayload = {
+            ...propagatePayload,
+            is_recurring: payload.is_recurring,
+            recurrence_type: payload.recurrence_type,
+            recurrence_end_date: payload.recurrence_end_date,
+          };
+          const { error: pErr } = await supabase
+            .from("transactions")
+            .update(parentPayload)
+            .eq("id", seriesParentId);
+          if (pErr) error = pErr;
+          else affected += 1;
+        }
+
+        // 3. Propagate shared fields to every other child (skip the clicked one)
+        if (!error) {
+          const { error: cErr, count } = await supabase
+            .from("transactions")
+            .update(propagatePayload, { count: "exact" })
+            .eq("parent_transaction_id", seriesParentId)
+            .neq("id", transaction.id);
+          if (cErr) error = cErr;
+          else affected += count ?? 0;
+        }
+      } else if (editScope === "forward") {
+        // Apply full payload (incl. payment state) ONLY to the clicked occurrence
+        const { error: sErr } = await supabase
+          .from("transactions")
+          .update(payload)
+          .eq("id", transaction.id);
+        if (sErr) error = sErr;
+        // Propagate shared fields (no payment, no dates, no recurrence config) to future siblings
         if (!error) {
           const { error: fErr, count } = await supabase
             .from("transactions")
