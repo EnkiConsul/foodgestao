@@ -133,6 +133,9 @@ export default function Lancamentos() {
   const [dialogInitialType, setDialogInitialType] = useState<"receita" | "despesa" | "transferencia" | undefined>(undefined);
   const [filterCollapsed, setFilterCollapsed] = useState(false);
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
+  const [editScopePrompt, setEditScopePrompt] = useState<Transaction | null>(null);
+  const [editScopeChoice, setEditScopeChoice] = useState<"single" | "forward" | "all">("single");
+  const [pendingEditScope, setPendingEditScope] = useState<"single" | "forward" | "all">("single");
   const [paymentTx, setPaymentTx] = useState<Transaction | null>(null);
   const [previewAttachments, setPreviewAttachments] = useState<{ id: string; file_name: string; file_url: string }[]>([]);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -1202,7 +1205,18 @@ export default function Lancamentos() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                onClick={() => { setEditTransaction(r.original); setDialogInitialType(undefined); setDialogOpen(true); }}
+                                onClick={() => {
+                                  const tx = r.original;
+                                  setDialogInitialType(undefined);
+                                  if (tx.is_recurring || tx.parent_transaction_id) {
+                                    setEditScopeChoice("single");
+                                    setEditScopePrompt(tx);
+                                  } else {
+                                    setPendingEditScope("single");
+                                    setEditTransaction(tx);
+                                    setDialogOpen(true);
+                                  }
+                                }}
                               >
                                 <Pencil className="h-3 w-3" />
                               </Button>
@@ -1253,7 +1267,56 @@ export default function Lancamentos() {
         onCreated={refreshAll}
         transaction={editTransaction}
         initialType={dialogInitialType}
+        editScope={pendingEditScope}
       />
+
+      {/* Recurring edit scope prompt */}
+      <AlertDialog
+        open={!!editScopePrompt}
+        onOpenChange={(o) => { if (!o) { setEditScopePrompt(null); setEditScopeChoice("single"); } }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Editar lançamento recorrente</AlertDialogTitle>
+            <AlertDialogDescription>
+              Este lançamento faz parte de uma série recorrente. O que você deseja alterar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <RadioGroup
+            value={editScopeChoice}
+            onValueChange={(v) => setEditScopeChoice(v as "single" | "forward" | "all")}
+            className="space-y-2 py-2"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="single" id="edit-scope-single" />
+              <Label htmlFor="edit-scope-single" className="cursor-pointer font-normal">Somente este lançamento</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="forward" id="edit-scope-forward" />
+              <Label htmlFor="edit-scope-forward" className="cursor-pointer font-normal">Este e os próximos</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="all" id="edit-scope-all" />
+              <Label htmlFor="edit-scope-all" className="cursor-pointer font-normal">Todos da série</Label>
+            </div>
+          </RadioGroup>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const tx = editScopePrompt;
+                if (!tx) return;
+                setPendingEditScope(editScopeChoice);
+                setEditTransaction(tx);
+                setEditScopePrompt(null);
+                setDialogOpen(true);
+              }}
+            >
+              Continuar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <PaymentDialog
         open={!!paymentTx}

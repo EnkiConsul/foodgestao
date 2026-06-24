@@ -49,7 +49,10 @@ interface EditableTransaction {
   amount_paid?: number;
   payment_method_id?: string | null;
   payment_date?: string | null;
+  parent_transaction_id?: string | null;
 }
+
+export type EditScope = "single" | "forward" | "all";
 
 interface Props {
   open: boolean;
@@ -57,6 +60,7 @@ interface Props {
   onCreated: () => void;
   transaction?: EditableTransaction | null;
   initialType?: TransactionType;
+  editScope?: EditScope;
 }
 
 type CategoryNode = Tables<"categories"> & { children: CategoryNode[]; depth: number };
@@ -148,7 +152,7 @@ function generateRecurrenceDates(startDate: string, recType: string, endDate?: s
 
 const MAX_ATTACHMENTS = 5;
 
-export function TransactionFormDialog({ open, onOpenChange, onCreated, transaction, initialType }: Props) {
+export function TransactionFormDialog({ open, onOpenChange, onCreated, transaction, initialType, editScope = "single" }: Props) {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const { isRequired } = useTransactionFieldSettings();
@@ -595,7 +599,65 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
     if (isEditing) {
       await uploadAttachments(transaction.id);
-      const { error } = await supabase.from("transactions").update(payload).eq("id", transaction.id);
+
+      // Fields that should NOT be propagated to sibling/parent occurrences in a recurring series
+      const NON_PROPAGATING_KEYS = new Set([
+        "transaction_date",
+        "due_date",
+        "payment_date",
+        "status",
+        "bill_status",
+        "amount_paid",
+        "is_recurring",
+        "recurrence_type",
+        "recurrence_end_date",
+      ]);
+      const propagatePayload: any = Object.fromEntries(
+        Object.entries(payload).filter(([k]) => !NON_PROPAGATING_KEYS.has(k)),
+      );
+
+      const seriesParentId = transaction.parent_transaction_id ?? transaction.id;
+      let affected = 1;
+      let error: any = null;
+
+      if (editScope === "all") {
+        // Update the parent (full payload, preserves recurrence settings on the parent)
+        const { error: pErr } = await supabase
+          .from("transactions")
+          .update(payload)
+          .eq("id", seriesParentId);
+        if (pErr) error = pErr;
+        // Update all children with the propagating fields only
+        if (!error) {
+          const { error: cErr, count } = await supabase
+            .from("transactions")
+            .update(propagatePayload, { count: "exact" })
+            .eq("parent_transaction_id", seriesParentId);
+          if (cErr) error = cErr;
+          else affected = 1 + (count ?? 0);
+        }
+      } else if (editScope === "forward") {
+        // Update the clicked transaction with the full payload
+        const { error: sErr } = await supabase
+          .from("transactions")
+          .update(payload)
+          .eq("id", transaction.id);
+        if (sErr) error = sErr;
+        // Update future occurrences in the same series (after the clicked date)
+        if (!error) {
+          const { error: fErr, count } = await supabase
+            .from("transactions")
+            .update(propagatePayload, { count: "exact" })
+            .eq("parent_transaction_id", seriesParentId)
+            .gt("transaction_date", transaction.transaction_date);
+          if (fErr) error = fErr;
+          else affected = 1 + (count ?? 0);
+        }
+      } else {
+        const { error: sErr } = await supabase.from("transactions").update(payload).eq("id", transaction.id);
+        if (sErr) error = sErr;
+      }
+
       if (error) {
         toast.error("Erro ao salvar", { description: error.message });
       } else {
@@ -603,9 +665,13 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           _action: "transaction_updated",
           _entity_type: "transaction",
           _entity_id: transaction.id,
-          _details: { target_name: description.trim(), amount: String(numAmount), type },
+          _details: { target_name: description.trim(), amount: String(numAmount), type, edit_scope: editScope, affected },
         });
-        toast.success("Lançamento atualizado!");
+        toast.success(
+          affected > 1
+            ? `Lançamento atualizado (${affected} afetados)`
+            : "Lançamento atualizado!",
+        );
         resetForm();
         onOpenChange(false);
         onCreated();
