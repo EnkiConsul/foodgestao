@@ -49,7 +49,10 @@ interface EditableTransaction {
   amount_paid?: number;
   payment_method_id?: string | null;
   payment_date?: string | null;
+  parent_transaction_id?: string | null;
 }
+
+export type EditScope = "single" | "forward" | "all";
 
 interface Props {
   open: boolean;
@@ -57,6 +60,7 @@ interface Props {
   onCreated: () => void;
   transaction?: EditableTransaction | null;
   initialType?: TransactionType;
+  editScope?: EditScope;
 }
 
 type CategoryNode = Tables<"categories"> & { children: CategoryNode[]; depth: number };
