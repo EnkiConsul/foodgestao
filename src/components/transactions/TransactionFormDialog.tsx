@@ -709,6 +709,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                 is_recurring: false, // children are not recurring themselves
                 // Future occurrences always start as pending — they haven't happened yet
                 status: "pendente",
+                amount_paid: 0,
                 payment_date: null,
                 bill_status: futureDueDate ? "em_dia" : null,
               };
