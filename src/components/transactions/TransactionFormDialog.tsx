@@ -612,7 +612,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
         "recurrence_type",
         "recurrence_end_date",
       ]);
-      const propagatePayload = Object.fromEntries(
+      const propagatePayload: any = Object.fromEntries(
         Object.entries(payload).filter(([k]) => !NON_PROPAGATING_KEYS.has(k)),
       );
 
