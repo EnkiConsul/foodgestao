@@ -4,6 +4,7 @@ import { Download, Share, Plus, X } from "lucide-react";
 
 const DISMISS_KEY = "pwa-install-dismissed-at";
 const DISMISS_DAYS = 14;
+const LOG_PREFIX = "[PWA InstallPrompt]";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -12,18 +13,44 @@ type BeforeInstallPromptEvent = Event & {
 
 function isStandalone() {
   if (typeof window === "undefined") return false;
-  return (
-    window.matchMedia?.("(display-mode: standalone)").matches ||
-    // @ts-expect-error iOS Safari only
-    window.navigator.standalone === true
-  );
+  const mqStandalone = window.matchMedia?.("(display-mode: standalone)").matches ?? false;
+  const mqFullscreen = window.matchMedia?.("(display-mode: fullscreen)").matches ?? false;
+  const mqMinimalUi = window.matchMedia?.("(display-mode: minimal-ui)").matches ?? false;
+  // @ts-expect-error iOS Safari only
+  const iosStandalone = window.navigator.standalone === true;
+  // Android TWA / installed app referrer
+  const androidApp = document.referrer.startsWith("android-app://");
+  return mqStandalone || mqFullscreen || mqMinimalUi || iosStandalone || androidApp;
 }
 
-function isIos() {
-  if (typeof window === "undefined") return false;
+function detectPlatform() {
+  if (typeof window === "undefined") {
+    return { isIos: false, isIpadOs: false, isSafari: false, isInAppBrowser: false, ua: "" };
+  }
   const ua = window.navigator.userAgent;
-  // @ts-expect-error legacy
-  return /iphone|ipad|ipod/i.test(ua) && !window.MSStream;
+  const platform = window.navigator.platform || "";
+  const maxTouchPoints = window.navigator.maxTouchPoints || 0;
+
+  // Classic iPhone/iPad/iPod
+  // @ts-expect-error legacy MSStream check
+  const classicIos = /iphone|ipad|ipod/i.test(ua) && !window.MSStream;
+  // iPadOS 13+ reports as Mac with touch support
+  const ipadOs = platform === "MacIntel" && maxTouchPoints > 1 && !("MSStream" in window);
+
+  const isIos = classicIos || ipadOs;
+
+  // Safari = WebKit on iOS without other browser tags
+  // On iOS, ALL browsers are WebKit, but only Safari can install PWAs.
+  const isSafari =
+    isIos &&
+    /safari/i.test(ua) &&
+    !/crios|fxios|edgios|opios|yabrowser|duckduckgo|brave/i.test(ua);
+
+  // Common in-app browsers where Add to Home Screen is unavailable
+  const isInAppBrowser =
+    /fban|fbav|fbios|instagram|line|micromessenger|wv|tiktok|linkedinapp|twitter/i.test(ua);
+
+  return { isIos, isIpadOs: ipadOs, isSafari, isInAppBrowser, ua };
 }
 
 function wasRecentlyDismissed() {
@@ -43,23 +70,63 @@ export function InstallPrompt() {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    if (isStandalone() || wasRecentlyDismissed()) return;
+    const platform = detectPlatform();
+    const standalone = isStandalone();
+    const dismissedRecently = wasRecentlyDismissed();
 
-    if (isIos()) {
+    console.info(LOG_PREFIX, "evaluating display conditions", {
+      isIos: platform.isIos,
+      isIpadOs: platform.isIpadOs,
+      isSafari: platform.isSafari,
+      isInAppBrowser: platform.isInAppBrowser,
+      standalone,
+      dismissedRecently,
+    });
+
+    if (standalone) {
+      console.info(LOG_PREFIX, "skipping: app already installed (standalone mode)");
+      return;
+    }
+    if (dismissedRecently) {
+      console.info(LOG_PREFIX, "skipping: user dismissed recently");
+      return;
+    }
+
+    if (platform.isIos) {
+      if (platform.isInAppBrowser) {
+        console.info(LOG_PREFIX, "skipping iOS prompt: in-app browser cannot install PWA");
+        return;
+      }
+      if (!platform.isSafari) {
+        console.info(LOG_PREFIX, "skipping iOS prompt: only Safari can install PWA on iOS");
+        return;
+      }
+      console.info(LOG_PREFIX, "showing iOS Add to Home Screen instructions");
       setShowIos(true);
       return;
     }
 
     const onBeforeInstall = (e: Event) => {
       e.preventDefault();
+      console.info(LOG_PREFIX, "captured beforeinstallprompt (Android/Chrome)");
       setDeferred(e as BeforeInstallPromptEvent);
     };
+    const onInstalled = () => {
+      console.info(LOG_PREFIX, "appinstalled event received, hiding prompt");
+      setDismissed(true);
+      setDeferred(null);
+    };
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
-    return () => window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
   }, []);
 
   if (dismissed) return null;
   if (!showIos && !deferred) return null;
+
 
   const handleDismiss = () => {
     try {
