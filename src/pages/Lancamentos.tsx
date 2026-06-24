@@ -78,6 +78,7 @@ type DisplayRow = {
   billStatus: TransactionDisplayStatus;
   amountPaid: number;
   dueDate: string | null;
+  paymentDate: string | null;
   runningBalance: number;
   hasDueDate: boolean;
   isRecurring: boolean;
