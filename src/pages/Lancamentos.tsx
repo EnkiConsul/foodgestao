@@ -535,6 +535,7 @@ export default function Lancamentos() {
         billStatus: computed,
         amountPaid: t.amount_paid,
         dueDate: t.due_date,
+        paymentDate: t.payment_date,
         runningBalance: 0,
         hasDueDate: !!t.due_date,
         isRecurring: t.is_recurring,
