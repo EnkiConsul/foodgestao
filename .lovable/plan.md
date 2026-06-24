@@ -1,16 +1,34 @@
-## Bug
+## Problema
 
-Ao criar um lançamento recorrente com status **Pago** (`confirmado`), o `payload` inclui `amount_paid = numAmount`. Esse `payload` é espalhado nas ocorrências futuras (`...payload`) e o override só zera `status`, `payment_date` e `bill_status` — esquece de zerar `amount_paid`. Resultado: filhos ficam com `amount_paid` cheio, aparecendo como pagos em telas que dependem desse campo (ex.: saldos, "valor pago").
+No iPhone, o Safari **não dispara** o evento `beforeinstallprompt` (que é o que mostra o botão "Instalar" no Android/Chrome). No iOS, a instalação como PWA só acontece manualmente: o usuário precisa abrir o menu **Compartilhar** do Safari → **Adicionar à Tela de Início**.
 
-## Correção
+Como o app hoje não tem nenhum componente de instalação (nem para Android nem para iOS), no iPhone simplesmente não aparece nada — é por isso que parece "não estar disponível".
 
-Em `src/components/transactions/TransactionFormDialog.tsx`, no override dos `futurePayloads` (~linha 710), adicionar `amount_paid: 0` para garantir que toda ocorrência futura nasça realmente pendente, independente do status do lançamento original.
+## Solução
 
-```ts
-status: "pendente",
-amount_paid: 0,        // ← novo
-payment_date: null,
-bill_status: futureDueDate ? "em_dia" : null,
-```
+Criar um **banner/prompt de instalação** que:
 
-Nenhuma mudança de schema, UI ou em outros fluxos. Lançamentos já criados anteriormente com o bug não são corrigidos automaticamente — se necessário, posso oferecer um script de limpeza em seguida.
+1. **Detecta iOS Safari** (iPhone/iPad) e mostra um banner com instruções visuais:
+   - "Para instalar o Gestor Plin no seu iPhone, toque em [ícone de compartilhar] e depois em **Adicionar à Tela de Início**."
+   - Ícone ilustrativo do botão Share do iOS.
+2. **Detecta Android/Chrome** e captura `beforeinstallprompt` para mostrar um botão "Instalar app" nativo (bônus, já resolve para Android também).
+3. **Não aparece** se o app já está rodando em modo standalone (`display-mode: standalone` ou `navigator.standalone`).
+4. **Pode ser fechado** pelo usuário e o estado fica salvo em `localStorage` (não incomoda quem dispensou).
+5. Aparece como banner discreto no rodapé/topo apenas em telas mobile dentro do app autenticado.
+
+## Onde colocar
+
+- Novo componente: `src/components/pwa/InstallPrompt.tsx`
+- Montado uma vez no `AppLayout.tsx` (já é o layout das telas internas mobile).
+
+## Detalhes técnicos
+
+- Detecção iOS: `/iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream`.
+- Detecção standalone: `window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone`.
+- Manifest e `apple-touch-icon` já estão configurados corretamente no `index.html` — nada a mudar lá.
+- Sem novas dependências.
+
+## Fora de escopo
+
+- Não vou mexer no service worker / `vite.config.ts` — o PWA já está configurado.
+- Não vou mudar ícones ou manifest.
