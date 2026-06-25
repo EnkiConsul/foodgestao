@@ -5,6 +5,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useMarkRouteReady } from "@/lib/perf";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -123,6 +124,7 @@ export default function Lancamentos() {
   const { maskBRL } = usePrivacy();
   const isMobile = useIsMobile();
 
+
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
@@ -130,6 +132,7 @@ export default function Lancamentos() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
+  useMarkRouteReady("Lancamentos", !loading);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogInitialType, setDialogInitialType] = useState<"receita" | "despesa" | "transferencia" | undefined>(undefined);
   const [filterCollapsed, setFilterCollapsed] = useState(false);
