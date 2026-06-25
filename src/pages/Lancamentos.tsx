@@ -132,6 +132,7 @@ export default function Lancamentos() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
+  useMarkRouteReady("Lancamentos", !loading);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogInitialType, setDialogInitialType] = useState<"receita" | "despesa" | "transferencia" | undefined>(undefined);
   const [filterCollapsed, setFilterCollapsed] = useState(false);
