@@ -5,6 +5,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useMarkRouteReady } from "@/lib/perf";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -122,6 +123,7 @@ export default function Lancamentos() {
   const { contextType, selectedCompanyId } = useCompanyContext();
   const { maskBRL } = usePrivacy();
   const isMobile = useIsMobile();
+
 
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
