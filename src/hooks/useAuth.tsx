@@ -23,16 +23,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    // Evita re-renders/refetch em cascata: só atualiza quando o user.id muda
+    // (token refresh mantém o mesmo user, mas devolve um objeto novo).
+    const applySession = (next: Session | null) => {
+      setSession((prev) => (prev?.access_token === next?.access_token ? prev : next));
+      setUser((prev) => {
+        const nextUser = next?.user ?? null;
+        if (prev?.id === nextUser?.id) return prev;
+        return nextUser;
+      });
       setLoading(false);
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      applySession(session);
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+      applySession(session);
     });
 
     return () => subscription.unsubscribe();

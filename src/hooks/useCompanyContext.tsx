@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -61,7 +61,8 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
         setCompanies(data ?? []);
         setLoading(false);
       });
-  }, [user]);
+    // Depende apenas do user.id para não refazer fetch em refresh de token
+  }, [user?.id]);
 
   const setContext = useCallback((type: ContextType, companyId: string | null) => {
     setContextType(type);
@@ -69,8 +70,13 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ contextType: type, selectedCompanyId: type === "pf" ? null : companyId }));
   }, []);
 
+  const value = useMemo(
+    () => ({ contextType, selectedCompanyId, companies, loading, setContext }),
+    [contextType, selectedCompanyId, companies, loading, setContext]
+  );
+
   return (
-    <CompanyContext.Provider value={{ contextType, selectedCompanyId, companies, loading, setContext }}>
+    <CompanyContext.Provider value={value}>
       {children}
     </CompanyContext.Provider>
   );
