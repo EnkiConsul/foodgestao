@@ -32,7 +32,6 @@ jobs:
         run: npx eslint . --max-warnings=0
 
       - name: Production build
-        env:
-          # Skip the prebuild security-lint hook here; that runs in its own workflow.
-          SKIP_SECURITY_LINT: "1"
+        # Invoke vite directly to skip the `prebuild` security-lint hook —
+        # that check has its own dedicated workflow (security-lint.yml).
         run: npx vite build
