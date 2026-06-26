@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  TreePine,
   ArrowRight,
   Check,
   X,
@@ -697,12 +696,7 @@ function PublicFooter() {
       <div className="container mx-auto px-4 py-8 sm:py-10">
         {/* Linha 1: Marca + navegação */}
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <TreePine className="h-4 w-4" />
-            </div>
-            <span className="text-sm font-semibold">Gestor Plin</span>
-          </div>
+          <Logo size="sm" linkTo="/" className="h-8" />
           <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
             <Link to="/auth" className="hover:text-foreground">{c.link_login}</Link>
             <a href="#planos" className="hover:text-foreground">{c.link_plans}</a>
