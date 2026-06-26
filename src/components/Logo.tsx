@@ -1,24 +1,29 @@
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import logoHorizontal from "@/assets/gestorplin-horizontal.png.asset.json";
+import logoIcon from "@/assets/gestorplin-icon.png.asset.json";
 
 const sizeMap = {
-  sm: "h-10",  // 40px - mobile header
-  md: "h-14",  // 56px - desktop header
-  lg: "h-16",  // 64px - login page
+  sm: "h-9",
+  md: "h-12",
+  lg: "h-16",
 } as const;
 
 interface LogoProps {
   size?: "sm" | "md" | "lg";
   className?: string;
   linkTo?: string | null;
+  variant?: "horizontal" | "icon";
 }
 
-export function Logo({ size = "md", className, linkTo = "/" }: LogoProps) {
+export function Logo({ size = "md", className, linkTo = "/", variant = "horizontal" }: LogoProps) {
+  const src = variant === "icon" ? logoIcon.url : logoHorizontal.url;
   const img = (
     <img
-      src="/images/logo-gestor-plin-nobg.png"
+      src={src}
       alt="Gestor Plin"
-      className={cn(sizeMap[size], "w-auto", className)}
+      className={cn(sizeMap[size], "w-auto select-none", className)}
+      draggable={false}
     />
   );
 

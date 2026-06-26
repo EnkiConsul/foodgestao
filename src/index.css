@@ -6,95 +6,96 @@
 
 @layer base {
   :root {
-    --background: 210 25% 97%;
-    --foreground: 211 52% 18%;
+    /* Brand: teal-green (#22C9A0) → cyan-blue (#3BB5E8) on deep navy (#0F1B3D) */
+    --background: 210 30% 98%;
+    --foreground: 222 60% 14%;
 
     --card: 0 0% 100%;
-    --card-foreground: 211 52% 18%;
+    --card-foreground: 222 60% 14%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 211 52% 18%;
+    --popover-foreground: 222 60% 14%;
 
-    --primary: 211 60% 44%;
+    --primary: 166 70% 42%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 205 40% 93%;
-    --secondary-foreground: 211 52% 23%;
+    --secondary: 190 60% 94%;
+    --secondary-foreground: 222 60% 18%;
 
-    --muted: 210 25% 95%;
-    --muted-foreground: 211 20% 46%;
+    --muted: 200 25% 95%;
+    --muted-foreground: 215 16% 46%;
 
-    --accent: 205 50% 92%;
-    --accent-foreground: 211 52% 23%;
+    --accent: 197 80% 92%;
+    --accent-foreground: 222 60% 18%;
 
-    --destructive: 0 65% 51%;
+    --destructive: 0 70% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 160 45% 40%;
+    --success: 160 65% 38%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 82% 52%;
+    --warning: 38 88% 52%;
     --warning-foreground: 38 90% 15%;
 
     --border: 210 22% 89%;
     --input: 210 22% 89%;
-    --ring: 211 60% 44%;
+    --ring: 166 70% 42%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 211 52% 18%;
-    --sidebar-foreground: 205 30% 90%;
-    --sidebar-primary: 205 62% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 211 45% 25%;
-    --sidebar-accent-foreground: 205 30% 92%;
-    --sidebar-border: 211 40% 28%;
-    --sidebar-ring: 205 62% 60%;
+    --sidebar-background: 222 60% 12%;
+    --sidebar-foreground: 200 25% 88%;
+    --sidebar-primary: 166 75% 50%;
+    --sidebar-primary-foreground: 222 60% 12%;
+    --sidebar-accent: 222 50% 20%;
+    --sidebar-accent-foreground: 200 25% 92%;
+    --sidebar-border: 222 45% 22%;
+    --sidebar-ring: 166 75% 50%;
   }
 
   .dark {
-    --background: 211 50% 6%;
-    --foreground: 205 30% 90%;
+    --background: 222 60% 7%;
+    --foreground: 200 25% 90%;
 
-    --card: 211 45% 10%;
-    --card-foreground: 205 30% 90%;
+    --card: 222 55% 11%;
+    --card-foreground: 200 25% 90%;
 
-    --popover: 211 45% 10%;
-    --popover-foreground: 205 30% 90%;
+    --popover: 222 55% 11%;
+    --popover-foreground: 200 25% 90%;
 
-    --primary: 205 62% 55%;
-    --primary-foreground: 211 50% 6%;
+    --primary: 166 70% 48%;
+    --primary-foreground: 222 60% 8%;
 
-    --secondary: 211 30% 15%;
-    --secondary-foreground: 205 30% 90%;
+    --secondary: 222 40% 16%;
+    --secondary-foreground: 200 25% 90%;
 
-    --muted: 211 30% 13%;
-    --muted-foreground: 205 20% 52%;
+    --muted: 222 40% 14%;
+    --muted-foreground: 210 18% 60%;
 
-    --accent: 211 30% 15%;
-    --accent-foreground: 205 30% 90%;
+    --accent: 222 40% 16%;
+    --accent-foreground: 200 25% 90%;
 
-    --destructive: 0 60% 44%;
+    --destructive: 0 65% 46%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 160 40% 34%;
+    --success: 160 60% 38%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 75% 42%;
+    --warning: 38 80% 46%;
     --warning-foreground: 38 90% 95%;
 
-    --border: 211 30% 18%;
-    --input: 211 30% 18%;
-    --ring: 205 62% 55%;
+    --border: 222 40% 18%;
+    --input: 222 40% 18%;
+    --ring: 166 70% 48%;
 
-    --sidebar-background: 211 50% 5%;
-    --sidebar-foreground: 205 25% 82%;
-    --sidebar-primary: 205 62% 55%;
-    --sidebar-primary-foreground: 211 50% 5%;
-    --sidebar-accent: 211 40% 12%;
-    --sidebar-accent-foreground: 205 25% 82%;
-    --sidebar-border: 211 30% 15%;
-    --sidebar-ring: 205 62% 55%;
+    --sidebar-background: 222 65% 6%;
+    --sidebar-foreground: 200 22% 84%;
+    --sidebar-primary: 166 75% 50%;
+    --sidebar-primary-foreground: 222 65% 6%;
+    --sidebar-accent: 222 50% 14%;
+    --sidebar-accent-foreground: 200 22% 86%;
+    --sidebar-border: 222 40% 16%;
+    --sidebar-ring: 166 75% 50%;
   }
 }
 
