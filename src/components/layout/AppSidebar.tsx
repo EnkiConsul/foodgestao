@@ -70,18 +70,12 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="border-r-0" collapsible="icon">
-      <SidebarHeader className="p-5 border-b border-sidebar-border mb-2">
-        <div className="flex items-center justify-center gap-2">
+      <SidebarHeader className="p-4 border-b border-sidebar-border mb-2">
+        <div className="flex items-center justify-center">
           {collapsed ? (
-            <TreePine className="h-7 w-7 text-sidebar-primary" />
+            <Logo variant="icon" size="sm" linkTo={null} className="h-8" />
           ) : (
-            <>
-              <TreePine className="h-7 w-7 text-sidebar-primary shrink-0" />
-              <div className="flex items-baseline gap-0.5">
-                <span className="text-xl font-bold tracking-tight text-sidebar-foreground">Gestor</span>
-                <span className="text-xl font-bold tracking-tight text-sidebar-primary">Plin</span>
-              </div>
-            </>
+            <Logo variant="horizontal" size="md" linkTo={null} className="h-10 brightness-0 invert" />
           )}
         </div>
       </SidebarHeader>
