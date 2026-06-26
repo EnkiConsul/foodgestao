@@ -15,6 +15,7 @@ import { formatCents, INVOICE_STATUS_LABELS, INVOICE_STATUS_VARIANT } from "@/li
 import { SandboxTestCard } from "@/components/billing/SandboxTestCard";
 import { FreshnessIndicator } from "@/components/billing/FreshnessIndicator";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
+import { Logo } from "@/components/Logo";
 
 type StatusFilter = "all" | "pending" | "paid" | "overdue";
 
