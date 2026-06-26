@@ -13,12 +13,12 @@ import {
   CreditCard,
   Settings,
   LogOut,
-  TreePine,
   Shield,
   Sparkles,
   Receipt,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { Logo } from "@/components/Logo";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
@@ -70,18 +70,14 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="border-r-0" collapsible="icon">
-      <SidebarHeader className="p-5 border-b border-sidebar-border mb-2">
+      <SidebarHeader className="p-4 border-b border-sidebar-border mb-2">
         <div className="flex items-center justify-center gap-2">
-          {collapsed ? (
-            <TreePine className="h-7 w-7 text-sidebar-primary" />
-          ) : (
-            <>
-              <TreePine className="h-7 w-7 text-sidebar-primary shrink-0" />
-              <div className="flex items-baseline gap-0.5">
-                <span className="text-xl font-bold tracking-tight text-sidebar-foreground">Gestor</span>
-                <span className="text-xl font-bold tracking-tight text-sidebar-primary">Plin</span>
-              </div>
-            </>
+          <Logo variant="icon" size="sm" linkTo={null} className="h-8 shrink-0" />
+          {!collapsed && (
+            <div className="flex items-baseline gap-0.5">
+              <span className="text-xl font-bold tracking-tight text-sidebar-foreground">Gestor</span>
+              <span className="text-xl font-bold tracking-tight text-sidebar-primary">Plin</span>
+            </div>
           )}
         </div>
       </SidebarHeader>

@@ -1,9 +1,10 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Link } from "react-router-dom";
-import { TreePine, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Helmet } from "react-helmet-async";
+import { Logo } from "@/components/Logo";
 
 type Props = {
   title: string;
@@ -24,14 +25,7 @@ export function LegalDocumentView({ title, lastUpdated, body, metaDescription, c
 
       <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/85 backdrop-blur-md">
         <div className="container mx-auto flex h-14 items-center justify-between px-3 sm:h-16 sm:px-4">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground sm:h-9 sm:w-9">
-              <TreePine className="h-4 w-4 sm:h-5 sm:w-5" />
-            </div>
-            <span className="text-base font-bold tracking-tight text-foreground sm:text-lg">
-              Gestor <span className="text-primary">Plin</span>
-            </span>
-          </Link>
+          <Logo size="sm" linkTo="/" />
           <Button asChild variant="ghost" size="sm">
             <Link to="/">
               <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
