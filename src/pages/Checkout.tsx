@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { TreePine, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { formatCents } from "@/lib/billing";
 import { toast } from "sonner";
 
@@ -134,10 +135,7 @@ export default function Checkout() {
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <TreePine className="h-6 w-6 text-primary" />
-            <span className="text-lg font-bold">Gestor <span className="text-primary">Plin</span></span>
-          </div>
+          <Logo size="sm" linkTo="/" />
           <Button variant="ghost" onClick={() => navigate("/planos")}>Voltar</Button>
         </div>
       </header>

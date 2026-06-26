@@ -19,7 +19,8 @@ import { StepCategories } from "@/components/onboarding/StepCategories";
 import { StepPlan } from "@/components/onboarding/StepPlan";
 import { useCurrentSubscription } from "@/hooks/useCurrentSubscription";
 import { useBillingRealtime } from "@/hooks/useBillingRealtime";
-import { CheckCircle2, Circle, Rocket, SkipForward, TreePine } from "lucide-react";
+import { CheckCircle2, Circle, Rocket, SkipForward } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { cn } from "@/lib/utils";
 import { isValidCnpj } from "@/lib/cnpj";
 import { isValidCpf } from "@/lib/cpf";
@@ -295,9 +296,7 @@ export default function Onboarding() {
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-primary/10 p-2">
-              <TreePine className="h-6 w-6 text-primary" />
-            </div>
+            <Logo variant="icon" linkTo={null} className="h-10 w-10" />
             <div>
               <h1 className="text-2xl font-bold">Bem-vindo ao Gestor Plin</h1>
               <p className="text-sm text-muted-foreground">

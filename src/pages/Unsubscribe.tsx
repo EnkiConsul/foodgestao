@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { TreePine, Loader2, MailX, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Loader2, MailX, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,9 +59,7 @@ export default function Unsubscribe() {
       </Helmet>
       <Card className="w-full max-w-md">
         <CardContent className="p-8 text-center">
-          <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <TreePine className="h-5 w-5" />
-          </div>
+          <Logo variant="icon" linkTo={null} className="mx-auto mb-4 h-10 w-10" />
           <h1 className="text-xl font-semibold">Cancelar inscrição</h1>
 
           {status === "validating" && (
