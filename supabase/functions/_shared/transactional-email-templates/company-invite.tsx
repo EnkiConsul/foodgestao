@@ -73,9 +73,9 @@ const container = { padding: '24px 28px', maxWidth: '560px' }
 const h1 = { fontSize: '22px', fontWeight: 700, color: '#0f172a', margin: '0 0 16px' }
 const text = { fontSize: '15px', color: '#334155', lineHeight: '1.6', margin: '0 0 16px' }
 const smallText = { fontSize: '13px', color: '#64748b', lineHeight: '1.5', margin: '24px 0 4px' }
-const linkText = { fontSize: '12px', color: '#2D6EB5', wordBreak: 'break-all' as const, margin: '0 0 16px' }
+const linkText = { fontSize: '12px', color: '#22C9A0', wordBreak: 'break-all' as const, margin: '0 0 16px' }
 const cta = {
-  backgroundColor: '#2D6EB5',
+  backgroundColor: '#22C9A0',
   color: '#ffffff',
   padding: '12px 24px',
   borderRadius: '8px',
