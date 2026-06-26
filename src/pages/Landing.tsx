@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useLandingSection } from "@/hooks/useLandingContent";
 import { ContactSection } from "@/components/landing/ContactSection";
+import { Logo } from "@/components/Logo";
 
 type Plan = {
   id: string;
