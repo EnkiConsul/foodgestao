@@ -1,7 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { TreePine, AlertTriangle, CheckCircle2, LogOut } from "lucide-react";
+import { AlertTriangle, CheckCircle2, LogOut } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentSubscription } from "@/hooks/useCurrentSubscription";
 
@@ -22,9 +23,8 @@ export default function TrialExpired() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl space-y-6">
-        <div className="flex items-center justify-center gap-2 text-primary">
-          <TreePine className="h-7 w-7" />
-          <span className="text-xl font-semibold tracking-tight">Gestor Plin</span>
+        <div className="flex items-center justify-center">
+          <Logo size="md" linkTo={null} />
         </div>
 
         <Card className="border-destructive/30 shadow-lg">

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
-  TreePine, Loader2, ExternalLink, FileText, ArrowRight,
+  Loader2, ExternalLink, FileText, ArrowRight,
   Clock, CheckCircle2, AlertTriangle, QrCode,
 } from "lucide-react";
 import { formatCents, INVOICE_STATUS_LABELS, INVOICE_STATUS_VARIANT } from "@/lib/billing";
@@ -101,10 +101,7 @@ export default function Faturas() {
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <TreePine className="h-6 w-6 text-primary" />
-            <span className="text-lg font-bold">Gestor <span className="text-primary">Plin</span></span>
-          </div>
+          <Logo size="sm" linkTo="/" />
           <Button variant="ghost" onClick={() => navigate("/")}>Voltar ao app</Button>
         </div>
       </header>

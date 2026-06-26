@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TreePine, Loader2, Copy, ExternalLink, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
+import { Loader2, Copy, ExternalLink, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { formatCents } from "@/lib/billing";
 import { toast } from "sonner";
 
@@ -101,10 +102,7 @@ export default function CheckoutPagamento() {
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <TreePine className="h-6 w-6 text-primary" />
-            <span className="text-lg font-bold">Gestor <span className="text-primary">Plin</span></span>
-          </div>
+          <Logo size="sm" linkTo="/" />
           <Button variant="ghost" onClick={() => navigate("/")}>Início</Button>
         </div>
       </header>
