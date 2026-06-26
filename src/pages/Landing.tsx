@@ -123,14 +123,7 @@ function PublicHeader({ utm }: { utm: string }) {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/85 backdrop-blur-md">
       <div className="container mx-auto flex h-14 items-center justify-between px-3 sm:h-16 sm:px-4">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground sm:h-9 sm:w-9">
-            <TreePine className="h-4 w-4 sm:h-5 sm:w-5" />
-          </div>
-          <span className="text-base font-bold tracking-tight text-foreground sm:text-lg">
-            Gestor <span className="text-primary">Plin</span>
-          </span>
-        </Link>
+        <Logo size="sm" linkTo="/" className="h-9 sm:h-10" />
         <div className="flex items-center gap-1.5 sm:gap-2">
           <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
             <Link to={buildCta("/auth", utm)}>Entrar</Link>
