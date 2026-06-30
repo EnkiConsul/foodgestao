@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, Landmark } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Landmark, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -84,6 +84,22 @@ export default function AdminBancos() {
       (b.domain ?? "").toLowerCase().includes(search.toLowerCase()),
   );
 
+  const move = async (bank: BankRow, direction: -1 | 1) => {
+    const idx = filtered.findIndex((b) => b.id === bank.id);
+    const neighbor = filtered[idx + direction];
+    if (!neighbor) return;
+    const a = bank.sort_order ?? 100;
+    const b = neighbor.sort_order ?? 100;
+    const aNew = a === b ? a + direction : b;
+    const bNew = a === b ? a : a;
+    const [r1, r2] = await Promise.all([
+      supabase.from("banks" as never).update({ sort_order: aNew } as never).eq("id", bank.id),
+      supabase.from("banks" as never).update({ sort_order: bNew } as never).eq("id", neighbor.id),
+    ]);
+    if (r1.error || r2.error) toast.error("Erro ao reordenar");
+    else refresh();
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-3">
@@ -121,11 +137,35 @@ export default function AdminBancos() {
               </CardContent>
             </Card>
           ) : (
-            filtered.map((b) => {
+            filtered.map((b, idx) => {
               const logo = getBankLogoUrl(b, 48);
+              const isFirst = idx === 0;
+              const isLast = idx === filtered.length - 1;
               return (
                 <Card key={b.id} className={!b.is_active ? "opacity-60" : ""}>
                   <CardContent className="flex items-center gap-3 p-4">
+                    <div className="flex flex-col -my-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5"
+                        disabled={isFirst || !!search}
+                        onClick={() => move(b, -1)}
+                        title="Mover para cima"
+                      >
+                        <ChevronUp className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5"
+                        disabled={isLast || !!search}
+                        onClick={() => move(b, 1)}
+                        title="Mover para baixo"
+                      >
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                     {logo ? (
                       <img
                         src={logo}
