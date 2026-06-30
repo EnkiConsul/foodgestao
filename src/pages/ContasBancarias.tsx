@@ -179,10 +179,12 @@ export default function ContasBancarias() {
               <CardContent className="flex items-center gap-3 p-4">
                 <BankLogo
                   slug={(a as typeof a & { bank_slug?: string | null }).bank_slug}
+                  fallbackName={a.name}
                   size={40}
                   fallbackColor={a.color || undefined}
                   className="shrink-0"
                 />
+
 
 
                 <div className="flex-1 min-w-0">
