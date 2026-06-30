@@ -408,11 +408,3 @@ function BankFormDialog({
   );
 }
 
-// helper to re-run an effect when a key changes
-import { useEffect } from "react";
-function useStateEffect(key: string, effect: () => void) {
-  useEffect(() => {
-    effect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
-}
