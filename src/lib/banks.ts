@@ -39,3 +39,32 @@ export function findBank(banks: BankInfo[] | undefined, slug?: string | null): B
   if (!banks || !slug) return undefined;
   return banks.find((b) => b.slug === slug);
 }
+
+function normalize(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Tenta inferir o slug de um banco a partir de um texto livre (ex.: nome da conta).
+ * Faz match longest-first contra `name` e `slug` dos bancos disponíveis.
+ */
+export function inferBankSlug(text: string | null | undefined, banks: BankInfo[] | undefined): string | null {
+  if (!text || !banks || banks.length === 0) return null;
+  const haystack = normalize(text);
+  if (!haystack) return null;
+  const candidates = banks
+    .map((b) => {
+      const needles = [normalize(b.name), normalize(b.slug)].filter(Boolean);
+      const matchLen = needles.reduce((max, n) => (haystack.includes(n) ? Math.max(max, n.length) : max), 0);
+      return { slug: b.slug, matchLen };
+    })
+    .filter((c) => c.matchLen > 0)
+    .sort((a, b) => b.matchLen - a.matchLen);
+  return candidates[0]?.slug ?? null;
+}
