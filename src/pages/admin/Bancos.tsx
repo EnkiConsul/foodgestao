@@ -316,9 +316,14 @@ function BankFormDialog({
   const [isActive, setIsActive] = useState(true);
   const [slugTouched, setSlugTouched] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
+  const [logoWarning, setLogoWarning] = useState<string | null>(null);
+  const [probing, setProbing] = useState(false);
 
   useEffect(() => {
     if (!open) return;
+    setLogoError(null);
+    setLogoWarning(null);
     if (bank) {
       setName(bank.name);
       setSlug(bank.slug);
