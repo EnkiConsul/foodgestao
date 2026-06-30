@@ -9,6 +9,10 @@ Gestor Plin oferece controle de contas a pagar e a receber, fluxo de caixa, orç
 - [Início](/): Apresentação do produto, recursos, planos e teste grátis de 7 dias.
 - [Entrar ou criar conta](/auth): Login e cadastro de novos usuários.
 
+## Guias
+
+- [DAS MEI 2026](/guias/das-mei): O que é, valores atualizados, prazos, como pagar e o que acontece se atrasar.
+
 ## Legal
 
 - [Política de Privacidade](/privacidade): Como tratamos dados pessoais conforme a LGPD.
