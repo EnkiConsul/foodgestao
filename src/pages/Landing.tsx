@@ -24,6 +24,8 @@ import {
 import { useLandingSection } from "@/hooks/useLandingContent";
 import { ContactSection } from "@/components/landing/ContactSection";
 import { Logo } from "@/components/Logo";
+import heroDashboard from "@/assets/hero-dashboard.png.asset.json";
+
 
 type Plan = {
   id: string;
