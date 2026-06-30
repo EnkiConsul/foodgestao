@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
+import { BankLogo } from "@/components/accounts/BankLogo";
 import { Plus, Search, Landmark, Pencil, Trash2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
@@ -176,12 +177,13 @@ export default function ContasBancarias() {
               style={{ borderLeftColor: a.color || "hsl(var(--primary))" }}
             >
               <CardContent className="flex items-center gap-3 p-4">
-                <div
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
-                  style={{ backgroundColor: `${a.color || "hsl(var(--primary))"}20` }}
-                >
-                  <Wallet className="h-5 w-5" style={{ color: a.color || "hsl(var(--primary))" }} />
-                </div>
+                <BankLogo
+                  slug={(a as typeof a & { bank_slug?: string | null }).bank_slug}
+                  size={40}
+                  fallbackColor={a.color || undefined}
+                  className="shrink-0"
+                />
+
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">

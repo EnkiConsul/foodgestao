@@ -17,6 +17,7 @@ export type Database = {
       accounts: {
         Row: {
           account_type: Database["public"]["Enums"]["account_type"]
+          bank_slug: string | null
           color: string | null
           company_id: string | null
           context: Database["public"]["Enums"]["context_type"]
@@ -32,6 +33,7 @@ export type Database = {
         }
         Insert: {
           account_type?: Database["public"]["Enums"]["account_type"]
+          bank_slug?: string | null
           color?: string | null
           company_id?: string | null
           context?: Database["public"]["Enums"]["context_type"]
@@ -47,6 +49,7 @@ export type Database = {
         }
         Update: {
           account_type?: Database["public"]["Enums"]["account_type"]
+          bank_slug?: string | null
           color?: string | null
           company_id?: string | null
           context?: Database["public"]["Enums"]["context_type"]
