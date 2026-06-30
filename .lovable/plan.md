@@ -1,27 +1,42 @@
-## Diagnóstico
+## Painel de Indexação — Search Console
 
-A SERP do Google na imagem mostra **dois sinais de cache desatualizado**, não bugs no site:
+Criar uma tela no Backoffice (super admin) que consulta a API do Google Search Console e mostra o status de indexação e último recrawl das URLs principais.
 
-1. **Favicon antigo** (coração gradiente da Lovable) — o arquivo `public/favicon.ico` em produção já é o novo (MD5 confirmado em iterações anteriores). O Google mantém um índice próprio de favicons (`googlefavicon` bot) que atualiza em ciclos próprios — pode levar semanas.
-2. **Descrição "Teste grátis por 14 dias"** — o `index.html` já está com "7 dias" há várias iterações. O snippet exibido vem do cache do índice do Google, anterior à última republicação.
+### URLs monitoradas
+- `https://gestorplin.com/`
+- `https://gestorplin.com/guias/das-mei`
+- (obs.: `/landing` não existe como rota; a landing é `/`. Não será incluída.)
 
-Ou seja: **o site está correto**; o que aparece na SERP é cache do Google. Não há código para "consertar" — o que dá para fazer é **forçar/acelerar o recrawl**.
+### UX
+- Nova página `src/pages/admin/SeoIndexacao.tsx`, rota `/admin/seo-indexacao`, protegida por `SuperAdminRoute`.
+- Link "Indexação SEO" (ícone `Search`) na sidebar do Backoffice.
+- Tabela com colunas: URL, Status de Cobertura, Verdict, Último Crawl, Robots, Canonical Google vs Declarado, Ações.
+- Badge colorido por verdict (`PASS`, `PARTIAL`, `FAIL`, `NEUTRAL`).
+- Botão "Atualizar" por linha + "Atualizar todas".
+- Indicador `FreshnessIndicator` reaproveitado para mostrar quando a consulta foi feita.
 
-## O que vou fazer
+### Backend
+- Edge Function `inspect-search-console` (verify_jwt validado em código, restrita a super_admin):
+  - Recebe `{ urls: string[] }`.
+  - Para cada URL, faz `POST` ao gateway:
+    `https://connector-gateway.lovable.dev/google_search_console/v1/urlInspection/index:inspect`
+    com `Authorization: Bearer LOVABLE_API_KEY` e `X-Connection-Api-Key: GOOGLE_SEARCH_CONSOLE_API_KEY`.
+  - Body: `{ inspectionUrl, siteUrl: "https://gestorplin.com/" }`.
+  - Retorna o `inspectionResult.indexStatusResult` resumido (coverageState, verdict, lastCrawlTime, robotsTxtState, indexingState, googleCanonical, userCanonical) por URL.
+  - Erros do Google são propagados com status apropriado.
 
-1. **Verificar produção** (sem alterar nada): confirmar via `curl` que `https://gestorplin.com/favicon.ico` e o `<meta name="description">` do `index.html` em produção já refletem a marca Gestor Plin e "7 dias".
-2. **Forçar reindexação no Google Search Console** via conector já conectado (`google_search_console`):
-   - `urlInspection/index:inspect` em `https://gestorplin.com/` para ver o estado atual no índice e identificar a data do último crawl.
-   - Submeter pedido de recrawl da home (equivalente ao botão "Solicitar indexação" do Search Console).
-3. **Reaquecer o cache do favicon do Google**: bater no endpoint `s2/favicons?domain=gestorplin.com&sz=64` para validar que o índice de favicons já tem a arte nova (em iteração anterior já estava com paleta azul Gestor Plin — vou reconfirmar).
-4. **Reportar ao usuário**:
-   - Site está correto, é cache do Google.
-   - Pedido de reindexação enviado.
-   - Janela típica: SERP textual atualiza em poucos dias; favicon na SERP pode levar até algumas semanas (não há API para forçar).
-   - Sugerir limpar o cache do próprio navegador dele (Ctrl+Shift+R) — às vezes o que ele vê é cache local, não do Google.
+### Frontend
+- Hook `useSeoInspection` (React Query) chamando a Edge Function via `supabase.functions.invoke`.
+- Formatação de `lastCrawlTime` em PT-BR + relativa ("há 3 dias").
+- Link "Abrir no Search Console" por URL.
 
-## O que NÃO vou fazer
+### Arquivos
+- `supabase/functions/inspect-search-console/index.ts` (novo)
+- `src/pages/admin/SeoIndexacao.tsx` (novo)
+- `src/hooks/useSeoInspection.tsx` (novo)
+- `src/App.tsx` — registrar rota
+- `src/components/layout/AppSidebar.tsx` — link no menu admin
 
-- Não vou alterar `favicon.ico`, `index.html`, manifest ou qualquer asset — já estão corretos.
-- Não vou republicar o site só por republicar; isso não acelera o recrawl do Google.
-- Não vou prometer prazo exato de atualização da SERP — é controlado pelo Google.
+### Pré-requisitos
+- Connector `google_search_console` já está vinculado ao projeto (confirmado em iteração anterior).
+- `LOVABLE_API_KEY` e `GOOGLE_SEARCH_CONSOLE_API_KEY` disponíveis na Edge Function.
