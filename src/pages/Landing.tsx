@@ -24,6 +24,8 @@ import {
 import { useLandingSection } from "@/hooks/useLandingContent";
 import { ContactSection } from "@/components/landing/ContactSection";
 import { Logo } from "@/components/Logo";
+import heroDashboard from "@/assets/hero-dashboard.png.asset.json";
+
 
 type Plan = {
   id: string;
@@ -161,62 +163,17 @@ function HeroMockup() {
             app.gestorplin.com / dashboard
           </span>
         </div>
-        <CardContent className="space-y-3 p-3 sm:space-y-4 sm:p-5">
-          <div className="grid grid-cols-3 gap-2 sm:gap-3">
-            {[
-              { label: "Saldo", value: "R$ 48.2k", tone: "text-foreground" },
-              { label: "A receber", value: "R$ 12.4k", tone: "text-success" },
-              { label: "A pagar", value: "R$ 6.8k", tone: "text-warning" },
-            ].map((k) => (
-              <div key={k.label} className="rounded-lg border border-border/60 bg-card p-2 sm:p-3">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground sm:text-[11px]">
-                  {k.label}
-                </p>
-                <p className={`mt-1 text-sm font-semibold sm:text-lg ${k.tone}`}>{k.value}</p>
-              </div>
-            ))}
-          </div>
-          <div className="rounded-lg border border-border/60 bg-card p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-medium">Evolução dos últimos 6 meses</p>
-              <Badge variant="secondary" className="text-[10px]">Pago</Badge>
-            </div>
-            <div className="flex h-24 items-end gap-2">
-              {[40, 55, 48, 70, 62, 85].map((h, i) => (
-                <div
-                  key={i}
-                  className="flex-1 rounded-t-md bg-gradient-to-t from-primary/30 to-primary"
-                  style={{ height: `${h}%` }}
-                />
-              ))}
-            </div>
-          </div>
-          <div className="space-y-2">
-            {[
-              { t: "Aluguel escritório", c: "Despesa fixa", v: "- R$ 2.400", tag: "Pago", tone: "text-destructive" },
-              { t: "Cliente Acme — NF 1182", c: "Receita", v: "+ R$ 4.800", tag: "A vencer", tone: "text-success" },
-              { t: "Energia elétrica", c: "Utilidades", v: "- R$ 380", tag: "Atrasado", tone: "text-destructive" },
-            ].map((r) => (
-              <div
-                key={r.t}
-                className="flex items-center justify-between rounded-md border border-border/40 bg-background/60 px-3 py-2 text-sm"
-              >
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{r.t}</p>
-                  <p className="text-xs text-muted-foreground">{r.c}</p>
-                </div>
-                <div className="flex items-center gap-3 whitespace-nowrap">
-                  <Badge variant="outline" className="text-[10px]">{r.tag}</Badge>
-                  <span className={`font-semibold ${r.tone}`}>{r.v}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
+        <img
+          src={heroDashboard.url}
+          alt="Dashboard do Gestor Plin com saldo, receitas, despesas e contas bancárias"
+          loading="lazy"
+          className="block w-full h-auto"
+        />
       </Card>
     </div>
   );
 }
+
 
 /* ----------------------------- Hero ----------------------------- */
 function HeroSection({ utm }: { utm: string }) {
