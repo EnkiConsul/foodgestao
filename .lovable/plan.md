@@ -1,34 +1,26 @@
-## Objetivo
-Publicar as correções de SEO aplicadas (sitemap.xml, llms.txt, JSON-LD, OG por rota, H1 em /auth) e validar os metadados em produção.
+## Por que aparece a logo antiga no Google
 
-## Passos
+O favicon que o Google exibe na SERP é buscado em `https://gestorplin.com/favicon.ico`. Esse arquivo hoje ainda é o ícone genérico antigo (gradiente azul/laranja/rosa em forma de coração — herdado do template inicial), não a marca Gestor Plin. Além disso, o Google cacheia favicons por semanas, então mesmo após corrigir, a SERP só atualiza no próximo rastreio do `googlefavicon` bot.
 
-1. **Pré-flight de publish**
-   - Rodar `security--get_scan_results` para confirmar que não há findings críticos pendentes que bloqueiem o publish.
-   - Confirmar que `index.html` tem title, description, canonical, OG e JSON-LD coerentes (já feito no turno anterior).
+## O que vou fazer
 
-2. **Publicar em produção**
-   - Chamar `preview_ui--publish` com `website_info_status="already_relevant"` e um `website_info_summary` descrevendo title, description, OG, JSON-LD, sitemap e robots verificados.
-   - Aguardar ~1min para a propagação em `https://gestorplin.com`.
+1. **Gerar um novo `favicon.ico` (multi-resolução: 16, 32, 48px)** a partir do asset oficial `src/assets/gestorplin-appicon.png` e substituir `public/favicon.ico`.
+2. **Regerar `public/icon-192.png` e `public/icon-512.png`** a partir do mesmo asset oficial (caso ainda contenham a arte antiga), mantendo a versão maskable.
+3. **Adicionar referências explícitas no `<head>` do `index.html`**:
+   - `<link rel="icon" type="image/x-icon" href="/favicon.ico">`
+   - `<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">`
+   - `<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">`
+   - manter `apple-touch-icon` já existente
+4. **Republicar o site** via `preview_ui--publish` para propagar os novos ícones na CDN.
+5. **Validar** que `https://gestorplin.com/favicon.ico` retorna a nova arte (via `curl` + comparação MD5 com o arquivo local).
+6. **Orientar o usuário** sobre o cache do Google: pode levar de poucos dias a algumas semanas para a SERP atualizar. Não há botão de "forçar atualização" do favicon no Search Console — só rastreio orgânico. Verificar antes em `https://www.google.com/s2/favicons?domain=gestorplin.com&sz=64`, que atualiza mais rápido que a SERP.
 
-3. **Validação pós-publish via Lighthouse (headless Chrome)**
-   - Executar Lighthouse CLI em sandbox contra `https://gestorplin.com` focado nas categorias `seo` e `best-practices` (mobile, depois desktop).
-   - Salvar relatório JSON em `/tmp/lighthouse/` e extrair:
-     - Score SEO (alvo ≥ 95)
-     - Auditorias: `document-title`, `meta-description`, `canonical`, `http-status-code`, `robots-txt`, `hreflang`, `is-crawlable`, `structured-data`, `viewport`.
-   - Validar manualmente via `curl`:
-     - `https://gestorplin.com/sitemap.xml` → 200 + XML válido
-     - `https://gestorplin.com/robots.txt` → contém `Sitemap:`
-     - `https://gestorplin.com/llms.txt` → 200
-     - `<head>` da home contém JSON-LD `Organization` + `WebSite`.
+## Observação técnica
 
-4. **Validação de OG por rota (crawlers sem JS)**
-   - Lembrar o usuário que `<Helmet>` só atualiza `<head>` no client; previews sociais de `/auth` e `/privacidade` mostrarão os tags estáticos do `index.html`. Documentar isso como limitação conhecida (SPA sem SSR).
+Vou usar Python (Pillow) no sandbox para gerar o ICO multi-resolução a partir do PNG da marca — esse é o formato que o Google prefere. Não vou tocar em código de aplicação; é só asset + tags `<link>` no `index.html`.
 
-5. **Reportar resultados**
-   - Resumo com: score Lighthouse SEO, lista de auditorias com pass/fail, URLs validadas (sitemap/robots/llms), próximos passos opcionais (ex: Search Console, submeter sitemap).
-   - Marcar como `fixed` no `seo_chat--update_findings` quaisquer findings ainda pendentes que o Lighthouse confirmar resolvidos.
+## O que NÃO vou fazer
 
-## Observações técnicas
-- Lighthouse será executado em sandbox com `npx lighthouse <url> --only-categories=seo,best-practices --output=json --chrome-flags="--headless --no-sandbox"`.
-- Não haverá mudança de código a menos que o Lighthouse aponte um novo problema; nesse caso, retorno com um plano de correção antes de aplicar.
+- Não vou alterar a logo dentro do app (sidebar/header) — já está correta.
+- Não vou mexer no manifest PWA além do necessário para os ícones.
+- Não vou prometer atualização imediata na SERP — isso depende do Google.
