@@ -1,26 +1,27 @@
-## Por que aparece a logo antiga no Google
+## Diagnóstico
 
-O favicon que o Google exibe na SERP é buscado em `https://gestorplin.com/favicon.ico`. Esse arquivo hoje ainda é o ícone genérico antigo (gradiente azul/laranja/rosa em forma de coração — herdado do template inicial), não a marca Gestor Plin. Além disso, o Google cacheia favicons por semanas, então mesmo após corrigir, a SERP só atualiza no próximo rastreio do `googlefavicon` bot.
+A SERP do Google na imagem mostra **dois sinais de cache desatualizado**, não bugs no site:
+
+1. **Favicon antigo** (coração gradiente da Lovable) — o arquivo `public/favicon.ico` em produção já é o novo (MD5 confirmado em iterações anteriores). O Google mantém um índice próprio de favicons (`googlefavicon` bot) que atualiza em ciclos próprios — pode levar semanas.
+2. **Descrição "Teste grátis por 14 dias"** — o `index.html` já está com "7 dias" há várias iterações. O snippet exibido vem do cache do índice do Google, anterior à última republicação.
+
+Ou seja: **o site está correto**; o que aparece na SERP é cache do Google. Não há código para "consertar" — o que dá para fazer é **forçar/acelerar o recrawl**.
 
 ## O que vou fazer
 
-1. **Gerar um novo `favicon.ico` (multi-resolução: 16, 32, 48px)** a partir do asset oficial `src/assets/gestorplin-appicon.png` e substituir `public/favicon.ico`.
-2. **Regerar `public/icon-192.png` e `public/icon-512.png`** a partir do mesmo asset oficial (caso ainda contenham a arte antiga), mantendo a versão maskable.
-3. **Adicionar referências explícitas no `<head>` do `index.html`**:
-   - `<link rel="icon" type="image/x-icon" href="/favicon.ico">`
-   - `<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">`
-   - `<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">`
-   - manter `apple-touch-icon` já existente
-4. **Republicar o site** via `preview_ui--publish` para propagar os novos ícones na CDN.
-5. **Validar** que `https://gestorplin.com/favicon.ico` retorna a nova arte (via `curl` + comparação MD5 com o arquivo local).
-6. **Orientar o usuário** sobre o cache do Google: pode levar de poucos dias a algumas semanas para a SERP atualizar. Não há botão de "forçar atualização" do favicon no Search Console — só rastreio orgânico. Verificar antes em `https://www.google.com/s2/favicons?domain=gestorplin.com&sz=64`, que atualiza mais rápido que a SERP.
-
-## Observação técnica
-
-Vou usar Python (Pillow) no sandbox para gerar o ICO multi-resolução a partir do PNG da marca — esse é o formato que o Google prefere. Não vou tocar em código de aplicação; é só asset + tags `<link>` no `index.html`.
+1. **Verificar produção** (sem alterar nada): confirmar via `curl` que `https://gestorplin.com/favicon.ico` e o `<meta name="description">` do `index.html` em produção já refletem a marca Gestor Plin e "7 dias".
+2. **Forçar reindexação no Google Search Console** via conector já conectado (`google_search_console`):
+   - `urlInspection/index:inspect` em `https://gestorplin.com/` para ver o estado atual no índice e identificar a data do último crawl.
+   - Submeter pedido de recrawl da home (equivalente ao botão "Solicitar indexação" do Search Console).
+3. **Reaquecer o cache do favicon do Google**: bater no endpoint `s2/favicons?domain=gestorplin.com&sz=64` para validar que o índice de favicons já tem a arte nova (em iteração anterior já estava com paleta azul Gestor Plin — vou reconfirmar).
+4. **Reportar ao usuário**:
+   - Site está correto, é cache do Google.
+   - Pedido de reindexação enviado.
+   - Janela típica: SERP textual atualiza em poucos dias; favicon na SERP pode levar até algumas semanas (não há API para forçar).
+   - Sugerir limpar o cache do próprio navegador dele (Ctrl+Shift+R) — às vezes o que ele vê é cache local, não do Google.
 
 ## O que NÃO vou fazer
 
-- Não vou alterar a logo dentro do app (sidebar/header) — já está correta.
-- Não vou mexer no manifest PWA além do necessário para os ícones.
-- Não vou prometer atualização imediata na SERP — isso depende do Google.
+- Não vou alterar `favicon.ico`, `index.html`, manifest ou qualquer asset — já estão corretos.
+- Não vou republicar o site só por republicar; isso não acelera o recrawl do Google.
+- Não vou prometer prazo exato de atualização da SERP — é controlado pelo Google.
