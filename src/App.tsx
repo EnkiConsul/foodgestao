@@ -8,6 +8,7 @@ import { PrivacyProvider } from "@/hooks/usePrivacy";
 import { CompanyContextProvider } from "@/hooks/useCompanyContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useVisualViewport } from "@/hooks/useVisualViewport";
+import { usePageviewTracking } from "@/hooks/usePageviewTracking";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
