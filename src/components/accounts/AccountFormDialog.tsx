@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CurrencyInput, formatCurrency, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { toast } from "sonner";
+import { BankSelect } from "./BankSelect";
+import { getBankBySlug } from "@/lib/banks";
 import { accountSchema, validateWithToast } from "@/lib/validations";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -43,11 +45,13 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
   const [originalCurrentBalance, setOriginalCurrentBalance] = useState<number>(0);
   const [ownerType, setOwnerType] = useState<"pf" | "pj">("pf");
   const [ownerCompanyId, setOwnerCompanyId] = useState<string | null>(null);
+  const [bankSlug, setBankSlug] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
       if (account) {
+        setBankSlug((account as Account & { bank_slug?: string | null }).bank_slug ?? null);
         setName(account.name);
         setAccountType(account.account_type);
         setInitialBalance(formatCurrency(String(Math.round(account.initial_balance * 100))));
