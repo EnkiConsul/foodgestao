@@ -382,9 +382,12 @@ export default function Dashboard() {
                     className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <div
-                        className="h-3 w-3 rounded-full shrink-0"
-                        style={{ backgroundColor: acc.color || "hsl(var(--primary))" }}
+                      <BankLogo
+                        slug={(acc as { bank_slug?: string | null }).bank_slug}
+                        fallbackName={acc.name}
+                        size={24}
+                        fallbackColor={acc.color || undefined}
+                        className="shrink-0"
                       />
                       <span className="text-sm font-medium truncate">{acc.name}</span>
                     </div>
