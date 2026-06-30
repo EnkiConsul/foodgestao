@@ -18,8 +18,45 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { getBankLogoUrl, type BankInfo } from "@/lib/banks";
+import { z } from "zod";
 
 type BankRow = Required<Pick<BankInfo, "id" | "slug" | "name">> & BankInfo;
+
+const logoUrlSchema = z
+  .string()
+  .trim()
+  .max(500, "URL muito longa (máx. 500 caracteres)")
+  .url("URL inválida — use o formato https://...")
+  .refine((v) => /^https?:\/\//i.test(v), "A URL deve começar com http:// ou https://")
+  .refine(
+    (v) => /\.(png|jpe?g|svg|webp|gif|avif)(\?.*)?$/i.test(v),
+    "A URL deve apontar para uma imagem (.png, .jpg, .svg, .webp, .gif, .avif)",
+  );
+
+function validateLogoUrl(value: string): string | null {
+  if (!value.trim()) return null;
+  const result = logoUrlSchema.safeParse(value);
+  return result.success ? null : result.error.issues[0]?.message ?? "URL inválida";
+}
+
+function probeImage(url: string, timeoutMs = 6000): Promise<boolean> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const timer = window.setTimeout(() => {
+      img.src = "";
+      resolve(false);
+    }, timeoutMs);
+    img.onload = () => {
+      window.clearTimeout(timer);
+      resolve(true);
+    };
+    img.onerror = () => {
+      window.clearTimeout(timer);
+      resolve(false);
+    };
+    img.src = url;
+  });
+}
 
 function slugify(input: string) {
   return input
