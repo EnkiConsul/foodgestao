@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CurrencyInput, formatCurrency, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { toast } from "sonner";
 import { BankSelect } from "./BankSelect";
-import { getBankBySlug } from "@/lib/banks";
 import { accountSchema, validateWithToast } from "@/lib/validations";
 import type { Database } from "@/integrations/supabase/types";
 
