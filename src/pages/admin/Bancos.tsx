@@ -137,11 +137,35 @@ export default function AdminBancos() {
               </CardContent>
             </Card>
           ) : (
-            filtered.map((b) => {
+            filtered.map((b, idx) => {
               const logo = getBankLogoUrl(b, 48);
+              const isFirst = idx === 0;
+              const isLast = idx === filtered.length - 1;
               return (
                 <Card key={b.id} className={!b.is_active ? "opacity-60" : ""}>
                   <CardContent className="flex items-center gap-3 p-4">
+                    <div className="flex flex-col -my-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5"
+                        disabled={isFirst || !!search}
+                        onClick={() => move(b, -1)}
+                        title="Mover para cima"
+                      >
+                        <ChevronUp className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5"
+                        disabled={isLast || !!search}
+                        onClick={() => move(b, 1)}
+                        title="Mover para baixo"
+                      >
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                     {logo ? (
                       <img
                         src={logo}
