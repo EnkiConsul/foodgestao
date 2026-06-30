@@ -38,6 +38,7 @@ import AdminAuditoria from "./pages/admin/Auditoria";
 import AdminResetarDados from "./pages/admin/ResetarDados";
 import AdminLandingPage from "./pages/admin/LandingPage";
 import AdminBancos from "./pages/admin/Bancos";
+import AdminSeoIndexacao from "./pages/admin/SeoIndexacao";
 import AcceptInvite from "./pages/AcceptInvite";
 import ResetPassword from "./pages/ResetPassword";
 import Planos from "./pages/Planos";
@@ -292,6 +293,7 @@ const AppRoutes = () => (
       <Route path="/admin/landing-page" element={<AdminLandingPage />} />
       <Route path="/admin/documentos-legais" element={<AdminDocumentosLegais />} />
       <Route path="/admin/bancos" element={<AdminBancos />} />
+      <Route path="/admin/seo-indexacao" element={<AdminSeoIndexacao />} />
     </Route>
     <Route path="/convite/:token" element={<AcceptInvite />} />
     <Route path="/reset-password" element={<ResetPassword />} />
