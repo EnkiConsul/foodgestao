@@ -455,16 +455,33 @@ function BankFormDialog({
               </p>
             </div>
             <div className="space-y-2 sm:col-span-2">
-              <Label>URL do logo customizado (opcional)</Label>
+              <Label htmlFor="bank-logo-url">URL do logo customizado (opcional)</Label>
               <Input
+                id="bank-logo-url"
                 value={logoUrl}
-                onChange={(e) => setLogoUrl(e.target.value)}
-                placeholder="https://..."
+                onChange={(e) => {
+                  setLogoUrl(e.target.value);
+                  if (logoError) setLogoError(null);
+                  if (logoWarning) setLogoWarning(null);
+                }}
+                onBlur={handleLogoBlur}
+                placeholder="https://exemplo.com/logo.png"
                 maxLength={500}
+                aria-invalid={!!logoError}
+                aria-describedby="bank-logo-url-help"
+                className={logoError ? "border-destructive focus-visible:ring-destructive" : ""}
               />
-              <p className="text-[10px] text-muted-foreground">
-                Se preenchido, substitui o logo automático.
-              </p>
+              {logoError ? (
+                <p className="text-[11px] text-destructive">{logoError}</p>
+              ) : logoWarning ? (
+                <p className="text-[11px] text-amber-600 dark:text-amber-500">{logoWarning}</p>
+              ) : probing ? (
+                <p className="text-[10px] text-muted-foreground">Verificando imagem...</p>
+              ) : (
+                <p id="bank-logo-url-help" className="text-[10px] text-muted-foreground">
+                  Se preenchido, substitui o logo automático. Use https e formato .png, .jpg, .svg, .webp, .gif ou .avif.
+                </p>
+              )}
             </div>
           </div>
 
