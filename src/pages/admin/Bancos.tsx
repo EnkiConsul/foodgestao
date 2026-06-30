@@ -76,6 +76,14 @@ export default function AdminBancos() {
     setDeleting(null);
   };
 
+  const filtered = banks.filter(
+    (b) =>
+      !search ||
+      b.name.toLowerCase().includes(search.toLowerCase()) ||
+      b.slug.toLowerCase().includes(search.toLowerCase()) ||
+      (b.domain ?? "").toLowerCase().includes(search.toLowerCase()),
+  );
+
   const move = async (bank: BankRow, direction: -1 | 1) => {
     const idx = filtered.findIndex((b) => b.id === bank.id);
     const neighbor = filtered[idx + direction];
@@ -91,14 +99,6 @@ export default function AdminBancos() {
     if (r1.error || r2.error) toast.error("Erro ao reordenar");
     else refresh();
   };
-
-  const filtered = banks.filter(
-    (b) =>
-      !search ||
-      b.name.toLowerCase().includes(search.toLowerCase()) ||
-      b.slug.toLowerCase().includes(search.toLowerCase()) ||
-      (b.domain ?? "").toLowerCase().includes(search.toLowerCase()),
-  );
 
   return (
     <div className="space-y-6">
