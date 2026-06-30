@@ -22,6 +22,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, AreaChart, Area } from "recharts";
+import { BankLogo } from "@/components/accounts/BankLogo";
 
 const DONUT_COLORS = [
   "hsl(210, 52%, 45%)",
