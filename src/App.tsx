@@ -310,6 +310,7 @@ const AppRoutes = () => (
 
 const AppShell = () => {
   useVisualViewport();
+  usePageviewTracking();
   return (
     <>
       <AppRoutes />
