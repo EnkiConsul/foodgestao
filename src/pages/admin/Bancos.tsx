@@ -86,15 +86,16 @@ export default function AdminBancos() {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader
-        title="Bancos"
-        description="Gerencie a lista de bancos disponíveis no cadastro de contas bancárias."
-        actions={
-          <Button onClick={() => setCreating(true)}>
-            <Plus className="h-4 w-4 mr-2" /> Novo Banco
-          </Button>
-        }
-      />
+      <div className="flex items-start justify-between gap-3">
+        <AdminPageHeader
+          title="Bancos"
+          description="Gerencie a lista de bancos disponíveis no cadastro de contas bancárias."
+        />
+        <Button onClick={() => setCreating(true)}>
+          <Plus className="h-4 w-4 mr-2" /> Novo Banco
+        </Button>
+      </div>
+
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
