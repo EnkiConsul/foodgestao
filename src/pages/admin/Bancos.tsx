@@ -374,21 +374,29 @@ function BankFormDialog({
       return;
     }
     setSaving(true);
-    const payload = {
+    const basePayload = {
       name: name.trim(),
-      slug: slug.trim(),
       domain: domain.trim() || null,
       logo_url: logoUrl.trim() || null,
       sort_order: sortOrder || 100,
       is_active: isActive,
     };
 
-    const { error } = isEdit
-      ? await supabase.from("banks" as never).update(payload as never).eq("id", bank!.id)
-      : await supabase.from("banks" as never).insert(payload as never);
+    const body = isEdit
+      ? { action: "update" as const, id: bank!.id, ...basePayload }
+      : { action: "create" as const, slug: slug.trim(), ...basePayload };
 
-    if (error) {
-      toast.error(error.message || "Erro ao salvar banco");
+    const { data, error } = await supabase.functions.invoke("admin-save-bank", { body });
+
+    const serverError =
+      (data && typeof data === "object" && "error" in data ? (data as { error: unknown }).error : null) ?? null;
+
+    if (error || serverError) {
+      const msg =
+        typeof serverError === "string"
+          ? serverError
+          : error?.message || "Erro ao salvar banco";
+      toast.error(msg);
     } else {
       toast.success(isEdit ? "Banco atualizado" : "Banco criado");
       onSaved();
