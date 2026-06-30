@@ -93,7 +93,7 @@ export type FooterContent = {
 
 export const LANDING_DEFAULTS = {
   hero: {
-    badge: "Teste grátis 14 dias · sem cartão",
+    badge: "Teste grátis 7 dias · sem cartão",
     title_prefix: "Controle financeiro ",
     title_highlight: "pessoal e da sua empresa",
     title_suffix: ", sem planilha.",
@@ -104,7 +104,7 @@ export const LANDING_DEFAULTS = {
       "Cancele em 1 clique, sem fidelidade",
       "Dados protegidos (LGPD) e em servidores no Brasil",
     ],
-    cta_primary: "Começar teste de 14 dias",
+    cta_primary: "Começar teste de 7 dias",
     cta_secondary: "Ver como funciona",
     trust_satisfaction: "4.9 em satisfação",
     trust_users: "Usado por MEIs e PMEs",
@@ -180,7 +180,7 @@ export const LANDING_DEFAULTS = {
   } satisfies FeaturesContent,
 
   guarantee: {
-    title: "14 dias grátis · sem cartão · cancele quando quiser",
+    title: "7 dias grátis · sem cartão · cancele quando quiser",
     subtitle: "Acesso completo durante o teste. Sem letrinhas miúdas.",
     cta_label: "Quero começar agora",
   } satisfies GuaranteeContent,
@@ -188,14 +188,14 @@ export const LANDING_DEFAULTS = {
   pricing_intro: {
     eyebrow: "Planos",
     title: "Comece grátis. Evolua quando precisar.",
-    subtitle: "Todos os planos pagos incluem 14 dias de teste, sem cartão de crédito.",
+    subtitle: "Todos os planos pagos incluem 7 dias de teste, sem cartão de crédito.",
   } satisfies PricingIntroContent,
 
   faq: {
     eyebrow: "Perguntas frequentes",
     title: "Tire suas dúvidas",
     items: [
-      { q: "Preciso de cartão de crédito para testar?", a: "Não. O teste de 14 dias é liberado na hora, sem pedir cartão." },
+      { q: "Preciso de cartão de crédito para testar?", a: "Não. O teste de 7 dias é liberado na hora, sem pedir cartão." },
       { q: "Funciona para MEI e pessoa física na mesma conta?", a: "Sim. Você alterna entre Pessoa Física e Pessoa Jurídica com 1 clique, com dados totalmente isolados." },
       { q: "Meus dados estão seguros?", a: "Criptografia em trânsito, isolamento por usuário/empresa (RLS) e conformidade com a LGPD. Você pode exportar ou excluir os dados a qualquer momento." },
       { q: "Posso cancelar quando quiser?", a: "Sim. Sem fidelidade. Cancele em 1 clique nas configurações." },
@@ -204,8 +204,8 @@ export const LANDING_DEFAULTS = {
 
   final_cta: {
     title: "Pronto para tirar o financeiro da planilha?",
-    subtitle: "14 dias grátis. Sem cartão de crédito. Cancele quando quiser.",
-    cta_label: "Iniciar teste de 14 dias",
+    subtitle: "7 dias grátis. Sem cartão de crédito. Cancele quando quiser.",
+    cta_label: "Iniciar teste de 7 dias",
   } satisfies FinalCtaContent,
 
   footer: {

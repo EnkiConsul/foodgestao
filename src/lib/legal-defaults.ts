@@ -115,7 +115,7 @@ Estes Termos regulam o uso da plataforma **Gestor Plin**. Ao criar uma conta, vo
 - O Usuário é responsável por manter a confidencialidade de suas credenciais.
 
 ## 3. Período de teste e cobrança
-- Oferecemos teste gratuito de 14 dias, sem necessidade de cartão.
+- Oferecemos teste gratuito de 7 dias, sem necessidade de cartão.
 - Ao final do teste, o acesso aos recursos pagos é interrompido salvo se houver contratação.
 - Cobranças recorrentes são processadas pelo operador Asaas.
 - Conforme o **CDC (art. 49)**, o Usuário tem direito de arrependimento em até 7 dias da primeira contratação, com reembolso integral.
