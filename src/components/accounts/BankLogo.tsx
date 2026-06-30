@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getBankLogoUrl } from "@/lib/banks";
+import { findBank, getBankLogoUrl, useBanks } from "@/lib/banks";
 
 interface BankLogoProps {
   slug?: string | null;
@@ -11,7 +11,9 @@ interface BankLogoProps {
 }
 
 export function BankLogo({ slug, size = 40, className, fallbackColor }: BankLogoProps) {
-  const url = getBankLogoUrl(slug, size * 2);
+  const { data: banks } = useBanks();
+  const bank = findBank(banks, slug);
+  const url = getBankLogoUrl(bank, size * 2);
   const [errored, setErrored] = useState(false);
 
   if (!url || errored) {
