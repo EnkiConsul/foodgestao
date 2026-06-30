@@ -22,29 +22,29 @@ const SlugSchema = z
 
 const BaseSchema = z.object({
   name: z.string().trim().min(1, "Nome obrigatório").max(80, "Nome muito longo"),
-  domain: z
-    .preprocess(
-      (v) => (typeof v === "string" ? v.trim() : v),
-      z
-        .string()
-        .max(120, "Domínio muito longo")
-        .regex(
-          /^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i,
-          "Domínio inválido (ex: nubank.com.br)",
-        )
-        .nullable()
-        .optional(),
-    )
-    .or(z.literal("").transform(() => null))
-    .nullable()
-    .optional(),
-  logo_url: z
-    .preprocess(
-      (v) => (typeof v === "string" && v.trim() === "" ? null : v),
-      LogoUrlSchema.nullable().optional(),
-    )
-    .nullable()
-    .optional(),
+  domain: z.preprocess(
+    (v) => {
+      if (typeof v !== "string") return v ?? null;
+      const t = v.trim();
+      return t === "" ? null : t;
+    },
+    z
+      .string()
+      .max(120, "Domínio muito longo")
+      .regex(
+        /^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i,
+        "Domínio inválido (ex: nubank.com.br)",
+      )
+      .nullable()
+      .optional(),
+  ),
+  logo_url: z.preprocess(
+    (v) => {
+      if (typeof v !== "string") return v ?? null;
+      return v.trim() === "" ? null : v.trim();
+    },
+    LogoUrlSchema.nullable().optional(),
+  ),
   sort_order: z.number().int().min(0).max(100000).optional(),
   is_active: z.boolean().optional(),
 });
