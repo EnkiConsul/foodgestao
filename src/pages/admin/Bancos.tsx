@@ -76,6 +76,22 @@ export default function AdminBancos() {
     setDeleting(null);
   };
 
+  const move = async (bank: BankRow, direction: -1 | 1) => {
+    const idx = filtered.findIndex((b) => b.id === bank.id);
+    const neighbor = filtered[idx + direction];
+    if (!neighbor) return;
+    const a = bank.sort_order ?? 100;
+    const b = neighbor.sort_order ?? 100;
+    const aNew = a === b ? a + direction : b;
+    const bNew = a === b ? a : a;
+    const [r1, r2] = await Promise.all([
+      supabase.from("banks" as never).update({ sort_order: aNew } as never).eq("id", bank.id),
+      supabase.from("banks" as never).update({ sort_order: bNew } as never).eq("id", neighbor.id),
+    ]);
+    if (r1.error || r2.error) toast.error("Erro ao reordenar");
+    else refresh();
+  };
+
   const filtered = banks.filter(
     (b) =>
       !search ||
