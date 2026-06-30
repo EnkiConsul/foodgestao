@@ -67,6 +67,7 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
         setOriginalCurrentBalance(0);
         setOwnerType(contextType);
         setOwnerCompanyId(contextType === "pj" ? selectedCompanyId : null);
+        setBankSlug(null);
       }
     }
   }, [open, account, contextType, selectedCompanyId]);
@@ -93,7 +94,8 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
           current_balance: newCurrent,
           context: ownerType,
           company_id: ownerType === "pj" ? ownerCompanyId : null,
-        })
+          bank_slug: bankSlug,
+        } as never)
         .eq("id", account.id);
       if (error) toast.error("Erro ao atualizar conta");
       else {
@@ -114,7 +116,8 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
         current_balance: balance,
         context: ownerType,
         company_id: ownerType === "pj" ? ownerCompanyId : null,
-      }).select("id").single();
+        bank_slug: bankSlug,
+      } as never).select("id").single();
       if (error || !inserted) toast.error("Erro ao criar conta");
       else {
         await supabase.rpc("insert_audit_log", {
@@ -137,9 +140,21 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
+            <Label>Banco</Label>
+            <BankSelect
+              value={bankSlug}
+              onChange={(slug, bankName) => {
+                setBankSlug(slug);
+                if (slug && bankName && !name.trim()) setName(bankName);
+              }}
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="name">Nome da Conta</Label>
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Nubank, Itaú..." required maxLength={100} />
           </div>
+
 
           <div className="space-y-2">
             <Label>Vinculado a</Label>
