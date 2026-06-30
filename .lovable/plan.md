@@ -1,33 +1,34 @@
-## Problema
+## Objetivo
+Publicar as correções de SEO aplicadas (sitemap.xml, llms.txt, JSON-LD, OG por rota, H1 em /auth) e validar os metadados em produção.
 
-Os logos não aparecem porque as contas exibidas (BMG, NEON, Nubank, Mercado Pago, Santander, SuitPay…) foram criadas **antes** do campo `bank_slug` existir, então estão com `bank_slug = null`. O `BankLogo` cai no fallback (ícone "Wallet" cinza) sempre que o slug é nulo.
+## Passos
 
-## Solução (2 camadas)
+1. **Pré-flight de publish**
+   - Rodar `security--get_scan_results` para confirmar que não há findings críticos pendentes que bloqueiem o publish.
+   - Confirmar que `index.html` tem title, description, canonical, OG e JSON-LD coerentes (já feito no turno anterior).
 
-### 1. Detecção automática pelo nome da conta (frontend, imediato)
+2. **Publicar em produção**
+   - Chamar `preview_ui--publish` com `website_info_status="already_relevant"` e um `website_info_summary` descrevendo title, description, OG, JSON-LD, sitemap e robots verificados.
+   - Aguardar ~1min para a propagação em `https://gestorplin.com`.
 
-Estender `src/lib/banks.ts` com um helper `inferBankSlug(name, banks)` que faz matching case-insensitive do nome da conta contra `bank.name` e `bank.slug` (ex.: "Nubank - Michelle" → slug `nubank`, "Santander Raptor" → `santander`, "Mercado Pago - Michelle" → `mercado-pago`). Usa a maior correspondência (longest match) para evitar conflitos.
+3. **Validação pós-publish via Lighthouse (headless Chrome)**
+   - Executar Lighthouse CLI em sandbox contra `https://gestorplin.com` focado nas categorias `seo` e `best-practices` (mobile, depois desktop).
+   - Salvar relatório JSON em `/tmp/lighthouse/` e extrair:
+     - Score SEO (alvo ≥ 95)
+     - Auditorias: `document-title`, `meta-description`, `canonical`, `http-status-code`, `robots-txt`, `hreflang`, `is-crawlable`, `structured-data`, `viewport`.
+   - Validar manualmente via `curl`:
+     - `https://gestorplin.com/sitemap.xml` → 200 + XML válido
+     - `https://gestorplin.com/robots.txt` → contém `Sitemap:`
+     - `https://gestorplin.com/llms.txt` → 200
+     - `<head>` da home contém JSON-LD `Organization` + `WebSite`.
 
-Atualizar `BankLogo` para aceitar um prop opcional `fallbackName?: string`. Quando `slug` não resolve, tenta `inferBankSlug(fallbackName, banks)` antes de cair no ícone Wallet.
+4. **Validação de OG por rota (crawlers sem JS)**
+   - Lembrar o usuário que `<Helmet>` só atualiza `<head>` no client; previews sociais de `/auth` e `/privacidade` mostrarão os tags estáticos do `index.html`. Documentar isso como limitação conhecida (SPA sem SSR).
 
-Em `ContasBancarias.tsx` passar `fallbackName={a.name}` para o `<BankLogo>`. Mesmo tratamento no `BankSelect` quando aplicável (sem mudar comportamento de seleção).
+5. **Reportar resultados**
+   - Resumo com: score Lighthouse SEO, lista de auditorias com pass/fail, URLs validadas (sitemap/robots/llms), próximos passos opcionais (ex: Search Console, submeter sitemap).
+   - Marcar como `fixed` no `seo_chat--update_findings` quaisquer findings ainda pendentes que o Lighthouse confirmar resolvidos.
 
-### 2. Backfill persistente (migração SQL)
-
-Migração que faz `UPDATE public.accounts SET bank_slug = b.slug FROM public.banks b WHERE accounts.bank_slug IS NULL AND accounts.name ILIKE '%' || b.name || '%'` — usando subselect com `ORDER BY length(b.name) DESC LIMIT 1` para pegar o match mais específico por conta. Não toca em contas que já têm slug.
-
-Assim, contas antigas passam a ter `bank_slug` correto e novas edições/exports ficam consistentes; a camada 1 cobre qualquer conta que o backfill não consiga inferir (nomes muito customizados).
-
-## Detalhes técnicos
-
-- `inferBankSlug` normaliza (lowercase, remove acentos, colapsa espaços/hífens) antes de comparar.
-- Backfill roda dentro de um único `DO $$` para iterar por conta com segurança e fazer match longest-first.
-- Nenhuma mudança de RLS / schema; apenas `UPDATE` data + helper TS.
-- Sem mudança em `AccountFormDialog` (já salva `bank_slug`).
-
-## Arquivos afetados
-
-- `src/lib/banks.ts` — novo `inferBankSlug`.
-- `src/components/accounts/BankLogo.tsx` — prop `fallbackName`, lógica de inferência.
-- `src/pages/ContasBancarias.tsx` — passar `fallbackName={a.name}`.
-- `supabase/migrations/<novo>.sql` — backfill de `accounts.bank_slug`.
+## Observações técnicas
+- Lighthouse será executado em sandbox com `npx lighthouse <url> --only-categories=seo,best-practices --output=json --chrome-flags="--headless --no-sandbox"`.
+- Não haverá mudança de código a menos que o Lighthouse aponte um novo problema; nesse caso, retorno com um plano de correção antes de aplicar.
