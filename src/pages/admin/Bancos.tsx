@@ -240,22 +240,8 @@ function BankFormDialog({
   const [slugTouched, setSlugTouched] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // reset whenever opens
-  useState(() => {
-    if (bank) {
-      setName(bank.name);
-      setSlug(bank.slug);
-      setDomain(bank.domain ?? "");
-      setLogoUrl(bank.logo_url ?? "");
-      setSortOrder(bank.sort_order ?? 100);
-      setIsActive(bank.is_active ?? true);
-    }
-  });
-
-  // ensure values follow the selected bank
-  const key = bank?.id ?? "new";
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  useStateEffect(key, () => {
+  useEffect(() => {
+    if (!open) return;
     if (bank) {
       setName(bank.name);
       setSlug(bank.slug);
@@ -273,7 +259,7 @@ function BankFormDialog({
       setIsActive(true);
       setSlugTouched(false);
     }
-  });
+  }, [open, bank]);
 
   const previewLogo = getBankLogoUrl({ logo_url: logoUrl || null, domain: domain || null }, 64);
 
