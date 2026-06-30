@@ -345,10 +345,32 @@ function BankFormDialog({
 
   const previewLogo = getBankLogoUrl({ logo_url: logoUrl || null, domain: domain || null }, 64);
 
+  const handleLogoBlur = async () => {
+    const trimmed = logoUrl.trim();
+    setLogoWarning(null);
+    const err = validateLogoUrl(trimmed);
+    setLogoError(err);
+    if (err || !trimmed) return;
+    setProbing(true);
+    const ok = await probeImage(trimmed);
+    setProbing(false);
+    if (!ok) {
+      setLogoWarning(
+        "Não foi possível carregar a imagem desta URL. Verifique se o link é público e aponta para uma imagem válida.",
+      );
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !slug.trim()) {
       toast.error("Nome e slug são obrigatórios");
+      return;
+    }
+    const err = validateLogoUrl(logoUrl);
+    if (err) {
+      setLogoError(err);
+      toast.error(err);
       return;
     }
     setSaving(true);
