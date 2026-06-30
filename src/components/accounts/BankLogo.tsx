@@ -1,18 +1,21 @@
 import { useState } from "react";
 import { Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { findBank, getBankLogoUrl, useBanks } from "@/lib/banks";
+import { findBank, getBankLogoUrl, inferBankSlug, useBanks } from "@/lib/banks";
 
 interface BankLogoProps {
   slug?: string | null;
+  /** Texto livre (ex.: nome da conta) usado para inferir o banco quando slug é nulo. */
+  fallbackName?: string | null;
   size?: number;
   className?: string;
   fallbackColor?: string;
 }
 
-export function BankLogo({ slug, size = 40, className, fallbackColor }: BankLogoProps) {
+export function BankLogo({ slug, fallbackName, size = 40, className, fallbackColor }: BankLogoProps) {
   const { data: banks } = useBanks();
-  const bank = findBank(banks, slug);
+  const effectiveSlug = slug || inferBankSlug(fallbackName, banks);
+  const bank = findBank(banks, effectiveSlug);
   const url = getBankLogoUrl(bank, size * 2);
   const [errored, setErrored] = useState(false);
 
@@ -42,3 +45,4 @@ export function BankLogo({ slug, size = 40, className, fallbackColor }: BankLogo
     />
   );
 }
+
