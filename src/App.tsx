@@ -38,6 +38,7 @@ import AdminAuditoria from "./pages/admin/Auditoria";
 import AdminResetarDados from "./pages/admin/ResetarDados";
 import AdminLandingPage from "./pages/admin/LandingPage";
 import AdminBancos from "./pages/admin/Bancos";
+import AdminSeoIndexacao from "./pages/admin/SeoIndexacao";
 import AcceptInvite from "./pages/AcceptInvite";
 import ResetPassword from "./pages/ResetPassword";
 import Planos from "./pages/Planos";
