@@ -36,6 +36,7 @@ import AdminPerfisAcesso from "./pages/admin/PerfisAcesso";
 import AdminAuditoria from "./pages/admin/Auditoria";
 import AdminResetarDados from "./pages/admin/ResetarDados";
 import AdminLandingPage from "./pages/admin/LandingPage";
+import AdminBancos from "./pages/admin/Bancos";
 import AcceptInvite from "./pages/AcceptInvite";
 import ResetPassword from "./pages/ResetPassword";
 import Planos from "./pages/Planos";
@@ -288,6 +289,7 @@ const AppRoutes = () => (
       <Route path="/admin/resetar-dados" element={<AdminResetarDados />} />
       <Route path="/admin/landing-page" element={<AdminLandingPage />} />
       <Route path="/admin/documentos-legais" element={<AdminDocumentosLegais />} />
+      <Route path="/admin/bancos" element={<AdminBancos />} />
     </Route>
     <Route path="/convite/:token" element={<AcceptInvite />} />
     <Route path="/reset-password" element={<ResetPassword />} />

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { BRAZILIAN_BANKS, getBankBySlug, getBankLogoUrl } from "@/lib/banks";
+import { findBank, getBankLogoUrl, useBanks } from "@/lib/banks";
 
 interface BankSelectProps {
   value?: string | null;
@@ -14,8 +14,9 @@ interface BankSelectProps {
 
 export function BankSelect({ value, onChange, placeholder = "Selecione o banco..." }: BankSelectProps) {
   const [open, setOpen] = useState(false);
-  const selected = getBankBySlug(value);
-  const selectedLogo = getBankLogoUrl(value, 32);
+  const { data: banks } = useBanks();
+  const selected = findBank(banks, value);
+  const selectedLogo = getBankLogoUrl(selected, 32);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -64,8 +65,8 @@ export function BankSelect({ value, onChange, placeholder = "Selecione o banco..
                 <Landmark className="mr-2 h-4 w-4 text-muted-foreground" />
                 Outro / Não listado
               </CommandItem>
-              {BRAZILIAN_BANKS.map((bank) => {
-                const logo = getBankLogoUrl(bank.slug, 32);
+              {(banks ?? []).map((bank) => {
+                const logo = getBankLogoUrl(bank, 32);
                 return (
                   <CommandItem
                     key={bank.slug}

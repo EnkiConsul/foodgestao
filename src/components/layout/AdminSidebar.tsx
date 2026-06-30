@@ -13,6 +13,7 @@ import {
   LogOut,
   Webhook,
   FileText,
+  Landmark,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -49,6 +50,7 @@ const billingItems = [
 const tenantItems = [
   { title: "Clientes", url: "/admin/clientes", icon: Users },
   { title: "Perfis de Acesso", url: "/admin/perfis-acesso", icon: Building2 },
+  { title: "Bancos", url: "/admin/bancos", icon: Landmark },
   { title: "Resetar Dados", url: "/admin/resetar-dados", icon: Database },
 ];
 
