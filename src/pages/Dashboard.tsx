@@ -112,7 +112,7 @@ export default function Dashboard() {
     queryFn: async () => {
       let q = supabase
         .from("accounts")
-        .select("name, current_balance, color, is_active")
+        .select("name, current_balance, color, is_active, bank_slug")
         .eq("user_id", user!.id)
         .eq("is_active", true)
         .eq("context", contextType);
