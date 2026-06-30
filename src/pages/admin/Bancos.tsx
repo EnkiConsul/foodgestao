@@ -18,8 +18,45 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { getBankLogoUrl, type BankInfo } from "@/lib/banks";
+import { z } from "zod";
 
 type BankRow = Required<Pick<BankInfo, "id" | "slug" | "name">> & BankInfo;
+
+const logoUrlSchema = z
+  .string()
+  .trim()
+  .max(500, "URL muito longa (máx. 500 caracteres)")
+  .url("URL inválida — use o formato https://...")
+  .refine((v) => /^https?:\/\//i.test(v), "A URL deve começar com http:// ou https://")
+  .refine(
+    (v) => /\.(png|jpe?g|svg|webp|gif|avif)(\?.*)?$/i.test(v),
+    "A URL deve apontar para uma imagem (.png, .jpg, .svg, .webp, .gif, .avif)",
+  );
+
+function validateLogoUrl(value: string): string | null {
+  if (!value.trim()) return null;
+  const result = logoUrlSchema.safeParse(value);
+  return result.success ? null : result.error.issues[0]?.message ?? "URL inválida";
+}
+
+function probeImage(url: string, timeoutMs = 6000): Promise<boolean> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const timer = window.setTimeout(() => {
+      img.src = "";
+      resolve(false);
+    }, timeoutMs);
+    img.onload = () => {
+      window.clearTimeout(timer);
+      resolve(true);
+    };
+    img.onerror = () => {
+      window.clearTimeout(timer);
+      resolve(false);
+    };
+    img.src = url;
+  });
+}
 
 function slugify(input: string) {
   return input
@@ -279,9 +316,14 @@ function BankFormDialog({
   const [isActive, setIsActive] = useState(true);
   const [slugTouched, setSlugTouched] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
+  const [logoWarning, setLogoWarning] = useState<string | null>(null);
+  const [probing, setProbing] = useState(false);
 
   useEffect(() => {
     if (!open) return;
+    setLogoError(null);
+    setLogoWarning(null);
     if (bank) {
       setName(bank.name);
       setSlug(bank.slug);
@@ -303,10 +345,32 @@ function BankFormDialog({
 
   const previewLogo = getBankLogoUrl({ logo_url: logoUrl || null, domain: domain || null }, 64);
 
+  const handleLogoBlur = async () => {
+    const trimmed = logoUrl.trim();
+    setLogoWarning(null);
+    const err = validateLogoUrl(trimmed);
+    setLogoError(err);
+    if (err || !trimmed) return;
+    setProbing(true);
+    const ok = await probeImage(trimmed);
+    setProbing(false);
+    if (!ok) {
+      setLogoWarning(
+        "Não foi possível carregar a imagem desta URL. Verifique se o link é público e aponta para uma imagem válida.",
+      );
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !slug.trim()) {
       toast.error("Nome e slug são obrigatórios");
+      return;
+    }
+    const err = validateLogoUrl(logoUrl);
+    if (err) {
+      setLogoError(err);
+      toast.error(err);
       return;
     }
     setSaving(true);
@@ -391,16 +455,33 @@ function BankFormDialog({
               </p>
             </div>
             <div className="space-y-2 sm:col-span-2">
-              <Label>URL do logo customizado (opcional)</Label>
+              <Label htmlFor="bank-logo-url">URL do logo customizado (opcional)</Label>
               <Input
+                id="bank-logo-url"
                 value={logoUrl}
-                onChange={(e) => setLogoUrl(e.target.value)}
-                placeholder="https://..."
+                onChange={(e) => {
+                  setLogoUrl(e.target.value);
+                  if (logoError) setLogoError(null);
+                  if (logoWarning) setLogoWarning(null);
+                }}
+                onBlur={handleLogoBlur}
+                placeholder="https://exemplo.com/logo.png"
                 maxLength={500}
+                aria-invalid={!!logoError}
+                aria-describedby="bank-logo-url-help"
+                className={logoError ? "border-destructive focus-visible:ring-destructive" : ""}
               />
-              <p className="text-[10px] text-muted-foreground">
-                Se preenchido, substitui o logo automático.
-              </p>
+              {logoError ? (
+                <p className="text-[11px] text-destructive">{logoError}</p>
+              ) : logoWarning ? (
+                <p className="text-[11px] text-amber-600 dark:text-amber-500">{logoWarning}</p>
+              ) : probing ? (
+                <p className="text-[10px] text-muted-foreground">Verificando imagem...</p>
+              ) : (
+                <p id="bank-logo-url-help" className="text-[10px] text-muted-foreground">
+                  Se preenchido, substitui o logo automático. Use https e formato .png, .jpg, .svg, .webp, .gif ou .avif.
+                </p>
+              )}
             </div>
           </div>
 
@@ -438,7 +519,7 @@ function BankFormDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" disabled={saving || !!logoError}>
               {saving ? "Salvando..." : isEdit ? "Salvar" : "Criar"}
             </Button>
           </DialogFooter>
