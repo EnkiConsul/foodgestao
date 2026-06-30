@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
 
 
@@ -193,6 +194,15 @@ export default function Auth() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Helmet>
+        <title>Entrar ou criar conta — Gestor Plin</title>
+        <meta name="description" content="Acesse sua conta Gestor Plin ou crie um cadastro gratuito para gerenciar suas finanças pessoais e empresariais." />
+        <link rel="canonical" href="https://gestorplin.com/auth" />
+        <meta property="og:title" content="Entrar ou criar conta — Gestor Plin" />
+        <meta property="og:description" content="Acesse sua conta Gestor Plin ou crie um cadastro gratuito para gerenciar suas finanças." />
+        <meta property="og:url" content="https://gestorplin.com/auth" />
+      </Helmet>
+      <h1 className="sr-only">Acesse sua conta ou crie seu cadastro no Gestor Plin</h1>
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center space-y-3">
           <CardTitle className="text-2xl font-bold">Gestor Plin</CardTitle>

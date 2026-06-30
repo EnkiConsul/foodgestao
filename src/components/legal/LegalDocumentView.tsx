@@ -21,6 +21,12 @@ export function LegalDocumentView({ title, lastUpdated, body, metaDescription, c
         <title>{title} — Gestor Plin</title>
         <meta name="description" content={metaDescription ?? `${title} — Gestor Plin`} />
         <link rel="canonical" href={`https://gestorplin.com${canonicalPath}`} />
+        <meta property="og:title" content={`${title} — Gestor Plin`} />
+        <meta property="og:description" content={metaDescription ?? `${title} — Gestor Plin`} />
+        <meta property="og:url" content={`https://gestorplin.com${canonicalPath}`} />
+        <meta property="og:type" content="article" />
+        <meta name="twitter:title" content={`${title} — Gestor Plin`} />
+        <meta name="twitter:description" content={metaDescription ?? `${title} — Gestor Plin`} />
       </Helmet>
 
       <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/85 backdrop-blur-md">
