@@ -80,21 +80,7 @@ export function PaymentDialog({ open, onOpenChange, bill, onPaid }: Props) {
     if (error) {
       toast.error("Erro ao registrar pagamento", { description: error.message });
     } else {
-      // Update account balance
-      const { data: account } = await supabase
-        .from("accounts")
-        .select("current_balance")
-        .eq("id", bill.account_id)
-        .single();
-
-      if (account) {
-        const balanceChange = bill.transaction_type === "receita" ? numAmount : -numAmount;
-        await supabase
-          .from("accounts")
-          .update({ current_balance: account.current_balance + balanceChange })
-          .eq("id", bill.account_id);
-      }
-
+      // Balance is updated automatically by DB trigger trg_sync_account_balance
       toast.success(isPaidFull ? "Pago integralmente!" : "Pagamento parcial registrado!");
       setPaymentAmount("");
       setPaymentMethodId("");
