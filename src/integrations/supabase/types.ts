@@ -2102,6 +2102,28 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_accessible_payment_methods: {
+        Args: {
+          _company_id?: string
+          _context: Database["public"]["Enums"]["context_type"]
+          _include_inactive?: boolean
+        }
+        Returns: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          user_id: string
+          visible_pf: boolean
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "payment_methods"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_balance_before: {
         Args: {
           _before_date: string
