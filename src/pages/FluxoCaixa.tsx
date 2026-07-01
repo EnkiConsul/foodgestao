@@ -106,15 +106,12 @@ export default function FluxoCaixa() {
     queryKey: ["fluxo-caixa-accounts", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
     queryFn: async () => {
-      let q = supabase
-        .from("accounts")
-        .select("current_balance")
-        .eq("user_id", user!.id)
-        .eq("is_active", true)
-        .eq("context", contextType);
-      if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
-      const { data } = await q;
-      return data ?? [];
+      if (contextType === "pj" && !selectedCompanyId) return [];
+      const { data } = await supabase.rpc("get_accessible_accounts", {
+        _context: contextType,
+        _company_id: contextType === "pj" ? selectedCompanyId : null,
+      });
+      return (data ?? []).map((a: any) => ({ current_balance: a.current_balance }));
     },
   });
 

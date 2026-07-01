@@ -43,16 +43,16 @@ export default function ContasBancarias() {
   const fetchAccounts = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    let q = supabase
-      .from("accounts")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("context", contextType)
-      .order("name");
-    if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
-    const { data, error } = await q;
+    if (contextType === "pj" && !selectedCompanyId) {
+      setAccounts([]); setLoading(false); return;
+    }
+    const { data, error } = await supabase.rpc("get_accessible_accounts", {
+      _context: contextType,
+      _company_id: contextType === "pj" ? selectedCompanyId : null,
+      _include_inactive: true,
+    });
     if (error) toast.error("Erro ao carregar contas bancárias");
-    else setAccounts(data ?? []);
+    else setAccounts((data ?? []) as any);
     setLoading(false);
   }, [user, contextType, selectedCompanyId]);
 

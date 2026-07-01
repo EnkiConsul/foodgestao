@@ -110,15 +110,12 @@ export default function Relatorios() {
     queryKey: ["relatorios-accounts", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
     queryFn: async () => {
-      let q = supabase
-        .from("accounts")
-        .select("id, name, account_type")
-        .eq("user_id", user!.id)
-        .eq("context", contextType)
-        .eq("is_active", true);
-      if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
-      const { data } = await q;
-      return data ?? [];
+      if (contextType === "pj" && !selectedCompanyId) return [];
+      const { data } = await supabase.rpc("get_accessible_accounts", {
+        _context: contextType,
+        _company_id: contextType === "pj" ? selectedCompanyId : null,
+      });
+      return (data ?? []).map((a: any) => ({ id: a.id, name: a.name, account_type: a.account_type }));
     },
   });
 

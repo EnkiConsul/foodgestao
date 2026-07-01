@@ -111,15 +111,14 @@ export default function Dashboard() {
     queryKey: ["dashboard-accounts", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
     queryFn: async () => {
-      let q = supabase
-        .from("accounts")
-        .select("name, current_balance, color, is_active, bank_slug")
-        .eq("user_id", user!.id)
-        .eq("is_active", true)
-        .eq("context", contextType);
-      if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
-      const { data } = await q;
-      return data ?? [];
+      if (contextType === "pj" && !selectedCompanyId) return [];
+      const { data } = await supabase.rpc("get_accessible_accounts", {
+        _context: contextType,
+        _company_id: contextType === "pj" ? selectedCompanyId : null,
+      });
+      return (data ?? []).map((a: any) => ({
+        name: a.name, current_balance: a.current_balance, color: a.color, is_active: a.is_active, bank_slug: a.bank_slug,
+      }));
     },
   });
 
