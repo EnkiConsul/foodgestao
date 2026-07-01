@@ -63,6 +63,7 @@ const checks = [
         AND COALESCE(qual, 'true')       IN ('true','(true)')
         AND COALESCE(with_check, 'true') IN ('true','(true)');
     `,
+    allowlist: new Set(["landing_content"]), // conteúdo público da LP
   },
   {
     id: "policies_true_condition",
