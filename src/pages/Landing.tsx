@@ -21,6 +21,8 @@ import {
   Clock,
   Smartphone,
   Instagram,
+  Menu,
+  X as XIcon,
 } from "lucide-react";
 import { useLandingSection } from "@/hooks/useLandingContent";
 import { ContactSection } from "@/components/landing/ContactSection";
