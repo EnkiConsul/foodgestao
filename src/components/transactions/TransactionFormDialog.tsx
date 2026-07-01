@@ -244,13 +244,15 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     },
   });
   const paymentMethodsQuery = useQuery({
-    queryKey: ["form-payment-methods", user?.id],
+    queryKey: ["form-payment-methods", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("payment_methods").select("*")
-        .eq("user_id", user!.id).eq("is_active", true).order("name");
-      return data ?? [];
+      if (contextType === "pj" && !selectedCompanyId) return [];
+      const { data } = await supabase.rpc("get_accessible_payment_methods", {
+        _context: contextType,
+        _company_id: contextType === "pj" ? selectedCompanyId : null,
+      });
+      return (data ?? []) as any[];
     },
   });
   const categoryCompaniesQuery = useQuery({
