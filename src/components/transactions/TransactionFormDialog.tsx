@@ -214,13 +214,11 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     enabled: !!user,
     queryFn: async () => {
       if (contextType === "pj" && !selectedCompanyId) return [];
-      let q = supabase
-        .from("accounts").select("*")
-        .eq("user_id", user!.id)
-        .eq("is_active", true)
-        .eq("context", contextType);
-      if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
-      const { data } = await q.order("name");
+      const { data, error } = await supabase.rpc("get_accessible_accounts", {
+        _context: contextType,
+        _company_id: contextType === "pj" ? selectedCompanyId : null,
+      });
+      if (error) throw error;
       return data ?? [];
     },
   });
