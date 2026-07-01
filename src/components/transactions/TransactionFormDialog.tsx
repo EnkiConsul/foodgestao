@@ -335,14 +335,6 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     if (!exists) setAccountId(accounts[0]?.id ?? "");
   }, [open, transaction, accounts, accountId]);
 
-  // Reset payment method selection if no longer available in current profile scope
-  useEffect(() => {
-    if (!open) return;
-    if (!paymentMethodId) return;
-    const exists = filteredPaymentMethods.some((pm) => pm.id === paymentMethodId);
-    if (!exists) setPaymentMethodId("");
-  }, [open, filteredPaymentMethods, paymentMethodId]);
-
   // Populate form when editing
   useEffect(() => {
     if (transaction && open) {
