@@ -112,6 +112,66 @@ const checks = [
     `,
   },
   {
+    id: "webhook_events_client_writable",
+    severity: "critical",
+    description:
+      "asaas_webhook_events com policy que permita INSERT/UPDATE/DELETE a anon/authenticated (writes devem ser exclusivos do service_role)",
+    sql: `
+      SELECT p.policyname || ' (' || p.cmd || ' → ' || array_to_string(p.roles, ',') || ')' AS finding
+      FROM pg_policies p
+      WHERE p.schemaname = 'public'
+        AND p.tablename  = 'asaas_webhook_events'
+        AND p.cmd IN ('INSERT','UPDATE','DELETE','ALL')
+        AND (p.roles && ARRAY['anon','authenticated','public']::name[])
+        AND COALESCE(p.with_check, p.qual, 'true') NOT IN ('false','(false)');
+    `,
+  },
+  {
+    id: "company_invites_anon_exposure",
+    severity: "critical",
+    description:
+      "company_invites com policy permitindo acesso ao role anon (tokens de convite não podem vazar para não autenticados)",
+    sql: `
+      SELECT p.policyname || ' (' || p.cmd || ')' AS finding
+      FROM pg_policies p
+      WHERE p.schemaname = 'public'
+        AND p.tablename  = 'company_invites'
+        AND p.roles && ARRAY['anon','public']::name[];
+    `,
+  },
+  {
+    id: "realtime_billing_unprotected",
+    severity: "critical",
+    description:
+      "Tabelas financeiras publicadas em Realtime (invoices/subscriptions) sem RLS ou sem policy de SELECT restritiva",
+    sql: `
+      WITH targets(tbl) AS (VALUES ('invoices'), ('subscriptions'))
+      SELECT t.tbl || ' (' ||
+        CASE WHEN NOT COALESCE(pt.rowsecurity,false) THEN 'RLS desabilitado'
+             WHEN NOT EXISTS (
+               SELECT 1 FROM pg_policies p
+               WHERE p.schemaname='public' AND p.tablename=t.tbl
+                 AND p.cmd IN ('SELECT','ALL')
+             ) THEN 'sem policy de SELECT'
+             ELSE 'anon/public com SELECT'
+        END || ')' AS finding
+      FROM targets t
+      LEFT JOIN pg_tables pt ON pt.schemaname='public' AND pt.tablename=t.tbl
+      WHERE NOT COALESCE(pt.rowsecurity,false)
+         OR NOT EXISTS (
+              SELECT 1 FROM pg_policies p
+              WHERE p.schemaname='public' AND p.tablename=t.tbl
+                AND p.cmd IN ('SELECT','ALL')
+            )
+         OR EXISTS (
+              SELECT 1 FROM pg_policies p
+              WHERE p.schemaname='public' AND p.tablename=t.tbl
+                AND p.cmd IN ('SELECT','ALL')
+                AND p.roles && ARRAY['anon','public']::name[]
+            );
+    `,
+  },
+  {
     id: "function_search_path_mutable",
     severity: "warning",
     description:
