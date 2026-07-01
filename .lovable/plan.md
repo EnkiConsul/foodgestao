@@ -1,42 +1,22 @@
-## Painel de Indexação — Search Console
+## Problema
 
-Criar uma tela no Backoffice (super admin) que consulta a API do Google Search Console e mostra o status de indexação e último recrawl das URLs principais.
+Em `TransactionFormDialog.tsx` a query `accountsQuery` (linha 212) busca **todas** as contas ativas do usuário, sem filtrar por perfil de acesso (PF vs PJ / empresa). Por isso o dropdown "Conta" mostra contas de outros perfis.
 
-### URLs monitoradas
-- `https://gestorplin.com/`
-- `https://gestorplin.com/guias/das-mei`
-- (obs.: `/landing` não existe como rota; a landing é `/`. Não será incluída.)
+## Correção
 
-### UX
-- Nova página `src/pages/admin/SeoIndexacao.tsx`, rota `/admin/seo-indexacao`, protegida por `SuperAdminRoute`.
-- Link "Indexação SEO" (ícone `Search`) na sidebar do Backoffice.
-- Tabela com colunas: URL, Status de Cobertura, Verdict, Último Crawl, Robots, Canonical Google vs Declarado, Ações.
-- Badge colorido por verdict (`PASS`, `PARTIAL`, `FAIL`, `NEUTRAL`).
-- Botão "Atualizar" por linha + "Atualizar todas".
-- Indicador `FreshnessIndicator` reaproveitado para mostrar quando a consulta foi feita.
+Filtrar `accountsQuery` pelo contexto ativo, igual ao que `src/pages/ContasBancarias.tsx` já faz:
 
-### Backend
-- Edge Function `inspect-search-console` (verify_jwt validado em código, restrita a super_admin):
-  - Recebe `{ urls: string[] }`.
-  - Para cada URL, faz `POST` ao gateway:
-    `https://connector-gateway.lovable.dev/google_search_console/v1/urlInspection/index:inspect`
-    com `Authorization: Bearer LOVABLE_API_KEY` e `X-Connection-Api-Key: GOOGLE_SEARCH_CONSOLE_API_KEY`.
-  - Body: `{ inspectionUrl, siteUrl: "https://gestorplin.com/" }`.
-  - Retorna o `inspectionResult.indexStatusResult` resumido (coverageState, verdict, lastCrawlTime, robotsTxtState, indexingState, googleCanonical, userCanonical) por URL.
-  - Erros do Google são propagados com status apropriado.
+- Adicionar `contextType` e `selectedCompanyId` à `queryKey` (para revalidar ao trocar o perfil).
+- Aplicar `.eq("context", contextType)`.
+- Se `contextType === "pj"` e `selectedCompanyId`, aplicar `.eq("company_id", selectedCompanyId)`.
+- Se `contextType === "pj"` sem empresa selecionada, retornar `[]` (nenhuma conta).
 
-### Frontend
-- Hook `useSeoInspection` (React Query) chamando a Edge Function via `supabase.functions.invoke`.
-- Formatação de `lastCrawlTime` em PT-BR + relativa ("há 3 dias").
-- Link "Abrir no Search Console" por URL.
+## Ajuste complementar
 
-### Arquivos
-- `supabase/functions/inspect-search-console/index.ts` (novo)
-- `src/pages/admin/SeoIndexacao.tsx` (novo)
-- `src/hooks/useSeoInspection.tsx` (novo)
-- `src/App.tsx` — registrar rota
-- `src/components/layout/AppSidebar.tsx` — link no menu admin
+No `useEffect` de auto-seleção (linha ~311) e no reset (`setAccountId(accounts[0]?.id ?? "")` linha 464), como o array já virá filtrado, o comportamento fica correto — apenas garantir que, ao trocar de perfil com o diálogo aberto, se a conta atual não pertencer ao novo conjunto, seja substituída pela primeira disponível (ou vazia).
 
-### Pré-requisitos
-- Connector `google_search_console` já está vinculado ao projeto (confirmado em iteração anterior).
-- `LOVABLE_API_KEY` e `GOOGLE_SEARCH_CONSOLE_API_KEY` disponíveis na Edge Function.
+## Arquivos alterados
+
+- `src/components/transactions/TransactionFormDialog.tsx` (apenas a query de contas e a lógica de seleção padrão).
+
+Nenhuma alteração de schema/RLS é necessária.
