@@ -310,10 +310,11 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     });
   };
 
-  // Default account when opening for new transaction
+  // Default account when opening for new transaction; also reset if current selection is no longer in scope
   useEffect(() => {
     if (!open || transaction) return;
-    if (!accountId && accounts[0]) setAccountId(accounts[0].id);
+    const exists = accountId && accounts.some((a) => a.id === accountId);
+    if (!exists) setAccountId(accounts[0]?.id ?? "");
   }, [open, transaction, accounts, accountId]);
 
   // Populate form when editing
