@@ -205,7 +205,7 @@ export const LANDING_DEFAULTS = {
   final_cta: {
     title: "Pronto para tirar o financeiro da planilha?",
     subtitle: "7 dias grátis. Sem cartão de crédito. Cancele quando quiser.",
-    cta_label: "Iniciar teste de 7 dias",
+    cta_label: "Começe Grátis",
   } satisfies FinalCtaContent,
 
   footer: {
