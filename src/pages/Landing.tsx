@@ -661,6 +661,15 @@ function PublicFooter() {
             <a href="#planos" className="hover:text-foreground">{c.link_plans}</a>
             <a href="#faq" className="hover:text-foreground">{c.link_faq}</a>
             <a href="#contato" className="hover:text-foreground">Contato</a>
+            <a
+              href="https://www.instagram.com/gestorplin"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 hover:text-foreground"
+            >
+              <Instagram className="h-3.5 w-3.5" />
+              @gestorplin
+            </a>
           </div>
         </div>
 
