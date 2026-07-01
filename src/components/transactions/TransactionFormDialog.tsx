@@ -269,6 +269,15 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       return data ?? [];
     },
   });
+  const paymentMethodCompaniesQuery = useQuery({
+    queryKey: ["form-payment-method-companies", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await (supabase.from("payment_method_companies" as any) as any)
+        .select("payment_method_id, company_id");
+      return (data ?? []) as { payment_method_id: string; company_id: string }[];
+    },
+  });
 
   const accounts = accountsQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
@@ -294,6 +303,17 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     });
     return map;
   }, [contactCompaniesQuery.data]);
+
+  const paymentMethodCompanyIds = useMemo(() => {
+    const map = new Map<string, string[]>();
+    (paymentMethodCompaniesQuery.data ?? []).forEach((pmc) => {
+      const list = map.get(pmc.payment_method_id) || [];
+      list.push(pmc.company_id);
+      map.set(pmc.payment_method_id, list);
+    });
+    return map;
+  }, [paymentMethodCompaniesQuery.data]);
+
 
   // Realtime: invalidate lookup queries when items change anywhere
   useRealtimeSync({
