@@ -209,9 +209,13 @@ export default function Lancamentos() {
   // Fetch accounts & payment methods
   useEffect(() => {
     if (!user) return;
-    let q = supabase.from("accounts").select("id, name").eq("user_id", user.id).eq("is_active", true).eq("context", contextType);
-    if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
-    q.then(({ data }) => setAccounts(data ?? []));
+    if (contextType === "pj" && !selectedCompanyId) { setAccounts([]); }
+    else {
+      supabase.rpc("get_accessible_accounts", {
+        _context: contextType,
+        _company_id: contextType === "pj" ? selectedCompanyId : null,
+      }).then(({ data }) => setAccounts((data ?? []).map((a: any) => ({ id: a.id, name: a.name }))));
+    }
     supabase.from("payment_methods").select("id, name").eq("user_id", user.id).eq("is_active", true)
       .then(({ data }) => setPaymentMethods(data ?? []));
     supabase.from("categories").select("id, name").eq("user_id", user.id).order("name")
