@@ -397,6 +397,16 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     return true;
   });
 
+  const filteredPaymentMethods = paymentMethods.filter((pm) => {
+    if (contextType === "pf") return (pm as any).visible_pf !== false;
+    if (contextType === "pj" && selectedCompanyId) {
+      const companyIds = paymentMethodCompanyIds.get(pm.id) || [];
+      return companyIds.includes(selectedCompanyId);
+    }
+    return true;
+  });
+
+
   // --- Option builders with rich visuals matching each module ---
   const accountOptions: SearchableSelectOption[] = accounts.map((acc) => ({
     value: acc.id,
