@@ -479,7 +479,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     ),
   }));
 
-  const paymentMethodOptions: SearchableSelectOption[] = paymentMethods.map((pm) => ({
+  const paymentMethodOptions: SearchableSelectOption[] = filteredPaymentMethods.map((pm) => ({
     value: pm.id,
     label: pm.name,
     trailing: pm.visible_pf ? (
