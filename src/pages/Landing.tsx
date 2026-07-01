@@ -20,6 +20,7 @@ import {
   Star,
   Clock,
   Smartphone,
+  Instagram,
 } from "lucide-react";
 import { useLandingSection } from "@/hooks/useLandingContent";
 import { ContactSection } from "@/components/landing/ContactSection";
