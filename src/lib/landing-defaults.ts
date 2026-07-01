@@ -182,7 +182,7 @@ export const LANDING_DEFAULTS = {
   guarantee: {
     title: "7 dias grátis · sem cartão · cancele quando quiser",
     subtitle: "Acesso completo durante o teste. Sem letrinhas miúdas.",
-    cta_label: "Quero começar agora",
+    cta_label: "Começe Grátis",
   } satisfies GuaranteeContent,
 
   pricing_intro: {
