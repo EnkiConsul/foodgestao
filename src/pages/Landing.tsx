@@ -171,7 +171,7 @@ function PublicHeader({ utm }: { utm: string }) {
           <CtaPrimary
             utm={utm}
             source="header"
-            label="Testar 7 dias grátis"
+            label="Começe Grátis"
             size="sm"
             className="hidden sm:flex h-9 px-3 text-xs sm:text-sm"
           />
