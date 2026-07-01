@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -32,6 +33,7 @@ interface Props {
 
 export function PaymentDialog({ open, onOpenChange, bill, onPaid }: Props) {
   const { user } = useAuth();
+  const { contextType, selectedCompanyId } = useCompanyContext();
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
   const [paymentMethodId, setPaymentMethodId] = useState("");
@@ -40,9 +42,12 @@ export function PaymentDialog({ open, onOpenChange, bill, onPaid }: Props) {
 
   useEffect(() => {
     if (!user || !open) return;
-    supabase.from("payment_methods").select("*").eq("user_id", user.id).eq("is_active", true)
-      .then(({ data }) => setPaymentMethods(data ?? []));
-  }, [user, open]);
+    if (contextType === "pj" && !selectedCompanyId) { setPaymentMethods([]); return; }
+    supabase.rpc("get_accessible_payment_methods", {
+      _context: contextType,
+      _company_id: contextType === "pj" ? selectedCompanyId : null,
+    }).then(({ data }) => setPaymentMethods((data ?? []) as any));
+  }, [user, open, contextType, selectedCompanyId]);
 
   if (!bill) return null;
 

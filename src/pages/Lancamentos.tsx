@@ -216,8 +216,13 @@ export default function Lancamentos() {
         _company_id: contextType === "pj" ? selectedCompanyId : null,
       }).then(({ data }) => setAccounts((data ?? []).map((a: any) => ({ id: a.id, name: a.name }))));
     }
-    supabase.from("payment_methods").select("id, name").eq("user_id", user.id).eq("is_active", true)
-      .then(({ data }) => setPaymentMethods(data ?? []));
+    if (contextType === "pj" && !selectedCompanyId) { setPaymentMethods([]); }
+    else {
+      supabase.rpc("get_accessible_payment_methods", {
+        _context: contextType,
+        _company_id: contextType === "pj" ? selectedCompanyId : null,
+      }).then(({ data }) => setPaymentMethods((data ?? []).map((pm: any) => ({ id: pm.id, name: pm.name }))));
+    }
     supabase.from("categories").select("id, name").eq("user_id", user.id).order("name")
       .then(({ data }) => setCategories(data ?? []));
   }, [user, contextType, selectedCompanyId]);
