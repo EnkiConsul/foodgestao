@@ -2073,6 +2073,34 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_accessible_accounts: {
+        Args: {
+          _company_id?: string
+          _context: Database["public"]["Enums"]["context_type"]
+        }
+        Returns: {
+          account_type: Database["public"]["Enums"]["account_type"]
+          bank_slug: string | null
+          color: string | null
+          company_id: string | null
+          context: Database["public"]["Enums"]["context_type"]
+          created_at: string
+          current_balance: number
+          icon: string | null
+          id: string
+          initial_balance: number
+          is_active: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "accounts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_balance_before: {
         Args: {
           _before_date: string
