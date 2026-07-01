@@ -133,7 +133,7 @@ export const LANDING_DEFAULTS = {
       { k: "Backup e segurança", a: "Por sua conta", b: "Backup automático e LGPD" },
       { k: "Relatórios", a: "Você monta do zero", b: "DRE, categorias e exportações prontos" },
     ],
-    cta_label: "Quero testar grátis",
+    cta_label: "Começe Grátis",
   } satisfies ComparisonContent,
 
   persona_cards: {
@@ -146,21 +146,21 @@ export const LANDING_DEFAULTS = {
         tag: "Pessoal",
         title: "Para você e sua família",
         bullets: ["Orçamento doméstico", "Cartões e contas", "Modo privacidade para apresentar"],
-        cta_label: "Testar grátis",
+        cta_label: "Começe Grátis",
         persona: "pf",
       },
       {
         tag: "MEI",
         title: "Para MEIs e autônomos",
         bullets: ["DAS, NFs e clientes", "Lançamentos recorrentes", "Relatórios para o contador"],
-        cta_label: "Testar grátis",
+        cta_label: "Começe Grátis",
         persona: "mei",
       },
       {
         tag: "Empresa",
         title: "Para pequenas empresas",
         bullets: ["Multiempresa isolada", "Equipe com permissões", "Contas a pagar/receber e DRE"],
-        cta_label: "Testar grátis",
+        cta_label: "Começe Grátis",
         persona: "pj",
       },
     ],
