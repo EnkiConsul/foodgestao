@@ -210,12 +210,17 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
   // --- Lookup queries (React Query so realtime invalidation works) ---
   const accountsQuery = useQuery({
-    queryKey: ["form-accounts", user?.id],
+    queryKey: ["form-accounts", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase
+      if (contextType === "pj" && !selectedCompanyId) return [];
+      let q = supabase
         .from("accounts").select("*")
-        .eq("user_id", user!.id).eq("is_active", true).order("name");
+        .eq("user_id", user!.id)
+        .eq("is_active", true)
+        .eq("context", contextType);
+      if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
+      const { data } = await q.order("name");
       return data ?? [];
     },
   });
