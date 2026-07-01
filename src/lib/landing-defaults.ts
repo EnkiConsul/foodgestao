@@ -104,7 +104,7 @@ export const LANDING_DEFAULTS = {
       "Cancele em 1 clique, sem fidelidade",
       "Dados protegidos (LGPD) e em servidores no Brasil",
     ],
-    cta_primary: "Começar teste de 7 dias",
+    cta_primary: "Começe Grátis",
     cta_secondary: "Ver como funciona",
     trust_satisfaction: "4.9 em satisfação",
     trust_users: "Usado por MEIs e PMEs",

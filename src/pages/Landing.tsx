@@ -99,7 +99,7 @@ function trackCta(label: string) {
 
 function CtaPrimary({
   utm,
-  label = "Começar teste grátis",
+  label = "Começe Grátis",
   source,
   className = "",
   size = "lg",
