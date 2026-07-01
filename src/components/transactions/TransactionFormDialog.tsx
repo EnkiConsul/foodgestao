@@ -269,6 +269,15 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       return data ?? [];
     },
   });
+  const paymentMethodCompaniesQuery = useQuery({
+    queryKey: ["form-payment-method-companies", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await (supabase.from("payment_method_companies" as any) as any)
+        .select("payment_method_id, company_id");
+      return (data ?? []) as { payment_method_id: string; company_id: string }[];
+    },
+  });
 
   const accounts = accountsQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
@@ -294,6 +303,17 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     });
     return map;
   }, [contactCompaniesQuery.data]);
+
+  const paymentMethodCompanyIds = useMemo(() => {
+    const map = new Map<string, string[]>();
+    (paymentMethodCompaniesQuery.data ?? []).forEach((pmc) => {
+      const list = map.get(pmc.payment_method_id) || [];
+      list.push(pmc.company_id);
+      map.set(pmc.payment_method_id, list);
+    });
+    return map;
+  }, [paymentMethodCompaniesQuery.data]);
+
 
   // Realtime: invalidate lookup queries when items change anywhere
   useRealtimeSync({
@@ -377,6 +397,25 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     return true;
   });
 
+  const filteredPaymentMethods = paymentMethods.filter((pm) => {
+    if (contextType === "pf") return (pm as any).visible_pf !== false;
+    if (contextType === "pj" && selectedCompanyId) {
+      const companyIds = paymentMethodCompanyIds.get(pm.id) || [];
+      return companyIds.includes(selectedCompanyId);
+    }
+    return true;
+  });
+
+  // Reset payment method selection if no longer available in current profile scope
+  useEffect(() => {
+    if (!open || !paymentMethodId) return;
+    const exists = filteredPaymentMethods.some((pm) => pm.id === paymentMethodId);
+    if (!exists) setPaymentMethodId("");
+  }, [open, filteredPaymentMethods, paymentMethodId]);
+
+
+
+
   // --- Option builders with rich visuals matching each module ---
   const accountOptions: SearchableSelectOption[] = accounts.map((acc) => ({
     value: acc.id,
@@ -449,7 +488,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     ),
   }));
 
-  const paymentMethodOptions: SearchableSelectOption[] = paymentMethods.map((pm) => ({
+  const paymentMethodOptions: SearchableSelectOption[] = filteredPaymentMethods.map((pm) => ({
     value: pm.id,
     label: pm.name,
     trailing: pm.visible_pf ? (
