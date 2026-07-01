@@ -1,0 +1,2 @@
+UPDATE landing_content SET content = content || '{"cta_primary": "Começe Grátis"}'::jsonb WHERE section = 'hero';
+UPDATE landing_content SET content = content || '{"cta_label": "Começe Grátis"}'::jsonb WHERE section = 'final_cta';
