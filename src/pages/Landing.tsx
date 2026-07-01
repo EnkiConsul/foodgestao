@@ -657,7 +657,7 @@ function PricingSection({ utm }: { utm: string }) {
                         variant={featured ? "default" : "outline"}
                       >
                         <Link to={href} onClick={() => trackCta(`pricing_${p.slug}`)}>
-                          {p.price_cents === 0 ? "Começar grátis" : "Iniciar teste"}
+                          Começe Grátis
                         </Link>
                       </Button>
                     </CardContent>
