@@ -2064,6 +2064,13 @@ export type Database = {
       }
     }
     Functions: {
+      apply_tx_balance: {
+        Args: {
+          _sign: number
+          _tx: Database["public"]["Tables"]["transactions"]["Row"]
+        }
+        Returns: undefined
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
