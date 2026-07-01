@@ -406,6 +406,15 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     return true;
   });
 
+  // Reset payment method selection if no longer available in current profile scope
+  useEffect(() => {
+    if (!open || !paymentMethodId) return;
+    const exists = filteredPaymentMethods.some((pm) => pm.id === paymentMethodId);
+    if (!exists) setPaymentMethodId("");
+  }, [open, filteredPaymentMethods, paymentMethodId]);
+
+
+
 
   // --- Option builders with rich visuals matching each module ---
   const accountOptions: SearchableSelectOption[] = accounts.map((acc) => ({
