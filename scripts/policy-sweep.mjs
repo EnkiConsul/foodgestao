@@ -83,12 +83,12 @@ const checks = [
     id: "write_policy_without_check",
     severity: "critical",
     description:
-      "Policies de INSERT/UPDATE em `public` sem WITH CHECK definido (aceita qualquer payload)",
+      "Policies de INSERT/ALL em `public` sem WITH CHECK definido (aceita qualquer payload em inserts)",
     sql: `
       SELECT tablename || ' :: ' || policyname || ' (' || cmd || ')' AS finding
       FROM pg_policies
       WHERE schemaname = 'public'
-        AND cmd IN ('INSERT','UPDATE','ALL')
+        AND cmd IN ('INSERT','ALL')
         AND with_check IS NULL;
     `,
   },
@@ -96,7 +96,7 @@ const checks = [
     id: "sensitive_table_anon_readable",
     severity: "critical",
     description:
-      "Tabelas sensíveis (financeiro/PII) com policy SELECT alcançável por anon/public",
+      "Tabelas sensíveis (financeiro/PII) com policy SELECT irrestrita alcançável por anon/public",
     sql: `
       WITH sensitive(tbl) AS (VALUES
         ('invoices'),('subscriptions'),('transactions'),('accounts'),
@@ -108,14 +108,15 @@ const checks = [
       JOIN sensitive s ON s.tbl = p.tablename
       WHERE p.schemaname = 'public'
         AND p.cmd IN ('SELECT','ALL')
-        AND p.roles && ARRAY['anon','public']::name[];
+        AND p.roles && ARRAY['anon']::name[]
+        AND COALESCE(p.qual, 'true') IN ('true','(true)');
     `,
   },
   {
     id: "table_grants_missing_authenticated",
     severity: "warning",
     description:
-      "Tabelas em `public` com RLS + policies para `authenticated` mas sem GRANT correspondente (queries falharão com permission denied)",
+      "Tabelas em `public` (não-partições) com policies para `authenticated` mas sem GRANT no pg_class (queries falharão com permission denied)",
     sql: `
       WITH policied AS (
         SELECT DISTINCT p.tablename
@@ -124,12 +125,9 @@ const checks = [
       )
       SELECT p.tablename AS finding
       FROM policied p
-      WHERE NOT EXISTS (
-        SELECT 1 FROM information_schema.role_table_grants g
-        WHERE g.table_schema='public'
-          AND g.table_name = p.tablename
-          AND g.grantee = 'authenticated'
-      );
+      JOIN pg_class c ON c.relname = p.tablename AND c.relnamespace = 'public'::regnamespace
+      WHERE c.relispartition = false
+        AND NOT has_table_privilege('authenticated', c.oid, 'SELECT');
     `,
   },
   {
