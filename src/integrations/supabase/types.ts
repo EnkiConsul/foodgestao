@@ -2077,6 +2077,7 @@ export type Database = {
         Args: {
           _company_id?: string
           _context: Database["public"]["Enums"]["context_type"]
+          _include_inactive?: boolean
         }
         Returns: {
           account_type: Database["public"]["Enums"]["account_type"]
