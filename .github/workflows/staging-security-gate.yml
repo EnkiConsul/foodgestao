@@ -1,0 +1,99 @@
+name: Staging Security Gate
+
+# Gate obrigatório antes de promover mudanças para produção.
+# Dispara em pushes/PRs para `staging` e pode ser executado manualmente.
+# Requer os secrets:
+#   - STAGING_SUPABASE_DB_URL  (banco de staging)
+#   - PROD_SUPABASE_DB_URL     (opcional; auditoria read-only em produção pré-promoção)
+
+on:
+  push:
+    branches: [staging]
+  pull_request:
+    branches: [staging, main]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Ambiente a auditar (staging | prod)"
+        required: true
+        default: staging
+        type: choice
+        options: [staging, prod]
+
+concurrency:
+  group: staging-security-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security-gate:
+    name: security-lint + policy-sweep
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install psql client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Resolve target database URL
+        id: dburl
+        env:
+          STAGING_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+          PROD_URL: ${{ secrets.PROD_SUPABASE_DB_URL }}
+          TARGET: ${{ github.event.inputs.target || 'staging' }}
+        run: |
+          if [ "$TARGET" = "prod" ]; then
+            URL="$PROD_URL"
+            NAME="prod"
+          else
+            URL="$STAGING_URL"
+            NAME="staging"
+          fi
+          if [ -z "$URL" ]; then
+            echo "::error::Missing ${NAME^^}_SUPABASE_DB_URL secret."
+            exit 1
+          fi
+          echo "target=$NAME" >> "$GITHUB_OUTPUT"
+          echo "::add-mask::$URL"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Security linter (strict)
+        env:
+          SUPABASE_DB_URL: ${{ steps.dburl.outputs.url }}
+        run: node scripts/security-lint.mjs --ci --strict
+
+      - name: Policy sweep (mass audit — blocks on critical, warns on rest)
+        env:
+          SUPABASE_DB_URL: ${{ steps.dburl.outputs.url }}
+        run: node scripts/policy-sweep.mjs
+
+      - name: Publish JSON reports
+        if: always()
+        env:
+          SUPABASE_DB_URL: ${{ steps.dburl.outputs.url }}
+        run: |
+          mkdir -p reports
+          node scripts/security-lint.mjs --json > reports/security-lint.json || true
+          node scripts/policy-sweep.mjs   --json > reports/policy-sweep.json  || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-gate-${{ steps.dburl.outputs.target }}-${{ github.run_id }}
+          path: reports/
+          retention-days: 30
+
+  promote-guard:
+    name: Bloqueio de promoção para main
+    needs: security-gate
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "✅ Staging gate aprovado — PR liberado para merge em main."
