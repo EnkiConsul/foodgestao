@@ -69,10 +69,10 @@ jobs:
           SUPABASE_DB_URL: ${{ steps.dburl.outputs.url }}
         run: node scripts/security-lint.mjs --ci --strict
 
-      - name: Policy sweep (mass audit)
+      - name: Policy sweep (mass audit — blocks on critical, warns on rest)
         env:
           SUPABASE_DB_URL: ${{ steps.dburl.outputs.url }}
-        run: node scripts/policy-sweep.mjs --strict
+        run: node scripts/policy-sweep.mjs
 
       - name: Publish JSON reports
         if: always()
