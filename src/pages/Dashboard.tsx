@@ -61,8 +61,8 @@ export default function Dashboard() {
   const { contextType, selectedCompanyId } = useCompanyContext();
   const { maskBRL } = usePrivacy();
 
-  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("year");
-  const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>(getPeriodRange("year"));
+  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("month");
+  const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>(getPeriodRange("month"));
 
   const activeRange = periodPreset === "custom" ? customRange : getPeriodRange(periodPreset);
 
