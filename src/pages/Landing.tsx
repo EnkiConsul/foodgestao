@@ -171,7 +171,7 @@ function PublicHeader({ utm }: { utm: string }) {
           <CtaPrimary
             utm={utm}
             source="header"
-            label="Testar 7 dias grátis"
+            label="Começe Grátis"
             size="sm"
             className="hidden sm:flex h-9 px-3 text-xs sm:text-sm"
           />
@@ -221,7 +221,7 @@ function PublicHeader({ utm }: { utm: string }) {
               <CtaPrimary
                 utm={utm}
                 source="header_mobile"
-                label="Testar 7 dias grátis"
+                label="Começe Grátis"
                 size="sm"
                 className="w-full"
               />
@@ -657,7 +657,7 @@ function PricingSection({ utm }: { utm: string }) {
                         variant={featured ? "default" : "outline"}
                       >
                         <Link to={href} onClick={() => trackCta(`pricing_${p.slug}`)}>
-                          {p.price_cents === 0 ? "Começar grátis" : "Iniciar teste"}
+                          Começe Grátis
                         </Link>
                       </Button>
                     </CardContent>
