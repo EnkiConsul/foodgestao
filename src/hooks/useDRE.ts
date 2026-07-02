@@ -139,6 +139,9 @@ export function useDREGeneration(params: { from: string; to: string; regime: DRE
   return useQuery({
     queryKey: ["dre-generate", selectedCompanyId, params.from, params.to, params.regime],
     enabled: !!selectedCompanyId && !!params.from && !!params.to,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    staleTime: 0,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("dre_generate", {
         _company_id: selectedCompanyId!,
@@ -151,6 +154,7 @@ export function useDREGeneration(params: { from: string; to: string; regime: DRE
     },
   });
 }
+
 
 export function useDREConsistency(params: { from: string; to: string }) {
   const { selectedCompanyId } = useCompanyContext();
