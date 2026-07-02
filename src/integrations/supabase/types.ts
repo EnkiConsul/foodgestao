@@ -1309,6 +1309,76 @@ export type Database = {
         }
         Relationships: []
       }
+      import_rules: {
+        Row: {
+          category_id: string | null
+          company_id: string | null
+          contact_id: string | null
+          context: Database["public"]["Enums"]["context_type"]
+          created_at: string
+          id: string
+          pattern: string
+          priority: number
+          transaction_type:
+            | Database["public"]["Enums"]["transaction_type"]
+            | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category_id?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          context?: Database["public"]["Enums"]["context_type"]
+          created_at?: string
+          id?: string
+          pattern: string
+          priority?: number
+          transaction_type?:
+            | Database["public"]["Enums"]["transaction_type"]
+            | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category_id?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          context?: Database["public"]["Enums"]["context_type"]
+          created_at?: string
+          id?: string
+          pattern?: string
+          priority?: number
+          transaction_type?:
+            | Database["public"]["Enums"]["transaction_type"]
+            | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_rules_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_rules_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           amount_cents: number
@@ -1845,6 +1915,7 @@ export type Database = {
           destination_account_id: string | null
           due_date: string | null
           id: string
+          import_hash: string | null
           installment_number: number | null
           installment_total: number | null
           is_recurring: boolean
@@ -1876,6 +1947,7 @@ export type Database = {
           destination_account_id?: string | null
           due_date?: string | null
           id?: string
+          import_hash?: string | null
           installment_number?: number | null
           installment_total?: number | null
           is_recurring?: boolean
@@ -1909,6 +1981,7 @@ export type Database = {
           destination_account_id?: string | null
           due_date?: string | null
           id?: string
+          import_hash?: string | null
           installment_number?: number | null
           installment_total?: number | null
           is_recurring?: boolean
