@@ -63,7 +63,7 @@ function buildTree(categories: Category[]): TreeNode[] {
 
 export default function Categorias() {
   const { user } = useAuth();
-  const { contextType } = useCompanyContext();
+  const { contextType, selectedCompanyId } = useCompanyContext();
 
   // Sincronização em tempo real
   useRealtimeSync({
