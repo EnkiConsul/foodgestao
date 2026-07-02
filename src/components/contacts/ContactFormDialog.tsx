@@ -55,12 +55,12 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact, de
           setSelectedCompanyIds((data ?? []).map((r: any) => r.company_id));
         });
     } else {
-      setName(""); setContactType("cliente"); setEmail(""); setPhone("");
+      setName(defaultName ?? ""); setContactType(defaultContactType ?? "cliente"); setEmail(""); setPhone("");
       setDocument(""); setAddress(""); setNotes("");
       setVisiblePf(true);
       setSelectedCompanyIds([]);
     }
-  }, [editContact, open]);
+  }, [editContact, open, defaultName, defaultContactType]);
 
   const toggleCompany = (id: string) => {
     setSelectedCompanyIds((prev) =>
