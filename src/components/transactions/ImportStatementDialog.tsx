@@ -601,18 +601,21 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Importar lançamentos duplicados?</AlertDialogTitle>
+            <AlertDialogTitle>Como tratar as duplicatas?</AlertDialogTitle>
             <AlertDialogDescription>
               Encontramos {summary.dup} lançamento(s) que já foram importados anteriormente para esta conta.
-              O que deseja fazer com eles?
+              Escolha como deseja proceder — você poderá marcar/desmarcar cada linha individualmente na revisão.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
             <AlertDialogCancel onClick={() => applyDuplicateDecision("skip")}>
-              Ignorar duplicados
+              Ignorar todas
             </AlertDialogCancel>
+            <Button variant="secondary" onClick={() => applyDuplicateDecision("manual")}>
+              Escolher manualmente
+            </Button>
             <AlertDialogAction onClick={() => applyDuplicateDecision("include")}>
-              Importar duplicados também
+              Importar todas
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
