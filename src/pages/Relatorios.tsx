@@ -460,10 +460,27 @@ export default function Relatorios() {
       )}
 
       <Card className="shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between pb-4">
-          <CardTitle className="text-base">
-            Fluxo de Caixa — {format(activeRange.from, "dd/MM/yy")} a {format(activeRange.to, "dd/MM/yy")}
-          </CardTitle>
+        <CardHeader className="flex flex-row items-start justify-between gap-3 pb-4">
+          <div className="space-y-1.5 min-w-0">
+            <CardTitle className="text-base flex items-center gap-2 flex-wrap">
+              <span>Fluxo de Caixa</span>
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-2 py-0.5 text-xs font-medium text-primary">
+                <CalendarIcon className="h-3 w-3" />
+                {format(activeRange.from, "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
+                <span className="opacity-60">→</span>
+                {format(activeRange.to, "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
+              </span>
+              <span className="text-xs font-normal text-muted-foreground">
+                ({fluxoCaixaData.MONTH_LABELS.length} {fluxoCaixaData.MONTH_LABELS.length === 1 ? "mês" : "meses"})
+              </span>
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Meses incluídos no recorte:{" "}
+              <span className="font-medium text-foreground/80">
+                {fluxoCaixaData.MONTH_LABELS.join(" · ")}
+              </span>
+            </p>
+          </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" className="gap-1" onClick={expandAll}>
               <ChevronsUpDown className="h-3.5 w-3.5" /> Expandir
