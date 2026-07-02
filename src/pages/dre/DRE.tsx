@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, ArrowRight, FileText, Save, Settings2, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { useDREGeneration, useDREConsistency, useDRESnapshots } from "@/hooks/useDRE";
+import { useDREGeneration, useDREConsistency, useDRESnapshots, useDRERealtime } from "@/hooks/useDRE";
 import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { formatValor, formatPct, nivelIndent, isSubtotal, isCabecalho, computeSubtotal, periodoFromTipo, type DRERegime, type DRETipoPeriodo } from "@/lib/dre";
 import { toast } from "sonner";
