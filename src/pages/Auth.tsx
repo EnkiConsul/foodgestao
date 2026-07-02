@@ -203,9 +203,12 @@ export default function Auth() {
         const { error } = await signUp(email, password, fullName);
         if (error) {
           const translated = translateAuthError(error.message);
+          const { reason, category } = classifySignupError(error.message);
           toast.error("Erro ao cadastrar", { description: translated });
           trackEvent(FunnelStep.SignupError, {
             method: "email",
+            reason,
+            error_category: category,
             error_message: error.message?.slice(0, 200) ?? "unknown",
           });
         } else {
