@@ -30,7 +30,7 @@ interface Props {
 }
 
 type Step = "upload" | "review" | "done";
-type DuplicateDecision = "none" | "pending" | "skip" | "include";
+type DuplicateDecision = "none" | "pending" | "skip" | "include" | "manual";
 
 export function ImportStatementDialog({ open, onOpenChange, onImported }: Props) {
   const { user } = useAuth();
@@ -132,8 +132,16 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
     setRows((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
   };
 
-  const applyDuplicateDecision = (decision: "skip" | "include") => {
-    setRows((prev) => prev.map((r) => (r.duplicate ? { ...r, include: decision === "include" } : r)));
+  const applyDuplicateDecision = (decision: "skip" | "include" | "manual") => {
+    setRows((prev) =>
+      prev.map((r) => {
+        if (!r.duplicate) return r;
+        if (decision === "include") return { ...r, include: true };
+        if (decision === "skip") return { ...r, include: false };
+        // manual: start unchecked, user picks per row
+        return { ...r, include: false };
+      })
+    );
     setDuplicateDecision(decision);
   };
 
@@ -356,9 +364,31 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
               <span className="text-success">Receitas: <strong>{formatBRL(summary.receitas)}</strong></span>
               <span className="text-destructive">Despesas: <strong>{formatBRL(summary.despesas)}</strong></span>
               {summary.dup > 0 && (
-                <span className="flex items-center gap-2 text-amber-600">
+                <span className="flex items-center gap-2 text-amber-600 flex-wrap">
                   <AlertTriangle className="h-3 w-3" />
-                  {summary.dup} duplicado(s) — {summary.dupSelected > 0 ? `${summary.dupSelected} serão importados novamente` : "não serão importados"}
+                  {summary.dup} duplicado(s) — {summary.dupSelected} selecionado(s) para reimportar
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-amber-700 underline"
+                    onClick={() =>
+                      setRows((prev) => prev.map((r) => (r.duplicate ? { ...r, include: true } : r)))
+                    }
+                  >
+                    Marcar todas duplicadas
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-amber-700 underline"
+                    onClick={() =>
+                      setRows((prev) => prev.map((r) => (r.duplicate ? { ...r, include: false } : r)))
+                    }
+                  >
+                    Desmarcar todas duplicadas
+                  </Button>
                   <Button
                     type="button"
                     variant="link"
@@ -571,18 +601,21 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Importar lançamentos duplicados?</AlertDialogTitle>
+            <AlertDialogTitle>Como tratar as duplicatas?</AlertDialogTitle>
             <AlertDialogDescription>
               Encontramos {summary.dup} lançamento(s) que já foram importados anteriormente para esta conta.
-              O que deseja fazer com eles?
+              Escolha como deseja proceder — você poderá marcar/desmarcar cada linha individualmente na revisão.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
             <AlertDialogCancel onClick={() => applyDuplicateDecision("skip")}>
-              Ignorar duplicados
+              Ignorar todas
             </AlertDialogCancel>
+            <Button variant="secondary" onClick={() => applyDuplicateDecision("manual")}>
+              Escolher manualmente
+            </Button>
             <AlertDialogAction onClick={() => applyDuplicateDecision("include")}>
-              Importar duplicados também
+              Importar todas
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
