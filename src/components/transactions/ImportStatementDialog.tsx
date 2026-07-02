@@ -18,6 +18,8 @@ import { formatBRL } from "@/lib/billing";
 import { parseNubankStatementPdf } from "@/lib/statement-import/nubankPdf";
 import { suggestForEntries, markDuplicates } from "@/lib/statement-import/suggest";
 import type { ReviewRow } from "@/lib/statement-import/types";
+import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
+import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 
 type Account = { id: string; name: string };
 type Category = { id: string; name: string; transaction_type: "receita" | "despesa" };
