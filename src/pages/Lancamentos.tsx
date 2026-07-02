@@ -1309,6 +1309,8 @@ export default function Lancamentos() {
         editScope={pendingEditScope}
       />
 
+      <ImportStatementDialog open={importOpen} onOpenChange={setImportOpen} onImported={refreshAll} />
+
       {/* Recurring edit scope prompt */}
       <AlertDialog
         open={!!editScopePrompt}
