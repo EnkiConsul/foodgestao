@@ -471,13 +471,13 @@ export default function Relatorios() {
                 {format(activeRange.to, "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
               </span>
               <span className="text-xs font-normal text-muted-foreground">
-                ({fluxoCaixaData.monthLabels.length} {fluxoCaixaData.monthLabels.length === 1 ? "mês" : "meses"})
+                ({fluxoCaixaData.MONTH_LABELS.length} {fluxoCaixaData.MONTH_LABELS.length === 1 ? "mês" : "meses"})
               </span>
             </CardTitle>
             <p className="text-xs text-muted-foreground">
               Meses incluídos no recorte:{" "}
               <span className="font-medium text-foreground/80">
-                {fluxoCaixaData.monthLabels.join(" · ")}
+                {fluxoCaixaData.MONTH_LABELS.join(" · ")}
               </span>
             </p>
           </div>
