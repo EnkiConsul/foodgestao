@@ -11,9 +11,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
 import { BankLogo } from "@/components/accounts/BankLogo";
-import { Plus, Search, Landmark, Pencil, Trash2, Wallet, RefreshCw } from "lucide-react";
+import { Plus, Search, Landmark, Pencil, Trash2, Wallet, RefreshCw, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -40,6 +41,10 @@ export default function ContasBancarias() {
   const [deleteAccount, setDeleteAccount] = useState<Account | null>(null);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
+  const [staleBalance, setStaleBalance] = useState(false);
+  const [resyncing, setResyncing] = useState(false);
+  const [lastTxAt, setLastTxAt] = useState<number>(0);
+  const [lastAccountAt, setLastAccountAt] = useState<number>(0);
 
   const fetchAccounts = useCallback(async () => {
     if (!user) return;
@@ -59,12 +64,44 @@ export default function ContasBancarias() {
 
   useEffect(() => { fetchAccounts(); }, [fetchAccounts]);
 
-  // Atualização em tempo real: contas E lançamentos (o saldo é recalculado
-  // pelo trigger de banco e o hook respeita o filtro PF/PJ automaticamente).
+  // Reset detector quando muda o perfil de acesso
+  useEffect(() => {
+    setStaleBalance(false);
+    setLastTxAt(0);
+    setLastAccountAt(0);
+  }, [contextType, selectedCompanyId]);
+
+  // Realtime: acompanhamos separadamente eventos de `transactions` e `accounts`.
+  // Se uma tx chega e nenhum update em `accounts` acontece em 6s, marcamos
+  // como inconsistente (trigger de saldo pode ter falhado ou realtime atrasou).
   useRealtimeSync({
-    tables: ["accounts", "transactions"],
-    onChange: () => { fetchAccounts(); },
+    tables: ["accounts"],
+    onChange: () => { setLastAccountAt(Date.now()); fetchAccounts(); },
   });
+  useRealtimeSync({
+    tables: ["transactions"],
+    onChange: () => { setLastTxAt(Date.now()); fetchAccounts(); },
+  });
+
+  useEffect(() => {
+    if (!lastTxAt) return;
+    if (lastAccountAt >= lastTxAt) { setStaleBalance(false); return; }
+    const timer = setTimeout(() => {
+      if (lastAccountAt < lastTxAt) setStaleBalance(true);
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, [lastTxAt, lastAccountAt]);
+
+  const handleResync = useCallback(async () => {
+    setResyncing(true);
+    const { error } = await supabase.rpc("recompute_all_account_balances");
+    setResyncing(false);
+    if (error) { toast.error("Erro ao recalcular saldos"); return; }
+    toast.success("Saldos recalculados");
+    setStaleBalance(false);
+    setLastAccountAt(Date.now());
+    fetchAccounts();
+  }, [fetchAccounts]);
 
   const handleDelete = async () => {
     if (!deleteAccount) return;
@@ -116,20 +153,33 @@ export default function ContasBancarias() {
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
-            onClick={async () => {
-              const { error } = await supabase.rpc("recompute_all_account_balances");
-              if (error) toast.error("Erro ao recalcular saldos");
-              else { toast.success("Saldos recalculados"); fetchAccounts(); }
-            }}
+            onClick={handleResync}
+            disabled={resyncing}
             className="hidden md:flex"
           >
-            <RefreshCw className="h-4 w-4 mr-2" /> Recalcular saldos
+            <RefreshCw className={`h-4 w-4 mr-2 ${resyncing ? "animate-spin" : ""}`} /> Recalcular saldos
           </Button>
           <Button onClick={() => { setEditAccount(null); setDialogOpen(true); }} className="hidden md:flex">
             <Plus className="h-4 w-4 mr-2" /> Nova Conta
           </Button>
         </div>
       </div>
+
+      {staleBalance && (
+        <Alert variant="destructive" className="border-warning/50 bg-warning/10 text-foreground [&>svg]:text-warning">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Saldos podem estar desatualizados</AlertTitle>
+          <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-1">
+            <span className="text-sm">
+              Detectamos uma alteração em lançamentos que ainda não refletiu nos saldos deste perfil.
+            </span>
+            <Button size="sm" variant="outline" onClick={handleResync} disabled={resyncing}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${resyncing ? "animate-spin" : ""}`} />
+              Re-sincronizar agora
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-3">
