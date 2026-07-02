@@ -20,13 +20,14 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TransactionFormDialog } from "@/components/transactions/TransactionFormDialog";
+import { ImportStatementDialog } from "@/components/transactions/ImportStatementDialog";
 import { PaymentDialog } from "@/components/bills/PaymentDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
   Plus, Search, ArrowLeftRight,
   Trash2, Pencil, ChevronLeft, ChevronRight, ChevronDown, Filter, SlidersHorizontal,
-  Download, DollarSign, CalendarIcon, CreditCard, HandCoins, X, Settings2, Repeat, Paperclip, Check,
+  Download, DollarSign, CalendarIcon, CreditCard, HandCoins, X, Settings2, Repeat, Paperclip, Check, Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, endOfMonth, isPast } from "date-fns";
@@ -134,6 +135,7 @@ export default function Lancamentos() {
   const [loading, setLoading] = useState(true);
   useMarkRouteReady("Lancamentos", !loading);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [dialogInitialType, setDialogInitialType] = useState<"receita" | "despesa" | "transferencia" | undefined>(undefined);
   const [filterCollapsed, setFilterCollapsed] = useState(false);
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
@@ -840,6 +842,9 @@ export default function Lancamentos() {
           <Button variant="outline" size="sm" onClick={exportCSV} disabled={displayRows.length === 0}>
             <Download className="h-4 w-4 mr-1" /> CSV
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+            <Upload className="h-4 w-4 mr-1" /> Importar Extrato
+          </Button>
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm">
@@ -1303,6 +1308,8 @@ export default function Lancamentos() {
         initialType={dialogInitialType}
         editScope={pendingEditScope}
       />
+
+      <ImportStatementDialog open={importOpen} onOpenChange={setImportOpen} onImported={refreshAll} />
 
       {/* Recurring edit scope prompt */}
       <AlertDialog
