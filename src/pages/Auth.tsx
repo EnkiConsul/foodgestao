@@ -52,6 +52,19 @@ function translateAuthError(message: string): string {
   return message;
 }
 
+/** Categorize a signup error into a small, stable set of reasons for GA4 reporting. */
+function classifySignupError(message: string): { reason: string; category: "validation" | "api" | "network" | "rate_limit" | "unknown" } {
+  const m = (message || "").toLowerCase();
+  if (m.includes("already registered") || m.includes("user already")) return { reason: "email_already_registered", category: "validation" };
+  if (m.includes("weak") || m.includes("pwned") || m.includes("known to be") || m.includes("password should be at least")) return { reason: "weak_password", category: "validation" };
+  if (m.includes("invalid") && m.includes("email")) return { reason: "invalid_email", category: "validation" };
+  if (m.includes("rate") && m.includes("limit")) return { reason: "rate_limit", category: "rate_limit" };
+  if (m.includes("captcha")) return { reason: "captcha_failed", category: "validation" };
+  if (m.includes("network") || m.includes("failed to fetch") || m.includes("fetch failed") || m.includes("timeout")) return { reason: "network_error", category: "network" };
+  if (m.includes("500") || m.includes("server")) return { reason: "server_error", category: "api" };
+  return { reason: "unknown_api_error", category: "api" };
+}
+
 export default function Auth() {
   const [searchParams] = useSearchParams();
   const initialMode: Mode = searchParams.get("tab") === "signup" ? "signup" : "login";
