@@ -1,42 +1,59 @@
+# Plin IA — Acesso real ao banco de dados via ferramentas
+
+## Diagnóstico
+
+Verifiquei o log da conversa mais recente:
+
+- Usuário: *"Qual foi o total de despesas no Nubank esse mês?"*
+- Plin IA: *"O resumo de dados atual não especifica o total de despesas por conta bancária…"*
+
+A IA está lendo dados, mas **apenas o resumo estático** montado em `plin-ia-context.ts` (totais do mês, top 5 categorias, próximos vencimentos, saldos das contas). Qualquer pergunta que sai desse recorte — "quanto gastei no Nubank?", "quanto pago para o fornecedor X?", "listar despesas de energia dos últimos 3 meses" — a IA responde honestamente que não tem esses dados, porque o prompt proíbe inventar.
+
+Além disso o contexto é cacheado por 5 min, então mesmo dados recém-lançados demoram para aparecer.
+
 ## Objetivo
 
-Unificar o cadastro rápido de **Categoria** e **Contato** dentro do fluxo de "Importar Extrato" para que use exatamente o mesmo formulário (mesmos campos, mesmo layout, mesmas validações) que já existe nas telas de Categorias e Clientes/Fornecedores.
+Trocar o modelo "contexto pré-montado" por **tool calling**: o Plin IA passa a consultar o banco sob demanda, com filtros arbitrários, respeitando `user_id`, `context` e `company_id` do usuário logado.
 
-## Situação atual
+## O que mudar
 
-Em `src/components/transactions/ImportStatementDialog.tsx` os cadastros rápidos usam Dialogs próprios e simplificados:
-- **Categoria rápida**: só pede *Nome* (tipo é herdado da linha). Sem cor, sem categoria pai, sem visibilidade (PF / empresas).
-- **Contato rápido**: só pede *Nome* e *Tipo* (cliente/fornecedor/ambos). Sem documento, e-mail, telefone, endereço, observações, nem vinculação PF/empresas.
+### 1. Novas RPCs SQL (SECURITY DEFINER, escopo = auth.uid())
 
-Isso é inconsistente com:
-- `src/components/categories/CategoryFormDialog.tsx` — formulário completo com tipo, categoria pai, cor, visibilidade PF e por empresa.
-- `src/components/contacts/ContactFormDialog.tsx` — formulário completo com documento, e-mail, telefone, endereço, observações e vinculação PF/empresas.
+Criar migração com funções que a Edge Function chama com o cliente autenticado do usuário (não service-role), garantindo isolamento por RLS + validação de membership:
 
-## Mudanças propostas
+- `plin_ia_summary(_context, _company_id, _from, _to)` — receitas, despesas, saldo, pendentes, vencidos no período.
+- `plin_ia_by_account(_context, _company_id, _from, _to, _type)` — total por conta bancária.
+- `plin_ia_by_category(_context, _company_id, _from, _to, _type)` — total por categoria.
+- `plin_ia_by_contact(_context, _company_id, _from, _to, _type)` — total por cliente/fornecedor.
+- `plin_ia_upcoming(_context, _company_id, _days)` — vencimentos futuros (padrão 7d).
+- `plin_ia_overdue(_context, _company_id)` — vencidos em aberto.
+- `plin_ia_search_transactions(_context, _company_id, _from, _to, _type, _status, _account_id, _category_id, _contact_id, _min, _max, _query, _limit)` — busca livre, limite 50.
+- `plin_ia_cashflow(_context, _company_id, _months)` — série mensal (padrão 6m).
 
-1. **Reutilizar os componentes existentes** em `ImportStatementDialog.tsx`:
-   - Remover o bloco de "Quick create Category" e substituir por `<CategoryFormDialog />`, passando:
-     - `defaultType` = tipo da linha (receita/despesa) da qual o usuário clicou "+ Nova".
-     - `onSaved(newId)` → adicionar a nova categoria à lista local `categories` (recarregar via a mesma RPC `get_accessible_categories`) e atribuir `category_id = newId` na linha de origem.
-   - Remover o bloco de "Quick create Contact" e substituir por `<ContactFormDialog />`, passando:
-     - `onSaved(newId)` → recarregar contatos e atribuir `contact_id = newId` na linha de origem.
-   - Como o nome já foi digitado pelo usuário na busca da linha, propagar esse nome como valor inicial:
-     - Categoria: adicionar prop opcional `defaultName?: string` em `CategoryFormDialog` (retrocompatível) para pré-preencher o campo Nome.
-     - Contato: adicionar prop opcional `defaultName?: string` em `ContactFormDialog` na mesma linha.
+Todas validam `private.is_company_member` quando `_context = 'pj'` e retornam vazio se `auth.uid()` não bate.
 
-2. **Estado local do import** deixa de guardar `quickCat`/`quickContact` como formulário e passa a guardar apenas `{ rowIdx, defaultName, defaultType }` para saber qual linha atualizar quando o formulário completo salvar.
+### 2. Reescrever `supabase/functions/ai-financial-agent/index.ts`
 
-3. **Descartar código morto**: função `createQuickCategory`, `createQuickContact`, estados `savingQuick` e imports não usados (`Textarea` se ficar órfão) são removidos.
+- Remover cache + `buildFinancialContext` estático. Manter apenas um "mini-briefing" curto (data atual, contexto ativo, nome da empresa quando PJ) no system prompt.
+- Registrar ferramentas `ai` SDK (`tool({ description, inputSchema: zod, execute })`) — uma por RPC acima. Cada `execute` chama a RPC via cliente Supabase **autenticado com o JWT do usuário** (não service-role) e devolve JSON compacto.
+- Ativar `stopWhen: stepCountIs(6)` para permitir múltiplas chamadas de ferramenta antes da resposta final.
+- Atualizar o system prompt: instruir o agente a **sempre chamar ferramentas** para responder perguntas sobre valores/períodos/contas específicos, e só resumir depois.
+- Manter feature-flag, quota diária, persistência em `ia_conversations` e `ia_usage_control`.
 
-4. **Sem mudanças de banco de dados** e sem alteração de regras/valores default: apenas UI e fluxo de wiring.
+### 3. Frontend
 
-## Fora do escopo
+- `PlinIAPanel.tsx`: continuar renderizando `message.parts`, mas incluir parts do tipo `tool-*` mostrando um indicador discreto ("Consultando lançamentos…") enquanto `state !== 'output-available'`. Não expor payloads brutos.
+- Nenhuma mudança em `usePlinIAAgent.ts` (transport já envia `context` e `companyId`).
 
-- Nenhuma alteração nas telas Categorias, Contatos, Lançamentos ou nas RPCs.
-- Nenhuma mudança de estilo/design tokens.
-- Manter o comportamento atual de sugestões automáticas e de duplicatas.
+## Detalhes técnicos
 
-## Detalhe técnico (para referência)
+- Cliente autenticado dentro de cada `execute`: reaproveitar `supabaseAuth` já criado no handler (fecha sobre o `authHeader`).
+- Zod schemas com defaults sensatos (`_days=7`, `_months=6`, `_limit=20`, `_type` opcional `'receita'|'despesa'|'transferencia'`).
+- Datas: aceitar `_from`/`_to` como ISO date; se omitidos, RPC assume mês atual.
+- Segurança: nenhuma RPC aceita `user_id` como parâmetro — sempre `auth.uid()`.
+- Custo: manter `google/gemini-2.5-pro`; contabilizar `usage.totalTokens` no `onFinish` como hoje.
 
-- Após `onSaved(newId)`, refetch de categorias via `supabase.rpc("get_accessible_categories", ...)` e de contatos via `supabase.from("contacts").select(...)` — as mesmas chamadas já feitas no `useEffect` de abertura do import.
-- O `AlertDialog` de duplicatas e o Dialog principal continuam iguais; os formulários completos abrem por cima em portal próprio (Radix stacking já validado no turno anterior).
+## Fora de escopo
+
+- Ações que escrevem no banco (criar lançamento, marcar como pago). Ficam para uma próxima iteração.
+- Mudanças nos cards de insights do dashboard.
