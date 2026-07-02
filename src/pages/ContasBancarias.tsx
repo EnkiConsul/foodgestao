@@ -59,6 +59,12 @@ export default function ContasBancarias() {
 
   useEffect(() => { fetchAccounts(); }, [fetchAccounts]);
 
+  // Atualização em tempo real ao criar/editar/excluir contas
+  useRealtimeSync({
+    tables: ["accounts"],
+    onChange: () => { fetchAccounts(); },
+  });
+
   const handleDelete = async () => {
     if (!deleteAccount) return;
     const deletedName = deleteAccount.name;
