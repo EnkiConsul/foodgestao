@@ -59,9 +59,10 @@ export default function ContasBancarias() {
 
   useEffect(() => { fetchAccounts(); }, [fetchAccounts]);
 
-  // Atualização em tempo real ao criar/editar/excluir contas
+  // Atualização em tempo real: contas E lançamentos (o saldo é recalculado
+  // pelo trigger de banco e o hook respeita o filtro PF/PJ automaticamente).
   useRealtimeSync({
-    tables: ["accounts"],
+    tables: ["accounts", "transactions"],
     onChange: () => { fetchAccounts(); },
   });
 
