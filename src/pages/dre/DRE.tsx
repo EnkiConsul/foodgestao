@@ -97,6 +97,9 @@ export default function DREPage() {
             <Link to="/relatorios/dre/configuracao"><Settings2 className="h-4 w-4 mr-1.5" />Mapeamento</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
+            <Link to="/relatorios/dre/comparativo">Comparar</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
             <Link to="/relatorios/dre/historico">Histórico</Link>
           </Button>
           {canPublish && (

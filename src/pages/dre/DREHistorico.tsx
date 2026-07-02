@@ -103,7 +103,10 @@ export default function DREHistorico() {
         <Link to="/relatorios/dre" className="text-sm text-muted-foreground hover:underline flex items-center gap-1 mb-1">
           <ArrowLeft className="h-3 w-3" /> Voltar
         </Link>
-        <h1 className="text-2xl font-semibold">Histórico de DREs</h1>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <h1 className="text-2xl font-semibold">Histórico de DREs</h1>
+          <Link to="/relatorios/dre/comparativo" className="text-sm text-primary hover:underline">Comparar snapshots →</Link>
+        </div>
       </div>
 
       <Card>
