@@ -563,7 +563,6 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
         )}
       </DialogContent>
 
-        {/* placeholder — dialog moved outside for proper stacking */}
       </Dialog>
 
       <AlertDialog
@@ -589,8 +588,6 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog open={false} onOpenChange={() => {}}>
-        <DialogContent className="hidden" />
 
       {/* Quick create Category */}
       <Dialog open={!!quickCat} onOpenChange={(o) => !o && setQuickCat(null)}>
