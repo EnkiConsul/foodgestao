@@ -135,7 +135,16 @@ export function AppSidebar() {
 
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t border-sidebar-border">
+      <SidebarFooter className="p-4 border-t border-sidebar-border space-y-1">
+        <a
+          href="https://wa.me/5562992365959"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent rounded-lg transition-colors"
+        >
+          <MessageCircle className="h-4 w-4" />
+          <span>Suporte</span>
+        </a>
         <button
           onClick={signOut}
           className="flex items-center gap-2 w-full px-3 py-2 text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent rounded-lg transition-colors"
