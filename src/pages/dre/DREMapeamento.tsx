@@ -170,7 +170,7 @@ export default function DREMapeamento() {
                         <div className="flex items-center gap-2">
                           <Select
                             value={primary?.rubrica_id ?? ""}
-                            onValueChange={(v) => handleAssign(cat.id, v)}
+                            onValueChange={(v) => handleAssign(cat.id, v, primary?.id)}
                             disabled={!canEdit}
                           >
                             <SelectTrigger className="h-8 max-w-xs">
