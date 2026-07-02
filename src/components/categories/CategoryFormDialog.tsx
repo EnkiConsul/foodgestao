@@ -25,9 +25,10 @@ interface Props {
   editCategory?: Tables<"categories"> | null;
   defaultParentId?: string | null;
   defaultType?: "receita" | "despesa";
+  defaultName?: string;
 }
 
-export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, defaultParentId, defaultType }: Props) {
+export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, defaultParentId, defaultType, defaultName }: Props) {
   const { user } = useAuth();
   const { contextType } = useCompanyContext();
   const [name, setName] = useState("");
@@ -86,14 +87,14 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
           setSelectedCompanies(new Set((data ?? []).map((d) => d.company_id)));
         });
     } else {
-      setName("");
+      setName(defaultName ?? "");
       setType(defaultType ?? "despesa");
       setColor("#3b82f6");
       setParentId(defaultParentId || null);
       setVisiblePf(true);
       setSelectedCompanies(new Set(companies.map((c) => c.id)));
     }
-  }, [editCategory, open, defaultParentId, defaultType]);
+  }, [editCategory, open, defaultParentId, defaultType, defaultName]);
 
   // Filter parent options: same type, exclude self
   const parentOptions = allCategories.filter(

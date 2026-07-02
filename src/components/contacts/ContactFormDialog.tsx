@@ -18,9 +18,11 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   onSaved: (newId?: string) => void;
   editContact?: Tables<"contacts"> | null;
+  defaultName?: string;
+  defaultContactType?: "cliente" | "fornecedor" | "ambos";
 }
 
-export function ContactFormDialog({ open, onOpenChange, onSaved, editContact }: Props) {
+export function ContactFormDialog({ open, onOpenChange, onSaved, editContact, defaultName, defaultContactType }: Props) {
   const { user } = useAuth();
   const { companies } = useCompanyContext();
   const [name, setName] = useState("");
@@ -53,12 +55,12 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact }: 
           setSelectedCompanyIds((data ?? []).map((r: any) => r.company_id));
         });
     } else {
-      setName(""); setContactType("cliente"); setEmail(""); setPhone("");
+      setName(defaultName ?? ""); setContactType(defaultContactType ?? "cliente"); setEmail(""); setPhone("");
       setDocument(""); setAddress(""); setNotes("");
       setVisiblePf(true);
       setSelectedCompanyIds([]);
     }
-  }, [editContact, open]);
+  }, [editContact, open, defaultName, defaultContactType]);
 
   const toggleCompany = (id: string) => {
     setSelectedCompanyIds((prev) =>

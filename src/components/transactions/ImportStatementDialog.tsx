@@ -18,6 +18,8 @@ import { formatBRL } from "@/lib/billing";
 import { parseNubankStatementPdf } from "@/lib/statement-import/nubankPdf";
 import { suggestForEntries, markDuplicates } from "@/lib/statement-import/suggest";
 import type { ReviewRow } from "@/lib/statement-import/types";
+import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
+import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 
 type Account = { id: string; name: string };
 type Category = { id: string; name: string; transaction_type: "receita" | "despesa" };
@@ -49,10 +51,9 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [duplicateDecision, setDuplicateDecision] = useState<DuplicateDecision>("none");
 
-  // Quick-create state
+  // Quick-create state (reuses full CategoryFormDialog / ContactFormDialog)
   const [quickCat, setQuickCat] = useState<{ rowIdx: number; type: "receita" | "despesa"; name: string } | null>(null);
   const [quickContact, setQuickContact] = useState<{ rowIdx: number; name: string; contactType: "cliente" | "fornecedor" | "ambos" } | null>(null);
-  const [savingQuick, setSavingQuick] = useState(false);
 
   const reset = useCallback(() => {
     setStep("upload"); setFile(null); setAccountId(""); setRows([]);
@@ -242,76 +243,24 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
   };
 
 
-  const createQuickCategory = async () => {
-    if (!user || !quickCat) return;
-    const name = quickCat.name.trim();
-    if (!name) { toast.error("Informe o nome da categoria"); return; }
-    setSavingQuick(true);
-    try {
-      const { data: newCat, error } = await supabase.from("categories").insert({
-        user_id: user.id,
-        name,
-        transaction_type: quickCat.type,
-        context: contextType,
-        visible_pf: contextType === "pf",
-      } as any).select("id, name, transaction_type").single();
-      if (error || !newCat) throw error ?? new Error("Falha ao criar categoria");
-
-      if (contextType === "pj" && selectedCompanyId) {
-        await supabase.from("category_companies").insert([{ category_id: (newCat as any).id, company_id: selectedCompanyId }]);
-      }
-
-      const created: Category = {
-        id: (newCat as any).id,
-        name: (newCat as any).name,
-        transaction_type: (newCat as any).transaction_type,
-      };
-      setCategories((prev) => [...prev, created]);
-      updateRow(quickCat.rowIdx, { category_id: created.id });
-      toast.success("Categoria criada");
-      setQuickCat(null);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Erro ao criar categoria";
-      toast.error(msg);
-    } finally {
-      setSavingQuick(false);
-    }
+  const refetchCategories = async () => {
+    if (!user) return;
+    const { data: cats } = await supabase.rpc("get_accessible_categories", {
+      _context: contextType,
+      _company_id: contextType === "pj" ? selectedCompanyId : null,
+      _transaction_type: null,
+    });
+    setCategories(((cats ?? []) as Array<{ id: string; name: string; transaction_type: string }>).map((c) => ({
+      id: c.id, name: c.name, transaction_type: c.transaction_type as "receita" | "despesa",
+    })));
   };
 
-  const createQuickContact = async () => {
-    if (!user || !quickContact) return;
-    const name = quickContact.name.trim();
-    if (!name) { toast.error("Informe o nome do contato"); return; }
-    setSavingQuick(true);
-    try {
-      const { data: newContact, error } = await supabase.from("contacts").insert({
-        user_id: user.id,
-        name,
-        contact_type: quickContact.contactType,
-        visible_pf: contextType === "pf",
-      } as any).select("id, name, contact_type").single();
-      if (error || !newContact) throw error ?? new Error("Falha ao criar contato");
-
-      if (contextType === "pj" && selectedCompanyId) {
-        await supabase.from("contact_companies" as any).insert([{ contact_id: (newContact as any).id, company_id: selectedCompanyId }] as any);
-      }
-
-      const created: Contact = {
-        id: (newContact as any).id,
-        name: (newContact as any).name,
-        contact_type: (newContact as any).contact_type,
-      };
-      setContacts((prev) => [...prev, created]);
-      updateRow(quickContact.rowIdx, { contact_id: created.id });
-      toast.success("Contato criado");
-      setQuickContact(null);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Erro ao criar contato";
-      toast.error(msg);
-    } finally {
-      setSavingQuick(false);
-    }
+  const refetchContacts = async () => {
+    if (!user) return;
+    const { data: cts } = await supabase.from("contacts").select("id, name, contact_type").eq("user_id", user.id);
+    setContacts((cts ?? []) as Contact[]);
   };
+
 
   return (
     <>
@@ -622,95 +571,38 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
       </AlertDialog>
 
 
-      {/* Quick create Category */}
-      <Dialog open={!!quickCat} onOpenChange={(o) => !o && setQuickCat(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Nova categoria</DialogTitle>
-            <DialogDescription>
-              Criar {quickCat?.type === "receita" ? "categoria de receita" : "categoria de despesa"}
-              {contextType === "pj" ? " para esta empresa." : " no perfil pessoal."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div>
-              <Label>Nome</Label>
-              <Input
-                autoFocus
-                value={quickCat?.name ?? ""}
-                onChange={(e) => setQuickCat((q) => (q ? { ...q, name: e.target.value } : q))}
-                onKeyDown={(e) => { if (e.key === "Enter" && !savingQuick) createQuickCategory(); }}
-                placeholder="Ex.: Alimentação"
-              />
-            </div>
-            <div>
-              <Label>Tipo</Label>
-              <Select
-                value={quickCat?.type ?? "despesa"}
-                onValueChange={(v) => setQuickCat((q) => (q ? { ...q, type: v as "receita" | "despesa" } : q))}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="receita">Receita</SelectItem>
-                  <SelectItem value="despesa">Despesa</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setQuickCat(null)} disabled={savingQuick}>Cancelar</Button>
-            <Button onClick={createQuickCategory} disabled={savingQuick || !quickCat?.name?.trim()}>
-              {savingQuick ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-              Criar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Quick create Category — reuses the full CategoryFormDialog */}
+      <CategoryFormDialog
+        open={!!quickCat}
+        onOpenChange={(o) => { if (!o) setQuickCat(null); }}
+        defaultName={quickCat?.name}
+        defaultType={quickCat?.type}
+        onSaved={async (newId) => {
+          const rowIdx = quickCat?.rowIdx;
+          setQuickCat(null);
+          await refetchCategories();
+          if (typeof rowIdx === "number" && newId) {
+            updateRow(rowIdx, { category_id: newId });
+          }
+        }}
+      />
 
-      {/* Quick create Contact */}
-      <Dialog open={!!quickContact} onOpenChange={(o) => !o && setQuickContact(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Novo contato</DialogTitle>
-            <DialogDescription>
-              Criar contato{contextType === "pj" ? " para esta empresa." : " no perfil pessoal."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div>
-              <Label>Nome</Label>
-              <Input
-                autoFocus
-                value={quickContact?.name ?? ""}
-                onChange={(e) => setQuickContact((q) => (q ? { ...q, name: e.target.value } : q))}
-                onKeyDown={(e) => { if (e.key === "Enter" && !savingQuick) createQuickContact(); }}
-                placeholder="Nome do cliente ou fornecedor"
-              />
-            </div>
-            <div>
-              <Label>Tipo</Label>
-              <Select
-                value={quickContact?.contactType ?? "fornecedor"}
-                onValueChange={(v) => setQuickContact((q) => (q ? { ...q, contactType: v as "cliente" | "fornecedor" | "ambos" } : q))}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cliente">Cliente</SelectItem>
-                  <SelectItem value="fornecedor">Fornecedor</SelectItem>
-                  <SelectItem value="ambos">Ambos</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setQuickContact(null)} disabled={savingQuick}>Cancelar</Button>
-            <Button onClick={createQuickContact} disabled={savingQuick || !quickContact?.name?.trim()}>
-              {savingQuick ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-              Criar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Quick create Contact — reuses the full ContactFormDialog */}
+      <ContactFormDialog
+        open={!!quickContact}
+        onOpenChange={(o) => { if (!o) setQuickContact(null); }}
+        defaultName={quickContact?.name}
+        defaultContactType={quickContact?.contactType}
+        onSaved={async (newId) => {
+          const rowIdx = quickContact?.rowIdx;
+          setQuickContact(null);
+          await refetchContacts();
+          if (typeof rowIdx === "number" && newId) {
+            updateRow(rowIdx, { contact_id: newId });
+          }
+        }}
+      />
+
     </>
   );
 }
