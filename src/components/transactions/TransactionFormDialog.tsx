@@ -223,14 +223,14 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     },
   });
   const categoriesQuery = useQuery({
-    queryKey: ["form-categories", user?.id],
-    enabled: !!user,
+    queryKey: ["form-categories", user?.id, contextType, selectedCompanyId],
+    enabled: !!user && (contextType === "pf" || !!selectedCompanyId),
     queryFn: async () => {
-      const { data } = await supabase
-        .from("categories").select("*")
-        .eq("user_id", user!.id)
-        .order("transaction_type").order("sort_order").order("name");
-      return data ?? [];
+      const { data } = await supabase.rpc("get_accessible_categories", {
+        _context: contextType,
+        _company_id: contextType === "pj" ? selectedCompanyId : null,
+      });
+      return (data ?? []) as any[];
     },
   });
   const contactsQuery = useQuery({
