@@ -1,6 +1,6 @@
 // Plin IA — Insights automáticos para o dashboard
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { generateText } from "npm:ai@7.0.13";
+import { generateText } from "npm:ai@5.0.210";
 import { createLovableAiGatewayProvider } from "../_shared/ai-gateway.ts";
 import { buildFinancialContext, contextToText, PLIN_IA_SYSTEM_PROMPT } from "../_shared/plin-ia-context.ts";
 
