@@ -38,6 +38,7 @@ export default function DREPage() {
   const { data: dre, isLoading } = useDREGeneration({ from, to, regime });
   const { data: inconsistencias } = useDREConsistency({ from, to });
   const { publish } = useDRESnapshots();
+  useDRERealtime();
 
   const totais = dre?.totais;
 
