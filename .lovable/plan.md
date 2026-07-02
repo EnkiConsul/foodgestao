@@ -1,42 +1,65 @@
+
 ## Diagnóstico
 
-Consultei o banco e o PDF que você acabou de enviar:
+- **Não existe limite server-side** de lançamentos por plano. O campo `max_transactions_per_month` só é exibido em marketing/planos; nenhum trigger, RPC ou verificação bloqueia inserts.
+- Verifiquei sua conta (plano **Business = ilimitado**) e o banco:
+  - Zero lançamentos em `transaction_date` de junho/2026 para o seu usuário.
+  - Zero lançamentos com `import_hash` preenchido em todo o banco (nem seus, nem de outros usuários).
+  - Sem erros de Postgres relacionados a `transactions` nos últimos dias.
+- Conclusão: quando você clica **"Importar N lançamento(s)"**, algum lote de 100 está falhando por completo (trigger de validação, RLS, constraint, etc.) e a falha é engolida — o toast mostra só um total, sem apontar quais linhas quebraram nem por quê.
 
-- **PDF `NU_55213653_01JUN2026_30JUN2026.pdf`** cobre **01/06 a 30/06/2026** e contém movimentações desde **05/06** (Pix recebido PAGFACIL R$ 500, HS DO BRASIL R$ 723, etc.).
-- **No banco** existem apenas **19 lançamentos** em junho, todos entre **21/06 e 30/06**. Tudo que veio antes de 21/06 (aprox. **15 dias de movimentações**) ficou de fora.
+## O que vou entregar
 
-Ou seja: os lançamentos não estão "sumindo" da tela — eles **nunca foram importados**. O parser do extrato Nubank (`src/lib/statement-import/nubankPdf.ts`) está perdendo as primeiras semanas do PDF.
+### 1. Import à prova de falhas em `ImportStatementDialog.tsx`
 
-Causa provável: o parser depende do agrupamento de itens do `pdfjs-dist` por coordenada Y para reconstruir cada linha. Nas primeiras páginas do extrato o layout tem quebras de linha extras (descrição da contraparte em 2–3 linhas, cabeçalho "Total de entradas/saídas" por dia), o que faz com que o cabeçalho de data (`05 JUN 2026`) não seja detectado corretamente ou fique órfão sem `currentDate`, e as linhas de valor acabam descartadas.
+- Trocar `insert(slice, {count})` por um pipeline que:
+  1. Tenta o lote (chunk de 50).
+  2. Se o lote falhar por qualquer motivo, cai para **insert individual** de cada linha do lote, capturando erro por linha.
+  3. Classifica cada linha em `importada`, `duplicada` (`23505`) ou `erro` com a mensagem retornada pelo Postgres.
+- Barra de progresso ("Importando 45 / 119…").
 
-## Correção proposta
+### 2. Resumo transparente no passo final
 
-### 1. Reforçar o parser (`src/lib/statement-import/nubankPdf.ts`)
+- Substituir o "N lançamento(s) importado(s)" por um bloco com três contadores:
+  - ✅ Importados
+  - ⚠️ Duplicados (já existiam)
+  - ❌ Não importados — lista **cada linha com data, valor, descrição e o motivo do erro** (mensagem do banco), com botão "Voltar para revisar" que retorna ao passo de revisão só com as linhas com erro pré-selecionadas para o usuário corrigir (ex.: definir categoria, contato ou trocar de conta).
 
-- Trocar a extração baseada em Y-agrupamento por uma leitura **página → texto plano via `pdftotext`-like** (mantendo `pdfjs-dist` mas concatenando itens com heurística de "novo item quando x cai para a esquerda"), ou alternativamente processar cada item individualmente e reconstruir blocos por proximidade vertical.
-- Adicionar detecção de cabeçalho de data mais robusta: aceitar a data mesmo quando estiver na mesma linha do total do dia, ou aparecer isolada, ou seguida de quebra.
-- Ao detectar um bloco "Total de entradas / Total de saídas", usar isso apenas como delimitador de sinal (crédito/débito) — sem descartar o `currentDate`.
-- Ignorar corretamente: rodapé ("Extrato gerado dia..."), cabeçalho ("Rafael de Paula Castro", "CPF ..."), "Saldo inicial", "Saldo final", "Rendimento líquido", "Total de entradas/saídas" quando aparecem no resumo do topo.
-- Concatenar linhas de continuação da contraparte (que começam recuadas e não têm valor no final) na descrição da última entrada, para melhorar o nome do fornecedor/cliente.
-- Determinar tipo (receita/despesa) pelo **bloco pai** (`Total de entradas` vs `Total de saídas` do dia), não só por regex no título — assim capturamos corretamente "Compra no débito", "Pagamento de boleto", "Tarifa", etc.
+### 3. Coleta de motivos frequentes já no passo de revisão
 
-### 2. Validar contra o PDF anexado
+- Antes de importar, validar client-side as regras que hoje quebram silenciosamente:
+  - `account_id` selecionado (já valida).
+  - Coerência entre `contextType` e a conta escolhida.
+  - Se `contextType='pj'` e faltar `company_id`, bloqueia com mensagem clara.
+- Mostrar essas mensagens inline no cabeçalho da revisão.
 
-- Após a correção, testar localmente com o próprio arquivo `NU_55213653_01JUN2026_30JUN2026.pdf` e confirmar que a contagem bate com o resumo do extrato: **Total de entradas R$ 15.687,01 / Total de saídas R$ 15.585,56 / Saldo final R$ 101,45**.
-- Somar receitas − despesas dos lançamentos extraídos deve dar exatamente **R$ 101,45**.
+### 4. Ajuste no `import_hash` (defensivo)
 
-### 3. Reimportação segura
+- Manter o hash atual (compatível com a lógica anterior), mas garantir que ele **realmente vai no payload** — hoje ele é montado, mas se um lote inteiro cai antes de persistir, o hash nunca chega ao banco (explica os zero `import_hash IS NOT NULL`). Com o fallback individual, cada linha bem-sucedida gravará o hash.
 
-O importador já grava um `import_hash` único por lançamento — reimportar o mesmo PDF **não gera duplicatas**: as 19 entradas de 21–30/06 serão marcadas como "Já importado" no diálogo de revisão e apenas os dias 05–20/06 (faltantes) serão inseridos.
+### 5. Confirmar ausência de limite (nada a mudar no backend)
 
-## Passos para você depois do fix
+- Documentar no dialog um pequeno subtítulo: "Sem limite de importação — todos os lançamentos do extrato podem ser importados". Sem alterações em schema/triggers/planos.
 
-1. Abrir **Lançamentos → Importar Extrato**.
-2. Selecionar a mesma conta bancária Nubank.
-3. Anexar o PDF de junho novamente.
-4. Confirmar no resumo que a soma bate com o saldo final do extrato (R$ 101,45) antes de importar.
+## Detalhes técnicos
 
-## Observações técnicas
+- Arquivo alterado: `src/components/transactions/ImportStatementDialog.tsx`.
+- Sem migração; sem alteração em `transactions`, `plans`, `usage_counters`.
+- Retry individual usa `Promise.all` com concorrência limitada (5 em paralelo) para não estourar a conexão.
+- Cada erro individual passa por um mapeador simples:
+  - `23514` / mensagem contendo "Forma de pagamento" → "Forma de pagamento não vinculada à conta/perfil".
+  - `42501` → "Sem permissão para gravar neste perfil/empresa".
+  - `23505` → duplicata (silenciada, contada em "já existiam").
+  - default → mensagem literal do Postgres.
 
-- Sem alterações de schema; muda apenas `src/lib/statement-import/nubankPdf.ts` e possivelmente `suggest.ts` (nada em RLS/edge functions).
-- O erro "Cannot create property '_t' on number '1'" que aparece nos logs é ruído do overlay de dev (não relacionado); posso investigar em separado se persistir depois do fix.
+## O que **não** vou fazer nesta entrega
+
+- Não vou implementar enforcement de `max_transactions_per_month` no backend (a menos que você peça — hoje ele é só informativo).
+- Não vou tocar no parser (já está extraindo as 119 linhas corretamente).
+- Não vou alterar tabelas nem RLS.
+
+## Como validar depois
+
+1. Reimportar o mesmo PDF de junho/2026.
+2. Ver o resumo final: quantas importadas, quantas duplicadas e — se houver — a lista exata de linhas rejeitadas com o motivo.
+3. Se aparecerem erros, corrijo o motivo apontado (ex.: vincular a categoria à empresa) ou volto para revisar as linhas problemáticas.
