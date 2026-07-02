@@ -43,8 +43,14 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
   const [busy, setBusy] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
 
+  // Quick-create state
+  const [quickCat, setQuickCat] = useState<{ rowIdx: number; type: "receita" | "despesa"; name: string } | null>(null);
+  const [quickContact, setQuickContact] = useState<{ rowIdx: number; name: string; contactType: "cliente" | "fornecedor" | "ambos" } | null>(null);
+  const [savingQuick, setSavingQuick] = useState(false);
+
   const reset = useCallback(() => {
     setStep("upload"); setFile(null); setAccountId(""); setRows([]); setImportedCount(0);
+    setQuickCat(null); setQuickContact(null);
   }, []);
 
   useEffect(() => {
