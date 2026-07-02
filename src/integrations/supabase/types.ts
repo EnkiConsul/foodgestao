@@ -2337,6 +2337,152 @@ export type Database = {
         }
         Returns: number
       }
+      plin_ia_accounts_balance: {
+        Args: {
+          _company_id?: string
+          _context: Database["public"]["Enums"]["context_type"]
+        }
+        Returns: {
+          account_id: string
+          account_name: string
+          current_balance: number
+        }[]
+      }
+      plin_ia_by_account: {
+        Args: {
+          _company_id?: string
+          _context: Database["public"]["Enums"]["context_type"]
+          _from?: string
+          _to?: string
+          _type?: Database["public"]["Enums"]["transaction_type"]
+        }
+        Returns: {
+          account_id: string
+          account_name: string
+          qtd: number
+          total: number
+        }[]
+      }
+      plin_ia_by_category: {
+        Args: {
+          _company_id?: string
+          _context: Database["public"]["Enums"]["context_type"]
+          _from?: string
+          _to?: string
+          _type?: Database["public"]["Enums"]["transaction_type"]
+        }
+        Returns: {
+          category_id: string
+          category_name: string
+          qtd: number
+          total: number
+        }[]
+      }
+      plin_ia_by_contact: {
+        Args: {
+          _company_id?: string
+          _context: Database["public"]["Enums"]["context_type"]
+          _from?: string
+          _to?: string
+          _type?: Database["public"]["Enums"]["transaction_type"]
+        }
+        Returns: {
+          contact_id: string
+          contact_name: string
+          qtd: number
+          total: number
+        }[]
+      }
+      plin_ia_cashflow: {
+        Args: {
+          _company_id?: string
+          _context: Database["public"]["Enums"]["context_type"]
+          _months?: number
+        }
+        Returns: {
+          despesas: number
+          mes: string
+          receitas: number
+          saldo: number
+        }[]
+      }
+      plin_ia_overdue: {
+        Args: {
+          _company_id?: string
+          _context: Database["public"]["Enums"]["context_type"]
+        }
+        Returns: {
+          amount: number
+          amount_paid: number
+          description: string
+          dias_atraso: number
+          due_date: string
+          id: string
+          transaction_type: Database["public"]["Enums"]["transaction_type"]
+        }[]
+      }
+      plin_ia_search_transactions: {
+        Args: {
+          _account_id?: string
+          _category_id?: string
+          _company_id?: string
+          _contact_id?: string
+          _context: Database["public"]["Enums"]["context_type"]
+          _from?: string
+          _limit?: number
+          _max?: number
+          _min?: number
+          _query?: string
+          _status?: Database["public"]["Enums"]["transaction_status"]
+          _to?: string
+          _type?: Database["public"]["Enums"]["transaction_type"]
+        }
+        Returns: {
+          account_name: string
+          amount: number
+          amount_paid: number
+          category_name: string
+          contact_name: string
+          description: string
+          due_date: string
+          id: string
+          payment_date: string
+          status: Database["public"]["Enums"]["transaction_status"]
+          transaction_date: string
+          transaction_type: Database["public"]["Enums"]["transaction_type"]
+        }[]
+      }
+      plin_ia_summary: {
+        Args: {
+          _company_id?: string
+          _context: Database["public"]["Enums"]["context_type"]
+          _from?: string
+          _to?: string
+        }
+        Returns: {
+          pendentes: number
+          saldo_liquido: number
+          total_despesas: number
+          total_receitas: number
+          vencidos: number
+        }[]
+      }
+      plin_ia_upcoming: {
+        Args: {
+          _company_id?: string
+          _context: Database["public"]["Enums"]["context_type"]
+          _days?: number
+        }
+        Returns: {
+          amount: number
+          amount_paid: number
+          description: string
+          due_date: string
+          id: string
+          status: Database["public"]["Enums"]["transaction_status"]
+          transaction_type: Database["public"]["Enums"]["transaction_type"]
+        }[]
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
