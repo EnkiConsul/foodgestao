@@ -84,14 +84,40 @@ function buildCta(base: string, utm: string, extra?: Record<string, string>) {
   return u.pathname + (u.search ? u.search : "");
 }
 
-function trackCta(label: string) {
+type GtagWindow = Window & {
+  dataLayer?: Record<string, unknown>[];
+  gtag?: (...args: unknown[]) => void;
+};
+
+function trackCta(source: string, ctaText = "Começe Grátis") {
   try {
-    (window as unknown as { dataLayer?: unknown[] }).dataLayer =
-      (window as unknown as { dataLayer?: unknown[] }).dataLayer || [];
-    (window as unknown as { dataLayer: unknown[] }).dataLayer.push({
-      event: "cta_click_trial",
-      cta_label: label,
-    });
+    const w = window as GtagWindow;
+    const payload = {
+      cta_source: source,
+      cta_text: ctaText,
+      cta_destination: "/auth?tab=signup",
+      page_location: window.location.href,
+      page_path: window.location.pathname,
+    };
+
+    // GTM / dataLayer
+    w.dataLayer = w.dataLayer || [];
+    w.dataLayer.push({ event: "cta_click_trial", ...payload });
+
+    // GA4 (gtag.js) — evento customizado + generate_lead como conversão
+    if (typeof w.gtag === "function") {
+      w.gtag("event", "cta_click_trial", {
+        event_category: "landing_cta",
+        event_label: source,
+        ...payload,
+      });
+      w.gtag("event", "generate_lead", {
+        currency: "BRL",
+        value: 0,
+        method: source,
+        ...payload,
+      });
+    }
   } catch {
     // noop
   }
@@ -115,7 +141,8 @@ function CtaPrimary({
   const href = buildCta("/auth?tab=signup", utm, extra);
   return (
     <Button asChild size={size} className={className}>
-      <Link to={href} onClick={() => trackCta(source)}>
+      <Link to={href} onClick={() => trackCta(source, label)}>
+
         {label}
         <ArrowRight className="ml-1.5 h-4 w-4" />
       </Link>
