@@ -1,7 +1,44 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { DREGenerated, DRERegime } from "@/lib/dre";
+
+/**
+ * Assina alterações em mapeamento e ajustes manuais da DRE e invalida
+ * automaticamente o relatório (`dre-generate`) e as inconsistências
+ * (`dre-consistency`) — dispensa clicar em "Gerar" novamente.
+ */
+export function useDRERealtime() {
+  const { selectedCompanyId } = useCompanyContext();
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    if (!selectedCompanyId) return;
+    const invalidate = () => {
+      qc.invalidateQueries({ queryKey: ["dre-generate"] });
+      qc.invalidateQueries({ queryKey: ["dre-consistency"] });
+      qc.invalidateQueries({ queryKey: ["dre-mapeamento", selectedCompanyId] });
+    };
+    const channel = supabase
+      .channel(`dre-rt-${selectedCompanyId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "dre_categoria_mapeamento", filter: `company_id=eq.${selectedCompanyId}` },
+        invalidate
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "dre_ajustes_manuais", filter: `company_id=eq.${selectedCompanyId}` },
+        invalidate
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedCompanyId, qc]);
+}
+
 
 export function useDRERubricas() {
   return useQuery({
@@ -102,6 +139,9 @@ export function useDREGeneration(params: { from: string; to: string; regime: DRE
   return useQuery({
     queryKey: ["dre-generate", selectedCompanyId, params.from, params.to, params.regime],
     enabled: !!selectedCompanyId && !!params.from && !!params.to,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    staleTime: 0,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("dre_generate", {
         _company_id: selectedCompanyId!,
@@ -114,6 +154,7 @@ export function useDREGeneration(params: { from: string; to: string; regime: DRE
     },
   });
 }
+
 
 export function useDREConsistency(params: { from: string; to: string }) {
   const { selectedCompanyId } = useCompanyContext();
