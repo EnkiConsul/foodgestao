@@ -42,6 +42,9 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
   const [rows, setRows] = useState<ReviewRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
+  const [duplicateCount, setDuplicateCount] = useState(0);
+  const [failures, setFailures] = useState<Array<{ row: ReviewRow; reason: string }>>([]);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
 
   // Quick-create state
   const [quickCat, setQuickCat] = useState<{ rowIdx: number; type: "receita" | "despesa"; name: string } | null>(null);
@@ -49,7 +52,8 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
   const [savingQuick, setSavingQuick] = useState(false);
 
   const reset = useCallback(() => {
-    setStep("upload"); setFile(null); setAccountId(""); setRows([]); setImportedCount(0);
+    setStep("upload"); setFile(null); setAccountId(""); setRows([]);
+    setImportedCount(0); setDuplicateCount(0); setFailures([]); setProgress(null);
     setQuickCat(null); setQuickContact(null);
   }, []);
 
