@@ -15,6 +15,7 @@ import { MfaChallenge } from "@/components/auth/MfaChallenge";
 
 import { z } from "zod";
 import { toast } from "sonner";
+import { trackEvent, FunnelStep } from "@/lib/analytics";
 
 const loginSchema = z.object({
   email: z.string().trim().email("E-mail inválido").max(255),
