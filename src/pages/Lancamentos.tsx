@@ -135,6 +135,7 @@ export default function Lancamentos() {
   const [loading, setLoading] = useState(true);
   useMarkRouteReady("Lancamentos", !loading);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [dialogInitialType, setDialogInitialType] = useState<"receita" | "despesa" | "transferencia" | undefined>(undefined);
   const [filterCollapsed, setFilterCollapsed] = useState(false);
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
