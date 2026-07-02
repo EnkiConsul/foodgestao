@@ -338,9 +338,22 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
                         </Badge>
                       </TableCell>
                       <TableCell className="min-w-[160px]">
-                        <Select value={r.category_id ?? ""} onValueChange={(v) => updateRow(i, { category_id: v || null })}>
+                        <Select
+                          value={r.category_id ?? ""}
+                          onValueChange={(v) => {
+                            if (v === "__new__") {
+                              const suggested = (r.description_override ?? r.description).split(" - ")[0]?.slice(0, 40) ?? "";
+                              setQuickCat({ rowIdx: i, type: r.transaction_type, name: suggested });
+                            } else {
+                              updateRow(i, { category_id: v || null });
+                            }
+                          }}
+                        >
                           <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="__new__" className="text-primary font-medium">
+                              <span className="inline-flex items-center gap-1"><Plus className="h-3 w-3" /> Nova categoria…</span>
+                            </SelectItem>
                             {(catsByType[r.transaction_type] ?? []).map((c) => (
                               <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                             ))}
@@ -348,9 +361,26 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
                         </Select>
                       </TableCell>
                       <TableCell className="min-w-[160px]">
-                        <Select value={r.contact_id ?? ""} onValueChange={(v) => updateRow(i, { contact_id: v || null })}>
+                        <Select
+                          value={r.contact_id ?? ""}
+                          onValueChange={(v) => {
+                            if (v === "__new__") {
+                              const suggested = r.counterparty_name?.slice(0, 60) ?? (r.description_override ?? r.description).split(" - ").slice(-1)[0]?.slice(0, 60) ?? "";
+                              setQuickContact({
+                                rowIdx: i,
+                                name: suggested,
+                                contactType: r.transaction_type === "receita" ? "cliente" : "fornecedor",
+                              });
+                            } else {
+                              updateRow(i, { contact_id: v || null });
+                            }
+                          }}
+                        >
                           <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="__new__" className="text-primary font-medium">
+                              <span className="inline-flex items-center gap-1"><Plus className="h-3 w-3" /> Novo contato…</span>
+                            </SelectItem>
                             {contacts.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                           </SelectContent>
                         </Select>
