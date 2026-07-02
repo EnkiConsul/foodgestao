@@ -53,7 +53,7 @@ export function usePlinIAAgent() {
   useEffect(() => {
     if (!user || loadedRef.current) return;
     loadedRef.current = true;
-    supabase
+    (supabase as any)
       .from("ia_conversations")
       .select("role, content, created_at")
       .eq("user_id", user.id)

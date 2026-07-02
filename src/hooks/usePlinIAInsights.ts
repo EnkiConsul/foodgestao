@@ -38,7 +38,7 @@ export function usePlinIAUsage() {
     enabled: !!user,
     staleTime: 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_ia_usage_today");
+      const { data, error } = await (supabase as any).rpc("get_ia_usage_today");
       if (error) throw error;
       const row = Array.isArray(data) ? data[0] : data;
       return {
