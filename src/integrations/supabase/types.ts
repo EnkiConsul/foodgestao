@@ -1782,6 +1782,7 @@ export type Database = {
           content: Json
           created_at: string
           id: string
+          is_published: boolean
           section: string
           updated_at: string
           updated_by: string | null
@@ -1790,6 +1791,7 @@ export type Database = {
           content?: Json
           created_at?: string
           id?: string
+          is_published?: boolean
           section: string
           updated_at?: string
           updated_by?: string | null
@@ -1798,6 +1800,7 @@ export type Database = {
           content?: Json
           created_at?: string
           id?: string
+          is_published?: boolean
           section?: string
           updated_at?: string
           updated_by?: string | null
