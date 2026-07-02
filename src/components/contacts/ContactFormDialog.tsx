@@ -18,9 +18,11 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   onSaved: (newId?: string) => void;
   editContact?: Tables<"contacts"> | null;
+  defaultName?: string;
+  defaultContactType?: "cliente" | "fornecedor" | "ambos";
 }
 
-export function ContactFormDialog({ open, onOpenChange, onSaved, editContact }: Props) {
+export function ContactFormDialog({ open, onOpenChange, onSaved, editContact, defaultName, defaultContactType }: Props) {
   const { user } = useAuth();
   const { companies } = useCompanyContext();
   const [name, setName] = useState("");
