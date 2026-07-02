@@ -13,6 +13,7 @@ import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import Lancamentos from "./pages/Lancamentos";
+import PlinIA from "./pages/PlinIA";
 
 import FluxoCaixa from "./pages/FluxoCaixa";
 import Orcamento from "./pages/Orcamento";
