@@ -819,9 +819,6 @@ function PublicFooter() {
   );
 }
 
-/* ----------------------------- WhatsApp FAB ----------------------------- */
-import { WhatsappButton } from "@/components/WhatsappButton";
-
 /* ----------------------------- Page ----------------------------- */
 export default function Landing() {
   const utm = useUtmQuery();
