@@ -25,9 +25,10 @@ interface Props {
   editCategory?: Tables<"categories"> | null;
   defaultParentId?: string | null;
   defaultType?: "receita" | "despesa";
+  defaultName?: string;
 }
 
-export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, defaultParentId, defaultType }: Props) {
+export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, defaultParentId, defaultType, defaultName }: Props) {
   const { user } = useAuth();
   const { contextType } = useCompanyContext();
   const [name, setName] = useState("");
