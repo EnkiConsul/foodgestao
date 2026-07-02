@@ -51,10 +51,9 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [duplicateDecision, setDuplicateDecision] = useState<DuplicateDecision>("none");
 
-  // Quick-create state
+  // Quick-create state (reuses full CategoryFormDialog / ContactFormDialog)
   const [quickCat, setQuickCat] = useState<{ rowIdx: number; type: "receita" | "despesa"; name: string } | null>(null);
   const [quickContact, setQuickContact] = useState<{ rowIdx: number; name: string; contactType: "cliente" | "fornecedor" | "ambos" } | null>(null);
-  const [savingQuick, setSavingQuick] = useState(false);
 
   const reset = useCallback(() => {
     setStep("upload"); setFile(null); setAccountId(""); setRows([]);
