@@ -30,7 +30,7 @@ interface Props {
 }
 
 type Step = "upload" | "review" | "done";
-type DuplicateDecision = "none" | "pending" | "skip" | "include";
+type DuplicateDecision = "none" | "pending" | "skip" | "include" | "manual";
 
 export function ImportStatementDialog({ open, onOpenChange, onImported }: Props) {
   const { user } = useAuth();
