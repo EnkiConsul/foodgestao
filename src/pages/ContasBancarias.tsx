@@ -41,6 +41,10 @@ export default function ContasBancarias() {
   const [deleteAccount, setDeleteAccount] = useState<Account | null>(null);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
+  const [staleBalance, setStaleBalance] = useState(false);
+  const [resyncing, setResyncing] = useState(false);
+  const [lastTxAt, setLastTxAt] = useState<number>(0);
+  const [lastAccountAt, setLastAccountAt] = useState<number>(0);
 
   const fetchAccounts = useCallback(async () => {
     if (!user) return;
@@ -60,12 +64,44 @@ export default function ContasBancarias() {
 
   useEffect(() => { fetchAccounts(); }, [fetchAccounts]);
 
-  // Atualização em tempo real: contas E lançamentos (o saldo é recalculado
-  // pelo trigger de banco e o hook respeita o filtro PF/PJ automaticamente).
+  // Reset detector quando muda o perfil de acesso
+  useEffect(() => {
+    setStaleBalance(false);
+    setLastTxAt(0);
+    setLastAccountAt(0);
+  }, [contextType, selectedCompanyId]);
+
+  // Realtime: acompanhamos separadamente eventos de `transactions` e `accounts`.
+  // Se uma tx chega e nenhum update em `accounts` acontece em 6s, marcamos
+  // como inconsistente (trigger de saldo pode ter falhado ou realtime atrasou).
   useRealtimeSync({
-    tables: ["accounts", "transactions"],
-    onChange: () => { fetchAccounts(); },
+    tables: ["accounts"],
+    onChange: () => { setLastAccountAt(Date.now()); fetchAccounts(); },
   });
+  useRealtimeSync({
+    tables: ["transactions"],
+    onChange: () => { setLastTxAt(Date.now()); fetchAccounts(); },
+  });
+
+  useEffect(() => {
+    if (!lastTxAt) return;
+    if (lastAccountAt >= lastTxAt) { setStaleBalance(false); return; }
+    const timer = setTimeout(() => {
+      if (lastAccountAt < lastTxAt) setStaleBalance(true);
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, [lastTxAt, lastAccountAt]);
+
+  const handleResync = useCallback(async () => {
+    setResyncing(true);
+    const { error } = await supabase.rpc("recompute_all_account_balances");
+    setResyncing(false);
+    if (error) { toast.error("Erro ao recalcular saldos"); return; }
+    toast.success("Saldos recalculados");
+    setStaleBalance(false);
+    setLastAccountAt(Date.now());
+    fetchAccounts();
+  }, [fetchAccounts]);
 
   const handleDelete = async () => {
     if (!deleteAccount) return;
