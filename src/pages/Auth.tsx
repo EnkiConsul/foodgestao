@@ -93,6 +93,18 @@ export default function Auth() {
   const isSignup = mode === "signup";
   const isForgot = mode === "forgot";
 
+  // Track signup form view (funnel step between CTA click and signup_start)
+  const signupViewTracked = useRef(false);
+  useEffect(() => {
+    if (isSignup && !signupViewTracked.current) {
+      signupViewTracked.current = true;
+      trackEvent(FunnelStep.SignupFormView, {
+        referrer: document.referrer || "direct",
+      });
+    }
+    if (!isSignup) signupViewTracked.current = false;
+  }, [isSignup]);
+
   const getRedirectTarget = () => {
     const r = searchParams.get("redirect");
     if (r && r.startsWith("/") && !r.startsWith("//")) return r;
