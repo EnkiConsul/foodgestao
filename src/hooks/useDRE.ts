@@ -45,8 +45,15 @@ export function useDREMapeamento() {
         const { error } = await supabase.from("dre_categoria_mapeamento").update(payload).eq("id", input.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("dre_categoria_mapeamento").insert(payload);
-        if (error) throw error;
+        const { error } = await supabase
+          .from("dre_categoria_mapeamento")
+          .upsert(payload, { onConflict: "company_id,categoria_id,rubrica_id" });
+        if (error) {
+          if ((error as any).code === "23505") {
+            throw new Error("Esta categoria já está vinculada a essa rubrica. Edite o mapeamento existente ou escolha outra rubrica.");
+          }
+          throw error;
+        }
       }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dre-mapeamento", selectedCompanyId] }),
