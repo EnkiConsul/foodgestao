@@ -1309,6 +1309,66 @@ export type Database = {
         }
         Relationships: []
       }
+      ia_conversations: {
+        Row: {
+          content: string
+          context_snapshot: Json | null
+          created_at: string
+          id: string
+          role: string
+          session_id: string
+          tokens_used: number | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          context_snapshot?: Json | null
+          created_at?: string
+          id?: string
+          role: string
+          session_id: string
+          tokens_used?: number | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          context_snapshot?: Json | null
+          created_at?: string
+          id?: string
+          role?: string
+          session_id?: string
+          tokens_used?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ia_usage_control: {
+        Row: {
+          date: string
+          id: string
+          messages_count: number
+          tokens_used: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          date?: string
+          id?: string
+          messages_count?: number
+          tokens_used?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          date?: string
+          id?: string
+          messages_count?: number
+          tokens_used?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       import_rules: {
         Row: {
           category_id: string | null
@@ -2240,6 +2300,15 @@ export type Database = {
           _user_id: string
         }
         Returns: number
+      }
+      get_ia_usage_today: {
+        Args: { _user_id?: string }
+        Returns: {
+          ai_enabled: boolean
+          messages_count: number
+          quota_per_day: number
+          tokens_used: number
+        }[]
       }
       get_user_plan_features: { Args: { _user_id: string }; Returns: Json }
       has_role: {
