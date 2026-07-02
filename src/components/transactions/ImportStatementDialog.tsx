@@ -132,8 +132,16 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
     setRows((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
   };
 
-  const applyDuplicateDecision = (decision: "skip" | "include") => {
-    setRows((prev) => prev.map((r) => (r.duplicate ? { ...r, include: decision === "include" } : r)));
+  const applyDuplicateDecision = (decision: "skip" | "include" | "manual") => {
+    setRows((prev) =>
+      prev.map((r) => {
+        if (!r.duplicate) return r;
+        if (decision === "include") return { ...r, include: true };
+        if (decision === "skip") return { ...r, include: false };
+        // manual: start unchecked, user picks per row
+        return { ...r, include: false };
+      })
+    );
     setDuplicateDecision(decision);
   };
 
