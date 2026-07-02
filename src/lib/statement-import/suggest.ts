@@ -94,6 +94,7 @@ export async function suggestForEntries(
       ...suggestion,
       include: true,
       duplicate: false,
+      duplicate_kind: null,
     });
   }
 
@@ -112,7 +113,18 @@ export async function markDuplicates(
     .eq("account_id", accountId)
     .in("import_hash", hashes);
   const existing = new Set((data ?? []).map((r) => (r as { import_hash: string }).import_hash));
-  return rows.map((r) =>
-    existing.has(r.import_hash) ? { ...r, duplicate: true, include: false } : r
-  );
+  const seenInFile = new Set<string>();
+  return rows.map((r) => {
+    const duplicateKind = existing.has(r.import_hash)
+      ? "existing"
+      : seenInFile.has(r.import_hash)
+        ? "file"
+        : null;
+
+    seenInFile.add(r.import_hash);
+
+    return duplicateKind
+      ? { ...r, duplicate: true, duplicate_kind: duplicateKind, include: false }
+      : { ...r, duplicate: false, duplicate_kind: null };
+  });
 }

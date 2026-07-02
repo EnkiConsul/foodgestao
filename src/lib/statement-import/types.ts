@@ -26,6 +26,7 @@ export type ReviewRow = ParsedStatementEntry &
   ImportSuggestion & {
     include: boolean;
     duplicate: boolean;
+    duplicate_kind?: "existing" | "file" | null;
     /** Overridable by user */
     description_override?: string | null;
   };
