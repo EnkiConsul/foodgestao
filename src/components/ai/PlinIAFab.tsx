@@ -1,8 +1,11 @@
 import { Sparkles } from "lucide-react";
 import { openPlinIA } from "@/components/ai/plin-ia-controller";
+import { usePlinIAUsage } from "@/hooks/usePlinIAInsights";
 import { cn } from "@/lib/utils";
 
 export function PlinIAFab() {
+  const { data: usage } = usePlinIAUsage();
+  if (!usage?.aiEnabled) return null;
   return (
     <button
       type="button"

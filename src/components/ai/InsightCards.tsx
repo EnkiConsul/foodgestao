@@ -2,7 +2,7 @@ import { Sparkles, AlertTriangle, TrendingUp, Lightbulb } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { usePlinIAInsights, type PlinIAInsight } from "@/hooks/usePlinIAInsights";
+import { usePlinIAInsights, usePlinIAUsage, type PlinIAInsight } from "@/hooks/usePlinIAInsights";
 import { openPlinIA } from "@/components/ai/plin-ia-controller";
 
 const STYLES: Record<PlinIAInsight["tipo"], { icon: typeof Sparkles; className: string; label: string }> = {
@@ -24,8 +24,11 @@ const STYLES: Record<PlinIAInsight["tipo"], { icon: typeof Sparkles; className: 
 };
 
 export function InsightCards() {
-  const { data, isLoading, isError } = usePlinIAInsights();
+  const { data: usage } = usePlinIAUsage();
+  const enabled = !!usage?.aiEnabled;
+  const { data, isLoading, isError } = usePlinIAInsights(enabled);
 
+  if (!enabled) return null;
   if (isError) return null;
 
   return (
