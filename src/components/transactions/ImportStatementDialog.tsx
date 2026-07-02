@@ -29,6 +29,7 @@ interface Props {
 }
 
 type Step = "upload" | "review" | "done";
+type DuplicateDecision = "none" | "pending" | "skip" | "include";
 
 export function ImportStatementDialog({ open, onOpenChange, onImported }: Props) {
   const { user } = useAuth();
@@ -45,6 +46,7 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
   const [duplicateCount, setDuplicateCount] = useState(0);
   const [failures, setFailures] = useState<Array<{ row: ReviewRow; reason: string }>>([]);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [duplicateDecision, setDuplicateDecision] = useState<DuplicateDecision>("none");
 
   // Quick-create state
   const [quickCat, setQuickCat] = useState<{ rowIdx: number; type: "receita" | "despesa"; name: string } | null>(null);
@@ -54,6 +56,7 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
   const reset = useCallback(() => {
     setStep("upload"); setFile(null); setAccountId(""); setRows([]);
     setImportedCount(0); setDuplicateCount(0); setFailures([]); setProgress(null);
+    setDuplicateDecision("none");
     setQuickCat(null); setQuickContact(null);
   }, []);
 
@@ -99,6 +102,7 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
       });
       const withDup = await markDuplicates(withSug, accountId);
       setRows(withDup);
+      setDuplicateDecision(withDup.some((r) => r.duplicate) ? "pending" : "none");
       setStep("review");
     } catch (e) {
       console.error(e);
@@ -124,6 +128,11 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
 
   const updateRow = (idx: number, patch: Partial<ReviewRow>) => {
     setRows((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+  };
+
+  const applyDuplicateDecision = (decision: "skip" | "include") => {
+    setRows((prev) => prev.map((r) => (r.duplicate ? { ...r, include: decision === "include" } : r)));
+    setDuplicateDecision(decision);
   };
 
   const mapPgError = (err: { code?: string; message?: string } | null | undefined): string => {
@@ -152,8 +161,9 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
     const localFailures: Array<{ row: ReviewRow; reason: string }> = [];
     let inserted = 0;
     let duplicates = 0;
+    const reimportBatchId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-    const buildPayload = (r: ReviewRow) => ({
+    const buildPayload = (r: ReviewRow, idx: number) => ({
       user_id: user.id,
       context: contextType,
       company_id: contextType === "pj" ? selectedCompanyId : null,
@@ -169,14 +179,16 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
       bill_status: "pago" as const,
       category_id: r.category_id,
       contact_id: r.contact_id,
-      import_hash: r.duplicate ? null : r.import_hash,
+      import_hash: r.duplicate
+        ? `${r.import_hash}:reimport:${reimportBatchId}:${idx}`
+        : r.import_hash,
     });
 
     try {
       const chunkSize = 50;
       for (let i = 0; i < toInsert.length; i += chunkSize) {
         const sliceRows = toInsert.slice(i, i + chunkSize);
-        const slice = sliceRows.map(buildPayload);
+        const slice = sliceRows.map((r, offset) => buildPayload(r, i + offset));
         const { error, count } = await supabase.from("transactions").insert(slice, { count: "exact" });
         if (!error) {
           inserted += count ?? slice.length;
@@ -184,8 +196,8 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
           duplicates += 1;
         } else {
           // Fall back to per-row inserts to isolate the failure(s)
-          for (const r of sliceRows) {
-            const { error: rowErr } = await supabase.from("transactions").insert(buildPayload(r));
+          for (const [offset, r] of sliceRows.entries()) {
+            const { error: rowErr } = await supabase.from("transactions").insert(buildPayload(r, i + offset));
             if (!rowErr) {
               inserted += 1;
             } else if (rowErr.code === "23505") {
@@ -343,28 +355,16 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
               {summary.dup > 0 && (
                 <span className="flex items-center gap-2 text-amber-600">
                   <AlertTriangle className="h-3 w-3" />
-                  {summary.dup} já importado(s) — desmarcado(s)
-                  {rows.some((r) => r.duplicate && !r.include) ? (
-                    <Button
-                      type="button"
-                      variant="link"
-                      size="sm"
-                      className="h-auto p-0 text-amber-700 underline"
-                      onClick={() => setRows((prev) => prev.map((r) => (r.duplicate ? { ...r, include: true } : r)))}
-                    >
-                      Importar mesmo assim
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="link"
-                      size="sm"
-                      className="h-auto p-0 text-amber-700 underline"
-                      onClick={() => setRows((prev) => prev.map((r) => (r.duplicate ? { ...r, include: false } : r)))}
-                    >
-                      Desmarcar duplicados
-                    </Button>
-                  )}
+                  {summary.dup} já importado(s) — {duplicateDecision === "include" ? "serão importados novamente" : "não serão importados"}
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-amber-700 underline"
+                    onClick={() => setDuplicateDecision("pending")}
+                  >
+                    Alterar decisão
+                  </Button>
                 </span>
               )}
             </div>
@@ -388,7 +388,7 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
                 </TableHeader>
                 <TableBody>
                   {rows.map((r, i) => (
-                    <TableRow key={i} className={r.duplicate ? "opacity-60" : ""}>
+                    <TableRow key={i} className={r.duplicate && !r.include ? "opacity-60" : ""}>
                       <TableCell>
                         <Checkbox checked={r.include} onCheckedChange={(v) => updateRow(i, { include: !!v })} />
                       </TableCell>
@@ -399,7 +399,11 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
                           onChange={(e) => updateRow(i, { description_override: e.target.value })}
                           className="h-8 text-xs"
                         />
-                        {r.duplicate && <Badge variant="outline" className="mt-1 text-[10px]">Já importado</Badge>}
+                        {r.duplicate && (
+                          <Badge variant="outline" className="mt-1 text-[10px]">
+                            {r.include ? "Reimportar duplicado" : "Já importado"}
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge variant={r.transaction_type === "receita" ? "default" : "destructive"} className="text-[10px]">
@@ -555,6 +559,25 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
           </div>
         )}
       </DialogContent>
+
+      <Dialog open={step === "review" && duplicateDecision === "pending"} onOpenChange={(o) => !o && applyDuplicateDecision("skip")}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Importar lançamentos duplicados?</DialogTitle>
+            <DialogDescription>
+              Encontramos {summary.dup} lançamento(s) que já foram importados para esta conta. Escolha se deseja ignorá-los ou importar novamente.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => applyDuplicateDecision("skip")}>
+              Não importar duplicados
+            </Button>
+            <Button onClick={() => applyDuplicateDecision("include")}>
+              Importar duplicados também
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Quick create Category */}
       <Dialog open={!!quickCat} onOpenChange={(o) => !o && setQuickCat(null)}>
