@@ -249,5 +249,18 @@ function buildTools(
         _query: a.query ?? null, _limit: a.limit ?? 20,
       }),
     }),
+    plin_ia_dre_summary: tool({
+      description: "Retorna a última DRE publicada da empresa ativa (receita bruta/líquida, lucro bruto, EBIT, LAIR, lucro líquido, margens). Use quando o usuário perguntar sobre DRE, margem operacional, margem líquida, margem bruta ou análise contábil. Só funciona no contexto PJ.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        if (context !== "pj" || !companyId) {
+          return { error: "DRE está disponível apenas no contexto empresarial (PJ) com uma empresa selecionada." };
+        }
+        const { data, error } = await sb.rpc("dre_ultimo_snapshot", { _company_id: companyId });
+        if (error) return { error: error.message };
+        if (!data) return { data: null, message: "Nenhuma DRE publicada ainda. Oriente o usuário a acessar Relatórios > DRE Contábil e publicar a primeira." };
+        return { data };
+      },
+    }),
   };
 }
