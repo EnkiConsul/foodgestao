@@ -15,6 +15,7 @@ import { MfaChallenge } from "@/components/auth/MfaChallenge";
 
 import { z } from "zod";
 import { toast } from "sonner";
+import { trackEvent, FunnelStep } from "@/lib/analytics";
 
 const loginSchema = z.object({
   email: z.string().trim().email("E-mail inválido").max(255),
@@ -147,7 +148,17 @@ export default function Auth() {
         if (err.path[0]) fieldErrors[err.path[0] as string] = err.message;
       });
       setErrors(fieldErrors);
+      if (isSignup) {
+        trackEvent(FunnelStep.SignupValidationError, {
+          error_fields: Object.keys(fieldErrors).join(","),
+          error_count: Object.keys(fieldErrors).length,
+        });
+      }
       return;
+    }
+
+    if (isSignup) {
+      trackEvent(FunnelStep.SignupStart, { method: "email" });
     }
 
     setSubmitting(true);
@@ -162,7 +173,12 @@ export default function Auth() {
       } else {
         const { error } = await signUp(email, password, fullName);
         if (error) {
-          toast.error("Erro ao cadastrar", { description: translateAuthError(error.message) });
+          const translated = translateAuthError(error.message);
+          toast.error("Erro ao cadastrar", { description: translated });
+          trackEvent(FunnelStep.SignupError, {
+            method: "email",
+            error_message: error.message?.slice(0, 200) ?? "unknown",
+          });
         } else {
           // Log LGPD acceptance (best-effort, non-blocking)
           try {
@@ -176,6 +192,13 @@ export default function Auth() {
           } catch (e) {
             console.warn("Failed to log legal acceptance", e);
           }
+          // GA4 recommended event + qualified lead conversion
+          trackEvent(FunnelStep.SignupSuccess, { method: "email" });
+          trackEvent(FunnelStep.LeadGenerated, {
+            currency: "BRL",
+            value: 0,
+            method: "email_signup",
+          });
           toast.success("Cadastro realizado!");
           navigate("/onboarding");
         }
