@@ -562,24 +562,34 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
         )}
       </DialogContent>
 
-      <Dialog open={step === "review" && duplicateDecision === "pending"} onOpenChange={(o) => !o && applyDuplicateDecision("skip")}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Importar lançamentos duplicados?</DialogTitle>
-            <DialogDescription>
-              Encontramos {summary.dup} lançamento(s) que já foram importados para esta conta. Escolha se deseja ignorá-los ou importar novamente.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => applyDuplicateDecision("skip")}>
-              Não importar duplicados
-            </Button>
-            <Button onClick={() => applyDuplicateDecision("include")}>
-              Importar duplicados também
-            </Button>
-          </DialogFooter>
-        </DialogContent>
+        {/* placeholder — dialog moved outside for proper stacking */}
       </Dialog>
+
+      <AlertDialog
+        open={step === "review" && duplicateDecision === "pending"}
+        onOpenChange={(o) => { if (!o) applyDuplicateDecision("skip"); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Importar lançamentos duplicados?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Encontramos {summary.dup} lançamento(s) que já foram importados anteriormente para esta conta.
+              O que deseja fazer com eles?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => applyDuplicateDecision("skip")}>
+              Ignorar duplicados
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => applyDuplicateDecision("include")}>
+              Importar duplicados também
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={false} onOpenChange={() => {}}>
+        <DialogContent className="hidden" />
 
       {/* Quick create Category */}
       <Dialog open={!!quickCat} onOpenChange={(o) => !o && setQuickCat(null)}>
