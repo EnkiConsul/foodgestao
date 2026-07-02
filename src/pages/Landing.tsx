@@ -27,6 +27,7 @@ import {
 import { useLandingSection } from "@/hooks/useLandingContent";
 import { ContactSection } from "@/components/landing/ContactSection";
 import { Logo } from "@/components/Logo";
+import { WhatsappButton } from "@/components/WhatsappButton";
 import heroDashboard from "@/assets/hero-dashboard.png.asset.json";
 
 
@@ -838,6 +839,7 @@ export default function Landing() {
         <FinalCta utm={utm} />
       </main>
       <PublicFooter />
+      <WhatsappButton message="Olá! Vim pelo site e gostaria de saber mais sobre o Gestor Plin." />
     </div>
   );
 }
