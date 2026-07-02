@@ -53,7 +53,9 @@ function translateAuthError(message: string): string {
 }
 
 export default function Auth() {
-  const [mode, setMode] = useState<Mode>("login");
+  const [searchParams] = useSearchParams();
+  const initialMode: Mode = searchParams.get("tab") === "signup" ? "signup" : "login";
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -66,7 +68,6 @@ export default function Auth() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
 
   const checkMfaState = async () => {
     const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
@@ -92,6 +93,18 @@ export default function Auth() {
   const isLogin = mode === "login";
   const isSignup = mode === "signup";
   const isForgot = mode === "forgot";
+
+  // Track signup form view (funnel step between CTA click and signup_start)
+  const signupViewTracked = useRef(false);
+  useEffect(() => {
+    if (isSignup && !signupViewTracked.current) {
+      signupViewTracked.current = true;
+      trackEvent(FunnelStep.SignupFormView, {
+        referrer: document.referrer || "direct",
+      });
+    }
+    if (!isSignup) signupViewTracked.current = false;
+  }, [isSignup]);
 
   const getRedirectTarget = () => {
     const r = searchParams.get("redirect");
