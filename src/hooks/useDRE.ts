@@ -41,19 +41,24 @@ export function useDREMapeamento() {
         rubrica_id: input.rubrica_id,
         percentual_alocacao: input.percentual_alocacao ?? 100,
       };
+
+      // Remove qualquer duplicata existente (mesma categoria + rubrica) que não seja o próprio registro em edição
+      const delQ = supabase
+        .from("dre_categoria_mapeamento")
+        .delete()
+        .eq("company_id", selectedCompanyId)
+        .eq("categoria_id", input.categoria_id)
+        .eq("rubrica_id", input.rubrica_id);
+      if (input.id) delQ.neq("id", input.id);
+      const { error: delErr } = await delQ;
+      if (delErr) throw delErr;
+
       if (input.id) {
         const { error } = await supabase.from("dre_categoria_mapeamento").update(payload).eq("id", input.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from("dre_categoria_mapeamento")
-          .upsert(payload, { onConflict: "company_id,categoria_id,rubrica_id" });
-        if (error) {
-          if ((error as any).code === "23505") {
-            throw new Error("Esta categoria já está vinculada a essa rubrica. Edite o mapeamento existente ou escolha outra rubrica.");
-          }
-          throw error;
-        }
+        const { error } = await supabase.from("dre_categoria_mapeamento").insert(payload);
+        if (error) throw error;
       }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dre-mapeamento", selectedCompanyId] }),
