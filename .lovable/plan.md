@@ -1,59 +1,105 @@
-# Plin IA — Acesso real ao banco de dados via ferramentas
-
-## Diagnóstico
-
-Verifiquei o log da conversa mais recente:
-
-- Usuário: *"Qual foi o total de despesas no Nubank esse mês?"*
-- Plin IA: *"O resumo de dados atual não especifica o total de despesas por conta bancária…"*
-
-A IA está lendo dados, mas **apenas o resumo estático** montado em `plin-ia-context.ts` (totais do mês, top 5 categorias, próximos vencimentos, saldos das contas). Qualquer pergunta que sai desse recorte — "quanto gastei no Nubank?", "quanto pago para o fornecedor X?", "listar despesas de energia dos últimos 3 meses" — a IA responde honestamente que não tem esses dados, porque o prompt proíbe inventar.
-
-Além disso o contexto é cacheado por 5 min, então mesmo dados recém-lançados demoram para aparecer.
 
 ## Objetivo
+Adicionar o módulo **DRE Contábil** ao Gestor Plin, exclusivo para contexto **PJ** (empresas), integrado às `categories` e `transactions` existentes, seguindo Lei 6.404/76, ITG 1000/2022 e CPC 26 (R1).
 
-Trocar o modelo "contexto pré-montado" por **tool calling**: o Plin IA passa a consultar o banco sob demanda, com filtros arbitrários, respeitando `user_id`, `context` e `company_id` do usuário logado.
+Escopo: entrega única com backend + telas + exportação + integração com Plin IA.
 
-## O que mudar
+---
 
-### 1. Novas RPCs SQL (SECURITY DEFINER, escopo = auth.uid())
+## 1. Backend (migração única)
 
-Criar migração com funções que a Edge Function chama com o cliente autenticado do usuário (não service-role), garantindo isolamento por RLS + validação de membership:
+**Tabelas novas (schema `public`):**
 
-- `plin_ia_summary(_context, _company_id, _from, _to)` — receitas, despesas, saldo, pendentes, vencidos no período.
-- `plin_ia_by_account(_context, _company_id, _from, _to, _type)` — total por conta bancária.
-- `plin_ia_by_category(_context, _company_id, _from, _to, _type)` — total por categoria.
-- `plin_ia_by_contact(_context, _company_id, _from, _to, _type)` — total por cliente/fornecedor.
-- `plin_ia_upcoming(_context, _company_id, _days)` — vencimentos futuros (padrão 7d).
-- `plin_ia_overdue(_context, _company_id)` — vencidos em aberto.
-- `plin_ia_search_transactions(_context, _company_id, _from, _to, _type, _status, _account_id, _category_id, _contact_id, _min, _max, _query, _limit)` — busca livre, limite 50.
-- `plin_ia_cashflow(_context, _company_id, _months)` — série mensal (padrão 6m).
+- `dre_rubricas` — catálogo global de rubricas contábeis (seed com toda a árvore normativa; código, nome, tipo, natureza credora/devedora, `is_calculada`, `formula`, `ordem`, `editavel_usuario`, `visivel`). Leitura para `authenticated`, escrita restrita a `super_admin`.
+- `dre_categoria_mapeamento` — vínculo `company_id + categoria_id → rubrica_id` com `percentual_alocacao` (permite dividir 1 categoria em até N rubricas somando 100%). RLS: membros da empresa leem; `owner`/`admin` escrevem.
+- `dre_ajustes_manuais` — ajustes por `company_id + rubrica_id + período`, `tipo_ajuste` (adicionar/subtrair/substituir), fluxo de aprovação (`aprovado_por`, `aprovado_em`). RLS: membros leem; `owner`/`admin` criam; só `owner` aprova.
+- `dre_snapshots` — snapshot imutável (`dados_json`) da DRE publicada por período, com totais denormalizados (receita bruta/líquida, lucro bruto, EBIT, LAIR, lucro líquido). RLS: membros leem; `owner`/`admin` publicam.
 
-Todas validam `private.is_company_member` quando `_context = 'pj'` e retornam vazio se `auth.uid()` não bate.
+**Grants:** `SELECT/INSERT/UPDATE/DELETE` para `authenticated` conforme políticas, `ALL` para `service_role`. Índices em `(categoria_id)`, `(rubrica_id)`, `(company_id, periodo_inicio, periodo_fim)`.
 
-### 2. Reescrever `supabase/functions/ai-financial-agent/index.ts`
+**Funções (SECURITY DEFINER, `EXECUTE` só para `authenticated`):**
 
-- Remover cache + `buildFinancialContext` estático. Manter apenas um "mini-briefing" curto (data atual, contexto ativo, nome da empresa quando PJ) no system prompt.
-- Registrar ferramentas `ai` SDK (`tool({ description, inputSchema: zod, execute })`) — uma por RPC acima. Cada `execute` chama a RPC via cliente Supabase **autenticado com o JWT do usuário** (não service-role) e devolve JSON compacto.
-- Ativar `stopWhen: stepCountIs(6)` para permitir múltiplas chamadas de ferramenta antes da resposta final.
-- Atualizar o system prompt: instruir o agente a **sempre chamar ferramentas** para responder perguntas sobre valores/períodos/contas específicos, e só resumir depois.
-- Manter feature-flag, quota diária, persistência em `ia_conversations` e `ia_usage_control`.
+- `dre_generate(_company_id uuid, _from date, _to date, _regime text)` → retorna JSON com árvore hierárquica de rubricas + valores agregados + totais calculados (Receita Líquida, Lucro Bruto, EBIT, LAIR, Lucro Líquido). Uma única query com `JOIN transactions ⋈ dre_categoria_mapeamento ⋈ dre_rubricas`, respeitando `is_company_member`. Regime `caixa` filtra por `payment_date` (status confirmado); `competência` por `due_date`.
+- `dre_apply_default_mapping(_company_id uuid)` — sugere mapeamento por nome de categoria (heurística de string) para categorias sem vínculo.
+- `dre_check_consistency(_company_id, _from, _to)` — retorna lista de categorias/lançamentos sem mapeamento no período.
+- `dre_publish_snapshot(_company_id, _from, _to, _titulo, _observacoes)` — chama `dre_generate`, grava snapshot imutável com totais denormalizados.
 
-### 3. Frontend
+**Seed:** insere ~35 rubricas da estrutura normativa (RECEITA BRUTA → LUCRO LÍQUIDO), incluindo linhas calculadas (`REC_LIQ`, `LUC_BRU`, `EBIT`, `LAIR`, `LUCRO_LIQ`).
 
-- `PlinIAPanel.tsx`: continuar renderizando `message.parts`, mas incluir parts do tipo `tool-*` mostrando um indicador discreto ("Consultando lançamentos…") enquanto `state !== 'output-available'`. Não expor payloads brutos.
-- Nenhuma mudança em `usePlinIAAgent.ts` (transport já envia `context` e `companyId`).
+---
+
+## 2. Frontend
+
+**Rotas novas em `src/App.tsx`:**
+
+```text
+/relatorios/dre                  → geração/visualização
+/relatorios/dre/configuracao     → mapeamento categorias ↔ rubricas
+/relatorios/dre/rubricas         → gestão de rubricas (super_admin)
+/relatorios/dre/historico        → lista de snapshots
+/relatorios/dre/historico/:id    → visualização de snapshot publicado
+```
+
+Todas exigem contexto **PJ** ativo (se PF, banner "Módulo disponível apenas no perfil empresarial").
+
+**Componentes (`src/components/dre/`):**
+- `DREReport.tsx` — tabela hierárquica com colunas Valor / % Rec. Líquida / Comparativo período anterior / Variação %.
+- `DRELine.tsx`, `DRESubtotal.tsx` — linhas com indentação por nível de código.
+- `DREIndicators.tsx` — cards de Margem Bruta, Margem Operacional, Margem Líquida, EBITDA, Índice Inadimplência.
+- `CategoryMappingPanel.tsx` + `RubricaTree.tsx` — mapeamento com filtro "Não mapeadas", divisão percentual, botão "Aplicar mapeamento padrão".
+- `ManualAdjustModal.tsx` — criação/aprovação de ajustes.
+- `DREExportButton.tsx` — PDF (via `jspdf` + `jspdf-autotable`, já no projeto de relatórios), Excel (`xlsx`), CSV.
+- `DREConsistencyBanner.tsx` — avisos de categorias/lançamentos não mapeados.
+
+**Hooks (`src/hooks/`):**
+- `useDREGeneration.ts` — chama RPC `dre_generate` com filtros (período, regime, comparativo).
+- `useDREMapping.ts` — CRUD do mapeamento + heurística default.
+- `useDRESnapshots.ts` — lista/publica/lê snapshots.
+- `useDRERubricas.ts` — árvore de rubricas.
+
+**Menu:** adicionar submenu "DRE" em `AppSidebar.tsx` sob "Relatórios" (só aparece no contexto PJ).
+
+**Permissões (mapeamento acordado):**
+- `owner` + `admin` da empresa = admin/manager (mapeamento, ajustes, publicação; aprovação de ajustes só `owner`).
+- `member` = operator (só visualiza e exporta).
+- `viewer` = só visualiza.
+- Edição de rubricas globais = `super_admin`.
+- Enforcement no backend (RLS + funções) e na UI (esconder ações).
+
+---
+
+## 3. Integração Plin IA
+
+Estender `supabase/functions/_shared/plin-ia-context.ts`:
+- No contexto PJ, buscar último snapshot publicado da empresa ativa e injetar `dre_ultimo_periodo` no `contextToText`.
+- Adicionar tool `plin_ia_dre_summary(_company_id)` no `ai-financial-agent` para o LLM consultar sob demanda a última DRE.
+- Novas quick prompts em `src/pages/PlinIA.tsx`: "Como está minha margem operacional?", "Analise minha última DRE", "Onde estou perdendo mais dinheiro?".
+
+---
+
+## 4. Validações e alertas
+- Banner no topo do relatório quando há categorias sem mapeamento.
+- Aviso se `Receita Bruta = 0` ou `Deduções > Receita Bruta`.
+- Destaque vermelho quando `Lucro Líquido < 0` (Prejuízo do Exercício).
+- Snapshots publicados são imutáveis (trigger que impede UPDATE em `dados_json` e totais quando `status = 'publicado'`).
+
+---
 
 ## Detalhes técnicos
+- Valores em `NUMERIC(15,2)`; formatação BRL via `formatBRL` já existente.
+- Query de geração otimizada (single `SELECT` com CTE agregando por rubrica).
+- Snapshot armazena JSON completo — republicação gera nova versão.
+- Trigger de auditoria em `dre_ajustes_manuais` (INSERT/UPDATE/APROVAÇÃO) via `insert_audit_log`.
+- Zod schemas em `src/lib/validations.ts` para ajustes e snapshot.
 
-- Cliente autenticado dentro de cada `execute`: reaproveitar `supabaseAuth` já criado no handler (fecha sobre o `authHeader`).
-- Zod schemas com defaults sensatos (`_days=7`, `_months=6`, `_limit=20`, `_type` opcional `'receita'|'despesa'|'transferencia'`).
-- Datas: aceitar `_from`/`_to` como ISO date; se omitidos, RPC assume mês atual.
-- Segurança: nenhuma RPC aceita `user_id` como parâmetro — sempre `auth.uid()`.
-- Custo: manter `google/gemini-2.5-pro`; contabilizar `usage.totalTokens` no `onFinish` como hoje.
+---
 
-## Fora de escopo
+## Ordem de execução
+1. Migração SQL (tabelas + RLS + grants + seed rubricas + funções RPC + triggers).
+2. Types regenerados automaticamente.
+3. Hooks + páginas + componentes DRE.
+4. Rota, sidebar, guard PJ.
+5. Extensão Plin IA (context + tool + quick prompts).
+6. Verificação: build, screenshot da tela `/relatorios/dre` via Playwright.
 
-- Ações que escrevem no banco (criar lançamento, marcar como pago). Ficam para uma próxima iteração.
-- Mudanças nos cards de insights do dashboard.
+Após aprovar, começo pela migração (que precisa da sua aprovação separada) e sigo com o restante em sequência.
