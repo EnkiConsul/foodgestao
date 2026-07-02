@@ -153,20 +153,33 @@ export default function ContasBancarias() {
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
-            onClick={async () => {
-              const { error } = await supabase.rpc("recompute_all_account_balances");
-              if (error) toast.error("Erro ao recalcular saldos");
-              else { toast.success("Saldos recalculados"); fetchAccounts(); }
-            }}
+            onClick={handleResync}
+            disabled={resyncing}
             className="hidden md:flex"
           >
-            <RefreshCw className="h-4 w-4 mr-2" /> Recalcular saldos
+            <RefreshCw className={`h-4 w-4 mr-2 ${resyncing ? "animate-spin" : ""}`} /> Recalcular saldos
           </Button>
           <Button onClick={() => { setEditAccount(null); setDialogOpen(true); }} className="hidden md:flex">
             <Plus className="h-4 w-4 mr-2" /> Nova Conta
           </Button>
         </div>
       </div>
+
+      {staleBalance && (
+        <Alert variant="destructive" className="border-warning/50 bg-warning/10 text-foreground [&>svg]:text-warning">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Saldos podem estar desatualizados</AlertTitle>
+          <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-1">
+            <span className="text-sm">
+              Detectamos uma alteração em lançamentos que ainda não refletiu nos saldos deste perfil.
+            </span>
+            <Button size="sm" variant="outline" onClick={handleResync} disabled={resyncing}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${resyncing ? "animate-spin" : ""}`} />
+              Re-sincronizar agora
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-3">
