@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,6 +33,12 @@ export default function Contatos() {
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // Atualização em tempo real de contatos (clientes / fornecedores)
+  useRealtimeSync({
+    tables: ["contacts", "contact_companies"],
+    invalidateKeyPrefixes: ["contacts-page", "contact-companies-page"],
+  });
 
   const { data: contacts = [], refetch } = useQuery({
     queryKey: ["contacts-page", user?.id],

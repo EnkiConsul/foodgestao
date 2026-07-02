@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { usePrivacy } from "@/hooks/usePrivacy";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +58,12 @@ export default function ContasBancarias() {
   }, [user, contextType, selectedCompanyId]);
 
   useEffect(() => { fetchAccounts(); }, [fetchAccounts]);
+
+  // Atualização em tempo real ao criar/editar/excluir contas
+  useRealtimeSync({
+    tables: ["accounts"],
+    onChange: () => { fetchAccounts(); },
+  });
 
   const handleDelete = async () => {
     if (!deleteAccount) return;
