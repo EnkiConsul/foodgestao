@@ -161,7 +161,7 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
     setProgress({ done: 0, total: toInsert.length });
     const localFailures: Array<{ row: ReviewRow; reason: string }> = [];
     let inserted = 0;
-    let duplicates = 0;
+    let duplicates = rows.filter((r) => r.duplicate && !r.include).length;
     const reimportBatchId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     const buildPayload = (r: ReviewRow, idx: number) => ({
