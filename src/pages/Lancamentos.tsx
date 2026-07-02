@@ -294,10 +294,13 @@ export default function Lancamentos() {
     fetchPreviousBalance();
   }, [fetchTransactions, fetchPreviousBalance]);
 
-  // Sincronização em tempo real — recarrega quando outro membro altera transações
+  // Sincronização em tempo real — recarrega quando qualquer lançamento
+  // (incluindo os criados via recorrência, transferências ou por outro membro)
+  // ou conta relacionada é alterado, sem precisar de F5.
   useRealtimeSync({
-    tables: ["transactions"],
+    tables: ["transactions", "accounts", "categories", "payment_methods"],
     onChange: refreshAll,
+    debounceMs: 250,
   });
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
