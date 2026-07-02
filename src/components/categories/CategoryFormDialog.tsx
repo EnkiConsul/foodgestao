@@ -87,7 +87,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
           setSelectedCompanies(new Set((data ?? []).map((d) => d.company_id)));
         });
     } else {
-      setName("");
+      setName(defaultName ?? "");
       setType(defaultType ?? "despesa");
       setColor("#3b82f6");
       setParentId(defaultParentId || null);
