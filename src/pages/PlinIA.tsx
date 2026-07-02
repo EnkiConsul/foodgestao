@@ -10,8 +10,10 @@ const QUICK_PROMPTS = [
   "Como está meu fluxo de caixa este mês?",
   "Quais são meus maiores gastos?",
   "Tenho lançamentos vencidos?",
-  "Como estou comparado ao mês passado?",
-  "Quando vence meu próximo compromisso?",
+  "Como está minha margem operacional (EBIT%)?",
+  "Qual minha margem líquida no trimestre?",
+  "Gere uma análise da minha DRE do mês",
+  "Onde estou perdendo mais dinheiro na DRE?",
   "Resuma minhas receitas dos últimos 30 dias",
 ];
 
