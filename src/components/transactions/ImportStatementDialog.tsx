@@ -364,9 +364,31 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
               <span className="text-success">Receitas: <strong>{formatBRL(summary.receitas)}</strong></span>
               <span className="text-destructive">Despesas: <strong>{formatBRL(summary.despesas)}</strong></span>
               {summary.dup > 0 && (
-                <span className="flex items-center gap-2 text-amber-600">
+                <span className="flex items-center gap-2 text-amber-600 flex-wrap">
                   <AlertTriangle className="h-3 w-3" />
-                  {summary.dup} duplicado(s) — {summary.dupSelected > 0 ? `${summary.dupSelected} serão importados novamente` : "não serão importados"}
+                  {summary.dup} duplicado(s) — {summary.dupSelected} selecionado(s) para reimportar
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-amber-700 underline"
+                    onClick={() =>
+                      setRows((prev) => prev.map((r) => (r.duplicate ? { ...r, include: true } : r)))
+                    }
+                  >
+                    Marcar todas duplicadas
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-amber-700 underline"
+                    onClick={() =>
+                      setRows((prev) => prev.map((r) => (r.duplicate ? { ...r, include: false } : r)))
+                    }
+                  >
+                    Desmarcar todas duplicadas
+                  </Button>
                   <Button
                     type="button"
                     variant="link"
