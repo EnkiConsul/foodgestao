@@ -169,7 +169,7 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
       bill_status: "pago" as const,
       category_id: r.category_id,
       contact_id: r.contact_id,
-      import_hash: r.import_hash,
+      import_hash: r.duplicate ? null : r.import_hash,
     });
 
     try {
