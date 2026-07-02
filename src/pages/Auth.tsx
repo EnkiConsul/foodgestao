@@ -200,39 +200,52 @@ export default function Auth() {
           await checkMfaAndRedirect();
         }
       } else {
-        const { error } = await signUp(email, password, fullName);
-        if (error) {
-          const translated = translateAuthError(error.message);
-          const { reason, category } = classifySignupError(error.message);
-          toast.error("Erro ao cadastrar", { description: translated });
+        try {
+          const { error } = await signUp(email, password, fullName);
+          if (error) {
+            const translated = translateAuthError(error.message);
+            const { reason, category } = classifySignupError(error.message);
+            toast.error("Erro ao cadastrar", { description: translated });
+            trackEvent(FunnelStep.SignupError, {
+              method: "email",
+              reason,
+              error_category: category,
+              error_message: error.message?.slice(0, 200) ?? "unknown",
+            });
+          } else {
+            // Log LGPD acceptance (best-effort, non-blocking)
+            try {
+              const { data: { user: newUser } } = await supabase.auth.getUser();
+              if (newUser) {
+                await supabase.from("legal_acceptances").insert([
+                  { user_id: newUser.id, document_type: "terms", document_version: "1.0", user_agent: navigator.userAgent },
+                  { user_id: newUser.id, document_type: "privacy", document_version: "1.0", user_agent: navigator.userAgent },
+                ]);
+              }
+            } catch (e) {
+              console.warn("Failed to log legal acceptance", e);
+            }
+            // GA4 recommended event + qualified lead conversion
+            trackEvent(FunnelStep.SignupSuccess, { method: "email" });
+            trackEvent(FunnelStep.LeadGenerated, {
+              currency: "BRL",
+              value: 0,
+              method: "email_signup",
+            });
+            toast.success("Cadastro realizado!");
+            navigate("/onboarding");
+          }
+        } catch (thrown) {
+          const msg = thrown instanceof Error ? thrown.message : String(thrown);
+          const { reason, category } = classifySignupError(msg);
+          toast.error("Erro ao cadastrar", { description: "Falha de conexão. Tente novamente." });
           trackEvent(FunnelStep.SignupError, {
             method: "email",
             reason,
             error_category: category,
-            error_message: error.message?.slice(0, 200) ?? "unknown",
+            error_message: msg.slice(0, 200),
+            thrown: true,
           });
-        } else {
-          // Log LGPD acceptance (best-effort, non-blocking)
-          try {
-            const { data: { user: newUser } } = await supabase.auth.getUser();
-            if (newUser) {
-              await supabase.from("legal_acceptances").insert([
-                { user_id: newUser.id, document_type: "terms", document_version: "1.0", user_agent: navigator.userAgent },
-                { user_id: newUser.id, document_type: "privacy", document_version: "1.0", user_agent: navigator.userAgent },
-              ]);
-            }
-          } catch (e) {
-            console.warn("Failed to log legal acceptance", e);
-          }
-          // GA4 recommended event + qualified lead conversion
-          trackEvent(FunnelStep.SignupSuccess, { method: "email" });
-          trackEvent(FunnelStep.LeadGenerated, {
-            currency: "BRL",
-            value: 0,
-            method: "email_signup",
-          });
-          toast.success("Cadastro realizado!");
-          navigate("/onboarding");
         }
       }
     } finally {
