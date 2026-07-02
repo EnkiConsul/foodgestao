@@ -415,6 +415,96 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
           </div>
         )}
       </DialogContent>
+
+      {/* Quick create Category */}
+      <Dialog open={!!quickCat} onOpenChange={(o) => !o && setQuickCat(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Nova categoria</DialogTitle>
+            <DialogDescription>
+              Criar {quickCat?.type === "receita" ? "categoria de receita" : "categoria de despesa"}
+              {contextType === "pj" ? " para esta empresa." : " no perfil pessoal."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label>Nome</Label>
+              <Input
+                autoFocus
+                value={quickCat?.name ?? ""}
+                onChange={(e) => setQuickCat((q) => (q ? { ...q, name: e.target.value } : q))}
+                onKeyDown={(e) => { if (e.key === "Enter" && !savingQuick) createQuickCategory(); }}
+                placeholder="Ex.: Alimentação"
+              />
+            </div>
+            <div>
+              <Label>Tipo</Label>
+              <Select
+                value={quickCat?.type ?? "despesa"}
+                onValueChange={(v) => setQuickCat((q) => (q ? { ...q, type: v as "receita" | "despesa" } : q))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="receita">Receita</SelectItem>
+                  <SelectItem value="despesa">Despesa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setQuickCat(null)} disabled={savingQuick}>Cancelar</Button>
+            <Button onClick={createQuickCategory} disabled={savingQuick || !quickCat?.name?.trim()}>
+              {savingQuick ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+              Criar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quick create Contact */}
+      <Dialog open={!!quickContact} onOpenChange={(o) => !o && setQuickContact(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Novo contato</DialogTitle>
+            <DialogDescription>
+              Criar contato{contextType === "pj" ? " para esta empresa." : " no perfil pessoal."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label>Nome</Label>
+              <Input
+                autoFocus
+                value={quickContact?.name ?? ""}
+                onChange={(e) => setQuickContact((q) => (q ? { ...q, name: e.target.value } : q))}
+                onKeyDown={(e) => { if (e.key === "Enter" && !savingQuick) createQuickContact(); }}
+                placeholder="Nome do cliente ou fornecedor"
+              />
+            </div>
+            <div>
+              <Label>Tipo</Label>
+              <Select
+                value={quickContact?.contactType ?? "fornecedor"}
+                onValueChange={(v) => setQuickContact((q) => (q ? { ...q, contactType: v as "cliente" | "fornecedor" | "ambos" } : q))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cliente">Cliente</SelectItem>
+                  <SelectItem value="fornecedor">Fornecedor</SelectItem>
+                  <SelectItem value="ambos">Ambos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setQuickContact(null)} disabled={savingQuick}>Cancelar</Button>
+            <Button onClick={createQuickContact} disabled={savingQuick || !quickContact?.name?.trim()}>
+              {savingQuick ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+              Criar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
