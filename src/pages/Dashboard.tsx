@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, AreaChart, Area } from "recharts";
 import { BankLogo } from "@/components/accounts/BankLogo";
-import { InsightCards } from "@/components/ai/InsightCards";
+
 
 const DONUT_COLORS = [
   "hsl(210, 52%, 45%)",
@@ -214,7 +214,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <InsightCards />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
