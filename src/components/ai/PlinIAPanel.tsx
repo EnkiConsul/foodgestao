@@ -105,6 +105,7 @@ export function PlinIAPanel() {
 
           {messages.map((m) => {
             const text = m.parts.filter((p: any) => p.type === "text").map((p: any) => p.text).join("");
+            const toolParts = (m.parts as any[]).filter((p: any) => typeof p.type === "string" && p.type.startsWith("tool-"));
             const isUser = m.role === "user";
             return (
               <div key={m.id} className={cn("flex gap-2", isUser ? "justify-end" : "justify-start")}>
@@ -124,9 +125,25 @@ export function PlinIAPanel() {
                   {isUser ? (
                     <p className="whitespace-pre-wrap">{text}</p>
                   ) : (
-                    <div className="prose prose-sm prose-invert max-w-none prose-p:my-1.5 prose-headings:mt-3 prose-headings:mb-1 prose-table:text-xs prose-th:px-2 prose-td:px-2">
-                      <ReactMarkdown>{text || "…"}</ReactMarkdown>
-                    </div>
+                    <>
+                      {toolParts.length > 0 && (
+                        <div className="mb-2 space-y-1">
+                          {toolParts.map((tp: any, i: number) => {
+                            const ready = tp.state === "output-available" || tp.state === "result";
+                            const label = String(tp.type).replace(/^tool-plin_ia_/, "").replace(/_/g, " ");
+                            return (
+                              <div key={i} className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                                <span className={cn("h-1.5 w-1.5 rounded-full", ready ? "bg-emerald-500" : "bg-amber-500 animate-pulse")} />
+                                {ready ? `Consultou: ${label}` : `Consultando ${label}…`}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      <div className="prose prose-sm prose-invert max-w-none prose-p:my-1.5 prose-headings:mt-3 prose-headings:mb-1 prose-table:text-xs prose-th:px-2 prose-td:px-2">
+                        <ReactMarkdown>{text || "…"}</ReactMarkdown>
+                      </div>
+                    </>
                   )}
                 </div>
                 {isUser && (
@@ -137,6 +154,7 @@ export function PlinIAPanel() {
               </div>
             );
           })}
+
 
           {status === "submitted" && (
             <div className="flex gap-2 justify-start">
