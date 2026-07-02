@@ -121,9 +121,10 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
   const summary = useMemo(() => {
     const sel = rows.filter((r) => r.include);
     const dup = rows.filter((r) => r.duplicate).length;
+    const dupSelected = rows.filter((r) => r.duplicate && r.include).length;
     const receitas = sel.filter((r) => r.transaction_type === "receita").reduce((s, r) => s + r.amount, 0);
     const despesas = sel.filter((r) => r.transaction_type === "despesa").reduce((s, r) => s + r.amount, 0);
-    return { selected: sel.length, dup, receitas, despesas };
+    return { selected: sel.length, dup, dupSelected, receitas, despesas };
   }, [rows]);
 
   const updateRow = (idx: number, patch: Partial<ReviewRow>) => {
@@ -355,7 +356,7 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
               {summary.dup > 0 && (
                 <span className="flex items-center gap-2 text-amber-600">
                   <AlertTriangle className="h-3 w-3" />
-                  {summary.dup} já importado(s) — {duplicateDecision === "include" ? "serão importados novamente" : "não serão importados"}
+                  {summary.dup} duplicado(s) — {summary.dupSelected > 0 ? `${summary.dupSelected} serão importados novamente` : "não serão importados"}
                   <Button
                     type="button"
                     variant="link"
