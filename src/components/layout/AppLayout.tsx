@@ -9,6 +9,7 @@ import { useBillingRealtime } from "@/hooks/useBillingRealtime";
 import { Outlet } from "react-router-dom";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { PerfOverlay } from "@/components/dev/PerfOverlay";
+import { WhatsappButton } from "@/components/WhatsappButton";
 import { markRouteStart, profilerOnRender } from "@/lib/perf";
 
 export function AppLayout() {

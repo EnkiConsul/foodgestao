@@ -819,6 +819,9 @@ function PublicFooter() {
   );
 }
 
+/* ----------------------------- WhatsApp FAB ----------------------------- */
+import { WhatsappButton } from "@/components/WhatsappButton";
+
 /* ----------------------------- Page ----------------------------- */
 export default function Landing() {
   const utm = useUtmQuery();
@@ -838,6 +841,7 @@ export default function Landing() {
         <FinalCta utm={utm} />
       </main>
       <PublicFooter />
+      <WhatsappButton message="Olá! Vim pelo site e gostaria de saber mais sobre o Gestor Plin." />
     </div>
   );
 }
