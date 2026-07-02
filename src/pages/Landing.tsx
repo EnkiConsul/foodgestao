@@ -141,7 +141,8 @@ function CtaPrimary({
   const href = buildCta("/auth?tab=signup", utm, extra);
   return (
     <Button asChild size={size} className={className}>
-      <Link to={href} onClick={() => trackCta(source)}>
+      <Link to={href} onClick={() => trackCta(source, label)}>
+
         {label}
         <ArrowRight className="ml-1.5 h-4 w-4" />
       </Link>
