@@ -75,7 +75,7 @@ export function AdminPlans() {
                       <div className="flex justify-between"><span className="text-muted-foreground">Perfil extra</span><span>{formatCents(f.price_per_extra_company_cents)} (incl. {f.included_companies ?? f.max_companies})</span></div>
                     )}
                     <div className="flex justify-between"><span className="text-muted-foreground">IA</span><span>{f.ai_enabled ? "Sim" : "Não"}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">PDF</span><span>{f.export_pdf ? "Sim" : "Não"}</span></div>
+                    
                   </div>
                 </CardContent>
               </Card>
