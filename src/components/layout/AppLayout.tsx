@@ -9,6 +9,8 @@ import { useBillingRealtime } from "@/hooks/useBillingRealtime";
 import { Outlet } from "react-router-dom";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { PerfOverlay } from "@/components/dev/PerfOverlay";
+import { PlinIAFab } from "@/components/ai/PlinIAFab";
+import { PlinIAPanel } from "@/components/ai/PlinIAPanel";
 
 import { markRouteStart, profilerOnRender } from "@/lib/perf";
 
@@ -38,6 +40,9 @@ export function AppLayout() {
       <BottomNav />
       <InstallPrompt />
       <PerfOverlay />
+      <PlinIAFab />
+      <PlinIAPanel />
+      
       
     </SidebarProvider>
   );
