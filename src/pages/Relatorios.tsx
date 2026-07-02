@@ -186,7 +186,10 @@ export default function Relatorios() {
 
   const fluxoCaixaData = useMemo(() => {
     // Generate dynamic month columns from the active date range
-    const monthIntervals = eachMonthOfInterval({ start: activeRange.from, end: activeRange.to });
+    const monthIntervals = eachMonthOfInterval({
+      start: startOfMonth(activeRange.from),
+      end: endOfMonth(activeRange.to),
+    });
     const MONTH_SHORT = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
     const monthKeys = monthIntervals.map((d) => format(d, "yyyy-MM"));
     const MONTH_LABELS = monthIntervals.map((d) => {
