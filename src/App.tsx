@@ -257,6 +257,7 @@ const AppRoutes = () => (
       }
     >
       <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/plin-ia" element={<PlinIA />} />
       <Route path="/lancamentos" element={<Lancamentos />} />
       
       <Route path="/fluxo-caixa" element={<FluxoCaixa />} />

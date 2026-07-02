@@ -15,6 +15,7 @@ import {
   LogOut,
   Shield,
   Sparkles,
+  Bot,
   Receipt,
   MessageCircle,
 } from "lucide-react";
@@ -44,6 +45,7 @@ const mainItems = [
   { title: "Fluxo de Caixa", url: "/fluxo-caixa", icon: TrendingUp },
   { title: "Orçamento", url: "/orcamento", icon: Target },
   { title: "Relatórios", url: "/relatorios", icon: FileBarChart },
+  { title: "Plin IA", url: "/plin-ia", icon: Bot },
 ];
 
 const secondaryItems = [
