@@ -6,14 +6,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, ArrowLeft, CheckCircle2, Wand2, Trash2 } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCircle2, Wand2, Trash2, Save, X } from "lucide-react";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
-import { useDRERubricas, useDREMapeamento } from "@/hooks/useDRE";
+import { useDRERubricas, useDREMapeamento, useDRERealtime } from "@/hooks/useDRE";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Helmet } from "react-helmet-async";
+
+type PendingChange = { rubricaId: string; existingId?: string };
 
 export default function DREMapeamento() {
   const { contextType, selectedCompanyId } = useCompanyContext();
@@ -22,9 +24,12 @@ export default function DREMapeamento() {
 
   const [showOnlyUnmapped, setShowOnlyUnmapped] = useState(false);
   const [search, setSearch] = useState("");
+  const [pending, setPending] = useState<Record<string, PendingChange>>({});
+  const [saving, setSaving] = useState(false);
 
   const { data: rubricas = [] } = useDRERubricas();
   const { data: mapeamentos = [], upsert, remove, applyDefault } = useDREMapeamento();
+  useDRERealtime();
 
   const { data: categorias = [] } = useQuery({
     queryKey: ["dre-categorias-company", selectedCompanyId],
@@ -52,24 +57,46 @@ export default function DREMapeamento() {
 
   const filtered = useMemo(() => {
     return categorias.filter((c: any) => {
-      const mapped = (mapPorCategoria.get(c.id)?.length ?? 0) > 0;
+      const mapped = (mapPorCategoria.get(c.id)?.length ?? 0) > 0 || !!pending[c.id];
       if (showOnlyUnmapped && mapped) return false;
       if (search && !c.name.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [categorias, mapPorCategoria, showOnlyUnmapped, search]);
+  }, [categorias, mapPorCategoria, pending, showOnlyUnmapped, search]);
 
-  const unmappedCount = categorias.filter((c: any) => !mapPorCategoria.get(c.id)).length;
+  const unmappedCount = categorias.filter((c: any) => !mapPorCategoria.get(c.id) && !pending[c.id]).length;
+  const pendingCount = Object.keys(pending).length;
 
   const rubricasSelecionaveis = rubricas.filter((r) => r.editavel_usuario || !r.is_calculada);
 
-  const handleAssign = async (categoriaId: string, rubricaId: string, existingId?: string) => {
-    try {
-      await upsert.mutateAsync({ id: existingId, categoria_id: categoriaId, rubrica_id: rubricaId, percentual_alocacao: 100 });
-      toast.success("Mapeamento atualizado");
-    } catch (e: any) {
-      toast.error(e.message ?? "Erro");
+  const handleStage = (categoriaId: string, rubricaId: string, existingId?: string) => {
+    setPending((prev) => ({ ...prev, [categoriaId]: { rubricaId, existingId } }));
+  };
+
+  const handleDiscard = () => setPending({});
+
+  const handleSaveAll = async () => {
+    if (pendingCount === 0) return;
+    setSaving(true);
+    let ok = 0;
+    let fail = 0;
+    for (const [categoriaId, change] of Object.entries(pending)) {
+      try {
+        await upsert.mutateAsync({
+          id: change.existingId,
+          categoria_id: categoriaId,
+          rubrica_id: change.rubricaId,
+          percentual_alocacao: 100,
+        });
+        ok++;
+      } catch {
+        fail++;
+      }
     }
+    setSaving(false);
+    setPending({});
+    if (fail === 0) toast.success(`${ok} mapeamento(s) salvo(s). DRE atualizada.`);
+    else toast.warning(`${ok} salvo(s), ${fail} com erro.`);
   };
 
   const handleApplyDefault = async () => {
@@ -108,12 +135,34 @@ export default function DREMapeamento() {
           <p className="text-sm text-muted-foreground">Vincule cada categoria financeira a uma rubrica contábil da DRE.</p>
         </div>
         {canEdit && (
-          <Button onClick={handleApplyDefault} disabled={applyDefault.isPending}>
-            <Wand2 className="h-4 w-4 mr-1.5" />
-            Aplicar mapeamento padrão
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="outline" onClick={handleApplyDefault} disabled={applyDefault.isPending || saving}>
+              <Wand2 className="h-4 w-4 mr-1.5" />
+              Aplicar mapeamento padrão
+            </Button>
+            {pendingCount > 0 && (
+              <Button variant="ghost" onClick={handleDiscard} disabled={saving}>
+                <X className="h-4 w-4 mr-1.5" />
+                Descartar
+              </Button>
+            )}
+            <Button onClick={handleSaveAll} disabled={pendingCount === 0 || saving}>
+              <Save className="h-4 w-4 mr-1.5" />
+              {saving ? "Salvando…" : `Salvar mapeamento${pendingCount > 0 ? ` (${pendingCount})` : ""}`}
+            </Button>
+          </div>
         )}
       </div>
+
+      {pendingCount > 0 && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>{pendingCount} alteração(ões) pendente(s)</AlertTitle>
+          <AlertDescription>
+            Clique em <strong>Salvar mapeamento</strong> para aplicar as mudanças. A DRE será atualizada automaticamente.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {unmappedCount > 0 && (
         <Alert>
@@ -158,8 +207,11 @@ export default function DREMapeamento() {
                 {filtered.map((cat: any) => {
                   const maps = mapPorCategoria.get(cat.id) ?? [];
                   const primary = maps[0];
+                  const pend = pending[cat.id];
+                  const currentValue = pend?.rubricaId ?? primary?.rubrica_id ?? "";
+                  const isDirty = !!pend && pend.rubricaId !== primary?.rubrica_id;
                   return (
-                    <tr key={cat.id} className="border-b last:border-0 hover:bg-muted/30">
+                    <tr key={cat.id} className={`border-b last:border-0 hover:bg-muted/30 ${isDirty ? "bg-amber-50/40 dark:bg-amber-950/20" : ""}`}>
                       <td className="px-4 py-2 font-medium">{cat.name}</td>
                       <td className="px-4 py-2">
                         <Badge variant={cat.transaction_type === "receita" ? "default" : "secondary"} className="text-[10px]">
@@ -169,9 +221,9 @@ export default function DREMapeamento() {
                       <td className="px-4 py-2">
                         <div className="flex items-center gap-2">
                           <Select
-                            value={primary?.rubrica_id ?? ""}
-                            onValueChange={(v) => handleAssign(cat.id, v, primary?.id)}
-                            disabled={!canEdit}
+                            value={currentValue}
+                            onValueChange={(v) => handleStage(cat.id, v, primary?.id)}
+                            disabled={!canEdit || saving}
                           >
                             <SelectTrigger className="h-8 max-w-xs">
                               <SelectValue placeholder="Selecione uma rubrica…" />
@@ -185,12 +237,18 @@ export default function DREMapeamento() {
                               ))}
                             </SelectContent>
                           </Select>
-                          {primary && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+                          {isDirty ? (
+                            <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700 dark:text-amber-400">
+                              pendente
+                            </Badge>
+                          ) : primary ? (
+                            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                          ) : null}
                         </div>
                       </td>
                       <td className="px-4 py-2 text-right">
                         {primary && canEdit && (
-                          <Button variant="ghost" size="icon" onClick={() => remove.mutate(primary.id)}>
+                          <Button variant="ghost" size="icon" onClick={() => remove.mutate(primary.id)} disabled={saving}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         )}
