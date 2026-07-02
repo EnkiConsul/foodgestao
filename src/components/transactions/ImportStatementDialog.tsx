@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { toast } from "sonner";
-import { Upload, FileText, Loader2, AlertTriangle, CheckCircle2, Plus } from "lucide-react";
+import { Upload, FileText, Loader2, AlertTriangle, CheckCircle2, Plus, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { formatBRL } from "@/lib/billing";
 import { parseNubankStatementPdf } from "@/lib/statement-import/nubankPdf";
@@ -42,6 +42,9 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
   const [rows, setRows] = useState<ReviewRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
+  const [duplicateCount, setDuplicateCount] = useState(0);
+  const [failures, setFailures] = useState<Array<{ row: ReviewRow; reason: string }>>([]);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
 
   // Quick-create state
   const [quickCat, setQuickCat] = useState<{ rowIdx: number; type: "receita" | "despesa"; name: string } | null>(null);
@@ -49,7 +52,8 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
   const [savingQuick, setSavingQuick] = useState(false);
 
   const reset = useCallback(() => {
-    setStep("upload"); setFile(null); setAccountId(""); setRows([]); setImportedCount(0);
+    setStep("upload"); setFile(null); setAccountId(""); setRows([]);
+    setImportedCount(0); setDuplicateCount(0); setFailures([]); setProgress(null);
     setQuickCat(null); setQuickContact(null);
   }, []);
 
@@ -122,47 +126,88 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
     setRows((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
   };
 
+  const mapPgError = (err: { code?: string; message?: string } | null | undefined): string => {
+    if (!err) return "Erro desconhecido";
+    const code = err.code ?? "";
+    const msg = err.message ?? "";
+    if (code === "23505") return "Duplicado (já existia)";
+    if (code === "42501") return "Sem permissão para gravar neste perfil/empresa";
+    if (/forma de pagamento/i.test(msg)) return "Forma de pagamento não vinculada à conta/perfil";
+    if (/categoria/i.test(msg)) return "Categoria inválida ou não vinculada";
+    if (/violates row-level security/i.test(msg)) return "Bloqueado por RLS (perfil/empresa)";
+    if (code === "23503") return "Referência inválida (categoria/contato/conta)";
+    if (code === "23514") return `Violação de regra: ${msg}`;
+    return msg || `Erro ${code}`;
+  };
+
   const doImport = async () => {
     if (!user || !accountId) return;
     const toInsert = rows.filter((r) => r.include);
     if (toInsert.length === 0) { toast.error("Nada selecionado para importar"); return; }
+    if (contextType === "pj" && !selectedCompanyId) {
+      toast.error("Selecione uma empresa antes de importar"); return;
+    }
     setBusy(true);
-    try {
-      const payload = toInsert.map((r) => ({
-        user_id: user.id,
-        context: contextType,
-        company_id: contextType === "pj" ? selectedCompanyId : null,
-        account_id: accountId,
-        transaction_type: r.transaction_type,
-        description: r.description_override?.trim() || r.description,
-        amount: r.amount,
-        amount_paid: r.amount,
-        transaction_date: r.date,
-        payment_date: r.date,
-        due_date: r.date,
-        status: "confirmado" as const,
-        bill_status: "pago" as const,
-        category_id: r.category_id,
-        contact_id: r.contact_id,
-        import_hash: r.import_hash,
-      }));
+    setProgress({ done: 0, total: toInsert.length });
+    const localFailures: Array<{ row: ReviewRow; reason: string }> = [];
+    let inserted = 0;
+    let duplicates = 0;
 
-      // Insert in chunks to avoid payload limits
-      const chunkSize = 100;
-      let inserted = 0;
-      for (let i = 0; i < payload.length; i += chunkSize) {
-        const slice = payload.slice(i, i + chunkSize);
+    const buildPayload = (r: ReviewRow) => ({
+      user_id: user.id,
+      context: contextType,
+      company_id: contextType === "pj" ? selectedCompanyId : null,
+      account_id: accountId,
+      transaction_type: r.transaction_type,
+      description: r.description_override?.trim() || r.description,
+      amount: r.amount,
+      amount_paid: r.amount,
+      transaction_date: r.date,
+      payment_date: r.date,
+      due_date: r.date,
+      status: "confirmado" as const,
+      bill_status: "pago" as const,
+      category_id: r.category_id,
+      contact_id: r.contact_id,
+      import_hash: r.import_hash,
+    });
+
+    try {
+      const chunkSize = 50;
+      for (let i = 0; i < toInsert.length; i += chunkSize) {
+        const sliceRows = toInsert.slice(i, i + chunkSize);
+        const slice = sliceRows.map(buildPayload);
         const { error, count } = await supabase.from("transactions").insert(slice, { count: "exact" });
-        if (error) {
-          // Duplicate hash conflicts are treated as skipped
-          if (error.code !== "23505") throw error;
-        } else {
+        if (!error) {
           inserted += count ?? slice.length;
+        } else if (error.code === "23505" && sliceRows.length === 1) {
+          duplicates += 1;
+        } else {
+          // Fall back to per-row inserts to isolate the failure(s)
+          for (const r of sliceRows) {
+            const { error: rowErr } = await supabase.from("transactions").insert(buildPayload(r));
+            if (!rowErr) {
+              inserted += 1;
+            } else if (rowErr.code === "23505") {
+              duplicates += 1;
+            } else {
+              console.warn("[import] row failed", rowErr, r);
+              localFailures.push({ row: r, reason: mapPgError(rowErr) });
+            }
+          }
         }
+        setProgress({ done: Math.min(i + sliceRows.length, toInsert.length), total: toInsert.length });
       }
+
       setImportedCount(inserted);
+      setDuplicateCount(duplicates);
+      setFailures(localFailures);
       setStep("done");
-      toast.success(`${inserted} lançamento(s) importado(s)`);
+      if (localFailures.length === 0) {
+        toast.success(`${inserted} lançamento(s) importado(s)${duplicates ? ` · ${duplicates} duplicado(s)` : ""}`);
+      } else {
+        toast.warning(`${inserted} importado(s), ${duplicates} duplicado(s), ${localFailures.length} com erro`);
+      }
       onImported();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erro ao importar";
@@ -170,8 +215,10 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
       toast.error(msg);
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   };
+
 
   const createQuickCategory = async () => {
     if (!user || !quickCat) return;
@@ -397,19 +444,90 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
               <Button variant="ghost" onClick={() => setStep("upload")} disabled={busy}>Voltar</Button>
               <Button onClick={doImport} disabled={busy || summary.selected === 0}>
                 {busy ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
-                Importar {summary.selected} lançamento(s)
+                {busy && progress
+                  ? `Importando ${progress.done} / ${progress.total}…`
+                  : `Importar ${summary.selected} lançamento(s)`}
               </Button>
             </DialogFooter>
           </div>
         )}
 
         {step === "done" && (
-          <div className="py-6 flex flex-col items-center gap-3">
-            <CheckCircle2 className="h-12 w-12 text-success" />
-            <p className="text-sm">
-              <strong>{importedCount}</strong> lançamento(s) importado(s) com sucesso.
-            </p>
+          <div className="py-4 space-y-4">
+            <div className="flex items-center gap-3">
+              {failures.length === 0 ? (
+                <CheckCircle2 className="h-10 w-10 text-success shrink-0" />
+              ) : (
+                <AlertTriangle className="h-10 w-10 text-warning shrink-0" />
+              )}
+              <div className="text-sm">
+                <p className="font-medium">Importação concluída</p>
+                <p className="text-muted-foreground">
+                  Confira o resultado abaixo. Sem limite de importação — todos os lançamentos do extrato podem ser importados.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-md border p-3 text-center">
+                <div className="text-2xl font-semibold text-success">{importedCount}</div>
+                <div className="text-xs text-muted-foreground">Importados</div>
+              </div>
+              <div className="rounded-md border p-3 text-center">
+                <div className="text-2xl font-semibold">{duplicateCount}</div>
+                <div className="text-xs text-muted-foreground">Duplicados</div>
+              </div>
+              <div className="rounded-md border p-3 text-center">
+                <div className={`text-2xl font-semibold ${failures.length > 0 ? "text-destructive" : ""}`}>
+                  {failures.length}
+                </div>
+                <div className="text-xs text-muted-foreground">Com erro</div>
+              </div>
+            </div>
+
+            {failures.length > 0 && (
+              <div className="rounded-md border">
+                <div className="px-3 py-2 border-b bg-muted/40 text-xs font-medium">
+                  Lançamentos não importados
+                </div>
+                <div className="max-h-64 overflow-auto divide-y">
+                  {failures.map((f, i) => (
+                    <div key={i} className="px-3 py-2 text-xs flex items-start gap-2">
+                      <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate">
+                          <span className="font-medium">{f.row.date}</span>
+                          {" · "}
+                          <span className={f.row.transaction_type === "receita" ? "text-success" : "text-destructive"}>
+                            {f.row.transaction_type === "receita" ? "+" : "-"}
+                            {f.row.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                          </span>
+                          {" · "}
+                          <span className="text-muted-foreground">{f.row.description_override?.trim() || f.row.description}</span>
+                        </div>
+                        <div className="text-destructive mt-0.5">{f.reason}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <DialogFooter>
+              {failures.length > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // Re-open review with only failed rows selected for correction
+                    const failedHashes = new Set(failures.map((f) => f.row.import_hash));
+                    setRows((prev) => prev.map((r) => ({ ...r, include: failedHashes.has(r.import_hash) })));
+                    setFailures([]);
+                    setStep("review");
+                  }}
+                >
+                  Revisar erros
+                </Button>
+              )}
               <Button onClick={() => onOpenChange(false)}>Fechar</Button>
             </DialogFooter>
           </div>
