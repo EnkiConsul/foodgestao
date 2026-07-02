@@ -11,9 +11,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
 import { BankLogo } from "@/components/accounts/BankLogo";
-import { Plus, Search, Landmark, Pencil, Trash2, Wallet, RefreshCw } from "lucide-react";
+import { Plus, Search, Landmark, Pencil, Trash2, Wallet, RefreshCw, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
