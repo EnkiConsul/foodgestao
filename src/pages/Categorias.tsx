@@ -170,18 +170,33 @@ export default function Categorias() {
   };
 
   const { data: categories = [], refetch } = useQuery({
-    queryKey: ["categories-page", user?.id, contextType],
-    enabled: !!user,
+    queryKey: ["categories-page", user?.id, contextType, selectedCompanyId],
+    enabled: !!user && (contextType === "pf" || !!selectedCompanyId),
     queryFn: async () => {
+      if (contextType === "pj") {
+        // Em PJ, mostrar apenas categorias vinculadas à empresa ativa (via junção)
+        const { data } = await supabase
+          .from("categories")
+          .select("*, category_companies!inner(company_id)")
+          .eq("user_id", user!.id)
+          .or("context.is.null,context.eq.pj")
+          .eq("category_companies.company_id", selectedCompanyId!)
+          .order("transaction_type")
+          .order("sort_order")
+          .order("name");
+        return (data ?? []) as Category[];
+      }
+      // Em PF, mostrar apenas categorias visíveis no perfil pessoal
       const { data } = await supabase
         .from("categories")
         .select("*")
         .eq("user_id", user!.id)
-        .or(contextType === "pf" ? "context.is.null,context.eq.pf" : "context.is.null,context.eq.pj")
+        .or("context.is.null,context.eq.pf")
+        .eq("visible_pf", true)
         .order("transaction_type")
         .order("sort_order")
         .order("name");
-      return data ?? [];
+      return (data ?? []) as Category[];
     },
   });
 
