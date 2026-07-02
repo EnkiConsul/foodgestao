@@ -18,6 +18,10 @@ import PlinIA from "./pages/PlinIA";
 import FluxoCaixa from "./pages/FluxoCaixa";
 import Orcamento from "./pages/Orcamento";
 import Relatorios from "./pages/Relatorios";
+import DREPage from "./pages/dre/DRE";
+import DREMapeamento from "./pages/dre/DREMapeamento";
+import DRERubricas from "./pages/dre/DRERubricas";
+import DREHistorico from "./pages/dre/DREHistorico";
 import Contatos from "./pages/Contatos";
 import Categorias from "./pages/Categorias";
 import ContasBancarias from "./pages/ContasBancarias";
@@ -263,6 +267,11 @@ const AppRoutes = () => (
       <Route path="/fluxo-caixa" element={<FluxoCaixa />} />
       <Route path="/orcamento" element={<Orcamento />} />
       <Route path="/relatorios" element={<Relatorios />} />
+      <Route path="/relatorios/dre" element={<DREPage />} />
+      <Route path="/relatorios/dre/configuracao" element={<DREMapeamento />} />
+      <Route path="/relatorios/dre/rubricas" element={<DRERubricas />} />
+      <Route path="/relatorios/dre/historico" element={<DREHistorico />} />
+      <Route path="/relatorios/dre/historico/:id" element={<DREHistorico />} />
       <Route path="/contatos" element={<Contatos />} />
       <Route path="/categorias" element={<Categorias />} />
       <Route path="/contas-bancarias" element={<ContasBancarias />} />

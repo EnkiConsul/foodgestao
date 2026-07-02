@@ -1222,6 +1222,261 @@ export type Database = {
         }
         Relationships: []
       }
+      dre_ajustes_manuais: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          descricao: string
+          id: string
+          justificativa: string | null
+          periodo_fim: string
+          periodo_inicio: string
+          rubrica_id: string
+          tipo_ajuste: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          descricao: string
+          id?: string
+          justificativa?: string | null
+          periodo_fim: string
+          periodo_inicio: string
+          rubrica_id: string
+          tipo_ajuste: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string
+          id?: string
+          justificativa?: string | null
+          periodo_fim?: string
+          periodo_inicio?: string
+          rubrica_id?: string
+          tipo_ajuste?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dre_ajustes_manuais_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dre_ajustes_manuais_rubrica_id_fkey"
+            columns: ["rubrica_id"]
+            isOneToOne: false
+            referencedRelation: "dre_rubricas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dre_categoria_mapeamento: {
+        Row: {
+          categoria_id: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          observacao: string | null
+          percentual_alocacao: number
+          rubrica_id: string
+          updated_at: string
+        }
+        Insert: {
+          categoria_id: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          observacao?: string | null
+          percentual_alocacao?: number
+          rubrica_id: string
+          updated_at?: string
+        }
+        Update: {
+          categoria_id?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          observacao?: string | null
+          percentual_alocacao?: number
+          rubrica_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dre_categoria_mapeamento_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dre_categoria_mapeamento_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dre_categoria_mapeamento_rubrica_id_fkey"
+            columns: ["rubrica_id"]
+            isOneToOne: false
+            referencedRelation: "dre_rubricas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dre_rubricas: {
+        Row: {
+          codigo: string
+          created_at: string
+          editavel_usuario: boolean
+          formula: string | null
+          grupo_pai_codigo: string | null
+          id: string
+          is_calculada: boolean
+          natureza: string
+          nome: string
+          ordem: number
+          tipo: string | null
+          updated_at: string
+          visivel: boolean
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          editavel_usuario?: boolean
+          formula?: string | null
+          grupo_pai_codigo?: string | null
+          id?: string
+          is_calculada?: boolean
+          natureza: string
+          nome: string
+          ordem: number
+          tipo?: string | null
+          updated_at?: string
+          visivel?: boolean
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          editavel_usuario?: boolean
+          formula?: string | null
+          grupo_pai_codigo?: string | null
+          id?: string
+          is_calculada?: boolean
+          natureza?: string
+          nome?: string
+          ordem?: number
+          tipo?: string | null
+          updated_at?: string
+          visivel?: boolean
+        }
+        Relationships: []
+      }
+      dre_snapshots: {
+        Row: {
+          company_id: string
+          created_at: string
+          dados_json: Json
+          ebit: number | null
+          gerado_em: string
+          gerado_por: string | null
+          id: string
+          lair: number | null
+          lucro_bruto: number | null
+          lucro_liquido: number | null
+          observacoes: string | null
+          periodo_fim: string
+          periodo_inicio: string
+          publicado_em: string | null
+          publicado_por: string | null
+          regime: string
+          status: string
+          tipo_periodo: string
+          titulo: string
+          total_receita_bruta: number | null
+          total_receita_liquida: number | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          dados_json: Json
+          ebit?: number | null
+          gerado_em?: string
+          gerado_por?: string | null
+          id?: string
+          lair?: number | null
+          lucro_bruto?: number | null
+          lucro_liquido?: number | null
+          observacoes?: string | null
+          periodo_fim: string
+          periodo_inicio: string
+          publicado_em?: string | null
+          publicado_por?: string | null
+          regime?: string
+          status?: string
+          tipo_periodo: string
+          titulo: string
+          total_receita_bruta?: number | null
+          total_receita_liquida?: number | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          dados_json?: Json
+          ebit?: number | null
+          gerado_em?: string
+          gerado_por?: string | null
+          id?: string
+          lair?: number | null
+          lucro_bruto?: number | null
+          lucro_liquido?: number | null
+          observacoes?: string | null
+          periodo_fim?: string
+          periodo_inicio?: string
+          publicado_em?: string | null
+          publicado_por?: string | null
+          regime?: string
+          status?: string
+          tipo_periodo?: string
+          titulo?: string
+          total_receita_bruta?: number | null
+          total_receita_liquida?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dre_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -2208,6 +2463,42 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      dre_apply_default_mapping: {
+        Args: { _company_id: string }
+        Returns: number
+      }
+      dre_check_consistency: {
+        Args: { _company_id: string; _from: string; _to: string }
+        Returns: {
+          categoria_id: string
+          categoria_nome: string
+          qt_transacoes: number
+          total: number
+        }[]
+      }
+      dre_generate: {
+        Args: {
+          _company_id: string
+          _from: string
+          _regime?: string
+          _to: string
+        }
+        Returns: Json
+      }
+      dre_publish_snapshot: {
+        Args: {
+          _company_id: string
+          _from: string
+          _observacoes?: string
+          _publicar?: boolean
+          _regime?: string
+          _tipo_periodo?: string
+          _titulo: string
+          _to: string
+        }
+        Returns: string
+      }
+      dre_ultimo_snapshot: { Args: { _company_id: string }; Returns: Json }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
