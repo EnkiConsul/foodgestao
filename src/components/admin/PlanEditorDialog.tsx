@@ -33,7 +33,7 @@ const DEFAULT_PLAN = {
     max_attachments_per_transaction: 1,
     ai_enabled: false,
     reports_advanced: false,
-    export_pdf: false,
+    
     export_csv: true,
     support: "community",
   },
@@ -302,7 +302,7 @@ export function PlanEditorDialog({
             {[
               ["ai_enabled", "IA habilitada"],
               ["reports_advanced", "Relatórios avançados"],
-              ["export_pdf", "Exportar PDF"],
+              
               ["export_csv", "Exportar CSV"],
             ].map(([k, label]) => (
               <div key={k} className="flex items-center justify-between rounded-md border p-2">
