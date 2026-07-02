@@ -94,7 +94,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       setVisiblePf(true);
       setSelectedCompanies(new Set(companies.map((c) => c.id)));
     }
-  }, [editCategory, open, defaultParentId, defaultType]);
+  }, [editCategory, open, defaultParentId, defaultType, defaultName]);
 
   // Filter parent options: same type, exclude self
   const parentOptions = allCategories.filter(
