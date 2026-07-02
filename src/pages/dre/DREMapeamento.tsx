@@ -63,9 +63,9 @@ export default function DREMapeamento() {
 
   const rubricasSelecionaveis = rubricas.filter((r) => r.editavel_usuario || !r.is_calculada);
 
-  const handleAssign = async (categoriaId: string, rubricaId: string) => {
+  const handleAssign = async (categoriaId: string, rubricaId: string, existingId?: string) => {
     try {
-      await upsert.mutateAsync({ categoria_id: categoriaId, rubrica_id: rubricaId, percentual_alocacao: 100 });
+      await upsert.mutateAsync({ id: existingId, categoria_id: categoriaId, rubrica_id: rubricaId, percentual_alocacao: 100 });
       toast.success("Mapeamento atualizado");
     } catch (e: any) {
       toast.error(e.message ?? "Erro");
@@ -170,7 +170,7 @@ export default function DREMapeamento() {
                         <div className="flex items-center gap-2">
                           <Select
                             value={primary?.rubrica_id ?? ""}
-                            onValueChange={(v) => handleAssign(cat.id, v)}
+                            onValueChange={(v) => handleAssign(cat.id, v, primary?.id)}
                             disabled={!canEdit}
                           >
                             <SelectTrigger className="h-8 max-w-xs">
