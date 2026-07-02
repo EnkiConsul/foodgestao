@@ -35,13 +35,15 @@ export function BudgetFormDialog({ open, onOpenChange, onCreated }: Props) {
 
   useEffect(() => {
     if (!user || !open) return;
+    if (contextType === "pj" && !selectedCompanyId) { setCategories([]); return; }
     supabase
-      .from("categories")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("transaction_type", "despesa")
-      .then(({ data }) => setCategories(data ?? []));
-  }, [user, open]);
+      .rpc("get_accessible_categories", {
+        _context: contextType,
+        _company_id: contextType === "pj" ? selectedCompanyId : null,
+        _transaction_type: "despesa",
+      })
+      .then(({ data }) => setCategories((data ?? []) as any));
+  }, [user, open, contextType, selectedCompanyId]);
 
   useEffect(() => {
     if (!startDate) return;
