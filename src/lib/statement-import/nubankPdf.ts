@@ -2,7 +2,6 @@ import type { ParsedStatementEntry } from "./types";
 
 // pdfjs worker setup (Vite friendly)
 import * as pdfjsLib from "pdfjs-dist";
-// @ts-expect-error - vite worker import
 import PdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?worker";
 (pdfjsLib as unknown as { GlobalWorkerOptions: { workerPort: Worker } }).GlobalWorkerOptions.workerPort =
   new PdfWorker();
