@@ -169,7 +169,7 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
       bill_status: "pago" as const,
       category_id: r.category_id,
       contact_id: r.contact_id,
-      import_hash: r.import_hash,
+      import_hash: r.duplicate ? null : r.import_hash,
     });
 
     try {
@@ -341,8 +341,30 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
               <span className="text-success">Receitas: <strong>{formatBRL(summary.receitas)}</strong></span>
               <span className="text-destructive">Despesas: <strong>{formatBRL(summary.despesas)}</strong></span>
               {summary.dup > 0 && (
-                <span className="flex items-center gap-1 text-amber-600">
-                  <AlertTriangle className="h-3 w-3" /> {summary.dup} duplicata(s) desmarcada(s)
+                <span className="flex items-center gap-2 text-amber-600">
+                  <AlertTriangle className="h-3 w-3" />
+                  {summary.dup} já importado(s) — desmarcado(s)
+                  {rows.some((r) => r.duplicate && !r.include) ? (
+                    <Button
+                      type="button"
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-amber-700 underline"
+                      onClick={() => setRows((prev) => prev.map((r) => (r.duplicate ? { ...r, include: true } : r)))}
+                    >
+                      Importar mesmo assim
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-amber-700 underline"
+                      onClick={() => setRows((prev) => prev.map((r) => (r.duplicate ? { ...r, include: false } : r)))}
+                    >
+                      Desmarcar duplicados
+                    </Button>
+                  )}
                 </span>
               )}
             </div>
