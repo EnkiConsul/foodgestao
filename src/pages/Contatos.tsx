@@ -34,6 +34,12 @@ export default function Contatos() {
   const [filterType, setFilterType] = useState<string>("all");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  // Atualização em tempo real de contatos (clientes / fornecedores)
+  useRealtimeSync({
+    tables: ["contacts", "contact_companies"],
+    invalidateKeyPrefixes: ["contacts-page", "contact-companies-page"],
+  });
+
   const { data: contacts = [], refetch } = useQuery({
     queryKey: ["contacts-page", user?.id],
     enabled: !!user,
