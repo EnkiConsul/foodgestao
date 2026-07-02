@@ -16,6 +16,7 @@ import {
   Shield,
   Sparkles,
   Receipt,
+  MessageCircle,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Logo } from "@/components/Logo";
