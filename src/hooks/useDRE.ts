@@ -61,7 +61,11 @@ export function useDREMapeamento() {
         if (error) throw error;
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["dre-mapeamento", selectedCompanyId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dre-mapeamento", selectedCompanyId] });
+      qc.invalidateQueries({ queryKey: ["dre-generate"] });
+      qc.invalidateQueries({ queryKey: ["dre-consistency"] });
+    },
   });
 
   const remove = useMutation({
@@ -69,7 +73,11 @@ export function useDREMapeamento() {
       const { error } = await supabase.from("dre_categoria_mapeamento").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["dre-mapeamento", selectedCompanyId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dre-mapeamento", selectedCompanyId] });
+      qc.invalidateQueries({ queryKey: ["dre-generate"] });
+      qc.invalidateQueries({ queryKey: ["dre-consistency"] });
+    },
   });
 
   const applyDefault = useMutation({
@@ -79,7 +87,11 @@ export function useDREMapeamento() {
       if (error) throw error;
       return data as number;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["dre-mapeamento", selectedCompanyId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dre-mapeamento", selectedCompanyId] });
+      qc.invalidateQueries({ queryKey: ["dre-generate"] });
+      qc.invalidateQueries({ queryKey: ["dre-consistency"] });
+    },
   });
 
   return { ...query, upsert, remove, applyDefault };
