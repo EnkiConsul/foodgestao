@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { toast } from "sonner";
-import { Upload, FileText, Loader2, AlertTriangle, CheckCircle2, Plus } from "lucide-react";
+import { Upload, FileText, Loader2, AlertTriangle, CheckCircle2, Plus, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { formatBRL } from "@/lib/billing";
 import { parseNubankStatementPdf } from "@/lib/statement-import/nubankPdf";
