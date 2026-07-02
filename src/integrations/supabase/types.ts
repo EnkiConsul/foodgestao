@@ -2109,6 +2109,34 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_accessible_categories: {
+        Args: {
+          _company_id?: string
+          _context: Database["public"]["Enums"]["context_type"]
+          _transaction_type?: Database["public"]["Enums"]["transaction_type"]
+        }
+        Returns: {
+          color: string | null
+          context: Database["public"]["Enums"]["context_type"] | null
+          created_at: string
+          hierarchy_index: string | null
+          icon: string | null
+          id: string
+          is_system: boolean
+          name: string
+          parent_id: string | null
+          sort_order: number
+          transaction_type: Database["public"]["Enums"]["transaction_type"]
+          user_id: string
+          visible_pf: boolean
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "categories"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_accessible_payment_methods: {
         Args: {
           _company_id?: string
