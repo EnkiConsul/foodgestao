@@ -678,6 +678,6 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Dialog>
+    </>
   );
 }
