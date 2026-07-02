@@ -38,7 +38,7 @@ export function AppLayout() {
       <BottomNav />
       <InstallPrompt />
       <PerfOverlay />
-      <WhatsappButton />
+      <WhatsappButton className="bottom-20 md:bottom-6" />
     </SidebarProvider>
   );
 }
