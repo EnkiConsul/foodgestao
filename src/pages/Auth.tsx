@@ -176,6 +176,9 @@ export default function Auth() {
       setErrors(fieldErrors);
       if (isSignup) {
         trackEvent(FunnelStep.SignupValidationError, {
+          method: "email",
+          error_category: "validation",
+          reason: "client_validation",
           error_fields: Object.keys(fieldErrors).join(","),
           error_count: Object.keys(fieldErrors).length,
         });
