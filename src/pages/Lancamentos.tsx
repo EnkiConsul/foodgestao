@@ -223,27 +223,15 @@ export default function Lancamentos() {
         _company_id: contextType === "pj" ? selectedCompanyId : null,
       }).then(({ data }) => setPaymentMethods((data ?? []).map((pm: any) => ({ id: pm.id, name: pm.name }))));
     }
-    if (contextType === "pj") {
-      if (!selectedCompanyId) { setCategories([]); }
-      else {
-        supabase
-          .from("categories")
-          .select("id, name, category_companies!inner(company_id)")
-          .eq("user_id", user.id)
-          .or("context.is.null,context.eq.pj")
-          .eq("category_companies.company_id", selectedCompanyId)
-          .order("name")
-          .then(({ data }) => setCategories((data ?? []).map((c: any) => ({ id: c.id, name: c.name }))));
-      }
+    if (contextType === "pj" && !selectedCompanyId) {
+      setCategories([]);
     } else {
       supabase
-        .from("categories")
-        .select("id, name")
-        .eq("user_id", user.id)
-        .or("context.is.null,context.eq.pf")
-        .eq("visible_pf", true)
-        .order("name")
-        .then(({ data }) => setCategories(data ?? []));
+        .rpc("get_accessible_categories", {
+          _context: contextType,
+          _company_id: contextType === "pj" ? selectedCompanyId : null,
+        })
+        .then(({ data }) => setCategories((data ?? []).map((c: any) => ({ id: c.id, name: c.name }))));
     }
   }, [user, contextType, selectedCompanyId]);
 
