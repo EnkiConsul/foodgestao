@@ -444,19 +444,90 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
               <Button variant="ghost" onClick={() => setStep("upload")} disabled={busy}>Voltar</Button>
               <Button onClick={doImport} disabled={busy || summary.selected === 0}>
                 {busy ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
-                Importar {summary.selected} lançamento(s)
+                {busy && progress
+                  ? `Importando ${progress.done} / ${progress.total}…`
+                  : `Importar ${summary.selected} lançamento(s)`}
               </Button>
             </DialogFooter>
           </div>
         )}
 
         {step === "done" && (
-          <div className="py-6 flex flex-col items-center gap-3">
-            <CheckCircle2 className="h-12 w-12 text-success" />
-            <p className="text-sm">
-              <strong>{importedCount}</strong> lançamento(s) importado(s) com sucesso.
-            </p>
+          <div className="py-4 space-y-4">
+            <div className="flex items-center gap-3">
+              {failures.length === 0 ? (
+                <CheckCircle2 className="h-10 w-10 text-success shrink-0" />
+              ) : (
+                <AlertTriangle className="h-10 w-10 text-warning shrink-0" />
+              )}
+              <div className="text-sm">
+                <p className="font-medium">Importação concluída</p>
+                <p className="text-muted-foreground">
+                  Confira o resultado abaixo. Sem limite de importação — todos os lançamentos do extrato podem ser importados.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-md border p-3 text-center">
+                <div className="text-2xl font-semibold text-success">{importedCount}</div>
+                <div className="text-xs text-muted-foreground">Importados</div>
+              </div>
+              <div className="rounded-md border p-3 text-center">
+                <div className="text-2xl font-semibold">{duplicateCount}</div>
+                <div className="text-xs text-muted-foreground">Duplicados</div>
+              </div>
+              <div className="rounded-md border p-3 text-center">
+                <div className={`text-2xl font-semibold ${failures.length > 0 ? "text-destructive" : ""}`}>
+                  {failures.length}
+                </div>
+                <div className="text-xs text-muted-foreground">Com erro</div>
+              </div>
+            </div>
+
+            {failures.length > 0 && (
+              <div className="rounded-md border">
+                <div className="px-3 py-2 border-b bg-muted/40 text-xs font-medium">
+                  Lançamentos não importados
+                </div>
+                <div className="max-h-64 overflow-auto divide-y">
+                  {failures.map((f, i) => (
+                    <div key={i} className="px-3 py-2 text-xs flex items-start gap-2">
+                      <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate">
+                          <span className="font-medium">{f.row.date}</span>
+                          {" · "}
+                          <span className={f.row.transaction_type === "receita" ? "text-success" : "text-destructive"}>
+                            {f.row.transaction_type === "receita" ? "+" : "-"}
+                            {f.row.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                          </span>
+                          {" · "}
+                          <span className="text-muted-foreground">{f.row.description_override?.trim() || f.row.description}</span>
+                        </div>
+                        <div className="text-destructive mt-0.5">{f.reason}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <DialogFooter>
+              {failures.length > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // Re-open review with only failed rows selected for correction
+                    const failedHashes = new Set(failures.map((f) => f.row.import_hash));
+                    setRows((prev) => prev.map((r) => ({ ...r, include: failedHashes.has(r.import_hash) })));
+                    setFailures([]);
+                    setStep("review");
+                  }}
+                >
+                  Revisar erros
+                </Button>
+              )}
               <Button onClick={() => onOpenChange(false)}>Fechar</Button>
             </DialogFooter>
           </div>
