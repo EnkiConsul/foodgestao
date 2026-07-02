@@ -52,6 +52,19 @@ function translateAuthError(message: string): string {
   return message;
 }
 
+/** Categorize a signup error into a small, stable set of reasons for GA4 reporting. */
+function classifySignupError(message: string): { reason: string; category: "validation" | "api" | "network" | "rate_limit" | "unknown" } {
+  const m = (message || "").toLowerCase();
+  if (m.includes("already registered") || m.includes("user already")) return { reason: "email_already_registered", category: "validation" };
+  if (m.includes("weak") || m.includes("pwned") || m.includes("known to be") || m.includes("password should be at least")) return { reason: "weak_password", category: "validation" };
+  if (m.includes("invalid") && m.includes("email")) return { reason: "invalid_email", category: "validation" };
+  if (m.includes("rate") && m.includes("limit")) return { reason: "rate_limit", category: "rate_limit" };
+  if (m.includes("captcha")) return { reason: "captcha_failed", category: "validation" };
+  if (m.includes("network") || m.includes("failed to fetch") || m.includes("fetch failed") || m.includes("timeout")) return { reason: "network_error", category: "network" };
+  if (m.includes("500") || m.includes("server")) return { reason: "server_error", category: "api" };
+  return { reason: "unknown_api_error", category: "api" };
+}
+
 export default function Auth() {
   const [searchParams] = useSearchParams();
   const initialMode: Mode = searchParams.get("tab") === "signup" ? "signup" : "login";
@@ -163,6 +176,9 @@ export default function Auth() {
       setErrors(fieldErrors);
       if (isSignup) {
         trackEvent(FunnelStep.SignupValidationError, {
+          method: "email",
+          error_category: "validation",
+          reason: "client_validation",
           error_fields: Object.keys(fieldErrors).join(","),
           error_count: Object.keys(fieldErrors).length,
         });
@@ -184,36 +200,52 @@ export default function Auth() {
           await checkMfaAndRedirect();
         }
       } else {
-        const { error } = await signUp(email, password, fullName);
-        if (error) {
-          const translated = translateAuthError(error.message);
-          toast.error("Erro ao cadastrar", { description: translated });
+        try {
+          const { error } = await signUp(email, password, fullName);
+          if (error) {
+            const translated = translateAuthError(error.message);
+            const { reason, category } = classifySignupError(error.message);
+            toast.error("Erro ao cadastrar", { description: translated });
+            trackEvent(FunnelStep.SignupError, {
+              method: "email",
+              reason,
+              error_category: category,
+              error_message: error.message?.slice(0, 200) ?? "unknown",
+            });
+          } else {
+            // Log LGPD acceptance (best-effort, non-blocking)
+            try {
+              const { data: { user: newUser } } = await supabase.auth.getUser();
+              if (newUser) {
+                await supabase.from("legal_acceptances").insert([
+                  { user_id: newUser.id, document_type: "terms", document_version: "1.0", user_agent: navigator.userAgent },
+                  { user_id: newUser.id, document_type: "privacy", document_version: "1.0", user_agent: navigator.userAgent },
+                ]);
+              }
+            } catch (e) {
+              console.warn("Failed to log legal acceptance", e);
+            }
+            // GA4 recommended event + qualified lead conversion
+            trackEvent(FunnelStep.SignupSuccess, { method: "email" });
+            trackEvent(FunnelStep.LeadGenerated, {
+              currency: "BRL",
+              value: 0,
+              method: "email_signup",
+            });
+            toast.success("Cadastro realizado!");
+            navigate("/onboarding");
+          }
+        } catch (thrown) {
+          const msg = thrown instanceof Error ? thrown.message : String(thrown);
+          const { reason, category } = classifySignupError(msg);
+          toast.error("Erro ao cadastrar", { description: "Falha de conexão. Tente novamente." });
           trackEvent(FunnelStep.SignupError, {
             method: "email",
-            error_message: error.message?.slice(0, 200) ?? "unknown",
+            reason,
+            error_category: category,
+            error_message: msg.slice(0, 200),
+            thrown: true,
           });
-        } else {
-          // Log LGPD acceptance (best-effort, non-blocking)
-          try {
-            const { data: { user: newUser } } = await supabase.auth.getUser();
-            if (newUser) {
-              await supabase.from("legal_acceptances").insert([
-                { user_id: newUser.id, document_type: "terms", document_version: "1.0", user_agent: navigator.userAgent },
-                { user_id: newUser.id, document_type: "privacy", document_version: "1.0", user_agent: navigator.userAgent },
-              ]);
-            }
-          } catch (e) {
-            console.warn("Failed to log legal acceptance", e);
-          }
-          // GA4 recommended event + qualified lead conversion
-          trackEvent(FunnelStep.SignupSuccess, { method: "email" });
-          trackEvent(FunnelStep.LeadGenerated, {
-            currency: "BRL",
-            value: 0,
-            method: "email_signup",
-          });
-          toast.success("Cadastro realizado!");
-          navigate("/onboarding");
         }
       }
     } finally {
