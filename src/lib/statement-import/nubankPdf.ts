@@ -245,13 +245,9 @@ export async function parseNubankStatementPdf(file: File): Promise<ParsedStateme
 
     const description = [title, cpName].filter(Boolean).join(" - ").trim() || title || "Lançamento";
     const type = currentSign;
-    // Include an index-per-day to keep hashes unique for repeated identical rows
-    const sameKeyCount = entries.filter(
-      (e) => e.date === currentDate && e.transaction_type === type && Math.abs(e.amount - amount) < 0.005 && e.description === description,
-    ).length;
-    const import_hash = await sha1(
-      `${currentDate}|${type}|${amount.toFixed(2)}|${description.toUpperCase()}|${sameKeyCount}`,
-    );
+    // Keep hash stable with the previous parser version so re-imports of the
+    // same PDF correctly dedupe against already-imported entries.
+    const import_hash = await sha1(`${currentDate}|${type}|${amount.toFixed(2)}|${description.toUpperCase()}`);
 
     entries.push({
       date: currentDate,
