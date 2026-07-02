@@ -41,6 +41,7 @@ export function trackEvent(eventName: string, params: Params = {}) {
 /** Funnel step names used across the landing → signup flow. */
 export const FunnelStep = {
   CtaClick: "cta_click_trial",
+  SignupFormView: "signup_form_view",
   SignupStart: "signup_start",
   SignupValidationError: "signup_validation_error",
   SignupSuccess: "sign_up", // GA4 recommended event
