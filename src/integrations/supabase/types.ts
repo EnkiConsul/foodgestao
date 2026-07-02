@@ -2491,6 +2491,11 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recompute_account_balance: {
+        Args: { _account_id: string }
+        Returns: number
+      }
+      recompute_all_account_balances: { Args: never; Returns: number }
     }
     Enums: {
       account_type:

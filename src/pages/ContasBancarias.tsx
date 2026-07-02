@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
 import { BankLogo } from "@/components/accounts/BankLogo";
-import { Plus, Search, Landmark, Pencil, Trash2, Wallet } from "lucide-react";
+import { Plus, Search, Landmark, Pencil, Trash2, Wallet, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -112,9 +112,22 @@ export default function ContasBancarias() {
           <h1 className="text-2xl font-bold tracking-tight">Contas Bancárias</h1>
           <p className="text-sm text-muted-foreground">Gerencie suas contas e saldos</p>
         </div>
-        <Button onClick={() => { setEditAccount(null); setDialogOpen(true); }} className="hidden md:flex">
-          <Plus className="h-4 w-4 mr-2" /> Nova Conta
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={async () => {
+              const { error } = await supabase.rpc("recompute_all_account_balances");
+              if (error) toast.error("Erro ao recalcular saldos");
+              else { toast.success("Saldos recalculados"); fetchAccounts(); }
+            }}
+            className="hidden md:flex"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" /> Recalcular saldos
+          </Button>
+          <Button onClick={() => { setEditAccount(null); setDialogOpen(true); }} className="hidden md:flex">
+            <Plus className="h-4 w-4 mr-2" /> Nova Conta
+          </Button>
+        </div>
       </div>
 
       {/* Summary cards */}
