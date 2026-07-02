@@ -243,76 +243,24 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
   };
 
 
-  const createQuickCategory = async () => {
-    if (!user || !quickCat) return;
-    const name = quickCat.name.trim();
-    if (!name) { toast.error("Informe o nome da categoria"); return; }
-    setSavingQuick(true);
-    try {
-      const { data: newCat, error } = await supabase.from("categories").insert({
-        user_id: user.id,
-        name,
-        transaction_type: quickCat.type,
-        context: contextType,
-        visible_pf: contextType === "pf",
-      } as any).select("id, name, transaction_type").single();
-      if (error || !newCat) throw error ?? new Error("Falha ao criar categoria");
-
-      if (contextType === "pj" && selectedCompanyId) {
-        await supabase.from("category_companies").insert([{ category_id: (newCat as any).id, company_id: selectedCompanyId }]);
-      }
-
-      const created: Category = {
-        id: (newCat as any).id,
-        name: (newCat as any).name,
-        transaction_type: (newCat as any).transaction_type,
-      };
-      setCategories((prev) => [...prev, created]);
-      updateRow(quickCat.rowIdx, { category_id: created.id });
-      toast.success("Categoria criada");
-      setQuickCat(null);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Erro ao criar categoria";
-      toast.error(msg);
-    } finally {
-      setSavingQuick(false);
-    }
+  const refetchCategories = async () => {
+    if (!user) return;
+    const { data: cats } = await supabase.rpc("get_accessible_categories", {
+      _context: contextType,
+      _company_id: contextType === "pj" ? selectedCompanyId : null,
+      _transaction_type: null,
+    });
+    setCategories(((cats ?? []) as Array<{ id: string; name: string; transaction_type: string }>).map((c) => ({
+      id: c.id, name: c.name, transaction_type: c.transaction_type as "receita" | "despesa",
+    })));
   };
 
-  const createQuickContact = async () => {
-    if (!user || !quickContact) return;
-    const name = quickContact.name.trim();
-    if (!name) { toast.error("Informe o nome do contato"); return; }
-    setSavingQuick(true);
-    try {
-      const { data: newContact, error } = await supabase.from("contacts").insert({
-        user_id: user.id,
-        name,
-        contact_type: quickContact.contactType,
-        visible_pf: contextType === "pf",
-      } as any).select("id, name, contact_type").single();
-      if (error || !newContact) throw error ?? new Error("Falha ao criar contato");
-
-      if (contextType === "pj" && selectedCompanyId) {
-        await supabase.from("contact_companies" as any).insert([{ contact_id: (newContact as any).id, company_id: selectedCompanyId }] as any);
-      }
-
-      const created: Contact = {
-        id: (newContact as any).id,
-        name: (newContact as any).name,
-        contact_type: (newContact as any).contact_type,
-      };
-      setContacts((prev) => [...prev, created]);
-      updateRow(quickContact.rowIdx, { contact_id: created.id });
-      toast.success("Contato criado");
-      setQuickContact(null);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Erro ao criar contato";
-      toast.error(msg);
-    } finally {
-      setSavingQuick(false);
-    }
+  const refetchContacts = async () => {
+    if (!user) return;
+    const { data: cts } = await supabase.from("contacts").select("id, name, contact_type").eq("user_id", user.id);
+    setContacts((cts ?? []) as Contact[]);
   };
+
 
   return (
     <>
