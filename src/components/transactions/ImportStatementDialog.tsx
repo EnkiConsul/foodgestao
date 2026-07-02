@@ -126,47 +126,88 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
     setRows((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
   };
 
+  const mapPgError = (err: { code?: string; message?: string } | null | undefined): string => {
+    if (!err) return "Erro desconhecido";
+    const code = err.code ?? "";
+    const msg = err.message ?? "";
+    if (code === "23505") return "Duplicado (já existia)";
+    if (code === "42501") return "Sem permissão para gravar neste perfil/empresa";
+    if (/forma de pagamento/i.test(msg)) return "Forma de pagamento não vinculada à conta/perfil";
+    if (/categoria/i.test(msg)) return "Categoria inválida ou não vinculada";
+    if (/violates row-level security/i.test(msg)) return "Bloqueado por RLS (perfil/empresa)";
+    if (code === "23503") return "Referência inválida (categoria/contato/conta)";
+    if (code === "23514") return `Violação de regra: ${msg}`;
+    return msg || `Erro ${code}`;
+  };
+
   const doImport = async () => {
     if (!user || !accountId) return;
     const toInsert = rows.filter((r) => r.include);
     if (toInsert.length === 0) { toast.error("Nada selecionado para importar"); return; }
+    if (contextType === "pj" && !selectedCompanyId) {
+      toast.error("Selecione uma empresa antes de importar"); return;
+    }
     setBusy(true);
-    try {
-      const payload = toInsert.map((r) => ({
-        user_id: user.id,
-        context: contextType,
-        company_id: contextType === "pj" ? selectedCompanyId : null,
-        account_id: accountId,
-        transaction_type: r.transaction_type,
-        description: r.description_override?.trim() || r.description,
-        amount: r.amount,
-        amount_paid: r.amount,
-        transaction_date: r.date,
-        payment_date: r.date,
-        due_date: r.date,
-        status: "confirmado" as const,
-        bill_status: "pago" as const,
-        category_id: r.category_id,
-        contact_id: r.contact_id,
-        import_hash: r.import_hash,
-      }));
+    setProgress({ done: 0, total: toInsert.length });
+    const localFailures: Array<{ row: ReviewRow; reason: string }> = [];
+    let inserted = 0;
+    let duplicates = 0;
 
-      // Insert in chunks to avoid payload limits
-      const chunkSize = 100;
-      let inserted = 0;
-      for (let i = 0; i < payload.length; i += chunkSize) {
-        const slice = payload.slice(i, i + chunkSize);
+    const buildPayload = (r: ReviewRow) => ({
+      user_id: user.id,
+      context: contextType,
+      company_id: contextType === "pj" ? selectedCompanyId : null,
+      account_id: accountId,
+      transaction_type: r.transaction_type,
+      description: r.description_override?.trim() || r.description,
+      amount: r.amount,
+      amount_paid: r.amount,
+      transaction_date: r.date,
+      payment_date: r.date,
+      due_date: r.date,
+      status: "confirmado" as const,
+      bill_status: "pago" as const,
+      category_id: r.category_id,
+      contact_id: r.contact_id,
+      import_hash: r.import_hash,
+    });
+
+    try {
+      const chunkSize = 50;
+      for (let i = 0; i < toInsert.length; i += chunkSize) {
+        const sliceRows = toInsert.slice(i, i + chunkSize);
+        const slice = sliceRows.map(buildPayload);
         const { error, count } = await supabase.from("transactions").insert(slice, { count: "exact" });
-        if (error) {
-          // Duplicate hash conflicts are treated as skipped
-          if (error.code !== "23505") throw error;
-        } else {
+        if (!error) {
           inserted += count ?? slice.length;
+        } else if (error.code === "23505" && sliceRows.length === 1) {
+          duplicates += 1;
+        } else {
+          // Fall back to per-row inserts to isolate the failure(s)
+          for (const r of sliceRows) {
+            const { error: rowErr } = await supabase.from("transactions").insert(buildPayload(r));
+            if (!rowErr) {
+              inserted += 1;
+            } else if (rowErr.code === "23505") {
+              duplicates += 1;
+            } else {
+              console.warn("[import] row failed", rowErr, r);
+              localFailures.push({ row: r, reason: mapPgError(rowErr) });
+            }
+          }
         }
+        setProgress({ done: Math.min(i + sliceRows.length, toInsert.length), total: toInsert.length });
       }
+
       setImportedCount(inserted);
+      setDuplicateCount(duplicates);
+      setFailures(localFailures);
       setStep("done");
-      toast.success(`${inserted} lançamento(s) importado(s)`);
+      if (localFailures.length === 0) {
+        toast.success(`${inserted} lançamento(s) importado(s)${duplicates ? ` · ${duplicates} duplicado(s)` : ""}`);
+      } else {
+        toast.warning(`${inserted} importado(s), ${duplicates} duplicado(s), ${localFailures.length} com erro`);
+      }
       onImported();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erro ao importar";
@@ -174,8 +215,10 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
       toast.error(msg);
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   };
+
 
   const createQuickCategory = async () => {
     if (!user || !quickCat) return;
