@@ -306,6 +306,7 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
         <DialogHeader>
