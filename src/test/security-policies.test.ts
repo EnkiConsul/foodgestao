@@ -43,7 +43,7 @@ describe("dre_snapshot_lock_published — internal trigger function", () => {
     );
     // Expect either "function does not exist" (not exposed) or a permission error.
     expect(error).not.toBeNull();
-    const msg = (error?.message ?? "").toLowerCase();
+    const msg = String((error as { message?: string } | null)?.message ?? "").toLowerCase();
     expect(
       msg.includes("permission") ||
         msg.includes("denied") ||
