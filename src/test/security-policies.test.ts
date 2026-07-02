@@ -37,8 +37,10 @@ describe("dre_rubricas — company-scoped read policy", () => {
 
 describe("dre_snapshot_lock_published — internal trigger function", () => {
   it("cannot be called by anonymous clients via RPC", async () => {
-    // @ts-expect-error — intentionally calling an internal function not in generated types
-    const { error } = await anon.rpc("dre_snapshot_lock_published");
+    // Intentionally calling an internal function that isn't in generated types.
+    const { error } = await (anon.rpc as unknown as (fn: string) => Promise<{ error: unknown }>)(
+      "dre_snapshot_lock_published",
+    );
     // Expect either "function does not exist" (not exposed) or a permission error.
     expect(error).not.toBeNull();
     const msg = (error?.message ?? "").toLowerCase();
