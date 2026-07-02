@@ -27,6 +27,7 @@ import {
 import { useLandingSection } from "@/hooks/useLandingContent";
 import { ContactSection } from "@/components/landing/ContactSection";
 import { Logo } from "@/components/Logo";
+import { WhatsappButton } from "@/components/WhatsappButton";
 import heroDashboard from "@/assets/hero-dashboard.png.asset.json";
 
 
