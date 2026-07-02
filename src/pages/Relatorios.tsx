@@ -92,17 +92,18 @@ export default function Relatorios() {
   };
 
   const { data: categories = [] } = useQuery({
-    queryKey: ["relatorios-cats", user?.id, contextType],
-    enabled: !!user,
+    queryKey: ["relatorios-cats", user?.id, contextType, selectedCompanyId],
+    enabled: !!user && (contextType === "pf" || !!selectedCompanyId),
     queryFn: async () => {
-      let q = supabase
-        .from("categories")
-        .select("id, name, color, transaction_type, parent_id, hierarchy_index, sort_order")
-        .eq("user_id", user!.id);
-      if (contextType === "pf") q = q.or("context.is.null,context.eq.pf");
-      else q = q.or("context.is.null,context.eq.pj");
-      const { data } = await q;
-      return data ?? [];
+      const { data } = await supabase.rpc("get_accessible_categories", {
+        _context: contextType,
+        _company_id: contextType === "pj" ? selectedCompanyId : null,
+      });
+      return (data ?? []).map((c: any) => ({
+        id: c.id, name: c.name, color: c.color,
+        transaction_type: c.transaction_type, parent_id: c.parent_id,
+        hierarchy_index: c.hierarchy_index, sort_order: c.sort_order,
+      }));
     },
   });
 
