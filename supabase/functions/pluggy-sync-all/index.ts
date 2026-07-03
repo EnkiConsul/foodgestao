@@ -73,8 +73,41 @@ async function syncOne(admin: any, apiKey: string, conn: any) {
   return { inserted, updated };
 }
 
+function parseJwtRole(token: string): string | null {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const json = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+    return typeof json?.role === "string" ? json.role : null;
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  // --- Authorization gate (cron-only endpoint) ---
+  // Accept either a service-role JWT (Authorization: Bearer ...) or the shared
+  // cron secret (x-cron-secret). All other callers get 403.
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const expectedSecret = Deno.env.get("PLUGGY_SYNC_ALL_SECRET") ?? "";
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const bearer = authHeader.toLowerCase().startsWith("bearer ")
+    ? authHeader.slice(7).trim()
+    : "";
+  const cronSecret = req.headers.get("x-cron-secret") ?? "";
+  const isServiceRoleJwt =
+    bearer.length > 0 &&
+    (bearer === serviceRoleKey || parseJwtRole(bearer) === "service_role");
+  const isCronSecret = expectedSecret.length > 0 && cronSecret === expectedSecret;
+  if (!isServiceRoleJwt && !isCronSecret) {
+    return new Response(JSON.stringify({ ok: false, error: "Forbidden" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: conns } = await admin
