@@ -108,11 +108,13 @@
   "overrides": {
     "ai": "5.0.210",
     "@ai-sdk/react": "2.0.212",
-    "@ai-sdk/openai-compatible": "3.0.4"
+    "@ai-sdk/openai-compatible": "3.0.4",
+    "@babel/runtime": "^7.26.10"
   },
   "resolutions": {
     "ai": "5.0.210",
     "@ai-sdk/react": "2.0.212",
-    "@ai-sdk/openai-compatible": "3.0.4"
+    "@ai-sdk/openai-compatible": "3.0.4",
+    "@babel/runtime": "^7.26.10"
   }
 }
