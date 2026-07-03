@@ -136,12 +136,14 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "connection_id obrigatório" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Verifica ownership via user client (RLS)
-    const { data: conn, error: ownErr } = await supabase
-      .from("bank_connections").select("id").eq("id", connection_id).maybeSingle();
-    if (ownErr || !conn) {
+    // Require the caller to have edit permission on the transactions module of the
+    // connection's company (or be the PF owner). SELECT-level company membership
+    // alone is not enough — sync mutates transactions on behalf of the company.
+    const { data: allowed, error: permErr } = await supabase.rpc("can_sync_bank_connection", { _connection_id: connection_id });
+    if (permErr || allowed !== true) {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const result = await syncConnection(admin, connection_id);
