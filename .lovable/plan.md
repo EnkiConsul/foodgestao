@@ -1,105 +1,104 @@
 
-## Objetivo
-Adicionar o módulo **DRE Contábil** ao Gestor Plin, exclusivo para contexto **PJ** (empresas), integrado às `categories` e `transactions` existentes, seguindo Lei 6.404/76, ITG 1000/2022 e CPC 26 (R1).
+# Integração Open Finance via Pluggy — Extrato Automático
 
-Escopo: entrega única com backend + telas + exportação + integração com Plin IA.
+**Decisões confirmadas:** Pluggy · produção · PF e PJ · sync diário automático (+ manual sob demanda).
 
----
+## Pré-requisitos (fora do código)
+1. Criar conta em https://dashboard.pluggy.ai e obter `CLIENT_ID` e `CLIENT_SECRET` de **produção**.
+2. Contratar plano Pluggy (produção cobra por item ativo/mês).
+3. Guardar segredos: `PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET`, `PLUGGY_WEBHOOK_SECRET`.
 
-## 1. Backend (migração única)
-
-**Tabelas novas (schema `public`):**
-
-- `dre_rubricas` — catálogo global de rubricas contábeis (seed com toda a árvore normativa; código, nome, tipo, natureza credora/devedora, `is_calculada`, `formula`, `ordem`, `editavel_usuario`, `visivel`). Leitura para `authenticated`, escrita restrita a `super_admin`.
-- `dre_categoria_mapeamento` — vínculo `company_id + categoria_id → rubrica_id` com `percentual_alocacao` (permite dividir 1 categoria em até N rubricas somando 100%). RLS: membros da empresa leem; `owner`/`admin` escrevem.
-- `dre_ajustes_manuais` — ajustes por `company_id + rubrica_id + período`, `tipo_ajuste` (adicionar/subtrair/substituir), fluxo de aprovação (`aprovado_por`, `aprovado_em`). RLS: membros leem; `owner`/`admin` criam; só `owner` aprova.
-- `dre_snapshots` — snapshot imutável (`dados_json`) da DRE publicada por período, com totais denormalizados (receita bruta/líquida, lucro bruto, EBIT, LAIR, lucro líquido). RLS: membros leem; `owner`/`admin` publicam.
-
-**Grants:** `SELECT/INSERT/UPDATE/DELETE` para `authenticated` conforme políticas, `ALL` para `service_role`. Índices em `(categoria_id)`, `(rubrica_id)`, `(company_id, periodo_inicio, periodo_fim)`.
-
-**Funções (SECURITY DEFINER, `EXECUTE` só para `authenticated`):**
-
-- `dre_generate(_company_id uuid, _from date, _to date, _regime text)` → retorna JSON com árvore hierárquica de rubricas + valores agregados + totais calculados (Receita Líquida, Lucro Bruto, EBIT, LAIR, Lucro Líquido). Uma única query com `JOIN transactions ⋈ dre_categoria_mapeamento ⋈ dre_rubricas`, respeitando `is_company_member`. Regime `caixa` filtra por `payment_date` (status confirmado); `competência` por `due_date`.
-- `dre_apply_default_mapping(_company_id uuid)` — sugere mapeamento por nome de categoria (heurística de string) para categorias sem vínculo.
-- `dre_check_consistency(_company_id, _from, _to)` — retorna lista de categorias/lançamentos sem mapeamento no período.
-- `dre_publish_snapshot(_company_id, _from, _to, _titulo, _observacoes)` — chama `dre_generate`, grava snapshot imutável com totais denormalizados.
-
-**Seed:** insere ~35 rubricas da estrutura normativa (RECEITA BRUTA → LUCRO LÍQUIDO), incluindo linhas calculadas (`REC_LIQ`, `LUC_BRU`, `EBIT`, `LAIR`, `LUCRO_LIQ`).
-
----
-
-## 2. Frontend
-
-**Rotas novas em `src/App.tsx`:**
+## 1. Migration (schema)
 
 ```text
-/relatorios/dre                  → geração/visualização
-/relatorios/dre/configuracao     → mapeamento categorias ↔ rubricas
-/relatorios/dre/rubricas         → gestão de rubricas (super_admin)
-/relatorios/dre/historico        → lista de snapshots
-/relatorios/dre/historico/:id    → visualização de snapshot publicado
+bank_connections
+  id, user_id, company_id (null=PF), context ('pf'|'pj'),
+  provider ('pluggy'), provider_item_id (unique),
+  institution_name, institution_logo_url,
+  status ('active'|'updating'|'login_error'|'outdated'|'consent_expired'),
+  consent_expires_at, last_sync_at, last_error, created_at, updated_at
+
+bank_connection_accounts
+  id, connection_id (fk), provider_account_id (unique per connection),
+  provider_type, provider_subtype, provider_name, provider_number,
+  account_id (fk accounts, nullable — usuário mapeia),
+  auto_import boolean default true
+
+transactions  (ALTER)
+  + provider text
+  + external_id text
+  + connection_id uuid
+  UNIQUE (provider, external_id) WHERE provider IS NOT NULL
 ```
 
-Todas exigem contexto **PJ** ativo (se PF, banner "Módulo disponível apenas no perfil empresarial").
+RLS: dono vê PF; membros da company veem PJ (mesmo padrão de `accounts`).
+GRANT SELECT/INSERT/UPDATE/DELETE para `authenticated`, ALL para `service_role`.
 
-**Componentes (`src/components/dre/`):**
-- `DREReport.tsx` — tabela hierárquica com colunas Valor / % Rec. Líquida / Comparativo período anterior / Variação %.
-- `DRELine.tsx`, `DRESubtotal.tsx` — linhas com indentação por nível de código.
-- `DREIndicators.tsx` — cards de Margem Bruta, Margem Operacional, Margem Líquida, EBITDA, Índice Inadimplência.
-- `CategoryMappingPanel.tsx` + `RubricaTree.tsx` — mapeamento com filtro "Não mapeadas", divisão percentual, botão "Aplicar mapeamento padrão".
-- `ManualAdjustModal.tsx` — criação/aprovação de ajustes.
-- `DREExportButton.tsx` — PDF (via `jspdf` + `jspdf-autotable`, já no projeto de relatórios), Excel (`xlsx`), CSV.
-- `DREConsistencyBanner.tsx` — avisos de categorias/lançamentos não mapeados.
+RPC `pluggy_link_provider_account(_conn_account_id, _account_id)` — mapeia conta descoberta a uma conta existente com validação de contexto/empresa.
 
-**Hooks (`src/hooks/`):**
-- `useDREGeneration.ts` — chama RPC `dre_generate` com filtros (período, regime, comparativo).
-- `useDREMapping.ts` — CRUD do mapeamento + heurística default.
-- `useDRESnapshots.ts` — lista/publica/lê snapshots.
-- `useDRERubricas.ts` — árvore de rubricas.
+## 2. Edge Functions
 
-**Menu:** adicionar submenu "DRE" em `AppSidebar.tsx` sob "Relatórios" (só aparece no contexto PJ).
+| Function | verify_jwt | Papel |
+|---|---|---|
+| `pluggy-connect-token` | true | Gera `connect_token` p/ o widget do usuário logado. |
+| `pluggy-list-institutions` | true | Proxy opcional pra buscar bancos (cache). |
+| `pluggy-create-connection` | true | Recebe `itemId` do widget, cria `bank_connections` + `bank_connection_accounts` puxando `/accounts`. |
+| `pluggy-sync-item` | true | Sync manual on-demand de uma conexão. |
+| `pluggy-sync-all` | false | Chamado pelo pg_cron diário; percorre todas conexões ativas. |
+| `pluggy-webhook` | false | Recebe `item/updated`, `transactions/created`, `item/error`; valida HMAC; dispara sync. |
+| `pluggy-delete-connection` | true | Remove item no Pluggy + soft-delete local. |
 
-**Permissões (mapeamento acordado):**
-- `owner` + `admin` da empresa = admin/manager (mapeamento, ajustes, publicação; aprovação de ajustes só `owner`).
-- `member` = operator (só visualiza e exporta).
-- `viewer` = só visualiza.
-- Edição de rubricas globais = `super_admin`.
-- Enforcement no backend (RLS + funções) e na UI (esconder ações).
+**Lógica de sync** (compartilhada):
+- Buscar `/transactions?itemId=X&from=<last_sync_at-3d>` (janela retroativa p/ pegar atualizações).
+- Para cada conta com `account_id` mapeado e `auto_import=true`:
+  - `upsert` em `transactions` por `(provider, external_id)`.
+  - Preencher: `description`, `amount` (abs), `transaction_type` (receita se positivo, despesa se negativo), `transaction_date`, `payment_date`, `status='confirmado'`, `is_confirmed=true`, `account_id`, `user_id`, `context`, `company_id`, `connection_id`, `provider='pluggy'`.
+  - Aplicar `import_rules` existente para auto-categorizar.
+- Atualizar `last_sync_at`; se erro → `status='login_error'` + `last_error`.
+- Trigger `sync_account_balance_on_tx` já existente cuida do saldo.
 
----
+## 3. Cron diário
 
-## 3. Integração Plin IA
+Via `supabase--insert` (não migration, pois contém URL/key):
+```sql
+select cron.schedule('pluggy-daily-sync','0 6 * * *',
+  $$ select net.http_post(
+    url:='https://<ref>.supabase.co/functions/v1/pluggy-sync-all',
+    headers:='{"Content-Type":"application/json","apikey":"<anon>"}'::jsonb,
+    body:='{}'::jsonb) $$);
+```
 
-Estender `supabase/functions/_shared/plin-ia-context.ts`:
-- No contexto PJ, buscar último snapshot publicado da empresa ativa e injetar `dre_ultimo_periodo` no `contextToText`.
-- Adicionar tool `plin_ia_dre_summary(_company_id)` no `ai-financial-agent` para o LLM consultar sob demanda a última DRE.
-- Novas quick prompts em `src/pages/PlinIA.tsx`: "Como está minha margem operacional?", "Analise minha última DRE", "Onde estou perdendo mais dinheiro?".
+## 4. Frontend
 
----
+**Nova aba em `ContasBancarias.tsx`: "Conexões Automáticas"**
 
-## 4. Validações e alertas
-- Banner no topo do relatório quando há categorias sem mapeamento.
-- Aviso se `Receita Bruta = 0` ou `Deduções > Receita Bruta`.
-- Destaque vermelho quando `Lucro Líquido < 0` (Prejuízo do Exercício).
-- Snapshots publicados são imutáveis (trigger que impede UPDATE em `dados_json` e totais quando `status = 'publicado'`).
+- Botão **"Conectar banco"** → chama `pluggy-connect-token` → abre `PluggyConnect` (`react-pluggy-connect`) com o token.
+  - `onSuccess({itemId})` → `pluggy-create-connection` → abre modal de **mapeamento**.
+- **Modal de mapeamento** (`MapDiscoveredAccountsDialog`): lista contas descobertas; para cada uma, `Select` das `accounts` compatíveis (mesmo contexto/empresa) + botão "Criar nova conta a partir desta".
+- **Card por conexão** (`BankConnectionCard`): logo instituição, nome, contas mapeadas, status (badge colorido), `last_sync_at` relativo, ações: **Sincronizar agora**, **Reconectar** (quando `login_error` ou `consent_expired`), **Desconectar**.
+- Alerta global quando `consent_expires_at < now + 30d` → CTA renovar.
+- Em `Lancamentos.tsx`: badge 🔗 "Importado do banco" para linhas com `provider='pluggy'`; bloquear edição de `amount`/`transaction_date` (permitir só categoria/notas).
 
----
+## 5. Segurança
+- `pluggy-webhook`: validar header `x-pluggy-signature` (HMAC SHA256 com `PLUGGY_WEBHOOK_SECRET`).
+- Toda função autenticada usa `getClaims()` antes de qualquer operação.
+- Requests Pluggy usam SDK oficial `pluggy-sdk` (npm) via `npm:` specifier no Deno.
+- RLS impede que usuário veja conexões de outros; `bank_connection_accounts` herda via `connection_id`.
 
-## Detalhes técnicos
-- Valores em `NUMERIC(15,2)`; formatação BRL via `formatBRL` já existente.
-- Query de geração otimizada (single `SELECT` com CTE agregando por rubrica).
-- Snapshot armazena JSON completo — republicação gera nova versão.
-- Trigger de auditoria em `dre_ajustes_manuais` (INSERT/UPDATE/APROVAÇÃO) via `insert_audit_log`.
-- Zod schemas em `src/lib/validations.ts` para ajustes e snapshot.
+## 6. Rollout
+1. Migration + RPCs.
+2. Edge functions (começar por `connect-token`, `create-connection`, `sync-item`).
+3. UI: aba conexões + widget + mapeamento.
+4. Webhook + cron.
+5. Renovação de consentimento (12 meses).
+6. QA em sandbox Pluggy → produção.
 
----
+## Estimativa
+~2 sprints. Fase 1 (conectar+sync manual) já entrega valor em ~4-5 dias.
 
-## Ordem de execução
-1. Migração SQL (tabelas + RLS + grants + seed rubricas + funções RPC + triggers).
-2. Types regenerados automaticamente.
-3. Hooks + páginas + componentes DRE.
-4. Rota, sidebar, guard PJ.
-5. Extensão Plin IA (context + tool + quick prompts).
-6. Verificação: build, screenshot da tela `/relatorios/dre` via Playwright.
-
-Após aprovar, começo pela migração (que precisa da sua aprovação separada) e sigo com o restante em sequência.
+## Detalhes técnicos (para o dev)
+- Pluggy SDK: `import { PluggyClient } from "npm:pluggy-sdk"`.
+- Widget npm: `bun add react-pluggy-connect`.
+- `context`/`company_id` do `bank_connection` vem do `useCompanyContext` no momento de conectar.
+- Dedupe: `ON CONFLICT (provider, external_id) DO UPDATE SET status, amount_paid, payment_date` apenas se `updated_at do provider > transactions.updated_at`.
+- Categorização: reusar helper de `import_rules` já usado em `ImportStatementDialog`.
