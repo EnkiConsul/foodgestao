@@ -2600,6 +2600,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      can_manage_bank_connection: {
+        Args: { _connection_id: string }
+        Returns: boolean
+      }
+      can_sync_bank_connection: {
+        Args: { _connection_id: string }
+        Returns: boolean
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
