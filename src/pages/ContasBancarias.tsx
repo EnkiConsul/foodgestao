@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
 import { BankLogo } from "@/components/accounts/BankLogo";
+import { PluggyConnectionsSection } from "@/components/accounts/PluggyConnectionsSection";
 import { Plus, Search, Landmark, Pencil, Trash2, Wallet, RefreshCw, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
