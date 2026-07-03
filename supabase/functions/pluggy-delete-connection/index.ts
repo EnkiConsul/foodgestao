@@ -41,11 +41,20 @@ Deno.serve(async (req) => {
     }
 
     const { connection_id } = await req.json();
-    const { data: conn, error: ownErr } = await supabase
-      .from("bank_connections").select("*").eq("id", connection_id).maybeSingle();
-    if (ownErr || !conn) {
+
+    // Enforce that only the connection owner or a company admin/owner can delete.
+    const { data: allowed, error: permErr } = await supabase.rpc("can_manage_bank_connection", { _connection_id: connection_id });
+    if (permErr || allowed !== true) {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: conn } = await admin
+      .from("bank_connections").select("*").eq("id", connection_id).maybeSingle();
+    if (!conn) {
+      return new Response(JSON.stringify({ error: "Not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
 
     try {
       const apiKey = await pluggyAuth();
