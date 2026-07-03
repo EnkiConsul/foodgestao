@@ -208,8 +208,11 @@ export default function ContasBancarias() {
         </Card>
       </div>
 
+      <PluggyConnectionsSection localAccounts={accounts.map((a) => ({ id: a.id, name: a.name }))} />
+
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">
+
         <div className="relative flex-1 min-w-[180px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar conta..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" maxLength={100} />
