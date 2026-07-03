@@ -66,9 +66,9 @@ Deno.serve(async (req) => {
       console.warn("[pluggy delete item warning]", e);
     }
 
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     await admin.from("bank_connection_accounts").delete().eq("connection_id", connection_id);
     await admin.from("bank_connections").delete().eq("id", connection_id);
+
 
     return new Response(JSON.stringify({ ok: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
