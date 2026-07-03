@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
 import { BankLogo } from "@/components/accounts/BankLogo";
+import { PluggyConnectionsSection } from "@/components/accounts/PluggyConnectionsSection";
 import { Plus, Search, Landmark, Pencil, Trash2, Wallet, RefreshCw, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
@@ -207,8 +208,11 @@ export default function ContasBancarias() {
         </Card>
       </div>
 
+      <PluggyConnectionsSection localAccounts={accounts.map((a) => ({ id: a.id, name: a.name }))} />
+
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">
+
         <div className="relative flex-1 min-w-[180px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar conta..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" maxLength={100} />
