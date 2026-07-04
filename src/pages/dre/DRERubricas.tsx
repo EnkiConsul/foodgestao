@@ -1,10 +1,10 @@
-import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 import { useDRERubricas } from "@/hooks/useDRE";
 import { nivelIndent, isSubtotal, isCabecalho } from "@/lib/dre";
 import { Helmet } from "react-helmet-async";
+import { DRESubNav } from "./DRESubNav";
 
 export default function DRERubricas() {
   const { data: rubricas = [] } = useDRERubricas();
@@ -12,19 +12,19 @@ export default function DRERubricas() {
   return (
     <div className="p-6 space-y-6">
       <Helmet><title>Rubricas DRE | Gestor Plin</title></Helmet>
-      <div>
-        <Link to="/relatorios/dre" className="text-sm text-muted-foreground hover:underline flex items-center gap-1 mb-1">
-          <ArrowLeft className="h-3 w-3" /> Voltar à DRE
-        </Link>
-        <h1 className="text-2xl font-semibold">Rubricas Contábeis Padrão</h1>
-        <p className="text-sm text-muted-foreground">Estrutura normativa da DRE conforme ITG 1000 / Lei 6.404/76.</p>
-      </div>
 
-      <Card>
-        <CardHeader>
+      <PageHeader
+        title="Rubricas Contábeis Padrão"
+        description="Estrutura normativa da DRE conforme ITG 1000 / Lei 6.404/76."
+      />
+
+      <DRESubNav />
+
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3">
           <CardTitle className="text-base">Catálogo</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 border-b">
               <tr>

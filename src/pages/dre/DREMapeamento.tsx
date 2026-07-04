@@ -6,7 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, ArrowLeft, CheckCircle2, Wand2, Trash2, Save, X } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { AlertCircle, CheckCircle2, Wand2, Trash2, Save, X, Search } from "lucide-react";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { useDRERubricas, useDREMapeamento, useDRERealtime } from "@/hooks/useDRE";
@@ -14,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Helmet } from "react-helmet-async";
+import { DRESubNav } from "./DRESubNav";
 
 type PendingChange = { rubricaId: string; existingId?: string };
 
@@ -124,42 +126,39 @@ export default function DREMapeamento() {
     <div className="p-6 space-y-6">
       <Helmet><title>Mapeamento DRE | Gestor Plin</title></Helmet>
 
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-            <Link to="/relatorios/dre" className="hover:underline flex items-center gap-1">
-              <ArrowLeft className="h-3 w-3" /> Voltar à DRE
-            </Link>
-          </div>
-          <h1 className="text-2xl font-semibold">Mapeamento de Categorias</h1>
-          <p className="text-sm text-muted-foreground">Vincule cada categoria financeira a uma rubrica contábil da DRE.</p>
-        </div>
-        {canEdit && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button variant="outline" onClick={handleApplyDefault} disabled={applyDefault.isPending || saving}>
-              <Wand2 className="h-4 w-4 mr-1.5" />
-              Aplicar mapeamento padrão
-            </Button>
-            {pendingCount > 0 && (
-              <Button variant="ghost" onClick={handleDiscard} disabled={saving}>
-                <X className="h-4 w-4 mr-1.5" />
-                Descartar
+      <PageHeader
+        title="Mapeamento de Categorias"
+        description="Vincule cada categoria financeira a uma rubrica contábil da DRE."
+        actions={
+          canEdit ? (
+            <>
+              <Button variant="outline" onClick={handleApplyDefault} disabled={applyDefault.isPending || saving} size="sm">
+                <Wand2 className="h-4 w-4 mr-1.5" aria-hidden="true" />
+                Aplicar padrão
               </Button>
-            )}
-            <Button onClick={handleSaveAll} disabled={pendingCount === 0 || saving}>
-              <Save className="h-4 w-4 mr-1.5" />
-              {saving ? "Salvando…" : `Salvar mapeamento${pendingCount > 0 ? ` (${pendingCount})` : ""}`}
-            </Button>
-          </div>
-        )}
-      </div>
+              {pendingCount > 0 && (
+                <Button variant="ghost" onClick={handleDiscard} disabled={saving} size="sm">
+                  <X className="h-4 w-4 mr-1.5" aria-hidden="true" />
+                  Descartar
+                </Button>
+              )}
+              <Button onClick={handleSaveAll} disabled={pendingCount === 0 || saving} size="sm">
+                <Save className="h-4 w-4 mr-1.5" aria-hidden="true" />
+                {saving ? "Salvando…" : `Salvar${pendingCount > 0 ? ` (${pendingCount})` : ""}`}
+              </Button>
+            </>
+          ) : null
+        }
+      />
+
+      <DRESubNav />
 
       {pendingCount > 0 && (
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>{pendingCount} alteração(ões) pendente(s)</AlertTitle>
           <AlertDescription>
-            Clique em <strong>Salvar mapeamento</strong> para aplicar as mudanças. A DRE será atualizada automaticamente.
+            Clique em <strong>Salvar</strong> para aplicar as mudanças. A DRE será atualizada automaticamente.
           </AlertDescription>
         </Alert>
       )}
@@ -174,23 +173,44 @@ export default function DREMapeamento() {
         </Alert>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2 flex-wrap">
-            Categorias
-            <Badge variant="secondary">{categorias.length}</Badge>
-            <div className="ml-auto flex items-center gap-2">
-              <Input
-                placeholder="Buscar categoria…"
-                className="h-8 w-56"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-              <Button variant={showOnlyUnmapped ? "default" : "outline"} size="sm" onClick={() => setShowOnlyUnmapped(!showOnlyUnmapped)}>
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <CardTitle className="text-base flex items-center gap-2">
+              Categorias
+              <Badge variant="secondary">{categorias.length}</Badge>
+            </CardTitle>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" aria-hidden="true" />
+                <Input
+                  placeholder="Buscar categoria…"
+                  className="h-9 pl-8 pr-8"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  aria-label="Buscar categoria"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label="Limpar busca"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              <Button
+                variant={showOnlyUnmapped ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowOnlyUnmapped(!showOnlyUnmapped)}
+                aria-pressed={showOnlyUnmapped}
+              >
                 Só não mapeadas
               </Button>
             </div>
-          </CardTitle>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -211,7 +231,7 @@ export default function DREMapeamento() {
                   const currentValue = pend?.rubricaId ?? primary?.rubrica_id ?? "";
                   const isDirty = !!pend && pend.rubricaId !== primary?.rubrica_id;
                   return (
-                    <tr key={cat.id} className={`border-b last:border-0 hover:bg-muted/30 ${isDirty ? "bg-amber-50/40 dark:bg-amber-950/20" : ""}`}>
+                    <tr key={cat.id} className={`border-b last:border-0 hover:bg-muted/30 ${isDirty ? "bg-warning/5" : ""}`}>
                       <td className="px-4 py-2 font-medium">{cat.name}</td>
                       <td className="px-4 py-2">
                         <Badge variant={cat.transaction_type === "receita" ? "default" : "secondary"} className="text-[10px]">
@@ -238,11 +258,11 @@ export default function DREMapeamento() {
                             </SelectContent>
                           </Select>
                           {isDirty ? (
-                            <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700 dark:text-amber-400">
+                            <Badge variant="outline" className="text-[10px] border-warning/40 text-warning">
                               pendente
                             </Badge>
                           ) : primary ? (
-                            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                            <CheckCircle2 className="h-4 w-4 text-success" />
                           ) : null}
                         </div>
                       </td>
