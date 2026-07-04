@@ -39,7 +39,7 @@ import {
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
-type Granularity = "diario" | "semanal" | "mensal";
+type Granularity = FluxoGranularity;
 type PeriodPreset = "2months" | "3months" | "6months" | "12months" | "custom";
 
 function getPeriodRange(preset: PeriodPreset): { from: Date; to: Date } {
