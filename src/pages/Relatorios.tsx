@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   Select,
   SelectContent,
@@ -22,6 +24,7 @@ import {
   Filter,
   X,
   CalendarIcon,
+  Search,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -61,6 +64,8 @@ export default function Relatorios() {
   const [showFilters, setShowFilters] = useState(false);
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("year");
   const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>(getPeriodRange("year"));
+  const [searchQuery, setSearchQuery] = useState("");
+  const normalizedQuery = searchQuery.trim().toLowerCase();
 
   const collectParentIds = (nodes: any[]): string[] => {
     const ids: string[] = [];
@@ -302,116 +307,152 @@ export default function Relatorios() {
     };
   }, [filteredTransactions, categories, activeRange]);
 
-  // Flatten tree respecting collapsed state
+  // Filter tree by search query, preserving ancestors of any match
+  const filterTreeBySearch = (nodes: FluxoNode[]): FluxoNode[] => {
+    if (!normalizedQuery) return nodes;
+    return nodes
+      .map((n) => {
+        const filteredChildren = filterTreeBySearch(n.children);
+        const selfMatch = n.name.toLowerCase().includes(normalizedQuery)
+          || (n.hierarchyIndex ?? "").toLowerCase().includes(normalizedQuery);
+        if (selfMatch || filteredChildren.length > 0) {
+          return { ...n, children: filteredChildren };
+        }
+        return null;
+      })
+      .filter((n): n is FluxoNode => n !== null);
+  };
+
+  // Flatten tree respecting collapsed state (search forces expand)
   const flattenTree = (nodes: FluxoNode[], depth: number): FluxoNode[] => {
     const result: FluxoNode[] = [];
     for (const node of nodes) {
       result.push({ ...node, depth });
-      if (node.children.length > 0 && !collapsedIds.has(node.id)) {
+      const forceExpand = !!normalizedQuery;
+      if (node.children.length > 0 && (forceExpand || !collapsedIds.has(node.id))) {
         result.push(...flattenTree(node.children, depth + 1));
       }
     }
     return result;
   };
 
-  const flatReceitas = useMemo(() => flattenTree(fluxoCaixaData.receitaTree, 0), [fluxoCaixaData.receitaTree, collapsedIds]);
-  const flatDespesas = useMemo(() => flattenTree(fluxoCaixaData.despesaTree, 0), [fluxoCaixaData.despesaTree, collapsedIds]);
+  const flatReceitas = useMemo(
+    () => flattenTree(filterTreeBySearch(fluxoCaixaData.receitaTree), 0),
+    [fluxoCaixaData.receitaTree, collapsedIds, normalizedQuery]
+  );
+  const flatDespesas = useMemo(
+    () => flattenTree(filterTreeBySearch(fluxoCaixaData.despesaTree), 0),
+    [fluxoCaixaData.despesaTree, collapsedIds, normalizedQuery]
+  );
 
   return (
     <div className="space-y-6" ref={reportRef}>
-      <div className="flex flex-col gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Relatórios</h1>
-          <p className="text-sm text-muted-foreground">Analise suas finanças com relatórios detalhados</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1">
+      <PageHeader
+        title="Relatórios"
+        description="Analise suas finanças com relatórios detalhados"
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Navegação de ano (Fluxo de Caixa) */}
+            <div className="flex items-center gap-1 rounded-md border bg-card px-1 py-0.5">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setFluxoYear((y) => y - 1)}
+                aria-label="Ano anterior"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-semibold min-w-[3rem] text-center tabular-nums">{fluxoYear}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setFluxoYear((y) => y + 1)}
+                aria-label="Próximo ano"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Presets de período */}
+            <div className="flex flex-wrap items-center gap-1">
+              {([
+                { key: "month", label: "Mês" },
+                { key: "3months", label: "3M" },
+                { key: "6months", label: "6M" },
+                { key: "year", label: "Ano" },
+              ] as { key: PeriodPreset; label: string }[]).map((p) => (
+                <Button
+                  key={p.key}
+                  variant={periodPreset === p.key ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPeriodPreset(p.key)}
+                  aria-pressed={periodPreset === p.key}
+                >
+                  {p.label}
+                </Button>
+              ))}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={periodPreset === "custom" ? "default" : "outline"}
+                    size="sm"
+                    className="gap-1"
+                    aria-pressed={periodPreset === "custom"}
+                  >
+                    <CalendarIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                    {periodPreset === "custom"
+                      ? `${format(customRange.from, "dd/MM/yy")} - ${format(customRange.to, "dd/MM/yy")}`
+                      : "Personalizado"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    mode="range"
+                    selected={{ from: customRange.from, to: customRange.to }}
+                    onSelect={(range) => {
+                      if (range?.from) {
+                        setCustomRange({ from: range.from, to: range.to ?? range.from });
+                        setPeriodPreset("custom");
+                      }
+                    }}
+                    numberOfMonths={2}
+                    locale={ptBR}
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Toggle filtros */}
             <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setFluxoYear((y) => y - 1)}
+              variant={showFilters ? "default" : "outline"}
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setShowFilters((v) => !v)}
+              aria-expanded={showFilters}
+              aria-controls="relatorios-filtros"
             >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm font-semibold min-w-[3rem] text-center">{fluxoYear}</span>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setFluxoYear((y) => y + 1)}
-            >
-              <ChevronRight className="h-4 w-4" />
+              <Filter className="h-3.5 w-3.5" aria-hidden="true" /> Filtros
+              {(filterAccountId !== "all" || filterCategoryId !== "all" || normalizedQuery) && (
+                <span className="ml-1 h-5 min-w-5 px-1 rounded-full bg-primary-foreground text-primary text-xs flex items-center justify-center font-bold">
+                  {(filterAccountId !== "all" ? 1 : 0) + (filterCategoryId !== "all" ? 1 : 0) + (normalizedQuery ? 1 : 0)}
+                </span>
+              )}
             </Button>
           </div>
-          <Button
-            variant={showFilters ? "default" : "outline"}
-            size="sm"
-            className="gap-1.5"
-            onClick={() => setShowFilters((v) => !v)}
-          >
-            <Filter className="h-3.5 w-3.5" /> Filtros
-            {(filterAccountId !== "all" || filterCategoryId !== "all") && (
-              <span className="ml-1 h-5 w-5 rounded-full bg-primary-foreground text-primary text-xs flex items-center justify-center font-bold">
-                {(filterAccountId !== "all" ? 1 : 0) + (filterCategoryId !== "all" ? 1 : 0)}
-              </span>
-            )}
-          </Button>
-          {([
-            { key: "month", label: "Mês" },
-            { key: "3months", label: "3 Meses" },
-            { key: "6months", label: "6 Meses" },
-            { key: "year", label: "Ano" },
-          ] as { key: PeriodPreset; label: string }[]).map((p) => (
-            <Button
-              key={p.key}
-              variant={periodPreset === p.key ? "default" : "outline"}
-              size="sm"
-              onClick={() => setPeriodPreset(p.key)}
-            >
-              {p.label}
-            </Button>
-          ))}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant={periodPreset === "custom" ? "default" : "outline"}
-                size="sm"
-                className="gap-1"
-              >
-                <CalendarIcon className="h-3.5 w-3.5" />
-                {periodPreset === "custom"
-                  ? `${format(customRange.from, "dd/MM/yy")} - ${format(customRange.to, "dd/MM/yy")}`
-                  : "Personalizado"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="range"
-                selected={{ from: customRange.from, to: customRange.to }}
-                onSelect={(range) => {
-                  if (range?.from) {
-                    setCustomRange({ from: range.from, to: range.to ?? range.from });
-                    setPeriodPreset("custom");
-                  }
-                }}
-                numberOfMonths={2}
-                locale={ptBR}
-                className={cn("p-3 pointer-events-auto")}
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
+        }
+      />
 
       {showFilters && (
-        <Card className="shadow-sm">
+        <Card id="relatorios-filtros" className="shadow-sm">
           <CardContent className="pt-4 pb-4">
-            <div className="flex flex-wrap items-end gap-4">
-              <div className="space-y-1.5 min-w-[180px]">
-                <label className="text-xs font-medium text-muted-foreground">Conta Bancária</label>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_2fr_auto] items-end">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground" htmlFor="filter-account">Conta Bancária</label>
                 <Select value={filterAccountId} onValueChange={setFilterAccountId}>
-                  <SelectTrigger className="h-9">
+                  <SelectTrigger id="filter-account" className="h-9">
                     <SelectValue placeholder="Todas as contas" />
                   </SelectTrigger>
                   <SelectContent>
@@ -422,10 +463,10 @@ export default function Relatorios() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5 min-w-[180px]">
-                <label className="text-xs font-medium text-muted-foreground">Categoria</label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground" htmlFor="filter-category">Categoria</label>
                 <Select value={filterCategoryId} onValueChange={setFilterCategoryId}>
-                  <SelectTrigger className="h-9">
+                  <SelectTrigger id="filter-category" className="h-9">
                     <SelectValue placeholder="Todas as categorias" />
                   </SelectTrigger>
                   <SelectContent>
@@ -441,14 +482,38 @@ export default function Relatorios() {
                   </SelectContent>
                 </Select>
               </div>
-              {(filterAccountId !== "all" || filterCategoryId !== "all") && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground" htmlFor="filter-search">Buscar categoria</label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" aria-hidden="true" />
+                  <Input
+                    id="filter-search"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Ex.: Aluguel, Distribuição, 2.10..."
+                    className="h-9 pl-8 pr-8"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      aria-label="Limpar busca"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              {(filterAccountId !== "all" || filterCategoryId !== "all" || searchQuery) && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="gap-1 text-muted-foreground"
+                  className="gap-1 text-muted-foreground justify-self-start lg:justify-self-end"
                   onClick={() => {
                     setFilterAccountId("all");
                     setFilterCategoryId("all");
+                    setSearchQuery("");
                   }}
                 >
                   <X className="h-3.5 w-3.5" /> Limpar filtros
@@ -458,6 +523,8 @@ export default function Relatorios() {
           </CardContent>
         </Card>
       )}
+
+
 
       <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-start justify-between gap-3 pb-4">
