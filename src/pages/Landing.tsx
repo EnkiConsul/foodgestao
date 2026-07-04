@@ -193,7 +193,7 @@ function PublicHeader({ utm }: { utm: string }) {
         </nav>
 
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+          <Button asChild variant="ghost" size="sm">
             <Link to={buildCta("/auth", utm)}>Entrar</Link>
           </Button>
           <CtaPrimary
