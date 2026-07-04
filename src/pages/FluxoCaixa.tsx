@@ -7,7 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
+import { FluxoCaixaSubNav, type FluxoGranularity } from "./fluxo-caixa/FluxoCaixaSubNav";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -19,7 +21,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ReferenceLine } from "recharts";
-import { TrendingUp, TrendingDown, Wallet, CalendarDays, CalendarIcon } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, CalendarDays, CalendarIcon, Search, X } from "lucide-react";
 import {
   format,
   startOfMonth,
@@ -37,7 +39,7 @@ import {
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
-type Granularity = "diario" | "semanal" | "mensal";
+type Granularity = FluxoGranularity;
 type PeriodPreset = "2months" | "3months" | "6months" | "12months" | "custom";
 
 function getPeriodRange(preset: PeriodPreset): { from: Date; to: Date } {
@@ -72,6 +74,8 @@ export default function FluxoCaixa() {
   const [granularity, setGranularity] = useState<Granularity>("diario");
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("2months");
   const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>(getPeriodRange("2months"));
+  const [labelQuery, setLabelQuery] = useState("");
+  const normalizedQuery = labelQuery.trim().toLowerCase();
 
   const activeRange = periodPreset === "custom" ? customRange : getPeriodRange(periodPreset);
 
@@ -247,6 +251,11 @@ export default function FluxoCaixa() {
     return found?.label ?? null;
   }, [chartData]);
 
+  const filteredChartData = useMemo(() => {
+    if (!normalizedQuery) return chartData;
+    return chartData.filter((d) => d.label.toLowerCase().includes(normalizedQuery));
+  }, [chartData, normalizedQuery]);
+
   const projectedTotals = useMemo(() => {
     const totalReceitas = chartData.reduce((s, d) => s + (d.receitasReal + d.receitasProj), 0);
     const totalDespesas = chartData.reduce((s, d) => s + (d.despesasReal + d.despesasProj), 0);
@@ -256,19 +265,17 @@ export default function FluxoCaixa() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Fluxo de Caixa</h1>
-          <p className="text-sm text-muted-foreground">Acompanhe entradas, saídas e projeções</p>
-        </div>
-        <Tabs value={granularity} onValueChange={(v) => setGranularity(v as Granularity)}>
-          <TabsList>
-            <TabsTrigger value="diario">Diário</TabsTrigger>
-            <TabsTrigger value="semanal">Semanal</TabsTrigger>
-            <TabsTrigger value="mensal">Mensal</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
+      <PageHeader
+        title={
+          <span className="inline-flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-primary" aria-hidden="true" />
+            Fluxo de Caixa
+          </span>
+        }
+        description="Acompanhe entradas, saídas e projeções"
+      />
+
+      <FluxoCaixaSubNav value={granularity} onChange={setGranularity} />
 
       {/* Period filter */}
       <div className="flex flex-wrap items-center gap-2">
@@ -362,17 +369,39 @@ export default function FluxoCaixa() {
 
       {/* Chart */}
       <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-base">Fluxo de Caixa — {granularity === "diario" ? "Diário" : granularity === "semanal" ? "Semanal" : "Mensal"}</CardTitle>
+        <CardHeader className="flex flex-col gap-3 pb-4 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle className="text-base">
+            Fluxo de Caixa — {granularity === "diario" ? "Diário" : granularity === "semanal" ? "Semanal" : "Mensal"}
+          </CardTitle>
+          <div className="relative w-full sm:w-64">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <Input
+              value={labelQuery}
+              onChange={(e) => setLabelQuery(e.target.value)}
+              placeholder="Filtrar período (ex.: 05/07, jul)"
+              className="h-8 pl-8 pr-8 text-sm"
+              aria-label="Filtrar pontos do gráfico por período"
+            />
+            {labelQuery && (
+              <button
+                type="button"
+                onClick={() => setLabelQuery("")}
+                aria-label="Limpar busca"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
-          {chartData.length === 0 ? (
+          {filteredChartData.length === 0 ? (
             <div className="flex items-center justify-center h-64 text-muted-foreground text-sm">
-              Nenhuma movimentação no período
+              {normalizedQuery ? "Nenhum ponto corresponde à busca" : "Nenhuma movimentação no período"}
             </div>
           ) : (
             <ChartContainer config={chartConfig} className="h-72 w-full">
-              <AreaChart data={chartData} accessibilityLayer>
+              <AreaChart data={filteredChartData} accessibilityLayer>
                 <defs>
                   <linearGradient id="gradReceitas" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="hsl(145, 50%, 42%)" stopOpacity={0.3} />
