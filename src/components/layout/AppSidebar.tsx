@@ -38,10 +38,9 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const mainItems = [
+const financeiroItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Lançamentos", url: "/lancamentos", icon: ArrowLeftRight },
-  
   { title: "Fluxo de Caixa", url: "/fluxo-caixa", icon: TrendingUp },
   { title: "Orçamento", url: "/orcamento", icon: Target },
   { title: "Relatórios", url: "/relatorios", icon: FileBarChart },
@@ -49,28 +48,34 @@ const mainItems = [
   { title: "Plin IA", url: "/plin-ia", icon: Bot },
 ];
 
-const secondaryItems = [
+const cadastrosItems = [
   { title: "Perfis de Acesso", url: "/empresas", icon: Building2 },
   { title: "Contas Bancárias", url: "/contas-bancarias", icon: Landmark },
   { title: "Formas de Pagamento", url: "/formas-pagamento", icon: CreditCard },
   { title: "Clientes / Fornecedores", url: "/contatos", icon: Users },
   { title: "Categorias", url: "/categorias", icon: FolderTree },
-  { title: "Usuários", url: "/gestao-usuarios", icon: UserCog },
+];
+
+const cobrancaItems = [
   { title: "Meu Plano", url: "/planos", icon: Sparkles },
   { title: "Minhas Faturas", url: "/faturas", icon: Receipt },
+];
+
+const configItems = [
+  { title: "Usuários", url: "/gestao-usuarios", icon: UserCog },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  
+
   const { signOut } = useAuth();
   const { isSuperAdmin } = useSuperAdmin();
 
-  const visibleSecondaryItems = isSuperAdmin
-    ? [...secondaryItems, { title: "Backoffice", url: "/admin", icon: Shield }]
-    : secondaryItems;
+  const visibleConfigItems = isSuperAdmin
+    ? [...configItems, { title: "Backoffice", url: "/admin", icon: Shield }]
+    : configItems;
 
   return (
     <Sidebar className="border-r-0" collapsible="icon">
