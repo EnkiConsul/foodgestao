@@ -661,6 +661,7 @@ export default function Categorias() {
               </Droppable>
             </DragDropContext>
           </Table>
+          </ResponsiveTable>
         </div>
       )}
 
