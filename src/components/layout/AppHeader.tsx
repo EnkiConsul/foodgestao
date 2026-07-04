@@ -9,11 +9,8 @@ export function AppHeader() {
   const { privacyMode, togglePrivacy } = usePrivacy();
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b bg-card px-4">
-      <SidebarTrigger className="hidden md:flex" />
-      <div className="md:hidden">
-        <SidebarTrigger />
-      </div>
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-card px-4">
+      <SidebarTrigger aria-label="Alternar menu lateral" />
 
       <ContextSelector />
 
@@ -25,6 +22,8 @@ export function AppHeader() {
         className="h-9 w-9 text-muted-foreground"
         onClick={togglePrivacy}
         title={privacyMode ? "Mostrar valores" : "Ocultar valores"}
+        aria-label={privacyMode ? "Mostrar valores" : "Ocultar valores"}
+        aria-pressed={privacyMode}
       >
         {privacyMode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
       </Button>

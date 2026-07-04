@@ -906,8 +906,8 @@ export default function Lancamentos() {
           {isMobile && (
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="h-9 w-9">
-                  <Filter className="h-4 w-4" />
+                <Button variant="outline" size="icon" className="h-9 w-9" aria-label="Abrir filtros">
+                  <Filter className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[280px] overflow-y-auto">
@@ -927,12 +927,12 @@ export default function Lancamentos() {
       {/* Month navigation */}
       <div className="space-y-2">
         <div className="flex items-center justify-center gap-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedYear((y) => y - 1)}>
-            <ChevronLeft className="h-4 w-4" />
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedYear((y) => y - 1)} aria-label="Ano anterior">
+            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
           </Button>
           <span className="text-sm font-semibold min-w-[50px] text-center">{selectedYear}</span>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedYear((y) => y + 1)}>
-            <ChevronRight className="h-4 w-4" />
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedYear((y) => y + 1)} aria-label="Próximo ano">
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
         <div className="flex gap-1 overflow-x-auto pb-1">
@@ -1242,8 +1242,9 @@ export default function Lancamentos() {
                                   className="h-7 w-7 text-success hover:text-success"
                                   onClick={() => setPaymentTx(r.original)}
                                   title="Registrar pagamento"
+                                  aria-label={`Registrar pagamento de ${r.description}`}
                                 >
-                                  <DollarSign className="h-3 w-3" />
+                                  <DollarSign className="h-3 w-3" aria-hidden="true" />
                                 </Button>
                               )}
                               <Button
@@ -1262,16 +1263,18 @@ export default function Lancamentos() {
                                     setDialogOpen(true);
                                   }
                                 }}
+                                aria-label={`Editar ${r.description}`}
                               >
-                                <Pencil className="h-3 w-3" />
+                                <Pencil className="h-3 w-3" aria-hidden="true" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 text-muted-foreground hover:text-destructive"
                                 onClick={() => setDeleteId(r.id)}
+                                aria-label={`Excluir ${r.description}`}
                               >
-                                <Trash2 className="h-3 w-3" />
+                                <Trash2 className="h-3 w-3" aria-hidden="true" />
                               </Button>
                             </div>
                           </TableCell>
@@ -1301,9 +1304,10 @@ export default function Lancamentos() {
       {/* FAB mobile */}
       <button
         onClick={() => { setEditTransaction(null); setDialogInitialType(undefined); setDialogOpen(true); }}
-        className="fixed bottom-24 right-4 z-[70] md:hidden flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
+        className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-40 md:hidden flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        aria-label="Novo lançamento"
       >
-        <Plus className="h-6 w-6" />
+        <Plus className="h-6 w-6" aria-hidden="true" />
       </button>
 
       <TransactionFormDialog

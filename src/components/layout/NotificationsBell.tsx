@@ -141,17 +141,26 @@ export function NotificationsBell() {
           variant="ghost"
           size="icon"
           className="h-9 w-9 text-muted-foreground relative"
+          aria-label={count > 0 ? `Notificações (${count} não lidas)` : "Notificações"}
           title="Notificações"
         >
-          <Bell className="h-4 w-4" />
+          <Bell className="h-4 w-4" aria-hidden="true" />
           {count > 0 && (
-            <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold flex items-center justify-center">
+            <span
+              className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold flex items-center justify-center"
+              aria-hidden="true"
+            >
               {count > 9 ? "9+" : count}
             </span>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-0">
+      <PopoverContent
+        align="end"
+        sideOffset={8}
+        collisionPadding={12}
+        className="w-[calc(100vw-1.5rem)] max-w-sm sm:w-80 p-0"
+      >
         <div className="px-4 py-3 border-b">
           <h3 className="text-sm font-semibold">Notificações</h3>
           <p className="text-xs text-muted-foreground">Alertas financeiros em tempo real</p>
@@ -159,9 +168,9 @@ export function NotificationsBell() {
         <ScrollArea className="max-h-80">
           {grouped.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
-              <CheckCircle2 className="h-8 w-8 text-muted-foreground/40 mb-2" />
+              <CheckCircle2 className="h-8 w-8 text-muted-foreground/40 mb-2" aria-hidden="true" />
               <p className="text-sm text-muted-foreground">Tudo em dia!</p>
-              <p className="text-xs text-muted-foreground/70">
+              <p className="text-xs text-muted-foreground/80">
                 Sem contas atrasadas, vencimentos próximos ou orçamentos estourados.
               </p>
             </div>
@@ -172,7 +181,7 @@ export function NotificationsBell() {
                   <button
                     onClick={() => navigate(a.href)}
                     className={cn(
-                      "w-full flex gap-3 items-start px-4 py-3 text-left hover:bg-muted/60 transition-colors"
+                      "w-full flex gap-3 items-start px-4 py-3 text-left hover:bg-muted/60 transition-colors focus-visible:outline-none focus-visible:bg-muted/60"
                     )}
                   >
                     <div className="mt-0.5">{iconFor(a.type)}</div>

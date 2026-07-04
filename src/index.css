@@ -104,9 +104,54 @@
     @apply border-border;
   }
 
+  html {
+    /* Better mobile: prevents 100vh jumping when browser chrome collapses */
+    height: -webkit-fill-available;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', sans-serif;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Safe-area helpers for iOS notch / home indicator */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pl-safe {
+    padding-left: env(safe-area-inset-left);
+  }
+  .pr-safe {
+    padding-right: env(safe-area-inset-right);
+  }
+  .bottom-safe {
+    bottom: max(env(safe-area-inset-bottom), 0px);
+  }
+  /* Reserve space for BottomNav + safe-area on mobile */
+  .pb-mobile-nav {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+
+  /* Standardized brand accent for WhatsApp */
+  .bg-whatsapp {
+    background-color: #25D366;
+  }
+  .text-whatsapp {
+    color: #25D366;
   }
 }
 
