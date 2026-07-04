@@ -30,7 +30,7 @@ export function CookieConsentBanner() {
   return (
     <>
       {!decided && !hidden && (
-        <div className="fixed inset-x-3 bottom-3 z-[60] sm:inset-x-auto sm:right-4 sm:bottom-4 sm:max-w-md">
+        <div className="fixed inset-x-3 bottom-[calc(4rem+env(safe-area-inset-bottom)+0.75rem)] z-50 sm:inset-x-auto sm:right-4 sm:bottom-4 sm:max-w-md">
           <div className="rounded-xl border border-border bg-card p-4 shadow-2xl">
             <div className="flex items-start gap-3">
               <Cookie className="h-5 w-5 shrink-0 text-primary" />
