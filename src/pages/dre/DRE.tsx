@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Navigate, Link } from "react-router-dom";
+import { Navigate, Link, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, ArrowRight, FileText, Save, Settings2, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { AlertCircle, ArrowRight, FileText, Save, Search, Settings2, Sparkles, TrendingDown, TrendingUp, X } from "lucide-react";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDREGeneration, useDREConsistency, useDRESnapshots, useDRERealtime } from "@/hooks/useDRE";
 import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
@@ -26,6 +27,8 @@ export default function DREPage() {
   const [from, setFrom] = useState(initial.from);
   const [to, setTo] = useState(initial.to);
   const [regime, setRegime] = useState<DRERegime>("caixa");
+  const [rubricaQuery, setRubricaQuery] = useState("");
+  const normalizedRubricaQuery = rubricaQuery.trim().toLowerCase();
 
   const changeTipo = (t: DRETipoPeriodo) => {
     setTipoPeriodo(t);
