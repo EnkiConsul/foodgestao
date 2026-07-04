@@ -906,8 +906,8 @@ export default function Lancamentos() {
           {isMobile && (
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="h-9 w-9">
-                  <Filter className="h-4 w-4" />
+                <Button variant="outline" size="icon" className="h-9 w-9" aria-label="Abrir filtros">
+                  <Filter className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[280px] overflow-y-auto">
@@ -927,12 +927,12 @@ export default function Lancamentos() {
       {/* Month navigation */}
       <div className="space-y-2">
         <div className="flex items-center justify-center gap-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedYear((y) => y - 1)}>
-            <ChevronLeft className="h-4 w-4" />
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedYear((y) => y - 1)} aria-label="Ano anterior">
+            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
           </Button>
           <span className="text-sm font-semibold min-w-[50px] text-center">{selectedYear}</span>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedYear((y) => y + 1)}>
-            <ChevronRight className="h-4 w-4" />
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedYear((y) => y + 1)} aria-label="Próximo ano">
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
         <div className="flex gap-1 overflow-x-auto pb-1">
