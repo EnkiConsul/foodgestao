@@ -620,12 +620,12 @@ export default function Lancamentos() {
   const exportCSV = () => {
     const headers = ["Data", "Descrição", "Tipo", "Valor", "Status", "Vencimento", "Valor Pago", "Categoria", "Conta", "Forma Pgto", "Saldo"];
     const csvRows = displayRows.map((r) => [
-      format(new Date(r.date + "T12:00:00"), "dd/MM/yyyy"),
+      safeDateFormat(r.date, "dd/MM/yyyy"),
       `"${r.description.replace(/"/g, '""')}"`,
       r.transactionType === "receita" ? "Crédito" : r.transactionType === "despesa" ? "Débito" : "Transferência",
       r.amount.toFixed(2).replace(".", ","),
       displayStatusConfig[r.billStatus].label,
-      r.dueDate ? format(new Date(r.dueDate + "T12:00:00"), "dd/MM/yyyy") : "",
+      r.dueDate ? safeDateFormat(r.dueDate, "dd/MM/yyyy") : "",
       r.amountPaid > 0 ? r.amountPaid.toFixed(2).replace(".", ",") : "",
       r.categoryName || "",
       r.accountName || "",
