@@ -146,25 +146,25 @@ export default function ContasBancarias() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Contas Bancárias</h1>
-          <p className="text-sm text-muted-foreground">Gerencie suas contas e saldos</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={handleResync}
-            disabled={resyncing}
-            className="hidden md:flex"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${resyncing ? "animate-spin" : ""}`} /> Recalcular saldos
-          </Button>
-          <Button onClick={() => { setEditAccount(null); setDialogOpen(true); }} className="hidden md:flex">
-            <Plus className="h-4 w-4 mr-2" /> Nova Conta
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Contas Bancárias"
+        description="Gerencie suas contas e saldos"
+        actions={
+          <>
+            <Button
+              variant="outline"
+              onClick={handleResync}
+              disabled={resyncing}
+              className="hidden md:flex"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${resyncing ? "animate-spin" : ""}`} aria-hidden="true" /> Recalcular saldos
+            </Button>
+            <Button onClick={() => { setEditAccount(null); setDialogOpen(true); }} className="hidden md:flex">
+              <Plus className="h-4 w-4 mr-2" aria-hidden="true" /> Nova Conta
+            </Button>
+          </>
+        }
+      />
 
       {staleBalance && (
         <Alert variant="destructive" className="border-warning/50 bg-warning/10 text-foreground [&>svg]:text-warning">

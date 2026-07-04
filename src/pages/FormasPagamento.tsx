@@ -84,15 +84,15 @@ export default function FormasPagamento() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Formas de Pagamento</h1>
-          <p className="text-sm text-muted-foreground">Gerencie as formas de pagamento disponíveis</p>
-        </div>
-        <Button onClick={openNew} className="hidden md:flex">
-          <Plus className="h-4 w-4 mr-2" /> Nova Forma
-        </Button>
-      </div>
+      <PageHeader
+        title="Formas de Pagamento"
+        description="Gerencie as formas de pagamento disponíveis"
+        actions={
+          <Button onClick={openNew} className="hidden md:flex">
+            <Plus className="h-4 w-4 mr-2" aria-hidden="true" /> Nova Forma
+          </Button>
+        }
+      />
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -101,12 +101,17 @@ export default function FormasPagamento() {
 
       {methods.length === 0 ? (
         <Card className="shadow-sm">
-          <CardContent className="flex flex-col items-center py-12 text-muted-foreground">
-            <CreditCard className="h-10 w-10 mb-3 opacity-40" />
-            <p className="text-sm">Nenhuma forma de pagamento criada</p>
-            <Button variant="link" onClick={openNew} className="mt-2">
-              Criar primeira forma de pagamento
-            </Button>
+          <CardContent className="p-0">
+            <EmptyState
+              icon={CreditCard}
+              title="Nenhuma forma de pagamento criada"
+              description="Adicione dinheiro, cartão, PIX e outras formas para usar nos lançamentos."
+              action={
+                <Button onClick={openNew} size="sm">
+                  <Plus className="h-4 w-4 mr-2" aria-hidden="true" /> Criar primeira forma
+                </Button>
+              }
+            />
           </CardContent>
         </Card>
       ) : (
