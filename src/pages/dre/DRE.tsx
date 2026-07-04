@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Navigate, Link } from "react-router-dom";
+import { Navigate, Link, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, ArrowRight, FileText, Save, Settings2, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { AlertCircle, ArrowRight, FileText, Save, Search, Settings2, Sparkles, TrendingDown, TrendingUp, X } from "lucide-react";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDREGeneration, useDREConsistency, useDRESnapshots, useDRERealtime } from "@/hooks/useDRE";
 import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
@@ -26,6 +27,8 @@ export default function DREPage() {
   const [from, setFrom] = useState(initial.from);
   const [to, setTo] = useState(initial.to);
   const [regime, setRegime] = useState<DRERegime>("caixa");
+  const [rubricaQuery, setRubricaQuery] = useState("");
+  const normalizedRubricaQuery = rubricaQuery.trim().toLowerCase();
 
   const changeTipo = (t: DRETipoPeriodo) => {
     setTipoPeriodo(t);
@@ -83,47 +86,42 @@ export default function DREPage() {
         <meta name="description" content="Demonstração do Resultado do Exercício em tempo real, seguindo Lei 6.404/76 e ITG 1000." />
       </Helmet>
 
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-semibold flex items-center gap-2">
-            <FileText className="h-6 w-6 text-primary" />
+      <PageHeader
+        title={
+          <span className="flex items-center gap-2">
+            <FileText className="h-6 w-6 text-primary" aria-hidden="true" />
             Demonstração do Resultado do Exercício
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Estrutura normativa ITG 1000 / Lei 6.404/76 / CPC 26 (R1)
-          </p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button asChild variant="outline" size="sm">
-            <Link to="/relatorios/dre/configuracao"><Settings2 className="h-4 w-4 mr-1.5" />Mapeamento</Link>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/relatorios/dre/comparativo">Comparar</Link>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/relatorios/dre/historico">Histórico</Link>
-          </Button>
-          {canPublish && (
+          </span>
+        }
+        description="Estrutura normativa ITG 1000 / Lei 6.404/76 / CPC 26 (R1)"
+        actions={
+          canPublish ? (
             <>
               <Button variant="outline" size="sm" onClick={() => handlePublish(false)} disabled={publish.isPending}>
-                <Save className="h-4 w-4 mr-1.5" />Rascunho
+                <Save className="h-4 w-4 mr-1.5" aria-hidden="true" />Rascunho
               </Button>
               <Button size="sm" onClick={() => handlePublish(true)} disabled={publish.isPending}>
-                <ArrowRight className="h-4 w-4 mr-1.5" />Publicar DRE
+                <ArrowRight className="h-4 w-4 mr-1.5" aria-hidden="true" />Publicar DRE
               </Button>
             </>
-          )}
-        </div>
-      </div>
+          ) : null
+        }
+      />
 
-      {/* Filtros */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-            <div>
-              <Label>Período</Label>
+      {/* Sub-navegação */}
+      <DRESubNav />
+
+      {/* Filtros — parâmetros do relatório */}
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">Parâmetros</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="dre-tipo">Período</Label>
               <Select value={tipoPeriodo} onValueChange={(v) => changeTipo(v as DRETipoPeriodo)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="dre-tipo"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="mensal">Mensal</SelectItem>
                   <SelectItem value="trimestral">Trimestral</SelectItem>
@@ -133,23 +131,23 @@ export default function DREPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>De</Label>
-              <Input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setTipoPeriodo("personalizado"); }} />
-            </div>
-            <div>
-              <Label>Até</Label>
-              <Input type="date" value={to} onChange={(e) => { setTo(e.target.value); setTipoPeriodo("personalizado"); }} />
-            </div>
-            <div>
-              <Label>Regime</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="dre-regime">Regime</Label>
               <Select value={regime} onValueChange={(v) => setRegime(v as DRERegime)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="dre-regime"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="caixa">Caixa (data de pagamento)</SelectItem>
                   <SelectItem value="competencia">Competência (vencimento)</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="dre-from">De</Label>
+              <Input id="dre-from" type="date" value={from} onChange={(e) => { setFrom(e.target.value); setTipoPeriodo("personalizado"); }} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="dre-to">Até</Label>
+              <Input id="dre-to" type="date" value={to} onChange={(e) => { setTo(e.target.value); setTipoPeriodo("personalizado"); }} />
             </div>
           </div>
         </CardContent>
@@ -160,7 +158,7 @@ export default function DREPage() {
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>{inconsistencias.length} categoria(s) sem rubrica DRE</AlertTitle>
-          <AlertDescription className="flex items-center justify-between">
+          <AlertDescription className="flex items-center justify-between gap-2 flex-wrap">
             <span>Lançamentos dessas categorias no período não aparecem na DRE.</span>
             <Button asChild variant="link" size="sm">
               <Link to="/relatorios/dre/configuracao">Configurar agora</Link>
@@ -180,12 +178,32 @@ export default function DREPage() {
       )}
 
       {/* Relatório */}
-      <Card>
-        <CardHeader>
+      <Card className="shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between gap-3 flex-wrap pb-4">
           <CardTitle className="text-base flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
+            <Sparkles className="h-4 w-4 text-primary" aria-hidden="true" />
             Relatório
           </CardTitle>
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" aria-hidden="true" />
+            <Input
+              value={rubricaQuery}
+              onChange={(e) => setRubricaQuery(e.target.value)}
+              placeholder="Buscar rubrica ou código..."
+              className="h-9 pl-8 pr-8"
+              aria-label="Buscar rubrica"
+            />
+            {rubricaQuery && (
+              <button
+                type="button"
+                onClick={() => setRubricaQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label="Limpar busca"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
@@ -203,7 +221,17 @@ export default function DREPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {linhas.map((l) => {
+                  {linhas
+                    .filter((l) => {
+                      if (!normalizedRubricaQuery) return true;
+                      // Mantém cabeçalhos e subtotais sempre visíveis para preservar leitura
+                      if (isSubtotal(l.codigo) || isCabecalho(l.codigo)) return true;
+                      return (
+                        l.nome.toLowerCase().includes(normalizedRubricaQuery) ||
+                        l.codigo.toLowerCase().includes(normalizedRubricaQuery)
+                      );
+                    })
+                    .map((l) => {
                     const level = nivelIndent(l.codigo);
                     const sub = isSubtotal(l.codigo);
                     const cab = isCabecalho(l.codigo);
@@ -224,7 +252,7 @@ export default function DREPage() {
                             {l.qt_ajustes > 0 && <Badge variant="outline" className="text-[10px]">ajustes {l.qt_ajustes}</Badge>}
                           </span>
                         </td>
-                        <td className={`px-4 py-2 text-right tabular-nums ${displayValor < 0 ? "text-destructive" : displayValor > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
+                        <td className={`px-4 py-2 text-right tabular-nums ${displayValor < 0 ? "text-destructive" : displayValor > 0 ? "text-success" : "text-muted-foreground"}`}>
                           {formatValor(displayValor, { showNegativeParens: true })}
                         </td>
                         <td className="px-4 py-2 text-right text-xs text-muted-foreground tabular-nums">
@@ -243,8 +271,46 @@ export default function DREPage() {
   );
 }
 
+function DRESubNav() {
+  const { pathname } = useLocation();
+  const items = [
+    { to: "/relatorios/dre", label: "Relatório", exact: true },
+    { to: "/relatorios/dre/configuracao", label: "Mapeamento", icon: Settings2 },
+    { to: "/relatorios/dre/rubricas", label: "Rubricas" },
+    { to: "/relatorios/dre/comparativo", label: "Comparativo" },
+    { to: "/relatorios/dre/historico", label: "Histórico" },
+  ];
+  return (
+    <nav
+      aria-label="Sub-navegação da DRE"
+      className="flex gap-1 overflow-x-auto border-b -mx-2 px-2 sm:mx-0 sm:px-0"
+    >
+      {items.map((it) => {
+        const active = it.exact ? pathname === it.to : pathname.startsWith(it.to);
+        const Icon = it.icon;
+        return (
+          <Link
+            key={it.to}
+            to={it.to}
+            aria-current={active ? "page" : undefined}
+            className={
+              "inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-2 text-sm font-medium border-b-2 transition-colors -mb-px " +
+              (active
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border")
+            }
+          >
+            {Icon && <Icon className="h-3.5 w-3.5" aria-hidden="true" />}
+            {it.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 function IndicadorCard({ label, value, tone, sub }: { label: string; value: string; tone: "positive" | "negative" | "neutral"; sub?: string }) {
-  const color = tone === "positive" ? "text-emerald-600 dark:text-emerald-400" : tone === "negative" ? "text-destructive" : "text-foreground";
+  const color = tone === "positive" ? "text-success" : tone === "negative" ? "text-destructive" : "text-foreground";
   const Icon = tone === "negative" ? TrendingDown : TrendingUp;
   return (
     <Card>
