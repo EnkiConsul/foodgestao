@@ -1,3 +1,4 @@
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { resolveAttachments } from "@/lib/attachments";
 import { useAuth } from "@/hooks/useAuth";
