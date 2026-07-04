@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -126,76 +126,85 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact, de
     setSaving(false);
   };
 
+  const formId = "contact-form";
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{editContact ? "Editar Contato" : "Novo Contato"}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2">
-              <Label>Nome *</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome completo ou razão social" maxLength={100} />
-            </div>
-            <div className="space-y-2">
-              <Label>Tipo</Label>
-              <Select value={contactType} onValueChange={(v) => setContactType(v as typeof contactType)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cliente">Cliente</SelectItem>
-                  <SelectItem value="fornecedor">Fornecedor</SelectItem>
-                  <SelectItem value="ambos">Ambos</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>CPF/CNPJ</Label>
-              <Input value={document} onChange={(e) => setDocument(e.target.value)} placeholder="000.000.000-00" maxLength={20} />
-            </div>
-            <div className="space-y-2">
-              <Label>E-mail</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" maxLength={100} />
-            </div>
-            <div className="space-y-2">
-              <Label>Telefone</Label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" maxLength={20} />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label>Endereço</Label>
-              <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, cidade" maxLength={200} />
-            </div>
-
-            {/* Vinculação */}
-            <div className="space-y-3 sm:col-span-2">
-              <Label>Vinculado a *</Label>
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <Checkbox checked={visiblePf} onCheckedChange={(v) => setVisiblePf(!!v)} />
-                  <span className="text-sm">Pessoa Física (Pessoal)</span>
-                </label>
-                {companies.map((company) => (
-                  <label key={company.id} className="flex items-center gap-2 cursor-pointer">
-                    <Checkbox
-                      checked={selectedCompanyIds.includes(company.id)}
-                      onCheckedChange={() => toggleCompany(company.id)}
-                    />
-                    <span className="text-sm">{company.trade_name || company.name}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2 sm:col-span-2">
-              <Label>Observações</Label>
-              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Anotações sobre o contato..." rows={3} maxLength={500} />
-            </div>
-          </div>
-          <Button type="submit" className="w-full" disabled={saving}>
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={editContact ? "Editar Contato" : "Novo Contato"}
+      size="lg"
+      footer={
+        <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button type="submit" form={formId} disabled={saving}>
             {saving ? "Salvando..." : editContact ? "Atualizar" : "Criar Contato"}
           </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </div>
+      }
+    >
+      <form id={formId} onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2 sm:col-span-2">
+            <Label>Nome *</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome completo ou razão social" maxLength={100} />
+          </div>
+          <div className="space-y-2">
+            <Label>Tipo</Label>
+            <Select value={contactType} onValueChange={(v) => setContactType(v as typeof contactType)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cliente">Cliente</SelectItem>
+                <SelectItem value="fornecedor">Fornecedor</SelectItem>
+                <SelectItem value="ambos">Ambos</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>CPF/CNPJ</Label>
+            <Input value={document} onChange={(e) => setDocument(e.target.value)} placeholder="000.000.000-00" maxLength={20} />
+          </div>
+          <div className="space-y-2">
+            <Label>E-mail</Label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" maxLength={100} />
+          </div>
+          <div className="space-y-2">
+            <Label>Telefone</Label>
+            <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" maxLength={20} />
+          </div>
+          <div className="space-y-2 sm:col-span-2">
+            <Label>Endereço</Label>
+            <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, cidade" maxLength={200} />
+          </div>
+
+          {/* Vinculação */}
+          <div className="space-y-3 sm:col-span-2">
+            <Label>Vinculado a *</Label>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox checked={visiblePf} onCheckedChange={(v) => setVisiblePf(!!v)} />
+                <span className="text-sm">Pessoa Física (Pessoal)</span>
+              </label>
+              {companies.map((company) => (
+                <label key={company.id} className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={selectedCompanyIds.includes(company.id)}
+                    onCheckedChange={() => toggleCompany(company.id)}
+                  />
+                  <span className="text-sm">{company.trade_name || company.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2 sm:col-span-2">
+            <Label>Observações</Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Anotações sobre o contato..." rows={3} maxLength={500} />
+          </div>
+        </div>
+      </form>
+    </ResponsiveDialog>
   );
 }

@@ -3,12 +3,7 @@ import { useForm } from "react-hook-form";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -118,53 +113,58 @@ export function PaymentMethodFormDialog({ open, onOpenChange, onSaved, editItem 
     onOpenChange(false);
   };
 
+  const formId = "payment-method-form";
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{editItem ? "Editar Forma de Pagamento" : "Nova Forma de Pagamento"}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={editItem ? "Editar Forma de Pagamento" : "Nova Forma de Pagamento"}
+      size="md"
+      footer={
+        <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            Cancelar
+          </Button>
+          <Button type="submit" form={formId} disabled={isSubmitting}>
+            {editItem ? "Salvar" : "Criar"}
+          </Button>
+        </div>
+      }
+    >
+      <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="pm-name">Nome</Label>
+          <Input id="pm-name" placeholder="Ex: PIX, Cartão de Crédito, Boleto..." {...register("name")} maxLength={60} autoFocus />
+        </div>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="pm-active">Ativa</Label>
+          <Switch
+            id="pm-active"
+            checked={isActive}
+            onCheckedChange={(v) => setValue("is_active", v)}
+          />
+        </div>
+
+        <div className="space-y-3">
+          <Label>Vinculado a *</Label>
           <div className="space-y-2">
-            <Label htmlFor="pm-name">Nome</Label>
-            <Input id="pm-name" placeholder="Ex: PIX, Cartão de Crédito, Boleto..." {...register("name")} maxLength={60} autoFocus />
-          </div>
-          <div className="flex items-center justify-between">
-            <Label htmlFor="pm-active">Ativa</Label>
-            <Switch
-              id="pm-active"
-              checked={isActive}
-              onCheckedChange={(v) => setValue("is_active", v)}
-            />
-          </div>
-
-          <div className="space-y-3">
-            <Label>Vinculado a *</Label>
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox checked={visiblePf} onCheckedChange={(v) => setVisiblePf(!!v)} />
-                <span className="text-sm">Pessoa Física (Pessoal)</span>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox checked={visiblePf} onCheckedChange={(v) => setVisiblePf(!!v)} />
+              <span className="text-sm">Pessoa Física (Pessoal)</span>
+            </label>
+            {companies.map((company) => (
+              <label key={company.id} className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={selectedCompanyIds.includes(company.id)}
+                  onCheckedChange={() => toggleCompany(company.id)}
+                />
+                <span className="text-sm">{company.trade_name || company.name}</span>
               </label>
-              {companies.map((company) => (
-                <label key={company.id} className="flex items-center gap-2 cursor-pointer">
-                  <Checkbox
-                    checked={selectedCompanyIds.includes(company.id)}
-                    onCheckedChange={() => toggleCompany(company.id)}
-                  />
-                  <span className="text-sm">{company.trade_name || company.name}</span>
-                </label>
-              ))}
-            </div>
+            ))}
           </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {editItem ? "Salvar" : "Criar"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </form>
+    </ResponsiveDialog>
   );
 }
