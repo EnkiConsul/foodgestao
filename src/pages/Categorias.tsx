@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/page-header";
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -391,10 +392,7 @@ export default function Categorias() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Categorias</h1>
-      </div>
+      <PageHeader title="Categorias" description="Organize suas categorias de receitas e despesas" />
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
