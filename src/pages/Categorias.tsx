@@ -1,3 +1,4 @@
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { PageHeader } from "@/components/ui/page-header";
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";

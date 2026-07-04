@@ -996,7 +996,7 @@ export default function Lancamentos() {
               <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <ResponsiveTable className="w-full">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
