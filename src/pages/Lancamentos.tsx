@@ -1220,7 +1220,7 @@ export default function Lancamentos() {
                           {/* Data de Pagamento */}
                           {visibleColumns.pagamento && (
                           <TableCell className="text-xs py-2 text-muted-foreground">
-                            {r.paymentDate ? format(new Date(r.paymentDate + "T12:00:00"), "dd/MM", { locale: ptBR }) : "—"}
+                            {safeDateFormat(r.paymentDate, "dd/MM", { locale: ptBR })}
                           </TableCell>
                           )}
 
