@@ -74,6 +74,8 @@ export default function FluxoCaixa() {
   const [granularity, setGranularity] = useState<Granularity>("diario");
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("2months");
   const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>(getPeriodRange("2months"));
+  const [labelQuery, setLabelQuery] = useState("");
+  const normalizedQuery = labelQuery.trim().toLowerCase();
 
   const activeRange = periodPreset === "custom" ? customRange : getPeriodRange(periodPreset);
 
