@@ -1284,7 +1284,7 @@ export default function Lancamentos() {
                   )}
                 </TableBody>
               </Table>
-            </div>
+            </ResponsiveTable>
           )}
         </Card>
 
