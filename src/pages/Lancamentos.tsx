@@ -1242,8 +1242,9 @@ export default function Lancamentos() {
                                   className="h-7 w-7 text-success hover:text-success"
                                   onClick={() => setPaymentTx(r.original)}
                                   title="Registrar pagamento"
+                                  aria-label={`Registrar pagamento de ${r.description}`}
                                 >
-                                  <DollarSign className="h-3 w-3" />
+                                  <DollarSign className="h-3 w-3" aria-hidden="true" />
                                 </Button>
                               )}
                               <Button
@@ -1262,16 +1263,18 @@ export default function Lancamentos() {
                                     setDialogOpen(true);
                                   }
                                 }}
+                                aria-label={`Editar ${r.description}`}
                               >
-                                <Pencil className="h-3 w-3" />
+                                <Pencil className="h-3 w-3" aria-hidden="true" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 text-muted-foreground hover:text-destructive"
                                 onClick={() => setDeleteId(r.id)}
+                                aria-label={`Excluir ${r.description}`}
                               >
-                                <Trash2 className="h-3 w-3" />
+                                <Trash2 className="h-3 w-3" aria-hidden="true" />
                               </Button>
                             </div>
                           </TableCell>
