@@ -337,6 +337,11 @@ function HeroSection({ utm }: { utm: string }) {
               <a href="#comparativo">{c.cta_secondary}</a>
             </Button>
           </div>
+          <div className="mt-3 flex sm:hidden">
+            <Button asChild variant="ghost" size="lg" className="w-full">
+              <Link to={buildCta("/auth", utm)}>Entrar</Link>
+            </Button>
+          </div>
 
           <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground sm:text-sm">
             <span className="flex items-center gap-1.5">
