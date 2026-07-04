@@ -7,6 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Loader2, ExternalLink, FileText, ArrowRight,
   Clock, CheckCircle2, AlertTriangle, QrCode,
@@ -99,7 +101,7 @@ export default function Faturas() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       <header className="border-b">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <Logo size="sm" linkTo="/" />
