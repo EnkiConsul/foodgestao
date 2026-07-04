@@ -522,7 +522,8 @@ export default function Categorias() {
         </div>
       ) : (
         <div className="border rounded-lg overflow-hidden">
-          <Table>
+          <ResponsiveTable ariaLabel="Categorias">
+            <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
                 <TableHead className="w-10">
