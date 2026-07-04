@@ -30,8 +30,14 @@ import {
   Download, DollarSign, CalendarIcon, CreditCard, HandCoins, X, Settings2, Repeat, Paperclip, Check, Upload,
 } from "lucide-react";
 import { toast } from "sonner";
-import { format, endOfMonth, isPast } from "date-fns";
+import { format, endOfMonth, isPast, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+const safeDateFormat = (value: string | null | undefined, pattern: string, opts?: Parameters<typeof format>[2]) => {
+  if (!value) return "—";
+  const d = new Date(String(value).length <= 10 ? value + "T12:00:00" : value);
+  return isValid(d) ? format(d, pattern, opts) : "—";
+};
 import { cn } from "@/lib/utils";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -614,12 +620,12 @@ export default function Lancamentos() {
   const exportCSV = () => {
     const headers = ["Data", "Descrição", "Tipo", "Valor", "Status", "Vencimento", "Valor Pago", "Categoria", "Conta", "Forma Pgto", "Saldo"];
     const csvRows = displayRows.map((r) => [
-      format(new Date(r.date + "T12:00:00"), "dd/MM/yyyy"),
+      safeDateFormat(r.date, "dd/MM/yyyy"),
       `"${r.description.replace(/"/g, '""')}"`,
       r.transactionType === "receita" ? "Crédito" : r.transactionType === "despesa" ? "Débito" : "Transferência",
       r.amount.toFixed(2).replace(".", ","),
       displayStatusConfig[r.billStatus].label,
-      r.dueDate ? format(new Date(r.dueDate + "T12:00:00"), "dd/MM/yyyy") : "",
+      r.dueDate ? safeDateFormat(r.dueDate, "dd/MM/yyyy") : "",
       r.amountPaid > 0 ? r.amountPaid.toFixed(2).replace(".", ",") : "",
       r.categoryName || "",
       r.accountName || "",
@@ -1059,7 +1065,7 @@ export default function Lancamentos() {
                           {/* Data */}
                           {visibleColumns.data !== false && (
                           <TableCell className="text-xs py-2">
-                            {format(new Date(r.date + "T12:00:00"), "dd/MM", { locale: ptBR })}
+                            {safeDateFormat(r.date, "dd/MM", { locale: ptBR })}
                           </TableCell>
                           )}
 
@@ -1207,14 +1213,14 @@ export default function Lancamentos() {
                           {/* Vencimento */}
                           {visibleColumns.vencimento && (
                           <TableCell className="text-xs py-2 text-muted-foreground">
-                            {r.dueDate ? format(new Date(r.dueDate + "T12:00:00"), "dd/MM", { locale: ptBR }) : "—"}
+                            {safeDateFormat(r.dueDate, "dd/MM", { locale: ptBR })}
                           </TableCell>
                           )}
 
                           {/* Data de Pagamento */}
                           {visibleColumns.pagamento && (
                           <TableCell className="text-xs py-2 text-muted-foreground">
-                            {r.paymentDate ? format(new Date(r.paymentDate + "T12:00:00"), "dd/MM", { locale: ptBR }) : "—"}
+                            {safeDateFormat(r.paymentDate, "dd/MM", { locale: ptBR })}
                           </TableCell>
                           )}
 
