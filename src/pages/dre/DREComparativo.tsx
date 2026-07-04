@@ -5,10 +5,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, ArrowLeft, ArrowRight, GitCompare, Minus, TrendingDown, TrendingUp } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { AlertCircle, ArrowRight, GitCompare, Minus, TrendingDown, TrendingUp } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDRESnapshots } from "@/hooks/useDRE";
+import { DRESubNav } from "./DRESubNav";
 import {
   formatValor,
   formatPct,
