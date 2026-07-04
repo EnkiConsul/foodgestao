@@ -268,7 +268,7 @@ export default function FluxoCaixa() {
       <PageHeader
         title={
           <span className="inline-flex items-center gap-2">
-            <TrendingUpIcon className="h-5 w-5 text-primary" aria-hidden="true" />
+            <TrendingUp className="h-5 w-5 text-primary" aria-hidden="true" />
             Fluxo de Caixa
           </span>
         }
