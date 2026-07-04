@@ -369,17 +369,39 @@ export default function FluxoCaixa() {
 
       {/* Chart */}
       <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-base">Fluxo de Caixa — {granularity === "diario" ? "Diário" : granularity === "semanal" ? "Semanal" : "Mensal"}</CardTitle>
+        <CardHeader className="flex flex-col gap-3 pb-4 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle className="text-base">
+            Fluxo de Caixa — {granularity === "diario" ? "Diário" : granularity === "semanal" ? "Semanal" : "Mensal"}
+          </CardTitle>
+          <div className="relative w-full sm:w-64">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <Input
+              value={labelQuery}
+              onChange={(e) => setLabelQuery(e.target.value)}
+              placeholder="Filtrar período (ex.: 05/07, jul)"
+              className="h-8 pl-8 pr-8 text-sm"
+              aria-label="Filtrar pontos do gráfico por período"
+            />
+            {labelQuery && (
+              <button
+                type="button"
+                onClick={() => setLabelQuery("")}
+                aria-label="Limpar busca"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
-          {chartData.length === 0 ? (
+          {filteredChartData.length === 0 ? (
             <div className="flex items-center justify-center h-64 text-muted-foreground text-sm">
-              Nenhuma movimentação no período
+              {normalizedQuery ? "Nenhum ponto corresponde à busca" : "Nenhuma movimentação no período"}
             </div>
           ) : (
             <ChartContainer config={chartConfig} className="h-72 w-full">
-              <AreaChart data={chartData} accessibilityLayer>
+              <AreaChart data={filteredChartData} accessibilityLayer>
                 <defs>
                   <linearGradient id="gradReceitas" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="hsl(145, 50%, 42%)" stopOpacity={0.3} />
