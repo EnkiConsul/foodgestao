@@ -307,20 +307,43 @@ export default function Relatorios() {
     };
   }, [filteredTransactions, categories, activeRange]);
 
-  // Flatten tree respecting collapsed state
+  // Filter tree by search query, preserving ancestors of any match
+  const filterTreeBySearch = (nodes: FluxoNode[]): FluxoNode[] => {
+    if (!normalizedQuery) return nodes;
+    return nodes
+      .map((n) => {
+        const filteredChildren = filterTreeBySearch(n.children);
+        const selfMatch = n.name.toLowerCase().includes(normalizedQuery)
+          || (n.hierarchyIndex ?? "").toLowerCase().includes(normalizedQuery);
+        if (selfMatch || filteredChildren.length > 0) {
+          return { ...n, children: filteredChildren };
+        }
+        return null;
+      })
+      .filter((n): n is FluxoNode => n !== null);
+  };
+
+  // Flatten tree respecting collapsed state (search forces expand)
   const flattenTree = (nodes: FluxoNode[], depth: number): FluxoNode[] => {
     const result: FluxoNode[] = [];
     for (const node of nodes) {
       result.push({ ...node, depth });
-      if (node.children.length > 0 && !collapsedIds.has(node.id)) {
+      const forceExpand = !!normalizedQuery;
+      if (node.children.length > 0 && (forceExpand || !collapsedIds.has(node.id))) {
         result.push(...flattenTree(node.children, depth + 1));
       }
     }
     return result;
   };
 
-  const flatReceitas = useMemo(() => flattenTree(fluxoCaixaData.receitaTree, 0), [fluxoCaixaData.receitaTree, collapsedIds]);
-  const flatDespesas = useMemo(() => flattenTree(fluxoCaixaData.despesaTree, 0), [fluxoCaixaData.despesaTree, collapsedIds]);
+  const flatReceitas = useMemo(
+    () => flattenTree(filterTreeBySearch(fluxoCaixaData.receitaTree), 0),
+    [fluxoCaixaData.receitaTree, collapsedIds, normalizedQuery]
+  );
+  const flatDespesas = useMemo(
+    () => flattenTree(filterTreeBySearch(fluxoCaixaData.despesaTree), 0),
+    [fluxoCaixaData.despesaTree, collapsedIds, normalizedQuery]
+  );
 
   return (
     <div className="space-y-6" ref={reportRef}>
