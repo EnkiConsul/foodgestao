@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { PageHeader } from "@/components/ui/page-header";
-import { TrendingUp, TrendingDown, Wallet, Target, Landmark, CalendarIcon } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, Target, Landmark, CalendarIcon, FileBarChart, FileSpreadsheet, LineChart, PiggyBank, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
@@ -361,6 +362,42 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       )}
+
+      {/* Atalhos de análise → Wave 2 */}
+      <section aria-labelledby="atalhos-analise">
+        <div className="flex items-center justify-between mb-3">
+          <h2 id="atalhos-analise" className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Atalhos de análise
+          </h2>
+        </div>
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { to: "/relatorios", icon: FileBarChart, title: "Relatórios", desc: "Fluxo anual, categorias e exportações" },
+            { to: "/relatorios/dre", icon: FileSpreadsheet, title: "DRE", desc: "Demonstrativo por rubrica e período" },
+            { to: "/fluxo-caixa", icon: LineChart, title: "Fluxo de Caixa", desc: "Projeção com base nos saldos atuais" },
+            { to: "/orcamento", icon: PiggyBank, title: "Orçamento", desc: "Limites por categoria e alertas" },
+          ].map((s) => (
+            <Link
+              key={s.to}
+              to={s.to}
+              className="group rounded-lg border bg-card p-4 shadow-sm hover:shadow-md hover:border-primary/40 hover:bg-accent/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="rounded-md bg-primary/10 p-2 text-primary">
+                  <s.icon className="h-4 w-4" aria-hidden="true" />
+                </div>
+                <ArrowRight
+                  className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
+                  aria-hidden="true"
+                />
+              </div>
+              <p className="mt-3 text-sm font-semibold">{s.title}</p>
+              <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{s.desc}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
 
       {accounts.length > 0 && (
         <Card className="shadow-sm">
