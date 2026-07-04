@@ -251,6 +251,11 @@ export default function FluxoCaixa() {
     return found?.label ?? null;
   }, [chartData]);
 
+  const filteredChartData = useMemo(() => {
+    if (!normalizedQuery) return chartData;
+    return chartData.filter((d) => d.label.toLowerCase().includes(normalizedQuery));
+  }, [chartData, normalizedQuery]);
+
   const projectedTotals = useMemo(() => {
     const totalReceitas = chartData.reduce((s, d) => s + (d.receitasReal + d.receitasProj), 0);
     const totalDespesas = chartData.reduce((s, d) => s + (d.despesasReal + d.despesasProj), 0);
