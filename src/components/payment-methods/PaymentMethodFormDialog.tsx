@@ -109,6 +109,10 @@ export function PaymentMethodFormDialog({ open, onOpenChange, onSaved, editItem 
       onOpenChange(false);
       return;
     }
+    onSaved();
+    onOpenChange(false);
+  };
+
   const formId = "payment-method-form";
 
   return (
