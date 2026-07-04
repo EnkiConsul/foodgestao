@@ -7,7 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
+import { FluxoCaixaSubNav, type FluxoGranularity } from "./fluxo-caixa/FluxoCaixaSubNav";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -19,7 +21,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ReferenceLine } from "recharts";
-import { TrendingUp, TrendingDown, Wallet, CalendarDays, CalendarIcon } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, CalendarDays, CalendarIcon, TrendingUp as TrendingUpIcon, Search, X } from "lucide-react";
 import {
   format,
   startOfMonth,
