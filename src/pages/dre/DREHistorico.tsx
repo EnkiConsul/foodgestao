@@ -79,7 +79,7 @@ export default function DREHistorico() {
                   return (
                     <tr key={r.rubrica_id} className={`border-b last:border-0 ${sub ? "bg-primary/5 font-semibold" : cab ? "bg-muted/30 font-medium" : ""}`}>
                       <td className="px-4 py-2" style={{ paddingLeft: `${16 + level * 20}px` }}>{r.nome}</td>
-                      <td className={`px-4 py-2 text-right tabular-nums ${display < 0 ? "text-destructive" : display > 0 ? "text-emerald-600" : "text-muted-foreground"}`}>
+                      <td className={`px-4 py-2 text-right tabular-nums ${display < 0 ? "text-destructive" : display > 0 ? "text-success" : "text-muted-foreground"}`}>
                         {formatValor(display, { showNegativeParens: true })}
                       </td>
                       <td className="px-4 py-2 text-right text-xs text-muted-foreground tabular-nums">
@@ -132,7 +132,7 @@ export default function DREHistorico() {
                   </td>
                   <td className="px-4 py-2 text-xs text-muted-foreground">{s.periodo_inicio} → {s.periodo_fim}</td>
                   <td className="px-4 py-2"><Badge variant={s.status === "publicado" ? "default" : "secondary"}>{s.status}</Badge></td>
-                  <td className={`px-4 py-2 text-right tabular-nums ${(s.lucro_liquido ?? 0) < 0 ? "text-destructive" : "text-emerald-600"}`}>
+                  <td className={`px-4 py-2 text-right tabular-nums ${(s.lucro_liquido ?? 0) < 0 ? "text-destructive" : "text-success"}`}>
                     {formatValor(s.lucro_liquido, { showNegativeParens: true })}
                   </td>
                   <td className="px-4 py-2 text-xs text-muted-foreground">{new Date(s.gerado_em).toLocaleString("pt-BR")}</td>

@@ -231,7 +231,7 @@ export default function DREMapeamento() {
                   const currentValue = pend?.rubricaId ?? primary?.rubrica_id ?? "";
                   const isDirty = !!pend && pend.rubricaId !== primary?.rubrica_id;
                   return (
-                    <tr key={cat.id} className={`border-b last:border-0 hover:bg-muted/30 ${isDirty ? "bg-amber-50/40 dark:bg-amber-950/20" : ""}`}>
+                    <tr key={cat.id} className={`border-b last:border-0 hover:bg-muted/30 ${isDirty ? "bg-warning/5" : ""}`}>
                       <td className="px-4 py-2 font-medium">{cat.name}</td>
                       <td className="px-4 py-2">
                         <Badge variant={cat.transaction_type === "receita" ? "default" : "secondary"} className="text-[10px]">
@@ -258,11 +258,11 @@ export default function DREMapeamento() {
                             </SelectContent>
                           </Select>
                           {isDirty ? (
-                            <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700 dark:text-amber-400">
+                            <Badge variant="outline" className="text-[10px] border-warning/40 text-warning">
                               pendente
                             </Badge>
                           ) : primary ? (
-                            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                            <CheckCircle2 className="h-4 w-4 text-success" />
                           ) : null}
                         </div>
                       </td>

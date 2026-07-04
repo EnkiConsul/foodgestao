@@ -291,7 +291,7 @@ export default function DREComparativo() {
 }
 
 function valorTone(v: number): string {
-  if (v > 0) return "text-emerald-600 dark:text-emerald-400";
+  if (v > 0) return "text-success";
   if (v < 0) return "text-destructive";
   return "text-muted-foreground";
 }
@@ -301,14 +301,14 @@ function valorTone(v: number): string {
 function deltaTone(delta: number, natureza: "credora" | "devedora"): string {
   if (delta === 0) return "text-muted-foreground";
   const favoravel = natureza === "credora" ? delta > 0 : delta > 0; // delta em valor com sinal já invertido (despesas são negativas), então crescer = bom
-  return favoravel ? "text-emerald-600 dark:text-emerald-400" : "text-destructive";
+  return favoravel ? "text-success" : "text-destructive";
 }
 
 function DeltaBadge({ delta, pct, isPct }: { delta: number; pct: number | null; isPct?: boolean }) {
   if (delta === 0) return <Badge variant="outline" className="gap-1"><Minus className="h-3 w-3" />0</Badge>;
   const up = delta > 0;
   const Icon = up ? TrendingUp : TrendingDown;
-  const cls = up ? "text-emerald-700 border-emerald-300 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-800"
+  const cls = up ? "text-success border-success/30 bg-success/10"
                  : "text-destructive border-destructive/30 bg-destructive/10";
   const label = isPct
     ? `${up ? "+" : ""}${delta.toFixed(1).replace(".", ",")}pp`
