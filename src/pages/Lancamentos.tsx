@@ -30,8 +30,14 @@ import {
   Download, DollarSign, CalendarIcon, CreditCard, HandCoins, X, Settings2, Repeat, Paperclip, Check, Upload,
 } from "lucide-react";
 import { toast } from "sonner";
-import { format, endOfMonth, isPast } from "date-fns";
+import { format, endOfMonth, isPast, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+const safeDateFormat = (value: string | null | undefined, pattern: string, opts?: Parameters<typeof format>[2]) => {
+  if (!value) return "—";
+  const d = new Date(String(value).length <= 10 ? value + "T12:00:00" : value);
+  return isValid(d) ? format(d, pattern, opts) : "—";
+};
 import { cn } from "@/lib/utils";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
