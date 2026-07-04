@@ -87,8 +87,12 @@ export default function DREPage() {
       </Helmet>
 
       <PageHeader
-        icon={FileText}
-        title="Demonstração do Resultado do Exercício"
+        title={
+          <span className="flex items-center gap-2">
+            <FileText className="h-6 w-6 text-primary" aria-hidden="true" />
+            Demonstração do Resultado do Exercício
+          </span>
+        }
         description="Estrutura normativa ITG 1000 / Lei 6.404/76 / CPC 26 (R1)"
         actions={
           canPublish ? (
