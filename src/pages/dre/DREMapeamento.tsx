@@ -6,7 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, ArrowLeft, CheckCircle2, Wand2, Trash2, Save, X } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { AlertCircle, CheckCircle2, Wand2, Trash2, Save, X, Search } from "lucide-react";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { useDRERubricas, useDREMapeamento, useDRERealtime } from "@/hooks/useDRE";
@@ -14,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Helmet } from "react-helmet-async";
+import { DRESubNav } from "./DRESubNav";
 
 type PendingChange = { rubricaId: string; existingId?: string };
 
