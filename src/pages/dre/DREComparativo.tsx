@@ -134,18 +134,17 @@ export default function DREComparativo() {
     <div className="p-6 space-y-6">
       <Helmet><title>Comparativo DRE | Gestor Plin</title></Helmet>
 
-      <div>
-        <Link to="/relatorios/dre" className="text-sm text-muted-foreground hover:underline flex items-center gap-1 mb-1">
-          <ArrowLeft className="h-3 w-3" /> Voltar
-        </Link>
-        <h1 className="text-2xl font-semibold flex items-center gap-2">
-          <GitCompare className="h-6 w-6 text-primary" />
-          Comparativo entre DREs
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Selecione um período base (A) e um período de comparação (B). Variações são calculadas como B − A.
-        </p>
-      </div>
+      <PageHeader
+        title={
+          <span className="flex items-center gap-2">
+            <GitCompare className="h-6 w-6 text-primary" aria-hidden="true" />
+            Comparativo entre DREs
+          </span>
+        }
+        description="Selecione um período base (A) e um período de comparação (B). Variações são calculadas como B − A."
+      />
+
+      <DRESubNav />
 
       <Card>
         <CardContent className="pt-6">
