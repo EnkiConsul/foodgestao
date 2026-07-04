@@ -1065,7 +1065,7 @@ export default function Lancamentos() {
                           {/* Data */}
                           {visibleColumns.data !== false && (
                           <TableCell className="text-xs py-2">
-                            {r.date ? format(new Date(r.date + "T12:00:00"), "dd/MM", { locale: ptBR }) : "—"}
+                            {safeDateFormat(r.date, "dd/MM", { locale: ptBR })}
                           </TableCell>
                           )}
 
