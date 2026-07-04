@@ -1213,7 +1213,7 @@ export default function Lancamentos() {
                           {/* Vencimento */}
                           {visibleColumns.vencimento && (
                           <TableCell className="text-xs py-2 text-muted-foreground">
-                            {r.dueDate ? format(new Date(r.dueDate + "T12:00:00"), "dd/MM", { locale: ptBR }) : "—"}
+                            {safeDateFormat(r.dueDate, "dd/MM", { locale: ptBR })}
                           </TableCell>
                           )}
 
