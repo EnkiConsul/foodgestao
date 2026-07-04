@@ -1,3 +1,4 @@
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { PageHeader } from "@/components/ui/page-header";
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -521,7 +522,8 @@ export default function Categorias() {
         </div>
       ) : (
         <div className="border rounded-lg overflow-hidden">
-          <Table>
+          <ResponsiveTable ariaLabel="Categorias">
+            <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
                 <TableHead className="w-10">
@@ -659,6 +661,7 @@ export default function Categorias() {
               </Droppable>
             </DragDropContext>
           </Table>
+          </ResponsiveTable>
         </div>
       )}
 

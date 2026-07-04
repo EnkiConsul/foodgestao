@@ -1,3 +1,4 @@
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -218,7 +219,7 @@ export default function GestaoUsuarios() {
           <CardDescription>{members.length} membro(s) na empresa</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
+          <ResponsiveTable ariaLabel="Membros"><Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
@@ -285,7 +286,7 @@ export default function GestaoUsuarios() {
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
+          </Table></ResponsiveTable>
         </CardContent>
       </Card>
 
@@ -300,7 +301,7 @@ export default function GestaoUsuarios() {
             <CardDescription>Convites enviados para novos membros</CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
+            <ResponsiveTable ariaLabel="Convites"><Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>E-mail</TableHead>
@@ -344,7 +345,7 @@ export default function GestaoUsuarios() {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+            </Table></ResponsiveTable>
           </CardContent>
         </Card>
       )}

@@ -1,3 +1,4 @@
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { resolveAttachments } from "@/lib/attachments";
 import { useAuth } from "@/hooks/useAuth";
@@ -996,7 +997,7 @@ export default function Lancamentos() {
               <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <ResponsiveTable className="w-full">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
@@ -1284,7 +1285,7 @@ export default function Lancamentos() {
                   )}
                 </TableBody>
               </Table>
-            </div>
+            </ResponsiveTable>
           )}
         </Card>
 
