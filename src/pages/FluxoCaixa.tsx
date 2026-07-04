@@ -260,19 +260,17 @@ export default function FluxoCaixa() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Fluxo de Caixa</h1>
-          <p className="text-sm text-muted-foreground">Acompanhe entradas, saídas e projeções</p>
-        </div>
-        <Tabs value={granularity} onValueChange={(v) => setGranularity(v as Granularity)}>
-          <TabsList>
-            <TabsTrigger value="diario">Diário</TabsTrigger>
-            <TabsTrigger value="semanal">Semanal</TabsTrigger>
-            <TabsTrigger value="mensal">Mensal</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
+      <PageHeader
+        title={
+          <span className="inline-flex items-center gap-2">
+            <TrendingUpIcon className="h-5 w-5 text-primary" aria-hidden="true" />
+            Fluxo de Caixa
+          </span>
+        }
+        description="Acompanhe entradas, saídas e projeções"
+      />
+
+      <FluxoCaixaSubNav value={granularity} onChange={setGranularity} />
 
       {/* Period filter */}
       <div className="flex flex-wrap items-center gap-2">
