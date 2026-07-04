@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -93,69 +93,77 @@ export function BudgetFormDialog({ open, onOpenChange, onCreated }: Props) {
     setSaving(false);
   };
 
+  const formId = "budget-form";
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Novo Orçamento</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Categoria</Label>
-            <Select value={categoryId} onValueChange={setCategoryId}>
-              <SelectTrigger><SelectValue placeholder="Selecione a categoria" /></SelectTrigger>
-              <SelectContent>
-                {categories.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Valor limite</Label>
-            <CurrencyInput value={amount} onValueChange={setAmount} placeholder="0,00" />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Período</Label>
-            <Select value={period} onValueChange={(v) => setPeriod(v as "mensal" | "anual")}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="mensal">Mensal</SelectItem>
-                <SelectItem value="anual">Anual</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Data início</Label>
-            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-          </div>
-
-          <div className="space-y-3">
-            <Label>Alertas de limite</Label>
-            <div className="flex flex-col gap-2">
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox checked={alert70} onCheckedChange={(v) => setAlert70(!!v)} />
-                Alertar em 70%
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox checked={alert90} onCheckedChange={(v) => setAlert90(!!v)} />
-                Alertar em 90%
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox checked={alert100} onCheckedChange={(v) => setAlert100(!!v)} />
-                Alertar em 100%
-              </label>
-            </div>
-          </div>
-
-          <Button type="submit" className="w-full" disabled={saving}>
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Novo Orçamento"
+      size="md"
+      footer={
+        <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button type="submit" form={formId} disabled={saving}>
             {saving ? "Salvando..." : "Criar Orçamento"}
           </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </div>
+      }
+    >
+      <form id={formId} onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label>Categoria</Label>
+          <Select value={categoryId} onValueChange={setCategoryId}>
+            <SelectTrigger><SelectValue placeholder="Selecione a categoria" /></SelectTrigger>
+            <SelectContent>
+              {categories.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Valor limite</Label>
+          <CurrencyInput value={amount} onValueChange={setAmount} placeholder="0,00" />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Período</Label>
+          <Select value={period} onValueChange={(v) => setPeriod(v as "mensal" | "anual")}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="mensal">Mensal</SelectItem>
+              <SelectItem value="anual">Anual</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Data início</Label>
+          <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+        </div>
+
+        <div className="space-y-3">
+          <Label>Alertas de limite</Label>
+          <div className="flex flex-col gap-2">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={alert70} onCheckedChange={(v) => setAlert70(!!v)} />
+              Alertar em 70%
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={alert90} onCheckedChange={(v) => setAlert90(!!v)} />
+              Alertar em 90%
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={alert100} onCheckedChange={(v) => setAlert100(!!v)} />
+              Alertar em 100%
+            </label>
+          </div>
+        </div>
+      </form>
+    </ResponsiveDialog>
   );
 }
