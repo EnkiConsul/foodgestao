@@ -21,7 +21,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ReferenceLine } from "recharts";
-import { TrendingUp, TrendingDown, Wallet, CalendarDays, CalendarIcon, TrendingUp as TrendingUpIcon, Search, X } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, CalendarDays, CalendarIcon, Search, X } from "lucide-react";
 import {
   format,
   startOfMonth,
