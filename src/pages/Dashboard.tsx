@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { KpiCard } from "@/components/ui/kpi-card";
+import { PageHeader } from "@/components/ui/page-header";
 import { TrendingUp, TrendingDown, Wallet, Target, Landmark, CalendarIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -214,76 +216,71 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Visão geral das suas finanças</p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {([
-            { key: "month", label: "Mês" },
-            { key: "3months", label: "3 Meses" },
-            { key: "6months", label: "6 Meses" },
-            { key: "year", label: "Ano" },
-          ] as { key: PeriodPreset; label: string }[]).map((p) => (
-            <Button
-              key={p.key}
-              variant={periodPreset === p.key ? "default" : "outline"}
-              size="sm"
-              onClick={() => setPeriodPreset(p.key)}
-            >
-              {p.label}
-            </Button>
-          ))}
-          <Popover>
-            <PopoverTrigger asChild>
+      <PageHeader
+        title="Dashboard"
+        description="Visão geral das suas finanças"
+        actions={
+          <>
+            {([
+              { key: "month", label: "Mês" },
+              { key: "3months", label: "3 Meses" },
+              { key: "6months", label: "6 Meses" },
+              { key: "year", label: "Ano" },
+            ] as { key: PeriodPreset; label: string }[]).map((p) => (
               <Button
-                variant={periodPreset === "custom" ? "default" : "outline"}
+                key={p.key}
+                variant={periodPreset === p.key ? "default" : "outline"}
                 size="sm"
-                className="gap-1"
+                onClick={() => setPeriodPreset(p.key)}
+                aria-pressed={periodPreset === p.key}
               >
-                <CalendarIcon className="h-3.5 w-3.5" />
-                {periodPreset === "custom"
-                  ? `${format(customRange.from, "dd/MM/yy")} - ${format(customRange.to, "dd/MM/yy")}`
-                  : "Personalizado"}
+                {p.label}
               </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                mode="range"
-                selected={{ from: customRange.from, to: customRange.to }}
-                onSelect={(range) => {
-                  if (range?.from) {
-                    setCustomRange({ from: range.from, to: range.to ?? range.from });
-                    setPeriodPreset("custom");
-                  }
-                }}
-                numberOfMonths={2}
-                locale={ptBR}
-                className={cn("p-3 pointer-events-auto")}
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
+            ))}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={periodPreset === "custom" ? "default" : "outline"}
+                  size="sm"
+                  className="gap-1"
+                  aria-pressed={periodPreset === "custom"}
+                >
+                  <CalendarIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                  {periodPreset === "custom"
+                    ? `${format(customRange.from, "dd/MM/yy")} - ${format(customRange.to, "dd/MM/yy")}`
+                    : "Personalizado"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="range"
+                  selected={{ from: customRange.from, to: customRange.to }}
+                  onSelect={(range) => {
+                    if (range?.from) {
+                      setCustomRange({ from: range.from, to: range.to ?? range.from });
+                      setPeriodPreset("custom");
+                    }
+                  }}
+                  numberOfMonths={2}
+                  locale={ptBR}
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </>
+        }
+      />
 
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         {kpis.map((kpi) => (
-          <Card key={kpi.label} className="shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{kpi.label}</CardTitle>
-              <kpi.icon className={`h-4 w-4 ${kpi.positive ? "text-success" : "text-destructive"}`} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl font-bold">{kpi.value}</div>
-              {kpi.change && (
-                <p className={`text-xs mt-1 ${kpi.positive ? "text-success" : "text-destructive"}`}>
-                  {kpi.change}
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          <KpiCard
+            key={kpi.label}
+            label={kpi.label}
+            value={kpi.value}
+            icon={kpi.icon}
+            tone={kpi.positive ? "success" : "destructive"}
+            hint={kpi.change}
+          />
         ))}
       </div>
 
