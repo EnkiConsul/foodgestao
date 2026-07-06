@@ -1,5 +1,12 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
+import "@fontsource/urbanist/600.css";
+import "@fontsource/urbanist/700.css";
+import "@fontsource/urbanist/800.css";
+import "@fontsource/epilogue/300.css";
+import "@fontsource/epilogue/400.css";
+import "@fontsource/epilogue/500.css";
+import "@fontsource/epilogue/600.css";
 import "./index.css";
 
 // PWA: register service worker only in production, outside Lovable preview/iframe.
