@@ -327,6 +327,30 @@ export default function Dashboard() {
             </PopoverContent>
           </Popover>
         </div>
+
+        {/* Filtro Status Pagamento */}
+        <div className="flex flex-wrap items-center gap-1.5 p-1 bg-muted/50 rounded-full border border-border/60">
+          {([
+            { key: "todos", label: "Todos" },
+            { key: "confirmado", label: "Pago" },
+            { key: "pendente", label: "Pendente" },
+          ] as { key: PaymentStatusFilter; label: string }[]).map((s) => (
+            <Button
+              key={s.key}
+              variant="ghost"
+              size="sm"
+              onClick={() => setPaymentStatus(s.key)}
+              className={cn(
+                "h-8 px-3 rounded-full text-xs font-medium transition-all capitalize",
+                paymentStatus === s.key
+                  ? "bg-background text-foreground shadow-sm hover:bg-background"
+                  : "text-muted-foreground hover:text-foreground hover:bg-transparent"
+              )}
+            >
+              {s.label}
+            </Button>
+          ))}
+        </div>
       </div>
 
       {/* Bento Grid */}
