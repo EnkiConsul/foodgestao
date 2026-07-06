@@ -400,7 +400,7 @@ export default function Dashboard() {
                 <span className="text-xs text-muted-foreground">Receitas</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-primary" />
+                <div className="w-2 h-2 rounded-full bg-[hsl(210_61%_44%)]" />
                 <span className="text-xs text-muted-foreground">Despesas</span>
               </div>
             </div>
