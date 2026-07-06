@@ -14,7 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Inter", "sans-serif"],
+        sans: ["Epilogue", "Inter", "sans-serif"],
+        display: ["Urbanist", "Epilogue", "Inter", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
