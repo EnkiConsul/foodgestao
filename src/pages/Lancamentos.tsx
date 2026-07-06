@@ -26,7 +26,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from "@/components/ui/label";
 import {
   Plus, Search, ArrowLeftRight,
-  Trash2, Pencil, ChevronLeft, ChevronRight, ChevronDown, Filter, SlidersHorizontal,
+  Trash2, Pencil, Copy, ChevronLeft, ChevronRight, ChevronDown, Filter, SlidersHorizontal,
   Download, DollarSign, CalendarIcon, CreditCard, HandCoins, X, Settings2, Repeat, Paperclip, Check, Upload,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -139,6 +139,7 @@ export default function Lancamentos() {
   const [dialogInitialType, setDialogInitialType] = useState<"receita" | "despesa" | "transferencia" | undefined>(undefined);
   const [filterCollapsed, setFilterCollapsed] = useState(false);
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
+  const [duplicateSource, setDuplicateSource] = useState<Transaction | null>(null);
   const [editScopePrompt, setEditScopePrompt] = useState<Transaction | null>(null);
   const [editScopeChoice, setEditScopeChoice] = useState<"single" | "forward" | "all">("single");
   const [pendingEditScope, setPendingEditScope] = useState<"single" | "forward" | "all">("single");
@@ -833,10 +834,10 @@ export default function Lancamentos() {
       {/* Top action bar */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <Button onClick={() => { setEditTransaction(null); setDialogInitialType(undefined); setDialogOpen(true); }} size="sm">
+          <Button onClick={() => { setEditTransaction(null); setDuplicateSource(null); setDialogInitialType(undefined); setDialogOpen(true); }} size="sm">
             <Plus className="h-4 w-4 mr-1" /> Lançamento
           </Button>
-          <Button variant="outline" size="sm" onClick={() => { setEditTransaction(null); setDialogInitialType("transferencia"); setDialogOpen(true); }}>
+          <Button variant="outline" size="sm" onClick={() => { setEditTransaction(null); setDuplicateSource(null); setDialogInitialType("transferencia"); setDialogOpen(true); }}>
             <ArrowLeftRight className="h-4 w-4 mr-1" /> Transferência
           </Button>
           <Button variant="outline" size="sm" onClick={exportCSV} disabled={displayRows.length === 0}>
@@ -1262,6 +1263,32 @@ export default function Lancamentos() {
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                title="Duplicar lançamento"
+                                onClick={() => {
+                                  const tx = r.original;
+                                  setEditTransaction(null);
+                                  setDialogInitialType(undefined);
+                                  setDuplicateSource({
+                                    ...tx,
+                                    // Novo registro em branco (o form pré-preenche via duplicateSource)
+                                    id: "",
+                                    description: `${tx.description} (cópia)`,
+                                    status: "pendente",
+                                    payment_date: null,
+                                    amount_paid: 0,
+                                    is_recurring: false,
+                                    parent_transaction_id: null,
+                                    attachment_url: null,
+                                  } as Transaction);
+                                  setDialogOpen(true);
+                                }}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 className="h-7 w-7 text-muted-foreground hover:text-destructive"
                                 onClick={() => setDeleteId(r.id)}
                               >
@@ -1294,7 +1321,7 @@ export default function Lancamentos() {
 
       {/* FAB mobile */}
       <button
-        onClick={() => { setEditTransaction(null); setDialogInitialType(undefined); setDialogOpen(true); }}
+        onClick={() => { setEditTransaction(null); setDuplicateSource(null); setDialogInitialType(undefined); setDialogOpen(true); }}
         className="fixed bottom-20 right-4 z-50 md:hidden flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
       >
         <Plus className="h-6 w-6" />
@@ -1302,12 +1329,14 @@ export default function Lancamentos() {
 
       <TransactionFormDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={(o) => { setDialogOpen(o); if (!o) setDuplicateSource(null); }}
         onCreated={refreshAll}
         transaction={editTransaction}
         initialType={dialogInitialType}
         editScope={pendingEditScope}
+        duplicateSource={duplicateSource}
       />
+
 
       <ImportStatementDialog open={importOpen} onOpenChange={setImportOpen} onImported={refreshAll} />
 

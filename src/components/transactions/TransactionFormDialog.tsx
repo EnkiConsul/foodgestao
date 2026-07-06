@@ -61,6 +61,8 @@ interface Props {
   transaction?: EditableTransaction | null;
   initialType?: TransactionType;
   editScope?: EditScope;
+  /** Pré-preenche o formulário em modo criação (usado ao duplicar um lançamento). */
+  duplicateSource?: EditableTransaction | null;
 }
 
 type CategoryNode = Tables<"categories"> & { children: CategoryNode[]; depth: number };
@@ -152,7 +154,7 @@ function generateRecurrenceDates(startDate: string, recType: string, endDate?: s
 
 const MAX_ATTACHMENTS = 5;
 
-export function TransactionFormDialog({ open, onOpenChange, onCreated, transaction, initialType, editScope = "single" }: Props) {
+export function TransactionFormDialog({ open, onOpenChange, onCreated, transaction, initialType, editScope = "single", duplicateSource }: Props) {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const { isRequired } = useTransactionFieldSettings();
@@ -366,9 +368,27 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
         .then(({ data }) => setExistingAttachments(data ?? []));
     } else if (!transaction && open) {
       resetForm();
-      if (initialType) setType(initialType);
+      if (duplicateSource) {
+        setType(duplicateSource.transaction_type);
+        setDescription(duplicateSource.description);
+        setAmount(duplicateSource.amount.toFixed(2).replace(".", ","));
+        setDate(duplicateSource.transaction_date);
+        setAccountId(duplicateSource.account_id);
+        setDestinationAccountId(duplicateSource.destination_account_id ?? "");
+        setCategoryId(duplicateSource.category_id ?? "");
+        setContactId(duplicateSource.contact_id ?? "");
+        setNotes(duplicateSource.notes ?? "");
+        setDueDate(duplicateSource.due_date ?? "");
+        setPaymentMethodId(duplicateSource.payment_method_id ?? "");
+        // Duplicata sempre entra como pendente/nova (não copia pagamento nem recorrência)
+        setStatus("pendente");
+        setPaymentDate("");
+        setIsRecurring(false);
+      } else if (initialType) {
+        setType(initialType);
+      }
     }
-  }, [transaction, open]);
+  }, [transaction, open, duplicateSource]);
 
   const isEditing = !!transaction;
 
