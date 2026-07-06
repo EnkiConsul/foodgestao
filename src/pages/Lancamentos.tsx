@@ -1263,6 +1263,32 @@ export default function Lancamentos() {
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                title="Duplicar lançamento"
+                                onClick={() => {
+                                  const tx = r.original;
+                                  setEditTransaction(null);
+                                  setDialogInitialType(undefined);
+                                  setDuplicateSource({
+                                    ...tx,
+                                    // Novo registro em branco (o form pré-preenche via duplicateSource)
+                                    id: "",
+                                    description: `${tx.description} (cópia)`,
+                                    status: "pendente",
+                                    payment_date: null,
+                                    amount_paid: 0,
+                                    is_recurring: false,
+                                    parent_transaction_id: null,
+                                    attachment_url: null,
+                                  } as Transaction);
+                                  setDialogOpen(true);
+                                }}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 className="h-7 w-7 text-muted-foreground hover:text-destructive"
                                 onClick={() => setDeleteId(r.id)}
                               >
