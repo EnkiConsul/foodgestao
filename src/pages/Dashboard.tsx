@@ -369,7 +369,7 @@ export default function Dashboard() {
                     <div
                       className={cn(
                         "h-full rounded-full transition-all duration-500",
-                        kpi.variant === "accent-success" ? "bg-success" : "bg-primary"
+                        kpi.variant === "accent-success" ? "bg-success" : "bg-[hsl(210_61%_44%)]"
                       )}
                       style={{ width: `${Math.min(100, Math.max(0, kpi.progress ?? 0))}%` }}
                     />
