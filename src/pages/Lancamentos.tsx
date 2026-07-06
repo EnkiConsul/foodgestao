@@ -1329,12 +1329,14 @@ export default function Lancamentos() {
 
       <TransactionFormDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={(o) => { setDialogOpen(o); if (!o) setDuplicateSource(null); }}
         onCreated={refreshAll}
         transaction={editTransaction}
         initialType={dialogInitialType}
         editScope={pendingEditScope}
+        duplicateSource={duplicateSource}
       />
+
 
       <ImportStatementDialog open={importOpen} onOpenChange={setImportOpen} onImported={refreshAll} />
 
