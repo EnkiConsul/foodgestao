@@ -65,6 +65,7 @@ export default function Dashboard() {
 
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("month");
   const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>(getPeriodRange("month"));
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatusFilter>("todos");
 
   const activeRange = periodPreset === "custom" ? customRange : getPeriodRange(periodPreset);
 
