@@ -61,6 +61,8 @@ interface Props {
   transaction?: EditableTransaction | null;
   initialType?: TransactionType;
   editScope?: EditScope;
+  /** Pré-preenche o formulário em modo criação (usado ao duplicar um lançamento). */
+  duplicateSource?: EditableTransaction | null;
 }
 
 type CategoryNode = Tables<"categories"> & { children: CategoryNode[]; depth: number };
