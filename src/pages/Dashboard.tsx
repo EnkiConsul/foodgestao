@@ -249,7 +249,7 @@ export default function Dashboard() {
 
   const barConfig: ChartConfig = {
     receitas: { label: "Receitas", color: "hsl(160 65% 38%)" },
-    despesas: { label: "Despesas", color: "hsl(210 61% 44%)" },
+    despesas: { label: "Despesas", color: "hsl(var(--destructive))" },
   };
 
   const donutConfig: ChartConfig = Object.fromEntries(
@@ -400,7 +400,7 @@ export default function Dashboard() {
                 <span className="text-xs text-muted-foreground">Receitas</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-[hsl(210_61%_44%)]" />
+                <div className="w-2 h-2 rounded-full bg-destructive" />
                 <span className="text-xs text-muted-foreground">Despesas</span>
               </div>
             </div>
@@ -470,7 +470,7 @@ export default function Dashboard() {
                 <span className="text-xs text-muted-foreground">Receitas</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-[hsl(210_61%_44%)]" />
+                <div className="w-2 h-2 rounded-full bg-destructive" />
                 <span className="text-xs text-muted-foreground">Despesas</span>
               </div>
             </div>
