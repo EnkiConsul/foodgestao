@@ -1,4 +1,3 @@
-import { PageHeader } from "@/components/ui/page-header";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
@@ -111,15 +110,15 @@ export default function Contatos() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Contatos"
-        description="Gerencie clientes e fornecedores"
-        actions={
-          <Button onClick={openNew} className="hidden md:flex">
-            <Plus className="h-4 w-4 mr-2" aria-hidden="true" /> Novo Contato
-          </Button>
-        }
-      />
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Contatos</h1>
+          <p className="text-sm text-muted-foreground">Gerencie clientes e fornecedores</p>
+        </div>
+        <Button onClick={openNew} className="hidden md:flex">
+          <Plus className="h-4 w-4 mr-2" /> Novo Contato
+        </Button>
+      </div>
 
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">

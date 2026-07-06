@@ -24,12 +24,12 @@ export function AppLayout() {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-dvh w-full">
+      <div className="flex min-h-screen w-full">
         <AppSidebar />
-        <div className="flex flex-1 flex-col min-w-0">
+        <div className="flex flex-1 flex-col">
           <SubscriptionBanner />
           <AppHeader />
-          <main className="flex-1 p-4 md:p-6 pb-mobile-nav md:pb-6">
+          <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6">
             <Profiler id={`route:${location.pathname}`} onRender={profilerOnRender}>
               <Outlet />
             </Profiler>
@@ -40,6 +40,8 @@ export function AppLayout() {
       <InstallPrompt />
       <PerfOverlay />
       <PlinIAPanel />
+      
+      
     </SidebarProvider>
   );
 }

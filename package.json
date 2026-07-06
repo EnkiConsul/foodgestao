@@ -70,10 +70,9 @@
     "react-helmet-async": "^3.0.0",
     "react-hook-form": "^7.61.1",
     "react-markdown": "^10.1.0",
-    "react-pluggy-connect": "^2.12.0",
     "react-resizable-panels": "^2.1.9",
-    "react-router-dom": "^6.30.4",
-    "recharts": "^3.9.1",
+    "react-router-dom": "^6.30.2",
+    "recharts": "^2.15.4",
     "remark-gfm": "^4.0.1",
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.6.0",
@@ -108,13 +107,11 @@
   "overrides": {
     "ai": "5.0.210",
     "@ai-sdk/react": "2.0.212",
-    "@ai-sdk/openai-compatible": "3.0.4",
-    "@babel/runtime": "^7.26.10"
+    "@ai-sdk/openai-compatible": "3.0.4"
   },
   "resolutions": {
     "ai": "5.0.210",
     "@ai-sdk/react": "2.0.212",
-    "@ai-sdk/openai-compatible": "3.0.4",
-    "@babel/runtime": "^7.26.10"
+    "@ai-sdk/openai-compatible": "3.0.4"
   }
 }

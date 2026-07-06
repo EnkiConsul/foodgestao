@@ -1,4 +1,3 @@
-import { PageHeader } from "@/components/ui/page-header";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -15,7 +14,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
 import { BankLogo } from "@/components/accounts/BankLogo";
-import { PluggyConnectionsSection } from "@/components/accounts/PluggyConnectionsSection";
 import { Plus, Search, Landmark, Pencil, Trash2, Wallet, RefreshCw, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
@@ -147,25 +145,25 @@ export default function ContasBancarias() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Contas Bancárias"
-        description="Gerencie suas contas e saldos"
-        actions={
-          <>
-            <Button
-              variant="outline"
-              onClick={handleResync}
-              disabled={resyncing}
-              className="hidden md:flex"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${resyncing ? "animate-spin" : ""}`} aria-hidden="true" /> Recalcular saldos
-            </Button>
-            <Button onClick={() => { setEditAccount(null); setDialogOpen(true); }} className="hidden md:flex">
-              <Plus className="h-4 w-4 mr-2" aria-hidden="true" /> Nova Conta
-            </Button>
-          </>
-        }
-      />
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Contas Bancárias</h1>
+          <p className="text-sm text-muted-foreground">Gerencie suas contas e saldos</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleResync}
+            disabled={resyncing}
+            className="hidden md:flex"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${resyncing ? "animate-spin" : ""}`} /> Recalcular saldos
+          </Button>
+          <Button onClick={() => { setEditAccount(null); setDialogOpen(true); }} className="hidden md:flex">
+            <Plus className="h-4 w-4 mr-2" /> Nova Conta
+          </Button>
+        </div>
+      </div>
 
       {staleBalance && (
         <Alert variant="destructive" className="border-warning/50 bg-warning/10 text-foreground [&>svg]:text-warning">
@@ -209,11 +207,8 @@ export default function ContasBancarias() {
         </Card>
       </div>
 
-      <PluggyConnectionsSection localAccounts={accounts.map((a) => ({ id: a.id, name: a.name }))} />
-
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">
-
         <div className="relative flex-1 min-w-[180px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar conta..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" maxLength={100} />

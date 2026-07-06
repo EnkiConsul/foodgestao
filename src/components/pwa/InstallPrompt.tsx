@@ -150,7 +150,7 @@ export function InstallPrompt() {
   };
 
   return (
-    <div className="fixed inset-x-2 bottom-[calc(4rem+env(safe-area-inset-bottom)+0.75rem)] z-50 md:inset-x-auto md:right-4 md:bottom-4 md:max-w-sm">
+    <div className="fixed inset-x-2 bottom-20 z-50 md:inset-x-auto md:right-4 md:bottom-4 md:max-w-sm">
       <div className="rounded-lg border border-border bg-card shadow-lg p-4 flex gap-3 items-start">
         <div className="shrink-0 rounded-md bg-primary/10 text-primary p-2">
           <Download className="h-5 w-5" />

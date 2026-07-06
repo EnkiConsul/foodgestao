@@ -1,118 +1,105 @@
-# Onda 1 — Auditoria: Componentes Globais + Mobile
 
-Escopo desta onda: shell da aplicação (sidebar, header, bottom nav, layouts), primitivas compartilhadas (Button, Input, Dialog, Sheet, Table, Card, feedbacks) e comportamento em telas ≤430px. Nenhuma regra de negócio, cálculo, permissão, integração ou schema será tocado.
+## Objetivo
+Adicionar o módulo **DRE Contábil** ao Gestor Plin, exclusivo para contexto **PJ** (empresas), integrado às `categories` e `transactions` existentes, seguindo Lei 6.404/76, ITG 1000/2022 e CPC 26 (R1).
 
-Após sua aprovação eu implemento as correções em pacotes (P0 → P1 → P2 → P3) e volto com o relatório de cada pacote.
-
----
-
-## Inventário mapeado
-
-**Layouts:** `AppLayout`, `AdminLayout`, `AppHeader`, `AppSidebar` (32 rotas), `AdminSidebar` (15 rotas), `BottomNav` (5 itens), `ContextSelector`, `NotificationsBell`.
-**Overlays globais:** `SubscriptionBanner`, `InstallPrompt` (PWA), `PlinIAPanel` + `PlinIAFab`, `WhatsappButton`, `CookieConsentBanner`, Toaster (sonner + shadcn).
-**Primitivas UI:** shadcn completo (48 arquivos em `components/ui`), `CurrencyInput`, `SearchableSelect`, `Logo`, `NavLink`.
-**Rotas:** 33 autenticadas + 15 admin + 9 públicas/legais.
+Escopo: entrega única com backend + telas + exportação + integração com Plin IA.
 
 ---
 
-## Achados classificados
+## 1. Backend (migração única)
 
-### P0 — Crítico (bloqueia uso ou causa erro visível)
+**Tabelas novas (schema `public`):**
 
-1. **FAB de Lançamentos e ações mobile ocultas atrás de overlays.** `CookieConsentBanner` (z-60, `inset-x-3 bottom-3`) sobrepõe o FAB antes do consentimento; `WhatsappButton` (z-70, bottom-6) briga com `PlinIAFab` (z-40, bottom-24) e com o `BottomNav` (h-16). Já corrigi Lançamentos, mas o mesmo padrão precisa ser normalizado nas outras rotas com FAB/CTA fixo.
-2. **`AppHeader` duplica `SidebarTrigger`** (`hidden md:flex` + `md:hidden`). Em mobile o menu abre corretamente, mas dois triggers renderizados quebram foco e leitura por screen reader.
-3. **`main` com `pb-20` só cobre o BottomNav padrão (64px).** Quando o Sheet de teclado virtual abre em iOS, a última linha some porque `main` não usa `dvh`/safe-area. Impede confirmar formulários curtos em telas ≤375px.
-4. **Botões só-ícone sem `aria-label`.** 52 ocorrências de `size="icon"` no projeto, 0 com `aria-label` nos arquivos de layout/Lançamentos amostrados. Bloqueia leitores de tela nos principais atalhos (privacidade, notificações, editar/excluir, etc.).
+- `dre_rubricas` — catálogo global de rubricas contábeis (seed com toda a árvore normativa; código, nome, tipo, natureza credora/devedora, `is_calculada`, `formula`, `ordem`, `editavel_usuario`, `visivel`). Leitura para `authenticated`, escrita restrita a `super_admin`.
+- `dre_categoria_mapeamento` — vínculo `company_id + categoria_id → rubrica_id` com `percentual_alocacao` (permite dividir 1 categoria em até N rubricas somando 100%). RLS: membros da empresa leem; `owner`/`admin` escrevem.
+- `dre_ajustes_manuais` — ajustes por `company_id + rubrica_id + período`, `tipo_ajuste` (adicionar/subtrair/substituir), fluxo de aprovação (`aprovado_por`, `aprovado_em`). RLS: membros leem; `owner`/`admin` criam; só `owner` aprova.
+- `dre_snapshots` — snapshot imutável (`dados_json`) da DRE publicada por período, com totais denormalizados (receita bruta/líquida, lucro bruto, EBIT, LAIR, lucro líquido). RLS: membros leem; `owner`/`admin` publicam.
 
-### P1 — Alto impacto
+**Grants:** `SELECT/INSERT/UPDATE/DELETE` para `authenticated` conforme políticas, `ALL` para `service_role`. Índices em `(categoria_id)`, `(rubrica_id)`, `(company_id, periodo_inicio, periodo_fim)`.
 
-5. **`AppSidebar` com 2 grupos de 7+9 itens sem hierarquia.** "Gerenciar" mistura cadastros (Contas, Categorias) com cobrança (Meu Plano, Faturas) e usuários. Aumenta tempo de encontrar. Reagrupar em: *Financeiro*, *Cadastros*, *Cobrança*, *Configurações*.
-6. **BottomNav com item "Mais" apontando direto para `/configuracoes`.** Perde acesso rápido a Relatórios, Orçamento avançado, Contatos. Trocar por Sheet "Mais" que espelhe o sidebar em mobile.
-7. **`ContextSelector` sem estado visual quando o contexto está inválido** (ex.: PJ selecionada sem empresa). Usuário perde clique tentando filtrar.
-8. **Sem safe-area/`env(safe-area-inset-*)` no `BottomNav`, `FAB`, banners.** Em iPhones com notch, ícones colam na barra inferior. `AppLayout` usa `min-h-screen` (a corrigir para `min-h-dvh`).
-9. **Feedback inconsistente.** Coexistem `sonner` (`toast.success`) e o antigo `use-toast` shadcn. Precisa consolidar em um só (proponho sonner) para padronizar posição, duração, ícones e acessibilidade.
-10. **`Button` icon = 40×40**, borderline para toque em mobile e menor que `min-h-11` recomendado para CTAs primários; padronizar variantes `iconSm`/`iconMd` e reforçar 44px em ações críticas.
-11. **Sheet/Dialog em mobile sem `max-h-[100dvh]` consistente.** Vários formulários (Lançamento já ajustado; Contato, Conta Bancária, Categoria ainda não) usam `max-h-[90vh]` que corta em teclado aberto.
-12. **`NotificationsBell` popover 384px em telas 360px** cria overflow horizontal e clipping (empurra para fora da tela). Precisa virar Sheet lateral em mobile.
+**Funções (SECURITY DEFINER, `EXECUTE` só para `authenticated`):**
 
-### P2 — Médio impacto
+- `dre_generate(_company_id uuid, _from date, _to date, _regime text)` → retorna JSON com árvore hierárquica de rubricas + valores agregados + totais calculados (Receita Líquida, Lucro Bruto, EBIT, LAIR, Lucro Líquido). Uma única query com `JOIN transactions ⋈ dre_categoria_mapeamento ⋈ dre_rubricas`, respeitando `is_company_member`. Regime `caixa` filtra por `payment_date` (status confirmado); `competência` por `due_date`.
+- `dre_apply_default_mapping(_company_id uuid)` — sugere mapeamento por nome de categoria (heurística de string) para categorias sem vínculo.
+- `dre_check_consistency(_company_id, _from, _to)` — retorna lista de categorias/lançamentos sem mapeamento no período.
+- `dre_publish_snapshot(_company_id, _from, _to, _titulo, _observacoes)` — chama `dre_generate`, grava snapshot imutável com totais denormalizados.
 
-13. **Tokens hardcoded fora do design system:** `#25D366` (WhatsApp), `text-gray-*`/`bg-gray-*` em 7 arquivos, `text-[#…]`/`bg-[#…]` em 2. Mover para tokens semânticos (`--brand-whatsapp`, `--muted-foreground`, etc.).
-14. **Densidade heterogênea de cards e badges.** Cards de KPI em Dashboard, Lançamentos e Fluxo de Caixa usam paddings/tamanho de fonte diferentes. Padronizar `KpiCard`.
-15. **Estados vazios genéricos.** Várias tabelas mostram "Nenhum registro encontrado" sem CTA. Introduzir `EmptyState` padrão com título + orientação + botão da ação primária (usando ações já existentes).
-16. **`Table` sem tratamento mobile fora de Lançamentos.** Contatos, Contas Bancárias, Categorias, Faturas rolam horizontalmente sem sinalização e sem versão em cards. Definir padrão: colunas prioritárias + `Sheet` de detalhes/ações.
-17. **Skeletons ausentes.** Maioria das páginas usa spinner central; substituir por skeletons proporcionais ao layout final (KPIs, tabela, cards) para melhorar performance percebida.
-18. **Focus-visible fraco em `NavLink` e itens de sidebar/bottom nav.** Não há anel visível ao tabular (só cor). Adicionar `focus-visible:ring-2 ring-ring`.
-19. **Contraste dos textos secundários** (`text-sidebar-foreground/50`, `text-muted-foreground/50`) fica abaixo de AA no tema claro. Elevar para `/70` no mínimo.
-20. **Overflow horizontal em Landing/Guias/DasMei/DREComparativo** (4 páginas com `overflow-x-*` sem contêiner). Auditar para não haver scroll horizontal involuntário no body em ≤430px.
-
-### P3 — Refinamento
-
-21. Microcopy de erros ("Erro ao carregar", "Falha") → mensagens acionáveis.
-22. Transições de rota sem `ScrollToTop` global consistente em mobile (algumas voltam no meio da página).
-23. Bordas/sombras/`radius` variam entre `rounded-md/lg/xl`; unificar escala.
-24. Espaçamentos ad-hoc (`p-3 sm:p-6`, `gap-3`, `space-y-4`) → escala 4/8/12/16/24/32.
-25. Ícones com tamanhos livres (`h-3 w-3` a `h-6 w-6`); definir escala `xs/sm/md/lg`.
-26. Animações do sidebar (`hover:translate-x-1`) desligadas via `prefers-reduced-motion`.
+**Seed:** insere ~35 rubricas da estrutura normativa (RECEITA BRUTA → LUCRO LÍQUIDO), incluindo linhas calculadas (`REC_LIQ`, `LUC_BRU`, `EBIT`, `LAIR`, `LUCRO_LIQ`).
 
 ---
 
-## Escopo das correções (Onda 1)
+## 2. Frontend
 
-### Pacote A — Fundamentos globais (P0)
-- **App shell**: `AppLayout` para `min-h-dvh`, `main` com `pb-[calc(4rem+env(safe-area-inset-bottom))]`; remover `SidebarTrigger` duplicado do header.
-- **Overlays**: definir escala oficial de z-index (`z-nav 40`, `z-fab 45`, `z-header 50`, `z-overlay 60`, `z-toast 70`, `z-modal 80`) e aplicar em FAB, WhatsApp, PlinIA, cookie banner, install prompt, sonner.
-- **A11y de ícones**: passar em Header, Sidebar, BottomNav, Lançamentos, tabelas de listagem e adicionar `aria-label` em todo `size="icon"`.
-- **Safe area**: BottomNav, FAB, banners com `env(safe-area-inset-bottom)`.
+**Rotas novas em `src/App.tsx`:**
 
-### Pacote B — Navegação (P1)
-- Reagrupar `AppSidebar` em 4 seções semânticas; manter todos os itens e rotas.
-- Substituir "Mais" do `BottomNav` por Sheet com todos os itens do sidebar (em mobile).
-- `ContextSelector` com estado de aviso quando PJ sem empresa selecionada + link para escolher.
-- `NotificationsBell` → Sheet direita em `<md`; Popover mantido em desktop.
-
-### Pacote C — Primitivas compartilhadas (P1/P2)
-- `Button`: novas variantes `size="iconSm"` (36) e reforço de `min-h-11` em CTAs primários; tokens de foco consistentes.
-- Consolidar toasts em `sonner` (remover `use-toast` gradualmente sem quebrar chamadas — wrapper de compat).
-- `Dialog`/`Sheet`: helper `ResponsiveDialog` que vira Sheet bottom em `<md`, `max-h-dvh`, safe-area, scroll interno.
-- `EmptyState`, `KpiCard`, `PageHeader`, `SectionTitle` como componentes reutilizáveis (usando tokens atuais).
-- Skeletons padronizados por template (tabela, KPI, cards).
-
-### Pacote D — Design tokens (P2)
-- Mover cores WhatsApp, cinzas hardcoded e hexadecimais soltos para tokens em `index.css` + `tailwind.config.ts`.
-- Elevar contraste dos textos secundários acima de 4.5:1.
-- Padronizar escala de radius/sombras/espaço.
-
-### Pacote E — Responsividade base (P1/P2)
-- Auditoria automática das 4 páginas com overflow horizontal e correção via contêiner.
-- Aplicar `overflow-x-auto` sinalizado (gradient edge) nas tabelas listadas em P2 e criar variante em cards para mobile.
-- Testes visuais em 320/375/390/430/768/1024/1440 nas rotas principais (Playwright screenshots como evidência).
-
-### Pacote F — Refinamentos (P3, opcional nesta onda)
-- Microcopy de erros, ScrollToTop, unificação de radius/gap/ícones, `prefers-reduced-motion`.
-
----
-
-## O que **não** será feito nesta onda
-- Redesenho de Dashboard, Lançamentos, Relatórios, DRE, Orçamento (Onda 2/3).
-- Landing, Auth, Onboarding, Checkout, Planos (Onda 4).
-- Mudanças em RLS, edge functions, queries, cálculos, categorias/status.
-- Substituição do sidebar shadcn ou remoção de rotas.
-
-## Riscos e mitigação
-- **Wrapper de toasts** pode conflitar com chamadas antigas → mantém API `toast.success/error` inalterada.
-- **Reagrupamento do sidebar** muda ordem mas preserva rotas e permissões → sem impacto em navegação profunda/bookmarks.
-- **ResponsiveDialog** só é aplicado em formulários já mapeados; demais Dialogs permanecem intactos até revisão individual.
-- Cada pacote entra em commit isolado com screenshot antes/depois para você revisar.
-
-## Ordem sugerida de execução (após aprovação)
 ```text
-1. Pacote A (P0)               ← fundamentos + a11y de ícones
-2. Pacote D (tokens P2)        ← base para B/C
-3. Pacote C (primitivas)       ← libera padrão para todas as telas
-4. Pacote B (navegação)
-5. Pacote E (responsividade)
-6. Pacote F (refinamentos)     ← opcional, posso adiar para Onda 2
+/relatorios/dre                  → geração/visualização
+/relatorios/dre/configuracao     → mapeamento categorias ↔ rubricas
+/relatorios/dre/rubricas         → gestão de rubricas (super_admin)
+/relatorios/dre/historico        → lista de snapshots
+/relatorios/dre/historico/:id    → visualização de snapshot publicado
 ```
 
-Quer que eu execute nessa ordem, ou prefere reordenar/remover algum pacote antes de eu começar?
+Todas exigem contexto **PJ** ativo (se PF, banner "Módulo disponível apenas no perfil empresarial").
+
+**Componentes (`src/components/dre/`):**
+- `DREReport.tsx` — tabela hierárquica com colunas Valor / % Rec. Líquida / Comparativo período anterior / Variação %.
+- `DRELine.tsx`, `DRESubtotal.tsx` — linhas com indentação por nível de código.
+- `DREIndicators.tsx` — cards de Margem Bruta, Margem Operacional, Margem Líquida, EBITDA, Índice Inadimplência.
+- `CategoryMappingPanel.tsx` + `RubricaTree.tsx` — mapeamento com filtro "Não mapeadas", divisão percentual, botão "Aplicar mapeamento padrão".
+- `ManualAdjustModal.tsx` — criação/aprovação de ajustes.
+- `DREExportButton.tsx` — PDF (via `jspdf` + `jspdf-autotable`, já no projeto de relatórios), Excel (`xlsx`), CSV.
+- `DREConsistencyBanner.tsx` — avisos de categorias/lançamentos não mapeados.
+
+**Hooks (`src/hooks/`):**
+- `useDREGeneration.ts` — chama RPC `dre_generate` com filtros (período, regime, comparativo).
+- `useDREMapping.ts` — CRUD do mapeamento + heurística default.
+- `useDRESnapshots.ts` — lista/publica/lê snapshots.
+- `useDRERubricas.ts` — árvore de rubricas.
+
+**Menu:** adicionar submenu "DRE" em `AppSidebar.tsx` sob "Relatórios" (só aparece no contexto PJ).
+
+**Permissões (mapeamento acordado):**
+- `owner` + `admin` da empresa = admin/manager (mapeamento, ajustes, publicação; aprovação de ajustes só `owner`).
+- `member` = operator (só visualiza e exporta).
+- `viewer` = só visualiza.
+- Edição de rubricas globais = `super_admin`.
+- Enforcement no backend (RLS + funções) e na UI (esconder ações).
+
+---
+
+## 3. Integração Plin IA
+
+Estender `supabase/functions/_shared/plin-ia-context.ts`:
+- No contexto PJ, buscar último snapshot publicado da empresa ativa e injetar `dre_ultimo_periodo` no `contextToText`.
+- Adicionar tool `plin_ia_dre_summary(_company_id)` no `ai-financial-agent` para o LLM consultar sob demanda a última DRE.
+- Novas quick prompts em `src/pages/PlinIA.tsx`: "Como está minha margem operacional?", "Analise minha última DRE", "Onde estou perdendo mais dinheiro?".
+
+---
+
+## 4. Validações e alertas
+- Banner no topo do relatório quando há categorias sem mapeamento.
+- Aviso se `Receita Bruta = 0` ou `Deduções > Receita Bruta`.
+- Destaque vermelho quando `Lucro Líquido < 0` (Prejuízo do Exercício).
+- Snapshots publicados são imutáveis (trigger que impede UPDATE em `dados_json` e totais quando `status = 'publicado'`).
+
+---
+
+## Detalhes técnicos
+- Valores em `NUMERIC(15,2)`; formatação BRL via `formatBRL` já existente.
+- Query de geração otimizada (single `SELECT` com CTE agregando por rubrica).
+- Snapshot armazena JSON completo — republicação gera nova versão.
+- Trigger de auditoria em `dre_ajustes_manuais` (INSERT/UPDATE/APROVAÇÃO) via `insert_audit_log`.
+- Zod schemas em `src/lib/validations.ts` para ajustes e snapshot.
+
+---
+
+## Ordem de execução
+1. Migração SQL (tabelas + RLS + grants + seed rubricas + funções RPC + triggers).
+2. Types regenerados automaticamente.
+3. Hooks + páginas + componentes DRE.
+4. Rota, sidebar, guard PJ.
+5. Extensão Plin IA (context + tool + quick prompts).
+6. Verificação: build, screenshot da tela `/relatorios/dre` via Playwright.
+
+Após aprovar, começo pela migração (que precisa da sua aprovação separada) e sigo com o restante em sequência.

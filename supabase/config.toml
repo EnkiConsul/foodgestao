@@ -23,6 +23,3 @@ verify_jwt = false
 
 [functions.admin-reset-mfa]
 verify_jwt = true
-
-[functions.pluggy-webhook]
-verify_jwt = false

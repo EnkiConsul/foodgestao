@@ -1,9 +1,6 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { KpiCard } from "@/components/ui/kpi-card";
-import { PageHeader } from "@/components/ui/page-header";
-import { TrendingUp, TrendingDown, Wallet, Target, Landmark, CalendarIcon, FileBarChart, FileSpreadsheet, LineChart, PiggyBank, ArrowRight } from "lucide-react";
-import { Link } from "react-router-dom";
+import { TrendingUp, TrendingDown, Wallet, Target, Landmark, CalendarIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
@@ -217,71 +214,76 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Dashboard"
-        description="Visão geral das suas finanças"
-        actions={
-          <>
-            {([
-              { key: "month", label: "Mês" },
-              { key: "3months", label: "3 Meses" },
-              { key: "6months", label: "6 Meses" },
-              { key: "year", label: "Ano" },
-            ] as { key: PeriodPreset; label: string }[]).map((p) => (
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Visão geral das suas finanças</p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {([
+            { key: "month", label: "Mês" },
+            { key: "3months", label: "3 Meses" },
+            { key: "6months", label: "6 Meses" },
+            { key: "year", label: "Ano" },
+          ] as { key: PeriodPreset; label: string }[]).map((p) => (
+            <Button
+              key={p.key}
+              variant={periodPreset === p.key ? "default" : "outline"}
+              size="sm"
+              onClick={() => setPeriodPreset(p.key)}
+            >
+              {p.label}
+            </Button>
+          ))}
+          <Popover>
+            <PopoverTrigger asChild>
               <Button
-                key={p.key}
-                variant={periodPreset === p.key ? "default" : "outline"}
+                variant={periodPreset === "custom" ? "default" : "outline"}
                 size="sm"
-                onClick={() => setPeriodPreset(p.key)}
-                aria-pressed={periodPreset === p.key}
+                className="gap-1"
               >
-                {p.label}
+                <CalendarIcon className="h-3.5 w-3.5" />
+                {periodPreset === "custom"
+                  ? `${format(customRange.from, "dd/MM/yy")} - ${format(customRange.to, "dd/MM/yy")}`
+                  : "Personalizado"}
               </Button>
-            ))}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={periodPreset === "custom" ? "default" : "outline"}
-                  size="sm"
-                  className="gap-1"
-                  aria-pressed={periodPreset === "custom"}
-                >
-                  <CalendarIcon className="h-3.5 w-3.5" aria-hidden="true" />
-                  {periodPreset === "custom"
-                    ? `${format(customRange.from, "dd/MM/yy")} - ${format(customRange.to, "dd/MM/yy")}`
-                    : "Personalizado"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <Calendar
-                  mode="range"
-                  selected={{ from: customRange.from, to: customRange.to }}
-                  onSelect={(range) => {
-                    if (range?.from) {
-                      setCustomRange({ from: range.from, to: range.to ?? range.from });
-                      setPeriodPreset("custom");
-                    }
-                  }}
-                  numberOfMonths={2}
-                  locale={ptBR}
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
-          </>
-        }
-      />
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="range"
+                selected={{ from: customRange.from, to: customRange.to }}
+                onSelect={(range) => {
+                  if (range?.from) {
+                    setCustomRange({ from: range.from, to: range.to ?? range.from });
+                    setPeriodPreset("custom");
+                  }
+                }}
+                numberOfMonths={2}
+                locale={ptBR}
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
 
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         {kpis.map((kpi) => (
-          <KpiCard
-            key={kpi.label}
-            label={kpi.label}
-            value={kpi.value}
-            icon={kpi.icon}
-            tone={kpi.positive ? "success" : "destructive"}
-            hint={kpi.change}
-          />
+          <Card key={kpi.label} className="shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium text-muted-foreground">{kpi.label}</CardTitle>
+              <kpi.icon className={`h-4 w-4 ${kpi.positive ? "text-success" : "text-destructive"}`} />
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl font-bold">{kpi.value}</div>
+              {kpi.change && (
+                <p className={`text-xs mt-1 ${kpi.positive ? "text-success" : "text-destructive"}`}>
+                  {kpi.change}
+                </p>
+              )}
+            </CardContent>
+          </Card>
         ))}
       </div>
 
@@ -362,42 +364,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       )}
-
-      {/* Atalhos de análise → Wave 2 */}
-      <section aria-labelledby="atalhos-analise">
-        <div className="flex items-center justify-between mb-3">
-          <h2 id="atalhos-analise" className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-            Atalhos de análise
-          </h2>
-        </div>
-        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { to: "/relatorios", icon: FileBarChart, title: "Relatórios", desc: "Fluxo anual, categorias e exportações" },
-            { to: "/relatorios/dre", icon: FileSpreadsheet, title: "DRE", desc: "Demonstrativo por rubrica e período" },
-            { to: "/fluxo-caixa", icon: LineChart, title: "Fluxo de Caixa", desc: "Projeção com base nos saldos atuais" },
-            { to: "/orcamento", icon: PiggyBank, title: "Orçamento", desc: "Limites por categoria e alertas" },
-          ].map((s) => (
-            <Link
-              key={s.to}
-              to={s.to}
-              className="group rounded-lg border bg-card p-4 shadow-sm hover:shadow-md hover:border-primary/40 hover:bg-accent/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="rounded-md bg-primary/10 p-2 text-primary">
-                  <s.icon className="h-4 w-4" aria-hidden="true" />
-                </div>
-                <ArrowRight
-                  className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
-                  aria-hidden="true"
-                />
-              </div>
-              <p className="mt-3 text-sm font-semibold">{s.title}</p>
-              <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{s.desc}</p>
-            </Link>
-          ))}
-        </div>
-      </section>
-
 
       {accounts.length > 0 && (
         <Card className="shadow-sm">

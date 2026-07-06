@@ -1,5 +1,3 @@
-import { ResponsiveTable } from "@/components/ui/responsive-table";
-import { PageHeader } from "@/components/ui/page-header";
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -393,7 +391,10 @@ export default function Categorias() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Categorias" description="Organize suas categorias de receitas e despesas" />
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight">Categorias</h1>
+      </div>
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
@@ -522,8 +523,7 @@ export default function Categorias() {
         </div>
       ) : (
         <div className="border rounded-lg overflow-hidden">
-          <ResponsiveTable ariaLabel="Categorias">
-            <Table>
+          <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
                 <TableHead className="w-10">
@@ -661,7 +661,6 @@ export default function Categorias() {
               </Droppable>
             </DragDropContext>
           </Table>
-          </ResponsiveTable>
         </div>
       )}
 

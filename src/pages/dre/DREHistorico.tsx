@@ -1,16 +1,15 @@
 import { Link, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, AlertCircle } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { PageHeader } from "@/components/ui/page-header";
+import { AlertCircle } from "lucide-react";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDRESnapshots } from "@/hooks/useDRE";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatValor, formatPct, nivelIndent, isSubtotal, isCabecalho, computeSubtotal, type DREGenerated } from "@/lib/dre";
 import { Helmet } from "react-helmet-async";
-import { DRESubNav } from "./DRESubNav";
 
 export default function DREHistorico() {
   const { id } = useParams<{ id?: string }>();
@@ -44,26 +43,21 @@ export default function DREHistorico() {
     return (
       <div className="p-6 space-y-6">
         <Helmet><title>{detail.titulo} | Gestor Plin</title></Helmet>
+        <div>
+          <Link to="/relatorios/dre/historico" className="text-sm text-muted-foreground hover:underline flex items-center gap-1 mb-1">
+            <ArrowLeft className="h-3 w-3" /> Voltar
+          </Link>
+          <h1 className="text-2xl font-semibold flex items-center gap-2">
+            {detail.titulo}
+            <Badge variant={detail.status === "publicado" ? "default" : "secondary"}>{detail.status}</Badge>
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {detail.periodo_inicio} a {detail.periodo_fim} · Regime {detail.regime}
+          </p>
+        </div>
 
-        <Link
-          to="/relatorios/dre/historico"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" /> Voltar ao histórico
-        </Link>
-
-        <PageHeader
-          title={
-            <span className="flex items-center gap-2 flex-wrap">
-              {detail.titulo}
-              <Badge variant={detail.status === "publicado" ? "default" : "secondary"}>{detail.status}</Badge>
-            </span>
-          }
-          description={`${detail.periodo_inicio} a ${detail.periodo_fim} · Regime ${detail.regime}`}
-        />
-
-        <Card className="shadow-sm">
-          <CardContent className="p-0 overflow-x-auto">
+        <Card>
+          <CardContent className="p-0">
             <table className="w-full text-sm">
               <thead className="bg-muted/50 border-b">
                 <tr>
@@ -85,7 +79,7 @@ export default function DREHistorico() {
                   return (
                     <tr key={r.rubrica_id} className={`border-b last:border-0 ${sub ? "bg-primary/5 font-semibold" : cab ? "bg-muted/30 font-medium" : ""}`}>
                       <td className="px-4 py-2" style={{ paddingLeft: `${16 + level * 20}px` }}>{r.nome}</td>
-                      <td className={`px-4 py-2 text-right tabular-nums ${display < 0 ? "text-destructive" : display > 0 ? "text-success" : "text-muted-foreground"}`}>
+                      <td className={`px-4 py-2 text-right tabular-nums ${display < 0 ? "text-destructive" : display > 0 ? "text-emerald-600" : "text-muted-foreground"}`}>
                         {formatValor(display, { showNegativeParens: true })}
                       </td>
                       <td className="px-4 py-2 text-right text-xs text-muted-foreground tabular-nums">
@@ -105,17 +99,19 @@ export default function DREHistorico() {
   return (
     <div className="p-6 space-y-6">
       <Helmet><title>Histórico DRE | Gestor Plin</title></Helmet>
+      <div>
+        <Link to="/relatorios/dre" className="text-sm text-muted-foreground hover:underline flex items-center gap-1 mb-1">
+          <ArrowLeft className="h-3 w-3" /> Voltar
+        </Link>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <h1 className="text-2xl font-semibold">Histórico de DREs</h1>
+          <Link to="/relatorios/dre/comparativo" className="text-sm text-primary hover:underline">Comparar snapshots →</Link>
+        </div>
+      </div>
 
-      <PageHeader
-        title="Histórico de DREs"
-        description="Snapshots publicados e rascunhos salvos. Clique em um título para abrir."
-      />
-
-      <DRESubNav />
-
-      <Card className="shadow-sm">
-        <CardHeader className="pb-3"><CardTitle className="text-base">Snapshots salvos</CardTitle></CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
+      <Card>
+        <CardHeader><CardTitle className="text-base">Snapshots salvos</CardTitle></CardHeader>
+        <CardContent className="p-0">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 border-b">
               <tr>
@@ -136,7 +132,7 @@ export default function DREHistorico() {
                   </td>
                   <td className="px-4 py-2 text-xs text-muted-foreground">{s.periodo_inicio} → {s.periodo_fim}</td>
                   <td className="px-4 py-2"><Badge variant={s.status === "publicado" ? "default" : "secondary"}>{s.status}</Badge></td>
-                  <td className={`px-4 py-2 text-right tabular-nums ${(s.lucro_liquido ?? 0) < 0 ? "text-destructive" : "text-success"}`}>
+                  <td className={`px-4 py-2 text-right tabular-nums ${(s.lucro_liquido ?? 0) < 0 ? "text-destructive" : "text-emerald-600"}`}>
                     {formatValor(s.lucro_liquido, { showNegativeParens: true })}
                   </td>
                   <td className="px-4 py-2 text-xs text-muted-foreground">{new Date(s.gerado_em).toLocaleString("pt-BR")}</td>

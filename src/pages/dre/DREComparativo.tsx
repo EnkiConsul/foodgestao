@@ -5,12 +5,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { PageHeader } from "@/components/ui/page-header";
-import { AlertCircle, ArrowRight, GitCompare, Minus, TrendingDown, TrendingUp } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, GitCompare, Minus, TrendingDown, TrendingUp } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDRESnapshots } from "@/hooks/useDRE";
-import { DRESubNav } from "./DRESubNav";
 import {
   formatValor,
   formatPct,
@@ -134,17 +132,18 @@ export default function DREComparativo() {
     <div className="p-6 space-y-6">
       <Helmet><title>Comparativo DRE | Gestor Plin</title></Helmet>
 
-      <PageHeader
-        title={
-          <span className="flex items-center gap-2">
-            <GitCompare className="h-6 w-6 text-primary" aria-hidden="true" />
-            Comparativo entre DREs
-          </span>
-        }
-        description="Selecione um período base (A) e um período de comparação (B). Variações são calculadas como B − A."
-      />
-
-      <DRESubNav />
+      <div>
+        <Link to="/relatorios/dre" className="text-sm text-muted-foreground hover:underline flex items-center gap-1 mb-1">
+          <ArrowLeft className="h-3 w-3" /> Voltar
+        </Link>
+        <h1 className="text-2xl font-semibold flex items-center gap-2">
+          <GitCompare className="h-6 w-6 text-primary" />
+          Comparativo entre DREs
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Selecione um período base (A) e um período de comparação (B). Variações são calculadas como B − A.
+        </p>
+      </div>
 
       <Card>
         <CardContent className="pt-6">
@@ -292,7 +291,7 @@ export default function DREComparativo() {
 }
 
 function valorTone(v: number): string {
-  if (v > 0) return "text-success";
+  if (v > 0) return "text-emerald-600 dark:text-emerald-400";
   if (v < 0) return "text-destructive";
   return "text-muted-foreground";
 }
@@ -302,14 +301,14 @@ function valorTone(v: number): string {
 function deltaTone(delta: number, natureza: "credora" | "devedora"): string {
   if (delta === 0) return "text-muted-foreground";
   const favoravel = natureza === "credora" ? delta > 0 : delta > 0; // delta em valor com sinal já invertido (despesas são negativas), então crescer = bom
-  return favoravel ? "text-success" : "text-destructive";
+  return favoravel ? "text-emerald-600 dark:text-emerald-400" : "text-destructive";
 }
 
 function DeltaBadge({ delta, pct, isPct }: { delta: number; pct: number | null; isPct?: boolean }) {
   if (delta === 0) return <Badge variant="outline" className="gap-1"><Minus className="h-3 w-3" />0</Badge>;
   const up = delta > 0;
   const Icon = up ? TrendingUp : TrendingDown;
-  const cls = up ? "text-success border-success/30 bg-success/10"
+  const cls = up ? "text-emerald-700 border-emerald-300 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-800"
                  : "text-destructive border-destructive/30 bg-destructive/10";
   const label = isPct
     ? `${up ? "+" : ""}${delta.toFixed(1).replace(".", ",")}pp`

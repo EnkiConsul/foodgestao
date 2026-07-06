@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -94,96 +94,92 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
     setSaving(false);
   };
 
-  const formId = "company-form";
-
   return (
-    <ResponsiveDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title={company ? "Editar Perfil" : "Novo Perfil"}
-      description={company ? "Atualize os dados do perfil." : "Preencha os dados para cadastrar um novo perfil."}
-      size="lg"
-      footer={
-        <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-            Cancelar
-          </Button>
-          <Button type="submit" form={formId} disabled={saving || !name.trim()}>
-            {saving ? "Salvando..." : company ? "Salvar" : "Criar Perfil"}
-          </Button>
-        </div>
-      }
-    >
-      <form id={formId} onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <Label>Tipo de Perfil *</Label>
-          <RadioGroup value={profileType} onValueChange={(v) => setProfileType(v as "pessoal" | "empresarial")} className="flex gap-4">
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="pessoal" id="profile-pessoal" />
-              <Label htmlFor="profile-pessoal" className="font-normal cursor-pointer">Pessoal</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="empresarial" id="profile-empresarial" />
-              <Label htmlFor="profile-empresarial" className="font-normal cursor-pointer">Empresarial</Label>
-            </div>
-          </RadioGroup>
-        </div>
-        {profileType === "pessoal" ? (
-          <>
-            <div className="space-y-2">
-              <Label htmlFor="company-name">Nome Completo *</Label>
-              <Input id="company-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome completo" required maxLength={200} />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{company ? "Editar Perfil" : "Novo Perfil"}</DialogTitle>
+          <DialogDescription>
+            {company ? "Atualize os dados do perfil." : "Preencha os dados para cadastrar um novo perfil."}
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Tipo de Perfil *</Label>
+            <RadioGroup value={profileType} onValueChange={(v) => setProfileType(v as "pessoal" | "empresarial")} className="flex gap-4">
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="pessoal" id="profile-pessoal" />
+                <Label htmlFor="profile-pessoal" className="font-normal cursor-pointer">Pessoal</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="empresarial" id="profile-empresarial" />
+                <Label htmlFor="profile-empresarial" className="font-normal cursor-pointer">Empresarial</Label>
+              </div>
+            </RadioGroup>
+          </div>
+          {profileType === "pessoal" ? (
+            <>
               <div className="space-y-2">
-                <Label htmlFor="company-cnpj">CPF</Label>
-                <Input id="company-cnpj" value={cnpj} onChange={(e) => setCnpj(e.target.value)} placeholder="000.000.000-00" maxLength={20} />
+                <Label htmlFor="company-name">Nome Completo *</Label>
+                <Input id="company-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome completo" required maxLength={200} />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="company-cnpj">CPF</Label>
+                  <Input id="company-cnpj" value={cnpj} onChange={(e) => setCnpj(e.target.value)} placeholder="000.000.000-00" maxLength={20} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="company-phone">Telefone</Label>
+                  <Input id="company-phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" maxLength={20} />
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="company-phone">Telefone</Label>
-                <Input id="company-phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" maxLength={20} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company-email">E-mail</Label>
-              <Input id="company-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" maxLength={100} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company-address">Endereço</Label>
-              <Input id="company-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, cidade - UF" maxLength={300} />
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="space-y-2">
-              <Label htmlFor="company-name">Razão Social *</Label>
-              <Input id="company-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Razão social da empresa" required maxLength={200} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company-trade">Nome Fantasia</Label>
-              <Input id="company-trade" value={tradeName} onChange={(e) => setTradeName(e.target.value)} placeholder="Nome fantasia" maxLength={200} />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="company-cnpj">CNPJ</Label>
-                <Input id="company-cnpj" value={cnpj} onChange={(e) => setCnpj(e.target.value)} placeholder="00.000.000/0000-00" maxLength={20} />
+                <Label htmlFor="company-email">E-mail</Label>
+                <Input id="company-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" maxLength={100} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="company-phone">Telefone</Label>
-                <Input id="company-phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" maxLength={20} />
+                <Label htmlFor="company-address">Endereço</Label>
+                <Input id="company-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, cidade - UF" maxLength={300} />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company-email">E-mail</Label>
-              <Input id="company-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="empresa@exemplo.com" maxLength={100} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company-address">Endereço</Label>
-              <Input id="company-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, cidade - UF" maxLength={300} />
-            </div>
-          </>
-        )}
-      </form>
-    </ResponsiveDialog>
+            </>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="company-name">Razão Social *</Label>
+                <Input id="company-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Razão social da empresa" required maxLength={200} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="company-trade">Nome Fantasia</Label>
+                <Input id="company-trade" value={tradeName} onChange={(e) => setTradeName(e.target.value)} placeholder="Nome fantasia" maxLength={200} />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="company-cnpj">CNPJ</Label>
+                  <Input id="company-cnpj" value={cnpj} onChange={(e) => setCnpj(e.target.value)} placeholder="00.000.000/0000-00" maxLength={20} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="company-phone">Telefone</Label>
+                  <Input id="company-phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" maxLength={20} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="company-email">E-mail</Label>
+                <Input id="company-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="empresa@exemplo.com" maxLength={100} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="company-address">Endereço</Label>
+                <Input id="company-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, cidade - UF" maxLength={300} />
+              </div>
+            </>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button type="submit" disabled={saving || !name.trim()}>
+              {saving ? "Salvando..." : company ? "Salvar" : "Criar Perfil"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

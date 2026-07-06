@@ -193,7 +193,7 @@ function PublicHeader({ utm }: { utm: string }) {
         </nav>
 
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <Button asChild variant="ghost" size="sm">
+          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
             <Link to={buildCta("/auth", utm)}>Entrar</Link>
           </Button>
           <CtaPrimary
@@ -335,11 +335,6 @@ function HeroSection({ utm }: { utm: string }) {
             />
             <Button asChild size="lg" variant="outline" className="w-full text-base sm:w-auto">
               <a href="#comparativo">{c.cta_secondary}</a>
-            </Button>
-          </div>
-          <div className="mt-3 flex sm:hidden">
-            <Button asChild variant="ghost" size="lg" className="w-full">
-              <Link to={buildCta("/auth", utm)}>Entrar</Link>
             </Button>
           </div>
 

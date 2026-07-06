@@ -7,8 +7,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ResponsiveTable } from "@/components/ui/responsive-table";
-import { EmptyState } from "@/components/ui/empty-state";
 import {
   Loader2, ExternalLink, FileText, ArrowRight,
   Clock, CheckCircle2, AlertTriangle, QrCode,
@@ -101,7 +99,7 @@ export default function Faturas() {
   ];
 
   return (
-    <div className="min-h-dvh bg-background">
+    <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <Logo size="sm" linkTo="/" />
@@ -183,158 +181,94 @@ export default function Faturas() {
           <CardContent className="p-0">
             {isLoading ? (
               <div className="py-16 flex justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" aria-label="Carregando faturas" />
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : !filtered || filtered.length === 0 ? (
-              <EmptyState
-                icon={FileText}
-                title={invoices && invoices.length > 0 ? "Nenhuma fatura nesta categoria" : "Você ainda não possui faturas"}
-                description={invoices && invoices.length > 0
-                  ? "Ajuste os filtros ou volte para 'Todas' para ver o histórico completo."
-                  : "Assine um plano para começar a acompanhar suas cobranças."}
-                action={(!invoices || invoices.length === 0) ? (
+              <div className="py-16 flex flex-col items-center gap-3 text-center px-4">
+                <FileText className="h-10 w-10 text-muted-foreground" />
+                <p className="text-muted-foreground">
+                  {invoices && invoices.length > 0
+                    ? "Nenhuma fatura nesta categoria."
+                    : "Você ainda não possui faturas."}
+                </p>
+                {(!invoices || invoices.length === 0) && (
                   <Button onClick={() => navigate("/planos")}>Conhecer planos</Button>
-                ) : undefined}
-              />
+                )}
+              </div>
             ) : (
-              <>
-                {/* Mobile cards */}
-                <ul className="md:hidden divide-y" aria-label="Lista de faturas">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Plano</TableHead>
+                    <TableHead>Método</TableHead>
+                    <TableHead>Vencimento</TableHead>
+                    <TableHead>Pagamento</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {filtered.map((inv: any) => {
                     const total = (inv.amount_cents ?? 0) - (inv.discount_cents ?? 0);
                     const status = statusOf(inv);
                     const pending = status === "open" || status === "overdue";
                     const isPix = inv.payment_method === "pix";
                     return (
-                      <li key={inv.id} className="p-4 space-y-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="font-medium truncate">
-                              {inv.subscription?.plan?.name ?? "—"}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              Vence em {fmtDate(inv.due_date)}
-                              {inv.paid_at && ` · Pago em ${fmtDate(inv.paid_at)}`}
-                            </p>
-                          </div>
+                      <TableRow key={inv.id}>
+                        <TableCell className="font-medium">
+                          {inv.subscription?.plan?.name ?? "—"}
+                        </TableCell>
+                        <TableCell>
+                          {inv.payment_method ? (
+                            <span className="inline-flex items-center gap-1.5 text-xs">
+                              {isPix && <QrCode className="h-3.5 w-3.5 text-primary" />}
+                              {inv.payment_method === "pix" ? "Pix"
+                                : inv.payment_method === "boleto" ? "Boleto"
+                                : inv.payment_method === "card" ? "Cartão"
+                                : inv.payment_method}
+                            </span>
+                          ) : <span className="text-muted-foreground">—</span>}
+                        </TableCell>
+                        <TableCell>{fmtDate(inv.due_date)}</TableCell>
+                        <TableCell>{fmtDate(inv.paid_at)}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatCents(total)}
+                        </TableCell>
+                        <TableCell>
                           <Badge variant={INVOICE_STATUS_VARIANT[status] ?? "secondary"}>
                             {INVOICE_STATUS_LABELS[status] ?? status}
                           </Badge>
-                        </div>
-                        <div className="flex items-end justify-between gap-3">
-                          <div>
-                            <p className="text-lg font-bold tabular-nums">{formatCents(total)}</p>
-                            {inv.payment_method && (
-                              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
-                                {isPix && <QrCode className="h-3.5 w-3.5 text-primary" aria-hidden="true" />}
-                                {inv.payment_method === "pix" ? "Pix"
-                                  : inv.payment_method === "boleto" ? "Boleto"
-                                  : inv.payment_method === "card" ? "Cartão"
-                                  : inv.payment_method}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex gap-2 shrink-0">
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
                             {pending && (
                               <Button
                                 size="sm"
                                 onClick={() => navigate(`/checkout/pagamento/${inv.id}`)}
                               >
                                 {isPix ? "Ver Pix" : "Pagar"}
-                                <ArrowRight className="h-3.5 w-3.5 ml-1" aria-hidden="true" />
+                                <ArrowRight className="h-3.5 w-3.5 ml-1" />
                               </Button>
                             )}
                             {inv.external_payment_url && (
-                              <Button size="sm" variant="outline" asChild aria-label="Abrir link de pagamento">
-                                <a href={inv.external_payment_url} target="_blank" rel="noopener noreferrer">
-                                  <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                              <Button size="sm" variant="outline" asChild>
+                                <a
+                                  href={inv.external_payment_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <ExternalLink className="h-3.5 w-3.5" />
                                 </a>
                               </Button>
                             )}
                           </div>
-                        </div>
-                      </li>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
-                </ul>
-
-                {/* Desktop table */}
-                <ResponsiveTable ariaLabel="Faturas" className="hidden md:block">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Plano</TableHead>
-                        <TableHead>Método</TableHead>
-                        <TableHead>Vencimento</TableHead>
-                        <TableHead>Pagamento</TableHead>
-                        <TableHead className="text-right">Valor</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filtered.map((inv: any) => {
-                        const total = (inv.amount_cents ?? 0) - (inv.discount_cents ?? 0);
-                        const status = statusOf(inv);
-                        const pending = status === "open" || status === "overdue";
-                        const isPix = inv.payment_method === "pix";
-                        return (
-                          <TableRow key={inv.id}>
-                            <TableCell className="font-medium">
-                              {inv.subscription?.plan?.name ?? "—"}
-                            </TableCell>
-                            <TableCell>
-                              {inv.payment_method ? (
-                                <span className="inline-flex items-center gap-1.5 text-xs">
-                                  {isPix && <QrCode className="h-3.5 w-3.5 text-primary" aria-hidden="true" />}
-                                  {inv.payment_method === "pix" ? "Pix"
-                                    : inv.payment_method === "boleto" ? "Boleto"
-                                    : inv.payment_method === "card" ? "Cartão"
-                                    : inv.payment_method}
-                                </span>
-                              ) : <span className="text-muted-foreground">—</span>}
-                            </TableCell>
-                            <TableCell>{fmtDate(inv.due_date)}</TableCell>
-                            <TableCell>{fmtDate(inv.paid_at)}</TableCell>
-                            <TableCell className="text-right tabular-nums">
-                              {formatCents(total)}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={INVOICE_STATUS_VARIANT[status] ?? "secondary"}>
-                                {INVOICE_STATUS_LABELS[status] ?? status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                {pending && (
-                                  <Button
-                                    size="sm"
-                                    onClick={() => navigate(`/checkout/pagamento/${inv.id}`)}
-                                  >
-                                    {isPix ? "Ver Pix" : "Pagar"}
-                                    <ArrowRight className="h-3.5 w-3.5 ml-1" aria-hidden="true" />
-                                  </Button>
-                                )}
-                                {inv.external_payment_url && (
-                                  <Button size="sm" variant="outline" asChild aria-label="Abrir link de pagamento">
-                                    <a
-                                      href={inv.external_payment_url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                    >
-                                      <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                                    </a>
-                                  </Button>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </ResponsiveTable>
-              </>
+                </TableBody>
+              </Table>
             )}
           </CardContent>
         </Card>

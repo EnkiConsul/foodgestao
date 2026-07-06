@@ -1,4 +1,3 @@
-import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { resolveAttachments } from "@/lib/attachments";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,14 +30,8 @@ import {
   Download, DollarSign, CalendarIcon, CreditCard, HandCoins, X, Settings2, Repeat, Paperclip, Check, Upload,
 } from "lucide-react";
 import { toast } from "sonner";
-import { format, endOfMonth, isPast, isValid } from "date-fns";
+import { format, endOfMonth, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
-
-const safeDateFormat = (value: string | null | undefined, pattern: string, opts?: Parameters<typeof format>[2]) => {
-  if (!value) return "—";
-  const d = new Date(String(value).length <= 10 ? value + "T12:00:00" : value);
-  return isValid(d) ? format(d, pattern, opts) : "—";
-};
 import { cn } from "@/lib/utils";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -621,12 +614,12 @@ export default function Lancamentos() {
   const exportCSV = () => {
     const headers = ["Data", "Descrição", "Tipo", "Valor", "Status", "Vencimento", "Valor Pago", "Categoria", "Conta", "Forma Pgto", "Saldo"];
     const csvRows = displayRows.map((r) => [
-      safeDateFormat(r.date, "dd/MM/yyyy"),
+      format(new Date(r.date + "T12:00:00"), "dd/MM/yyyy"),
       `"${r.description.replace(/"/g, '""')}"`,
       r.transactionType === "receita" ? "Crédito" : r.transactionType === "despesa" ? "Débito" : "Transferência",
       r.amount.toFixed(2).replace(".", ","),
       displayStatusConfig[r.billStatus].label,
-      r.dueDate ? safeDateFormat(r.dueDate, "dd/MM/yyyy") : "",
+      r.dueDate ? format(new Date(r.dueDate + "T12:00:00"), "dd/MM/yyyy") : "",
       r.amountPaid > 0 ? r.amountPaid.toFixed(2).replace(".", ",") : "",
       r.categoryName || "",
       r.accountName || "",
@@ -907,8 +900,8 @@ export default function Lancamentos() {
           {isMobile && (
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="h-9 w-9" aria-label="Abrir filtros">
-                  <Filter className="h-4 w-4" aria-hidden="true" />
+                <Button variant="outline" size="icon" className="h-9 w-9">
+                  <Filter className="h-4 w-4" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[280px] overflow-y-auto">
@@ -928,12 +921,12 @@ export default function Lancamentos() {
       {/* Month navigation */}
       <div className="space-y-2">
         <div className="flex items-center justify-center gap-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedYear((y) => y - 1)} aria-label="Ano anterior">
-            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedYear((y) => y - 1)}>
+            <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-sm font-semibold min-w-[50px] text-center">{selectedYear}</span>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedYear((y) => y + 1)} aria-label="Próximo ano">
-            <ChevronRight className="h-4 w-4" aria-hidden="true" />
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedYear((y) => y + 1)}>
+            <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
         <div className="flex gap-1 overflow-x-auto pb-1">
@@ -997,7 +990,7 @@ export default function Lancamentos() {
               <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
             </div>
           ) : (
-            <ResponsiveTable className="w-full">
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
@@ -1066,7 +1059,7 @@ export default function Lancamentos() {
                           {/* Data */}
                           {visibleColumns.data !== false && (
                           <TableCell className="text-xs py-2">
-                            {safeDateFormat(r.date, "dd/MM", { locale: ptBR })}
+                            {format(new Date(r.date + "T12:00:00"), "dd/MM", { locale: ptBR })}
                           </TableCell>
                           )}
 
@@ -1214,14 +1207,14 @@ export default function Lancamentos() {
                           {/* Vencimento */}
                           {visibleColumns.vencimento && (
                           <TableCell className="text-xs py-2 text-muted-foreground">
-                            {safeDateFormat(r.dueDate, "dd/MM", { locale: ptBR })}
+                            {r.dueDate ? format(new Date(r.dueDate + "T12:00:00"), "dd/MM", { locale: ptBR }) : "—"}
                           </TableCell>
                           )}
 
                           {/* Data de Pagamento */}
                           {visibleColumns.pagamento && (
                           <TableCell className="text-xs py-2 text-muted-foreground">
-                            {safeDateFormat(r.paymentDate, "dd/MM", { locale: ptBR })}
+                            {r.paymentDate ? format(new Date(r.paymentDate + "T12:00:00"), "dd/MM", { locale: ptBR }) : "—"}
                           </TableCell>
                           )}
 
@@ -1243,9 +1236,8 @@ export default function Lancamentos() {
                                   className="h-7 w-7 text-success hover:text-success"
                                   onClick={() => setPaymentTx(r.original)}
                                   title="Registrar pagamento"
-                                  aria-label={`Registrar pagamento de ${r.description}`}
                                 >
-                                  <DollarSign className="h-3 w-3" aria-hidden="true" />
+                                  <DollarSign className="h-3 w-3" />
                                 </Button>
                               )}
                               <Button
@@ -1264,18 +1256,16 @@ export default function Lancamentos() {
                                     setDialogOpen(true);
                                   }
                                 }}
-                                aria-label={`Editar ${r.description}`}
                               >
-                                <Pencil className="h-3 w-3" aria-hidden="true" />
+                                <Pencil className="h-3 w-3" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 text-muted-foreground hover:text-destructive"
                                 onClick={() => setDeleteId(r.id)}
-                                aria-label={`Excluir ${r.description}`}
                               >
-                                <Trash2 className="h-3 w-3" aria-hidden="true" />
+                                <Trash2 className="h-3 w-3" />
                               </Button>
                             </div>
                           </TableCell>
@@ -1285,7 +1275,7 @@ export default function Lancamentos() {
                   )}
                 </TableBody>
               </Table>
-            </ResponsiveTable>
+            </div>
           )}
         </Card>
 
@@ -1305,10 +1295,9 @@ export default function Lancamentos() {
       {/* FAB mobile */}
       <button
         onClick={() => { setEditTransaction(null); setDialogInitialType(undefined); setDialogOpen(true); }}
-        className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-40 md:hidden flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        aria-label="Novo lançamento"
+        className="fixed bottom-20 right-4 z-50 md:hidden flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
       >
-        <Plus className="h-6 w-6" aria-hidden="true" />
+        <Plus className="h-6 w-6" />
       </button>
 
       <TransactionFormDialog

@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -188,105 +188,95 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
     setSaving(false);
   };
 
-  const formId = "category-form";
-
   return (
-    <ResponsiveDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title={editCategory ? "Editar Categoria" : "Nova Categoria"}
-      size="md"
-      footer={
-        <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-            Cancelar
-          </Button>
-          <Button type="submit" form={formId} disabled={saving}>
-            {saving ? "Salvando..." : editCategory ? "Atualizar" : "Criar Categoria"}
-          </Button>
-        </div>
-      }
-    >
-      <form id={formId} onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <Label>Nome</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Alimentação" maxLength={50} />
-        </div>
-
-        <div className="space-y-2">
-          <Label>Tipo</Label>
-          <Select value={type} onValueChange={(v) => setType(v as "receita" | "despesa")}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="despesa">Despesa</SelectItem>
-              <SelectItem value="receita">Receita</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Categoria Pai (opcional)</Label>
-          <Select value={parentId ?? "__none__"} onValueChange={(v) => setParentId(!v || v === "__none__" ? null : v)}>
-            <SelectTrigger><SelectValue placeholder="Nenhuma (raiz)" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">Nenhuma (raiz)</SelectItem>
-              {parentOptions.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {parentOptions.length === 0 && (
-            <p className="text-xs text-muted-foreground">Crie categorias raiz do mesmo tipo primeiro</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label>Cor</Label>
-          <div className="flex gap-2 flex-wrap">
-            {COLOR_OPTIONS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setColor(c)}
-                aria-label={`Cor ${c}`}
-                aria-pressed={color === c}
-                className={`h-7 w-7 rounded-full border-2 transition-transform ${
-                  color === c ? "border-foreground scale-110" : "border-transparent"
-                }`}
-                style={{ backgroundColor: c }}
-              />
-            ))}
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{editCategory ? "Editar Categoria" : "Nova Categoria"}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Nome</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Alimentação" maxLength={50} />
           </div>
-        </div>
 
-        {/* Visibility section */}
-        <div className="space-y-3 border-t pt-4">
-          <Label className="text-sm font-semibold">Visibilidade</Label>
-          <p className="text-xs text-muted-foreground">Selecione onde esta categoria ficará disponível</p>
+          <div className="space-y-2">
+            <Label>Tipo</Label>
+            <Select value={type} onValueChange={(v) => setType(v as "receita" | "despesa")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="despesa">Despesa</SelectItem>
+                <SelectItem value="receita">Receita</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={visiblePf} onCheckedChange={(v) => setVisiblePf(!!v)} />
-            Pessoa Física (PF)
-          </label>
+          <div className="space-y-2">
+            <Label>Categoria Pai (opcional)</Label>
+            <Select value={parentId ?? "__none__"} onValueChange={(v) => setParentId(!v || v === "__none__" ? null : v)}>
+              <SelectTrigger><SelectValue placeholder="Nenhuma (raiz)" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Nenhuma (raiz)</SelectItem>
+                {parentOptions.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {parentOptions.length === 0 && (
+              <p className="text-xs text-muted-foreground">Crie categorias raiz do mesmo tipo primeiro</p>
+            )}
+          </div>
 
-          {companies.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Empresas</p>
-              {companies.map((company) => (
-                <label key={company.id} className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={selectedCompanies.has(company.id)}
-                    onCheckedChange={() => toggleCompany(company.id)}
-                  />
-                  {company.name}
-                </label>
+          <div className="space-y-2">
+            <Label>Cor</Label>
+            <div className="flex gap-2 flex-wrap">
+              {COLOR_OPTIONS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setColor(c)}
+                  className={`h-7 w-7 rounded-full border-2 transition-transform ${
+                    color === c ? "border-foreground scale-110" : "border-transparent"
+                  }`}
+                  style={{ backgroundColor: c }}
+                />
               ))}
             </div>
-          )}
-        </div>
-      </form>
-    </ResponsiveDialog>
+          </div>
+
+          {/* Visibility section */}
+          <div className="space-y-3 border-t pt-4">
+            <Label className="text-sm font-semibold">Visibilidade</Label>
+            <p className="text-xs text-muted-foreground">Selecione onde esta categoria ficará disponível</p>
+
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={visiblePf} onCheckedChange={(v) => setVisiblePf(!!v)} />
+              Pessoa Física (PF)
+            </label>
+
+            {companies.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Empresas</p>
+                {companies.map((company) => (
+                  <label key={company.id} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={selectedCompanies.has(company.id)}
+                      onCheckedChange={() => toggleCompany(company.id)}
+                    />
+                    {company.name}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <Button type="submit" className="w-full" disabled={saving}>
+            {saving ? "Salvando..." : editCategory ? "Atualizar" : "Criar Categoria"}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
