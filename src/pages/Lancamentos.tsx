@@ -834,10 +834,10 @@ export default function Lancamentos() {
       {/* Top action bar */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <Button onClick={() => { setEditTransaction(null); setDialogInitialType(undefined); setDialogOpen(true); }} size="sm">
+          <Button onClick={() => { setEditTransaction(null); setDuplicateSource(null); setDialogInitialType(undefined); setDialogOpen(true); }} size="sm">
             <Plus className="h-4 w-4 mr-1" /> Lançamento
           </Button>
-          <Button variant="outline" size="sm" onClick={() => { setEditTransaction(null); setDialogInitialType("transferencia"); setDialogOpen(true); }}>
+          <Button variant="outline" size="sm" onClick={() => { setEditTransaction(null); setDuplicateSource(null); setDialogInitialType("transferencia"); setDialogOpen(true); }}>
             <ArrowLeftRight className="h-4 w-4 mr-1" /> Transferência
           </Button>
           <Button variant="outline" size="sm" onClick={exportCSV} disabled={displayRows.length === 0}>
@@ -1321,7 +1321,7 @@ export default function Lancamentos() {
 
       {/* FAB mobile */}
       <button
-        onClick={() => { setEditTransaction(null); setDialogInitialType(undefined); setDialogOpen(true); }}
+        onClick={() => { setEditTransaction(null); setDuplicateSource(null); setDialogInitialType(undefined); setDialogOpen(true); }}
         className="fixed bottom-20 right-4 z-50 md:hidden flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
       >
         <Plus className="h-6 w-6" />
