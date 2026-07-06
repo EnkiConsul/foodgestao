@@ -41,6 +41,7 @@ const DONUT_COLORS = [
 ];
 
 type PeriodPreset = "month" | "3months" | "6months" | "year" | "custom";
+type PaymentStatusFilter = "todos" | "confirmado" | "pendente";
 
 function getPeriodRange(preset: PeriodPreset): { from: Date; to: Date } {
   const now = new Date();
