@@ -154,7 +154,7 @@ function generateRecurrenceDates(startDate: string, recType: string, endDate?: s
 
 const MAX_ATTACHMENTS = 5;
 
-export function TransactionFormDialog({ open, onOpenChange, onCreated, transaction, initialType, editScope = "single" }: Props) {
+export function TransactionFormDialog({ open, onOpenChange, onCreated, transaction, initialType, editScope = "single", duplicateSource }: Props) {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const { isRequired } = useTransactionFieldSettings();
