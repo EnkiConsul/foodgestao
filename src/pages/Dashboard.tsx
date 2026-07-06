@@ -355,7 +355,7 @@ export default function Dashboard() {
               </div>
               <div className="mt-2">
                 <div className={cn(
-                  "font-display font-bold tracking-tight text-2xl",
+                  "font-display font-bold tracking-tight text-xl sm:text-2xl leading-tight whitespace-nowrap",
                   isHero
                     ? "text-primary-foreground"
                     : kpi.variant === "accent-success"
