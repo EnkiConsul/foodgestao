@@ -76,7 +76,7 @@ export default function Dashboard() {
   });
 
   const { data: transactions = [] } = useQuery({
-    queryKey: ["dashboard-transactions", user?.id, contextType, selectedCompanyId, periodPreset, customRange.from.toISOString(), customRange.to.toISOString()],
+    queryKey: ["dashboard-transactions", user?.id, contextType, selectedCompanyId, periodPreset, customRange.from.toISOString(), customRange.to.toISOString(), paymentStatus],
     enabled: !!user,
     queryFn: async () => {
       const startDate = activeRange.from.toISOString().split("T")[0];
@@ -90,6 +90,7 @@ export default function Dashboard() {
         .lte("transaction_date", endDate)
         .neq("status", "cancelado");
       if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
+      if (paymentStatus !== "todos") q = q.eq("status", paymentStatus);
       const { data } = await q;
       return data ?? [];
     },
