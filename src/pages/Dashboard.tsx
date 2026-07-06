@@ -21,7 +21,7 @@ import {
   ChartLegendContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, AreaChart, Area } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, AreaChart, Area, LineChart, Line } from "recharts";
 import { BankLogo } from "@/components/accounts/BankLogo";
 
 
@@ -130,9 +130,10 @@ export default function Dashboard() {
     [categories]
   );
 
-  const { monthlyData, balanceEvolution, topCategories, totalReceitas, totalDespesas } = useMemo(() => {
+  const { monthlyData, balanceEvolution, dailyEvolution, topCategories, totalReceitas, totalDespesas } = useMemo(() => {
     const months: Record<string, { receitas: number; despesas: number }> = {};
     const confirmedMonths: Record<string, { receitas: number; despesas: number }> = {};
+    const days: Record<string, { receitas: number; despesas: number }> = {};
     const catTotals: Record<string, number> = {};
     let totalR = 0;
     let totalD = 0;
@@ -142,15 +143,19 @@ export default function Dashboard() {
 
     for (const t of transactions) {
       const month = t.transaction_date.slice(0, 7); // YYYY-MM
+      const day = t.transaction_date.slice(0, 10); // YYYY-MM-DD
       if (!months[month]) months[month] = { receitas: 0, despesas: 0 };
       if (!confirmedMonths[month]) confirmedMonths[month] = { receitas: 0, despesas: 0 };
+      if (!days[day]) days[day] = { receitas: 0, despesas: 0 };
 
       if (t.transaction_type === "receita") {
         months[month].receitas += Number(t.amount);
+        days[day].receitas += Number(t.amount);
         totalR += Number(t.amount);
         if (isEffective(t)) confirmedMonths[month].receitas += Number(t.amount);
       } else if (t.transaction_type === "despesa") {
         months[month].despesas += Number(t.amount);
+        days[day].despesas += Number(t.amount);
         totalD += Number(t.amount);
         if (t.category_id) {
           catTotals[t.category_id] = (catTotals[t.category_id] ?? 0) + Number(t.amount);
@@ -180,6 +185,15 @@ export default function Dashboard() {
       };
     });
 
+    const dailyEvo = Object.keys(days).sort().map((key) => {
+      const [, m, d] = key.split("-");
+      return {
+        day: `${d}/${m}`,
+        receitas: days[key].receitas,
+        despesas: days[key].despesas,
+      };
+    });
+
     const top5 = Object.entries(catTotals)
       .sort(([, a], [, b]) => b - a)
       .slice(0, 5)
@@ -189,7 +203,7 @@ export default function Dashboard() {
         fill: DONUT_COLORS[i % DONUT_COLORS.length],
       }));
 
-    return { monthlyData: sorted, balanceEvolution: balEvo, topCategories: top5, totalReceitas: totalR, totalDespesas: totalD };
+    return { monthlyData: sorted, balanceEvolution: balEvo, dailyEvolution: dailyEvo, topCategories: top5, totalReceitas: totalR, totalDespesas: totalD };
   }, [transactions, catMap]);
 
   const saldo = totalReceitas - totalDespesas;
@@ -360,6 +374,28 @@ export default function Dashboard() {
                 <ChartTooltip content={<ChartTooltipContent formatter={(value) => maskBRL(Number(value))} />} />
                 <Area type="monotone" dataKey="saldo" stroke="hsl(210, 52%, 45%)" fill="url(#saldoGradient)" strokeWidth={2} />
               </AreaChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Daily Evolution: Receitas vs Despesas */}
+      {dailyEvolution.length > 0 && (
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base">Evolução Diária — Receitas x Despesas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={barConfig} className="h-56 w-full">
+              <LineChart data={dailyEvolution} accessibilityLayer margin={{ left: 4, right: 8, top: 8 }}>
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8} minTickGap={24} />
+                <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} width={40} />
+                <ChartTooltip content={<ChartTooltipContent formatter={(value) => maskBRL(Number(value))} />} />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Line type="monotone" dataKey="receitas" stroke="var(--color-receitas)" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="despesas" stroke="var(--color-despesas)" strokeWidth={2} dot={false} />
+              </LineChart>
             </ChartContainer>
           </CardContent>
         </Card>
