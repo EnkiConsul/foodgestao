@@ -248,8 +248,8 @@ export default function Dashboard() {
   ];
 
   const barConfig: ChartConfig = {
-    receitas: { label: "Receitas", color: "hsl(var(--success))" },
-    despesas: { label: "Despesas", color: "hsl(var(--primary))" },
+    receitas: { label: "Receitas", color: "hsl(160 65% 38%)" },
+    despesas: { label: "Despesas", color: "hsl(210 61% 44%)" },
   };
 
   const donutConfig: ChartConfig = Object.fromEntries(
