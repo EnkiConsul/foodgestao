@@ -379,6 +379,28 @@ export default function Dashboard() {
         </Card>
       )}
 
+      {/* Daily Evolution: Receitas vs Despesas */}
+      {dailyEvolution.length > 0 && (
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base">Evolução Diária — Receitas x Despesas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={barConfig} className="h-56 w-full">
+              <LineChart data={dailyEvolution} accessibilityLayer margin={{ left: 4, right: 8, top: 8 }}>
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8} minTickGap={24} />
+                <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} width={40} />
+                <ChartTooltip content={<ChartTooltipContent formatter={(value) => maskBRL(Number(value))} />} />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Line type="monotone" dataKey="receitas" stroke="var(--color-receitas)" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="despesas" stroke="var(--color-despesas)" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      )}
+
       {accounts.length > 0 && (
         <Card className="shadow-sm">
           <CardHeader>
