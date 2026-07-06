@@ -41,6 +41,7 @@ const DONUT_COLORS = [
 ];
 
 type PeriodPreset = "month" | "3months" | "6months" | "year" | "custom";
+type PaymentStatusFilter = "todos" | "confirmado" | "pendente";
 
 function getPeriodRange(preset: PeriodPreset): { from: Date; to: Date } {
   const now = new Date();
@@ -64,6 +65,7 @@ export default function Dashboard() {
 
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("month");
   const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>(getPeriodRange("month"));
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatusFilter>("todos");
 
   const activeRange = periodPreset === "custom" ? customRange : getPeriodRange(periodPreset);
 
@@ -74,7 +76,7 @@ export default function Dashboard() {
   });
 
   const { data: transactions = [] } = useQuery({
-    queryKey: ["dashboard-transactions", user?.id, contextType, selectedCompanyId, periodPreset, customRange.from.toISOString(), customRange.to.toISOString()],
+    queryKey: ["dashboard-transactions", user?.id, contextType, selectedCompanyId, periodPreset, customRange.from.toISOString(), customRange.to.toISOString(), paymentStatus],
     enabled: !!user,
     queryFn: async () => {
       const startDate = activeRange.from.toISOString().split("T")[0];
@@ -88,6 +90,7 @@ export default function Dashboard() {
         .lte("transaction_date", endDate)
         .neq("status", "cancelado");
       if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
+      if (paymentStatus !== "todos") q = q.eq("status", paymentStatus);
       const { data } = await q;
       return data ?? [];
     },
@@ -323,6 +326,30 @@ export default function Dashboard() {
               />
             </PopoverContent>
           </Popover>
+        </div>
+
+        {/* Filtro Status Pagamento */}
+        <div className="flex flex-wrap items-center gap-1.5 p-1 bg-muted/50 rounded-full border border-border/60">
+          {([
+            { key: "todos", label: "Todos" },
+            { key: "confirmado", label: "Pago" },
+            { key: "pendente", label: "Pendente" },
+          ] as { key: PaymentStatusFilter; label: string }[]).map((s) => (
+            <Button
+              key={s.key}
+              variant="ghost"
+              size="sm"
+              onClick={() => setPaymentStatus(s.key)}
+              className={cn(
+                "h-8 px-3 rounded-full text-xs font-medium transition-all capitalize",
+                paymentStatus === s.key
+                  ? "bg-background text-foreground shadow-sm hover:bg-background"
+                  : "text-muted-foreground hover:text-foreground hover:bg-transparent"
+              )}
+            >
+              {s.label}
+            </Button>
+          ))}
         </div>
       </div>
 
