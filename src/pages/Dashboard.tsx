@@ -211,41 +211,80 @@ export default function Dashboard() {
   const changeD = totalDespesas > 0 ? `-${((totalDespesas / (totalReceitas + totalDespesas || 1)) * 100).toFixed(0)}%` : "0%";
 
   const kpis = [
-    { label: "Saldo", value: maskBRL(saldo), change: totalReceitas > 0 ? `${((saldo / totalReceitas) * 100).toFixed(0)}% das Receitas` : undefined, icon: Wallet, positive: saldo >= 0 },
-    { label: "Contas Bancárias", value: maskBRL(totalBankBalance), icon: Landmark, positive: totalBankBalance >= 0 },
-    { label: "Receitas", value: maskBRL(totalReceitas), icon: TrendingUp, positive: true },
-    { label: "Despesas", value: maskBRL(totalDespesas), change: totalReceitas > 0 ? `${((totalDespesas / totalReceitas) * 100).toFixed(0)}% das Receitas` : changeD, icon: TrendingDown, positive: false },
+    {
+      label: "Saldo",
+      value: maskBRL(saldo),
+      hint: totalReceitas > 0 ? `${((saldo / totalReceitas) * 100).toFixed(0)}% das Receitas` : "Do período",
+      icon: Wallet,
+      positive: saldo >= 0,
+      variant: "plain" as const,
+    },
+    {
+      label: "Contas Bancárias",
+      value: maskBRL(totalBankBalance),
+      hint: `${accounts.length} ${accounts.length === 1 ? "conta ativa" : "contas ativas"}`,
+      icon: Landmark,
+      positive: totalBankBalance >= 0,
+      variant: "hero" as const,
+    },
+    {
+      label: "Receitas",
+      value: maskBRL(totalReceitas),
+      hint: totalReceitas + totalDespesas > 0 ? `${((totalReceitas / (totalReceitas + totalDespesas)) * 100).toFixed(0)}% do fluxo` : "Do período",
+      icon: TrendingUp,
+      positive: true,
+      variant: "accent-success" as const,
+      progress: totalReceitas + totalDespesas > 0 ? (totalReceitas / (totalReceitas + totalDespesas)) * 100 : 0,
+    },
+    {
+      label: "Despesas",
+      value: maskBRL(totalDespesas),
+      hint: totalReceitas > 0 ? `${((totalDespesas / totalReceitas) * 100).toFixed(0)}% das Receitas` : "Do período",
+      icon: TrendingDown,
+      positive: false,
+      variant: "accent-primary" as const,
+      progress: totalReceitas + totalDespesas > 0 ? (totalDespesas / (totalReceitas + totalDespesas)) * 100 : 0,
+    },
   ];
 
   const barConfig: ChartConfig = {
-    receitas: { label: "Receitas", color: "hsl(145, 50%, 42%)" },
-    despesas: { label: "Despesas", color: "hsl(4, 78%, 57%)" },
+    receitas: { label: "Receitas", color: "hsl(var(--success))" },
+    despesas: { label: "Despesas", color: "hsl(var(--primary))" },
   };
 
   const donutConfig: ChartConfig = Object.fromEntries(
     topCategories.map((c) => [c.name, { label: c.name, color: c.fill }])
   );
 
+  const totalCategoryValue = topCategories.reduce((sum, c) => sum + c.value, 0);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Visão geral das suas finanças</p>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Visão geral das suas finanças</p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 p-1 bg-muted/50 rounded-full border border-border/60">
           {([
             { key: "month", label: "Mês" },
-            { key: "3months", label: "3 Meses" },
-            { key: "6months", label: "6 Meses" },
+            { key: "3months", label: "3M" },
+            { key: "6months", label: "6M" },
             { key: "year", label: "Ano" },
           ] as { key: PeriodPreset; label: string }[]).map((p) => (
             <Button
               key={p.key}
-              variant={periodPreset === p.key ? "default" : "outline"}
+              variant="ghost"
               size="sm"
               onClick={() => setPeriodPreset(p.key)}
+              className={cn(
+                "h-8 px-3 rounded-full text-xs font-medium transition-all",
+                periodPreset === p.key
+                  ? "bg-background text-foreground shadow-sm hover:bg-background"
+                  : "text-muted-foreground hover:text-foreground hover:bg-transparent"
+              )}
             >
               {p.label}
             </Button>
@@ -253,13 +292,18 @@ export default function Dashboard() {
           <Popover>
             <PopoverTrigger asChild>
               <Button
-                variant={periodPreset === "custom" ? "default" : "outline"}
+                variant="ghost"
                 size="sm"
-                className="gap-1"
+                className={cn(
+                  "h-8 px-3 rounded-full text-xs font-medium gap-1.5 transition-all",
+                  periodPreset === "custom"
+                    ? "bg-background text-foreground shadow-sm hover:bg-background"
+                    : "text-muted-foreground hover:text-foreground hover:bg-transparent"
+                )}
               >
                 <CalendarIcon className="h-3.5 w-3.5" />
                 {periodPreset === "custom"
-                  ? `${format(customRange.from, "dd/MM/yy")} - ${format(customRange.to, "dd/MM/yy")}`
+                  ? `${format(customRange.from, "dd/MM/yy")} – ${format(customRange.to, "dd/MM/yy")}`
                   : "Personalizado"}
               </Button>
             </PopoverTrigger>
@@ -282,159 +326,241 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        {kpis.map((kpi) => (
-          <Card key={kpi.label} className="shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{kpi.label}</CardTitle>
-              <kpi.icon className={`h-4 w-4 ${kpi.positive ? "text-success" : "text-destructive"}`} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl font-bold">{kpi.value}</div>
-              {kpi.change && (
-                <p className={`text-xs mt-1 ${kpi.positive ? "text-success" : "text-destructive"}`}>
-                  {kpi.change}
-                </p>
+      {/* Bento Grid */}
+      <div className="grid grid-cols-12 gap-4 lg:gap-5">
+        {/* KPIs */}
+        {kpis.map((kpi) => {
+          const isHero = kpi.variant === "hero";
+          return (
+            <div
+              key={kpi.label}
+              className={cn(
+                "col-span-6 lg:col-span-3 p-5 rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 flex flex-col justify-between min-h-[130px]",
+                isHero
+                  ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20"
+                  : "bg-card border-border/60 shadow-sm hover:shadow-md"
               )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base">Receitas vs Despesas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {monthlyData.length === 0 ? (
-              <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
-                Nenhuma transação registrada ainda
+            >
+              <div className="flex items-center justify-between">
+                <span className={cn(
+                  "text-[11px] font-medium uppercase tracking-wider",
+                  isHero ? "text-primary-foreground/70" : "text-muted-foreground"
+                )}>
+                  {kpi.label}
+                </span>
+                <kpi.icon className={cn(
+                  "h-4 w-4",
+                  isHero ? "text-primary-foreground/70" : (kpi.positive ? "text-success" : "text-muted-foreground")
+                )} />
               </div>
-            ) : (
-              <ChartContainer config={barConfig} className="h-48 w-full">
-                <BarChart data={monthlyData} accessibilityLayer>
-                  <CartesianGrid vertical={false} />
-                  <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
-                  <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} width={40} />
-                   <ChartTooltip content={<ChartTooltipContent formatter={(value) => maskBRL(Number(value))} />} />
-                  <ChartLegend content={<ChartLegendContent />} />
-                  <Bar dataKey="receitas" fill="var(--color-receitas)" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="despesas" fill="var(--color-despesas)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ChartContainer>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base">Top 5 Categorias (Despesas)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {topCategories.length === 0 ? (
-              <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
-                Nenhuma despesa categorizada ainda
+              <div className="mt-2">
+                <div className={cn(
+                  "font-display font-bold tracking-tight text-2xl",
+                  isHero
+                    ? "text-primary-foreground"
+                    : kpi.variant === "accent-success"
+                      ? "text-success"
+                      : "text-foreground"
+                )}>
+                  {kpi.value}
+                </div>
+                {kpi.variant === "accent-success" || kpi.variant === "accent-primary" ? (
+                  <div className={cn("h-1 w-full rounded-full mt-2.5 overflow-hidden", "bg-muted")}>
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all duration-500",
+                        kpi.variant === "accent-success" ? "bg-success" : "bg-primary"
+                      )}
+                      style={{ width: `${Math.min(100, Math.max(0, kpi.progress ?? 0))}%` }}
+                    />
+                  </div>
+                ) : (
+                  <p className={cn(
+                    "text-xs mt-1",
+                    isHero ? "text-primary-foreground/80" : "text-muted-foreground"
+                  )}>
+                    {kpi.hint}
+                  </p>
+                )}
               </div>
-            ) : (
-              <ChartContainer config={donutConfig} className="h-48 w-full">
-                <PieChart accessibilityLayer>
-                  <ChartTooltip content={<ChartTooltipContent formatter={(value) => maskBRL(Number(value))} />} />
-                  <Pie data={topCategories} dataKey="value" nameKey="name" innerRadius={45} outerRadius={70} paddingAngle={2}>
-                    {topCategories.map((entry, i) => (
-                      <Cell key={i} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <ChartLegend content={<ChartLegendContent nameKey="name" />} />
-                </PieChart>
-              </ChartContainer>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </div>
+          );
+        })}
 
-      {/* Balance Evolution */}
-      {balanceEvolution.length > 1 && (
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base">Evolução do Saldo</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={{ saldo: { label: "Saldo", color: "hsl(210, 52%, 45%)" } }} className="h-48 w-full">
-              <AreaChart data={balanceEvolution} accessibilityLayer>
-                <defs>
-                  <linearGradient id="saldoGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(210, 52%, 45%)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(210, 52%, 45%)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid vertical={false} />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
-                <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} width={40} />
-                <ChartTooltip content={<ChartTooltipContent formatter={(value) => maskBRL(Number(value))} />} />
-                <Area type="monotone" dataKey="saldo" stroke="hsl(210, 52%, 45%)" fill="url(#saldoGradient)" strokeWidth={2} />
-              </AreaChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Daily Evolution: Receitas vs Despesas */}
-      {dailyEvolution.length > 0 && (
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base">Evolução Diária — Receitas x Despesas</CardTitle>
-          </CardHeader>
-          <CardContent>
+        {/* Receitas vs Despesas */}
+        <div className="col-span-12 lg:col-span-8 p-6 rounded-3xl bg-card border border-border/60 shadow-sm">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="font-display text-lg font-bold text-foreground">Receitas vs Despesas</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Comparativo por mês</p>
+            </div>
+            <div className="flex gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-success" />
+                <span className="text-xs text-muted-foreground">Receitas</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-primary" />
+                <span className="text-xs text-muted-foreground">Despesas</span>
+              </div>
+            </div>
+          </div>
+          {monthlyData.length === 0 ? (
+            <div className="flex items-center justify-center h-56 text-muted-foreground text-sm">
+              Nenhuma transação registrada ainda
+            </div>
+          ) : (
             <ChartContainer config={barConfig} className="h-56 w-full">
-              <LineChart data={dailyEvolution} accessibilityLayer margin={{ left: 4, right: 8, top: 8 }}>
-                <CartesianGrid vertical={false} />
-                <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8} minTickGap={24} />
-                <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} width={40} />
+              <BarChart data={monthlyData} accessibilityLayer>
+                <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border/40" />
+                <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} className="text-xs" />
+                <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} width={40} className="text-xs" />
                 <ChartTooltip content={<ChartTooltipContent formatter={(value) => maskBRL(Number(value))} />} />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Line type="monotone" dataKey="receitas" stroke="var(--color-receitas)" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="despesas" stroke="var(--color-despesas)" strokeWidth={2} dot={false} />
+                <Bar dataKey="receitas" fill="var(--color-receitas)" radius={[6, 6, 0, 0]} maxBarSize={40} />
+                <Bar dataKey="despesas" fill="var(--color-despesas)" radius={[6, 6, 0, 0]} maxBarSize={40} />
+              </BarChart>
+            </ChartContainer>
+          )}
+        </div>
+
+        {/* Top 5 Categorias */}
+        <div className="col-span-12 lg:col-span-4 p-6 rounded-3xl bg-card border border-border/60 shadow-sm">
+          <h2 className="font-display text-lg font-bold text-foreground mb-1">Top 5 Categorias</h2>
+          <p className="text-xs text-muted-foreground mb-5">Distribuição de despesas</p>
+          {topCategories.length === 0 ? (
+            <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
+              Nenhuma despesa categorizada ainda
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {topCategories.map((cat, i) => {
+                const pct = totalCategoryValue > 0 ? (cat.value / totalCategoryValue) * 100 : 0;
+                return (
+                  <div key={i} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: cat.fill }} />
+                        <span className="text-foreground/80 truncate">{cat.name}</span>
+                      </div>
+                      <span className="font-semibold text-foreground shrink-0 ml-2">{pct.toFixed(0)}%</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%`, backgroundColor: cat.fill }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Evolução Diária */}
+        <div className="col-span-12 lg:col-span-7 p-6 rounded-3xl bg-card border border-border/60 shadow-sm">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h2 className="font-display text-lg font-bold text-foreground">Evolução Diária</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Receitas x Despesas no período</p>
+            </div>
+            <div className="flex gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-success" />
+                <span className="text-xs text-muted-foreground">Receitas</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-primary" />
+                <span className="text-xs text-muted-foreground">Despesas</span>
+              </div>
+            </div>
+          </div>
+          {dailyEvolution.length === 0 ? (
+            <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
+              Sem movimentação diária no período
+            </div>
+          ) : (
+            <ChartContainer config={barConfig} className="h-48 w-full">
+              <LineChart data={dailyEvolution} accessibilityLayer margin={{ left: 4, right: 8, top: 8 }}>
+                <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border/40" />
+                <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8} minTickGap={24} className="text-xs" />
+                <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} width={40} className="text-xs" />
+                <ChartTooltip content={<ChartTooltipContent formatter={(value) => maskBRL(Number(value))} />} />
+                <Line type="monotone" dataKey="receitas" stroke="var(--color-receitas)" strokeWidth={2.5} dot={false} />
+                <Line type="monotone" dataKey="despesas" stroke="var(--color-despesas)" strokeWidth={2.5} dot={false} />
               </LineChart>
             </ChartContainer>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </div>
 
-      {accounts.length > 0 && (
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base">Saldo por Conta Bancária</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Saldo por Conta Bancária */}
+        <div className="col-span-12 lg:col-span-5 p-6 rounded-3xl bg-card border border-border/60 shadow-sm">
+          <h2 className="font-display text-lg font-bold text-foreground mb-1">Saldo por Conta</h2>
+          <p className="text-xs text-muted-foreground mb-5">Posição atual das contas bancárias</p>
+          {accounts.length === 0 ? (
+            <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+              Nenhuma conta cadastrada
+            </div>
+          ) : (
+            <div className="space-y-2.5 max-h-[280px] overflow-y-auto pr-1">
               {accounts.map((acc, i) => {
                 const balance = Number(acc.current_balance);
                 return (
                   <div
                     key={i}
-                    className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
+                    className="flex items-center p-3 rounded-xl bg-muted/40 border border-border/40 hover:border-primary/30 hover:bg-muted/60 transition-all"
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <BankLogo
-                        slug={(acc as { bank_slug?: string | null }).bank_slug}
-                        fallbackName={acc.name}
-                        size={24}
-                        fallbackColor={acc.color || undefined}
-                        className="shrink-0"
-                      />
-                      <span className="text-sm font-medium truncate">{acc.name}</span>
+                    <BankLogo
+                      slug={(acc as { bank_slug?: string | null }).bank_slug}
+                      fallbackName={acc.name}
+                      size={32}
+                      fallbackColor={acc.color || undefined}
+                      className="shrink-0 rounded-lg"
+                    />
+                    <div className="flex-1 min-w-0 ml-3">
+                      <p className="text-sm font-semibold text-foreground truncate">{acc.name}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Conta bancária</p>
                     </div>
-                    <span className={`text-sm font-bold shrink-0 ml-2 ${balance >= 0 ? "text-success" : "text-destructive"}`}>
+                    <span className={cn(
+                      "font-display text-sm font-bold shrink-0 ml-2 tracking-tight",
+                      balance >= 0 ? "text-foreground" : "text-destructive"
+                    )}>
                       {maskBRL(balance)}
                     </span>
                   </div>
                 );
               })}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </div>
+
+        {/* Balance Evolution (kept, full-width) */}
+        {balanceEvolution.length > 1 && (
+          <div className="col-span-12 p-6 rounded-3xl bg-card border border-border/60 shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h2 className="font-display text-lg font-bold text-foreground">Evolução do Saldo</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Saldo acumulado mensal</p>
+              </div>
+            </div>
+            <ChartContainer config={{ saldo: { label: "Saldo", color: "hsl(var(--primary))" } }} className="h-48 w-full">
+              <AreaChart data={balanceEvolution} accessibilityLayer>
+                <defs>
+                  <linearGradient id="saldoGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border/40" />
+                <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} className="text-xs" />
+                <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} width={40} className="text-xs" />
+                <ChartTooltip content={<ChartTooltipContent formatter={(value) => maskBRL(Number(value))} />} />
+                <Area type="monotone" dataKey="saldo" stroke="hsl(var(--primary))" fill="url(#saldoGradient)" strokeWidth={2.5} />
+              </AreaChart>
+            </ChartContainer>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
