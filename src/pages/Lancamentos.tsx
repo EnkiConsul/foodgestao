@@ -1269,14 +1269,32 @@ export default function Lancamentos() {
                                   const tx = r.original;
                                   setEditTransaction(null);
                                   setDialogInitialType(undefined);
+                                  // Regra de duplicação:
+                                  // COPIA (classificação/identificação do lançamento):
+                                  //   description (+ " (cópia)"), amount, transaction_type,
+                                  //   transaction_date, due_date, account_id, destination_account_id,
+                                  //   category_id, contact_id, payment_method_id, notes.
+                                  // NÃO COPIA (estado de execução — sempre reiniciado):
+                                  //   status → "pendente", amount_paid → 0, payment_date → null,
+                                  //   is_recurring/recurrence_* → false/null (duplicata é sempre 1 lançamento único),
+                                  //   parent_transaction_id → null (nunca herda vínculo de série),
+                                  //   anexos (attachment_url e transaction_attachments) → não copiados.
                                   setDuplicateSource({
-                                    ...tx,
-                                    // Novo registro em branco (o form pré-preenche via duplicateSource)
                                     id: "",
                                     description: `${tx.description} (cópia)`,
+                                    amount: tx.amount,
+                                    transaction_type: tx.transaction_type,
+                                    transaction_date: tx.transaction_date,
+                                    due_date: tx.due_date ?? null,
+                                    account_id: tx.account_id,
+                                    destination_account_id: tx.destination_account_id ?? null,
+                                    category_id: tx.category_id ?? null,
+                                    contact_id: tx.contact_id ?? null,
+                                    payment_method_id: tx.payment_method_id ?? null,
+                                    notes: tx.notes ?? null,
                                     status: "pendente",
-                                    payment_date: null,
                                     amount_paid: 0,
+                                    payment_date: null,
                                     is_recurring: false,
                                     parent_transaction_id: null,
                                     attachment_url: null,
