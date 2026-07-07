@@ -74,8 +74,33 @@ export function useBankConnections() {
     },
   });
 
-  return { connectionsQuery, accountsQuery };
+  const accountIds = (accountsQuery.data ?? [])
+    .map((a) => a.account_id)
+    .filter((v): v is string => !!v);
+
+  const importedCountsQuery = useQuery({
+    queryKey: ["bank-imported-counts", accountIds.sort().join(",")],
+    enabled: accountIds.length > 0,
+    queryFn: async () => {
+      const counts: Record<string, number> = {};
+      // Uma query por conta interna (rápido; poucas conexões esperadas).
+      await Promise.all(
+        accountIds.map(async (accId) => {
+          const { count, error } = await supabase
+            .from("transactions")
+            .select("id", { count: "exact", head: true })
+            .eq("account_id", accId)
+            .not("provider_transaction_id", "is", null);
+          if (!error) counts[accId] = count ?? 0;
+        }),
+      );
+      return counts;
+    },
+  });
+
+  return { connectionsQuery, accountsQuery, importedCountsQuery };
 }
+
 
 export function usePluggyActions() {
   const qc = useQueryClient();
