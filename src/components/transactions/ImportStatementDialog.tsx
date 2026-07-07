@@ -374,7 +374,7 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
                       <TableCell>
                         <Checkbox checked={r.include} onCheckedChange={(v) => updateRow(i, { include: !!v })} />
                       </TableCell>
-                      <TableCell className="whitespace-nowrap text-xs">{format(new Date(r.date + "T00:00:00"), "dd/MM/yyyy")}</TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">{formatDate(r.date, "dd/MM/yyyy")}</TableCell>
                       <TableCell className="min-w-[220px]">
                         <Input
                           value={r.description_override ?? r.description}
