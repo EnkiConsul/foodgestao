@@ -71,6 +71,33 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
     return map;
   }, [providerAccounts]);
 
+  const importedCounts = importedCountsQuery.data ?? {};
+  const importedByConnection = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const pa of providerAccounts) {
+      if (!pa.account_id) continue;
+      const n = importedCounts[pa.account_id] ?? 0;
+      map.set(pa.connection_id, (map.get(pa.connection_id) ?? 0) + n);
+    }
+    return map;
+  }, [providerAccounts, importedCounts]);
+
+  const summary = useMemo(() => {
+    const total = connections.length;
+    const active = connections.filter((c) => c.status === "active" || c.status === "updating").length;
+    const errors = connections.filter((c) => c.status === "login_error").length;
+    const outdated = connections.filter((c) => c.status === "outdated").length;
+    const linked = providerAccounts.filter((a) => !!a.account_id).length;
+    const totalImported = Object.values(importedCounts).reduce((s, n) => s + n, 0);
+    const lastSync = connections
+      .map((c) => c.last_sync_at)
+      .filter((v): v is string => !!v)
+      .sort()
+      .at(-1) ?? null;
+    return { total, active, errors, outdated, linked, totalImported, lastSync };
+  }, [connections, providerAccounts, importedCounts]);
+
+
   async function handleConnect(updateItem?: string) {
     await pluggy.open({
       fetchToken: () => requestConnectToken(updateItem),
