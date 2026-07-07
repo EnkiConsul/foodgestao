@@ -705,6 +705,8 @@ export type Database = {
           created_at: string
           currency_code: string | null
           id: string
+          last_synced_at: string | null
+          last_synced_tx_date: string | null
           provider_account_id: string
           provider_balance: number | null
           provider_name: string | null
@@ -720,6 +722,8 @@ export type Database = {
           created_at?: string
           currency_code?: string | null
           id?: string
+          last_synced_at?: string | null
+          last_synced_tx_date?: string | null
           provider_account_id: string
           provider_balance?: number | null
           provider_name?: string | null
@@ -735,6 +739,8 @@ export type Database = {
           created_at?: string
           currency_code?: string | null
           id?: string
+          last_synced_at?: string | null
+          last_synced_tx_date?: string | null
           provider_account_id?: string
           provider_balance?: number | null
           provider_name?: string | null
@@ -2079,6 +2085,36 @@ export type Database = {
         }
         Relationships: []
       }
+      pluggy_webhook_events: {
+        Row: {
+          error: string | null
+          event_type: string
+          id: string
+          item_id: string | null
+          payload: Json
+          processed_at: string | null
+          received_at: string
+        }
+        Insert: {
+          error?: string | null
+          event_type: string
+          id?: string
+          item_id?: string | null
+          payload: Json
+          processed_at?: string | null
+          received_at?: string
+        }
+        Update: {
+          error?: string | null
+          event_type?: string
+          id?: string
+          item_id?: string | null
+          payload?: Json
+          processed_at?: string | null
+          received_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           asaas_customer_id: string | null
@@ -2366,6 +2402,7 @@ export type Database = {
           payment_date: string | null
           payment_method_id: string | null
           provider: string | null
+          provider_transaction_id: string | null
           recurrence_end_date: string | null
           recurrence_type: Database["public"]["Enums"]["recurrence_type"] | null
           status: Database["public"]["Enums"]["transaction_status"]
@@ -2401,6 +2438,7 @@ export type Database = {
           payment_date?: string | null
           payment_method_id?: string | null
           provider?: string | null
+          provider_transaction_id?: string | null
           recurrence_end_date?: string | null
           recurrence_type?:
             | Database["public"]["Enums"]["recurrence_type"]
@@ -2438,6 +2476,7 @@ export type Database = {
           payment_date?: string | null
           payment_method_id?: string | null
           provider?: string | null
+          provider_transaction_id?: string | null
           recurrence_end_date?: string | null
           recurrence_type?:
             | Database["public"]["Enums"]["recurrence_type"]
@@ -2951,6 +2990,17 @@ export type Database = {
       pluggy_link_provider_account: {
         Args: { _account_id: string; _conn_account_id: string }
         Returns: undefined
+      }
+      pluggy_upsert_transaction: {
+        Args: {
+          _account_id: string
+          _amount: number
+          _description: string
+          _provider_tx_id: string
+          _transaction_date: string
+          _transaction_type: Database["public"]["Enums"]["transaction_type"]
+        }
+        Returns: string
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
