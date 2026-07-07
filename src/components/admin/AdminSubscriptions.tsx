@@ -130,13 +130,13 @@ export function AdminSubscriptions() {
                     )}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {format(new Date(s.started_at), "dd/MM/yy", { locale: ptBR })}
+                    {formatDate(s.started_at, "dd/MM/yy")}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {s.current_period_end ? format(new Date(s.current_period_end), "dd/MM/yy", { locale: ptBR }) : "—"}
+                    {formatDate(s.current_period_end, "dd/MM/yy")}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {s.trial_ends_at ? format(new Date(s.trial_ends_at), "dd/MM/yy", { locale: ptBR }) : "—"}
+                    {formatDate(s.trial_ends_at, "dd/MM/yy")}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1 flex-wrap">
