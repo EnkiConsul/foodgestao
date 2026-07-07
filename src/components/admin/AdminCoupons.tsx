@@ -76,7 +76,7 @@ export function AdminCoupons() {
                   </TableCell>
                   <TableCell>{c.times_redeemed}{c.max_redemptions ? `/${c.max_redemptions}` : ""}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {c.valid_until ? format(new Date(c.valid_until), "dd/MM/yy", { locale: ptBR }) : "—"}
+                    {formatDate(c.valid_until, "dd/MM/yy")}
                   </TableCell>
                   <TableCell>
                     <Badge variant={c.is_active ? "default" : "outline"}>{c.is_active ? "Ativo" : "Inativo"}</Badge>
