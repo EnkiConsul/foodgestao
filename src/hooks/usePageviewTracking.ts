@@ -50,17 +50,15 @@ export function usePageviewTracking() {
     };
 
     // Wait for Helmet to flush the new <title> before reporting.
+    let timeoutId: number | undefined;
     const raf = window.requestAnimationFrame(() => {
-      const t = window.setTimeout(send, 0);
-      // store timeout id on closure for cleanup
-      (raf as unknown as { _t?: number })._t = t;
+      timeoutId = window.setTimeout(send, 0);
     });
 
     return () => {
       cancelled = true;
       window.cancelAnimationFrame(raf);
-      const t = (raf as unknown as { _t?: number })._t;
-      if (typeof t === "number") window.clearTimeout(t);
+      if (typeof timeoutId === "number") window.clearTimeout(timeoutId);
     };
   }, [location.pathname, location.search, location.hash]);
 }

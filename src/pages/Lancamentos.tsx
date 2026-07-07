@@ -103,19 +103,63 @@ const displayStatusConfig: Record<TransactionDisplayStatus, { label: string; var
   atrasado: { label: "Atrasado", variant: "destructive" },
 };
 
+function parseTransactionDate(value: string | null | undefined, time: "start" | "midday" | "end" = "midday") {
+  if (!value) return null;
+
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/);
+  const dmy = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
+
+  let year: number;
+  let month: number;
+  let day: number;
+
+  if (iso) {
+    year = Number(iso[1]);
+    month = Number(iso[2]);
+    day = Number(iso[3]);
+  } else if (dmy) {
+    day = Number(dmy[1]);
+    month = Number(dmy[2]);
+    year = Number(dmy[3]);
+    if (year < 100) year += 2000;
+  } else {
+    return null;
+  }
+
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+
+  const [hours, minutes, seconds, ms] =
+    time === "end" ? [23, 59, 59, 999] : time === "start" ? [0, 0, 0, 0] : [12, 0, 0, 0];
+  const parsed = new Date(year, month - 1, day, hours, minutes, seconds, ms);
+
+  if (parsed.getFullYear() !== year || parsed.getMonth() !== month - 1 || parsed.getDate() !== day) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function formatTransactionDate(value: string | null | undefined, pattern: string, placeholder = "—") {
+  const parsed = parseTransactionDate(value);
+  return parsed ? format(parsed, pattern, { locale: ptBR }) : placeholder;
+}
+
 function computeDisplayStatus(tx: Transaction): TransactionDisplayStatus {
   // Has due_date: check payment
   if (tx.due_date) {
     if (tx.amount_paid >= tx.amount) return "pago";
-    const due = new Date(tx.due_date + "T23:59:59");
-    if (isPast(due)) return "atrasado";
+    const due = parseTransactionDate(tx.due_date, "end");
+    if (due && isPast(due)) return "atrasado";
     return "a_vencer";
   }
   // No due_date: use transaction status + date
   if (tx.status === "confirmado") return "pago";
   // Pending without due_date: check if transaction_date is in the past
-  const txDate = new Date(tx.transaction_date + "T23:59:59");
-  if (isPast(txDate)) return "atrasado";
+  const txDate = parseTransactionDate(tx.transaction_date, "end");
+  if (txDate && isPast(txDate)) return "atrasado";
   return "a_vencer";
 }
 
@@ -539,12 +583,12 @@ export default function Lancamentos() {
 
       // Date range filter for due_date
       if (t.due_date) {
+        const dueD = parseTransactionDate(t.due_date);
+        if (!dueD) return;
         if (dateFrom) {
-          const dueD = new Date(t.due_date + "T12:00:00");
           if (dueD < dateFrom) return;
         }
         if (dateTo) {
-          const dueD = new Date(t.due_date + "T12:00:00");
           if (dueD > dateTo) return;
         }
       }
@@ -615,12 +659,12 @@ export default function Lancamentos() {
   const exportCSV = () => {
     const headers = ["Data", "Descrição", "Tipo", "Valor", "Status", "Vencimento", "Valor Pago", "Categoria", "Conta", "Forma Pgto", "Saldo"];
     const csvRows = displayRows.map((r) => [
-      format(new Date(r.date + "T12:00:00"), "dd/MM/yyyy"),
+      formatTransactionDate(r.date, "dd/MM/yyyy", ""),
       `"${r.description.replace(/"/g, '""')}"`,
       r.transactionType === "receita" ? "Crédito" : r.transactionType === "despesa" ? "Débito" : "Transferência",
       r.amount.toFixed(2).replace(".", ","),
       displayStatusConfig[r.billStatus].label,
-      r.dueDate ? format(new Date(r.dueDate + "T12:00:00"), "dd/MM/yyyy") : "",
+      formatTransactionDate(r.dueDate, "dd/MM/yyyy", ""),
       r.amountPaid > 0 ? r.amountPaid.toFixed(2).replace(".", ",") : "",
       r.categoryName || "",
       r.accountName || "",
@@ -1060,7 +1104,7 @@ export default function Lancamentos() {
                           {/* Data */}
                           {visibleColumns.data !== false && (
                           <TableCell className="text-xs py-2">
-                            {r.date ? format(new Date(r.date + "T12:00:00"), "dd/MM", { locale: ptBR }) : "—"}
+                            {formatTransactionDate(r.date, "dd/MM")}
                           </TableCell>
                           )}
 
@@ -1208,14 +1252,14 @@ export default function Lancamentos() {
                           {/* Vencimento */}
                           {visibleColumns.vencimento && (
                           <TableCell className="text-xs py-2 text-muted-foreground">
-                            {r.dueDate ? format(new Date(r.dueDate + "T12:00:00"), "dd/MM", { locale: ptBR }) : "—"}
+                            {formatTransactionDate(r.dueDate, "dd/MM")}
                           </TableCell>
                           )}
 
                           {/* Data de Pagamento */}
                           {visibleColumns.pagamento && (
                           <TableCell className="text-xs py-2 text-muted-foreground">
-                            {r.paymentDate ? format(new Date(r.paymentDate + "T12:00:00"), "dd/MM", { locale: ptBR }) : "—"}
+                            {formatTransactionDate(r.paymentDate, "dd/MM")}
                           </TableCell>
                           )}
 
