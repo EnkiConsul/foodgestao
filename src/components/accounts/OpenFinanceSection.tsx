@@ -164,7 +164,40 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
             <Plug className="h-4 w-4 mr-2" /> Conectar banco
           </Button>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-3">
+          {connections.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <StatusTile
+                icon={<CheckCircle2 className="h-4 w-4 text-success" />}
+                label="Conexões ativas"
+                value={`${summary.active}/${summary.total}`}
+                hint={summary.errors > 0 ? `${summary.errors} com erro` : summary.outdated > 0 ? `${summary.outdated} desatualizadas` : "Tudo em dia"}
+                tone={summary.errors > 0 ? "danger" : summary.outdated > 0 ? "warning" : "success"}
+              />
+              <StatusTile
+                icon={<Link2 className="h-4 w-4 text-primary" />}
+                label="Contas vinculadas"
+                value={String(summary.linked)}
+                hint={`${providerAccounts.length} contas retornadas`}
+                tone="primary"
+              />
+              <StatusTile
+                icon={<Download className="h-4 w-4 text-primary" />}
+                label="Lançamentos importados"
+                value={importedCountsQuery.isLoading ? "…" : summary.totalImported.toLocaleString("pt-BR")}
+                hint="Total via Open Finance"
+                tone="primary"
+              />
+              <StatusTile
+                icon={<Clock className="h-4 w-4 text-muted-foreground" />}
+                label="Última sincronização"
+                value={summary.lastSync ? formatDate(summary.lastSync, "dd/MM HH:mm") : "—"}
+                hint={summary.lastSync ? formatDate(summary.lastSync, "dd 'de' MMMM") : "Nenhuma sync ainda"}
+                tone="muted"
+              />
+            </div>
+          )}
+
           {connectionsQuery.isLoading ? (
             <div className="flex justify-center py-6">
               <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
