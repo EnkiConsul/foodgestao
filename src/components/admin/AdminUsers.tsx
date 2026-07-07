@@ -167,7 +167,7 @@ export function AdminUsers() {
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {format(new Date(user.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                      {formatDate(user.created_at, "dd/MM/yyyy")}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
