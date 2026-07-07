@@ -10,8 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Users, UserPlus, Crown, Shield, User, Eye, Trash2, Clock, Copy, XCircle, Settings2 } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { formatDate } from "@/lib/date-utils";
 import { InviteUserDialog } from "@/components/users/InviteUserDialog";
 import { EditMemberPermissionsDialog } from "@/components/users/EditMemberPermissionsDialog";
 import { CompanyRole, PermissionsMap } from "@/lib/permissions";
