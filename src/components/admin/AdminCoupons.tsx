@@ -15,8 +15,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Plus, Pencil, Trash2 } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { formatDate } from "@/lib/date-utils";
 
 const DEFAULTS = {
   code: "",
