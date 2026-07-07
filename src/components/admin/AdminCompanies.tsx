@@ -7,8 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { formatDate } from "@/lib/date-utils";
 
 export function AdminCompanies() {
   const [search, setSearch] = useState("");
@@ -115,7 +114,7 @@ export function AdminCompanies() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {format(new Date(company.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                    {formatDate(company.created_at, "dd/MM/yyyy")}
                   </TableCell>
                 </TableRow>
               ))

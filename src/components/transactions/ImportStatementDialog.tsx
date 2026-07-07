@@ -13,7 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { toast } from "sonner";
 import { Upload, FileText, Loader2, AlertTriangle, CheckCircle2, Plus, XCircle } from "lucide-react";
-import { format } from "date-fns";
+import { formatDate } from "@/lib/date-utils";
 import { formatBRL } from "@/lib/billing";
 import { parseNubankStatementPdf } from "@/lib/statement-import/nubankPdf";
 import { suggestForEntries, markDuplicates } from "@/lib/statement-import/suggest";
@@ -374,7 +374,7 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
                       <TableCell>
                         <Checkbox checked={r.include} onCheckedChange={(v) => updateRow(i, { include: !!v })} />
                       </TableCell>
-                      <TableCell className="whitespace-nowrap text-xs">{format(new Date(r.date + "T00:00:00"), "dd/MM/yyyy")}</TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">{formatDate(r.date, "dd/MM/yyyy")}</TableCell>
                       <TableCell className="min-w-[220px]">
                         <Input
                           value={r.description_override ?? r.description}

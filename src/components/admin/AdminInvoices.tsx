@@ -6,8 +6,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { formatDate } from "@/lib/date-utils";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -95,9 +94,9 @@ export function AdminInvoices() {
                   </TableCell>
                   <TableCell>{inv.subscription?.plan?.name ?? "—"}</TableCell>
                   <TableCell className="font-medium">{formatCents(inv.amount_cents - (inv.discount_cents || 0))}</TableCell>
-                  <TableCell className="text-xs">{format(new Date(inv.due_date), "dd/MM/yy", { locale: ptBR })}</TableCell>
+                  <TableCell className="text-xs">{formatDate(inv.due_date, "dd/MM/yy")}</TableCell>
                   <TableCell className="text-xs">
-                    {inv.paid_at ? format(new Date(inv.paid_at), "dd/MM/yy", { locale: ptBR }) : "—"}
+                    {formatDate(inv.paid_at, "dd/MM/yy")}
                   </TableCell>
                   <TableCell className="capitalize text-xs">{inv.payment_method ?? "—"}</TableCell>
                   <TableCell>

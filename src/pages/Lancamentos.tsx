@@ -32,6 +32,7 @@ import {
 import { toast } from "sonner";
 import { format, endOfMonth, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatDate, parseFlexibleDate } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -103,48 +104,10 @@ const displayStatusConfig: Record<TransactionDisplayStatus, { label: string; var
   atrasado: { label: "Atrasado", variant: "destructive" },
 };
 
-function parseTransactionDate(value: string | null | undefined, time: "start" | "midday" | "end" = "midday") {
-  if (!value) return null;
-
-  const raw = String(value).trim();
-  if (!raw) return null;
-
-  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/);
-  const dmy = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
-
-  let year: number;
-  let month: number;
-  let day: number;
-
-  if (iso) {
-    year = Number(iso[1]);
-    month = Number(iso[2]);
-    day = Number(iso[3]);
-  } else if (dmy) {
-    day = Number(dmy[1]);
-    month = Number(dmy[2]);
-    year = Number(dmy[3]);
-    if (year < 100) year += 2000;
-  } else {
-    return null;
-  }
-
-  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
-
-  const [hours, minutes, seconds, ms] =
-    time === "end" ? [23, 59, 59, 999] : time === "start" ? [0, 0, 0, 0] : [12, 0, 0, 0];
-  const parsed = new Date(year, month - 1, day, hours, minutes, seconds, ms);
-
-  if (parsed.getFullYear() !== year || parsed.getMonth() !== month - 1 || parsed.getDate() !== day) {
-    return null;
-  }
-
-  return parsed;
-}
+const parseTransactionDate = parseFlexibleDate;
 
 function formatTransactionDate(value: string | null | undefined, pattern: string, placeholder = "—") {
-  const parsed = parseTransactionDate(value);
-  return parsed ? format(parsed, pattern, { locale: ptBR }) : placeholder;
+  return formatDate(value, pattern, { placeholder });
 }
 
 function computeDisplayStatus(tx: Transaction): TransactionDisplayStatus {

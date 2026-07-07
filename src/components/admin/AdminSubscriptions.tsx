@@ -10,8 +10,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { formatDate } from "@/lib/date-utils";
 import {
   SUBSCRIPTION_STATUS_LABELS,
   SUBSCRIPTION_STATUS_VARIANT,
@@ -131,13 +130,13 @@ export function AdminSubscriptions() {
                     )}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {format(new Date(s.started_at), "dd/MM/yy", { locale: ptBR })}
+                    {formatDate(s.started_at, "dd/MM/yy")}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {s.current_period_end ? format(new Date(s.current_period_end), "dd/MM/yy", { locale: ptBR }) : "—"}
+                    {formatDate(s.current_period_end, "dd/MM/yy")}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {s.trial_ends_at ? format(new Date(s.trial_ends_at), "dd/MM/yy", { locale: ptBR }) : "—"}
+                    {formatDate(s.trial_ends_at, "dd/MM/yy")}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1 flex-wrap">
