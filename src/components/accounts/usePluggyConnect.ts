@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
-const CDN_URL = "https://cdn.pluggy.ai/pluggy-connect/v2.9.0/pluggy-connect.js";
+const CDN_URLS = [
+  "https://cdn.pluggy.ai/pluggy-connect/v2.7.0/pluggy-connect.js",
+  "https://cdn.pluggy.ai/pluggy-connect/latest/pluggy-connect.js",
+];
 
 declare global {
   interface Window {
@@ -24,21 +27,38 @@ interface PluggyConnectInstance {
 
 let scriptPromise: Promise<void> | null = null;
 
+function loadFrom(url: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = url;
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error(`Falha ao carregar ${url}`));
+    document.body.appendChild(s);
+  });
+}
+
 function loadPluggyScript(): Promise<void> {
   if (typeof window === "undefined") return Promise.resolve();
   if (window.PluggyConnect) return Promise.resolve();
   if (scriptPromise) return scriptPromise;
-  scriptPromise = new Promise((resolve, reject) => {
-    const s = document.createElement("script");
-    s.src = CDN_URL;
-    s.async = true;
-    s.onload = () => resolve();
-    s.onerror = () => {
-      scriptPromise = null;
-      reject(new Error("Falha ao carregar Pluggy Connect"));
-    };
-    document.body.appendChild(s);
-  });
+  scriptPromise = (async () => {
+    let lastErr: unknown;
+    for (const url of CDN_URLS) {
+      try {
+        await loadFrom(url);
+        if (window.PluggyConnect) return;
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    scriptPromise = null;
+    throw new Error(
+      lastErr instanceof Error
+        ? `Falha ao carregar Pluggy Connect: ${lastErr.message}`
+        : "Falha ao carregar Pluggy Connect"
+    );
+  })();
   return scriptPromise;
 }
 
