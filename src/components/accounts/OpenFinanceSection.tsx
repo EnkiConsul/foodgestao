@@ -44,7 +44,7 @@ const statusMeta: Record<string, { label: string; className: string }> = {
 
 export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
   const { contextType, selectedCompanyId } = useCompanyContext();
-  const { connectionsQuery, accountsQuery } = useBankConnections();
+  const { connectionsQuery, accountsQuery, importedCountsQuery } = useBankConnections();
   const { registerItem, syncConnection, deleteConnection, linkProviderAccount, toggleAutoImport } = usePluggyActions();
   const pluggy = usePluggyConnect();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
