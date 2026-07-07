@@ -55,6 +55,7 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
     onChange: () => {
       connectionsQuery.refetch();
       accountsQuery.refetch();
+      importedCountsQuery.refetch();
     },
   });
 
