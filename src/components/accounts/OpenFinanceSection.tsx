@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Landmark, Link2, Plug, RefreshCw, Trash2, ChevronDown, ChevronRight, AlertTriangle } from "lucide-react";
+import { Landmark, Link2, Plug, RefreshCw, Trash2, ChevronDown, ChevronRight, AlertTriangle, CheckCircle2, Loader2, WifiOff, Clock, Download } from "lucide-react";
 import { toast } from "sonner";
 import { useBankConnections, usePluggyActions, requestConnectToken, type BankConnection } from "@/hooks/usePluggy";
 import { usePluggyConnect } from "@/components/accounts/usePluggyConnect";
