@@ -236,7 +236,7 @@ export default function GestaoUsuarios() {
                   <TableCell className="font-medium">{member.full_name}</TableCell>
                   <TableCell>{roleBadge(member.role)}</TableCell>
                   <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
-                    {format(new Date(member.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                    {formatDate(member.created_at, "dd/MM/yyyy")}
                   </TableCell>
                   {isAdminOrOwner && (
                     <TableCell className="text-right">
