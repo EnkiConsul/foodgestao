@@ -201,7 +201,7 @@ export function AdminAuditLogs() {
                 return (
                   <TableRow key={log.id}>
                     <TableCell className="text-muted-foreground whitespace-nowrap">
-                      {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                      {formatDate(log.created_at, "dd/MM/yyyy HH:mm")}
                     </TableCell>
                     <TableCell className="font-medium">{log.user_name || "—"}</TableCell>
                     <TableCell>
