@@ -233,7 +233,13 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
                           {conn.institution_name ?? "Instituição"}
                         </span>
                         <Badge variant="outline" className={`text-[10px] h-4 px-1.5 ${meta.className}`}>
+                          {conn.status === "updating" && <Loader2 className="h-3 w-3 mr-0.5 animate-spin" />}
+                          {conn.status === "login_error" && <WifiOff className="h-3 w-3 mr-0.5" />}
                           {meta.label}
+                        </Badge>
+                        <Badge variant="secondary" className="text-[10px] h-4 px-1.5 gap-1">
+                          <Download className="h-3 w-3" />
+                          {(importedByConnection.get(conn.id) ?? 0).toLocaleString("pt-BR")} importados
                         </Badge>
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
