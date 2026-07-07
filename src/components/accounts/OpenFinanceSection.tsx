@@ -370,3 +370,38 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
     </>
   );
 }
+
+type Tone = "success" | "warning" | "danger" | "primary" | "muted";
+
+function StatusTile({
+  icon,
+  label,
+  value,
+  hint,
+  tone = "muted",
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: Tone;
+}) {
+  const toneClass: Record<Tone, string> = {
+    success: "border-success/30 bg-success/5",
+    warning: "border-warning/30 bg-warning/5",
+    danger: "border-destructive/30 bg-destructive/5",
+    primary: "border-primary/20 bg-primary/5",
+    muted: "border-border bg-muted/30",
+  };
+  return (
+    <div className={`rounded-lg border p-2.5 ${toneClass[tone]}`}>
+      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        {icon}
+        <span className="truncate">{label}</span>
+      </div>
+      <p className="text-lg font-semibold leading-tight mt-1 text-foreground">{value}</p>
+      {hint && <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{hint}</p>}
+    </div>
+  );
+}
+
