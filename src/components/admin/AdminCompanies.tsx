@@ -114,7 +114,7 @@ export function AdminCompanies() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {format(new Date(company.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                    {formatDate(company.created_at, "dd/MM/yyyy")}
                   </TableCell>
                 </TableRow>
               ))
