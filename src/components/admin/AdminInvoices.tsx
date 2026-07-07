@@ -94,9 +94,9 @@ export function AdminInvoices() {
                   </TableCell>
                   <TableCell>{inv.subscription?.plan?.name ?? "—"}</TableCell>
                   <TableCell className="font-medium">{formatCents(inv.amount_cents - (inv.discount_cents || 0))}</TableCell>
-                  <TableCell className="text-xs">{format(new Date(inv.due_date), "dd/MM/yy", { locale: ptBR })}</TableCell>
+                  <TableCell className="text-xs">{formatDate(inv.due_date, "dd/MM/yy")}</TableCell>
                   <TableCell className="text-xs">
-                    {inv.paid_at ? format(new Date(inv.paid_at), "dd/MM/yy", { locale: ptBR }) : "—"}
+                    {formatDate(inv.paid_at, "dd/MM/yy")}
                   </TableCell>
                   <TableCell className="capitalize text-xs">{inv.payment_method ?? "—"}</TableCell>
                   <TableCell>
