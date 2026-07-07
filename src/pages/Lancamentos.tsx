@@ -32,6 +32,7 @@ import {
 import { toast } from "sonner";
 import { format, endOfMonth, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatDate, parseFlexibleDate } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
