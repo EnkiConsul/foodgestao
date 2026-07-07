@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Landmark, Link2, Plug, RefreshCw, Trash2, ChevronDown, ChevronRight, AlertTriangle } from "lucide-react";
+import { Landmark, Link2, Plug, RefreshCw, Trash2, ChevronDown, ChevronRight, AlertTriangle, CheckCircle2, Loader2, WifiOff, Clock, Download } from "lucide-react";
 import { toast } from "sonner";
 import { useBankConnections, usePluggyActions, requestConnectToken, type BankConnection } from "@/hooks/usePluggy";
 import { usePluggyConnect } from "@/components/accounts/usePluggyConnect";
@@ -44,7 +44,7 @@ const statusMeta: Record<string, { label: string; className: string }> = {
 
 export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
   const { contextType, selectedCompanyId } = useCompanyContext();
-  const { connectionsQuery, accountsQuery } = useBankConnections();
+  const { connectionsQuery, accountsQuery, importedCountsQuery } = useBankConnections();
   const { registerItem, syncConnection, deleteConnection, linkProviderAccount, toggleAutoImport } = usePluggyActions();
   const pluggy = usePluggyConnect();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -55,6 +55,7 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
     onChange: () => {
       connectionsQuery.refetch();
       accountsQuery.refetch();
+      importedCountsQuery.refetch();
     },
   });
 
@@ -69,6 +70,33 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
     }
     return map;
   }, [providerAccounts]);
+
+  const importedCounts = importedCountsQuery.data ?? {};
+  const importedByConnection = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const pa of providerAccounts) {
+      if (!pa.account_id) continue;
+      const n = importedCounts[pa.account_id] ?? 0;
+      map.set(pa.connection_id, (map.get(pa.connection_id) ?? 0) + n);
+    }
+    return map;
+  }, [providerAccounts, importedCounts]);
+
+  const summary = useMemo(() => {
+    const total = connections.length;
+    const active = connections.filter((c) => c.status === "active" || c.status === "updating").length;
+    const errors = connections.filter((c) => c.status === "login_error").length;
+    const outdated = connections.filter((c) => c.status === "outdated").length;
+    const linked = providerAccounts.filter((a) => !!a.account_id).length;
+    const totalImported = Object.values(importedCounts).reduce((s, n) => s + n, 0);
+    const lastSync = connections
+      .map((c) => c.last_sync_at)
+      .filter((v): v is string => !!v)
+      .sort()
+      .at(-1) ?? null;
+    return { total, active, errors, outdated, linked, totalImported, lastSync };
+  }, [connections, providerAccounts, importedCounts]);
+
 
   async function handleConnect(updateItem?: string) {
     await pluggy.open({
@@ -136,7 +164,40 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
             <Plug className="h-4 w-4 mr-2" /> Conectar banco
           </Button>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-3">
+          {connections.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <StatusTile
+                icon={<CheckCircle2 className="h-4 w-4 text-success" />}
+                label="Conexões ativas"
+                value={`${summary.active}/${summary.total}`}
+                hint={summary.errors > 0 ? `${summary.errors} com erro` : summary.outdated > 0 ? `${summary.outdated} desatualizadas` : "Tudo em dia"}
+                tone={summary.errors > 0 ? "danger" : summary.outdated > 0 ? "warning" : "success"}
+              />
+              <StatusTile
+                icon={<Link2 className="h-4 w-4 text-primary" />}
+                label="Contas vinculadas"
+                value={String(summary.linked)}
+                hint={`${providerAccounts.length} contas retornadas`}
+                tone="primary"
+              />
+              <StatusTile
+                icon={<Download className="h-4 w-4 text-primary" />}
+                label="Lançamentos importados"
+                value={importedCountsQuery.isLoading ? "…" : summary.totalImported.toLocaleString("pt-BR")}
+                hint="Total via Open Finance"
+                tone="primary"
+              />
+              <StatusTile
+                icon={<Clock className="h-4 w-4 text-muted-foreground" />}
+                label="Última sincronização"
+                value={summary.lastSync ? formatDate(summary.lastSync, "dd/MM HH:mm") : "—"}
+                hint={summary.lastSync ? formatDate(summary.lastSync, "dd 'de' MMMM") : "Nenhuma sync ainda"}
+                tone="muted"
+              />
+            </div>
+          )}
+
           {connectionsQuery.isLoading ? (
             <div className="flex justify-center py-6">
               <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
@@ -172,7 +233,13 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
                           {conn.institution_name ?? "Instituição"}
                         </span>
                         <Badge variant="outline" className={`text-[10px] h-4 px-1.5 ${meta.className}`}>
+                          {conn.status === "updating" && <Loader2 className="h-3 w-3 mr-0.5 animate-spin" />}
+                          {conn.status === "login_error" && <WifiOff className="h-3 w-3 mr-0.5" />}
                           {meta.label}
+                        </Badge>
+                        <Badge variant="secondary" className="text-[10px] h-4 px-1.5 gap-1">
+                          <Download className="h-3 w-3" />
+                          {(importedByConnection.get(conn.id) ?? 0).toLocaleString("pt-BR")} importados
                         </Badge>
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -234,6 +301,12 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
                                 {pa.provider_subtype ? ` / ${pa.provider_subtype}` : ""}
                                 {pa.provider_balance != null
                                   ? ` · Saldo provedor: R$ ${Number(pa.provider_balance).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                                  : ""}
+                                {pa.account_id
+                                  ? ` · ${(importedCounts[pa.account_id] ?? 0).toLocaleString("pt-BR")} lançamentos importados`
+                                  : ""}
+                                {pa.last_synced_at
+                                  ? ` · sync ${formatDate(pa.last_synced_at, "dd/MM HH:mm")}`
                                   : ""}
                               </p>
                             </div>
@@ -309,3 +382,38 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
     </>
   );
 }
+
+type Tone = "success" | "warning" | "danger" | "primary" | "muted";
+
+function StatusTile({
+  icon,
+  label,
+  value,
+  hint,
+  tone = "muted",
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: Tone;
+}) {
+  const toneClass: Record<Tone, string> = {
+    success: "border-success/30 bg-success/5",
+    warning: "border-warning/30 bg-warning/5",
+    danger: "border-destructive/30 bg-destructive/5",
+    primary: "border-primary/20 bg-primary/5",
+    muted: "border-border bg-muted/30",
+  };
+  return (
+    <div className={`rounded-lg border p-2.5 ${toneClass[tone]}`}>
+      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        {icon}
+        <span className="truncate">{label}</span>
+      </div>
+      <p className="text-lg font-semibold leading-tight mt-1 text-foreground">{value}</p>
+      {hint && <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{hint}</p>}
+    </div>
+  );
+}
+
