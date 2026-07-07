@@ -11,8 +11,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { formatDate } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { isExempt, exemptionLabel } from "@/lib/billing";
 import { useRemoveExemption } from "@/hooks/useBilling";
