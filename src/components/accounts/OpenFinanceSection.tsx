@@ -302,6 +302,12 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
                                 {pa.provider_balance != null
                                   ? ` · Saldo provedor: R$ ${Number(pa.provider_balance).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
                                   : ""}
+                                {pa.account_id
+                                  ? ` · ${(importedCounts[pa.account_id] ?? 0).toLocaleString("pt-BR")} lançamentos importados`
+                                  : ""}
+                                {pa.last_synced_at
+                                  ? ` · sync ${formatDate(pa.last_synced_at, "dd/MM HH:mm")}`
+                                  : ""}
                               </p>
                             </div>
                             <div className="flex items-center gap-2">
