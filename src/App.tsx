@@ -13,7 +13,7 @@ import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import Lancamentos from "./pages/Lancamentos";
-import PlinIA from "./pages/PlinIA";
+
 
 import FluxoCaixa from "./pages/FluxoCaixa";
 import Orcamento from "./pages/Orcamento";
@@ -262,7 +262,7 @@ const AppRoutes = () => (
       }
     >
       <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/plin-ia" element={<PlinIA />} />
+      
       <Route path="/lancamentos" element={<Lancamentos />} />
       
       <Route path="/fluxo-caixa" element={<FluxoCaixa />} />
