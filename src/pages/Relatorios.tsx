@@ -553,7 +553,7 @@ export default function Relatorios() {
                       .map((cat) => ({
                         id: cat.id,
                         name: cat.name,
-                        prefix: cat.hierarchy_index ? `${cat.hierarchy_index}. ` : undefined,
+                        prefix: cat.hierarchy_index ? `${cat.hierarchy_index} ` : undefined,
                       }))}
                     allLabel="Todas as categorias"
                     searchPlaceholder="Buscar categoria..."
