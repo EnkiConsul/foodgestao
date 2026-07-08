@@ -398,9 +398,9 @@ export default function Relatorios() {
             onClick={() => setShowFilters((v) => !v)}
           >
             <Filter className="h-3.5 w-3.5" /> Filtros
-            {(filterAccountId !== "all" || filterCategoryId !== "all") && (
+            {activeFilterCount > 0 && (
               <span className="ml-1 h-5 w-5 rounded-full bg-primary-foreground text-primary text-xs flex items-center justify-center font-bold">
-                {(filterAccountId !== "all" ? 1 : 0) + (filterCategoryId !== "all" ? 1 : 0)}
+                {activeFilterCount}
               </span>
             )}
           </Button>
