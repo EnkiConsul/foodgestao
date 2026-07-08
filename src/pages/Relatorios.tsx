@@ -64,10 +64,7 @@ export default function Relatorios() {
   const [filterCategoryId, setFilterCategoryId] = useState<string>("all");
   const [filterPaymentMethodId, setFilterPaymentMethodId] = useState<string>("all");
   const [filterContactId, setFilterContactId] = useState<string>("all");
-  const [contactSearch, setContactSearch] = useState("");
-  const [debouncedContactSearch, setDebouncedContactSearch] = useState("");
-  const [contactPageSize, setContactPageSize] = useState(50);
-  const [contactPopoverOpen, setContactPopoverOpen] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("year");
