@@ -130,6 +130,31 @@ export default function Relatorios() {
     },
   });
 
+  const { data: paymentMethods = [] } = useQuery({
+    queryKey: ["relatorios-payment-methods", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("payment_methods")
+        .select("id, name, is_active")
+        .eq("user_id", user!.id)
+        .order("name");
+      return data ?? [];
+    },
+  });
+
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["relatorios-contacts", user?.id, contextType, selectedCompanyId],
+    enabled: !!user && (contextType === "pf" || !!selectedCompanyId),
+    queryFn: async () => {
+      const { data } = await supabase.rpc("get_accessible_contacts", {
+        _context: contextType,
+        _company_id: contextType === "pj" ? selectedCompanyId : null,
+      });
+      return (data ?? []).map((c: any) => ({ id: c.id, name: c.name }));
+    },
+  });
+
   // Compute active date range
   const activeRange = useMemo(() => {
     if (periodPreset === "custom") return customRange;
