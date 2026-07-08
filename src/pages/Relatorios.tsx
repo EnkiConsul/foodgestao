@@ -58,9 +58,19 @@ export default function Relatorios() {
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const [filterAccountId, setFilterAccountId] = useState<string>("all");
   const [filterCategoryId, setFilterCategoryId] = useState<string>("all");
+  const [filterPaymentMethodId, setFilterPaymentMethodId] = useState<string>("all");
+  const [filterContactId, setFilterContactId] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("year");
   const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>(getPeriodRange("year"));
+
+  const activeFilterCount =
+    (filterAccountId !== "all" ? 1 : 0) +
+    (filterCategoryId !== "all" ? 1 : 0) +
+    (filterPaymentMethodId !== "all" ? 1 : 0) +
+    (filterContactId !== "all" ? 1 : 0) +
+    (filterStatus !== "all" ? 1 : 0);
 
   const collectParentIds = (nodes: any[]): string[] => {
     const ids: string[] = [];
