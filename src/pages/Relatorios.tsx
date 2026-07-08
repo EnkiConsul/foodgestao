@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { usePrivacy } from "@/hooks/usePrivacy";
@@ -64,6 +64,7 @@ export default function Relatorios() {
   const [filterPaymentMethodId, setFilterPaymentMethodId] = useState<string>("all");
   const [filterContactId, setFilterContactId] = useState<string>("all");
   const [contactSearch, setContactSearch] = useState("");
+  const [debouncedContactSearch, setDebouncedContactSearch] = useState("");
   const [contactPageSize, setContactPageSize] = useState(50);
   const [contactPopoverOpen, setContactPopoverOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -77,6 +78,13 @@ export default function Relatorios() {
     (filterPaymentMethodId !== "all" ? 1 : 0) +
     (filterContactId !== "all" ? 1 : 0) +
     (filterStatus !== "all" ? 1 : 0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedContactSearch(contactSearch);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [contactSearch]);
 
   const collectParentIds = (nodes: any[]): string[] => {
     const ids: string[] = [];
@@ -527,6 +535,7 @@ export default function Relatorios() {
                     setContactPopoverOpen(o);
                     if (!o) {
                       setContactSearch("");
+                      setDebouncedContactSearch("");
                       setContactPageSize(50);
                     }
                   }}
@@ -562,7 +571,7 @@ export default function Relatorios() {
                       </div>
                     </div>
                     {(() => {
-                      const q = contactSearch.trim().toLowerCase();
+                      const q = debouncedContactSearch.trim().toLowerCase();
                       const filtered = q
                         ? (contacts as any[]).filter((c) => c.name?.toLowerCase().includes(q))
                         : (contacts as any[]);
