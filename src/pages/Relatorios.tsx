@@ -76,6 +76,39 @@ export default function Relatorios() {
     (filterContactId !== "all" ? 1 : 0) +
     (filterStatus !== "all" ? 1 : 0);
 
+  const filtersScrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollButtons = () => {
+    const el = filtersScrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  };
+
+  const scrollFilters = (direction: "left" | "right") => {
+    const el = filtersScrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: direction === "left" ? -240 : 240, behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    const el = filtersScrollRef.current;
+    if (!el) return;
+    updateScrollButtons();
+    const onScroll = () => updateScrollButtons();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    const ro = new ResizeObserver(updateScrollButtons);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      ro.disconnect();
+    };
+  }, [showFilters, accounts, categories, paymentMethods, contacts]);
+
+
+
 
   const collectParentIds = (nodes: any[]): string[] => {
     const ids: string[] = [];
