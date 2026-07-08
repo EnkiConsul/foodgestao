@@ -481,154 +481,57 @@ export default function Relatorios() {
         <Card className="shadow-sm">
           <CardContent className="pt-4 pb-4">
             <div className="flex flex-wrap items-end gap-4">
-              <div className="space-y-1.5 min-w-[180px]">
+              <div className="space-y-1.5 min-w-[220px]">
                 <label className="text-xs font-medium text-muted-foreground">Conta Bancária</label>
-                <Select value={filterAccountId} onValueChange={setFilterAccountId}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Todas as contas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas as contas</SelectItem>
-                    {accounts.map((acc) => (
-                      <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableFilterSelect
+                  value={filterAccountId}
+                  onChange={setFilterAccountId}
+                  options={accounts.map((a) => ({ id: a.id, name: a.name }))}
+                  allLabel="Todas as contas"
+                  searchPlaceholder="Buscar conta..."
+                  emptyLabel="Nenhuma conta encontrada"
+                />
               </div>
-              <div className="space-y-1.5 min-w-[180px]">
+              <div className="space-y-1.5 min-w-[220px]">
                 <label className="text-xs font-medium text-muted-foreground">Categoria</label>
-                <Select value={filterCategoryId} onValueChange={setFilterCategoryId}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Todas as categorias" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas as categorias</SelectItem>
-                    {categories
-                      .filter((c) => !c.parent_id)
-                      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-                      .map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.hierarchy_index ? `${cat.hierarchy_index}. ` : ""}{cat.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                <SearchableFilterSelect
+                  value={filterCategoryId}
+                  onChange={setFilterCategoryId}
+                  options={categories
+                    .filter((c) => !c.parent_id)
+                    .slice()
+                    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                    .map((cat) => ({
+                      id: cat.id,
+                      name: cat.name,
+                      prefix: cat.hierarchy_index ? `${cat.hierarchy_index}. ` : undefined,
+                    }))}
+                  allLabel="Todas as categorias"
+                  searchPlaceholder="Buscar categoria..."
+                  emptyLabel="Nenhuma categoria encontrada"
+                />
               </div>
-              <div className="space-y-1.5 min-w-[180px]">
+              <div className="space-y-1.5 min-w-[220px]">
                 <label className="text-xs font-medium text-muted-foreground">Forma de Pagamento</label>
-                <Select value={filterPaymentMethodId} onValueChange={setFilterPaymentMethodId}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Todas as formas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas as formas</SelectItem>
-                    {paymentMethods.map((pm: any) => (
-                      <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableFilterSelect
+                  value={filterPaymentMethodId}
+                  onChange={setFilterPaymentMethodId}
+                  options={(paymentMethods as any[]).map((pm) => ({ id: pm.id, name: pm.name }))}
+                  allLabel="Todas as formas"
+                  searchPlaceholder="Buscar forma de pagamento..."
+                  emptyLabel="Nenhuma forma encontrada"
+                />
               </div>
               <div className="space-y-1.5 min-w-[220px]">
                 <label className="text-xs font-medium text-muted-foreground">Cliente/Fornecedor</label>
-                <Popover
-                  open={contactPopoverOpen}
-                  onOpenChange={(o) => {
-                    setContactPopoverOpen(o);
-                    if (!o) {
-                      setContactSearch("");
-                      setDebouncedContactSearch("");
-                      setContactPageSize(50);
-                    }
-                  }}
-                >
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className="h-9 w-full justify-between font-normal"
-                    >
-                      <span className="truncate">
-                        {filterContactId === "all"
-                          ? "Todos"
-                          : (contacts as any[]).find((c) => c.id === filterContactId)?.name ?? "—"}
-                      </span>
-                      <ChevronsUpDown className="h-3.5 w-3.5 opacity-50 shrink-0 ml-2" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="p-0 w-[280px]" align="start">
-                    <div className="p-2 border-b">
-                      <div className="relative">
-                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                        <Input
-                          value={contactSearch}
-                          onChange={(e) => {
-                            setContactSearch(e.target.value);
-                            setContactPageSize(50);
-                          }}
-                          placeholder="Buscar contato..."
-                          className="h-8 pl-7 text-sm"
-                          autoFocus
-                        />
-                      </div>
-                    </div>
-                    {(() => {
-                      const q = debouncedContactSearch.trim().toLowerCase();
-                      const filtered = q
-                        ? (contacts as any[]).filter((c) => c.name?.toLowerCase().includes(q))
-                        : (contacts as any[]);
-                      const visible = filtered.slice(0, contactPageSize);
-                      return (
-                        <>
-                          <div className="max-h-64 overflow-y-auto py-1">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setFilterContactId("all");
-                                setContactPopoverOpen(false);
-                              }}
-                              className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent text-left"
-                            >
-                              <Check className={cn("h-3.5 w-3.5", filterContactId === "all" ? "opacity-100" : "opacity-0")} />
-                              Todos
-                            </button>
-                            {visible.map((c: any) => (
-                              <button
-                                key={c.id}
-                                type="button"
-                                onClick={() => {
-                                  setFilterContactId(c.id);
-                                  setContactPopoverOpen(false);
-                                }}
-                                className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent text-left"
-                              >
-                                <Check className={cn("h-3.5 w-3.5", filterContactId === c.id ? "opacity-100" : "opacity-0")} />
-                                <span className="truncate">{c.name}</span>
-                              </button>
-                            ))}
-                            {filtered.length === 0 && (
-                              <p className="text-xs text-muted-foreground text-center py-4">Nenhum contato encontrado</p>
-                            )}
-                          </div>
-                          {filtered.length > visible.length && (
-                            <div className="p-2 border-t">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="w-full h-7 text-xs"
-                                onClick={() => setContactPageSize((n) => n + 50)}
-                              >
-                                Carregar mais ({filtered.length - visible.length} restantes)
-                              </Button>
-                            </div>
-                          )}
-                          <div className="px-3 py-1.5 border-t text-[10px] text-muted-foreground">
-                            Mostrando {Math.min(visible.length, filtered.length)} de {filtered.length}
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </PopoverContent>
-                </Popover>
+                <SearchableFilterSelect
+                  value={filterContactId}
+                  onChange={setFilterContactId}
+                  options={(contacts as any[]).map((c) => ({ id: c.id, name: c.name }))}
+                  allLabel="Todos"
+                  searchPlaceholder="Buscar contato..."
+                  emptyLabel="Nenhum contato encontrado"
+                />
               </div>
               <div className="space-y-1.5 min-w-[160px]">
                 <label className="text-xs font-medium text-muted-foreground">Status</label>
