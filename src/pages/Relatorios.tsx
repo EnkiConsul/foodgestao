@@ -65,7 +65,6 @@ export default function Relatorios() {
   const [filterPaymentMethodId, setFilterPaymentMethodId] = useState<string>("all");
   const [filterContactId, setFilterContactId] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("year");
   const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>(getPeriodRange("year"));
@@ -77,12 +76,6 @@ export default function Relatorios() {
     (filterContactId !== "all" ? 1 : 0) +
     (filterStatus !== "all" ? 1 : 0);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedContactSearch(contactSearch);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [contactSearch]);
 
   const collectParentIds = (nodes: any[]): string[] => {
     const ids: string[] = [];
