@@ -469,8 +469,8 @@ export default function Relatorios() {
 
       {showFilters && (
         <Card className="shadow-sm">
-          <CardContent className="pt-4 pb-4">
-            <div className="flex flex-wrap items-end gap-4">
+          <CardContent className="pt-4 pb-2">
+            <div className="flex flex-nowrap items-end gap-4 overflow-x-auto pb-2">
               <div className="space-y-1.5 min-w-[220px]">
                 <label className="text-xs font-medium text-muted-foreground">Conta Bancária</label>
                 <SearchableFilterSelect
