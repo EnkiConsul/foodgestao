@@ -488,7 +488,49 @@ export default function Relatorios() {
                   </SelectContent>
                 </Select>
               </div>
-              {(filterAccountId !== "all" || filterCategoryId !== "all") && (
+              <div className="space-y-1.5 min-w-[180px]">
+                <label className="text-xs font-medium text-muted-foreground">Forma de Pagamento</label>
+                <Select value={filterPaymentMethodId} onValueChange={setFilterPaymentMethodId}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Todas as formas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as formas</SelectItem>
+                    {paymentMethods.map((pm: any) => (
+                      <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 min-w-[180px]">
+                <label className="text-xs font-medium text-muted-foreground">Cliente/Fornecedor</label>
+                <Select value={filterContactId} onValueChange={setFilterContactId}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {contacts.map((c: any) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 min-w-[160px]">
+                <label className="text-xs font-medium text-muted-foreground">Status</label>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos (exceto cancelados)</SelectItem>
+                    <SelectItem value="confirmado">Confirmado</SelectItem>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {activeFilterCount > 0 && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -496,6 +538,9 @@ export default function Relatorios() {
                   onClick={() => {
                     setFilterAccountId("all");
                     setFilterCategoryId("all");
+                    setFilterPaymentMethodId("all");
+                    setFilterContactId("all");
+                    setFilterStatus("all");
                   }}
                 >
                   <X className="h-3.5 w-3.5" /> Limpar filtros
