@@ -79,6 +79,13 @@ export default function Relatorios() {
     (filterContactId !== "all" ? 1 : 0) +
     (filterStatus !== "all" ? 1 : 0);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedContactSearch(contactSearch);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [contactSearch]);
+
   const collectParentIds = (nodes: any[]): string[] => {
     const ids: string[] = [];
     for (const n of nodes) {
