@@ -535,6 +535,7 @@ export default function Relatorios() {
                     setContactPopoverOpen(o);
                     if (!o) {
                       setContactSearch("");
+                      setDebouncedContactSearch("");
                       setContactPageSize(50);
                     }
                   }}
