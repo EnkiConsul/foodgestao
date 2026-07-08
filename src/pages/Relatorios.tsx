@@ -537,9 +537,19 @@ export default function Relatorios() {
                     value={filterCategoryId}
                     onChange={setFilterCategoryId}
                     options={categories
-                      .filter((c) => !c.parent_id)
                       .slice()
-                      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                      .sort((a, b) => {
+                        const idxA = a.hierarchy_index || "";
+                        const idxB = b.hierarchy_index || "";
+                        const partsA = idxA.split(".").map(Number);
+                        const partsB = idxB.split(".").map(Number);
+                        for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+                          const na = partsA[i] ?? 0;
+                          const nb = partsB[i] ?? 0;
+                          if (na !== nb) return na - nb;
+                        }
+                        return partsA.length - partsB.length;
+                      })
                       .map((cat) => ({
                         id: cat.id,
                         name: cat.name,
