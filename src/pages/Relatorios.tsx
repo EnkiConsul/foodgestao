@@ -131,30 +131,41 @@ export default function Relatorios() {
   });
 
   const { data: paymentMethods = [] } = useQuery({
-    queryKey: ["relatorios-payment-methods", user?.id],
-    enabled: !!user,
+    queryKey: ["relatorios-payment-methods", user?.id, contextType, selectedCompanyId],
+    enabled: !!user && (contextType === "pf" || !!selectedCompanyId),
     queryFn: async () => {
-      const { data } = await supabase
-        .from("payment_methods")
-        .select("id, name, is_active")
-        .eq("user_id", user!.id)
-        .order("name");
-      return data ?? [];
+      const { data } = await supabase.rpc("get_accessible_payment_methods", {
+        _context: contextType,
+        _company_id: contextType === "pj" ? selectedCompanyId : null,
+      });
+      return ((data ?? []) as any[]).map((pm: any) => ({ id: pm.id, name: pm.name }));
     },
   });
 
   const { data: contacts = [] } = useQuery({
-    queryKey: ["relatorios-contacts", user?.id],
-    enabled: !!user,
+    queryKey: ["relatorios-contacts", user?.id, contextType, selectedCompanyId],
+    enabled: !!user && (contextType === "pf" || !!selectedCompanyId),
     queryFn: async () => {
-      const { data } = await supabase
-        .from("contacts")
-        .select("id, name")
-        .eq("user_id", user!.id)
-        .order("name");
-      return data ?? [];
+      const [{ data: allContacts }, { data: links }] = await Promise.all([
+        supabase.from("contacts").select("id, name").eq("user_id", user!.id).eq("is_active", true).order("name"),
+        supabase.from("contact_companies").select("contact_id, company_id"),
+      ]);
+      const contactsList = (allContacts ?? []) as { id: string; name: string }[];
+      if (contextType === "pj") {
+        const allowed = new Set(
+          ((links ?? []) as { contact_id: string; company_id: string }[])
+            .filter((l) => l.company_id === selectedCompanyId)
+            .map((l) => l.contact_id)
+        );
+        return contactsList.filter((c) => allowed.has(c.id));
+      }
+      // PF: contacts not linked to any company
+      const linkedIds = new Set(((links ?? []) as { contact_id: string }[]).map((l) => l.contact_id));
+      return contactsList.filter((c) => !linkedIds.has(c.id));
     },
   });
+
+
 
   // Compute active date range
   const activeRange = useMemo(() => {
