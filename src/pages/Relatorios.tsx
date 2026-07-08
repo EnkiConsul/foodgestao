@@ -519,8 +519,6 @@ export default function Relatorios() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5 min-w-[180px]">
-                <label className="text-xs font-medium text-muted-foreground">Cliente/Fornecedor</label>
               <div className="space-y-1.5 min-w-[220px]">
                 <label className="text-xs font-medium text-muted-foreground">Cliente/Fornecedor</label>
                 <Popover
