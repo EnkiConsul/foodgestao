@@ -31,6 +31,7 @@ import { Input } from "@/components/ui/input";
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, eachMonthOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { SearchableFilterSelect } from "@/components/relatorios/SearchableFilterSelect";
 
 type PeriodPreset = "month" | "3months" | "6months" | "year" | "custom";
 
