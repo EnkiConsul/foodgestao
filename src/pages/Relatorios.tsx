@@ -22,9 +22,12 @@ import {
   Filter,
   X,
   CalendarIcon,
+  Check,
+  Search,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, eachMonthOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -60,6 +63,9 @@ export default function Relatorios() {
   const [filterCategoryId, setFilterCategoryId] = useState<string>("all");
   const [filterPaymentMethodId, setFilterPaymentMethodId] = useState<string>("all");
   const [filterContactId, setFilterContactId] = useState<string>("all");
+  const [contactSearch, setContactSearch] = useState("");
+  const [contactPageSize, setContactPageSize] = useState(50);
+  const [contactPopoverOpen, setContactPopoverOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("year");
@@ -513,19 +519,106 @@ export default function Relatorios() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5 min-w-[180px]">
+              <div className="space-y-1.5 min-w-[220px]">
                 <label className="text-xs font-medium text-muted-foreground">Cliente/Fornecedor</label>
-                <Select value={filterContactId} onValueChange={setFilterContactId}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Todos" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    {contacts.map((c: any) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover
+                  open={contactPopoverOpen}
+                  onOpenChange={(o) => {
+                    setContactPopoverOpen(o);
+                    if (!o) {
+                      setContactSearch("");
+                      setContactPageSize(50);
+                    }
+                  }}
+                >
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="h-9 w-full justify-between font-normal"
+                    >
+                      <span className="truncate">
+                        {filterContactId === "all"
+                          ? "Todos"
+                          : (contacts as any[]).find((c) => c.id === filterContactId)?.name ?? "—"}
+                      </span>
+                      <ChevronsUpDown className="h-3.5 w-3.5 opacity-50 shrink-0 ml-2" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0 w-[280px]" align="start">
+                    <div className="p-2 border-b">
+                      <div className="relative">
+                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                        <Input
+                          value={contactSearch}
+                          onChange={(e) => {
+                            setContactSearch(e.target.value);
+                            setContactPageSize(50);
+                          }}
+                          placeholder="Buscar contato..."
+                          className="h-8 pl-7 text-sm"
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+                    {(() => {
+                      const q = contactSearch.trim().toLowerCase();
+                      const filtered = q
+                        ? (contacts as any[]).filter((c) => c.name?.toLowerCase().includes(q))
+                        : (contacts as any[]);
+                      const visible = filtered.slice(0, contactPageSize);
+                      return (
+                        <>
+                          <div className="max-h-64 overflow-y-auto py-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFilterContactId("all");
+                                setContactPopoverOpen(false);
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent text-left"
+                            >
+                              <Check className={cn("h-3.5 w-3.5", filterContactId === "all" ? "opacity-100" : "opacity-0")} />
+                              Todos
+                            </button>
+                            {visible.map((c: any) => (
+                              <button
+                                key={c.id}
+                                type="button"
+                                onClick={() => {
+                                  setFilterContactId(c.id);
+                                  setContactPopoverOpen(false);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent text-left"
+                              >
+                                <Check className={cn("h-3.5 w-3.5", filterContactId === c.id ? "opacity-100" : "opacity-0")} />
+                                <span className="truncate">{c.name}</span>
+                              </button>
+                            ))}
+                            {filtered.length === 0 && (
+                              <p className="text-xs text-muted-foreground text-center py-4">Nenhum contato encontrado</p>
+                            )}
+                          </div>
+                          {filtered.length > visible.length && (
+                            <div className="p-2 border-t">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="w-full h-7 text-xs"
+                                onClick={() => setContactPageSize((n) => n + 50)}
+                              >
+                                Carregar mais ({filtered.length - visible.length} restantes)
+                              </Button>
+                            </div>
+                          )}
+                          <div className="px-3 py-1.5 border-t text-[10px] text-muted-foreground">
+                            Mostrando {Math.min(visible.length, filtered.length)} de {filtered.length}
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="space-y-1.5 min-w-[160px]">
                 <label className="text-xs font-medium text-muted-foreground">Status</label>
