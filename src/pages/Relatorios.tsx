@@ -520,7 +520,7 @@ export default function Relatorios() {
                 ref={filtersScrollRef}
                 className="flex flex-nowrap items-end gap-4 overflow-x-auto pb-2 flex-1 snap-x snap-mandatory scroll-smooth"
               >
-                <div className="space-y-1.5 min-w-[220px] snap-start">
+                <div className="space-y-1.5 min-w-[220px] snap-start shrink-0">
                   <label className="text-xs font-medium text-muted-foreground">Conta Bancária</label>
                   <SearchableFilterSelect
                     value={filterAccountId}
@@ -531,7 +531,7 @@ export default function Relatorios() {
                     emptyLabel="Nenhuma conta encontrada"
                   />
                 </div>
-                <div className="space-y-1.5 min-w-[220px] snap-start">
+                <div className="space-y-1.5 min-w-[220px] snap-start shrink-0">
                   <label className="text-xs font-medium text-muted-foreground">Categoria</label>
                   <SearchableFilterSelect
                     value={filterCategoryId}
@@ -560,7 +560,7 @@ export default function Relatorios() {
                     emptyLabel="Nenhuma categoria encontrada"
                   />
                 </div>
-                <div className="space-y-1.5 min-w-[220px] snap-start">
+                <div className="space-y-1.5 min-w-[220px] snap-start shrink-0">
                   <label className="text-xs font-medium text-muted-foreground">Forma de Pagamento</label>
                   <SearchableFilterSelect
                     value={filterPaymentMethodId}
@@ -571,7 +571,7 @@ export default function Relatorios() {
                     emptyLabel="Nenhuma forma encontrada"
                   />
                 </div>
-                <div className="space-y-1.5 min-w-[220px] snap-start">
+                <div className="space-y-1.5 min-w-[220px] snap-start shrink-0">
                   <label className="text-xs font-medium text-muted-foreground">Cliente/Fornecedor</label>
                   <SearchableFilterSelect
                     value={filterContactId}
@@ -582,7 +582,7 @@ export default function Relatorios() {
                     emptyLabel="Nenhum contato encontrado"
                   />
                 </div>
-                <div className="space-y-1.5 min-w-[160px] snap-start">
+                <div className="space-y-1.5 min-w-[160px] snap-start shrink-0">
                   <label className="text-xs font-medium text-muted-foreground">Status</label>
                   <Select value={filterStatus} onValueChange={setFilterStatus}>
                     <SelectTrigger className="h-9">
