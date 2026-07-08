@@ -144,14 +144,15 @@ export default function Relatorios() {
   });
 
   const { data: contacts = [] } = useQuery({
-    queryKey: ["relatorios-contacts", user?.id, contextType, selectedCompanyId],
-    enabled: !!user && (contextType === "pf" || !!selectedCompanyId),
+    queryKey: ["relatorios-contacts", user?.id],
+    enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase.rpc("get_accessible_contacts", {
-        _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId : null,
-      });
-      return (data ?? []).map((c: any) => ({ id: c.id, name: c.name }));
+      const { data } = await supabase
+        .from("contacts")
+        .select("id, name")
+        .eq("user_id", user!.id)
+        .order("name");
+      return data ?? [];
     },
   });
 
