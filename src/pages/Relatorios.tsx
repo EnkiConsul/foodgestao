@@ -190,7 +190,23 @@ export default function Relatorios() {
     },
   });
 
-
+  useEffect(() => {
+    const el = filtersScrollRef.current;
+    if (!el) return;
+    const update = () => {
+      setCanScrollLeft(el.scrollLeft > 0);
+      setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+    };
+    update();
+    const onScroll = () => update();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      ro.disconnect();
+    };
+  }, [showFilters, accounts, categories, paymentMethods, contacts]);
 
   // Compute active date range
   const activeRange = useMemo(() => {
