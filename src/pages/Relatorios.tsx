@@ -570,7 +570,7 @@ export default function Relatorios() {
                       </div>
                     </div>
                     {(() => {
-                      const q = contactSearch.trim().toLowerCase();
+                      const q = debouncedContactSearch.trim().toLowerCase();
                       const filtered = q
                         ? (contacts as any[]).filter((c) => c.name?.toLowerCase().includes(q))
                         : (contacts as any[]);
