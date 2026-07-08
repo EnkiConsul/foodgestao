@@ -612,6 +612,7 @@ export default function Relatorios() {
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
+          </div>
           </CardContent>
         </Card>
       )}
