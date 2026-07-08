@@ -603,6 +603,15 @@ export default function Relatorios() {
                 </Button>
               )}
             </div>
+            <Button
+              variant="outline"
+              size="icon"
+              className={cn("h-7 w-7 shrink-0", !canScrollRight && "invisible")}
+              onClick={() => scrollFilters("right")}
+              aria-label="Rolar filtros para a direita"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </CardContent>
         </Card>
       )}
