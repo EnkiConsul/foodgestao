@@ -76,6 +76,26 @@ export default function Relatorios() {
     (filterContactId !== "all" ? 1 : 0) +
     (filterStatus !== "all" ? 1 : 0);
 
+  const filtersScrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollButtons = () => {
+    const el = filtersScrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  };
+
+  const scrollFilters = (direction: "left" | "right") => {
+    const el = filtersScrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: direction === "left" ? -240 : 240, behavior: "smooth" });
+  };
+
+
+
+
 
   const collectParentIds = (nodes: any[]): string[] => {
     const ids: string[] = [];
@@ -170,7 +190,23 @@ export default function Relatorios() {
     },
   });
 
-
+  useEffect(() => {
+    const el = filtersScrollRef.current;
+    if (!el) return;
+    const update = () => {
+      setCanScrollLeft(el.scrollLeft > 0);
+      setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+    };
+    update();
+    const onScroll = () => update();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      ro.disconnect();
+    };
+  }, [showFilters, accounts, categories, paymentMethods, contacts]);
 
   // Compute active date range
   const activeRange = useMemo(() => {
@@ -470,74 +506,87 @@ export default function Relatorios() {
       {showFilters && (
         <Card className="shadow-sm">
           <CardContent className="pt-4 pb-2">
-            <div className="flex flex-nowrap items-end gap-4 overflow-x-auto pb-2">
-              <div className="space-y-1.5 min-w-[220px]">
-                <label className="text-xs font-medium text-muted-foreground">Conta Bancária</label>
-                <SearchableFilterSelect
-                  value={filterAccountId}
-                  onChange={setFilterAccountId}
-                  options={accounts.map((a) => ({ id: a.id, name: a.name }))}
-                  allLabel="Todas as contas"
-                  searchPlaceholder="Buscar conta..."
-                  emptyLabel="Nenhuma conta encontrada"
-                />
-              </div>
-              <div className="space-y-1.5 min-w-[220px]">
-                <label className="text-xs font-medium text-muted-foreground">Categoria</label>
-                <SearchableFilterSelect
-                  value={filterCategoryId}
-                  onChange={setFilterCategoryId}
-                  options={categories
-                    .filter((c) => !c.parent_id)
-                    .slice()
-                    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-                    .map((cat) => ({
-                      id: cat.id,
-                      name: cat.name,
-                      prefix: cat.hierarchy_index ? `${cat.hierarchy_index}. ` : undefined,
-                    }))}
-                  allLabel="Todas as categorias"
-                  searchPlaceholder="Buscar categoria..."
-                  emptyLabel="Nenhuma categoria encontrada"
-                />
-              </div>
-              <div className="space-y-1.5 min-w-[220px]">
-                <label className="text-xs font-medium text-muted-foreground">Forma de Pagamento</label>
-                <SearchableFilterSelect
-                  value={filterPaymentMethodId}
-                  onChange={setFilterPaymentMethodId}
-                  options={(paymentMethods as any[]).map((pm) => ({ id: pm.id, name: pm.name }))}
-                  allLabel="Todas as formas"
-                  searchPlaceholder="Buscar forma de pagamento..."
-                  emptyLabel="Nenhuma forma encontrada"
-                />
-              </div>
-              <div className="space-y-1.5 min-w-[220px]">
-                <label className="text-xs font-medium text-muted-foreground">Cliente/Fornecedor</label>
-                <SearchableFilterSelect
-                  value={filterContactId}
-                  onChange={setFilterContactId}
-                  options={(contacts as any[]).map((c) => ({ id: c.id, name: c.name }))}
-                  allLabel="Todos"
-                  searchPlaceholder="Buscar contato..."
-                  emptyLabel="Nenhum contato encontrado"
-                />
-              </div>
-              <div className="space-y-1.5 min-w-[160px]">
-                <label className="text-xs font-medium text-muted-foreground">Status</label>
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos (exceto cancelados)</SelectItem>
-                    <SelectItem value="confirmado">Confirmado</SelectItem>
-                    <SelectItem value="pendente">Pendente</SelectItem>
-                    <SelectItem value="cancelado">Cancelado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {activeFilterCount > 0 && (
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                className={cn("h-7 w-7 shrink-0", !canScrollLeft && "invisible")}
+                onClick={() => scrollFilters("left")}
+                aria-label="Rolar filtros para a esquerda"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div
+                ref={filtersScrollRef}
+                className="flex flex-nowrap items-end gap-4 overflow-x-auto pb-2 flex-1 snap-x snap-mandatory scroll-smooth"
+              >
+                <div className="space-y-1.5 min-w-[220px] snap-start">
+                  <label className="text-xs font-medium text-muted-foreground">Conta Bancária</label>
+                  <SearchableFilterSelect
+                    value={filterAccountId}
+                    onChange={setFilterAccountId}
+                    options={accounts.map((a) => ({ id: a.id, name: a.name }))}
+                    allLabel="Todas as contas"
+                    searchPlaceholder="Buscar conta..."
+                    emptyLabel="Nenhuma conta encontrada"
+                  />
+                </div>
+                <div className="space-y-1.5 min-w-[220px] snap-start">
+                  <label className="text-xs font-medium text-muted-foreground">Categoria</label>
+                  <SearchableFilterSelect
+                    value={filterCategoryId}
+                    onChange={setFilterCategoryId}
+                    options={categories
+                      .filter((c) => !c.parent_id)
+                      .slice()
+                      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                      .map((cat) => ({
+                        id: cat.id,
+                        name: cat.name,
+                        prefix: cat.hierarchy_index ? `${cat.hierarchy_index}. ` : undefined,
+                      }))}
+                    allLabel="Todas as categorias"
+                    searchPlaceholder="Buscar categoria..."
+                    emptyLabel="Nenhuma categoria encontrada"
+                  />
+                </div>
+                <div className="space-y-1.5 min-w-[220px] snap-start">
+                  <label className="text-xs font-medium text-muted-foreground">Forma de Pagamento</label>
+                  <SearchableFilterSelect
+                    value={filterPaymentMethodId}
+                    onChange={setFilterPaymentMethodId}
+                    options={(paymentMethods as any[]).map((pm) => ({ id: pm.id, name: pm.name }))}
+                    allLabel="Todas as formas"
+                    searchPlaceholder="Buscar forma de pagamento..."
+                    emptyLabel="Nenhuma forma encontrada"
+                  />
+                </div>
+                <div className="space-y-1.5 min-w-[220px] snap-start">
+                  <label className="text-xs font-medium text-muted-foreground">Cliente/Fornecedor</label>
+                  <SearchableFilterSelect
+                    value={filterContactId}
+                    onChange={setFilterContactId}
+                    options={(contacts as any[]).map((c) => ({ id: c.id, name: c.name }))}
+                    allLabel="Todos"
+                    searchPlaceholder="Buscar contato..."
+                    emptyLabel="Nenhum contato encontrado"
+                  />
+                </div>
+                <div className="space-y-1.5 min-w-[160px] snap-start">
+                  <label className="text-xs font-medium text-muted-foreground">Status</label>
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos (exceto cancelados)</SelectItem>
+                      <SelectItem value="confirmado">Confirmado</SelectItem>
+                      <SelectItem value="pendente">Pendente</SelectItem>
+                      <SelectItem value="cancelado">Cancelado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {activeFilterCount > 0 && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -554,6 +603,16 @@ export default function Relatorios() {
                 </Button>
               )}
             </div>
+            <Button
+              variant="outline"
+              size="icon"
+              className={cn("h-7 w-7 shrink-0", !canScrollRight && "invisible")}
+              onClick={() => scrollFilters("right")}
+              aria-label="Rolar filtros para a direita"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
           </CardContent>
         </Card>
       )}
