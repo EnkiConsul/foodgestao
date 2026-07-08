@@ -93,19 +93,6 @@ export default function Relatorios() {
     el.scrollBy({ left: direction === "left" ? -240 : 240, behavior: "smooth" });
   };
 
-  useEffect(() => {
-    const el = filtersScrollRef.current;
-    if (!el) return;
-    updateScrollButtons();
-    const onScroll = () => updateScrollButtons();
-    el.addEventListener("scroll", onScroll, { passive: true });
-    const ro = new ResizeObserver(updateScrollButtons);
-    ro.observe(el);
-    return () => {
-      el.removeEventListener("scroll", onScroll);
-      ro.disconnect();
-    };
-  }, [showFilters, accounts, categories, paymentMethods, contacts]);
 
 
 
