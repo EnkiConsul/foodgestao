@@ -174,12 +174,11 @@ export default function Relatorios() {
     queryFn: async () => {
       let q = supabase
         .from("transactions")
-        .select("amount, amount_paid, transaction_type, transaction_date, category_id, account_id, status, due_date")
+        .select("amount, amount_paid, transaction_type, transaction_date, category_id, account_id, status, due_date, payment_method_id, contact_id")
         .eq("user_id", user!.id)
         .eq("context", contextType)
         .gte("transaction_date", startDate)
-        .lte("transaction_date", endDate)
-        .neq("status", "cancelado");
+        .lte("transaction_date", endDate);
       if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
       const { data } = await q;
       return data ?? [];
