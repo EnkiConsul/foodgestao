@@ -58,9 +58,19 @@ export default function Relatorios() {
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const [filterAccountId, setFilterAccountId] = useState<string>("all");
   const [filterCategoryId, setFilterCategoryId] = useState<string>("all");
+  const [filterPaymentMethodId, setFilterPaymentMethodId] = useState<string>("all");
+  const [filterContactId, setFilterContactId] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("year");
   const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>(getPeriodRange("year"));
+
+  const activeFilterCount =
+    (filterAccountId !== "all" ? 1 : 0) +
+    (filterCategoryId !== "all" ? 1 : 0) +
+    (filterPaymentMethodId !== "all" ? 1 : 0) +
+    (filterContactId !== "all" ? 1 : 0) +
+    (filterStatus !== "all" ? 1 : 0);
 
   const collectParentIds = (nodes: any[]): string[] => {
     const ids: string[] = [];
@@ -120,6 +130,32 @@ export default function Relatorios() {
     },
   });
 
+  const { data: paymentMethods = [] } = useQuery({
+    queryKey: ["relatorios-payment-methods", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("payment_methods")
+        .select("id, name, is_active")
+        .eq("user_id", user!.id)
+        .order("name");
+      return data ?? [];
+    },
+  });
+
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["relatorios-contacts", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("contacts")
+        .select("id, name")
+        .eq("user_id", user!.id)
+        .order("name");
+      return data ?? [];
+    },
+  });
+
   // Compute active date range
   const activeRange = useMemo(() => {
     if (periodPreset === "custom") return customRange;
@@ -138,12 +174,11 @@ export default function Relatorios() {
     queryFn: async () => {
       let q = supabase
         .from("transactions")
-        .select("amount, amount_paid, transaction_type, transaction_date, category_id, account_id, status, due_date")
+        .select("amount, amount_paid, transaction_type, transaction_date, category_id, account_id, status, due_date, payment_method_id, contact_id")
         .eq("user_id", user!.id)
         .eq("context", contextType)
         .gte("transaction_date", startDate)
-        .lte("transaction_date", endDate)
-        .neq("status", "cancelado");
+        .lte("transaction_date", endDate);
       if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
       const { data } = await q;
       return data ?? [];
@@ -153,8 +188,20 @@ export default function Relatorios() {
   // Apply filters to transactions
   const filteredTransactions = useMemo(() => {
     let txs = fluxoTransactions;
+    // Status: default excludes 'cancelado' unless explicitly selected
+    if (filterStatus === "all") {
+      txs = txs.filter((t) => t.status !== "cancelado");
+    } else {
+      txs = txs.filter((t) => t.status === filterStatus);
+    }
     if (filterAccountId !== "all") {
       txs = txs.filter((t) => t.account_id === filterAccountId);
+    }
+    if (filterPaymentMethodId !== "all") {
+      txs = txs.filter((t: any) => t.payment_method_id === filterPaymentMethodId);
+    }
+    if (filterContactId !== "all") {
+      txs = txs.filter((t: any) => t.contact_id === filterContactId);
     }
     if (filterCategoryId !== "all") {
       // Include the selected category and all its descendants
@@ -171,7 +218,7 @@ export default function Relatorios() {
       txs = txs.filter((t) => t.category_id && descendants.has(t.category_id));
     }
     return txs;
-  }, [fluxoTransactions, filterAccountId, filterCategoryId, categories]);
+  }, [fluxoTransactions, filterAccountId, filterCategoryId, filterPaymentMethodId, filterContactId, filterStatus, categories]);
 
   // Fluxo de Caixa data processing with hierarchy
   type FluxoNode = {
@@ -351,9 +398,9 @@ export default function Relatorios() {
             onClick={() => setShowFilters((v) => !v)}
           >
             <Filter className="h-3.5 w-3.5" /> Filtros
-            {(filterAccountId !== "all" || filterCategoryId !== "all") && (
+            {activeFilterCount > 0 && (
               <span className="ml-1 h-5 w-5 rounded-full bg-primary-foreground text-primary text-xs flex items-center justify-center font-bold">
-                {(filterAccountId !== "all" ? 1 : 0) + (filterCategoryId !== "all" ? 1 : 0)}
+                {activeFilterCount}
               </span>
             )}
           </Button>
@@ -441,7 +488,49 @@ export default function Relatorios() {
                   </SelectContent>
                 </Select>
               </div>
-              {(filterAccountId !== "all" || filterCategoryId !== "all") && (
+              <div className="space-y-1.5 min-w-[180px]">
+                <label className="text-xs font-medium text-muted-foreground">Forma de Pagamento</label>
+                <Select value={filterPaymentMethodId} onValueChange={setFilterPaymentMethodId}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Todas as formas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as formas</SelectItem>
+                    {paymentMethods.map((pm: any) => (
+                      <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 min-w-[180px]">
+                <label className="text-xs font-medium text-muted-foreground">Cliente/Fornecedor</label>
+                <Select value={filterContactId} onValueChange={setFilterContactId}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {contacts.map((c: any) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 min-w-[160px]">
+                <label className="text-xs font-medium text-muted-foreground">Status</label>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos (exceto cancelados)</SelectItem>
+                    <SelectItem value="confirmado">Confirmado</SelectItem>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {activeFilterCount > 0 && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -449,6 +538,9 @@ export default function Relatorios() {
                   onClick={() => {
                     setFilterAccountId("all");
                     setFilterCategoryId("all");
+                    setFilterPaymentMethodId("all");
+                    setFilterContactId("all");
+                    setFilterStatus("all");
                   }}
                 >
                   <X className="h-3.5 w-3.5" /> Limpar filtros
