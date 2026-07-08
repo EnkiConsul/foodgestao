@@ -188,8 +188,20 @@ export default function Relatorios() {
   // Apply filters to transactions
   const filteredTransactions = useMemo(() => {
     let txs = fluxoTransactions;
+    // Status: default excludes 'cancelado' unless explicitly selected
+    if (filterStatus === "all") {
+      txs = txs.filter((t) => t.status !== "cancelado");
+    } else {
+      txs = txs.filter((t) => t.status === filterStatus);
+    }
     if (filterAccountId !== "all") {
       txs = txs.filter((t) => t.account_id === filterAccountId);
+    }
+    if (filterPaymentMethodId !== "all") {
+      txs = txs.filter((t: any) => t.payment_method_id === filterPaymentMethodId);
+    }
+    if (filterContactId !== "all") {
+      txs = txs.filter((t: any) => t.contact_id === filterContactId);
     }
     if (filterCategoryId !== "all") {
       // Include the selected category and all its descendants
@@ -206,7 +218,7 @@ export default function Relatorios() {
       txs = txs.filter((t) => t.category_id && descendants.has(t.category_id));
     }
     return txs;
-  }, [fluxoTransactions, filterAccountId, filterCategoryId, categories]);
+  }, [fluxoTransactions, filterAccountId, filterCategoryId, filterPaymentMethodId, filterContactId, filterStatus, categories]);
 
   // Fluxo de Caixa data processing with hierarchy
   type FluxoNode = {
