@@ -22,6 +22,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { TransactionFormDialog } from "@/components/transactions/TransactionFormDialog";
 import { ImportStatementDialog } from "@/components/transactions/ImportStatementDialog";
 import { PaymentDialog } from "@/components/bills/PaymentDialog";
+import { MultiSelectFilter } from "@/components/lancamentos/MultiSelectFilter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
