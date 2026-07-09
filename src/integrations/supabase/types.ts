@@ -1009,6 +1009,107 @@ export type Database = {
           },
         ]
       }
+      chart_account_companies: {
+        Row: {
+          chart_account_id: string
+          company_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          chart_account_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          chart_account_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chart_account_companies_chart_account_id_fkey"
+            columns: ["chart_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chart_account_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chart_accounts: {
+        Row: {
+          allow_transactions: boolean
+          code: string
+          context: Database["public"]["Enums"]["context_type"]
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_tax: boolean
+          name: string
+          parent_id: string | null
+          short_code: string | null
+          tax_code: string | null
+          tax_description: string | null
+          updated_at: string
+          user_id: string
+          visible_pf: boolean
+        }
+        Insert: {
+          allow_transactions?: boolean
+          code: string
+          context?: Database["public"]["Enums"]["context_type"]
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_tax?: boolean
+          name: string
+          parent_id?: string | null
+          short_code?: string | null
+          tax_code?: string | null
+          tax_description?: string | null
+          updated_at?: string
+          user_id: string
+          visible_pf?: boolean
+        }
+        Update: {
+          allow_transactions?: boolean
+          code?: string
+          context?: Database["public"]["Enums"]["context_type"]
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_tax?: boolean
+          name?: string
+          parent_id?: string | null
+          short_code?: string | null
+          tax_code?: string | null
+          tax_description?: string | null
+          updated_at?: string
+          user_id?: string
+          visible_pf?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chart_accounts_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "chart_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null
