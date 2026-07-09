@@ -734,23 +734,25 @@ export default function Lancamentos() {
   const FilterPanel = () => (
     <div className="space-y-1">
       <FilterSection title="Conta">
-        <Select value={filterAccount} onValueChange={setFilterAccount}>
-          <SelectTrigger className="mt-0.5 h-6 text-[11px]"><SelectValue placeholder="Todas" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
-            {accounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <MultiSelectFilter
+          value={filterAccount}
+          onChange={setFilterAccount}
+          options={accounts}
+          allLabel="Todas"
+          itemLabelSingular="conta"
+          itemLabelPlural="contas"
+        />
       </FilterSection>
 
       <FilterSection title="Forma de Pagamento">
-        <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}>
-          <SelectTrigger className="mt-0.5 h-6 text-[11px]"><SelectValue placeholder="Todas" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
-            {paymentMethods.map((pm) => <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <MultiSelectFilter
+          value={filterPaymentMethod}
+          onChange={setFilterPaymentMethod}
+          options={paymentMethods}
+          allLabel="Todas"
+          itemLabelSingular="forma"
+          itemLabelPlural="formas"
+        />
       </FilterSection>
 
       <FilterSection title="Categoria">
