@@ -1048,7 +1048,7 @@ export type Database = {
       chart_accounts: {
         Row: {
           allow_transactions: boolean
-          code: string
+          code: string | null
           context: Database["public"]["Enums"]["context_type"]
           created_at: string
           description: string | null
@@ -1066,7 +1066,7 @@ export type Database = {
         }
         Insert: {
           allow_transactions?: boolean
-          code: string
+          code?: string | null
           context?: Database["public"]["Enums"]["context_type"]
           created_at?: string
           description?: string | null
@@ -1084,7 +1084,7 @@ export type Database = {
         }
         Update: {
           allow_transactions?: boolean
-          code?: string
+          code?: string | null
           context?: Database["public"]["Enums"]["context_type"]
           created_at?: string
           description?: string | null
@@ -2747,6 +2747,18 @@ export type Database = {
       can_sync_bank_connection: {
         Args: { _connection_id: string }
         Returns: boolean
+      }
+      chart_account_move: {
+        Args: { _id: string; _new_parent_id: string }
+        Returns: undefined
+      }
+      chart_account_next_code: {
+        Args: {
+          _context: Database["public"]["Enums"]["context_type"]
+          _parent_id: string
+          _user_id: string
+        }
+        Returns: string
       }
       delete_email: {
         Args: { message_id: number; queue_name: string }

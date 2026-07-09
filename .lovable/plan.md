@@ -1,53 +1,35 @@
-## Módulo: Contas Contábeis
+## Índice automático em Contas Contábeis
 
-Novo cadastro em **Gerenciar → Contas Contábeis** (`/contas-contabeis`) com plano de contas hierárquico ilimitado (Sintéticas ↔ Analíticas), ordenação por código de índice, vínculo com Perfis de Acesso (empresas) e suporte a códigos de imposto.
+### Regra de numeração
 
-### Banco de dados
+- **Raiz** (sem pai): próximo inteiro disponível — `1`, `2`, `3`...
+- **Filha**: código do pai + `.N`, onde N é o próximo inteiro entre os irmãos daquele pai — `1.1`, `1.1.1`, etc. Sem limite de profundidade.
+- Cálculo feito no servidor via função Postgres (`chart_account_next_code(parent_id, user_id, context)`) para evitar condições de corrida (dois usuários criando simultaneamente).
 
-Nova tabela `public.chart_accounts`:
-- `id`, `user_id`, `context` (pf/pj)
-- `code` (text, ex.: `1.1.01`) — usado para ordenação natural
-- `name` (nome da conta)
-- `description` (descrição longa, opcional)
-- `parent_id` (self-FK; NULL = raiz) — permite hierarquia sem limite
-- `allow_transactions` (bool) — true = Analítica (aceita lançamentos), false = Sintética
-- `is_active` (bool) — inativa preserva histórico, bloqueia novos lançamentos
-- `short_code` (text, opcional) — "Conta Contábil Resumida"
-- `is_tax` (bool) — se marcada, exibe campos de imposto
-- `tax_code` (text) e `tax_description` (text) — só quando `is_tax = true`
-- `created_at`, `updated_at`
+### Formulário
 
-Tabela auxiliar `public.chart_account_companies` (junction) para vincular a empresas quando `context = 'pj'`: `chart_account_id`, `company_id`.
+- Remover o input **Código (Índice)** da criação e da edição.
+- Mostrar o código atual como texto somente-leitura (badge) no topo do dialog de edição.
+- **Conta Pai** continua editável na edição. Ao trocar de pai:
+  - O código da conta é recalculado (próximo disponível no novo pai).
+  - Todas as filhas descendentes são recalculadas em cascata mantendo a ordem relativa.
+  - Lançamentos existentes vinculados permanecem intactos (referência é por `id`, não por código).
 
-Regras:
-- RLS: dono (`user_id = auth.uid()`) OU membro da empresa vinculada (via junction, quando pj).
-- GRANTs a `authenticated` e `service_role`.
-- Trigger `updated_at` padrão.
-- Validação: `allow_transactions = true` só permitido em folhas (sem filhos ativos) — verificada no client + trigger simples.
-- Índice único parcial `(user_id, context, company_scope, code)` para evitar códigos duplicados no mesmo escopo.
+### Exclusão
 
-### UI
+- Bloquear exclusão se a conta tiver **filhas** ou **lançamentos vinculados**.
+- Mensagem sugerindo **Inativar** como alternativa (botão de atalho no diálogo de confirmação).
+- Como o vínculo `transactions → chart_accounts` ainda não existe hoje, a checagem de "possui lançamentos" fica preparada mas só bloqueia por filhas por enquanto; o comportamento completo ativa automaticamente quando o campo for adicionado a `transactions`.
 
-**`src/pages/ContasContabeis.tsx`** — lista em árvore expandível ordenada por `code` (ordenação natural por segmentos numéricos). Cada linha mostra: código, nome, badge Sintética/Analítica, badge Ativa/Inativa, código resumido, ações Editar/Excluir/Adicionar Filha.
+### Backend
 
-**`src/components/chart-accounts/ChartAccountFormDialog.tsx`** — formulário com todos os campos:
-- Código (índice), Nome, Descrição
-- Conta Pai (select das sintéticas existentes; vazio = raiz)
-- Switch "Permitir Lançamentos" (Sim = Analítica / Não = Sintética) com ícone `HelpCircle` + Tooltip/Popover explicando: *"Analítica aceita lançamentos diretos. Sintética serve apenas para agrupar contas filhas e somar totais."*
-- Situação Ativa/Inativa (Switch) — texto auxiliar: *"Inativa mantém lançamentos existentes, mas bloqueia novos."*
-- Conta Resumida com `HelpCircle` + explicação: *"Código resumido usado em relatórios contábeis simplificados."*
-- Checkbox "É conta de Imposto" → quando marcado revela Código do Imposto e Descrição do Imposto
-- Bloco Visibilidade: Checkbox "Pessoal (PF)" + lista de empresas com checkboxes (padrão pattern de `CategoryFormDialog`)
-- Todos os campos editáveis também na edição.
+- Nova função SQL `public.chart_account_next_code(_parent_id uuid, _user_id uuid, _context context_type)` — retorna o próximo código como texto.
+- Trigger `BEFORE INSERT` em `chart_accounts` que popula `code` automaticamente quando NULL, usando a função acima.
+- Nova função `public.chart_account_move(_id uuid, _new_parent_id uuid)` — SECURITY DEFINER, valida propriedade, recalcula o código da conta e de todos os descendentes em cascata (mantendo ordem por `code` atual).
+- Ajustar a `CREATE TABLE` para permitir `code` NULL na inserção (default via trigger), mas manter unicidade.
 
-**Sidebar** — inserir `{ title: "Contas Contábeis", url: "/contas-contabeis", icon: BookOpen }` em `secondaryItems` (grupo Gerenciar), abaixo de Categorias.
+### Frontend
 
-**Rota** em `src/App.tsx` dentro do bloco protegido.
-
-### Validação
-
-Adicionar `chartAccountSchema` em `src/lib/validations.ts` (zod): `code` obrigatório (regex `^\d+(\.\d+)*$`), `name` 1–120, `short_code` opcional ≤30, `is_tax` requer `tax_code`+`tax_description` quando true.
-
-### Fora do escopo (nesta entrega)
-
-- Integração com o formulário de lançamentos (seleção de conta contábil) — pode ser feito depois; a tabela já fica pronta para relacionamento futuro via `chart_account_id` em `transactions`.
+- Chamar `chart_account_move` quando o pai mudar em edição; para criação, apenas omitir `code` e deixar o trigger preencher.
+- Remover validação de formato do `code` no zod (`chartAccountSchema`).
+- Página lista continua ordenando por `code` com o comparador natural existente.
