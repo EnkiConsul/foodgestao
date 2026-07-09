@@ -65,6 +65,19 @@ export const paymentMethodSchema = z.object({
   is_active: z.boolean(),
 });
 
+// ---- Chart Account ----
+export const chartAccountSchema = z.object({
+  code: z.string().trim().min(1, "Código é obrigatório").max(30).regex(/^\d+(\.\d+)*$/, "Use apenas números separados por ponto (ex: 1.1.01)"),
+  name: z.string().trim().min(1, "Nome é obrigatório").max(120),
+  short_code: z.string().trim().max(30).optional().nullable(),
+  is_tax: z.boolean(),
+  tax_code: z.string().trim().max(20).optional().nullable(),
+  tax_description: z.string().trim().max(100).optional().nullable(),
+}).refine((d) => !d.is_tax || (!!d.tax_code && !!d.tax_description), {
+  message: "Informe código e descrição do imposto",
+  path: ["tax_code"],
+});
+
 /** Helper: validate and return parsed data or null (shows toast on error) */
 export function validateWithToast<T>(schema: z.ZodSchema<T>, data: unknown, toastFn: (msg: string) => void): T | null {
   const result = schema.safeParse(data);

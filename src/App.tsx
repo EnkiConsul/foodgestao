@@ -25,6 +25,7 @@ import DREHistorico from "./pages/dre/DREHistorico";
 import DREComparativo from "./pages/dre/DREComparativo";
 import Contatos from "./pages/Contatos";
 import Categorias from "./pages/Categorias";
+import ContasContabeis from "./pages/ContasContabeis";
 import ContasBancarias from "./pages/ContasBancarias";
 import Configuracoes from "./pages/Configuracoes";
 import GestaoUsuarios from "./pages/GestaoUsuarios";
@@ -276,6 +277,7 @@ const AppRoutes = () => (
       <Route path="/relatorios/dre/comparativo" element={<DREComparativo />} />
       <Route path="/contatos" element={<Contatos />} />
       <Route path="/categorias" element={<Categorias />} />
+      <Route path="/contas-contabeis" element={<ContasContabeis />} />
       <Route path="/contas-bancarias" element={<ContasBancarias />} />
       <Route path="/configuracoes" element={<Configuracoes />} />
       <Route path="/gestao-usuarios" element={<GestaoUsuarios />} />
