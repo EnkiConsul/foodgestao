@@ -646,8 +646,8 @@ export default function Lancamentos() {
   };
 
   const clearFilters = () => {
-    setFilterAccount("all");
-    setFilterPaymentMethod("all");
+    setFilterAccount([]);
+    setFilterPaymentMethod([]);
     setFilterCategory("all");
     setFilterCredito(true);
     setFilterDebito(true);
