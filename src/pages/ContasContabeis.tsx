@@ -47,7 +47,9 @@ function buildTree(rows: ChartAccount[]): Node[] {
 
 export default function ContasContabeis() {
   const { user } = useAuth();
-  const { contextType } = useCompanyContext();
+  const { contextType, currentCompanyId } = useCompanyContext();
+  const queryClient = useQueryClient();
+  const [restoring, setRestoring] = useState(false);
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<ChartAccount | null>(null);
