@@ -166,7 +166,7 @@ export default function Lancamentos() {
   const [filterPago, setFilterPago] = useState(true);
   const [filterAVencer, setFilterAVencer] = useState(true);
   const [filterAtrasado, setFilterAtrasado] = useState(true);
-  const [filterPaymentMethod, setFilterPaymentMethod] = useState<string>("all");
+  const [filterPaymentMethod, setFilterPaymentMethod] = useState<string[]>([]);
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   // Date range filter
