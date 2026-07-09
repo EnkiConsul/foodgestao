@@ -154,6 +154,21 @@ export default function ContasContabeis() {
     );
   };
 
+  const handleRestoreDefault = async () => {
+    if (!selectedCompanyId) return;
+    if (!confirm("Isto irá adicionar as contas do modelo padrão que ainda não existirem nesta empresa. Contas atuais serão mantidas. Continuar?")) return;
+    setRestoring(true);
+    const { data, error } = await (supabase as any).rpc("chart_accounts_restore_default", { _company_id: selectedCompanyId });
+    setRestoring(false);
+    if (error) toast.error("Erro ao restaurar modelo", { description: error.message });
+    else {
+      toast.success(`${data ?? 0} conta(s) do modelo adicionada(s)`);
+      queryClient.invalidateQueries({ queryKey: ["chart-accounts"] });
+    }
+  };
+
+  const canRestore = contextType === "pj" && !!selectedCompanyId;
+
   return (
     <div className="space-y-6">
       <Helmet><title>Contas Contábeis | Gestor Plin</title></Helmet>
@@ -162,10 +177,18 @@ export default function ContasContabeis() {
           <h1 className="text-2xl font-bold">Contas Contábeis</h1>
           <p className="text-sm text-muted-foreground">Plano de contas hierárquico. Contas Sintéticas agrupam; Analíticas recebem lançamentos.</p>
         </div>
-        <Button onClick={() => openNew(null)}>
-          <Plus className="h-4 w-4 mr-2" /> Nova Conta
-        </Button>
+        <div className="flex gap-2">
+          {canRestore && (
+            <Button variant="outline" onClick={handleRestoreDefault} disabled={restoring} title="Adiciona contas do modelo padrão que ainda não existem">
+              <Sparkles className="h-4 w-4 mr-2" /> {restoring ? "Restaurando..." : "Restaurar Modelo Padrão"}
+            </Button>
+          )}
+          <Button onClick={() => openNew(null)}>
+            <Plus className="h-4 w-4 mr-2" /> Nova Conta
+          </Button>
+        </div>
       </div>
+
 
       <Card className="p-2">
         {isLoading ? (
