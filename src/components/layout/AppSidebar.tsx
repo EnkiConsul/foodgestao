@@ -18,6 +18,7 @@ import {
   
   Receipt,
   MessageCircle,
+  BookOpen,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Logo } from "@/components/Logo";
@@ -55,6 +56,7 @@ const secondaryItems = [
   { title: "Formas de Pagamento", url: "/formas-pagamento", icon: CreditCard },
   { title: "Clientes / Fornecedores", url: "/contatos", icon: Users },
   { title: "Categorias", url: "/categorias", icon: FolderTree },
+  { title: "Contas Contábeis", url: "/contas-contabeis", icon: BookOpen },
   { title: "Usuários", url: "/gestao-usuarios", icon: UserCog },
   { title: "Meu Plano", url: "/planos", icon: Sparkles },
   { title: "Minhas Faturas", url: "/faturas", icon: Receipt },
