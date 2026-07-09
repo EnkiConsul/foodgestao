@@ -22,6 +22,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { TransactionFormDialog } from "@/components/transactions/TransactionFormDialog";
 import { ImportStatementDialog } from "@/components/transactions/ImportStatementDialog";
 import { PaymentDialog } from "@/components/bills/PaymentDialog";
+import { MultiSelectFilter } from "@/components/lancamentos/MultiSelectFilter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
@@ -159,14 +160,14 @@ export default function Lancamentos() {
   const [previousBalance, setPreviousBalance] = useState(0);
 
   // Filters
-  const [filterAccount, setFilterAccount] = useState<string>("all");
+  const [filterAccount, setFilterAccount] = useState<string[]>([]);
   const [filterCredito, setFilterCredito] = useState(true);
   const [filterDebito, setFilterDebito] = useState(true);
   const [filterTransferencia, setFilterTransferencia] = useState(true);
   const [filterPago, setFilterPago] = useState(true);
   const [filterAVencer, setFilterAVencer] = useState(true);
   const [filterAtrasado, setFilterAtrasado] = useState(true);
-  const [filterPaymentMethod, setFilterPaymentMethod] = useState<string>("all");
+  const [filterPaymentMethod, setFilterPaymentMethod] = useState<string[]>([]);
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   // Date range filter
@@ -533,8 +534,8 @@ export default function Lancamentos() {
       if (t.transaction_type === "receita" && !filterCredito) return;
       if (t.transaction_type === "despesa" && !filterDebito) return;
       if (t.transaction_type === "transferencia" && !filterTransferencia) return;
-      if (filterAccount !== "all" && t.account_id !== filterAccount) return;
-      if (filterPaymentMethod !== "all" && t.payment_method_id !== filterPaymentMethod) return;
+      if (filterAccount.length > 0 && !filterAccount.includes(t.account_id)) return;
+      if (filterPaymentMethod.length > 0 && (!t.payment_method_id || !filterPaymentMethod.includes(t.payment_method_id))) return;
       if (filterCategory !== "all" && t.category_id !== filterCategory) return;
 
       const computed = computeDisplayStatus(t);
@@ -646,8 +647,8 @@ export default function Lancamentos() {
   };
 
   const clearFilters = () => {
-    setFilterAccount("all");
-    setFilterPaymentMethod("all");
+    setFilterAccount([]);
+    setFilterPaymentMethod([]);
     setFilterCategory("all");
     setFilterCredito(true);
     setFilterDebito(true);
@@ -734,23 +735,25 @@ export default function Lancamentos() {
   const FilterPanel = () => (
     <div className="space-y-1">
       <FilterSection title="Conta">
-        <Select value={filterAccount} onValueChange={setFilterAccount}>
-          <SelectTrigger className="mt-0.5 h-6 text-[11px]"><SelectValue placeholder="Todas" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
-            {accounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <MultiSelectFilter
+          value={filterAccount}
+          onChange={setFilterAccount}
+          options={accounts}
+          allLabel="Todas"
+          itemLabelSingular="conta"
+          itemLabelPlural="contas"
+        />
       </FilterSection>
 
       <FilterSection title="Forma de Pagamento">
-        <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}>
-          <SelectTrigger className="mt-0.5 h-6 text-[11px]"><SelectValue placeholder="Todas" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
-            {paymentMethods.map((pm) => <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <MultiSelectFilter
+          value={filterPaymentMethod}
+          onChange={setFilterPaymentMethod}
+          options={paymentMethods}
+          allLabel="Todas"
+          itemLabelSingular="forma"
+          itemLabelPlural="formas"
+        />
       </FilterSection>
 
       <FilterSection title="Categoria">
