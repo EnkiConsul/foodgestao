@@ -70,6 +70,7 @@ export function ChartAccountFormDialog({ open, onOpenChange, onSaved, editAccoun
   const [taxDescription, setTaxDescription] = useState("");
   const [visiblePf, setVisiblePf] = useState(true);
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
+  const [originalParentId, setOriginalParentId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const { data: allAccounts = [] } = useQuery({
@@ -107,6 +108,7 @@ export function ChartAccountFormDialog({ open, onOpenChange, onSaved, editAccoun
       setName(editAccount.name);
       setDescription(editAccount.description ?? "");
       setParentId(editAccount.parent_id);
+      setOriginalParentId(editAccount.parent_id);
       setAllowTransactions(editAccount.allow_transactions);
       setIsActive(editAccount.is_active);
       setShortCode(editAccount.short_code ?? "");
@@ -126,6 +128,7 @@ export function ChartAccountFormDialog({ open, onOpenChange, onSaved, editAccoun
       setName("");
       setDescription("");
       setParentId(defaultParentId ?? null);
+      setOriginalParentId(null);
       setAllowTransactions(true);
       setIsActive(true);
       setShortCode("");
@@ -155,7 +158,6 @@ export function ChartAccountFormDialog({ open, onOpenChange, onSaved, editAccoun
     const validated = validateWithToast(
       chartAccountSchema,
       {
-        code,
         name,
         short_code: shortCode || null,
         is_tax: isTax,
@@ -167,28 +169,45 @@ export function ChartAccountFormDialog({ open, onOpenChange, onSaved, editAccoun
     if (!validated) return;
 
     setSaving(true);
-    const payload = {
-      user_id: user.id,
-      context: contextType,
-      code: code.trim(),
-      name: name.trim(),
-      description: description.trim() || null,
-      parent_id: parentId,
-      allow_transactions: allowTransactions,
-      is_active: isActive,
-      short_code: shortCode.trim() || null,
-      is_tax: isTax,
-      tax_code: isTax ? taxCode.trim() || null : null,
-      tax_description: isTax ? taxDescription.trim() || null : null,
-      visible_pf: visiblePf,
-    };
 
     let accountId = editAccount?.id;
     if (editAccount) {
-      const { error } = await (supabase as any).from("chart_accounts").update(payload).eq("id", editAccount.id);
+      // If parent changed, move (recalculates codes in cascade)
+      if (parentId !== originalParentId) {
+        const { error: moveErr } = await (supabase as any).rpc("chart_account_move", {
+          _id: editAccount.id,
+          _new_parent_id: parentId,
+        });
+        if (moveErr) { toast.error("Erro ao mover conta", { description: moveErr.message }); setSaving(false); return; }
+      }
+      const { error } = await (supabase as any).from("chart_accounts").update({
+        name: name.trim(),
+        description: description.trim() || null,
+        allow_transactions: allowTransactions,
+        is_active: isActive,
+        short_code: shortCode.trim() || null,
+        is_tax: isTax,
+        tax_code: isTax ? taxCode.trim() || null : null,
+        tax_description: isTax ? taxDescription.trim() || null : null,
+        visible_pf: visiblePf,
+      }).eq("id", editAccount.id);
       if (error) { toast.error("Erro ao atualizar", { description: error.message }); setSaving(false); return; }
     } else {
-      const { data, error } = await (supabase as any).from("chart_accounts").insert(payload).select("id").single();
+      // code is auto-filled by trigger
+      const { data, error } = await (supabase as any).from("chart_accounts").insert({
+        user_id: user.id,
+        context: contextType,
+        name: name.trim(),
+        description: description.trim() || null,
+        parent_id: parentId,
+        allow_transactions: allowTransactions,
+        is_active: isActive,
+        short_code: shortCode.trim() || null,
+        is_tax: isTax,
+        tax_code: isTax ? taxCode.trim() || null : null,
+        tax_description: isTax ? taxDescription.trim() || null : null,
+        visible_pf: visiblePf,
+      }).select("id").single();
       if (error || !data) { toast.error("Erro ao criar", { description: error?.message }); setSaving(false); return; }
       accountId = data.id;
     }
@@ -214,15 +233,17 @@ export function ChartAccountFormDialog({ open, onOpenChange, onSaved, editAccoun
           <DialogTitle>{editAccount ? "Editar Conta Contábil" : "Nova Conta Contábil"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-2 col-span-1">
-              <Label>Código (Índice)</Label>
-              <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="1.1.01" maxLength={30} />
+          {editAccount && (
+            <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2 text-sm">
+              <span className="text-muted-foreground">Índice:</span>
+              <span className="font-mono font-semibold">{code}</span>
+              <span className="text-xs text-muted-foreground ml-auto">Gerado automaticamente pela hierarquia</span>
             </div>
-            <div className="space-y-2 col-span-2">
-              <Label>Nome da Conta</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Caixa Geral" maxLength={120} />
-            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label>Nome da Conta</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Caixa Geral" maxLength={120} />
           </div>
 
           <div className="space-y-2">

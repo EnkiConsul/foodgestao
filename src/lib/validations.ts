@@ -67,7 +67,6 @@ export const paymentMethodSchema = z.object({
 
 // ---- Chart Account ----
 export const chartAccountSchema = z.object({
-  code: z.string().trim().min(1, "Código é obrigatório").max(30).regex(/^\d+(\.\d+)*$/, "Use apenas números separados por ponto (ex: 1.1.01)"),
   name: z.string().trim().min(1, "Nome é obrigatório").max(120),
   short_code: z.string().trim().max(30).optional().nullable(),
   is_tax: z.boolean(),
