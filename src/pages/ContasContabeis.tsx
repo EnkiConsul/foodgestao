@@ -93,6 +93,12 @@ export default function ContasContabeis() {
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
+    const hasChildren = rows.some((r) => r.parent_id === deleteTarget.id);
+    if (hasChildren) {
+      toast.error("Não é possível excluir", { description: "Esta conta possui filhas. Inative-a ou remova as filhas primeiro." });
+      setDeleteTarget(null);
+      return;
+    }
     const { error } = await (supabase as any).from("chart_accounts").delete().eq("id", deleteTarget.id);
     if (error) toast.error("Erro ao excluir", { description: error.message });
     else {
