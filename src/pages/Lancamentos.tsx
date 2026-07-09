@@ -159,7 +159,7 @@ export default function Lancamentos() {
   const [previousBalance, setPreviousBalance] = useState(0);
 
   // Filters
-  const [filterAccount, setFilterAccount] = useState<string>("all");
+  const [filterAccount, setFilterAccount] = useState<string[]>([]);
   const [filterCredito, setFilterCredito] = useState(true);
   const [filterDebito, setFilterDebito] = useState(true);
   const [filterTransferencia, setFilterTransferencia] = useState(true);
