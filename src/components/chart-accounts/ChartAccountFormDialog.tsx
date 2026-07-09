@@ -70,6 +70,7 @@ export function ChartAccountFormDialog({ open, onOpenChange, onSaved, editAccoun
   const [taxDescription, setTaxDescription] = useState("");
   const [visiblePf, setVisiblePf] = useState(true);
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
+  const [originalParentId, setOriginalParentId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const { data: allAccounts = [] } = useQuery({
