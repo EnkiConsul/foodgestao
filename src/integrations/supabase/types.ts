@@ -2760,6 +2760,14 @@ export type Database = {
         }
         Returns: string
       }
+      chart_accounts_restore_default: {
+        Args: { _company_id: string }
+        Returns: number
+      }
+      chart_accounts_seed_default: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: number
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
