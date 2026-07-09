@@ -233,15 +233,17 @@ export function ChartAccountFormDialog({ open, onOpenChange, onSaved, editAccoun
           <DialogTitle>{editAccount ? "Editar Conta Contábil" : "Nova Conta Contábil"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-2 col-span-1">
-              <Label>Código (Índice)</Label>
-              <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="1.1.01" maxLength={30} />
+          {editAccount && (
+            <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2 text-sm">
+              <span className="text-muted-foreground">Índice:</span>
+              <span className="font-mono font-semibold">{code}</span>
+              <span className="text-xs text-muted-foreground ml-auto">Gerado automaticamente pela hierarquia</span>
             </div>
-            <div className="space-y-2 col-span-2">
-              <Label>Nome da Conta</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Caixa Geral" maxLength={120} />
-            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label>Nome da Conta</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Caixa Geral" maxLength={120} />
           </div>
 
           <div className="space-y-2">
