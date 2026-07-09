@@ -533,8 +533,8 @@ export default function Lancamentos() {
       if (t.transaction_type === "receita" && !filterCredito) return;
       if (t.transaction_type === "despesa" && !filterDebito) return;
       if (t.transaction_type === "transferencia" && !filterTransferencia) return;
-      if (filterAccount !== "all" && t.account_id !== filterAccount) return;
-      if (filterPaymentMethod !== "all" && t.payment_method_id !== filterPaymentMethod) return;
+      if (filterAccount.length > 0 && !filterAccount.includes(t.account_id)) return;
+      if (filterPaymentMethod.length > 0 && (!t.payment_method_id || !filterPaymentMethod.includes(t.payment_method_id))) return;
       if (filterCategory !== "all" && t.category_id !== filterCategory) return;
 
       const computed = computeDisplayStatus(t);
