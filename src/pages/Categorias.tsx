@@ -580,8 +580,8 @@ export default function Categorias() {
                                   style={{ backgroundColor: cat.color ?? "hsl(var(--primary))" }}
                                 />
                                 <span className="font-mono text-xs text-muted-foreground w-20 shrink-0">{cat.index}.</span>
-                                <span className={`text-sm ${cat.depth === 0 ? "font-semibold" : ""}`}>
-                                  {cat.name}
+                                <span className={`text-sm ${cat.depth === 0 ? "font-semibold uppercase" : ""}`}>
+                                  {cat.depth === 0 ? cat.name.toUpperCase() : cat.name}
                                 </span>
                               </div>
                             </TableCell>

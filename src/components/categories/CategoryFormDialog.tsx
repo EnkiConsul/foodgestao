@@ -117,6 +117,8 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
     if (!catValidated) return;
 
     setSaving(true);
+    // Categorias raiz (sem pai) são salvas em CAIXA ALTA
+    const finalName = parentId ? name.trim() : name.trim().toUpperCase();
 
     // Compute next sort_order for the target parent (append at end of siblings)
     const computeNextSortOrder = async (parentIdVal: string | null) => {
@@ -133,7 +135,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
 
     if (editCategory) {
       const parentChanged = (editCategory.parent_id ?? null) !== (parentId ?? null);
-      const updatePayload: any = { name: name.trim(), transaction_type: type, color, parent_id: parentId || null, visible_pf: visiblePf };
+      const updatePayload: any = { name: finalName, transaction_type: type, color, parent_id: parentId || null, visible_pf: visiblePf };
       if (parentChanged) {
         updatePayload.sort_order = await computeNextSortOrder(parentId || null);
       }
@@ -170,7 +172,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       const nextSort = await computeNextSortOrder(parentId || null);
       const { data: newCat, error } = await supabase.from("categories").insert({
         user_id: user.id,
-        name: name.trim(),
+        name: finalName,
         transaction_type: type,
         color,
         context: contextType,
