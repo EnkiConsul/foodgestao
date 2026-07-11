@@ -135,7 +135,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
 
     if (editCategory) {
       const parentChanged = (editCategory.parent_id ?? null) !== (parentId ?? null);
-      const updatePayload: any = { name: name.trim(), transaction_type: type, color, parent_id: parentId || null, visible_pf: visiblePf };
+      const updatePayload: any = { name: finalName, transaction_type: type, color, parent_id: parentId || null, visible_pf: visiblePf };
       if (parentChanged) {
         updatePayload.sort_order = await computeNextSortOrder(parentId || null);
       }
