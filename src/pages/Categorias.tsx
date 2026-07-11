@@ -579,8 +579,8 @@ export default function Categorias() {
                                   className="h-3 w-3 shrink-0 rounded-full"
                                   style={{ backgroundColor: cat.color ?? "hsl(var(--primary))" }}
                                 />
+                                <span className="font-mono text-xs text-muted-foreground w-20 shrink-0">{cat.index}.</span>
                                 <span className={`text-sm ${cat.depth === 0 ? "font-semibold" : ""}`}>
-                                  <span className="text-muted-foreground font-mono text-xs mr-1.5">{cat.index}.</span>
                                   {cat.name}
                                 </span>
                               </div>
