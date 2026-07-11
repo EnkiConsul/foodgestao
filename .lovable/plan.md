@@ -1,37 +1,77 @@
-# Organização de Categorias no Modelo Índice
+# Permitir sinais livres em Lançamentos + cores pelo sinal
 
 ## Objetivo
-Exibir e ordenar Categorias exclusivamente pelo índice hierárquico (`1.`, `1.1`, `1.1.1`, `1.1.1.1`…), sem limite de profundidade, e ao criar uma nova categoria alocá-la automaticamente na próxima posição do índice de acordo com seu pai.
+Aceitar qualquer sinal em `amount` (exceto zero) em qualquer `transaction_type`. Efeito algébrico no saldo/DRE/relatórios: `contribuição = sign_by_type * amount` (receita = +1, despesa = -1). As **cores** exibidas passam a seguir o **sinal do efeito no saldo**, não o tipo:
+
+| Tipo | Valor | Efeito no saldo | Cor |
+|---|---|---|---|
+| Receita | +100 | +100 (crédito) | verde |
+| Receita | -500 | -500 (débito, estorno) | vermelho |
+| Despesa | +100 | -100 (débito) | vermelho |
+| Despesa | -80 | +80 (crédito, reembolso) | verde |
+
+Regra: **verde quando o efeito é positivo (entra dinheiro), vermelho quando negativo (sai dinheiro)**.
 
 ## Situação atual
-- A árvore já é construída e um índice (`1`, `1.1`, `1.1.1`) já é exibido antes do nome.
-- Porém a ordenação inicial mistura `transaction_type` como agrupador raiz, então a lista é quebrada em blocos Despesa/Receita em vez de seguir estritamente `1 → 1.1 → 1.2 → 2 → 2.1`.
-- Ao criar uma nova categoria, o `sort_order` não é atribuído — todas ficam com `0` e a ordem final depende do `name`, quebrando o índice.
-- O campo `hierarchy_index` já existe na tabela e é sincronizado após render, mas não é usado na query de ordenação.
+- Balanços/DRE (`update_account_balance`, `get_dre_periodo`, `get_account_balances`) já usam `receita→+amount, despesa→-amount`, ou seja, sinais negativos propagam corretamente sem alterar triggers.
+- Bloqueios:
+  - `transactionSchema`: `amount.positive()`
+  - `CurrencyInput`: `.replace(/\D/g, "")` descarta o `-`
+  - `parseAmount` em `nubankPdf.ts`: `Math.abs`
+- Cores hoje: componentes decidem pela `transaction_type` (verde=receita, vermelho=despesa).
 
 ## Mudanças
 
-### 1. `src/pages/Categorias.tsx` — ordenação e apresentação
-- Substituir `.order("transaction_type").order("sort_order").order("name")` por `.order("hierarchy_index", { nullsFirst: false }).order("sort_order").order("name")`.
-- Em `buildTree`, agrupar raízes e filhos apenas por `parent_id` (sem separar por `transaction_type` na raiz). O filtro Todas/Despesas/Receitas continua controlando o que aparece via `filtered`.
-- Reordenar siblings em `onDragEnd` sem restringir por `transaction_type` (mantém regra "mesmo pai").
-- Ajuste visual leve: usar fonte monoespaçada e largura fixa para o índice, no mesmo estilo de Contas Contábeis (`font-mono text-xs w-20 shrink-0`).
+### 1. `src/lib/validations.ts`
+```ts
+amount: z.number().finite().refine((v) => v !== 0, "Valor não pode ser zero")
+```
 
-### 2. `src/components/categories/CategoryFormDialog.tsx` — alocação automática no índice
-Ao criar (não editar) uma categoria:
-- Buscar `MAX(sort_order)` entre os siblings (`user_id = X AND parent_id IS NOT DISTINCT FROM :parentId AND transaction_type = :type`).
-- Inserir com `sort_order = max + 1`. Isso garante que a nova categoria vai para o final do índice do pai (ex.: se pai `1.` tem filhos `1.1`, `1.2`, a nova vira `1.3`).
-- Ao mudar o pai de uma categoria existente pelo edit, também recalcular `sort_order` para o final do novo pai.
+### 2. `src/components/ui/currency-input.tsx`
+- Aceitar `-` opcional no início: `raw` preserva o sinal.
+- `formatCurrency` detecta sinal, formata módulo e prefixa `-`.
+- `parseCurrencyToNumber` já respeita `-` via `parseFloat`.
 
-### 3. `hierarchy_index` — manter sincronismo
-- A rotina `persistHierarchyIndex` já grava o índice; ela continua sendo chamada após render. Como agora a query já ordena por `hierarchy_index`, o valor persistido é a fonte de verdade e a próxima carga fica ordenada corretamente sem depender do cliente reconstruir a árvore.
-- Após criar/editar/reordenar/mover, invalidar a query e deixar `persistHierarchyIndex` regravar os índices.
+### 3. `src/lib/statement-import/nubankPdf.ts`
+Remover `Math.abs` em `parseAmount` — sinal do extrato preservado no import.
 
-## Impacto em outros módulos
-- Nenhum. `sort_order` e `hierarchy_index` já existem; nenhuma outra tela lê `hierarchy_index` para lógica de negócio (só ordenação visual). Categorias continuam identificadas por `id` em transações, orçamentos, DRE etc.
-- Sem migração de banco necessária.
+### 4. Cores pelo sinal — novo helper compartilhado
+Criar `src/lib/transaction-sign.ts`:
+```ts
+export function transactionSignedAmount(t: { transaction_type: string; amount: number }): number {
+  if (t.transaction_type === "receita") return t.amount;
+  if (t.transaction_type === "despesa") return -t.amount;
+  return t.amount; // transferencia mantém neutro
+}
+export function transactionColorClass(t: { transaction_type: string; amount: number }): string {
+  const signed = transactionSignedAmount(t);
+  if (signed > 0) return "text-emerald-600 dark:text-emerald-400";
+  if (signed < 0) return "text-red-600 dark:text-red-400";
+  return "text-muted-foreground";
+}
+```
+
+Substituir a lógica atual `type === "receita" ? verde : vermelho` nos pontos onde a cor do **valor** é aplicada:
+- `src/pages/Lancamentos.tsx` (linhas/valor da linha e resumo)
+- `src/components/lancamentos/*` (badges/valor)
+- `src/pages/Dashboard.tsx` (cards recentes)
+- `src/pages/FluxoCaixa.tsx` (colunas de entrada/saída — se o valor tem sinal invertido, ele muda de coluna)
+- `src/pages/Relatorios.tsx` (linhas de valor)
+
+**Escopo do helper**: aplicar apenas no **valor monetário exibido** e em **ícones/setas de direção**. Não mudar cores de badges "Receita/Despesa" (que continuam identificando o **tipo** declarado) — só o valor e a seta seguem o sinal do efeito.
+
+Para Fluxo de Caixa e agrupamentos "Entradas/Saídas", classificar por `transactionSignedAmount > 0` em vez de `type === "receita"`, para que um estorno de receita apareça na coluna de saída.
+
+### 5. Formatação de números
+`formatBRL` / `Intl.NumberFormat("pt-BR", currency)` já formatam negativos como `-R$ 100,00`. Sem alteração.
+
+### 6. Recorrências, exportações CSV, orçamento
+Sem alteração — todos operam com soma algébrica.
+
+### 7. Backend
+Sem migração. `transactions.amount` é `numeric` livre.
 
 ## O que NÃO faremos
-- Não alterar Contas Contábeis, DRE, Lançamentos ou Orçamentos.
-- Não impor limite de profundidade (já é ilimitado).
-- Não renumerar códigos manualmente — o índice é derivado da posição na árvore.
+- Sem CHECK no banco.
+- Não alterar `transaction_type` (receita/despesa continuam sendo a intenção; sinal é livre).
+- Badges de **tipo** continuam pelo tipo (verde=Receita, vermelho=Despesa como rótulos). Só a cor do **valor** e a **coluna de fluxo** seguem o sinal.

@@ -440,9 +440,15 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
                           </SelectContent>
                         </Select>
                       </TableCell>
-                      <TableCell className={`text-right whitespace-nowrap text-xs font-semibold ${r.transaction_type === "receita" ? "text-success" : "text-destructive"}`}>
-                        {r.transaction_type === "receita" ? "+" : "−"} {formatBRL(r.amount)}
-                      </TableCell>
+                      {(() => {
+                        const signed = r.transaction_type === "receita" ? r.amount : r.transaction_type === "despesa" ? -r.amount : 0;
+                        const colorCls = signed > 0 ? "text-success" : signed < 0 ? "text-destructive" : "text-foreground";
+                        return (
+                          <TableCell className={`text-right whitespace-nowrap text-xs font-semibold ${colorCls}`}>
+                            {signed >= 0 ? "+" : "−"} {formatBRL(Math.abs(r.amount))}
+                          </TableCell>
+                        );
+                      })()}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -506,10 +512,16 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
                         <div className="truncate">
                           <span className="font-medium">{f.row.date}</span>
                           {" · "}
-                          <span className={f.row.transaction_type === "receita" ? "text-success" : "text-destructive"}>
-                            {f.row.transaction_type === "receita" ? "+" : "-"}
-                            {f.row.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                          </span>
+                          {(() => {
+                            const signed = f.row.transaction_type === "receita" ? f.row.amount : f.row.transaction_type === "despesa" ? -f.row.amount : 0;
+                            const cls = signed > 0 ? "text-success" : signed < 0 ? "text-destructive" : "text-foreground";
+                            return (
+                              <span className={cls}>
+                                {(signed >= 0 ? "+" : "-")}
+                                {Math.abs(f.row.amount).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                              </span>
+                            );
+                          })()}
                           {" · "}
                           <span className="text-muted-foreground">{f.row.description_override?.trim() || f.row.description}</span>
                         </div>

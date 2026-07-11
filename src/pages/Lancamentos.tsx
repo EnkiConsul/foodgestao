@@ -1054,6 +1054,17 @@ export default function Lancamentos() {
                       const isReceita = r.transactionType === "receita";
                       const isDespesa = r.transactionType === "despesa";
                       const isTransf = r.transactionType === "transferencia";
+                      // Efeito algébrico no saldo: receita→+amount, despesa→-amount
+                      const signedEffect = isReceita ? r.amount : isDespesa ? -r.amount : 0;
+                      const effectPositive = signedEffect > 0;
+                      const effectNegative = signedEffect < 0;
+                      const valueColorClass = isTransf
+                        ? "text-foreground"
+                        : effectPositive
+                          ? "text-success"
+                          : effectNegative
+                            ? "text-destructive"
+                            : "text-foreground";
                       const hasDue = r.hasDueDate;
                       const paidPercent = hasDue && r.amount > 0 ? Math.min((r.amountPaid / r.amount) * 100, 100) : 0;
                       const isSelected = selectedIds.has(r.id);
@@ -1123,8 +1134,8 @@ export default function Lancamentos() {
                           {/* D/C */}
                           {visibleColumns.dc && (
                           <TableCell className="text-center py-2">
-                            {isReceita && <span className="text-xs font-bold text-success">C</span>}
-                            {isDespesa && <span className="text-xs font-bold text-destructive">D</span>}
+                            {!isTransf && effectPositive && <span className="text-xs font-bold text-success">C</span>}
+                            {!isTransf && effectNegative && <span className="text-xs font-bold text-destructive">D</span>}
                             {isTransf && <span className="text-xs font-bold text-primary">T</span>}
                           </TableCell>
                           )}
@@ -1151,7 +1162,7 @@ export default function Lancamentos() {
                           )}
 
                           {/* Valor */}
-                          <TableCell className={`text-xs text-right py-2 font-medium whitespace-nowrap ${isReceita ? "text-success" : isDespesa ? "text-destructive" : "text-foreground"}`}>
+                          <TableCell className={`text-xs text-right py-2 font-medium whitespace-nowrap ${valueColorClass}`}>
                             {r.amountPaid > 0 && r.amountPaid !== r.amount ? (
                               <TooltipProvider delayDuration={200}>
                                 <Tooltip>
