@@ -94,6 +94,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       setType(editCategory.transaction_type as "receita" | "despesa");
       setColor(editCategory.color ?? "#3b82f6");
       setParentId(editCategory.parent_id ?? null);
+      setChartAccountId((editCategory as any).chart_account_id ?? null);
       setVisiblePf((editCategory as any).visible_pf ?? true);
       // Load linked companies
       supabase
@@ -108,6 +109,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       setType(defaultType ?? "despesa");
       setColor("#3b82f6");
       setParentId(defaultParentId || null);
+      setChartAccountId(null);
       setVisiblePf(true);
       setSelectedCompanies(new Set(companies.map((c) => c.id)));
     }
