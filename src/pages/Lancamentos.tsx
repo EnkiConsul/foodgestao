@@ -1054,6 +1054,17 @@ export default function Lancamentos() {
                       const isReceita = r.transactionType === "receita";
                       const isDespesa = r.transactionType === "despesa";
                       const isTransf = r.transactionType === "transferencia";
+                      // Efeito algébrico no saldo: receita→+amount, despesa→-amount
+                      const signedEffect = isReceita ? r.amount : isDespesa ? -r.amount : 0;
+                      const effectPositive = signedEffect > 0;
+                      const effectNegative = signedEffect < 0;
+                      const valueColorClass = isTransf
+                        ? "text-foreground"
+                        : effectPositive
+                          ? "text-success"
+                          : effectNegative
+                            ? "text-destructive"
+                            : "text-foreground";
                       const hasDue = r.hasDueDate;
                       const paidPercent = hasDue && r.amount > 0 ? Math.min((r.amountPaid / r.amount) * 100, 100) : 0;
                       const isSelected = selectedIds.has(r.id);
