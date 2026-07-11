@@ -1162,7 +1162,7 @@ export default function Lancamentos() {
                           )}
 
                           {/* Valor */}
-                          <TableCell className={`text-xs text-right py-2 font-medium whitespace-nowrap ${isReceita ? "text-success" : isDespesa ? "text-destructive" : "text-foreground"}`}>
+                          <TableCell className={`text-xs text-right py-2 font-medium whitespace-nowrap ${valueColorClass}`}>
                             {r.amountPaid > 0 && r.amountPaid !== r.amount ? (
                               <TooltipProvider delayDuration={200}>
                                 <Tooltip>
