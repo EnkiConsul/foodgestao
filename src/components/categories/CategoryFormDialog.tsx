@@ -272,6 +272,26 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
           </div>
 
           <div className="space-y-2">
+            <Label>Conta Contábil (opcional)</Label>
+            <Select value={chartAccountId ?? "__none__"} onValueChange={(v) => setChartAccountId(!v || v === "__none__" ? null : v)}>
+              <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Nenhuma</SelectItem>
+                {chartAccounts.map((ca) => (
+                  <SelectItem key={ca.id} value={ca.id}>
+                    {ca.code} — {ca.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {chartAccounts.length === 0 && (
+              <p className="text-xs text-muted-foreground">Cadastre em Contas Contábeis para vincular</p>
+            )}
+          </div>
+
+
+
+          <div className="space-y-2">
             <Label>Cor</Label>
             <div className="flex gap-2 flex-wrap">
               {COLOR_OPTIONS.map((c) => (
