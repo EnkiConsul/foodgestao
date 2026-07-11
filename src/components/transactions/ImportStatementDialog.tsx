@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Upload, FileText, Loader2, AlertTriangle, CheckCircle2, Plus, XCircle } from "lucide-react";
 import { formatDate } from "@/lib/date-utils";
 import { formatBRL } from "@/lib/billing";
+import { amountColorClass, amountSignPrefix, transactionSignedAmount } from "@/lib/transaction-sign";
 import { parseNubankStatementPdf } from "@/lib/statement-import/nubankPdf";
 import { suggestForEntries, markDuplicates } from "@/lib/statement-import/suggest";
 import type { ReviewRow } from "@/lib/statement-import/types";
