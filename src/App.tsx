@@ -18,11 +18,6 @@ import Lancamentos from "./pages/Lancamentos";
 import FluxoCaixa from "./pages/FluxoCaixa";
 import Orcamento from "./pages/Orcamento";
 import Relatorios from "./pages/Relatorios";
-import DREPage from "./pages/dre/DRE";
-import DREMapeamento from "./pages/dre/DREMapeamento";
-import DRERubricas from "./pages/dre/DRERubricas";
-import DREHistorico from "./pages/dre/DREHistorico";
-import DREComparativo from "./pages/dre/DREComparativo";
 import Contatos from "./pages/Contatos";
 import Categorias from "./pages/Categorias";
 import ContasContabeis from "./pages/ContasContabeis";
@@ -269,12 +264,6 @@ const AppRoutes = () => (
       <Route path="/fluxo-caixa" element={<FluxoCaixa />} />
       <Route path="/orcamento" element={<Orcamento />} />
       <Route path="/relatorios" element={<Relatorios />} />
-      <Route path="/relatorios/dre" element={<DREPage />} />
-      <Route path="/relatorios/dre/configuracao" element={<DREMapeamento />} />
-      <Route path="/relatorios/dre/rubricas" element={<DRERubricas />} />
-      <Route path="/relatorios/dre/historico" element={<DREHistorico />} />
-      <Route path="/relatorios/dre/historico/:id" element={<DREHistorico />} />
-      <Route path="/relatorios/dre/comparativo" element={<DREComparativo />} />
       <Route path="/contatos" element={<Contatos />} />
       <Route path="/categorias" element={<Categorias />} />
       <Route path="/contas-contabeis" element={<ContasContabeis />} />
