@@ -345,7 +345,7 @@ export default function FluxoCaixa() {
             <TrendingDown className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold text-destructive">{formatBRL(projectedTotals.totalDespesas)}</div>
+            <div className={`text-xl font-bold ${amountColorClass(-projectedTotals.totalDespesas)}`}>{formatBRL(projectedTotals.totalDespesas)}</div>
           </CardContent>
         </Card>
         <Card className="shadow-sm">
