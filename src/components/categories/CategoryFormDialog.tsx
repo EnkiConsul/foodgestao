@@ -118,10 +118,28 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
 
     setSaving(true);
 
+    // Compute next sort_order for the target parent (append at end of siblings)
+    const computeNextSortOrder = async (parentIdVal: string | null) => {
+      let query = supabase
+        .from("categories")
+        .select("sort_order")
+        .eq("user_id", user.id)
+        .eq("transaction_type", type);
+      query = parentIdVal ? query.eq("parent_id", parentIdVal) : query.is("parent_id", null);
+      const { data } = await query.order("sort_order", { ascending: false }).limit(1);
+      const max = data && data.length > 0 ? (data[0].sort_order ?? 0) : -1;
+      return max + 1;
+    };
+
     if (editCategory) {
+      const parentChanged = (editCategory.parent_id ?? null) !== (parentId ?? null);
+      const updatePayload: any = { name: name.trim(), transaction_type: type, color, parent_id: parentId || null, visible_pf: visiblePf };
+      if (parentChanged) {
+        updatePayload.sort_order = await computeNextSortOrder(parentId || null);
+      }
       const { error } = await supabase
         .from("categories")
-        .update({ name: name.trim(), transaction_type: type, color, parent_id: parentId || null, visible_pf: visiblePf } as any)
+        .update(updatePayload)
         .eq("id", editCategory.id);
       if (error) {
         toast.error("Erro ao atualizar", { description: error.message });
