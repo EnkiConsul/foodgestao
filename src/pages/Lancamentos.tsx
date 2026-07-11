@@ -963,13 +963,13 @@ export default function Lancamentos() {
         <Card className="shadow-sm">
           <CardContent className="p-3 text-center">
             <p className="text-xs text-muted-foreground">Receitas</p>
-            <p className="text-sm font-bold text-success">{formatBRL(totals.receitas)}</p>
+            <p className={`text-sm font-bold ${amountColorClass(totals.receitas)}`}>{formatBRL(totals.receitas)}</p>
           </CardContent>
         </Card>
         <Card className="shadow-sm">
           <CardContent className="p-3 text-center">
             <p className="text-xs text-muted-foreground">Despesas</p>
-            <p className="text-sm font-bold text-destructive">{formatBRL(totals.despesas)}</p>
+            <p className={`text-sm font-bold ${amountColorClass(-totals.despesas)}`}>{formatBRL(totals.despesas)}</p>
           </CardContent>
         </Card>
         <Card className="shadow-sm">
