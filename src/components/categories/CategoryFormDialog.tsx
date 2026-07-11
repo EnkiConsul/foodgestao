@@ -197,6 +197,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
         context: contextType,
         parent_id: parentId || null,
         visible_pf: visiblePf,
+        chart_account_id: chartAccountId,
         sort_order: nextSort,
       } as any).select("id").single();
 
