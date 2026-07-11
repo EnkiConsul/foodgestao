@@ -279,11 +279,8 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
 
           <div className="space-y-2">
             <Label>Conta Contábil (opcional)</Label>
-            {(() => {
-              const [caOpen, setCaOpen] = [chartAccountPopoverOpen, setChartAccountPopoverOpen];
-              return null;
-            })()}
             <Popover open={chartAccountPopoverOpen} onOpenChange={setChartAccountPopoverOpen}>
+
               <PopoverTrigger asChild>
                 <Button
                   type="button"
