@@ -7,6 +7,28 @@ Deno.serve(async (req) => {
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
+  // Valida token compartilhado (Pluggy permite configurar um header custom no webhook).
+  const expectedToken = Deno.env.get("PLUGGY_WEBHOOK_TOKEN") ?? "";
+  if (!expectedToken) {
+    console.error("[pluggy-webhook] PLUGGY_WEBHOOK_TOKEN not configured");
+    return new Response(JSON.stringify({ error: "webhook not configured" }), {
+      status: 503,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const receivedToken =
+    req.headers.get("x-pluggy-webhook-token") ??
+    req.headers.get("x-webhook-token") ??
+    new URL(req.url).searchParams.get("token") ??
+    "";
+  if (receivedToken !== expectedToken) {
+    console.warn("[pluggy-webhook] invalid or missing webhook token");
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   let payload: Record<string, unknown> = {};
   try {
     payload = await req.json();
