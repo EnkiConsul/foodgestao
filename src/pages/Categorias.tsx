@@ -181,7 +181,7 @@ export default function Categorias() {
           .eq("user_id", user!.id)
           .or("context.is.null,context.eq.pj")
           .eq("category_companies.company_id", selectedCompanyId!)
-          .order("transaction_type")
+          .order("hierarchy_index", { nullsFirst: false })
           .order("sort_order")
           .order("name");
         return (data ?? []) as Category[];
@@ -193,7 +193,7 @@ export default function Categorias() {
         .eq("user_id", user!.id)
         .or("context.is.null,context.eq.pf")
         .eq("visible_pf", true)
-        .order("transaction_type")
+        .order("hierarchy_index", { nullsFirst: false })
         .order("sort_order")
         .order("name");
       return (data ?? []) as Category[];
