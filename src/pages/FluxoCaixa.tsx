@@ -336,7 +336,7 @@ export default function FluxoCaixa() {
             <TrendingUp className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold text-success">{formatBRL(projectedTotals.totalReceitas)}</div>
+            <div className={`text-xl font-bold ${amountColorClass(projectedTotals.totalReceitas)}`}>{formatBRL(projectedTotals.totalReceitas)}</div>
           </CardContent>
         </Card>
         <Card className="shadow-sm">
