@@ -346,16 +346,14 @@ export default function Categorias() {
       return;
     }
 
-    // Get all siblings with same parent and same type, sorted by current sort_order
+    // Get all siblings with same parent, sorted by current sort_order
     const siblings = categories
-      .filter((c) => c.parent_id === draggedItem.parent_id && c.transaction_type === draggedItem.transaction_type)
+      .filter((c) => c.parent_id === draggedItem.parent_id)
       .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
 
     const oldIdx = siblings.findIndex((c) => c.id === draggedItem.id);
-    // If target is a different type, find the closest sibling position based on direction
     let newIdx = siblings.findIndex((c) => c.id === targetItem.id);
     if (newIdx === -1) {
-      // Target is a different type; calculate position based on drag direction
       newIdx = destIdx > srcIdx ? siblings.length - 1 : 0;
     }
 
