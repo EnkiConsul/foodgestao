@@ -513,11 +513,10 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
                           <span className="font-medium">{f.row.date}</span>
                           {" · "}
                           {(() => {
-                            const signed = f.row.transaction_type === "receita" ? f.row.amount : f.row.transaction_type === "despesa" ? -f.row.amount : 0;
-                            const cls = signed > 0 ? "text-success" : signed < 0 ? "text-destructive" : "text-foreground";
+                            const signed = transactionSignedAmount(f.row);
                             return (
-                              <span className={cls}>
-                                {(signed >= 0 ? "+" : "-")}
+                              <span className={amountColorClass(signed)}>
+                                {amountSignPrefix(signed)}
                                 {Math.abs(f.row.amount).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                               </span>
                             );
