@@ -512,10 +512,16 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
                         <div className="truncate">
                           <span className="font-medium">{f.row.date}</span>
                           {" · "}
-                          <span className={f.row.transaction_type === "receita" ? "text-success" : "text-destructive"}>
-                            {f.row.transaction_type === "receita" ? "+" : "-"}
-                            {f.row.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                          </span>
+                          {(() => {
+                            const signed = f.row.transaction_type === "receita" ? f.row.amount : f.row.transaction_type === "despesa" ? -f.row.amount : 0;
+                            const cls = signed > 0 ? "text-success" : signed < 0 ? "text-destructive" : "text-foreground";
+                            return (
+                              <span className={cls}>
+                                {(signed >= 0 ? "+" : "-")}
+                                {Math.abs(f.row.amount).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                              </span>
+                            );
+                          })()}
                           {" · "}
                           <span className="text-muted-foreground">{f.row.description_override?.trim() || f.row.description}</span>
                         </div>
