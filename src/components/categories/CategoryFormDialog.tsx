@@ -117,6 +117,8 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
     if (!catValidated) return;
 
     setSaving(true);
+    // Categorias raiz (sem pai) são salvas em CAIXA ALTA
+    const finalName = parentId ? name.trim() : name.trim().toUpperCase();
 
     // Compute next sort_order for the target parent (append at end of siblings)
     const computeNextSortOrder = async (parentIdVal: string | null) => {
