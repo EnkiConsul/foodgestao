@@ -167,6 +167,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       onOpenChange(false);
       onSaved();
     } else {
+      const nextSort = await computeNextSortOrder(parentId || null);
       const { data: newCat, error } = await supabase.from("categories").insert({
         user_id: user.id,
         name: name.trim(),
@@ -175,6 +176,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
         context: contextType,
         parent_id: parentId || null,
         visible_pf: visiblePf,
+        sort_order: nextSort,
       } as any).select("id").single();
 
       if (error) {
