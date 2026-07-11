@@ -41,6 +41,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
   const [color, setColor] = useState("#3b82f6");
   const [parentId, setParentId] = useState<string | null>(null);
   const [chartAccountId, setChartAccountId] = useState<string | null>(null);
+  const [chartAccountPopoverOpen, setChartAccountPopoverOpen] = useState(false);
   const [visiblePf, setVisiblePf] = useState(true);
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
