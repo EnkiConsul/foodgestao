@@ -1,22 +1,17 @@
 ## Objetivo
-Vincular cada Categoria a uma Conta Contábil, no cadastro e edição. O agrupamento em relatórios (ex.: DRE futuro) será **manual**, feito pelo próprio vínculo escolhido aqui.
+Permitir buscar (filtrar por digitação) no campo **Conta Contábil** dentro do formulário de Categoria — hoje é um Select simples, o que fica ruim quando há dezenas/centenas de contas contábeis.
 
-## Alterações
+## Alteração
 
-### 1. Banco de dados
-- Nova coluna `chart_account_id UUID NULL` em `public.categories`, FK para `public.chart_accounts(id)` com `ON DELETE SET NULL`.
-- Índice em `categories(chart_account_id)`.
-- Categorias existentes permanecem sem vínculo até serem editadas.
-
-### 2. Formulário de Categoria (`src/components/categories/CategoryFormDialog.tsx`)
-- Novo estado `chartAccountId`.
-- `useQuery` carregando `chart_accounts` do contexto atual (`context = contextType`) com `is_active = true` e `allow_transactions = true`, ordenadas por `code`.
-- Novo campo **Conta Contábil (opcional)**, logo abaixo de "Categoria Pai": Select com "Nenhuma" + itens `código — nome`. Hint quando não houver contas contábeis cadastradas.
-- Carregar valor de `editCategory.chart_account_id`; enviar `chart_account_id` no insert/update.
-
-### 3. Listagem (`src/pages/Categorias.tsx`)
-- Badge discreto com `short_code`/`code` da conta contábil vinculada ao lado do nome, para conferência rápida.
+### `src/components/categories/CategoryFormDialog.tsx`
+- Substituir o `Select` do campo "Conta Contábil" por um **Combobox** (Popover + Command) usando os componentes shadcn já existentes (`@/components/ui/popover`, `@/components/ui/command`).
+- Componente:
+  - Botão `PopoverTrigger` mostra o label da conta selecionada (`código — nome`) ou "Nenhuma".
+  - `CommandInput` para digitar (busca em `código` **e** `nome`, case-insensitive).
+  - `CommandList` com `CommandItem` para "Nenhuma" + cada conta contábil.
+  - Fecha ao selecionar e atualiza `chartAccountId`.
+- Manter a mesma query e filtros já existentes (`context`, `is_active`, `allow_transactions`, ordenado por `code`).
+- Mantém o hint quando não há contas cadastradas.
 
 ## Fora de escopo
-- Nenhum DRE, agrupamento automático ou mudança em IA/Open Finance nesta etapa.
-- Sem alteração em triggers, saldos ou lançamentos.
+- Nenhuma mudança no banco, no Select de "Categoria Pai" ou em outros formulários.
