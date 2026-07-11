@@ -311,8 +311,8 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
           <div className="flex-1 overflow-hidden flex flex-col gap-3">
             <div className="flex items-center gap-4 text-xs">
               <span>Selecionados: <strong>{summary.selected}</strong></span>
-              <span className="text-success">Receitas: <strong>{formatBRL(summary.receitas)}</strong></span>
-              <span className="text-destructive">Despesas: <strong>{formatBRL(summary.despesas)}</strong></span>
+              <span className={amountColorClass(summary.receitas)}>Receitas: <strong>{formatBRL(summary.receitas)}</strong></span>
+              <span className={amountColorClass(-summary.despesas)}>Despesas: <strong>{formatBRL(summary.despesas)}</strong></span>
               {summary.dup > 0 && (
                 <span className="flex items-center gap-2 text-amber-600 flex-wrap">
                   <AlertTriangle className="h-3 w-3" />
