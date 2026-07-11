@@ -172,7 +172,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       const nextSort = await computeNextSortOrder(parentId || null);
       const { data: newCat, error } = await supabase.from("categories").insert({
         user_id: user.id,
-        name: name.trim(),
+        name: finalName,
         transaction_type: type,
         color,
         context: contextType,
