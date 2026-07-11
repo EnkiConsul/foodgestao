@@ -602,8 +602,14 @@ export default function Categorias() {
                                 <span className={`text-sm ${cat.depth === 0 ? "font-semibold uppercase" : ""}`}>
                                   {cat.depth === 0 ? cat.name.toUpperCase() : cat.name}
                                 </span>
+                                {(cat as any).chart_account_id && chartAccountMap.get((cat as any).chart_account_id) && (
+                                  <Badge variant="outline" className="text-[10px] h-4 px-1.5 ml-1 font-mono">
+                                    {chartAccountMap.get((cat as any).chart_account_id)}
+                                  </Badge>
+                                )}
                               </div>
                             </TableCell>
+
                             <TableCell className="py-1.5 text-center">
                               <Badge
                                 variant="secondary"
