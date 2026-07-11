@@ -442,11 +442,10 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
                         </Select>
                       </TableCell>
                       {(() => {
-                        const signed = r.transaction_type === "receita" ? r.amount : r.transaction_type === "despesa" ? -r.amount : 0;
-                        const colorCls = signed > 0 ? "text-success" : signed < 0 ? "text-destructive" : "text-foreground";
+                        const signed = transactionSignedAmount(r);
                         return (
-                          <TableCell className={`text-right whitespace-nowrap text-xs font-semibold ${colorCls}`}>
-                            {signed >= 0 ? "+" : "−"} {formatBRL(Math.abs(r.amount))}
+                          <TableCell className={`text-right whitespace-nowrap text-xs font-semibold ${amountColorClass(signed)}`}>
+                            {amountSignPrefix(signed)} {formatBRL(Math.abs(r.amount))}
                           </TableCell>
                         );
                       })()}
