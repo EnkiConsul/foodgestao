@@ -36,6 +36,7 @@ import {
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { amountColorClass } from "@/lib/transaction-sign";
 
 type Granularity = "diario" | "semanal" | "mensal";
 type PeriodPreset = "2months" | "3months" | "6months" | "12months" | "custom";
