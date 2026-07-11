@@ -264,12 +264,6 @@ const AppRoutes = () => (
       <Route path="/fluxo-caixa" element={<FluxoCaixa />} />
       <Route path="/orcamento" element={<Orcamento />} />
       <Route path="/relatorios" element={<Relatorios />} />
-      <Route path="/relatorios/dre" element={<DREPage />} />
-      <Route path="/relatorios/dre/configuracao" element={<DREMapeamento />} />
-      <Route path="/relatorios/dre/rubricas" element={<DRERubricas />} />
-      <Route path="/relatorios/dre/historico" element={<DREHistorico />} />
-      <Route path="/relatorios/dre/historico/:id" element={<DREHistorico />} />
-      <Route path="/relatorios/dre/comparativo" element={<DREComparativo />} />
       <Route path="/contatos" element={<Contatos />} />
       <Route path="/categorias" element={<Categorias />} />
       <Route path="/contas-contabeis" element={<ContasContabeis />} />
