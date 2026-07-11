@@ -1,0 +1,2 @@
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS chart_account_id UUID NULL REFERENCES public.chart_accounts(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_categories_chart_account_id ON public.categories(chart_account_id);

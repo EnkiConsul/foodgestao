@@ -919,6 +919,7 @@ export type Database = {
       }
       categories: {
         Row: {
+          chart_account_id: string | null
           color: string | null
           context: Database["public"]["Enums"]["context_type"] | null
           created_at: string
@@ -934,6 +935,7 @@ export type Database = {
           visible_pf: boolean
         }
         Insert: {
+          chart_account_id?: string | null
           color?: string | null
           context?: Database["public"]["Enums"]["context_type"] | null
           created_at?: string
@@ -949,6 +951,7 @@ export type Database = {
           visible_pf?: boolean
         }
         Update: {
+          chart_account_id?: string | null
           color?: string | null
           context?: Database["public"]["Enums"]["context_type"] | null
           created_at?: string
@@ -964,6 +967,13 @@ export type Database = {
           visible_pf?: boolean
         }
         Relationships: [
+          {
+            foreignKeyName: "categories_chart_account_id_fkey"
+            columns: ["chart_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fk_categories_parent"
             columns: ["parent_id"]
@@ -2584,6 +2594,7 @@ export type Database = {
           _transaction_type?: Database["public"]["Enums"]["transaction_type"]
         }
         Returns: {
+          chart_account_id: string | null
           color: string | null
           context: Database["public"]["Enums"]["context_type"] | null
           created_at: string
