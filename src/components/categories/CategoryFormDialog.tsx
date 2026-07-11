@@ -35,6 +35,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
   const [type, setType] = useState<"receita" | "despesa">("despesa");
   const [color, setColor] = useState("#3b82f6");
   const [parentId, setParentId] = useState<string | null>(null);
+  const [chartAccountId, setChartAccountId] = useState<string | null>(null);
   const [visiblePf, setVisiblePf] = useState(true);
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
@@ -69,6 +70,22 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
     },
   });
 
+  const { data: chartAccounts = [] } = useQuery({
+    queryKey: ["chart-accounts-for-category", user?.id, contextType],
+    enabled: !!user && open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("chart_accounts")
+        .select("id, code, name")
+        .eq("user_id", user!.id)
+        .eq("context", contextType)
+        .eq("is_active", true)
+        .eq("allow_transactions", true)
+        .order("code");
+      return data ?? [];
+    },
+  });
+
 
   useEffect(() => {
     if (!open) return;
@@ -77,6 +94,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       setType(editCategory.transaction_type as "receita" | "despesa");
       setColor(editCategory.color ?? "#3b82f6");
       setParentId(editCategory.parent_id ?? null);
+      setChartAccountId((editCategory as any).chart_account_id ?? null);
       setVisiblePf((editCategory as any).visible_pf ?? true);
       // Load linked companies
       supabase
@@ -91,6 +109,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       setType(defaultType ?? "despesa");
       setColor("#3b82f6");
       setParentId(defaultParentId || null);
+      setChartAccountId(null);
       setVisiblePf(true);
       setSelectedCompanies(new Set(companies.map((c) => c.id)));
     }
@@ -135,7 +154,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
 
     if (editCategory) {
       const parentChanged = (editCategory.parent_id ?? null) !== (parentId ?? null);
-      const updatePayload: any = { name: finalName, transaction_type: type, color, parent_id: parentId || null, visible_pf: visiblePf };
+      const updatePayload: any = { name: finalName, transaction_type: type, color, parent_id: parentId || null, visible_pf: visiblePf, chart_account_id: chartAccountId };
       if (parentChanged) {
         updatePayload.sort_order = await computeNextSortOrder(parentId || null);
       }
@@ -178,6 +197,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
         context: contextType,
         parent_id: parentId || null,
         visible_pf: visiblePf,
+        chart_account_id: chartAccountId,
         sort_order: nextSort,
       } as any).select("id").single();
 
@@ -250,6 +270,26 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
               <p className="text-xs text-muted-foreground">Crie categorias raiz do mesmo tipo primeiro</p>
             )}
           </div>
+
+          <div className="space-y-2">
+            <Label>Conta Contábil (opcional)</Label>
+            <Select value={chartAccountId ?? "__none__"} onValueChange={(v) => setChartAccountId(!v || v === "__none__" ? null : v)}>
+              <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Nenhuma</SelectItem>
+                {chartAccounts.map((ca) => (
+                  <SelectItem key={ca.id} value={ca.id}>
+                    {ca.code} — {ca.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {chartAccounts.length === 0 && (
+              <p className="text-xs text-muted-foreground">Cadastre em Contas Contábeis para vincular</p>
+            )}
+          </div>
+
+
 
           <div className="space-y-2">
             <Label>Cor</Label>

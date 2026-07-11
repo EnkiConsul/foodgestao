@@ -225,6 +225,25 @@ export default function Categorias() {
     },
   });
 
+  const { data: chartAccountsList = [] } = useQuery({
+    queryKey: ["chart-accounts-list-for-categories", user?.id, contextType],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("chart_accounts")
+        .select("id, code, short_code")
+        .eq("user_id", user!.id)
+        .eq("context", contextType);
+      return data ?? [];
+    },
+  });
+
+  const chartAccountMap = useMemo(() => {
+    const m = new Map<string, string>();
+    chartAccountsList.forEach((ca: any) => m.set(ca.id, ca.short_code || ca.code));
+    return m;
+  }, [chartAccountsList]);
+
   const refetchAll = useCallback(() => {
     refetch();
     refetchCatCompanies();
@@ -583,8 +602,14 @@ export default function Categorias() {
                                 <span className={`text-sm ${cat.depth === 0 ? "font-semibold uppercase" : ""}`}>
                                   {cat.depth === 0 ? cat.name.toUpperCase() : cat.name}
                                 </span>
+                                {(cat as any).chart_account_id && chartAccountMap.get((cat as any).chart_account_id) && (
+                                  <Badge variant="outline" className="text-[10px] h-4 px-1.5 ml-1 font-mono">
+                                    {chartAccountMap.get((cat as any).chart_account_id)}
+                                  </Badge>
+                                )}
                               </div>
                             </TableCell>
+
                             <TableCell className="py-1.5 text-center">
                               <Badge
                                 variant="secondary"
