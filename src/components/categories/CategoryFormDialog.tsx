@@ -70,6 +70,22 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
     },
   });
 
+  const { data: chartAccounts = [] } = useQuery({
+    queryKey: ["chart-accounts-for-category", user?.id, contextType],
+    enabled: !!user && open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("chart_accounts")
+        .select("id, code, name")
+        .eq("user_id", user!.id)
+        .eq("context", contextType)
+        .eq("is_active", true)
+        .eq("allow_transactions", true)
+        .order("code");
+      return data ?? [];
+    },
+  });
+
 
   useEffect(() => {
     if (!open) return;
