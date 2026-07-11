@@ -181,7 +181,7 @@ export default function Categorias() {
           .eq("user_id", user!.id)
           .or("context.is.null,context.eq.pj")
           .eq("category_companies.company_id", selectedCompanyId!)
-          .order("transaction_type")
+          .order("hierarchy_index", { nullsFirst: false })
           .order("sort_order")
           .order("name");
         return (data ?? []) as Category[];
@@ -193,7 +193,7 @@ export default function Categorias() {
         .eq("user_id", user!.id)
         .or("context.is.null,context.eq.pf")
         .eq("visible_pf", true)
-        .order("transaction_type")
+        .order("hierarchy_index", { nullsFirst: false })
         .order("sort_order")
         .order("name");
       return (data ?? []) as Category[];
@@ -346,16 +346,14 @@ export default function Categorias() {
       return;
     }
 
-    // Get all siblings with same parent and same type, sorted by current sort_order
+    // Get all siblings with same parent, sorted by current sort_order
     const siblings = categories
-      .filter((c) => c.parent_id === draggedItem.parent_id && c.transaction_type === draggedItem.transaction_type)
+      .filter((c) => c.parent_id === draggedItem.parent_id)
       .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
 
     const oldIdx = siblings.findIndex((c) => c.id === draggedItem.id);
-    // If target is a different type, find the closest sibling position based on direction
     let newIdx = siblings.findIndex((c) => c.id === targetItem.id);
     if (newIdx === -1) {
-      // Target is a different type; calculate position based on drag direction
       newIdx = destIdx > srcIdx ? siblings.length - 1 : 0;
     }
 
@@ -581,8 +579,8 @@ export default function Categorias() {
                                   className="h-3 w-3 shrink-0 rounded-full"
                                   style={{ backgroundColor: cat.color ?? "hsl(var(--primary))" }}
                                 />
+                                <span className="font-mono text-xs text-muted-foreground w-20 shrink-0">{cat.index}.</span>
                                 <span className={`text-sm ${cat.depth === 0 ? "font-semibold" : ""}`}>
-                                  <span className="text-muted-foreground font-mono text-xs mr-1.5">{cat.index}.</span>
                                   {cat.name}
                                 </span>
                               </div>
