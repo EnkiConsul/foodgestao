@@ -440,9 +440,15 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
                           </SelectContent>
                         </Select>
                       </TableCell>
-                      <TableCell className={`text-right whitespace-nowrap text-xs font-semibold ${r.transaction_type === "receita" ? "text-success" : "text-destructive"}`}>
-                        {r.transaction_type === "receita" ? "+" : "−"} {formatBRL(r.amount)}
-                      </TableCell>
+                      {(() => {
+                        const signed = r.transaction_type === "receita" ? r.amount : r.transaction_type === "despesa" ? -r.amount : 0;
+                        const colorCls = signed > 0 ? "text-success" : signed < 0 ? "text-destructive" : "text-foreground";
+                        return (
+                          <TableCell className={`text-right whitespace-nowrap text-xs font-semibold ${colorCls}`}>
+                            {signed >= 0 ? "+" : "−"} {formatBRL(Math.abs(r.amount))}
+                          </TableCell>
+                        );
+                      })()}
                     </TableRow>
                   ))}
                 </TableBody>
