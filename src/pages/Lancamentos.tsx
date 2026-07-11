@@ -1134,8 +1134,8 @@ export default function Lancamentos() {
                           {/* D/C */}
                           {visibleColumns.dc && (
                           <TableCell className="text-center py-2">
-                            {isReceita && <span className="text-xs font-bold text-success">C</span>}
-                            {isDespesa && <span className="text-xs font-bold text-destructive">D</span>}
+                            {!isTransf && effectPositive && <span className="text-xs font-bold text-success">C</span>}
+                            {!isTransf && effectNegative && <span className="text-xs font-bold text-destructive">D</span>}
                             {isTransf && <span className="text-xs font-bold text-primary">T</span>}
                           </TableCell>
                           )}
