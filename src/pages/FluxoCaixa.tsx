@@ -36,6 +36,7 @@ import {
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { amountColorClass } from "@/lib/transaction-sign";
 
 type Granularity = "diario" | "semanal" | "mensal";
 type PeriodPreset = "2months" | "3months" | "6months" | "12months" | "custom";
@@ -335,7 +336,7 @@ export default function FluxoCaixa() {
             <TrendingUp className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold text-success">{formatBRL(projectedTotals.totalReceitas)}</div>
+            <div className={`text-xl font-bold ${amountColorClass(projectedTotals.totalReceitas)}`}>{formatBRL(projectedTotals.totalReceitas)}</div>
           </CardContent>
         </Card>
         <Card className="shadow-sm">
@@ -344,7 +345,7 @@ export default function FluxoCaixa() {
             <TrendingDown className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold text-destructive">{formatBRL(projectedTotals.totalDespesas)}</div>
+            <div className={`text-xl font-bold ${amountColorClass(-projectedTotals.totalDespesas)}`}>{formatBRL(projectedTotals.totalDespesas)}</div>
           </CardContent>
         </Card>
         <Card className="shadow-sm">

@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Upload, FileText, Loader2, AlertTriangle, CheckCircle2, Plus, XCircle } from "lucide-react";
 import { formatDate } from "@/lib/date-utils";
 import { formatBRL } from "@/lib/billing";
+import { amountColorClass, amountSignPrefix, transactionSignedAmount } from "@/lib/transaction-sign";
 import { parseNubankStatementPdf } from "@/lib/statement-import/nubankPdf";
 import { suggestForEntries, markDuplicates } from "@/lib/statement-import/suggest";
 import type { ReviewRow } from "@/lib/statement-import/types";
@@ -310,8 +311,8 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
           <div className="flex-1 overflow-hidden flex flex-col gap-3">
             <div className="flex items-center gap-4 text-xs">
               <span>Selecionados: <strong>{summary.selected}</strong></span>
-              <span className="text-success">Receitas: <strong>{formatBRL(summary.receitas)}</strong></span>
-              <span className="text-destructive">Despesas: <strong>{formatBRL(summary.despesas)}</strong></span>
+              <span className={amountColorClass(summary.receitas)}>Receitas: <strong>{formatBRL(summary.receitas)}</strong></span>
+              <span className={amountColorClass(-summary.despesas)}>Despesas: <strong>{formatBRL(summary.despesas)}</strong></span>
               {summary.dup > 0 && (
                 <span className="flex items-center gap-2 text-amber-600 flex-wrap">
                   <AlertTriangle className="h-3 w-3" />
@@ -441,11 +442,10 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
                         </Select>
                       </TableCell>
                       {(() => {
-                        const signed = r.transaction_type === "receita" ? r.amount : r.transaction_type === "despesa" ? -r.amount : 0;
-                        const colorCls = signed > 0 ? "text-success" : signed < 0 ? "text-destructive" : "text-foreground";
+                        const signed = transactionSignedAmount(r);
                         return (
-                          <TableCell className={`text-right whitespace-nowrap text-xs font-semibold ${colorCls}`}>
-                            {signed >= 0 ? "+" : "−"} {formatBRL(Math.abs(r.amount))}
+                          <TableCell className={`text-right whitespace-nowrap text-xs font-semibold ${amountColorClass(signed)}`}>
+                            {amountSignPrefix(signed)} {formatBRL(Math.abs(r.amount))}
                           </TableCell>
                         );
                       })()}
@@ -513,11 +513,10 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
                           <span className="font-medium">{f.row.date}</span>
                           {" · "}
                           {(() => {
-                            const signed = f.row.transaction_type === "receita" ? f.row.amount : f.row.transaction_type === "despesa" ? -f.row.amount : 0;
-                            const cls = signed > 0 ? "text-success" : signed < 0 ? "text-destructive" : "text-foreground";
+                            const signed = transactionSignedAmount(f.row);
                             return (
-                              <span className={cls}>
-                                {(signed >= 0 ? "+" : "-")}
+                              <span className={amountColorClass(signed)}>
+                                {amountSignPrefix(signed)}
                                 {Math.abs(f.row.amount).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                               </span>
                             );

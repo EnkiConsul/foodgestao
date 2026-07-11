@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { resolveAttachments } from "@/lib/attachments";
+import { amountColorClass } from "@/lib/transaction-sign";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
@@ -962,13 +963,13 @@ export default function Lancamentos() {
         <Card className="shadow-sm">
           <CardContent className="p-3 text-center">
             <p className="text-xs text-muted-foreground">Receitas</p>
-            <p className="text-sm font-bold text-success">{formatBRL(totals.receitas)}</p>
+            <p className={`text-sm font-bold ${amountColorClass(totals.receitas)}`}>{formatBRL(totals.receitas)}</p>
           </CardContent>
         </Card>
         <Card className="shadow-sm">
           <CardContent className="p-3 text-center">
             <p className="text-xs text-muted-foreground">Despesas</p>
-            <p className="text-sm font-bold text-destructive">{formatBRL(totals.despesas)}</p>
+            <p className={`text-sm font-bold ${amountColorClass(-totals.despesas)}`}>{formatBRL(totals.despesas)}</p>
           </CardContent>
         </Card>
         <Card className="shadow-sm">
@@ -1058,13 +1059,7 @@ export default function Lancamentos() {
                       const signedEffect = isReceita ? r.amount : isDespesa ? -r.amount : 0;
                       const effectPositive = signedEffect > 0;
                       const effectNegative = signedEffect < 0;
-                      const valueColorClass = isTransf
-                        ? "text-foreground"
-                        : effectPositive
-                          ? "text-success"
-                          : effectNegative
-                            ? "text-destructive"
-                            : "text-foreground";
+                      const valueColorClass = isTransf ? "text-foreground" : amountColorClass(signedEffect);
                       const hasDue = r.hasDueDate;
                       const paidPercent = hasDue && r.amount > 0 ? Math.min((r.amountPaid / r.amount) * 100, 100) : 0;
                       const isSelected = selectedIds.has(r.id);
