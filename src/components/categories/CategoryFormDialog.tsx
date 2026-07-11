@@ -9,9 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { categorySchema, validateWithToast } from "@/lib/validations";
 import type { Tables } from "@/integrations/supabase/types";
+
 
 const COLOR_OPTIONS = [
   "#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#6366f1",
@@ -36,6 +41,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
   const [color, setColor] = useState("#3b82f6");
   const [parentId, setParentId] = useState<string | null>(null);
   const [chartAccountId, setChartAccountId] = useState<string | null>(null);
+  const [chartAccountPopoverOpen, setChartAccountPopoverOpen] = useState(false);
   const [visiblePf, setVisiblePf] = useState(true);
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
@@ -273,21 +279,71 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
 
           <div className="space-y-2">
             <Label>Conta Contábil (opcional)</Label>
-            <Select value={chartAccountId ?? "__none__"} onValueChange={(v) => setChartAccountId(!v || v === "__none__" ? null : v)}>
-              <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">Nenhuma</SelectItem>
-                {chartAccounts.map((ca) => (
-                  <SelectItem key={ca.id} value={ca.id}>
-                    {ca.code} — {ca.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={chartAccountPopoverOpen} onOpenChange={setChartAccountPopoverOpen}>
+
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  className="w-full justify-between font-normal"
+                >
+                  <span className="truncate">
+                    {chartAccountId
+                      ? (() => {
+                          const ca = chartAccounts.find((c) => c.id === chartAccountId);
+                          return ca ? `${ca.code} — ${ca.name}` : "Nenhuma";
+                        })()
+                      : "Nenhuma"}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command
+                  filter={(value, search) => {
+                    if (!search) return 1;
+                    return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+                  }}
+                >
+                  <CommandInput placeholder="Buscar por código ou nome..." />
+                  <CommandList>
+                    <CommandEmpty>Nenhuma conta encontrada</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem
+                        value="__none__ nenhuma"
+                        onSelect={() => {
+                          setChartAccountId(null);
+                          setChartAccountPopoverOpen(false);
+                        }}
+                      >
+                        <Check className={cn("mr-2 h-4 w-4", !chartAccountId ? "opacity-100" : "opacity-0")} />
+                        Nenhuma
+                      </CommandItem>
+                      {chartAccounts.map((ca) => (
+                        <CommandItem
+                          key={ca.id}
+                          value={`${ca.code} ${ca.name}`}
+                          onSelect={() => {
+                            setChartAccountId(ca.id);
+                            setChartAccountPopoverOpen(false);
+                          }}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", chartAccountId === ca.id ? "opacity-100" : "opacity-0")} />
+                          <span className="font-mono text-xs mr-2">{ca.code}</span>
+                          <span className="truncate">{ca.name}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
             {chartAccounts.length === 0 && (
               <p className="text-xs text-muted-foreground">Cadastre em Contas Contábeis para vincular</p>
             )}
           </div>
+
 
 
 
