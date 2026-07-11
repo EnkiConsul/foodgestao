@@ -65,7 +65,7 @@ const NOISE_RES: RegExp[] = [
 function parseNumberBR(raw: string): number {
   const cleaned = raw.replace(/\./g, "").replace(",", ".").replace(/[^\d.-]/g, "");
   const n = parseFloat(cleaned);
-  return Number.isFinite(n) ? Math.abs(n) : 0;
+  return Number.isFinite(n) ? n : 0;
 }
 
 async function extractLines(file: File): Promise<string[]> {
