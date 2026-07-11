@@ -31,7 +31,7 @@ export const accountSchema = z.object({
 // ---- Transaction ----
 export const transactionSchema = z.object({
   description: z.string().trim().min(1, "Descrição é obrigatória").max(200),
-  amount: z.number().positive("Valor deve ser positivo").finite(),
+  amount: z.number().finite().refine((v) => v !== 0, "Valor não pode ser zero"),
   transaction_type: z.enum(["receita", "despesa", "transferencia"]),
   transaction_date: z.string().min(1, "Data é obrigatória"),
   account_id: z.string().uuid("Selecione uma conta"),
