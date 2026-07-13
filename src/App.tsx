@@ -265,6 +265,7 @@ const AppRoutes = () => (
       <Route path="/fluxo-caixa" element={<FluxoCaixa />} />
       <Route path="/orcamento" element={<Orcamento />} />
       <Route path="/relatorios" element={<Relatorios />} />
+      <Route path="/relatorios/contabeis" element={<RelatoriosContabeis />} />
       <Route path="/contatos" element={<Contatos />} />
       <Route path="/categorias" element={<Categorias />} />
       <Route path="/contas-contabeis" element={<ContasContabeis />} />
