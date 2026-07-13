@@ -632,8 +632,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
     setSaving(true);
 
-    // ---- Parcelado (novo): gera parent + N filhas ----
-    if (!isEditing && type === "parcelado") {
+    // ---- Parcelado (modificador de receita/despesa): gera parent + N filhas ----
+    if (!isEditing && isInstallment && (type === "receita" || type === "despesa")) {
       try {
         if (installmentTotal < 2) {
           toast.error("Nº de parcelas deve ser ≥ 2");
@@ -656,8 +656,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
         const commonFields = {
           user_id: user.id,
-          transaction_type: "parcelado" as const,
-          parcel_direction: parcelDirection,
+          transaction_type: type,
           installment_total: installmentTotal,
           description: description.trim(),
           category_id: categoryId || null,
@@ -710,7 +709,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           _action: "transaction_created",
           _entity_type: "transaction",
           _entity_id: parent.id,
-          _details: { target_name: description.trim(), amount: String(totalAmount), type: "parcelado", installments: installmentTotal },
+          _details: { target_name: description.trim(), amount: String(totalAmount), type, installments: installmentTotal },
         });
 
         toast.success(`Parcelamento criado: ${installmentTotal}× de ${baseParcel.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`);
