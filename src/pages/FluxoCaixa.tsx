@@ -129,15 +129,10 @@ export default function FluxoCaixa() {
     const dailyMap: Record<string, { receitas: number; despesas: number; receitasProj: number; despesasProj: number }> = {};
 
     for (const t of transactions) {
-      const anyT = t as any;
       const effType: "receita" | "despesa" | null =
-        anyT.transaction_type === "parcelado"
-          ? (anyT.installment_number == null
-              ? null
-              : anyT.parcel_direction === "entrada" ? "receita" : "despesa")
-          : (anyT.transaction_type === "receita" || anyT.transaction_type === "despesa")
-            ? anyT.transaction_type
-            : null;
+        t.transaction_type === "receita" || t.transaction_type === "despesa"
+          ? t.transaction_type
+          : null;
       if (effType === null) continue;
 
       if (t.due_date && t.bill_status !== "pago") {
