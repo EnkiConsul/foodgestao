@@ -1,4 +1,4 @@
-// Plin IA — Edge Function principal (chat com streaming + tool calling)
+// 360°IA — Edge Function principal (chat com streaming + tool calling)
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { streamText, convertToModelMessages, tool, stepCountIs, type UIMessage } from "npm:ai@5.0.210";
 import { z } from "npm:zod@3.23.8";
@@ -10,7 +10,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const PLIN_IA_SYSTEM_PROMPT = `Você é o "Plin IA", o CFO Virtual do 360°FOOD.
+const IA360_SYSTEM_PROMPT = `Você é o "360°IA", o CFO Virtual do 360°FOOD.
 
 SUAS FERRAMENTAS acessam o banco de dados REAL do usuário em tempo real. USE-AS SEMPRE que a pergunta envolver valores, contas, categorias, contatos, períodos, vencimentos ou tendências. NUNCA responda "não tenho essa informação" sem antes tentar buscar via ferramenta.
 
@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
     const { data: features } = await admin.rpc("get_user_plan_features", { _user_id: userId });
     const isSuperAdmin = (await admin.rpc("is_super_admin", { _user_id: userId })).data === true;
     const aiEnabled = isSuperAdmin || !!(features && (features as any).ai_enabled);
-    if (!aiEnabled) return json({ error: "Plin IA não está disponível no seu plano atual." }, 402);
+    if (!aiEnabled) return json({ error: "360°IA não está disponível no seu plano atual." }, 402);
 
     const quota = isSuperAdmin ? 999999 : Number((features as any)?.ai_messages_per_day ?? 30);
     const today = new Date().toISOString().slice(0, 10);
@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
     const usedToday = usageRow?.messages_count ?? 0;
     if (usedToday >= quota) {
-      return json({ error: "Você atingiu seu limite diário de mensagens do Plin IA. O limite renova à meia-noite." }, 429);
+      return json({ error: "Você atingiu seu limite diário de mensagens do 360°IA. O limite renova à meia-noite." }, 429);
     }
 
     // Registra mensagem do usuário
@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
     const now = new Date();
     const monthNames = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
     const briefing = `CONTEXTO ATIVO: ${context === "pj" ? `Empresarial (company_id=${companyId ?? "?"})` : "Pessoal (PF)"}\nData de hoje: ${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()} (${monthNames[now.getMonth()]}/${now.getFullYear()})`;
-    const systemPrompt = `${PLIN_IA_SYSTEM_PROMPT}\n\n${briefing}`;
+    const systemPrompt = `${IA360_SYSTEM_PROMPT}\n\n${briefing}`;
 
     // LLM
     const lovableKey = Deno.env.get("LOVABLE_API_KEY");
@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
 
     return result.toUIMessageStreamResponse({ headers: corsHeaders });
   } catch (e) {
-    console.error("plin-ia error", e);
+    console.error("360-ia error", e);
     return json({ error: (e as Error).message || "Internal error" }, 500);
   }
 });
@@ -167,7 +167,7 @@ function json(payload: unknown, status = 200) {
   });
 }
 
-// ===== Ferramentas do Plin IA =====
+// ===== Ferramentas do 360°IA =====
 
 function buildTools(
   sb: SupabaseClient,
