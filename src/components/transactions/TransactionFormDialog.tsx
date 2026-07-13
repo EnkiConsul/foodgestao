@@ -182,8 +182,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const [removedAttachmentIds, setRemovedAttachmentIds] = useState<string[]>([]);
   const [paymentMethodId, setPaymentMethodId] = useState("");
 
-  // Parcelado
-  const [parcelDirection, setParcelDirection] = useState<ParcelDirection>("saida");
+  // Parcelado (modificador de receita/despesa, mutex com Recorrente)
+  const [isInstallment, setIsInstallment] = useState(false);
   const [installmentTotal, setInstallmentTotal] = useState<number>(2);
   const [installmentMode, setInstallmentMode] = useState<"total" | "parcela">("parcela");
   const [installmentPeriod, setInstallmentPeriod] = useState<string>("mensal");
