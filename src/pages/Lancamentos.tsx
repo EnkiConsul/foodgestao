@@ -1061,9 +1061,13 @@ export default function Lancamentos() {
                     </TableRow>
                   ) : (
                     displayRows.map((r) => {
-                      const isReceita = r.transactionType === "receita";
-                      const isDespesa = r.transactionType === "despesa";
-                      const isTransf = r.transactionType === "transferencia";
+                      const isParcelado = r.transactionType === "parcelado";
+                      const effTypeForRow = isParcelado
+                        ? (r.parcelDirection === "entrada" ? "receita" : "despesa")
+                        : r.transactionType;
+                      const isReceita = effTypeForRow === "receita";
+                      const isDespesa = effTypeForRow === "despesa";
+                      const isTransf = effTypeForRow === "transferencia";
                       // Efeito algébrico no saldo: receita→+amount, despesa→-amount
                       const signedEffect = isReceita ? r.amount : isDespesa ? -r.amount : 0;
                       const effectPositive = signedEffect > 0;
