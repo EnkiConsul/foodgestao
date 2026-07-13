@@ -543,6 +543,10 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     setIsRecurring(false);
     setRecurrenceType("mensal");
     setRecurrenceEndDate("");
+    setIsInstallment(false);
+    setInstallmentTotal(2);
+    setInstallmentMode("parcela");
+    setInstallmentPeriod("mensal");
     setAttachmentFiles([]);
     setExistingAttachments([]);
     setRemovedAttachmentIds([]);
