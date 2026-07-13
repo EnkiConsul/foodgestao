@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import logoHorizontal from "@/assets/360food-horizontal.png.asset.json";
 import logoIcon from "@/assets/360food-icon.png.asset.json";
+import logoSymbol from "@/assets/360food-symbol.png.asset.json";
 
 const sizeMap = {
   sm: "h-9",
@@ -13,11 +14,12 @@ interface LogoProps {
   size?: "sm" | "md" | "lg";
   className?: string;
   linkTo?: string | null;
-  variant?: "horizontal" | "icon";
+  variant?: "horizontal" | "icon" | "symbol";
 }
 
 export function Logo({ size = "md", className, linkTo = "/", variant = "horizontal" }: LogoProps) {
-  const src = variant === "icon" ? logoIcon.url : logoHorizontal.url;
+  const src =
+    variant === "icon" ? logoIcon.url : variant === "symbol" ? logoSymbol.url : logoHorizontal.url;
   const img = (
     <img
       src={src}
@@ -35,3 +37,4 @@ export function Logo({ size = "md", className, linkTo = "/", variant = "horizont
     </Link>
   );
 }
+
