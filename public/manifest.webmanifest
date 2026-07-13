@@ -1,13 +1,13 @@
 {
-  "name": "Gestor Plin",
-  "short_name": "Gestor Plin",
-  "description": "Controle financeiro pessoal e empresarial em um só lugar.",
+  "name": "360°FOOD",
+  "short_name": "360°FOOD",
+  "description": "Gestão financeira para o food service — controle pessoal e empresarial em um só lugar.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "lang": "pt-BR",
-  "background_color": "#ffffff",
+  "background_color": "#0F1B3D",
   "theme_color": "#0F1B3D",
   "icons": [
     {
