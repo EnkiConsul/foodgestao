@@ -97,8 +97,8 @@ export function AppSidebar() {
           <Logo variant="icon" size="sm" linkTo={null} className="h-8 shrink-0" />
           {!collapsed && (
             <div className="flex items-baseline gap-0.5">
-              <span className="text-xl font-bold tracking-tight text-sidebar-foreground">Gestor</span>
-              <span className="text-xl font-bold tracking-tight text-sidebar-primary">Plin</span>
+              <span className="text-xl font-bold tracking-tight text-sidebar-primary">360°</span>
+              <span className="text-xl font-bold tracking-tight text-sidebar-foreground">FOOD</span>
             </div>
           )}
         </div>
