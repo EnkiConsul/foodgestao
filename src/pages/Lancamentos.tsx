@@ -1117,7 +1117,7 @@ export default function Lancamentos() {
                           {/* Descrição */}
                           <TableCell className="text-xs py-2">
                             <div className="flex items-center gap-1 max-w-[280px]">
-                              {(r.isRecurring || r.isRecurrenceChild) && (
+                              {(r.isRecurring || r.isRecurrenceChild) && r.transactionType !== "parcelado" && (
                                 <TooltipProvider delayDuration={200}>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -1128,6 +1128,11 @@ export default function Lancamentos() {
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
+                              )}
+                              {r.transactionType === "parcelado" && r.installmentNumber != null && r.installmentTotal != null && (
+                                <span className="inline-flex items-center rounded-sm bg-primary/10 px-1 py-0.5 text-[10px] font-medium text-primary shrink-0">
+                                  {r.installmentNumber}/{r.installmentTotal}
+                                </span>
                               )}
                               {r.attachmentCount > 0 && (
                                 <TooltipProvider delayDuration={200}>
