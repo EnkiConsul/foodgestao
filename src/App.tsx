@@ -56,6 +56,7 @@ import Termos from "./pages/legal/Termos";
 import CookiesPage from "./pages/legal/Cookies";
 import EncarregadoDados from "./pages/legal/EncarregadoDados";
 import DasMei from "./pages/guias/DasMei";
+import Buscar from "./pages/Buscar";
 import AdminDocumentosLegais from "./pages/admin/DocumentosLegais";
 import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 import { HelmetProvider } from "react-helmet-async";
@@ -309,6 +310,7 @@ const AppRoutes = () => (
     <Route path="/cookies" element={<CookiesPage />} />
     <Route path="/encarregado-dados" element={<EncarregadoDados />} />
     <Route path="/guias/das-mei" element={<DasMei />} />
+    <Route path="/buscar" element={<Buscar />} />
     <Route path="/dpo" element={<Navigate to="/encarregado-dados" replace />} />
     <Route path="/unsubscribe" element={<Unsubscribe />} />
     <Route path="/planos" element={<ProtectedRoute><Planos /></ProtectedRoute>} />
