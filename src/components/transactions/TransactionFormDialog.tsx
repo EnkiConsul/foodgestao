@@ -27,7 +27,8 @@ import { PaymentMethodFormDialog } from "@/components/payment-methods/PaymentMet
 import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/searchable-select";
 import { useTransactionFieldSettings, TRANSACTION_FIELD_LABELS, type TransactionField } from "@/hooks/useTransactionFieldSettings";
 
-type TransactionType = "receita" | "despesa" | "transferencia";
+type TransactionType = "receita" | "despesa" | "transferencia" | "parcelado";
+type ParcelDirection = "entrada" | "saida";
 
 interface EditableTransaction {
   id: string;
@@ -50,6 +51,9 @@ interface EditableTransaction {
   payment_method_id?: string | null;
   payment_date?: string | null;
   parent_transaction_id?: string | null;
+  parcel_direction?: ParcelDirection | null;
+  installment_number?: number | null;
+  installment_total?: number | null;
 }
 
 export type EditScope = "single" | "forward" | "all";
