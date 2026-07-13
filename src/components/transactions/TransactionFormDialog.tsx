@@ -154,6 +154,36 @@ function generateRecurrenceDates(startDate: string, recType: string, endDate?: s
   return dates;
 }
 
+const WEEKDAYS = [
+  { value: "0", label: "Domingo" },
+  { value: "1", label: "Segunda-feira" },
+  { value: "2", label: "Terça-feira" },
+  { value: "3", label: "Quarta-feira" },
+  { value: "4", label: "Quinta-feira" },
+  { value: "5", label: "Sexta-feira" },
+  { value: "6", label: "Sábado" },
+];
+
+function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
+function toLocalDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function shiftToWeekday(dateStr: string, weekday: number): string {
+  if (!dateStr) return dateStr;
+  const d = parseLocalDate(dateStr);
+  const diff = (weekday - d.getDay() + 7) % 7;
+  d.setDate(d.getDate() + diff);
+  return toLocalDateStr(d);
+}
+
 const MAX_ATTACHMENTS = 5;
 
 export function TransactionFormDialog({ open, onOpenChange, onCreated, transaction, initialType, editScope = "single", duplicateSource }: Props) {
@@ -1066,6 +1096,22 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                       </SelectContent>
                     </Select>
                   </div>
+                  {recurrenceType === "semanal" && (
+                    <div className="space-y-2">
+                      <Label>Dia da semana</Label>
+                      <Select
+                        value={date ? String(parseLocalDate(date).getDay()) : "1"}
+                        onValueChange={(v) => setDate(shiftToWeekday(date, Number(v)))}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {WEEKDAYS.map((w) => (
+                            <SelectItem key={w.value} value={w.value}>{w.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label>Data final da recorrência (opcional)</Label>
                     <div className="relative">
@@ -1128,6 +1174,23 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                       </Select>
                     </div>
                   </div>
+                  {installmentPeriod === "semanal" && (
+                    <div className="space-y-2">
+                      <Label>Dia da semana</Label>
+                      <Select
+                        value={date ? String(parseLocalDate(date).getDay()) : "1"}
+                        onValueChange={(v) => setDate(shiftToWeekday(date, Number(v)))}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {WEEKDAYS.map((w) => (
+                            <SelectItem key={w.value} value={w.value}>{w.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[11px] text-muted-foreground">A data de vencimento é ajustada para o próximo {WEEKDAYS.find(w => w.value === String(parseLocalDate(date).getDay()))?.label.toLowerCase()}.</p>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label>Valor informado é</Label>
                     <Select value={installmentMode} onValueChange={(v) => setInstallmentMode(v as "total" | "parcela")}>
