@@ -52,7 +52,7 @@ export default function DasMei() {
     publisher: {
       "@type": "Organization",
       name: "360°FOOD",
-      logo: { "@type": "ImageObject", url: "https://360food.com/logo-gestor-plin.png" },
+      logo: { "@type": "ImageObject", url: "https://360food.com/icon-512.png" },
     },
     mainEntityOfPage: PAGE_URL,
     datePublished: "2026-06-30",
