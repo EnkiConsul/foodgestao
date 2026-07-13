@@ -1103,7 +1103,7 @@ export default function Lancamentos() {
                                   </Tooltip>
                                 </TooltipProvider>
                               )}
-                              {r.transactionType === "parcelado" && r.installmentNumber != null && r.installmentTotal != null && (
+                              {isInstallment && (
                                 <span className="inline-flex items-center rounded-sm bg-primary/10 px-1 py-0.5 text-[10px] font-medium text-primary shrink-0">
                                   {r.installmentNumber}/{r.installmentTotal}
                                 </span>
