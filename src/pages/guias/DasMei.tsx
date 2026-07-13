@@ -3,6 +3,7 @@ import { ArrowLeft, CheckCircle2, AlertTriangle, Calendar, Calculator, FileText 
 import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
+import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 
 const PAGE_URL = "https://gestor360food.com/guias/das-mei";
 const TITLE = "DAS MEI 2026: o que é, valores, prazos e como pagar";

@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Helmet } from "react-helmet-async";
 import { Logo } from "@/components/Logo";
+import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 
 type Props = {
   title: string;
@@ -26,6 +27,7 @@ export function LegalDocumentView({ title, lastUpdated, body, metaDescription, c
         <meta name="twitter:title" content={`${title} — 360°FOOD`} />
         <meta name="twitter:description" content={metaDescription ?? `${title} — 360°FOOD`} />
       </Helmet>
+      <BreadcrumbJsonLd items={[{ name: title, path: canonicalPath }]} />
 
       <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/85 backdrop-blur-md">
         <div className="container mx-auto flex h-14 items-center justify-between px-3 sm:h-16 sm:px-4">
