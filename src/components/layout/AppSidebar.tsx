@@ -94,12 +94,16 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="border-r-0" collapsible="icon">
-      <SidebarHeader className="p-4 border-b border-sidebar-border mb-2">
-        <div className="flex items-center justify-center">
+      <SidebarHeader className="p-3 border-b border-sidebar-border mb-2 overflow-hidden">
+        <div className="flex items-center justify-center w-full">
           <img
             src={collapsed ? symbol360.url : assinatura360.url}
             alt="360°FOOD"
-            className={collapsed ? "h-8 w-auto select-none" : "h-10 w-auto select-none"}
+            className={
+              collapsed
+                ? "h-8 w-auto max-w-full object-contain select-none"
+                : "h-12 w-auto max-w-full object-contain select-none"
+            }
             draggable={false}
           />
         </div>
