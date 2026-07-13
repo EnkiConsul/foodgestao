@@ -46,6 +46,7 @@ const mainItems = [
   { title: "Fluxo de Caixa", url: "/fluxo-caixa", icon: TrendingUp },
   { title: "Orçamento", url: "/orcamento", icon: Target },
   { title: "Relatórios", url: "/relatorios", icon: FileBarChart },
+  { title: "Relatórios Contábeis", url: "/relatorios/contabeis", icon: FileBarChart },
   
   
 ];
