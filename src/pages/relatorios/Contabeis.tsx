@@ -1,0 +1,143 @@
+import { useMemo, useState } from "react";
+import { Helmet } from "react-helmet-async";
+import { useSearchParams } from "react-router-dom";
+import { format, startOfMonth, endOfMonth } from "date-fns";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  ReportFilters,
+  type FiltersState,
+  type Preset,
+} from "@/components/relatorios/contabeis/ReportFilters";
+import { DreReport } from "@/components/relatorios/contabeis/DreReport";
+import { TrialBalance } from "@/components/relatorios/contabeis/TrialBalance";
+import { BalanceSheet } from "@/components/relatorios/contabeis/BalanceSheet";
+import { GeneralLedgerDrawer } from "@/components/relatorios/contabeis/GeneralLedgerDrawer";
+import { PendingClassificationPanel } from "@/components/relatorios/contabeis/PendingClassificationPanel";
+import { useContabeisReport, type ReportNode } from "@/hooks/useContabeisReport";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+
+const DEFAULTS: FiltersState = (() => {
+  const now = new Date();
+  return {
+    preset: "month",
+    from: format(startOfMonth(now), "yyyy-MM-dd"),
+    to: format(endOfMonth(now), "yyyy-MM-dd"),
+    regime: "competencia",
+    include_zero: false,
+  };
+})();
+
+export default function RelatoriosContabeis() {
+  const { contextType, selectedCompanyId } = useCompanyContext();
+  const [sp, setSp] = useSearchParams();
+
+  const filters: FiltersState = useMemo(() => {
+    return {
+      preset: (sp.get("preset") as Preset) || DEFAULTS.preset,
+      from: sp.get("from") || DEFAULTS.from,
+      to: sp.get("to") || DEFAULTS.to,
+      regime: (sp.get("regime") as FiltersState["regime"]) || DEFAULTS.regime,
+      include_zero: sp.get("include_zero") === "1",
+    };
+  }, [sp]);
+
+  const setFilters = (v: FiltersState) => {
+    const next = new URLSearchParams(sp);
+    next.set("preset", v.preset);
+    next.set("from", v.from);
+    next.set("to", v.to);
+    next.set("regime", v.regime);
+    next.set("include_zero", v.include_zero ? "1" : "0");
+    setSp(next, { replace: true });
+  };
+
+  const [drawerAccount, setDrawerAccount] = useState<ReportNode | null>(null);
+
+  const { data: nodes = [], isLoading, error } = useContabeisReport(filters);
+
+  const blockedPj = contextType === "pj" && !selectedCompanyId;
+
+  return (
+    <div className="space-y-4">
+      <Helmet>
+        <title>Relatórios Contábeis | Gestor Plin</title>
+        <meta
+          name="description"
+          content="DRE, balancete, balanço e razão gerados dinamicamente a partir do plano de contas."
+        />
+      </Helmet>
+
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold">Relatórios Contábeis</h1>
+        <p className="text-sm text-muted-foreground">
+          Estrutura derivada 100% do plano de contas cadastrado. Alterações no cadastro refletem em
+          tempo real.
+        </p>
+      </div>
+
+      <ReportFilters value={filters} onChange={setFilters} />
+
+      {blockedPj && (
+        <Card>
+          <CardContent className="p-6 text-sm text-muted-foreground text-center">
+            Selecione uma empresa no seletor superior para ver os relatórios contábeis.
+          </CardContent>
+        </Card>
+      )}
+
+      {!blockedPj && (
+        <Tabs defaultValue="dre" className="space-y-4">
+          <TabsList className="flex flex-wrap gap-1">
+            <TabsTrigger value="dre">DRE Gerencial</TabsTrigger>
+            <TabsTrigger value="balancete">Balancete</TabsTrigger>
+            <TabsTrigger value="balanco">Balanço Patrimonial</TabsTrigger>
+            <TabsTrigger value="pendencias">Pendências</TabsTrigger>
+          </TabsList>
+
+          {error && (
+            <Card className="border-destructive">
+              <CardContent className="p-4 text-sm text-destructive">
+                Erro ao carregar: {(error as Error).message}
+              </CardContent>
+            </Card>
+          )}
+
+          {isLoading && (
+            <Card>
+              <CardContent className="p-6 text-sm text-muted-foreground text-center">
+                Calculando…
+              </CardContent>
+            </Card>
+          )}
+
+          {!isLoading && !error && (
+            <>
+              <TabsContent value="dre">
+                <DreReport nodes={nodes} onSelectAnalytic={setDrawerAccount} />
+              </TabsContent>
+              <TabsContent value="balancete">
+                <TrialBalance nodes={nodes} onSelectAnalytic={setDrawerAccount} />
+              </TabsContent>
+              <TabsContent value="balanco">
+                <BalanceSheet nodes={nodes} onSelectAnalytic={setDrawerAccount} />
+              </TabsContent>
+              <TabsContent value="pendencias">
+                <PendingClassificationPanel from={filters.from} to={filters.to} />
+              </TabsContent>
+            </>
+          )}
+        </Tabs>
+      )}
+
+      <GeneralLedgerDrawer
+        account={drawerAccount}
+        open={!!drawerAccount}
+        onOpenChange={(o) => !o && setDrawerAccount(null)}
+        from={filters.from}
+        to={filters.to}
+        regime={filters.regime}
+      />
+    </div>
+  );
+}
