@@ -75,7 +75,7 @@ export function ContactSection() {
             Fale com a gente
           </p>
           <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
-            Tem interesse no Gestor Plin?
+            Tem interesse no 360°FOOD?
           </h2>
           <p className="mt-3 text-sm text-muted-foreground sm:text-base">
             Preencha o formulário e nosso time comercial entrará em contato para tirar dúvidas, montar uma demonstração ou montar um plano sob medida.

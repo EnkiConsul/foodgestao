@@ -298,7 +298,7 @@ export default function Onboarding() {
           <div className="flex items-center gap-3">
             <Logo variant="icon" linkTo={null} className="h-10 w-10" />
             <div>
-              <h1 className="text-2xl font-bold">Bem-vindo ao Gestor Plin</h1>
+              <h1 className="text-2xl font-bold">Bem-vindo ao 360°FOOD</h1>
               <p className="text-sm text-muted-foreground">
                 Conclua o checklist abaixo para liberar seu Dashboard.
               </p>

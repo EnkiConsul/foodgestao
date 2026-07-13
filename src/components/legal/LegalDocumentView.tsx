@@ -18,15 +18,15 @@ export function LegalDocumentView({ title, lastUpdated, body, metaDescription, c
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Helmet>
-        <title>{title} — Gestor Plin</title>
-        <meta name="description" content={metaDescription ?? `${title} — Gestor Plin`} />
-        <link rel="canonical" href={`https://gestorplin.com${canonicalPath}`} />
-        <meta property="og:title" content={`${title} — Gestor Plin`} />
-        <meta property="og:description" content={metaDescription ?? `${title} — Gestor Plin`} />
-        <meta property="og:url" content={`https://gestorplin.com${canonicalPath}`} />
+        <title>{title} — 360°FOOD</title>
+        <meta name="description" content={metaDescription ?? `${title} — 360°FOOD`} />
+        <link rel="canonical" href={`https://360food.com${canonicalPath}`} />
+        <meta property="og:title" content={`${title} — 360°FOOD`} />
+        <meta property="og:description" content={metaDescription ?? `${title} — 360°FOOD`} />
+        <meta property="og:url" content={`https://360food.com${canonicalPath}`} />
         <meta property="og:type" content="article" />
-        <meta name="twitter:title" content={`${title} — Gestor Plin`} />
-        <meta name="twitter:description" content={metaDescription ?? `${title} — Gestor Plin`} />
+        <meta name="twitter:title" content={`${title} — 360°FOOD`} />
+        <meta name="twitter:description" content={metaDescription ?? `${title} — 360°FOOD`} />
       </Helmet>
 
       <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/85 backdrop-blur-md">
@@ -58,7 +58,7 @@ export function LegalDocumentView({ title, lastUpdated, body, metaDescription, c
           <Link to="/cookies" className="hover:text-foreground">Cookies</Link>
           <Link to="/encarregado-dados" className="hover:text-foreground">DPO</Link>
         </div>
-        <p className="mt-3">© {new Date().getFullYear()} Gestor Plin</p>
+        <p className="mt-3">© {new Date().getFullYear()} 360°FOOD</p>
       </footer>
     </div>
   );

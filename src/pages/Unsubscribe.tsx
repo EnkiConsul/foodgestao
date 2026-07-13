@@ -54,7 +54,7 @@ export default function Unsubscribe() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Helmet>
-        <title>Cancelar inscrição · Gestor Plin</title>
+        <title>Cancelar inscrição · 360°FOOD</title>
         <meta name="robots" content="noindex" />
       </Helmet>
       <Card className="w-full max-w-md">
@@ -71,7 +71,7 @@ export default function Unsubscribe() {
           {status === "valid" && (
             <>
               <p className="mt-3 text-sm text-muted-foreground">
-                Confirme abaixo para deixar de receber e-mails do Gestor Plin neste endereço.
+                Confirme abaixo para deixar de receber e-mails do 360°FOOD neste endereço.
               </p>
               <Button onClick={confirm} className="mt-6 w-full">
                 Confirmar cancelamento

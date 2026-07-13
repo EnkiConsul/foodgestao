@@ -6,15 +6,15 @@ import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
 // Configuration baked in at scaffold time — do NOT change these manually.
 // To update, re-run the email domain setup flow.
-const SITE_NAME = "gestorplin"
+const SITE_NAME = "360food"
 // SENDER_DOMAIN is the verified sender subdomain FQDN (e.g., "notify.example.com").
 // It MUST match the subdomain delegated to Lovable's nameservers — never the root domain.
 // The email API looks up this exact domain; a mismatch causes "No email domain record found".
-const SENDER_DOMAIN = "notificacao.gestorplin.com"
+const SENDER_DOMAIN = "notificacao.360food.com"
 // FROM_DOMAIN is the domain shown in the From: header (e.g., "example.com").
 // When display_from_root is enabled, this can be the root domain for cleaner branding,
 // even though actual sending uses the subdomain above.
-const FROM_DOMAIN = "gestorplin.com"
+const FROM_DOMAIN = "360food.com"
 
 // Generate a cryptographically random 32-byte hex token
 function generateToken(): string {
@@ -32,7 +32,7 @@ function generateToken(): string {
 //   - 'authenticated' : a signed-in user JWT is required. Additional per-template
 //                       checks run below (e.g. company-invite verifies a pending
 //                       invite exists for the recipient and was created by the
-//                       caller, so attackers can't spam Gestor Plin-branded invites).
+//                       caller, so attackers can't spam 360°FOOD-branded invites).
 //   - 'service_role'  : only the service role key may invoke (default for unlisted
 //                       templates; used by server-to-server flows).
 const TEMPLATE_POLICY: Record<string, 'public' | 'authenticated' | 'service_role'> = {
@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
   // accepts ANY valid JWT — including the public anon key bundled in every
   // browser client. Without the checks below, an unauthenticated visitor
   // could call this endpoint with arbitrary templateName/recipientEmail and
-  // send Gestor Plin-branded phishing/spam to any inbox.
+  // send 360°FOOD-branded phishing/spam to any inbox.
   const policy = TEMPLATE_POLICY[templateName] ?? 'service_role'
 
   // Resolve caller role from the JWT (gateway already verified the signature).
@@ -204,7 +204,7 @@ Deno.serve(async (req) => {
   ) {
     // The recipient must correspond to a pending invite created by THIS user.
     // This prevents an attacker with a valid login from spamming
-    // Gestor Plin-branded invites to arbitrary addresses.
+    // 360°FOOD-branded invites to arbitrary addresses.
     const { data: invite, error: inviteErr } = await supabase
       .from('company_invites')
       .select('id')

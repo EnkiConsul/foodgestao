@@ -4,7 +4,7 @@ import {
 } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
 
-const SITE_NAME = 'Gestor Plin'
+const SITE_NAME = '360°FOOD'
 
 interface CompanyInviteProps {
   companyName?: string
@@ -64,7 +64,7 @@ export const template = {
     companyName: 'Empresa Exemplo LTDA',
     inviterName: 'João da Silva',
     role: 'member',
-    inviteUrl: 'https://gestorplin.com/convite/abc123',
+    inviteUrl: 'https://360food.com/convite/abc123',
   },
 } satisfies TemplateEntry
 

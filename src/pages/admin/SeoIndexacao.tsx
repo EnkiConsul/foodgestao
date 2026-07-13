@@ -29,10 +29,10 @@ interface InspectResponse {
   results: UrlResult[];
 }
 
-const SITE_URL = "https://gestorplin.com/";
+const SITE_URL = "https://360food.com/";
 const MONITORED_URLS = [
-  "https://gestorplin.com/",
-  "https://gestorplin.com/guias/das-mei",
+  "https://360food.com/",
+  "https://360food.com/guias/das-mei",
 ];
 
 function formatDateTime(iso?: string | null) {

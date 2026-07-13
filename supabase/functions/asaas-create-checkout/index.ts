@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
       cycle: cycleFromBillingPeriod(plan.billing_period),
       value: centsToBrl(amountCents),
       nextDueDate: nextDueStr,
-      description: `${plan.name} — Gestor Plin`,
+      description: `${plan.name} — 360°FOOD`,
       externalReference: user.id,
     };
 

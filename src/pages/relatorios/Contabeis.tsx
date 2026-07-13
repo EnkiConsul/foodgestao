@@ -61,7 +61,7 @@ export default function RelatoriosContabeis() {
   return (
     <div className="space-y-4">
       <Helmet>
-        <title>Relatórios Contábeis | Gestor Plin</title>
+        <title>Relatórios Contábeis | 360°FOOD</title>
         <meta
           name="description"
           content="DRE, balancete, balanço e razão gerados dinamicamente a partir do plano de contas."
