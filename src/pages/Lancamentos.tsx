@@ -1059,13 +1059,10 @@ export default function Lancamentos() {
                     </TableRow>
                   ) : (
                     displayRows.map((r) => {
-                      const isParcelado = r.transactionType === "parcelado";
-                      const effTypeForRow = isParcelado
-                        ? (r.parcelDirection === "entrada" ? "receita" : "despesa")
-                        : r.transactionType;
-                      const isReceita = effTypeForRow === "receita";
-                      const isDespesa = effTypeForRow === "despesa";
-                      const isTransf = effTypeForRow === "transferencia";
+                      const isInstallment = r.installmentNumber != null && r.installmentTotal != null;
+                      const isReceita = r.transactionType === "receita";
+                      const isDespesa = r.transactionType === "despesa";
+                      const isTransf = r.transactionType === "transferencia";
                       // Efeito algébrico no saldo: receita→+amount, despesa→-amount
                       const signedEffect = isReceita ? r.amount : isDespesa ? -r.amount : 0;
                       const effectPositive = signedEffect > 0;
