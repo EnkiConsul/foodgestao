@@ -1027,8 +1027,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
             </div>
           )}
 
-          {/* Recurrence */}
-          {(
+          {/* Recurrence — hidden for transferencia and when Parcelado is active (mutex) */}
+          {type !== "transferencia" && !isInstallment && !isEditing && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -1074,6 +1074,80 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                       />
                     </div>
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Parcelado — modificador de receita/despesa (mutex com Recorrente) */}
+          {type !== "transferencia" && !isRecurring && !isEditing && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Repeat className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="installment-switch" className="cursor-pointer">Lançamento parcelado</Label>
+                </div>
+                <Switch
+                  id="installment-switch"
+                  checked={isInstallment}
+                  onCheckedChange={setIsInstallment}
+                />
+              </div>
+
+              {isInstallment && (
+                <div className="space-y-3 pl-6 border-l-2 border-muted">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Nº de parcelas</Label>
+                      <Input
+                        type="number"
+                        min={2}
+                        max={360}
+                        value={installmentTotal}
+                        onChange={(e) => setInstallmentTotal(Math.max(2, Math.min(360, Number(e.target.value) || 2)))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Periodicidade</Label>
+                      <Select value={installmentPeriod} onValueChange={setInstallmentPeriod}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="semanal">Semanal</SelectItem>
+                          <SelectItem value="quinzenal">Quinzenal</SelectItem>
+                          <SelectItem value="mensal">Mensal</SelectItem>
+                          <SelectItem value="bimestral">Bimestral</SelectItem>
+                          <SelectItem value="trimestral">Trimestral</SelectItem>
+                          <SelectItem value="semestral">Semestral</SelectItem>
+                          <SelectItem value="anual">Anual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Valor informado é</Label>
+                    <Select value={installmentMode} onValueChange={(v) => setInstallmentMode(v as "total" | "parcela")}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="parcela">Por parcela</SelectItem>
+                        <SelectItem value="total">Total (será dividido)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {(() => {
+                    const val = parseCurrencyToNumber(amount) || 0;
+                    if (val <= 0) return null;
+                    const per = installmentMode === "total"
+                      ? Math.floor((val / installmentTotal) * 100) / 100
+                      : val;
+                    const grand = installmentMode === "total" ? val : val * installmentTotal;
+                    return (
+                      <p className="text-[11px] text-muted-foreground">
+                        {installmentTotal}× de {per.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                        {" — total "}
+                        {grand.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </p>
+                    );
+                  })()}
                 </div>
               )}
             </div>
