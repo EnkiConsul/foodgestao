@@ -1208,7 +1208,11 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                       <Label>Dia da semana</Label>
                       <Select
                         value={date ? String(parseLocalDate(date).getDay()) : "1"}
-                        onValueChange={(v) => setDate(shiftToWeekday(date, Number(v)))}
+                        onValueChange={(v) => {
+                          const w = Number(v);
+                          setDate(shiftToWeekday(date, w));
+                          if (dueDate) setDueDate(shiftToWeekday(dueDate, w));
+                        }}
                       >
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
