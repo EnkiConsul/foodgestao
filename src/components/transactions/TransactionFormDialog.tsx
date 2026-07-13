@@ -27,7 +27,8 @@ import { PaymentMethodFormDialog } from "@/components/payment-methods/PaymentMet
 import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/searchable-select";
 import { useTransactionFieldSettings, TRANSACTION_FIELD_LABELS, type TransactionField } from "@/hooks/useTransactionFieldSettings";
 
-type TransactionType = "receita" | "despesa" | "transferencia";
+type TransactionType = "receita" | "despesa" | "transferencia" | "parcelado";
+type ParcelDirection = "entrada" | "saida";
 
 interface EditableTransaction {
   id: string;
@@ -50,6 +51,9 @@ interface EditableTransaction {
   payment_method_id?: string | null;
   payment_date?: string | null;
   parent_transaction_id?: string | null;
+  parcel_direction?: ParcelDirection | null;
+  installment_number?: number | null;
+  installment_total?: number | null;
 }
 
 export type EditScope = "single" | "forward" | "all";
@@ -179,6 +183,13 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const [existingAttachments, setExistingAttachments] = useState<{ id: string; file_name: string; file_url: string }[]>([]);
   const [removedAttachmentIds, setRemovedAttachmentIds] = useState<string[]>([]);
   const [paymentMethodId, setPaymentMethodId] = useState("");
+
+  // Parcelado
+  const [parcelDirection, setParcelDirection] = useState<ParcelDirection>("saida");
+  const [installmentTotal, setInstallmentTotal] = useState<number>(2);
+  const [installmentMode, setInstallmentMode] = useState<"total" | "parcela">("parcela");
+  const [installmentPeriod, setInstallmentPeriod] = useState<string>("mensal");
+
 
   const [accountDialogOpen, setAccountDialogOpen] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
@@ -395,8 +406,9 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const filteredCategories = categories.filter((c) => {
     if (type === "transferencia") return true;
 
-    // Filtrar pelo tipo do lançamento (receita/despesa)
-    if (c.transaction_type !== type) return false;
+    // Para parcelado: filtrar pelo tipo derivado da direção
+    const effType = type === "parcelado" ? (parcelDirection === "entrada" ? "receita" : "despesa") : type;
+    if (c.transaction_type !== effType) return false;
 
     if (contextType === "pf") return (c as any).visible_pf !== false;
     if (contextType === "pj" && selectedCompanyId) {
@@ -625,6 +637,99 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
     setSaving(true);
 
+    // ---- Parcelado (novo): gera parent + N filhas ----
+    if (!isEditing && type === "parcelado") {
+      try {
+        if (installmentTotal < 2) {
+          toast.error("Nº de parcelas deve ser ≥ 2");
+          setSaving(false);
+          return;
+        }
+        const totalAmount = installmentMode === "total" ? numAmount : numAmount * installmentTotal;
+        const baseParcel = installmentMode === "total"
+          ? Math.floor((numAmount / installmentTotal) * 100) / 100
+          : numAmount;
+        const remainder = Math.round((totalAmount - baseParcel * installmentTotal) * 100) / 100;
+
+        // Datas de cada parcela
+        const dates: string[] = [];
+        let cursor = new Date(date);
+        for (let i = 0; i < installmentTotal; i++) {
+          dates.push(cursor.toISOString().split("T")[0]);
+          cursor = getNextRecurrenceDate(cursor, installmentPeriod);
+        }
+
+        const commonFields = {
+          user_id: user.id,
+          transaction_type: "parcelado" as const,
+          parcel_direction: parcelDirection,
+          installment_total: installmentTotal,
+          description: description.trim(),
+          category_id: categoryId || null,
+          contact_id: contactId || null,
+          notes: notes.trim() || null,
+          payment_method_id: paymentMethodId || null,
+          account_id: accountId,
+          context: contextType,
+          company_id: contextType === "pj" ? selectedCompanyId : null,
+        };
+
+        // 1) Parent âncora (installment_number NULL, status cancelado — não afeta saldo)
+        const { data: parent, error: parentErr } = await supabase
+          .from("transactions")
+          .insert({
+            ...commonFields,
+            amount: totalAmount,
+            transaction_date: dates[0],
+            due_date: null,
+            status: "cancelado",
+            amount_paid: 0,
+            payment_date: null,
+            bill_status: null,
+          } as any)
+          .select("id")
+          .single();
+        if (parentErr || !parent) throw parentErr ?? new Error("Falha ao criar parcelamento");
+
+        // 2) N parcelas filhas
+        const children = dates.map((d, i) => {
+          const isLast = i === installmentTotal - 1;
+          const parcelAmount = isLast ? Math.round((baseParcel + remainder) * 100) / 100 : baseParcel;
+          return {
+            ...commonFields,
+            amount: parcelAmount,
+            transaction_date: d,
+            due_date: d,
+            installment_number: i + 1,
+            parent_transaction_id: parent.id,
+            status: "pendente",
+            amount_paid: 0,
+            payment_date: null,
+            bill_status: "em_dia",
+          };
+        });
+        const { error: cErr } = await supabase.from("transactions").insert(children as any);
+        if (cErr) throw cErr;
+
+        await supabase.rpc("insert_audit_log", {
+          _action: "transaction_created",
+          _entity_type: "transaction",
+          _entity_id: parent.id,
+          _details: { target_name: description.trim(), amount: String(totalAmount), type: "parcelado", installments: installmentTotal },
+        });
+
+        toast.success(`Parcelamento criado: ${installmentTotal}× de ${baseParcel.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`);
+        resetForm();
+        onOpenChange(false);
+        onCreated();
+      } catch (err: any) {
+        toast.error("Erro ao criar parcelamento", { description: err?.message });
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     const hasDueDate = !!dueDate && type !== "transferencia";
 
     const payload: any = {
@@ -839,12 +944,15 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           <div ref={bodyRef} className="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 py-4 space-y-4 [-webkit-overflow-scrolling:touch]">
           {/* Type tabs */}
           <Tabs value={type} onValueChange={(v) => { setType(v as TransactionType); setCategoryId(""); }}>
-            <TabsList className="w-full grid grid-cols-3">
+            <TabsList className="w-full grid grid-cols-4">
               <TabsTrigger value="receita" className="data-[state=active]:bg-success data-[state=active]:text-success-foreground">
                 Receita
               </TabsTrigger>
               <TabsTrigger value="despesa" className="data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground">
                 Despesa
+              </TabsTrigger>
+              <TabsTrigger value="parcelado" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                Parcelado
               </TabsTrigger>
               <TabsTrigger value="transferencia">
                 Transferência
@@ -852,11 +960,89 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
             </TabsList>
           </Tabs>
 
+          {/* Parcelado configuration */}
+          {type === "parcelado" && (
+            <div className="space-y-3 rounded-md border border-primary/30 bg-primary/5 p-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Direção</Label>
+                  <Select
+                    value={parcelDirection}
+                    onValueChange={(v) => { setParcelDirection(v as ParcelDirection); setCategoryId(""); }}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="entrada">Entrada (a receber)</SelectItem>
+                      <SelectItem value="saida">Saída (a pagar)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Nº de parcelas</Label>
+                  <Input
+                    type="number"
+                    min={2}
+                    max={360}
+                    value={installmentTotal}
+                    onChange={(e) => setInstallmentTotal(Math.max(2, Math.min(360, Number(e.target.value) || 2)))}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Valor informado é</Label>
+                  <Select value={installmentMode} onValueChange={(v) => setInstallmentMode(v as "total" | "parcela")}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="parcela">Por parcela</SelectItem>
+                      <SelectItem value="total">Total (será dividido)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Periodicidade</Label>
+                  <Select value={installmentPeriod} onValueChange={setInstallmentPeriod}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="semanal">Semanal</SelectItem>
+                      <SelectItem value="quinzenal">Quinzenal</SelectItem>
+                      <SelectItem value="mensal">Mensal</SelectItem>
+                      <SelectItem value="bimestral">Bimestral</SelectItem>
+                      <SelectItem value="trimestral">Trimestral</SelectItem>
+                      <SelectItem value="semestral">Semestral</SelectItem>
+                      <SelectItem value="anual">Anual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {(() => {
+                const total = parseCurrencyToNumber(amount) || 0;
+                if (total <= 0) return null;
+                const per = installmentMode === "total"
+                  ? Math.floor((total / installmentTotal) * 100) / 100
+                  : total;
+                const grand = installmentMode === "total" ? total : total * installmentTotal;
+                return (
+                  <p className="text-[11px] text-muted-foreground">
+                    {installmentTotal}× de {per.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    {" — total "}
+                    {grand.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </p>
+                );
+              })()}
+            </div>
+          )}
+
           {/* Amount */}
           <div className="space-y-2" data-field="amount">
-            <Label>Valor</Label>
+            <Label>
+              {type === "parcelado"
+                ? (installmentMode === "total" ? "Valor total" : "Valor da parcela")
+                : "Valor"}
+            </Label>
             <CurrencyInput value={amount} onValueChange={setAmount} placeholder="0,00" />
           </div>
+
 
           {/* Description */}
           <div className="space-y-2" data-field="description">
@@ -1253,7 +1439,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       <CategoryFormDialog
         open={categoryDialogOpen}
         onOpenChange={setCategoryDialogOpen}
-        defaultType={type === "receita" ? "receita" : "despesa"}
+        defaultType={type === "receita" || (type === "parcelado" && parcelDirection === "entrada") ? "receita" : "despesa"}
         onSaved={(newId) => {
           invalidateLookups();
           if (newId) setCategoryId(newId);

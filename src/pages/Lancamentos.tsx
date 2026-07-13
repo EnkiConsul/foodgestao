@@ -49,7 +49,7 @@ type Transaction = {
   id: string;
   description: string;
   amount: number;
-  transaction_type: "receita" | "despesa" | "transferencia";
+  transaction_type: "receita" | "despesa" | "transferencia" | "parcelado";
   transaction_date: string;
   status: string;
   category_id: string | null;
@@ -68,6 +68,9 @@ type Transaction = {
   is_recurring: boolean;
   parent_transaction_id: string | null;
   attachment_url: string | null; // legacy, kept for query compat
+  parcel_direction: "entrada" | "saida" | null;
+  installment_number: number | null;
+  installment_total: number | null;
 };
 
 type DisplayRow = {
@@ -75,7 +78,10 @@ type DisplayRow = {
   description: string;
   amount: number;
   date: string;
-  transactionType: "receita" | "despesa" | "transferencia";
+  transactionType: "receita" | "despesa" | "transferencia" | "parcelado";
+  parcelDirection: "entrada" | "saida" | null;
+  installmentNumber: number | null;
+  installmentTotal: number | null;
   categoryName: string | null;
   accountName: string | null;
   paymentMethodName: string | null;
@@ -255,7 +261,7 @@ export default function Lancamentos() {
     // We need transactions that fall in the month by transaction_date OR by due_date
     let q = supabase
       .from("transactions")
-      .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, bill_status, payment_date, contact_id, notes, destination_account_id, is_recurring, parent_transaction_id, attachment_url, categories!fk_transactions_category(name), accounts!fk_transactions_account(name), payment_methods!fk_transactions_payment_method(name)")
+      .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, bill_status, payment_date, contact_id, notes, destination_account_id, is_recurring, parent_transaction_id, attachment_url, parcel_direction, installment_number, installment_total, categories!fk_transactions_category(name), accounts!fk_transactions_account(name), payment_methods!fk_transactions_payment_method(name)")
       .eq("user_id", user.id)
       .eq("context", contextType)
       .or(`and(transaction_date.gte.${monthStart},transaction_date.lte.${monthEnd}),and(due_date.gte.${monthStart},due_date.lte.${monthEnd})`)
@@ -529,12 +535,23 @@ export default function Lancamentos() {
   const displayRows = useMemo(() => {
     const rows: DisplayRow[] = [];
 
+    // Parcelas parcelado → mapeadas para receita/despesa conforme direção; parent (installment_number NULL) é ignorado
+    const effRowType = (t: Transaction): "receita" | "despesa" | "transferencia" | null => {
+      if (t.transaction_type === "parcelado") {
+        if (t.installment_number == null) return null;
+        return t.parcel_direction === "entrada" ? "receita" : "despesa";
+      }
+      return t.transaction_type;
+    };
+
     transactions.forEach((t) => {
       const matchSearch = !search || t.description.toLowerCase().includes(search.toLowerCase());
       if (!matchSearch) return;
-      if (t.transaction_type === "receita" && !filterCredito) return;
-      if (t.transaction_type === "despesa" && !filterDebito) return;
-      if (t.transaction_type === "transferencia" && !filterTransferencia) return;
+      const eff = effRowType(t);
+      if (eff == null) return; // pula parent âncora do parcelado
+      if (eff === "receita" && !filterCredito) return;
+      if (eff === "despesa" && !filterDebito) return;
+      if (eff === "transferencia" && !filterTransferencia) return;
       if (filterAccount.length > 0 && !filterAccount.includes(t.account_id)) return;
       if (filterPaymentMethod.length > 0 && (!t.payment_method_id || !filterPaymentMethod.includes(t.payment_method_id))) return;
       if (filterCategory !== "all" && t.category_id !== filterCategory) return;
@@ -577,6 +594,9 @@ export default function Lancamentos() {
         isRecurring: t.is_recurring,
         isRecurrenceChild: !!t.parent_transaction_id,
         attachmentCount: attachmentCounts.get(t.id) || 0,
+        parcelDirection: t.parcel_direction,
+        installmentNumber: t.installment_number,
+        installmentTotal: t.installment_total,
         original: t,
       });
     });
@@ -587,12 +607,18 @@ export default function Lancamentos() {
     else if (sortBy === "description") rows.sort((a, b) => a.description.localeCompare(b.description));
 
     // Running balance: count confirmed transactions OR paid bills (amount_paid >= amount)
+    const effRow = (r: DisplayRow): "receita" | "despesa" | "transferencia" =>
+      r.transactionType === "parcelado"
+        ? (r.parcelDirection === "entrada" ? "receita" : "despesa")
+        : r.transactionType;
+
     let running = previousBalance;
     rows.forEach((r) => {
       const isPaid = r.hasDueDate && r.amountPaid >= r.amount;
       if (r.txStatus === "confirmado" || isPaid) {
-        if (r.transactionType === "receita") running += r.amount;
-        else if (r.transactionType === "despesa") running -= r.amount;
+        const et = effRow(r);
+        if (et === "receita") running += r.amount;
+        else if (et === "despesa") running -= r.amount;
       }
       r.runningBalance = running;
     });
@@ -602,17 +628,21 @@ export default function Lancamentos() {
 
   // Totals
   const totals = useMemo(() => {
+    const effRow = (r: DisplayRow): "receita" | "despesa" | "transferencia" =>
+      r.transactionType === "parcelado"
+        ? (r.parcelDirection === "entrada" ? "receita" : "despesa")
+        : r.transactionType;
     const effectiveRows = displayRows.filter((r) => r.txStatus === "confirmado" || (r.hasDueDate && r.amountPaid >= r.amount));
-    const receitas = effectiveRows.filter((r) => r.transactionType === "receita").reduce((s, r) => s + r.amount, 0);
-    const despesas = effectiveRows.filter((r) => r.transactionType === "despesa").reduce((s, r) => s + r.amount, 0);
+    const receitas = effectiveRows.filter((r) => effRow(r) === "receita").reduce((s, r) => s + r.amount, 0);
+    const despesas = effectiveRows.filter((r) => effRow(r) === "despesa").reduce((s, r) => s + r.amount, 0);
 
     const pending = displayRows.filter((r) => r.billStatus !== "pago");
-    const aPagar = pending.filter((r) => r.transactionType === "despesa").reduce((s, r) => s + r.amount - r.amountPaid, 0);
-    const aReceber = pending.filter((r) => r.transactionType === "receita").reduce((s, r) => s + r.amount - r.amountPaid, 0);
+    const aPagar = pending.filter((r) => effRow(r) === "despesa").reduce((s, r) => s + r.amount - r.amountPaid, 0);
+    const aReceber = pending.filter((r) => effRow(r) === "receita").reduce((s, r) => s + r.amount - r.amountPaid, 0);
     const atrasadas = displayRows.filter((r) => r.billStatus === "atrasado").length;
 
-    const allReceitas = displayRows.filter((r) => r.transactionType === "receita").reduce((s, r) => s + r.amount, 0);
-    const allDespesas = displayRows.filter((r) => r.transactionType === "despesa").reduce((s, r) => s + r.amount, 0);
+    const allReceitas = displayRows.filter((r) => effRow(r) === "receita").reduce((s, r) => s + r.amount, 0);
+    const allDespesas = displayRows.filter((r) => effRow(r) === "despesa").reduce((s, r) => s + r.amount, 0);
     const saldoPeriodo = allReceitas - allDespesas;
     const saldoAcumulado = previousBalance + saldoPeriodo;
 
@@ -1052,9 +1082,13 @@ export default function Lancamentos() {
                     </TableRow>
                   ) : (
                     displayRows.map((r) => {
-                      const isReceita = r.transactionType === "receita";
-                      const isDespesa = r.transactionType === "despesa";
-                      const isTransf = r.transactionType === "transferencia";
+                      const isParcelado = r.transactionType === "parcelado";
+                      const effTypeForRow = isParcelado
+                        ? (r.parcelDirection === "entrada" ? "receita" : "despesa")
+                        : r.transactionType;
+                      const isReceita = effTypeForRow === "receita";
+                      const isDespesa = effTypeForRow === "despesa";
+                      const isTransf = effTypeForRow === "transferencia";
                       // Efeito algébrico no saldo: receita→+amount, despesa→-amount
                       const signedEffect = isReceita ? r.amount : isDespesa ? -r.amount : 0;
                       const effectPositive = signedEffect > 0;
@@ -1083,7 +1117,7 @@ export default function Lancamentos() {
                           {/* Descrição */}
                           <TableCell className="text-xs py-2">
                             <div className="flex items-center gap-1 max-w-[280px]">
-                              {(r.isRecurring || r.isRecurrenceChild) && (
+                              {(r.isRecurring || r.isRecurrenceChild) && r.transactionType !== "parcelado" && (
                                 <TooltipProvider delayDuration={200}>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -1094,6 +1128,11 @@ export default function Lancamentos() {
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
+                              )}
+                              {r.transactionType === "parcelado" && r.installmentNumber != null && r.installmentTotal != null && (
+                                <span className="inline-flex items-center rounded-sm bg-primary/10 px-1 py-0.5 text-[10px] font-medium text-primary shrink-0">
+                                  {r.installmentNumber}/{r.installmentTotal}
+                                </span>
                               )}
                               {r.attachmentCount > 0 && (
                                 <TooltipProvider delayDuration={200}>
