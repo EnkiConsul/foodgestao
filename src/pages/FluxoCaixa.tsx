@@ -91,7 +91,7 @@ export default function FluxoCaixa() {
       const endDate = format(activeRange.to, "yyyy-MM-dd");
       let q = supabase
         .from("transactions")
-        .select("amount, amount_paid, transaction_type, transaction_date, status, due_date, bill_status, parcel_direction, installment_number")
+        .select("amount, amount_paid, transaction_type, transaction_date, status, due_date, bill_status")
         .eq("user_id", user!.id)
         .eq("context", contextType)
         .neq("status", "cancelado")
