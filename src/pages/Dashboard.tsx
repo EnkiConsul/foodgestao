@@ -83,7 +83,7 @@ export default function Dashboard() {
       const endDate = activeRange.to.toISOString().split("T")[0];
       let q = supabase
         .from("transactions")
-        .select("amount, amount_paid, transaction_type, transaction_date, category_id, status, due_date, parcel_direction, installment_number")
+        .select("amount, amount_paid, transaction_type, transaction_date, category_id, status, due_date")
         .eq("user_id", user!.id)
         .eq("context", contextType)
         .gte("transaction_date", startDate)
@@ -151,16 +151,10 @@ export default function Dashboard() {
       if (!confirmedMonths[month]) confirmedMonths[month] = { receitas: 0, despesas: 0 };
       if (!days[day]) days[day] = { receitas: 0, despesas: 0 };
 
-      // Mapeia parcelado → receita/despesa conforme direção (ignora parent âncora)
-      const anyT = t as any;
       const effType: "receita" | "despesa" | null =
-        anyT.transaction_type === "parcelado"
-          ? (anyT.installment_number == null
-              ? null
-              : anyT.parcel_direction === "entrada" ? "receita" : "despesa")
-          : (anyT.transaction_type === "receita" || anyT.transaction_type === "despesa")
-            ? anyT.transaction_type
-            : null;
+        t.transaction_type === "receita" || t.transaction_type === "despesa"
+          ? t.transaction_type
+          : null;
 
       if (effType === "receita") {
         months[month].receitas += Number(t.amount);

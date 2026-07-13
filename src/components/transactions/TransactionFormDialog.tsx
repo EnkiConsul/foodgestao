@@ -27,8 +27,7 @@ import { PaymentMethodFormDialog } from "@/components/payment-methods/PaymentMet
 import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/searchable-select";
 import { useTransactionFieldSettings, TRANSACTION_FIELD_LABELS, type TransactionField } from "@/hooks/useTransactionFieldSettings";
 
-type TransactionType = "receita" | "despesa" | "transferencia" | "parcelado";
-type ParcelDirection = "entrada" | "saida";
+type TransactionType = "receita" | "despesa" | "transferencia";
 
 interface EditableTransaction {
   id: string;
@@ -51,7 +50,6 @@ interface EditableTransaction {
   payment_method_id?: string | null;
   payment_date?: string | null;
   parent_transaction_id?: string | null;
-  parcel_direction?: ParcelDirection | null;
   installment_number?: number | null;
   installment_total?: number | null;
 }
@@ -184,8 +182,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const [removedAttachmentIds, setRemovedAttachmentIds] = useState<string[]>([]);
   const [paymentMethodId, setPaymentMethodId] = useState("");
 
-  // Parcelado
-  const [parcelDirection, setParcelDirection] = useState<ParcelDirection>("saida");
+  // Parcelado (modificador de receita/despesa, mutex com Recorrente)
+  const [isInstallment, setIsInstallment] = useState(false);
   const [installmentTotal, setInstallmentTotal] = useState<number>(2);
   const [installmentMode, setInstallmentMode] = useState<"total" | "parcela">("parcela");
   const [installmentPeriod, setInstallmentPeriod] = useState<string>("mensal");
@@ -405,10 +403,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
   const filteredCategories = categories.filter((c) => {
     if (type === "transferencia") return true;
-
-    // Para parcelado: filtrar pelo tipo derivado da direção
-    const effType = type === "parcelado" ? (parcelDirection === "entrada" ? "receita" : "despesa") : type;
-    if (c.transaction_type !== effType) return false;
+    if (c.transaction_type !== type) return false;
 
     if (contextType === "pf") return (c as any).visible_pf !== false;
     if (contextType === "pj" && selectedCompanyId) {
@@ -548,6 +543,10 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     setIsRecurring(false);
     setRecurrenceType("mensal");
     setRecurrenceEndDate("");
+    setIsInstallment(false);
+    setInstallmentTotal(2);
+    setInstallmentMode("parcela");
+    setInstallmentPeriod("mensal");
     setAttachmentFiles([]);
     setExistingAttachments([]);
     setRemovedAttachmentIds([]);
@@ -637,8 +636,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
     setSaving(true);
 
-    // ---- Parcelado (novo): gera parent + N filhas ----
-    if (!isEditing && type === "parcelado") {
+    // ---- Parcelado (modificador de receita/despesa): gera parent + N filhas ----
+    if (!isEditing && isInstallment && (type === "receita" || type === "despesa")) {
       try {
         if (installmentTotal < 2) {
           toast.error("Nº de parcelas deve ser ≥ 2");
@@ -661,8 +660,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
         const commonFields = {
           user_id: user.id,
-          transaction_type: "parcelado" as const,
-          parcel_direction: parcelDirection,
+          transaction_type: type,
           installment_total: installmentTotal,
           description: description.trim(),
           category_id: categoryId || null,
@@ -715,7 +713,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           _action: "transaction_created",
           _entity_type: "transaction",
           _entity_id: parent.id,
-          _details: { target_name: description.trim(), amount: String(totalAmount), type: "parcelado", installments: installmentTotal },
+          _details: { target_name: description.trim(), amount: String(totalAmount), type, installments: installmentTotal },
         });
 
         toast.success(`Parcelamento criado: ${installmentTotal}× de ${baseParcel.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`);
@@ -944,15 +942,12 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           <div ref={bodyRef} className="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 py-4 space-y-4 [-webkit-overflow-scrolling:touch]">
           {/* Type tabs */}
           <Tabs value={type} onValueChange={(v) => { setType(v as TransactionType); setCategoryId(""); }}>
-            <TabsList className="w-full grid grid-cols-4">
+            <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="receita" className="data-[state=active]:bg-success data-[state=active]:text-success-foreground">
                 Receita
               </TabsTrigger>
               <TabsTrigger value="despesa" className="data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground">
                 Despesa
-              </TabsTrigger>
-              <TabsTrigger value="parcelado" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                Parcelado
               </TabsTrigger>
               <TabsTrigger value="transferencia">
                 Transferência
@@ -960,83 +955,10 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
             </TabsList>
           </Tabs>
 
-          {/* Parcelado configuration */}
-          {type === "parcelado" && (
-            <div className="space-y-3 rounded-md border border-primary/30 bg-primary/5 p-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Direção</Label>
-                  <Select
-                    value={parcelDirection}
-                    onValueChange={(v) => { setParcelDirection(v as ParcelDirection); setCategoryId(""); }}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="entrada">Entrada (a receber)</SelectItem>
-                      <SelectItem value="saida">Saída (a pagar)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Nº de parcelas</Label>
-                  <Input
-                    type="number"
-                    min={2}
-                    max={360}
-                    value={installmentTotal}
-                    onChange={(e) => setInstallmentTotal(Math.max(2, Math.min(360, Number(e.target.value) || 2)))}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Valor informado é</Label>
-                  <Select value={installmentMode} onValueChange={(v) => setInstallmentMode(v as "total" | "parcela")}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="parcela">Por parcela</SelectItem>
-                      <SelectItem value="total">Total (será dividido)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Periodicidade</Label>
-                  <Select value={installmentPeriod} onValueChange={setInstallmentPeriod}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="semanal">Semanal</SelectItem>
-                      <SelectItem value="quinzenal">Quinzenal</SelectItem>
-                      <SelectItem value="mensal">Mensal</SelectItem>
-                      <SelectItem value="bimestral">Bimestral</SelectItem>
-                      <SelectItem value="trimestral">Trimestral</SelectItem>
-                      <SelectItem value="semestral">Semestral</SelectItem>
-                      <SelectItem value="anual">Anual</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              {(() => {
-                const total = parseCurrencyToNumber(amount) || 0;
-                if (total <= 0) return null;
-                const per = installmentMode === "total"
-                  ? Math.floor((total / installmentTotal) * 100) / 100
-                  : total;
-                const grand = installmentMode === "total" ? total : total * installmentTotal;
-                return (
-                  <p className="text-[11px] text-muted-foreground">
-                    {installmentTotal}× de {per.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                    {" — total "}
-                    {grand.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                  </p>
-                );
-              })()}
-            </div>
-          )}
-
           {/* Amount */}
           <div className="space-y-2" data-field="amount">
             <Label>
-              {type === "parcelado"
+              {isInstallment && type !== "transferencia"
                 ? (installmentMode === "total" ? "Valor total" : "Valor da parcela")
                 : "Valor"}
             </Label>
@@ -1109,8 +1031,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
             </div>
           )}
 
-          {/* Recurrence */}
-          {(
+          {/* Recurrence — hidden for transferencia and when Parcelado is active (mutex) */}
+          {type !== "transferencia" && !isInstallment && !isEditing && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -1156,6 +1078,80 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                       />
                     </div>
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Parcelado — modificador de receita/despesa (mutex com Recorrente) */}
+          {type !== "transferencia" && !isRecurring && !isEditing && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Repeat className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="installment-switch" className="cursor-pointer">Lançamento parcelado</Label>
+                </div>
+                <Switch
+                  id="installment-switch"
+                  checked={isInstallment}
+                  onCheckedChange={setIsInstallment}
+                />
+              </div>
+
+              {isInstallment && (
+                <div className="space-y-3 pl-6 border-l-2 border-muted">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Nº de parcelas</Label>
+                      <Input
+                        type="number"
+                        min={2}
+                        max={360}
+                        value={installmentTotal}
+                        onChange={(e) => setInstallmentTotal(Math.max(2, Math.min(360, Number(e.target.value) || 2)))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Periodicidade</Label>
+                      <Select value={installmentPeriod} onValueChange={setInstallmentPeriod}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="semanal">Semanal</SelectItem>
+                          <SelectItem value="quinzenal">Quinzenal</SelectItem>
+                          <SelectItem value="mensal">Mensal</SelectItem>
+                          <SelectItem value="bimestral">Bimestral</SelectItem>
+                          <SelectItem value="trimestral">Trimestral</SelectItem>
+                          <SelectItem value="semestral">Semestral</SelectItem>
+                          <SelectItem value="anual">Anual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Valor informado é</Label>
+                    <Select value={installmentMode} onValueChange={(v) => setInstallmentMode(v as "total" | "parcela")}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="parcela">Por parcela</SelectItem>
+                        <SelectItem value="total">Total (será dividido)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {(() => {
+                    const val = parseCurrencyToNumber(amount) || 0;
+                    if (val <= 0) return null;
+                    const per = installmentMode === "total"
+                      ? Math.floor((val / installmentTotal) * 100) / 100
+                      : val;
+                    const grand = installmentMode === "total" ? val : val * installmentTotal;
+                    return (
+                      <p className="text-[11px] text-muted-foreground">
+                        {installmentTotal}× de {per.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                        {" — total "}
+                        {grand.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </p>
+                    );
+                  })()}
                 </div>
               )}
             </div>
@@ -1439,7 +1435,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       <CategoryFormDialog
         open={categoryDialogOpen}
         onOpenChange={setCategoryDialogOpen}
-        defaultType={type === "receita" || (type === "parcelado" && parcelDirection === "entrada") ? "receita" : "despesa"}
+        defaultType={type === "receita" ? "receita" : "despesa"}
         onSaved={(newId) => {
           invalidateLookups();
           if (newId) setCategoryId(newId);
