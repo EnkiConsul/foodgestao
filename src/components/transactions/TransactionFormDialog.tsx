@@ -1096,6 +1096,22 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                       </SelectContent>
                     </Select>
                   </div>
+                  {recurrenceType === "semanal" && (
+                    <div className="space-y-2">
+                      <Label>Dia da semana</Label>
+                      <Select
+                        value={date ? String(parseLocalDate(date).getDay()) : "1"}
+                        onValueChange={(v) => setDate(shiftToWeekday(date, Number(v)))}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {WEEKDAYS.map((w) => (
+                            <SelectItem key={w.value} value={w.value}>{w.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label>Data final da recorrência (opcional)</Label>
                     <div className="relative">
