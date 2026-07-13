@@ -607,12 +607,18 @@ export default function Lancamentos() {
     else if (sortBy === "description") rows.sort((a, b) => a.description.localeCompare(b.description));
 
     // Running balance: count confirmed transactions OR paid bills (amount_paid >= amount)
+    const effRow = (r: DisplayRow): "receita" | "despesa" | "transferencia" =>
+      r.transactionType === "parcelado"
+        ? (r.parcelDirection === "entrada" ? "receita" : "despesa")
+        : r.transactionType;
+
     let running = previousBalance;
     rows.forEach((r) => {
       const isPaid = r.hasDueDate && r.amountPaid >= r.amount;
       if (r.txStatus === "confirmado" || isPaid) {
-        if (r.transactionType === "receita") running += r.amount;
-        else if (r.transactionType === "despesa") running -= r.amount;
+        const et = effRow(r);
+        if (et === "receita") running += r.amount;
+        else if (et === "despesa") running -= r.amount;
       }
       r.runningBalance = running;
     });
@@ -622,17 +628,21 @@ export default function Lancamentos() {
 
   // Totals
   const totals = useMemo(() => {
+    const effRow = (r: DisplayRow): "receita" | "despesa" | "transferencia" =>
+      r.transactionType === "parcelado"
+        ? (r.parcelDirection === "entrada" ? "receita" : "despesa")
+        : r.transactionType;
     const effectiveRows = displayRows.filter((r) => r.txStatus === "confirmado" || (r.hasDueDate && r.amountPaid >= r.amount));
-    const receitas = effectiveRows.filter((r) => r.transactionType === "receita").reduce((s, r) => s + r.amount, 0);
-    const despesas = effectiveRows.filter((r) => r.transactionType === "despesa").reduce((s, r) => s + r.amount, 0);
+    const receitas = effectiveRows.filter((r) => effRow(r) === "receita").reduce((s, r) => s + r.amount, 0);
+    const despesas = effectiveRows.filter((r) => effRow(r) === "despesa").reduce((s, r) => s + r.amount, 0);
 
     const pending = displayRows.filter((r) => r.billStatus !== "pago");
-    const aPagar = pending.filter((r) => r.transactionType === "despesa").reduce((s, r) => s + r.amount - r.amountPaid, 0);
-    const aReceber = pending.filter((r) => r.transactionType === "receita").reduce((s, r) => s + r.amount - r.amountPaid, 0);
+    const aPagar = pending.filter((r) => effRow(r) === "despesa").reduce((s, r) => s + r.amount - r.amountPaid, 0);
+    const aReceber = pending.filter((r) => effRow(r) === "receita").reduce((s, r) => s + r.amount - r.amountPaid, 0);
     const atrasadas = displayRows.filter((r) => r.billStatus === "atrasado").length;
 
-    const allReceitas = displayRows.filter((r) => r.transactionType === "receita").reduce((s, r) => s + r.amount, 0);
-    const allDespesas = displayRows.filter((r) => r.transactionType === "despesa").reduce((s, r) => s + r.amount, 0);
+    const allReceitas = displayRows.filter((r) => effRow(r) === "receita").reduce((s, r) => s + r.amount, 0);
+    const allDespesas = displayRows.filter((r) => effRow(r) === "despesa").reduce((s, r) => s + r.amount, 0);
     const saldoPeriodo = allReceitas - allDespesas;
     const saldoAcumulado = previousBalance + saldoPeriodo;
 
