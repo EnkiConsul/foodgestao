@@ -3,6 +3,7 @@ import { ArrowLeft, CheckCircle2, AlertTriangle, Calendar, Calculator, FileText 
 import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
+import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 
 const PAGE_URL = "https://gestor360food.com/guias/das-mei";
 const TITLE = "DAS MEI 2026: o que é, valores, prazos e como pagar";
@@ -73,6 +74,12 @@ export default function DasMei() {
         <script type="application/ld+json">{JSON.stringify(articleLd)}</script>
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
       </Helmet>
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Guias", path: "/guias" },
+          { name: "DAS MEI 2026", path: "/guias/das-mei" },
+        ]}
+      />
 
       <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/85 backdrop-blur-md">
         <div className="container mx-auto flex h-14 items-center justify-between px-3 sm:h-16 sm:px-4">
