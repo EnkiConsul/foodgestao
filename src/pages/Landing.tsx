@@ -166,7 +166,7 @@ function PublicHeader({ utm }: { utm: string }) {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/85 backdrop-blur-md">
       <div className="container mx-auto flex h-14 items-center justify-between px-3 sm:h-16 sm:px-4">
-        <Logo size="sm" linkTo="/" className="h-9 sm:h-10" />
+        <Logo size="sm" variant="symbol" linkTo="/" className="h-9 sm:h-10" />
 
         {/* Desktop nav */}
         <nav className="hidden items-center gap-1 md:flex">
@@ -772,7 +772,7 @@ function PublicFooter() {
       <div className="container mx-auto px-4 py-8 sm:py-10">
         {/* Linha 1: Marca + navegação */}
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <Logo size="sm" linkTo="/" className="h-8" />
+          <Logo size="sm" variant="symbol" linkTo="/" className="h-8" />
           <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
             <Link to="/auth" className="hover:text-foreground">{c.link_login}</Link>
             <a href="#planos" className="hover:text-foreground">{c.link_plans}</a>
