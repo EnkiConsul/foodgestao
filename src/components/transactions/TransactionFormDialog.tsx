@@ -406,8 +406,9 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const filteredCategories = categories.filter((c) => {
     if (type === "transferencia") return true;
 
-    // Filtrar pelo tipo do lançamento (receita/despesa)
-    if (c.transaction_type !== type) return false;
+    // Para parcelado: filtrar pelo tipo derivado da direção
+    const effType = type === "parcelado" ? (parcelDirection === "entrada" ? "receita" : "despesa") : type;
+    if (c.transaction_type !== effType) return false;
 
     if (contextType === "pf") return (c as any).visible_pf !== false;
     if (contextType === "pj" && selectedCompanyId) {
