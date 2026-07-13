@@ -34,6 +34,8 @@ import {
 } from "@/components/ui/sidebar";
 import { NavLink } from "@/components/NavLink";
 import { Logo } from "@/components/Logo";
+import assinatura360 from "@/assets/360food-assinatura.png.asset.json";
+import symbol360 from "@/assets/360food-symbol.png.asset.json";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
@@ -93,11 +95,13 @@ export function AppSidebar() {
   return (
     <Sidebar className="border-r-0" collapsible="icon">
       <SidebarHeader className="p-4 border-b border-sidebar-border mb-2">
-        <div className="flex items-center justify-center gap-0.5">
-          <span className="text-xl font-bold tracking-tight text-sidebar-primary">360°</span>
-          {!collapsed && (
-            <span className="text-xl font-bold tracking-tight text-sidebar-foreground">FOOD</span>
-          )}
+        <div className="flex items-center justify-center">
+          <img
+            src={collapsed ? symbol360.url : assinatura360.url}
+            alt="360°FOOD"
+            className={collapsed ? "h-8 w-auto select-none" : "h-10 w-auto select-none"}
+            draggable={false}
+          />
         </div>
       </SidebarHeader>
 
