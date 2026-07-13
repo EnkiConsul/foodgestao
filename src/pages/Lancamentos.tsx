@@ -1091,7 +1091,7 @@ export default function Lancamentos() {
                           {/* Descrição */}
                           <TableCell className="text-xs py-2">
                             <div className="flex items-center gap-1 max-w-[280px]">
-                              {(r.isRecurring || r.isRecurrenceChild) && r.transactionType !== "parcelado" && (
+                              {(r.isRecurring || r.isRecurrenceChild) && !isInstallment && (
                                 <TooltipProvider delayDuration={200}>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
