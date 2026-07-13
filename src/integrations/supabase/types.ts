@@ -2284,6 +2284,9 @@ export type Database = {
           installment_total: number | null
           is_recurring: boolean
           notes: string | null
+          parcel_direction:
+            | Database["public"]["Enums"]["parcel_direction"]
+            | null
           parent_transaction_id: string | null
           payment_date: string | null
           payment_method_id: string | null
@@ -2320,6 +2323,9 @@ export type Database = {
           installment_total?: number | null
           is_recurring?: boolean
           notes?: string | null
+          parcel_direction?:
+            | Database["public"]["Enums"]["parcel_direction"]
+            | null
           parent_transaction_id?: string | null
           payment_date?: string | null
           payment_method_id?: string | null
@@ -2358,6 +2364,9 @@ export type Database = {
           installment_total?: number | null
           is_recurring?: boolean
           notes?: string | null
+          parcel_direction?:
+            | Database["public"]["Enums"]["parcel_direction"]
+            | null
           parent_transaction_id?: string | null
           payment_date?: string | null
           payment_method_id?: string | null
@@ -3006,6 +3015,7 @@ export type Database = {
         | "overdue"
         | "canceled"
         | "refunded"
+      parcel_direction: "entrada" | "saida"
       profile_type: "pf" | "mei" | "microempresa" | "hibrido"
       recurrence_type:
         | "diario"
@@ -3024,7 +3034,7 @@ export type Database = {
         | "expired"
         | "pending"
       transaction_status: "pendente" | "confirmado" | "cancelado"
-      transaction_type: "receita" | "despesa" | "transferencia"
+      transaction_type: "receita" | "despesa" | "transferencia" | "parcelado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3178,6 +3188,7 @@ export const Constants = {
         "canceled",
         "refunded",
       ],
+      parcel_direction: ["entrada", "saida"],
       profile_type: ["pf", "mei", "microempresa", "hibrido"],
       recurrence_type: [
         "diario",
@@ -3198,7 +3209,7 @@ export const Constants = {
         "pending",
       ],
       transaction_status: ["pendente", "confirmado", "cancelado"],
-      transaction_type: ["receita", "despesa", "transferencia"],
+      transaction_type: ["receita", "despesa", "transferencia", "parcelado"],
     },
   },
 } as const
