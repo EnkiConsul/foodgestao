@@ -54,13 +54,13 @@ import {
 const mainItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Lançamentos", url: "/lancamentos", icon: ArrowLeftRight },
-  
   { title: "Fluxo de Caixa", url: "/fluxo-caixa", icon: TrendingUp },
   { title: "Orçamento", url: "/orcamento", icon: Target },
-  { title: "Relatórios", url: "/relatorios", icon: FileBarChart },
-  { title: "Relatórios Contábeis", url: "/relatorios/contabeis", icon: FileBarChart },
-  
-  
+];
+
+const reportsSubItems = [
+  { title: "Financeiros", url: "/relatorios" },
+  { title: "Contábeis", url: "/relatorios/contabeis" },
 ];
 
 const secondaryItems = [
