@@ -179,9 +179,17 @@ function toLocalDateStr(d: Date): string {
 function shiftToWeekday(dateStr: string, weekday: number): string {
   if (!dateStr) return dateStr;
   const d = parseLocalDate(dateStr);
-  const diff = (weekday - d.getDay() + 7) % 7;
+  const target = ((weekday % 7) + 7) % 7;
+  const diff = (target - d.getDay() + 7) % 7;
   d.setDate(d.getDate() + diff);
   return toLocalDateStr(d);
+}
+
+/** Returns the weekday (0-6) of the reference date, falling back to Monday. */
+function currentWeekday(dateStr: string, fallback = 1): number {
+  if (!dateStr) return fallback;
+  const d = parseLocalDate(dateStr);
+  return isNaN(d.getTime()) ? fallback : d.getDay();
 }
 
 const MAX_ATTACHMENTS = 5;
@@ -1035,6 +1043,23 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                   placeholder="Sem vencimento"
                 />
               </div>
+              {/* Weekday helper — visible when editing a weekly recurring/installment child */}
+              {isEditing && dueDate && (transaction?.parent_transaction_id || (transaction?.installment_total ?? 0) > 0) && (
+                <div className="pt-1">
+                  <Label className="text-xs text-muted-foreground">Dia da semana do vencimento</Label>
+                  <Select
+                    value={String(currentWeekday(dueDate))}
+                    onValueChange={(v) => setDueDate(shiftToWeekday(dueDate, Number(v)))}
+                  >
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {WEEKDAYS.map((w) => (
+                        <SelectItem key={w.value} value={w.value}>{w.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <p className="text-[11px] text-muted-foreground">
                 Se preenchido, o lançamento será tratado como compromisso pendente.
               </p>
@@ -1101,7 +1126,11 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                       <Label>Dia da semana</Label>
                       <Select
                         value={date ? String(parseLocalDate(date).getDay()) : "1"}
-                        onValueChange={(v) => setDate(shiftToWeekday(date, Number(v)))}
+                        onValueChange={(v) => {
+                          const w = Number(v);
+                          setDate(shiftToWeekday(date, w));
+                          if (dueDate) setDueDate(shiftToWeekday(dueDate, w));
+                        }}
                       >
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -1179,7 +1208,11 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                       <Label>Dia da semana</Label>
                       <Select
                         value={date ? String(parseLocalDate(date).getDay()) : "1"}
-                        onValueChange={(v) => setDate(shiftToWeekday(date, Number(v)))}
+                        onValueChange={(v) => {
+                          const w = Number(v);
+                          setDate(shiftToWeekday(date, w));
+                          if (dueDate) setDueDate(shiftToWeekday(dueDate, w));
+                        }}
                       >
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
