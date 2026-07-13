@@ -1043,6 +1043,23 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                   placeholder="Sem vencimento"
                 />
               </div>
+              {/* Weekday helper — visible when editing a weekly recurring/installment child */}
+              {isEditing && dueDate && (transaction?.parent_transaction_id || (transaction?.installment_total ?? 0) > 0) && (
+                <div className="pt-1">
+                  <Label className="text-xs text-muted-foreground">Dia da semana do vencimento</Label>
+                  <Select
+                    value={String(currentWeekday(dueDate))}
+                    onValueChange={(v) => setDueDate(shiftToWeekday(dueDate, Number(v)))}
+                  >
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {WEEKDAYS.map((w) => (
+                        <SelectItem key={w.value} value={w.value}>{w.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <p className="text-[11px] text-muted-foreground">
                 Se preenchido, o lançamento será tratado como compromisso pendente.
               </p>
