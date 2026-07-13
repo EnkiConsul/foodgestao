@@ -257,6 +257,22 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     return () => clearTimeout(t);
   }, [errorField]);
 
+  // Auto-sync dueDate to base date's weekday when in weekly mode
+  useEffect(() => {
+    if (!date || !dueDate) return;
+    const weeklyRecurring = isRecurring && recurrenceType === "semanal";
+    const weeklyInstallment = isInstallment && installmentPeriod === "semanal";
+    if (!weeklyRecurring && !weeklyInstallment) return;
+    const targetWeekday = parseLocalDate(date).getDay();
+    const currentWd = parseLocalDate(dueDate).getDay();
+    if (targetWeekday !== currentWd) {
+      setDueDate(shiftToWeekday(dueDate, targetWeekday));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date, isRecurring, recurrenceType, isInstallment, installmentPeriod]);
+
+
+
   // --- Lookup queries (React Query so realtime invalidation works) ---
   const accountsQuery = useQuery({
     queryKey: ["form-accounts", user?.id, contextType, selectedCompanyId],
