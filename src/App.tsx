@@ -310,6 +310,7 @@ const AppRoutes = () => (
     <Route path="/cookies" element={<CookiesPage />} />
     <Route path="/encarregado-dados" element={<EncarregadoDados />} />
     <Route path="/guias/das-mei" element={<DasMei />} />
+    <Route path="/buscar" element={<Buscar />} />
     <Route path="/dpo" element={<Navigate to="/encarregado-dados" replace />} />
     <Route path="/unsubscribe" element={<Unsubscribe />} />
     <Route path="/planos" element={<ProtectedRoute><Planos /></ProtectedRoute>} />
