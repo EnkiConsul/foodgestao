@@ -1116,6 +1116,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                       <Select value={installmentPeriod} onValueChange={setInstallmentPeriod}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="diario">Diário</SelectItem>
                           <SelectItem value="semanal">Semanal</SelectItem>
                           <SelectItem value="quinzenal">Quinzenal</SelectItem>
                           <SelectItem value="mensal">Mensal</SelectItem>
