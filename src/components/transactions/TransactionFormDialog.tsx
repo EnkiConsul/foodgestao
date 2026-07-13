@@ -179,9 +179,17 @@ function toLocalDateStr(d: Date): string {
 function shiftToWeekday(dateStr: string, weekday: number): string {
   if (!dateStr) return dateStr;
   const d = parseLocalDate(dateStr);
-  const diff = (weekday - d.getDay() + 7) % 7;
+  const target = ((weekday % 7) + 7) % 7;
+  const diff = (target - d.getDay() + 7) % 7;
   d.setDate(d.getDate() + diff);
   return toLocalDateStr(d);
+}
+
+/** Returns the weekday (0-6) of the reference date, falling back to Monday. */
+function currentWeekday(dateStr: string, fallback = 1): number {
+  if (!dateStr) return fallback;
+  const d = parseLocalDate(dateStr);
+  return isNaN(d.getTime()) ? fallback : d.getDay();
 }
 
 const MAX_ATTACHMENTS = 5;
