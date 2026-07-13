@@ -83,7 +83,7 @@ export default function Dashboard() {
       const endDate = activeRange.to.toISOString().split("T")[0];
       let q = supabase
         .from("transactions")
-        .select("amount, amount_paid, transaction_type, transaction_date, category_id, status, due_date, parcel_direction, installment_number")
+        .select("amount, amount_paid, transaction_type, transaction_date, category_id, status, due_date")
         .eq("user_id", user!.id)
         .eq("context", contextType)
         .gte("transaction_date", startDate)
