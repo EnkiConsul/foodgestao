@@ -78,7 +78,10 @@ type DisplayRow = {
   description: string;
   amount: number;
   date: string;
-  transactionType: "receita" | "despesa" | "transferencia";
+  transactionType: "receita" | "despesa" | "transferencia" | "parcelado";
+  parcelDirection: "entrada" | "saida" | null;
+  installmentNumber: number | null;
+  installmentTotal: number | null;
   categoryName: string | null;
   accountName: string | null;
   paymentMethodName: string | null;
