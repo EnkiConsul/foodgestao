@@ -20,10 +20,8 @@ export function LegalDocumentView({ title, lastUpdated, body, metaDescription, c
       <Helmet>
         <title>{title} — 360°FOOD</title>
         <meta name="description" content={metaDescription ?? `${title} — 360°FOOD`} />
-        <link rel="canonical" href={`https://360food.com${canonicalPath}`} />
         <meta property="og:title" content={`${title} — 360°FOOD`} />
         <meta property="og:description" content={metaDescription ?? `${title} — 360°FOOD`} />
-        <meta property="og:url" content={`https://360food.com${canonicalPath}`} />
         <meta property="og:type" content="article" />
         <meta name="twitter:title" content={`${title} — 360°FOOD`} />
         <meta name="twitter:description" content={metaDescription ?? `${title} — 360°FOOD`} />

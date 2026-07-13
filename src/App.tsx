@@ -59,6 +59,7 @@ import DasMei from "./pages/guias/DasMei";
 import AdminDocumentosLegais from "./pages/admin/DocumentosLegais";
 import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 import { HelmetProvider } from "react-helmet-async";
+import { CanonicalUrl } from "@/components/seo/CanonicalUrl";
 import { SuperAdminRoute } from "@/components/admin/SuperAdminRoute";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -337,6 +338,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <CanonicalUrl />
           <AuthProvider>
             <CompanyContextProvider>
               <PrivacyProvider>
