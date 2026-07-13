@@ -1,4 +1,4 @@
-// Contexto financeiro do usuário para o Plin IA
+// Contexto financeiro do usuário para o 360°IA
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 
 type ContextType = "pf" | "pj";
@@ -208,7 +208,7 @@ FLUXO ÚLTIMOS 6 MESES:
 ${ctx.fluxo6Meses.length ? ctx.fluxo6Meses.map((m) => `- ${m.mes}: Receitas R$ ${fmtBRL(m.receitas)} | Despesas R$ ${fmtBRL(m.despesas)} | Saldo R$ ${fmtBRL(m.saldo)}`).join("\n") : "- Sem histórico"}`;
 }
 
-export const PLIN_IA_SYSTEM_PROMPT = `Você é o "Plin IA", o assistente financeiro inteligente do 360°FOOD.
+export const IA360_SYSTEM_PROMPT = `Você é o "360°IA", o assistente financeiro inteligente do 360°FOOD.
 Você atua como um CFO Virtual: analítico, preciso e estratégico.
 
 SUAS CAPACIDADES:

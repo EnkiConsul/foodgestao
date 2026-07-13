@@ -1,8 +1,8 @@
-// Plin IA — Insights automáticos para o dashboard
+// 360°IA — Insights automáticos para o dashboard
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { generateText } from "npm:ai@5.0.210";
 import { createLovableAiGatewayProvider } from "../_shared/ai-gateway.ts";
-import { buildFinancialContext, contextToText, PLIN_IA_SYSTEM_PROMPT } from "../_shared/plin-ia-context.ts";
+import { buildFinancialContext, contextToText, IA360_SYSTEM_PROMPT } from "../_shared/plin-ia-context.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
     const gateway = createLovableAiGatewayProvider(lovableKey);
     const model = gateway("google/gemini-2.5-flash");
 
-    const prompt = `${PLIN_IA_SYSTEM_PROMPT}
+    const prompt = `${IA360_SYSTEM_PROMPT}
 
 CONTEXTO DO USUÁRIO:
 ${contextText}
@@ -84,7 +84,7 @@ Se não houver dados suficientes para algum tipo, gere um insight genérico orie
     cache.set(key, { at: Date.now(), insights });
     return json({ insights });
   } catch (e) {
-    console.error("plin-ia-insights error", e);
+    console.error("360-ia-insights error", e);
     return json({ error: (e as Error).message || "Internal error" }, 500);
   }
 });
