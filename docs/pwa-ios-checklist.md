@@ -5,15 +5,15 @@ Use este checklist em um iPhone real (não simulador) para validar o componente 
 ## Pré-requisitos
 
 - iPhone com iOS 16.4+ (Safari)
-- Acesso à URL publicada: `https://gestorplin.com`
+- Acesso à URL publicada: `https://360food.com`
 - Limpar dados do site antes de cada cenário:
-  Ajustes → Safari → Avançado → Dados de Sites → buscar `gestorplin` → Apagar.
+  Ajustes → Safari → Avançado → Dados de Sites → buscar `360food` → Apagar.
 
 ## Cenários
 
 ### 1. iPhone Safari, app NÃO instalado → DEVE aparecer
-1. Abrir Safari → `https://gestorplin.com` e fazer login.
-2. Esperado: banner azul no rodapé com "Instalar Gestor Plin" + instruções "Compartilhar → Adicionar à Tela de Início".
+1. Abrir Safari → `https://360food.com` e fazer login.
+2. Esperado: banner azul no rodapé com "Instalar 360°FOOD" + instruções "Compartilhar → Adicionar à Tela de Início".
 3. Console (Web Inspector via Mac): `[PWA InstallPrompt] showing iOS Add to Home Screen instructions`.
 
 ### 2. iPhone Safari, app JÁ instalado → NÃO deve aparecer
@@ -47,7 +47,7 @@ Use este checklist em um iPhone real (não simulador) para validar o componente 
 ## Como ler os logs no iPhone
 
 1. Mac → Safari → Preferências → Avançado → "Mostrar menu Desenvolvedor".
-2. iPhone conectado via cabo → Desenvolvedor → [nome do iPhone] → aba do Gestor Plin.
+2. iPhone conectado via cabo → Desenvolvedor → [nome do iPhone] → aba do 360°FOOD.
 3. Console mostra todos os logs com prefixo `[PWA InstallPrompt]`.
 
 ## Testes automatizados

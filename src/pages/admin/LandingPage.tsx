@@ -272,7 +272,7 @@ export default function AdminLandingPage() {
                   fields={[
                     { key: "k", label: "Recurso" },
                     { key: "a", label: "Planilha" },
-                    { key: "b", label: "Gestor Plin" },
+                    { key: "b", label: "360°FOOD" },
                   ]}
                 />
                 <TextField label="Rótulo do botão" value={s.cta_label} onChange={(v) => u("cta_label", v)} />

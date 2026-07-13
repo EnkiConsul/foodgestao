@@ -29,7 +29,7 @@ export const LEGAL_DEFAULTS = {
 
 Última atualização: **${TODAY}**
 
-A **Gestor Plin** ("nós", "nosso", "Controlador") está comprometida com a proteção dos seus dados pessoais, em conformidade com a **Lei Geral de Proteção de Dados — LGPD (Lei nº 13.709/2018)** e o **Marco Civil da Internet (Lei nº 12.965/2014)**.
+A **360°FOOD** ("nós", "nosso", "Controlador") está comprometida com a proteção dos seus dados pessoais, em conformidade com a **Lei Geral de Proteção de Dados — LGPD (Lei nº 13.709/2018)** e o **Marco Civil da Internet (Lei nº 12.965/2014)**.
 
 ## 1. Quem somos
 Somos uma plataforma SaaS de gestão financeira para pessoas físicas, MEIs e pequenas empresas no Brasil.
@@ -90,7 +90,7 @@ O serviço não é destinado a menores de 18 anos. Se identificarmos coleta inde
 Mudanças relevantes serão comunicadas por e-mail e/ou aviso no app, com nova data de "Última atualização".
 
 ## 12. Contato
-**Encarregado de Dados (DPO)**: dpo@gestorplin.com
+**Encarregado de Dados (DPO)**: dpo@360food.com
 Veja a página do [Encarregado de Dados](/encarregado-dados) para mais informações.`,
   } satisfies LegalDocContent,
 
@@ -101,10 +101,10 @@ Veja a página do [Encarregado de Dados](/encarregado-dados) para mais informaç
 
 Última atualização: **${TODAY}**
 
-Estes Termos regulam o uso da plataforma **Gestor Plin**. Ao criar uma conta, você concorda integralmente com estas condições e com a [Política de Privacidade](/privacidade).
+Estes Termos regulam o uso da plataforma **360°FOOD**. Ao criar uma conta, você concorda integralmente com estas condições e com a [Política de Privacidade](/privacidade).
 
 ## 1. Definições
-- **Plataforma**: o software Gestor Plin, acessível via web.
+- **Plataforma**: o software 360°FOOD, acessível via web.
 - **Usuário**: pessoa física ou jurídica que acessa a Plataforma.
 - **Assinatura**: plano contratado para acesso aos recursos pagos.
 
@@ -134,7 +134,7 @@ Estes Termos regulam o uso da plataforma **Gestor Plin**. Ao criar uma conta, vo
 O descumprimento permite suspensão imediata da conta.
 
 ## 6. Propriedade intelectual
-- A Plataforma, marca, código e layout pertencem à Gestor Plin.
+- A Plataforma, marca, código e layout pertencem à 360°FOOD.
 - Os dados inseridos pelo Usuário permanecem de sua propriedade. Concedemos a você licença de uso da Plataforma; você nos concede licença limitada para processar seus dados para prestar o serviço.
 
 ## 7. Limitação de responsabilidade
@@ -156,7 +156,7 @@ Podemos atualizar estes Termos. Mudanças relevantes serão comunicadas por e-ma
 Fica eleito o foro da comarca da sede do Controlador para dirimir controvérsias, salvo direito do consumidor de optar pelo foro do seu domicílio (CDC art. 101, I).
 
 ## 12. Contato
-contato@gestorplin.com`,
+contato@360food.com`,
   } satisfies LegalDocContent,
 
   legal_cookies: {
@@ -191,15 +191,15 @@ Quando você usa o checkout via Asaas, cookies do Asaas podem ser definidos para
 Você pode bloquear ou excluir cookies pelas configurações do seu navegador. Isso pode impactar o funcionamento da Plataforma.
 
 ## 5. Contato
-dpo@gestorplin.com`,
+dpo@360food.com`,
   } satisfies LegalDocContent,
 
   legal_dpo: {
     title: "Encarregado de Tratamento de Dados (DPO)",
     last_updated: TODAY,
-    dpo_name: "Encarregado de Dados — Gestor Plin",
-    dpo_email: "dpo@gestorplin.com",
-    controller_name: "Gestor Plin",
+    dpo_name: "Encarregado de Dados — 360°FOOD",
+    dpo_email: "dpo@360food.com",
+    controller_name: "360°FOOD",
     controller_cnpj: "00.000.000/0000-00",
     controller_address: "Brasil",
     body: `# Encarregado de Tratamento de Dados Pessoais

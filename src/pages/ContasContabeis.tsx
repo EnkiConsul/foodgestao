@@ -171,7 +171,7 @@ export default function ContasContabeis() {
 
   return (
     <div className="space-y-6">
-      <Helmet><title>Contas Contábeis | Gestor Plin</title></Helmet>
+      <Helmet><title>Contas Contábeis | 360°FOOD</title></Helmet>
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold">Contas Contábeis</h1>

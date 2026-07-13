@@ -278,12 +278,12 @@ function HeroMockup() {
           <span className="h-2 w-2 rounded-full bg-warning/70 sm:h-2.5 sm:w-2.5" />
           <span className="h-2 w-2 rounded-full bg-success/70 sm:h-2.5 sm:w-2.5" />
           <span className="ml-2 truncate text-[10px] text-muted-foreground sm:ml-3 sm:text-xs">
-            app.gestorplin.com / dashboard
+            app.360food.com / dashboard
           </span>
         </div>
         <img
           src={heroDashboard.url}
-          alt="Dashboard do Gestor Plin com saldo, receitas, despesas e contas bancárias"
+          alt="Dashboard do 360°FOOD com saldo, receitas, despesas e contas bancárias"
           loading="lazy"
           className="block w-full h-auto"
         />
@@ -779,13 +779,13 @@ function PublicFooter() {
             <a href="#faq" className="hover:text-foreground">{c.link_faq}</a>
             <a href="#contato" className="hover:text-foreground">Contato</a>
             <a
-              href="https://www.instagram.com/gestorplin"
+              href="https://www.instagram.com/360food"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 hover:text-foreground"
             >
               <Instagram className="h-3.5 w-3.5" />
-              @gestorplin
+              @360food
             </a>
           </div>
         </div>
@@ -839,7 +839,7 @@ export default function Landing() {
         <FinalCta utm={utm} />
       </main>
       <PublicFooter />
-      <WhatsappButton message="Olá! Vim pelo site e gostaria de saber mais sobre o Gestor Plin." />
+      <WhatsappButton message="Olá! Vim pelo site e gostaria de saber mais sobre o 360°FOOD." />
     </div>
   );
 }

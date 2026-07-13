@@ -75,7 +75,7 @@ export default function ResetPassword() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center space-y-3">
-          <CardTitle className="text-2xl font-bold">Gestor Plin</CardTitle>
+          <CardTitle className="text-2xl font-bold">360°FOOD</CardTitle>
           <CardDescription>Defina uma nova senha</CardDescription>
         </CardHeader>
 

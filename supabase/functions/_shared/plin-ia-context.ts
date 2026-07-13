@@ -208,7 +208,7 @@ FLUXO ÚLTIMOS 6 MESES:
 ${ctx.fluxo6Meses.length ? ctx.fluxo6Meses.map((m) => `- ${m.mes}: Receitas R$ ${fmtBRL(m.receitas)} | Despesas R$ ${fmtBRL(m.despesas)} | Saldo R$ ${fmtBRL(m.saldo)}`).join("\n") : "- Sem histórico"}`;
 }
 
-export const PLIN_IA_SYSTEM_PROMPT = `Você é o "Plin IA", o assistente financeiro inteligente do Gestor Plin.
+export const PLIN_IA_SYSTEM_PROMPT = `Você é o "Plin IA", o assistente financeiro inteligente do 360°FOOD.
 Você atua como um CFO Virtual: analítico, preciso e estratégico.
 
 SUAS CAPACIDADES:

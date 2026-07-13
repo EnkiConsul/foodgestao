@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import logoHorizontal from "@/assets/gestorplin-horizontal.png.asset.json";
-import logoIcon from "@/assets/gestorplin-icon.png.asset.json";
+import logoHorizontal from "@/assets/360food-horizontal.png.asset.json";
+import logoIcon from "@/assets/360food-icon.png.asset.json";
 
 const sizeMap = {
   sm: "h-9",
@@ -21,7 +21,7 @@ export function Logo({ size = "md", className, linkTo = "/", variant = "horizont
   const img = (
     <img
       src={src}
-      alt="Gestor Plin"
+      alt="360°FOOD"
       className={cn(sizeMap[size], "w-auto select-none", className)}
       draggable={false}
     />

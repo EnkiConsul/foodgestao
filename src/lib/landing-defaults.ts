@@ -117,13 +117,13 @@ export const LANDING_DEFAULTS = {
   } satisfies PersonasStripContent,
 
   comparison: {
-    eyebrow: "Planilha vs Gestor Plin",
+    eyebrow: "Planilha vs 360°FOOD",
     title: "Saia da planilha sem perder o controle",
     subtitle:
-      "Por que centenas de MEIs e pequenas empresas estão substituindo o Excel pelo Gestor Plin.",
+      "Por que centenas de MEIs e pequenas empresas estão substituindo o Excel pelo 360°FOOD.",
     col_resource: "Recurso",
     col_spreadsheet: "Planilha",
-    col_plin: "Gestor Plin",
+    col_plin: "360°FOOD",
     rows: [
       { k: "Atualização", a: "Manual e demorada", b: "Lançamentos rápidos com categorização" },
       { k: "Fluxo de caixa futuro", a: "Fórmulas que quebram", b: "Projeção automática por conta" },
@@ -209,7 +209,7 @@ export const LANDING_DEFAULTS = {
   } satisfies FinalCtaContent,
 
   footer: {
-    copyright: "© {year} Gestor Plin. Todos os direitos reservados.",
+    copyright: "© {year} 360°FOOD. Todos os direitos reservados.",
     link_login: "Entrar",
     link_plans: "Planos",
     link_faq: "FAQ",

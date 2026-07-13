@@ -9,7 +9,7 @@ export default function Privacidade() {
       lastUpdated={c.last_updated}
       body={c.body}
       canonicalPath="/privacidade"
-      metaDescription="Política de Privacidade do Gestor Plin, em conformidade com a LGPD."
+      metaDescription="Política de Privacidade do 360°FOOD, em conformidade com a LGPD."
     />
   );
 }

@@ -15,7 +15,7 @@ export default function EncarregadoDados() {
       lastUpdated={c.last_updated}
       body={body}
       canonicalPath="/encarregado-dados"
-      metaDescription="Canal de contato do Encarregado de Tratamento de Dados (DPO) do Gestor Plin."
+      metaDescription="Canal de contato do Encarregado de Tratamento de Dados (DPO) do 360°FOOD."
     />
   );
 }
