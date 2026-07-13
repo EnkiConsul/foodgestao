@@ -18,6 +18,7 @@ import Lancamentos from "./pages/Lancamentos";
 import FluxoCaixa from "./pages/FluxoCaixa";
 import Orcamento from "./pages/Orcamento";
 import Relatorios from "./pages/Relatorios";
+import RelatoriosContabeis from "./pages/relatorios/Contabeis";
 import Contatos from "./pages/Contatos";
 import Categorias from "./pages/Categorias";
 import ContasContabeis from "./pages/ContasContabeis";
