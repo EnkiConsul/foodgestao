@@ -851,12 +851,15 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           <div ref={bodyRef} className="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 py-4 space-y-4 [-webkit-overflow-scrolling:touch]">
           {/* Type tabs */}
           <Tabs value={type} onValueChange={(v) => { setType(v as TransactionType); setCategoryId(""); }}>
-            <TabsList className="w-full grid grid-cols-3">
+            <TabsList className="w-full grid grid-cols-4">
               <TabsTrigger value="receita" className="data-[state=active]:bg-success data-[state=active]:text-success-foreground">
                 Receita
               </TabsTrigger>
               <TabsTrigger value="despesa" className="data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground">
                 Despesa
+              </TabsTrigger>
+              <TabsTrigger value="parcelado" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                Parcelado
               </TabsTrigger>
               <TabsTrigger value="transferencia">
                 Transferência
