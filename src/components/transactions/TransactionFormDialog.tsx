@@ -1439,7 +1439,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       <CategoryFormDialog
         open={categoryDialogOpen}
         onOpenChange={setCategoryDialogOpen}
-        defaultType={type === "receita" ? "receita" : "despesa"}
+        defaultType={type === "receita" || (type === "parcelado" && parcelDirection === "entrada") ? "receita" : "despesa"}
         onSaved={(newId) => {
           invalidateLookups();
           if (newId) setCategoryId(newId);
