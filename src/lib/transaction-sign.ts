@@ -16,32 +16,12 @@ const NEUTRAL_CLASS = "text-foreground";
 type SignInput = {
   transaction_type: string;
   amount: number;
-  parcel_direction?: string | null;
-  installment_number?: number | null;
 };
-
-/**
- * Mapeia parcelado → receita/despesa conforme a direção.
- * Retorna null para o "parent" (installment_number IS NULL) que não afeta saldo.
- */
-export function effectiveTransactionType(
-  t: Pick<SignInput, "transaction_type" | "parcel_direction" | "installment_number">,
-): "receita" | "despesa" | "transferencia" | null {
-  if (t.transaction_type === "parcelado") {
-    if (t.installment_number == null) return null; // parent âncora
-    return t.parcel_direction === "entrada" ? "receita" : "despesa";
-  }
-  if (t.transaction_type === "receita" || t.transaction_type === "despesa" || t.transaction_type === "transferencia") {
-    return t.transaction_type;
-  }
-  return null;
-}
 
 /** Efeito algébrico do lançamento no saldo. */
 export function transactionSignedAmount(t: SignInput): number {
-  const eff = effectiveTransactionType(t);
-  if (eff === "receita") return t.amount;
-  if (eff === "despesa") return -t.amount;
+  if (t.transaction_type === "receita") return t.amount;
+  if (t.transaction_type === "despesa") return -t.amount;
   return t.amount;
 }
 
