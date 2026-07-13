@@ -82,6 +82,9 @@ export function AppSidebar() {
   
   const { signOut } = useAuth();
   const { isSuperAdmin } = useSuperAdmin();
+  const { pathname } = useLocation();
+  const reportsActive = pathname.startsWith("/relatorios");
+  const [reportsOpen, setReportsOpen] = useState(reportsActive);
 
   const visibleSecondaryItems = isSuperAdmin
     ? [...secondaryItems, { title: "Backoffice", url: "/admin", icon: Shield }]
