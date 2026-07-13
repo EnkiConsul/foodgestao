@@ -938,15 +938,12 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           <div ref={bodyRef} className="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 py-4 space-y-4 [-webkit-overflow-scrolling:touch]">
           {/* Type tabs */}
           <Tabs value={type} onValueChange={(v) => { setType(v as TransactionType); setCategoryId(""); }}>
-            <TabsList className="w-full grid grid-cols-4">
+            <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="receita" className="data-[state=active]:bg-success data-[state=active]:text-success-foreground">
                 Receita
               </TabsTrigger>
               <TabsTrigger value="despesa" className="data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground">
                 Despesa
-              </TabsTrigger>
-              <TabsTrigger value="parcelado" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                Parcelado
               </TabsTrigger>
               <TabsTrigger value="transferencia">
                 Transferência
@@ -954,83 +951,10 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
             </TabsList>
           </Tabs>
 
-          {/* Parcelado configuration */}
-          {type === "parcelado" && (
-            <div className="space-y-3 rounded-md border border-primary/30 bg-primary/5 p-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Direção</Label>
-                  <Select
-                    value={parcelDirection}
-                    onValueChange={(v) => { setParcelDirection(v as ParcelDirection); setCategoryId(""); }}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="entrada">Entrada (a receber)</SelectItem>
-                      <SelectItem value="saida">Saída (a pagar)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Nº de parcelas</Label>
-                  <Input
-                    type="number"
-                    min={2}
-                    max={360}
-                    value={installmentTotal}
-                    onChange={(e) => setInstallmentTotal(Math.max(2, Math.min(360, Number(e.target.value) || 2)))}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Valor informado é</Label>
-                  <Select value={installmentMode} onValueChange={(v) => setInstallmentMode(v as "total" | "parcela")}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="parcela">Por parcela</SelectItem>
-                      <SelectItem value="total">Total (será dividido)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Periodicidade</Label>
-                  <Select value={installmentPeriod} onValueChange={setInstallmentPeriod}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="semanal">Semanal</SelectItem>
-                      <SelectItem value="quinzenal">Quinzenal</SelectItem>
-                      <SelectItem value="mensal">Mensal</SelectItem>
-                      <SelectItem value="bimestral">Bimestral</SelectItem>
-                      <SelectItem value="trimestral">Trimestral</SelectItem>
-                      <SelectItem value="semestral">Semestral</SelectItem>
-                      <SelectItem value="anual">Anual</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              {(() => {
-                const total = parseCurrencyToNumber(amount) || 0;
-                if (total <= 0) return null;
-                const per = installmentMode === "total"
-                  ? Math.floor((total / installmentTotal) * 100) / 100
-                  : total;
-                const grand = installmentMode === "total" ? total : total * installmentTotal;
-                return (
-                  <p className="text-[11px] text-muted-foreground">
-                    {installmentTotal}× de {per.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                    {" — total "}
-                    {grand.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                  </p>
-                );
-              })()}
-            </div>
-          )}
-
           {/* Amount */}
           <div className="space-y-2" data-field="amount">
             <Label>
-              {type === "parcelado"
+              {isInstallment && type !== "transferencia"
                 ? (installmentMode === "total" ? "Valor total" : "Valor da parcela")
                 : "Valor"}
             </Label>
