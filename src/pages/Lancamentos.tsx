@@ -583,6 +583,9 @@ export default function Lancamentos() {
         isRecurring: t.is_recurring,
         isRecurrenceChild: !!t.parent_transaction_id,
         attachmentCount: attachmentCounts.get(t.id) || 0,
+        parcelDirection: t.parcel_direction,
+        installmentNumber: t.installment_number,
+        installmentTotal: t.installment_total,
         original: t,
       });
     });
