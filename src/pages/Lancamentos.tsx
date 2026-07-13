@@ -49,7 +49,7 @@ type Transaction = {
   id: string;
   description: string;
   amount: number;
-  transaction_type: "receita" | "despesa" | "transferencia" | "parcelado";
+  transaction_type: "receita" | "despesa" | "transferencia";
   transaction_date: string;
   status: string;
   category_id: string | null;
@@ -68,7 +68,6 @@ type Transaction = {
   is_recurring: boolean;
   parent_transaction_id: string | null;
   attachment_url: string | null; // legacy, kept for query compat
-  parcel_direction: "entrada" | "saida" | null;
   installment_number: number | null;
   installment_total: number | null;
 };
@@ -78,8 +77,7 @@ type DisplayRow = {
   description: string;
   amount: number;
   date: string;
-  transactionType: "receita" | "despesa" | "transferencia" | "parcelado";
-  parcelDirection: "entrada" | "saida" | null;
+  transactionType: "receita" | "despesa" | "transferencia";
   installmentNumber: number | null;
   installmentTotal: number | null;
   categoryName: string | null;
