@@ -1,83 +1,55 @@
 
-# Plano — Lançamento "Parcelado"
+## Objetivo
 
-## Decisão de arquitetura
+Remover a aba/tipo `parcelado` como categoria própria e transformar **Parcelado** em um **modificador** dentro de `receita` e `despesa`, exatamente no mesmo padrão do `Recorrente` (toggle no formulário, geração de N registros filhos amarrados por `parent_transaction_id`).
 
-Adicionar `parcelado` como novo valor do enum `transaction_type` (conforme escolhido) e um campo auxiliar `parcel_direction` (`entrada` | `saida`) para preservar o efeito no saldo. As colunas `installment_number`, `installment_total` e `parent_transaction_id` **já existem** na tabela `transactions` e serão reutilizadas.
+## Como fica no formulário (`TransactionFormDialog`)
 
-Um lançamento parcelado é modelado assim:
-- 1 **parent** (`transaction_type='parcelado'`, `installment_number=NULL`, `installment_total=N`, `status='cancelado'` — serve só de âncora, não afeta saldo).
-- N **parcelas filhas** (`transaction_type='parcelado'`, `installment_number=1..N`, `installment_total=N`, `parent_transaction_id=parent.id`, cada uma com seu `due_date`/`transaction_date`).
-- Todas herdam `parcel_direction` — usada em toda regra de sinal/cor/DRE como se fosse `receita` (entrada) ou `despesa` (saída).
+Ao escolher **Receita** ou **Despesa**, o usuário verá dois seletores independentes de repetição (mutuamente exclusivos):
 
-Escopo de edição/exclusão reutiliza o diálogo existente do Recorrente (`single | forward | all`) já aplicado a `parent_transaction_id`.
+- **Recorrente** (já existe): repetição contínua até 12 meses.
+- **Parcelado** (novo neste formato): número fixo de parcelas (2–360).
 
-## Passo 1 — Banco (migração única)
+Quando "Parcelado" estiver ativo:
+- Campos: `nº de parcelas`, `periodicidade` (mensal/quinzenal/semanal/anual), `modo do valor` (valor total dividido em N **ou** valor por parcela × N).
+- Preview das parcelas (data de vencimento, valor) igual ao padrão que já foi montado.
+- Categoria segue restrita pelo `type` (receita ou despesa) — sem necessidade de `parcel_direction`.
 
-1. `ALTER TYPE transaction_type ADD VALUE 'parcelado';`
-2. `CREATE TYPE parcel_direction AS ENUM ('entrada','saida');`
-3. `ALTER TABLE transactions ADD COLUMN parcel_direction parcel_direction;`
-4. Trigger de validação: quando `transaction_type='parcelado'`, `parcel_direction` é obrigatório e `installment_total >= 2`; parcelas filhas devem ter `installment_number` entre 1 e `installment_total`.
-5. Atualizar funções SQL existentes que somam saldo/relatórios e hoje só olham `receita`/`despesa` (varreremos `pg_proc` — candidatos conhecidos: `get_dashboard_summary`, `get_cashflow_projection`, `recalculate_account_balance`, e triggers de `accounts.current_balance`). Cada uma passa a tratar `parcelado + entrada` como receita e `parcelado + saida` como despesa. O parent (`installment_number IS NULL`) é ignorado nos somatórios.
-6. Índice: `CREATE INDEX ON transactions(parent_transaction_id) WHERE transaction_type='parcelado';`
+Aba "Parcelado" no topo do dialog é removida.
 
-## Passo 2 — Formulário (`TransactionFormDialog.tsx`)
+## Banco de dados
 
-- Nova aba "Parcelado" no `Tabs` de tipo (ao lado de Receita/Despesa/Transferência), ícone `CreditCard`.
-- Ao selecionar, revela um bloco com:
-  - `parcel_direction` (radio Entrada/Saída),
-  - `installment_total` (número, 2–360),
-  - Modo do valor (toggle **Total ↔ Por parcela**),
-  - Periodicidade (reusa `recurrence_type`: mensal/quinzenal/…),
-  - Data da 1ª parcela (`transaction_date` + `due_date`),
-  - Preview: tabela "Parcela 1/N — R$ x — 15/08", última parcela absorve centavos residuais quando modo=Total.
-- No submit, em vez do insert atual, faz insert do parent + `installment_total` filhos em uma única chamada (`.insert([...])`). Categoria/conta/contato/forma-de-pgto herdadas.
-- Categorias no `filteredCategories`: quando `type==='parcelado'`, filtrar por `transaction_type === (parcel_direction==='entrada' ? 'receita' : 'despesa')`.
+O tipo `parcelado` no enum e a coluna `parcel_direction` deixam de fazer sentido:
 
-## Passo 3 — Utilitário de sinal
+- **Manter** o enum `transaction_type` com `receita | despesa | transferencia` (o valor `parcelado` que foi adicionado ao enum permanece no schema — Postgres não permite remover valor de enum — mas passa a ser **não utilizado**; o form nunca gera e o backend não trata mais como caso especial).
+- **Remover** referência funcional a `parcel_direction`:
+  - Reverter `recompute_account_balance`, `get_balance_before`, `plin_ia_summary`, `plin_ia_cashflow` ao comportamento anterior (parcelas contam pelo próprio `type = receita/despesa`, como qualquer outra transação).
+  - Ajustar a trigger `validate_installment_transaction` para não exigir `parcel_direction`, apenas validar consistência de `installment_number/total/parent_transaction_id` quando presentes.
+  - A coluna `parcel_direction` pode ficar no schema (nullable, não usada) para evitar migração destrutiva; opcionalmente `DROP COLUMN` numa migração dedicada.
 
-`src/lib/transaction-sign.ts` — `transactionSignedAmount` passa a considerar `parcel_direction` quando `transaction_type==='parcelado'` (entrada → `+amount`, saida → `-amount`). Todos os `text-success`/`text-destructive` do app usam esse helper, então cores e sinais ficam corretos automaticamente.
+## Frontend
 
-## Passo 4 — Telas e agregações que somam por tipo
+- `src/lib/transaction-sign.ts`: remover lógica que lê `parcel_direction`; parcelas herdam o `type` normal.
+- `src/pages/Dashboard.tsx`, `FluxoCaixa.tsx`, `Lancamentos.tsx`: remover `effectiveTransactionType` — parcelas já são `receita/despesa`, entram nos somatórios naturalmente. O "parent âncora" continua com `status = cancelado` e é ignorado como hoje.
+- Badge "n/N" nas parcelas: mantido na listagem.
+- Diálogo de escopo (esta / esta e futuras / todas) via `parent_transaction_id`: mantido.
+- `src/lib/validations.ts`: ajustar schema — `installment_total ≥ 2` só quando `is_installment = true`; remover `parcel_direction`.
 
-Ajustar as ramificações `if (t.transaction_type === 'receita' | 'despesa')` para também aceitar `parcelado` respeitando `parcel_direction`:
+## Geração de parcelas
 
-- `src/pages/Dashboard.tsx` (linhas ~154/159) — somatórios de receitas/despesas do mês.
-- `src/pages/FluxoCaixa.tsx` (linhas ~138/149) — realizado + projeção.
-- `src/pages/Lancamentos.tsx` — filtros Crédito/Débito/Transferência ganham novo chip "Parcelado" (ou marcam parcelado dentro de Crédito/Débito conforme `parcel_direction`); `.select` inclui `parcel_direction, installment_number, installment_total`.
-- `src/components/relatorios/contabeis/DreReport.tsx` + `useContabeisReport` — parcelas entram no DRE conforme direção.
-- `src/pages/Orcamento.tsx` e `BudgetFormDialog` — orçamento continua sendo por categoria; parcelas contam normalmente.
-- `PaymentDialog` — aceitar `parcel_direction` como equivalente ao tipo receita/despesa para baixa/pagamento.
-- `NotificationsBell` — alertas de vencimento tratam parcelas como vencimentos comuns.
-- `ImportStatementDialog` / `nubankPdf` / `statement-import/types` — **fora de escopo** (extrato bancário não gera parcelado; permanecem receita/despesa).
+Ao salvar uma receita/despesa com "Parcelado" marcado:
+1. Cria 1 parent com `status = cancelado`, `installment_total = N`, sem `installment_number`.
+2. Cria N filhos com `type = receita|despesa` (herdado), `parent_transaction_id`, `installment_number = 1..N`, `installment_total = N`, `due_date` calculada pela periodicidade, valor conforme modo escolhido (última parcela ajusta centavos no modo "valor total").
 
-## Passo 5 — Validação Zod
+## Passos de implementação
 
-`src/lib/validations.ts` — `transactionSchema.transaction_type` recebe `'parcelado'` e novo campo opcional `parcel_direction` obrigatório quando type=parcelado; `installment_total >= 2`.
+1. **Migração SQL:** reverter funções (`recompute_account_balance`, `get_balance_before`, `plin_ia_summary`, `plin_ia_cashflow`) para lógica sem `parcel_direction`; ajustar trigger `validate_installment_transaction`.
+2. **Form (`TransactionFormDialog.tsx`):** remover aba/tipo Parcelado; adicionar bloco `Parcelado` como toggle dentro de receita/despesa (espelhando o bloco Recorrente); mutex com Recorrente.
+3. **Validations (`src/lib/validations.ts`):** remover `parcel_direction`, condicionar campos ao flag `is_installment`.
+4. **transaction-sign / Dashboard / FluxoCaixa / Lancamentos:** remover `effectiveTransactionType` e uso de `parcel_direction`.
+5. **Types:** regenerar após migração.
 
-## Passo 6 — Categorias
+## Não muda
 
-Categorias continuam com `receita`/`despesa` — parcelado reaproveita as existentes conforme direção. Sem migração de dados.
-
-## Passo 7 — Escopo de edição/exclusão
-
-Reutilizar o `RecurrenceScopeDialog` (`single | forward | all`) do fluxo de recorrência, apontando para `parent_transaction_id`. Ao editar valor/categoria em modo "todas", recalcular parcelas restantes (mesma lógica do modo Total do formulário).
-
-## Passo 8 — Impactos não-óbvios (verificar/ajustar)
-
-- `useContabeisReport` (RPC de contabilidade) — checar SQL do relatório.
-- `Buscar.tsx` — badge do tipo precisa suportar "Parcelado".
-- `TransactionFormDialog` duplicação — ao duplicar uma parcela filha, criar como lançamento novo simples (não regerar série).
-- Realtime de `accounts.current_balance` — depende dos triggers ajustados no Passo 1.
-
-## Passo 9 — Testes de fumaça manual
-
-1. Criar parcelado 12× total R$ 1.200 → 12 filhas de R$ 100, saldo do mês corrente muda em -R$ 100.
-2. Alterar 1 parcela (escopo "esta") → só ela muda; "todas" recalcula série.
-3. Excluir "todas" → apaga parent + filhas.
-4. Dashboard, DRE, Fluxo de Caixa refletem parcelas corretamente.
-5. Categoria filtrada por direção correta.
-
-## Nota técnica
-
-`ALTER TYPE ... ADD VALUE` não pode rodar dentro de transação com uso do valor na mesma migração no Postgres — a migração dividirá `ADD VALUE` do restante em blocos separados (Supabase aceita), ou usaremos `CREATE TYPE novo + ALTER COLUMN` se necessário. Confirmarei na hora de escrever a migration.
+- Anexos, tags, categorias, contas, contatos, status, escopo de edição em massa: iguais.
+- Recorrente permanece exatamente como está.
