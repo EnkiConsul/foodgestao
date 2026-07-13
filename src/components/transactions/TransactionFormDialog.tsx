@@ -637,6 +637,99 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
     setSaving(true);
 
+    // ---- Parcelado (novo): gera parent + N filhas ----
+    if (!isEditing && type === "parcelado") {
+      try {
+        if (installmentTotal < 2) {
+          toast.error("Nº de parcelas deve ser ≥ 2");
+          setSaving(false);
+          return;
+        }
+        const totalAmount = installmentMode === "total" ? numAmount : numAmount * installmentTotal;
+        const baseParcel = installmentMode === "total"
+          ? Math.floor((numAmount / installmentTotal) * 100) / 100
+          : numAmount;
+        const remainder = Math.round((totalAmount - baseParcel * installmentTotal) * 100) / 100;
+
+        // Datas de cada parcela
+        const dates: string[] = [];
+        let cursor = new Date(date);
+        for (let i = 0; i < installmentTotal; i++) {
+          dates.push(cursor.toISOString().split("T")[0]);
+          cursor = getNextRecurrenceDate(cursor, installmentPeriod);
+        }
+
+        const commonFields = {
+          user_id: user.id,
+          transaction_type: "parcelado" as const,
+          parcel_direction: parcelDirection,
+          installment_total: installmentTotal,
+          description: description.trim(),
+          category_id: categoryId || null,
+          contact_id: contactId || null,
+          notes: notes.trim() || null,
+          payment_method_id: paymentMethodId || null,
+          account_id: accountId,
+          context: contextType,
+          company_id: contextType === "pj" ? selectedCompanyId : null,
+        };
+
+        // 1) Parent âncora (installment_number NULL, status cancelado — não afeta saldo)
+        const { data: parent, error: parentErr } = await supabase
+          .from("transactions")
+          .insert({
+            ...commonFields,
+            amount: totalAmount,
+            transaction_date: dates[0],
+            due_date: null,
+            status: "cancelado",
+            amount_paid: 0,
+            payment_date: null,
+            bill_status: null,
+          } as any)
+          .select("id")
+          .single();
+        if (parentErr || !parent) throw parentErr ?? new Error("Falha ao criar parcelamento");
+
+        // 2) N parcelas filhas
+        const children = dates.map((d, i) => {
+          const isLast = i === installmentTotal - 1;
+          const parcelAmount = isLast ? Math.round((baseParcel + remainder) * 100) / 100 : baseParcel;
+          return {
+            ...commonFields,
+            amount: parcelAmount,
+            transaction_date: d,
+            due_date: d,
+            installment_number: i + 1,
+            parent_transaction_id: parent.id,
+            status: "pendente",
+            amount_paid: 0,
+            payment_date: null,
+            bill_status: "em_dia",
+          };
+        });
+        const { error: cErr } = await supabase.from("transactions").insert(children as any);
+        if (cErr) throw cErr;
+
+        await supabase.rpc("insert_audit_log", {
+          _action: "transaction_created",
+          _entity_type: "transaction",
+          _entity_id: parent.id,
+          _details: { target_name: description.trim(), amount: String(totalAmount), type: "parcelado", installments: installmentTotal },
+        });
+
+        toast.success(`Parcelamento criado: ${installmentTotal}× de ${baseParcel.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`);
+        resetForm();
+        onOpenChange(false);
+        onCreated();
+      } catch (err: any) {
+        toast.error("Erro ao criar parcelamento", { description: err?.message });
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     const hasDueDate = !!dueDate && type !== "transferencia";
 
     const payload: any = {
