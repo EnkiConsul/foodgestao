@@ -535,12 +535,23 @@ export default function Lancamentos() {
   const displayRows = useMemo(() => {
     const rows: DisplayRow[] = [];
 
+    // Parcelas parcelado → mapeadas para receita/despesa conforme direção; parent (installment_number NULL) é ignorado
+    const effRowType = (t: Transaction): "receita" | "despesa" | "transferencia" | null => {
+      if (t.transaction_type === "parcelado") {
+        if (t.installment_number == null) return null;
+        return t.parcel_direction === "entrada" ? "receita" : "despesa";
+      }
+      return t.transaction_type;
+    };
+
     transactions.forEach((t) => {
       const matchSearch = !search || t.description.toLowerCase().includes(search.toLowerCase());
       if (!matchSearch) return;
-      if (t.transaction_type === "receita" && !filterCredito) return;
-      if (t.transaction_type === "despesa" && !filterDebito) return;
-      if (t.transaction_type === "transferencia" && !filterTransferencia) return;
+      const eff = effRowType(t);
+      if (eff == null) return; // pula parent âncora do parcelado
+      if (eff === "receita" && !filterCredito) return;
+      if (eff === "despesa" && !filterDebito) return;
+      if (eff === "transferencia" && !filterTransferencia) return;
       if (filterAccount.length > 0 && !filterAccount.includes(t.account_id)) return;
       if (filterPaymentMethod.length > 0 && (!t.payment_method_id || !filterPaymentMethod.includes(t.payment_method_id))) return;
       if (filterCategory !== "all" && t.category_id !== filterCategory) return;
