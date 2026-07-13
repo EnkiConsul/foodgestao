@@ -15,11 +15,23 @@ import {
   LogOut,
   Shield,
   Sparkles,
-  
+  ChevronRight,
   Receipt,
   MessageCircle,
   BookOpen,
 } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import { useState } from "react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+} from "@/components/ui/sidebar";
 import { NavLink } from "@/components/NavLink";
 import { Logo } from "@/components/Logo";
 
