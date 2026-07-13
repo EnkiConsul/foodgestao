@@ -4,7 +4,7 @@ import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 
-const PAGE_URL = "https://360food.com/guias/das-mei";
+const PAGE_URL = "https://gestor360food.com/guias/das-mei";
 const TITLE = "DAS MEI 2026: o que é, valores, prazos e como pagar";
 const DESCRIPTION =
   "Guia completo do DAS MEI: o que é, valores atualizados de 2026, datas de vencimento, como emitir o boleto, o que acontece se atrasar e dicas para se organizar.";
@@ -52,7 +52,7 @@ export default function DasMei() {
     publisher: {
       "@type": "Organization",
       name: "360°FOOD",
-      logo: { "@type": "ImageObject", url: "https://360food.com/icon-512.png" },
+      logo: { "@type": "ImageObject", url: "https://gestor360food.com/icon-512.png" },
     },
     mainEntityOfPage: PAGE_URL,
     datePublished: "2026-06-30",
@@ -64,10 +64,8 @@ export default function DasMei() {
       <Helmet>
         <title>{TITLE}</title>
         <meta name="description" content={DESCRIPTION} />
-        <link rel="canonical" href={PAGE_URL} />
         <meta property="og:title" content={TITLE} />
         <meta property="og:description" content={DESCRIPTION} />
-        <meta property="og:url" content={PAGE_URL} />
         <meta property="og:type" content="article" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={TITLE} />
