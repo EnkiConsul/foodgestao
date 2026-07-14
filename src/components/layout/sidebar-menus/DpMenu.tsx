@@ -1,4 +1,4 @@
-import { Home, Users, CalendarDays, Repeat, ClipboardList, Inbox, Megaphone, Mail, AlertOctagon, Ban, FolderOpen, Wallet, Building2 } from "lucide-react";
+import { Home, Users, Megaphone, AlertOctagon, Wallet, Building2 } from "lucide-react";
 import { SidebarSection, SidebarNavItem, SidebarCollapsibleGroup } from "./shared";
 
 export function DpMenu() {
@@ -16,16 +16,6 @@ export function DpMenu() {
           { title: "Trocas", url: "/dp/trocas" },
           { title: "Solicitações", url: "/dp/solicitacoes" },
           { title: "Aprovações", url: "/dp/aprovacoes" },
-        ]}
-      />
-      {/* Additional collapsibles keyed by their own prefix (handled independently) */}
-      <SidebarCollapsibleGroup
-        label="Folgas & Trocas"
-        icon={CalendarDays}
-        matchPrefix="/dp/folgas"
-        items={[
-          { title: "Folgas", url: "/dp/folgas" },
-          { title: "Trocas", url: "/dp/trocas" },
         ]}
       />
       <SidebarCollapsibleGroup
