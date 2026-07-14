@@ -1,11 +1,11 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Sparkles } from "lucide-react";
 import type { OnboardingData } from "@/pages/Onboarding";
 
 const suggestedCategories = [
   { group: "Despesas Pessoais", items: ["Alimentação", "Transporte", "Moradia", "Saúde", "Educação", "Lazer", "Vestuário"] },
-  { group: "Despesas Empresariais", items: ["Fornecedores", "Folha de Pagamento", "Impostos", "Marketing", "Aluguel Comercial", "Serviços"] },
-  { group: "Receitas", items: ["Salário", "Freelance", "Vendas", "Investimentos", "Outros"] },
+  { group: "Receitas Pessoais", items: ["Salário", "Freelance", "Investimentos", "Outros"] },
 ];
 
 interface Props {
@@ -28,14 +28,26 @@ export function StepCategories({ data, update }: Props) {
 
   return (
     <div className="space-y-4">
+      <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 flex gap-2">
+        <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <p className="text-sm font-medium">Plano padrão 360°FOOD</p>
+          <p className="text-xs text-muted-foreground">
+            Toda empresa cadastrada recebe automaticamente as <strong>69 categorias</strong> do plano padrão
+            para food service, organizadas em 4 níveis (Receitas, Custos, Despesas, Impostos e Investimentos).
+            Você poderá editar, excluir ou criar novas categorias à vontade depois.
+          </p>
+        </div>
+      </div>
+
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">Selecione categorias sugeridas:</p>
+        <p className="text-sm text-muted-foreground">Categorias adicionais para Pessoa Física:</p>
         <button onClick={selectAll} className="text-xs text-primary hover:underline">
           Selecionar todas
         </button>
       </div>
 
-      <div className="space-y-5 max-h-[300px] overflow-y-auto pr-1">
+      <div className="space-y-5 max-h-[240px] overflow-y-auto pr-1">
         {suggestedCategories.map((group) => (
           <div key={group.group} className="space-y-2">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{group.group}</h3>

@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
-import { Plus, Search, Tag, Pencil, Trash2, ChevronRight, Filter, ChevronsUpDown, GripVertical, FolderTree, Eye } from "lucide-react";
+import { Plus, Search, Tag, Pencil, Trash2, ChevronRight, Filter, ChevronsUpDown, GripVertical, FolderTree, Eye, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -88,6 +88,24 @@ export default function Categorias() {
   const [batchVisiblePf, setBatchVisiblePf] = useState(true);
   const [batchSelectedCompanies, setBatchSelectedCompanies] = useState<Set<string>>(new Set());
   const [batchVisibilitySaving, setBatchVisibilitySaving] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+
+  const handleSeedDefaults = async () => {
+    if (!selectedCompanyId) return;
+    setSeeding(true);
+    const { data, error } = await supabase.rpc("seed_default_categories", { _company_id: selectedCompanyId });
+    setSeeding(false);
+    if (error) {
+      toast.error("Erro ao importar plano padrão", { description: error.message });
+      return;
+    }
+    const created = (data as any)?.created ?? 0;
+    const skipped = (data as any)?.skipped ?? 0;
+    toast.success("Plano padrão 360°FOOD importado", {
+      description: `${created} categoria(s) criada(s), ${skipped} já existia(m).`,
+    });
+    refetchAll();
+  };
 
   const handleBatchColor = async (color: string) => {
     if (selected.size === 0) return;
@@ -419,6 +437,19 @@ export default function Categorias() {
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline">Adicionar</span>
         </Button>
+        {contextType === "pj" && selectedCompanyId && (
+          <Button
+            onClick={handleSeedDefaults}
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            disabled={seeding}
+            title="Importa as 69 categorias do plano padrão 360°FOOD. Categorias já importadas não são duplicadas."
+          >
+            <Sparkles className="h-4 w-4" />
+            <span className="hidden sm:inline">{seeding ? "Importando..." : "Importar plano 360°FOOD"}</span>
+          </Button>
+        )}
         <Button
           variant="outline"
           size="sm"
@@ -606,6 +637,33 @@ export default function Categorias() {
                                   <Badge variant="outline" className="text-[10px] h-4 px-1.5 ml-1 font-mono">
                                     {chartAccountMap.get((cat as any).chart_account_id)}
                                   </Badge>
+                                )}
+                                {(cat as any).category_subtype && (() => {
+                                  const s = (cat as any).category_subtype as string;
+                                  const cls: Record<string, string> = {
+                                    receita: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+                                    saida: "bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400",
+                                    custo: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+                                    despesa: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+                                    imposto: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+                                    investimento: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+                                  };
+                                  const label: Record<string, string> = { receita: "Receita", saida: "Saída", custo: "Custo", despesa: "Despesa", imposto: "Imposto", investimento: "Investimento" };
+                                  return (
+                                    <Badge variant="secondary" className={`text-[10px] h-4 px-1.5 ml-1 ${cls[s] ?? ""}`}>{label[s] ?? s}</Badge>
+                                  );
+                                })()}
+                                {(cat as any).template_code && (
+                                  <TooltipProvider delayDuration={300}>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Badge variant="outline" className="text-[10px] h-4 px-1.5 ml-1 font-mono cursor-help">
+                                          {(cat as any).template_code}
+                                        </Badge>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top"><p>Categoria do plano padrão 360°FOOD (editável)</p></TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 )}
                               </div>
                             </TableCell>

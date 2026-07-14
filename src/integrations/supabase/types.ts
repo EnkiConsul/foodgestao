@@ -919,49 +919,70 @@ export type Database = {
       }
       categories: {
         Row: {
+          ai_description: string | null
+          category_subtype: string | null
           chart_account_id: string | null
           color: string | null
+          company_id: string | null
           context: Database["public"]["Enums"]["context_type"] | null
           created_at: string
           hierarchy_index: string | null
           icon: string | null
           id: string
+          is_active: boolean
+          is_customizable: boolean
           is_system: boolean
           name: string
           parent_id: string | null
+          previous_index: string | null
           sort_order: number
+          template_code: string | null
           transaction_type: Database["public"]["Enums"]["transaction_type"]
           user_id: string
           visible_pf: boolean
         }
         Insert: {
+          ai_description?: string | null
+          category_subtype?: string | null
           chart_account_id?: string | null
           color?: string | null
+          company_id?: string | null
           context?: Database["public"]["Enums"]["context_type"] | null
           created_at?: string
           hierarchy_index?: string | null
           icon?: string | null
           id?: string
+          is_active?: boolean
+          is_customizable?: boolean
           is_system?: boolean
           name: string
           parent_id?: string | null
+          previous_index?: string | null
           sort_order?: number
+          template_code?: string | null
           transaction_type?: Database["public"]["Enums"]["transaction_type"]
           user_id: string
           visible_pf?: boolean
         }
         Update: {
+          ai_description?: string | null
+          category_subtype?: string | null
           chart_account_id?: string | null
           color?: string | null
+          company_id?: string | null
           context?: Database["public"]["Enums"]["context_type"] | null
           created_at?: string
           hierarchy_index?: string | null
           icon?: string | null
           id?: string
+          is_active?: boolean
+          is_customizable?: boolean
           is_system?: boolean
           name?: string
           parent_id?: string | null
+          previous_index?: string | null
           sort_order?: number
+          template_code?: string | null
           transaction_type?: Database["public"]["Enums"]["transaction_type"]
           user_id?: string
           visible_pf?: boolean
@@ -972,6 +993,13 @@ export type Database = {
             columns: ["chart_account_id"]
             isOneToOne: false
             referencedRelation: "chart_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
           {
@@ -1016,6 +1044,56 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      category_templates: {
+        Row: {
+          ai_description: string | null
+          code: string
+          created_at: string
+          is_customizable: boolean
+          level: number
+          name: string
+          parent_code: string | null
+          previous_index: string | null
+          sort_order: number
+          subtype: string
+          transaction_type: Database["public"]["Enums"]["transaction_type"]
+        }
+        Insert: {
+          ai_description?: string | null
+          code: string
+          created_at?: string
+          is_customizable?: boolean
+          level: number
+          name: string
+          parent_code?: string | null
+          previous_index?: string | null
+          sort_order: number
+          subtype: string
+          transaction_type: Database["public"]["Enums"]["transaction_type"]
+        }
+        Update: {
+          ai_description?: string | null
+          code?: string
+          created_at?: string
+          is_customizable?: boolean
+          level?: number
+          name?: string
+          parent_code?: string | null
+          previous_index?: string | null
+          sort_order?: number
+          subtype?: string
+          transaction_type?: Database["public"]["Enums"]["transaction_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_templates_parent_code_fkey"
+            columns: ["parent_code"]
+            isOneToOne: false
+            referencedRelation: "category_templates"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -2701,17 +2779,24 @@ export type Database = {
           _transaction_type?: Database["public"]["Enums"]["transaction_type"]
         }
         Returns: {
+          ai_description: string | null
+          category_subtype: string | null
           chart_account_id: string | null
           color: string | null
+          company_id: string | null
           context: Database["public"]["Enums"]["context_type"] | null
           created_at: string
           hierarchy_index: string | null
           icon: string | null
           id: string
+          is_active: boolean
+          is_customizable: boolean
           is_system: boolean
           name: string
           parent_id: string | null
+          previous_index: string | null
           sort_order: number
+          template_code: string | null
           transaction_type: Database["public"]["Enums"]["transaction_type"]
           user_id: string
           visible_pf: boolean
@@ -2989,6 +3074,7 @@ export type Database = {
         Returns: number
       }
       recompute_all_account_balances: { Args: never; Returns: number }
+      seed_default_categories: { Args: { _company_id: string }; Returns: Json }
     }
     Enums: {
       account_type:

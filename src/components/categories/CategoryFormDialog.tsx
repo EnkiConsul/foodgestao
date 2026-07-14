@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Check, ChevronsUpDown } from "lucide-react";
@@ -43,6 +44,8 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
   const [chartAccountId, setChartAccountId] = useState<string | null>(null);
   const [chartAccountPopoverOpen, setChartAccountPopoverOpen] = useState(false);
   const [visiblePf, setVisiblePf] = useState(true);
+  const [subtype, setSubtype] = useState<string>("");
+  const [aiDescription, setAiDescription] = useState<string>("");
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
 
@@ -102,6 +105,8 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       setParentId(editCategory.parent_id ?? null);
       setChartAccountId((editCategory as any).chart_account_id ?? null);
       setVisiblePf((editCategory as any).visible_pf ?? true);
+      setSubtype((editCategory as any).category_subtype ?? "");
+      setAiDescription((editCategory as any).ai_description ?? "");
       // Load linked companies
       supabase
         .from("category_companies")
@@ -117,6 +122,8 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       setParentId(defaultParentId || null);
       setChartAccountId(null);
       setVisiblePf(true);
+      setSubtype("");
+      setAiDescription("");
       setSelectedCompanies(new Set(companies.map((c) => c.id)));
     }
   }, [editCategory, open, defaultParentId, defaultType, defaultName]);
@@ -160,7 +167,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
 
     if (editCategory) {
       const parentChanged = (editCategory.parent_id ?? null) !== (parentId ?? null);
-      const updatePayload: any = { name: finalName, transaction_type: type, color, parent_id: parentId || null, visible_pf: visiblePf, chart_account_id: chartAccountId };
+      const updatePayload: any = { name: finalName, transaction_type: type, color, parent_id: parentId || null, visible_pf: visiblePf, chart_account_id: chartAccountId, category_subtype: subtype || null, ai_description: aiDescription.trim() || null };
       if (parentChanged) {
         updatePayload.sort_order = await computeNextSortOrder(parentId || null);
       }
@@ -205,6 +212,8 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
         visible_pf: visiblePf,
         chart_account_id: chartAccountId,
         sort_order: nextSort,
+        category_subtype: subtype || null,
+        ai_description: aiDescription.trim() || null,
       } as any).select("id").single();
 
       if (error) {
@@ -343,6 +352,53 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
               <p className="text-xs text-muted-foreground">Cadastre em Contas Contábeis para vincular</p>
             )}
           </div>
+
+          <div className="space-y-2">
+            <Label>Subtipo (para relatórios)</Label>
+            <Select value={subtype || "__none__"} onValueChange={(v) => setSubtype(v === "__none__" ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Nenhum</SelectItem>
+                <SelectItem value="receita">Receita</SelectItem>
+                <SelectItem value="saida">Saída</SelectItem>
+                <SelectItem value="custo">Custo</SelectItem>
+                <SelectItem value="despesa">Despesa</SelectItem>
+                <SelectItem value="imposto">Imposto</SelectItem>
+                <SelectItem value="investimento">Investimento</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Usado para agrupar Custos, Despesas, Impostos e Investimentos nos relatórios contábeis.</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Descrição para IA (opcional)</Label>
+            <Textarea
+              value={aiDescription}
+              onChange={(e) => setAiDescription(e.target.value)}
+              placeholder="Contexto para o agente classificar lançamentos automaticamente nesta categoria."
+              rows={2}
+              maxLength={500}
+            />
+          </div>
+
+          {editCategory && ((editCategory as any).template_code || (editCategory as any).previous_index) && (
+            <div className="grid grid-cols-2 gap-2 rounded-md border bg-muted/40 p-3 text-xs">
+              {(editCategory as any).template_code && (
+                <div>
+                  <p className="text-muted-foreground">ID Interno</p>
+                  <p className="font-mono">{(editCategory as any).template_code}</p>
+                </div>
+              )}
+              {(editCategory as any).previous_index && (
+                <div>
+                  <p className="text-muted-foreground">Índice anterior</p>
+                  <p className="font-mono">{(editCategory as any).previous_index}</p>
+                </div>
+              )}
+              <p className="col-span-2 text-[10px] text-muted-foreground">Campos de rastreabilidade do plano padrão — não editáveis.</p>
+            </div>
+          )}
+
 
 
 
