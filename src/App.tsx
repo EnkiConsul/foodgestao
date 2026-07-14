@@ -143,8 +143,34 @@ function safeRedirect(value: string | null): string {
   return value;
 }
 
+function useIsDpColaborador() {
+  const { user } = useAuth();
+  const [is, setIs] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!user) { setIs(false); return; }
+    supabase.rpc("is_dp_colaborador", { _user_id: user.id }).then(({ data }) => setIs(!!data));
+  }, [user?.id]);
+  return is;
+}
+
 function RootGate() {
   const { user, loading } = useAuth();
+  const isColab = useIsDpColaborador();
+  if (loading || (user && isColab === null)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+  if (user && isColab) return <Navigate to="/dp/meu" replace />;
+  if (user) return <Navigate to="/hub" replace />;
+  return <Landing />;
+}
+
+function PortalProtected({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -152,8 +178,11 @@ function RootGate() {
       </div>
     );
   }
-  if (user) return <Navigate to="/hub" replace />;
-  return <Landing />;
+  if (!user) {
+    const redirect = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/auth?redirect=${redirect}`} replace />;
+  }
+  return <>{children}</>;
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
