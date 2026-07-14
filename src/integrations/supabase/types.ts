@@ -2091,6 +2091,69 @@ export type Database = {
           },
         ]
       }
+      dp_sindicato_negociacoes: {
+        Row: {
+          clausulas: Json
+          company_id: string
+          created_at: string
+          created_by: string | null
+          data_base: string
+          id: string
+          observacoes: string | null
+          pdf_path: string | null
+          reajuste_pct: number | null
+          sindicato_id: string
+          updated_at: string
+          vigencia_fim: string | null
+          vigencia_inicio: string
+        }
+        Insert: {
+          clausulas?: Json
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          data_base: string
+          id?: string
+          observacoes?: string | null
+          pdf_path?: string | null
+          reajuste_pct?: number | null
+          sindicato_id: string
+          updated_at?: string
+          vigencia_fim?: string | null
+          vigencia_inicio: string
+        }
+        Update: {
+          clausulas?: Json
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          data_base?: string
+          id?: string
+          observacoes?: string | null
+          pdf_path?: string | null
+          reajuste_pct?: number | null
+          sindicato_id?: string
+          updated_at?: string
+          vigencia_fim?: string | null
+          vigencia_inicio?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_sindicato_negociacoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_sindicato_negociacoes_sindicato_id_fkey"
+            columns: ["sindicato_id"]
+            isOneToOne: false
+            referencedRelation: "dp_sindicatos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_sindicatos: {
         Row: {
           ativo: boolean
