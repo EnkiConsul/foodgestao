@@ -313,9 +313,19 @@ export default function DpFolgas() {
               <h3 className="font-semibold">
                 {format(selectedDay, "PPP", { locale: ptBR })}
               </h3>
-              <Button variant="ghost" size="sm" onClick={() => setSelectedDay(null)}>
-                Fechar
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    openNew({ data_alvo: format(selectedDay, "yyyy-MM-dd") })
+                  }
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Solicitar nesta data
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedDay(null)}>
+                  Fechar
+                </Button>
+              </div>
             </div>
             {selectedEvents.length === 0 ? (
               <div className="text-sm text-muted-foreground py-4 text-center">
