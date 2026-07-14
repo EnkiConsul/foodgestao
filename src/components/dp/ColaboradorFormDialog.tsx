@@ -133,9 +133,13 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
               <Input type="date" value={form.data_admissao} onChange={(e) => setForm({ ...form, data_admissao: e.target.value })} />
             </div>
             <div className="grid gap-1.5">
-              <Label>Telefone</Label>
-              <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
+              <Label>Data de nascimento</Label>
+              <Input type="date" value={form.data_nascimento} onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })} />
             </div>
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Telefone</Label>
+            <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
           </div>
           <div className="grid gap-1.5">
             <Label>E-mail</Label>
