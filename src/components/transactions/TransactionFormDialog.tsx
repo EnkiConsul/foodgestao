@@ -217,6 +217,41 @@ const MONTH_DAYS: { value: string; label: string }[] = Array.from({ length: 31 }
   label: `Dia ${i + 1}`,
 }));
 
+const WEEKDAY_SHORT = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+
+function formatBR(dateStr: string): string {
+  if (!dateStr) return "—";
+  const d = parseLocalDate(dateStr);
+  if (isNaN(d.getTime())) return "—";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}/${mm}/${d.getFullYear()} (${WEEKDAY_SHORT[d.getDay()]})`;
+}
+
+function buildOccurrencePreview(
+  baseDate: string,
+  dueDateStr: string,
+  period: string,
+  count: number,
+  endDate?: string,
+): { date: string; due: string | null }[] {
+  if (!baseDate) return [];
+  const results: { date: string; due: string | null }[] = [];
+  const diffMs = dueDateStr ? parseLocalDate(dueDateStr).getTime() - parseLocalDate(baseDate).getTime() : 0;
+  const horizon = endDate ? parseLocalDate(endDate) : null;
+  let cursor = parseLocalDate(baseDate);
+  for (let i = 0; i < count; i++) {
+    if (horizon && cursor > horizon) break;
+    const dStr = toLocalDateStr(cursor);
+    const dueStr = dueDateStr
+      ? toLocalDateStr(new Date(cursor.getTime() + diffMs))
+      : null;
+    results.push({ date: dStr, due: dueStr });
+    cursor = getNextRecurrenceDate(cursor, period);
+  }
+  return results;
+}
+
 const MAX_ATTACHMENTS = 5;
 
 export function TransactionFormDialog({ open, onOpenChange, onCreated, transaction, initialType, editScope = "single", duplicateSource }: Props) {
@@ -1261,6 +1296,24 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                       />
                     </div>
                   </div>
+                  {(() => {
+                    const preview = buildOccurrencePreview(date, dueDate, recurrenceType, 6, recurrenceEndDate || undefined);
+                    if (preview.length === 0) return null;
+                    return (
+                      <div className="rounded-md border bg-muted/30 p-3 space-y-1.5">
+                        <p className="text-xs font-medium">Próximas ocorrências (preview)</p>
+                        <ul className="text-[11px] text-muted-foreground space-y-0.5">
+                          {preview.map((p, idx) => (
+                            <li key={idx} className="flex justify-between gap-3">
+                              <span>{idx + 1}. Lançamento: <strong className="text-foreground">{formatBR(p.date)}</strong></span>
+                              {p.due && <span>Venc.: <strong className="text-foreground">{formatBR(p.due)}</strong></span>}
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="text-[10px] text-muted-foreground">Confirme o dia antes de salvar. Dias 29–31 caem no último dia do mês curto.</p>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
@@ -1380,6 +1433,27 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                         {" — total "}
                         {grand.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                       </p>
+                    );
+                  })()}
+                  {(() => {
+                    const count = Math.min(6, Math.max(2, installmentTotal || 0));
+                    const preview = buildOccurrencePreview(date, dueDate, installmentPeriod, count);
+                    if (preview.length === 0) return null;
+                    return (
+                      <div className="rounded-md border bg-muted/30 p-3 space-y-1.5">
+                        <p className="text-xs font-medium">
+                          Preview das parcelas {installmentTotal > 6 ? `(1–6 de ${installmentTotal})` : `(${installmentTotal})`}
+                        </p>
+                        <ul className="text-[11px] text-muted-foreground space-y-0.5">
+                          {preview.map((p, idx) => (
+                            <li key={idx} className="flex justify-between gap-3">
+                              <span>{idx + 1}/{installmentTotal}. Lançamento: <strong className="text-foreground">{formatBR(p.date)}</strong></span>
+                              {p.due && <span>Venc.: <strong className="text-foreground">{formatBR(p.due)}</strong></span>}
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="text-[10px] text-muted-foreground">Confirme o dia antes de salvar. Dias 29–31 caem no último dia do mês curto.</p>
+                      </div>
                     );
                   })()}
                 </div>
