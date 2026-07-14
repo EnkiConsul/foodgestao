@@ -1763,6 +1763,7 @@ export type Database = {
           created_at: string
           data_admissao: string | null
           data_desligamento: string | null
+          data_nascimento: string | null
           dp_permissions: Json
           email: string | null
           email_portal: string | null
@@ -1786,6 +1787,7 @@ export type Database = {
           created_at?: string
           data_admissao?: string | null
           data_desligamento?: string | null
+          data_nascimento?: string | null
           dp_permissions?: Json
           email?: string | null
           email_portal?: string | null
@@ -1809,6 +1811,7 @@ export type Database = {
           created_at?: string
           data_admissao?: string | null
           data_desligamento?: string | null
+          data_nascimento?: string | null
           dp_permissions?: Json
           email?: string | null
           email_portal?: string | null
