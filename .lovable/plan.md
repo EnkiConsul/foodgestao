@@ -1,98 +1,122 @@
-# Plano — Importação do Portal Colaborador (DP) + Hub de Módulos 360°
+# Roadmap completo — DP 360° (Fases 3 a 11)
 
-## 1. Fonte do código
+Execução em sequência, na ordem sugerida. Cada fase entrega migration + telas + hooks e passa por `tsgo --noEmit` antes da próxima.
 
-Repositório informado: `https://github.com/pakere1996/portalcolaborador.git` (público).
+## Decisões consolidadas
 
-Fluxo de importação — **eu executo em modo build**, você não precisa fazer nada manualmente:
-
-1. `git clone` do repo em `/tmp/portalcolaborador` dentro do sandbox.
-2. Inspecionar estrutura (`package.json`, stack, dependências, migrations SQL, assets).
-3. Mapear cada arquivo para o destino no projeto 360°FOOD e portar (não é "colar" — precisa adaptar aliases, design tokens, contexto PJ, RLS).
-
-> Observação: se o repo estiver em outra stack (Next.js, Vue, CSS Modules puros, etc.), farei o **porte** para React + Vite + Tailwind + shadcn. Se houver dependência incompatível, sinalizo antes de instalar.
-
-## 2. Estrutura de Módulos 360°
-
-Registro central dos 5 módulos previstos:
-
-| Slug | Nome exibido | Status inicial | Ícone |
-|---|---|---|---|
-| `financeiro` | Financeiro 360° | Ativo (todo o app atual) | Wallet |
-| `dp` | DP 360° | Em implantação (código do repo) | Users |
-| `crm` | CRM 360° | Em breve | Handshake |
-| `rh` | RH 360° | Em breve | UserCheck |
-| `pedidos` | Pedidos 360° | Em breve | ShoppingCart |
-
-Enum no banco: `app_module` com esses 5 valores. Cada card/menu do app lê dessa fonte única.
-
-## 3. Hub de Módulos (nova landing PJ)
-
-- Rota `/hub` — **tela padrão pós-login em contexto PJ**. Ajusto `RootGate` e o redirect pós-onboarding para `/hub` quando `contextType === "pj"`.
-- Contexto PF continua indo direto para `/dashboard` (comportamento atual preservado).
-- Layout: grid de 5 cards grandes com identidade 360°FOOD (laranja `#EB6119` + marinho `#0F1B3D`), cada card mostra:
-  - Ícone + Nome do módulo
-  - Descrição curta
-  - Badge de status: **Ativo** / **Em breve** / **Não contratado** / **Trial até dd/mm**
-  - Botão principal: "Entrar", "Contratar" (WhatsApp) ou "Em breve" (desabilitado)
-- Header do Hub com seletor de empresa (reaproveita `ContextSelector`) e botão "Voltar ao Hub" fica disponível dentro de cada módulo.
-
-## 4. Navegação por módulo
-
-- Sidebar do `AppLayout` ganha um **seletor de módulo no topo** (abaixo do logo). Ao trocar de módulo, o menu inteiro do sidebar troca:
-  - Financeiro → itens atuais (Dashboard, Lançamentos, Fluxo, Orçamento, Relatórios, Gerenciar…).
-  - DP → itens que vierem do repo importado.
-  - CRM/RH/Pedidos → placeholder ("Módulo em breve").
-- Rotas do DP ficam sob `/dp/*` protegidas por `<ModuleGuard module="dp">`.
-- Rotas do Financeiro permanecem exatamente como hoje (`/dashboard`, `/lancamentos`, etc.) — zero regressão.
-- Item "Voltar ao Hub" no topo do sidebar.
-
-## 5. Controle de contratação por módulo
-
-Como cada módulo é contratação avulsa:
-
-- Tabela `company_modules` (colunas de domínio: `company_id`, `module`, `status`, `starts_at`, `ends_at`, `notes`).
-  - `status`: `active | trial | suspended | canceled | not_contracted`.
-- Hook `useCompanyModules()` retorna o mapa `{ module → status }` para a empresa selecionada.
-- `<ModuleGuard module="dp">` bloqueia rotas do módulo com tela "Módulo não contratado" + CTA WhatsApp (`+5562992365959` já existente).
-- **Financeiro é sempre `active`** para todas as empresas (default via trigger) — mantém retrocompatibilidade.
-- Nova página `pages/admin/Modulos.tsx` no Backoffice: super_admin ativa/suspende módulos por empresa manualmente. Integração automática com Asaas fica para fase 2.
-
-## 6. Banco de dados (migration única)
-
-- `CREATE TYPE app_module AS ENUM ('financeiro','dp','crm','rh','pedidos');`
-- `CREATE TYPE module_status AS ENUM ('active','trial','suspended','canceled','not_contracted');`
-- `CREATE TABLE public.company_modules (…)` + GRANTs + RLS + policies escopadas por `company_id` via `has_role`/membership.
-- Trigger `AFTER INSERT ON companies` inserindo `('financeiro', 'active')` automaticamente.
-- Backfill: inserir `financeiro/active` para todas as empresas existentes.
-- Migrations SQL vindas do repo do DP → analisadas, adaptadas ao padrão 360°FOOD (RLS + GRANTs + `company_id`) e rodadas em migration separada após aprovação.
-
-## 7. Etapas de execução (após você aprovar)
-
-1. **Clone e inventário** do repo (relatório do que veio: rotas, componentes, tabelas, assets, deps).
-2. **Migration 1**: enum + `company_modules` + trigger + backfill.
-3. **Hub de Módulos** (`/hub`) + roteamento PJ pós-login + `<ModuleGuard>`.
-4. **Sidebar dinâmica** com seletor de módulo.
-5. **Migration 2**: tabelas do DP portadas com RLS/GRANTs corretos.
-6. **Porte dos componentes/páginas do DP** para `src/pages/dp/*` e `src/components/dp/*` — tokens de cor, `validateWithToast`, `useCompanyContext`.
-7. **Página admin** `/admin/modulos` para gerir contratações.
-8. **Validação**: `tsgo --noEmit` + Playwright (login → hub → entrar em Financeiro → voltar → tentar DP sem contratação → ativar via admin → entrar em DP).
-
-## 8. Confirmações necessárias
-
-Se qualquer resposta abaixo mudar, me avise antes de aprovar; caso contrário, sigo com os defaults:
-
-- **Ícones dos módulos**: proponho os da tabela (seção 2). OK trocar depois.
-- **DP 360° em PF?** Default: **não** — módulos são só em PJ. PF continua vendo apenas Financeiro no /dashboard.
-- **Empresas existentes ganham quais módulos ativos?** Default: apenas `financeiro/active`. DP/CRM/RH/Pedidos ficam `not_contracted` até ativação manual.
-- **URL do Hub**: `/hub`. Alternativa: `/modulos`.
+1. **Ordem**: Fase 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11.
+2. **Escopo**: implementar todas as fases em sequência, sem pausa entre elas.
+3. **Login do colaborador**: usa a mesma `auth.users` do sistema principal. Cadastro de colaborador em `/dp/colaboradores` ganha bloco "Acesso ao Portal" (e-mail + convite) que cria o usuário e vincula `dp_colaboradores.user_id`. Permissionamento por módulo do DP (Folgas, Documentos, Solicitações, Trocas, Perfil) é armazenado em `dp_colaboradores.dp_permissions` (JSONB) — colaborador NUNCA vê módulos Financeiro/CRM/RH/Pedidos.
+4. **Integração Financeiro↔DP**: adiantamento/contracheque/13º aprovados no DP entram em fila `dp_folha_lancamentos` com status `aguardando_aprovacao_financeiro`. Usuário do Financeiro aprova em `/dp/folha/aprovacoes` (visível também no Financeiro como card no dashboard) → gera `transactions` (despesa a pagar) automaticamente com categoria mapeada. Férias/VA/VT ficam previstos na estrutura mas ativados em fase futura.
 
 ---
 
-## Notas técnicas (referência)
+## Fase 3 — Estrutura organizacional
 
-- `App.tsx`: novo `<Route path="/hub">`, ajuste em `RootGate` para redirecionar PJ→`/hub` e PF→`/dashboard`, novas rotas `/dp/*` sob `<AppLayout><ModuleGuard module="dp">`.
-- `AppSidebar.tsx`: refatorar `mainItems`/`secondaryItems` para receber conjunto por módulo via prop/hook `useActiveModule()`.
-- `useCompanyContext`: adicionar `activeModule` + `setActiveModule` persistido em localStorage (chave `app-active-module`).
-- Repo importado NÃO deve tocar: `src/integrations/supabase/client.ts`, `types.ts`, `.env`, `supabase/config.toml`.
-- Assets binários grandes vão para `public/dp/` (fora do bundle).
+**Migration:**
+- `dp_unidades` (nome, cnpj, endereço, ativo).
+- `dp_cargos` (nome, cbo, salario_base).
+- `dp_sindicatos` (nome, cnpj, data_base, contato).
+- ALTER `dp_colaboradores` add `unidade_id`, `cargo_id`, `sindicato_id`, `dp_permissions jsonb`, `user_id uuid` (FK `auth.users`, nullable).
+
+**Telas:** `/dp/cadastros` (hub), `/dp/cadastros/unidades`, `/dp/cadastros/cargos`, `/dp/cadastros/sindicatos`.
+
+## Fase 4 — Comunicação interna
+
+**Migration:** `dp_avisos` (titulo, corpo, prioridade, publico_alvo, expira_em), `dp_mensagens` (from_user, to_colaborador, corpo, lida_em).
+
+**Telas:** `/dp/avisos`, `/dp/mensagens`. Widgets no `DpHome`: Aniversariantes, Avisos recentes, Sino de notificações no topbar.
+
+## Fase 5 — Documentos por categoria
+
+**Migration:** ALTER `dp_documentos` add `categoria` (enum: `contracheque | adiantamento | ponto | atestado | disciplinar | sindicato | outros`), `competencia date`, `cid text`, `dias_afastamento int`.
+
+**Telas:** `/dp/documentos/{contracheque|adiantamento|ponto|atestados|disciplinar|sindicato}` + importador em lote (upload CSV/ZIP, auto-vínculo por matrícula).
+
+## Fase 6 — Disciplinar & Bloqueios
+
+**Migration:** `dp_registros_disciplinares` (tipo, gravidade, descricao, ciencia_em, anexo_path), `dp_bloqueios` (colaborador_id, motivo, inicio, fim).
+
+**Telas:** `/dp/disciplinar` (admin), `/dp/bloqueios` (admin). Histórico exibido no perfil do colaborador.
+
+## Fase 7 — Trocas de plantão
+
+**Migration:** `dp_trocas` (solicitante_id, destinatario_id, data_original, data_proposta, status: `pendente_par | pendente_admin | aprovada | recusada`).
+
+**Telas:** `/dp/trocas` (admin) + `/dp/meu/trocas` (colaborador). Fluxo triplo: solicitar → aceite do par → aprovação do admin. Notificação in-app.
+
+## Fase 8 — Portal do Colaborador (self-service)
+
+**Migration:**
+- Adiciona role `dp_colaborador` no enum `app_role`.
+- Função `is_dp_colaborador(uuid)` SECURITY DEFINER.
+- Policies em todas as tabelas `dp_*` liberando SELECT/UPDATE apenas nos próprios registros do colaborador logado.
+- Edge function `dp-invite-colaborador` (reaproveita padrão `accept-invite`): cria user, atribui role, vincula `dp_colaboradores.user_id`, envia e-mail.
+
+**Telas:**
+- `ColaboradorShell` (layout reduzido, só menu DP).
+- `/dp/meu` — home (pendências, próximas folgas, avisos).
+- `/dp/meu/perfil` — dados pessoais.
+- `/dp/meu/documentos` — meus contracheques/atestados/adiantamentos.
+- `/dp/meu/solicitacoes` — abrir folga/atestado/adiantamento.
+- `/dp/meu/trocas` — solicitar/aceitar trocas.
+- `/dp/meu/historico` — histórico completo.
+
+**Redirecionamento pós-login:**
+- `dp_colaborador` (sem outras roles) → `/dp/meu` direto, sem passar pelo Hub.
+- Usuário com múltiplas roles (admin + colaborador) → mantém `/hub`.
+
+**Cadastro:** `ColaboradorFormDialog` ganha aba "Acesso ao Portal":
+- Toggle "Criar acesso ao portal" → campo e-mail + botão "Enviar convite".
+- Bloco de permissões (RadioGroup por módulo DP: `folgas | documentos | trocas | solicitacoes | perfil` × `view | edit | none`), reaproveitando padrão de `PermissionsEditor`.
+
+## Fase 9 — Sindicatos & Negociações
+
+**Migration:** `dp_sindicato_negociacoes` (sindicato_id, data_base, reajuste_pct, clausulas_json, pdf_path, vigencia_inicio, vigencia_fim).
+
+**Telas:** `/dp/sindicatos/negociacoes` + histórico por sindicato.
+
+## Fase 10 — Aprovações centralizadas & Notificações
+
+**Migration:** `dp_notificacoes` (user_id, tipo, ref_table, ref_id, lida_em) + triggers em `dp_solicitacoes`, `dp_trocas`, `dp_registros_disciplinares` que populam a fila.
+
+**Telas:** `/dp/aprovacoes` (filas por tipo, ações em lote). Sino de notificações no topbar via Supabase Realtime.
+
+## Fase 11 — Folha & Integração Financeiro
+
+**Migration:**
+- Enum `dp_folha_tipo`: `adiantamento | contracheque_mensal | contracheque_quinzenal | decimo_terceiro` (com `ferias | vale_alimentacao | vale_transporte` já no enum, marcados como "não gerados nesta fase").
+- `dp_folha_periodos` (competencia, tipo, status: `aberto | fechado | aprovado_dp | aprovado_financeiro | pago`).
+- `dp_folha_lancamentos` (periodo_id, colaborador_id, tipo, valor_bruto, descontos_json, valor_liquido, status, transaction_id nullable, contracheque_documento_id nullable).
+- ALTER `dp_folha_lancamentos` add `financeiro_categoria_id`, `financeiro_account_id` (defaults por unidade).
+- Trigger: ao mudar `status → aprovado_financeiro`, insere `transactions` (despesa PJ, `due_date` = data de pagamento, `bill_status = a_pagar`).
+- RPCs:
+  - `dp_folha_gerar_adiantamento(periodo_id)` — cria lançamentos por colaborador ativo.
+  - `dp_folha_gerar_contracheque(periodo_id, quinzenal boolean)` — calcula bruto − adiantamento − descontos.
+  - `dp_folha_gerar_13o(ano)` — 1ª e 2ª parcela.
+  - `dp_folha_gerar_pdf(lancamento_id)` — gera contracheque PDF e grava em `dp_documentos`.
+
+**Telas:**
+- `/dp/folha` — hub com abas: Adiantamento, Mensal, Quinzenal, 13º.
+- `/dp/folha/periodos/:id` — grade de colaboradores × valores, edição individual, "Enviar para aprovação do Financeiro".
+- `/dp/folha/aprovacoes` — visão do usuário Financeiro (badge no dashboard Financeiro): aprova/rejeita em lote, define conta bancária de origem.
+- Colaborador: `/dp/meu/documentos/contracheques` lista + download PDF.
+
+**Estrutura preparada para futuro (não implementado na Fase 11):**
+- Férias (com cálculo de terço constitucional).
+- Vale alimentação / Vale transporte.
+
+---
+
+## Detalhes técnicos transversais
+
+- **Layout dinâmico:** `AppLayout` detecta se usuário é `dp_colaborador` puro e monta `ColaboradorShell` ao invés do sidebar completo.
+- **Storage:** bucket privado `dp-documentos` já existe; novos PDFs de contracheque salvam em `<company_id>/<colaborador_id>/contracheques/<competencia>.pdf`.
+- **Permissões DP:** hook `useDpPermissions()` retorna `{ folgas, documentos, trocas, solicitacoes, perfil }` do colaborador atual, usado em cada rota `/dp/meu/*`.
+- **RLS:** todas as tabelas novas seguem padrão 360°FOOD — GRANT explícito + policy por `company_id` via `is_company_member` OU por `user_id` para o colaborador dono do registro.
+- **Convite:** e-mail transacional reaproveita template `company-invite.tsx` com variação `dp-colaborador-invite`.
+- **Validação por fase:** `tsgo --noEmit` obrigatório antes de avançar. Playwright ao final (login como colaborador → ver contracheque; login como admin → gerar folha → aprovar → ver transação no Financeiro).
+
+## Estimativa
+
+Total: ~15 migrations, ~35 páginas novas, ~20 componentes, 1 edge function nova. Execução ininterrupta na ordem acima.
