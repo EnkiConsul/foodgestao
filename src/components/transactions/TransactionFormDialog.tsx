@@ -296,6 +296,21 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, isRecurring, recurrenceType, isInstallment, installmentPeriod]);
 
+  // Auto-sync dueDate to base date's day-of-month when in mensal/quinzenal mode
+  useEffect(() => {
+    if (!date || !dueDate) return;
+    const isMonthly = (isRecurring && (recurrenceType === "mensal" || recurrenceType === "quinzenal"))
+      || (isInstallment && (installmentPeriod === "mensal" || installmentPeriod === "quinzenal"));
+    if (!isMonthly) return;
+    const targetDay = parseLocalDate(date).getDate();
+    const dueParsed = parseLocalDate(dueDate);
+    const clamped = Math.min(targetDay, lastDayOfMonth(dueParsed.getFullYear(), dueParsed.getMonth()));
+    if (dueParsed.getDate() !== clamped) {
+      setDueDate(shiftToMonthDay(dueDate, targetDay));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date, isRecurring, recurrenceType, isInstallment, installmentPeriod]);
+
 
 
   // --- Lookup queries (React Query so realtime invalidation works) ---
