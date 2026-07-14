@@ -10,8 +10,6 @@ import {
   type Preset,
 } from "@/components/relatorios/contabeis/ReportFilters";
 import { DreReport } from "@/components/relatorios/contabeis/DreReport";
-import { TrialBalance } from "@/components/relatorios/contabeis/TrialBalance";
-import { BalanceSheet } from "@/components/relatorios/contabeis/BalanceSheet";
 import { GeneralLedgerDrawer } from "@/components/relatorios/contabeis/GeneralLedgerDrawer";
 import { PendingClassificationPanel } from "@/components/relatorios/contabeis/PendingClassificationPanel";
 import { useContabeisReport, type ReportNode } from "@/hooks/useContabeisReport";
