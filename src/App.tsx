@@ -19,6 +19,10 @@ import DpColaboradores from "./pages/dp/DpColaboradores";
 import DpSolicitacoes from "./pages/dp/DpSolicitacoes";
 import DpDocumentos from "./pages/dp/DpDocumentos";
 import DpFolgas from "./pages/dp/DpFolgas";
+import DpCadastrosHub from "./pages/dp/DpCadastrosHub";
+import DpUnidades from "./pages/dp/DpUnidades";
+import DpCargos from "./pages/dp/DpCargos";
+import DpSindicatos from "./pages/dp/DpSindicatos";
 import AdminModulos from "./pages/admin/Modulos";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
@@ -294,6 +298,10 @@ const AppRoutes = () => (
         <Route path="solicitacoes" element={<DpSolicitacoes />} />
         <Route path="folgas" element={<DpFolgas />} />
         <Route path="documentos" element={<DpDocumentos />} />
+        <Route path="cadastros" element={<DpCadastrosHub />} />
+        <Route path="cadastros/unidades" element={<DpUnidades />} />
+        <Route path="cadastros/cargos" element={<DpCargos />} />
+        <Route path="cadastros/sindicatos" element={<DpSindicatos />} />
       </Route>
       <Route path="/crm" element={<ModuleGuard module="crm"><ModulePlaceholder module="crm" /></ModuleGuard>} />
       <Route path="/rh" element={<ModuleGuard module="rh"><ModulePlaceholder module="rh" /></ModuleGuard>} />

@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Users, ClipboardList, FolderOpen, Home, CalendarDays } from "lucide-react";
+import { Users, ClipboardList, FolderOpen, Home, CalendarDays, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 
@@ -9,6 +9,7 @@ const items = [
   { title: "Folgas", url: "/dp/folgas", icon: CalendarDays },
   { title: "Solicitações", url: "/dp/solicitacoes", icon: ClipboardList },
   { title: "Documentos", url: "/dp/documentos", icon: FolderOpen },
+  { title: "Cadastros", url: "/dp/cadastros", icon: Building2 },
 ];
 
 export function DpLayout() {

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useUpsertDpColaborador, type DpColaborador } from "@/hooks/useDpColaboradores";
+import { useDpUnidades, useDpCargos, useDpSindicatos } from "@/hooks/useDpCadastros";
 import type { Database } from "@/integrations/supabase/types";
 
 type Regime = Database["public"]["Enums"]["dp_regime_trabalho"];
@@ -28,10 +29,15 @@ interface Props {
 
 export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props) {
   const upsert = useUpsertDpColaborador();
+  const unidades = useDpUnidades();
+  const cargos = useDpCargos();
+  const sindicatos = useDpSindicatos();
   const [form, setForm] = useState({
     nome: "", cpf: "", matricula: "", cargo: "",
     regime: "clt" as Regime, data_admissao: "", email: "", telefone: "",
     ativo: true, observacoes: "",
+    unidade_id: "" as string, cargo_id: "" as string, sindicato_id: "" as string,
+    email_portal: "",
   });
 
   useEffect(() => {
@@ -47,6 +53,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         telefone: colaborador?.telefone ?? "",
         ativo: colaborador?.ativo ?? true,
         observacoes: colaborador?.observacoes ?? "",
+        unidade_id: colaborador?.unidade_id ?? "",
+        cargo_id: colaborador?.cargo_id ?? "",
+        sindicato_id: colaborador?.sindicato_id ?? "",
+        email_portal: colaborador?.email_portal ?? "",
       });
     }
   }, [open, colaborador]);
@@ -66,6 +76,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         telefone: form.telefone.trim() || null,
         ativo: form.ativo,
         observacoes: form.observacoes.trim() || null,
+        unidade_id: form.unidade_id || null,
+        cargo_id: form.cargo_id || null,
+        sindicato_id: form.sindicato_id || null,
+        email_portal: form.email_portal.trim() || null,
       });
       toast.success(colaborador ? "Colaborador atualizado" : "Colaborador cadastrado");
       onOpenChange(false);
@@ -124,6 +138,48 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             <Label>E-mail</Label>
             <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
           </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="grid gap-1.5">
+              <Label>Unidade</Label>
+              <Select value={form.unidade_id || "__none"} onValueChange={(v) => setForm({ ...form, unidade_id: v === "__none" ? "" : v })}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">— Nenhuma —</SelectItem>
+                  {(unidades.data ?? []).map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Cargo (catálogo)</Label>
+              <Select value={form.cargo_id || "__none"} onValueChange={(v) => setForm({ ...form, cargo_id: v === "__none" ? "" : v })}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">— Nenhum —</SelectItem>
+                  {(cargos.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Sindicato</Label>
+              <Select value={form.sindicato_id || "__none"} onValueChange={(v) => setForm({ ...form, sindicato_id: v === "__none" ? "" : v })}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">— Nenhum —</SelectItem>
+                  {(sindicatos.data ?? []).map((s) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="rounded-md border p-3 space-y-2 bg-muted/30">
+            <div>
+              <Label>E-mail do portal do colaborador</Label>
+              <p className="text-xs text-muted-foreground">Guarde o e-mail que dará acesso ao portal. O envio de convite é habilitado na Fase 8.</p>
+            </div>
+            <Input type="email" value={form.email_portal} onChange={(e) => setForm({ ...form, email_portal: e.target.value })} placeholder="colaborador@empresa.com" />
+          </div>
+
           <div className="grid gap-1.5">
             <Label>Observações</Label>
             <Textarea rows={3} value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} />
