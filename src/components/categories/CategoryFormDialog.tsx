@@ -145,7 +145,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
-    const catValidated = validateWithToast(categorySchema, { name, transaction_type: type, color }, toast.error);
+    const catValidated = validateWithToast(categorySchema, { name, transaction_type: type, color, category_subtype: subtype || undefined }, toast.error);
     if (!catValidated) return;
 
     setSaving(true);
