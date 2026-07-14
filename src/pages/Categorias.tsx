@@ -437,6 +437,19 @@ export default function Categorias() {
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline">Adicionar</span>
         </Button>
+        {contextType === "pj" && selectedCompanyId && (
+          <Button
+            onClick={handleSeedDefaults}
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            disabled={seeding}
+            title="Importa as 69 categorias do plano padrão 360°FOOD. Categorias já importadas não são duplicadas."
+          >
+            <Sparkles className="h-4 w-4" />
+            <span className="hidden sm:inline">{seeding ? "Importando..." : "Importar plano 360°FOOD"}</span>
+          </Button>
+        )}
         <Button
           variant="outline"
           size="sm"
