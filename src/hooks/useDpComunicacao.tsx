@@ -100,7 +100,7 @@ export function useDpMensagens() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_mensagens")
-        .select("*, dp_colaboradores(nome_completo)")
+        .select("*, dp_colaboradores(nome)")
         .eq("company_id", selectedCompanyId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -154,7 +154,7 @@ export function useAniversariantes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_colaboradores")
-        .select("id, nome_completo, data_nascimento, cargo, foto_url")
+        .select("id, nome, data_nascimento, cargo")
         .eq("company_id", selectedCompanyId!)
         .eq("ativo", true)
         .not("data_nascimento", "is", null);
