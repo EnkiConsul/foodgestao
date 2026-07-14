@@ -134,18 +134,6 @@ function RootGate() {
   return <Landing />;
 }
 
-// Após login: PJ vai ao Hub, PF vai direto ao Dashboard Financeiro
-function PostLoginRedirect() {
-  const { contextType } = useContextRedirect();
-  return <Navigate to={contextType === "pj" ? "/hub" : "/dashboard"} replace />;
-}
-
-function useContextRedirect() {
-  // Reexporta contextType a partir do CompanyContext (import evitado por circularidade)
-  const ctx = useCompanyContext();
-  return ctx;
-}
-
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
