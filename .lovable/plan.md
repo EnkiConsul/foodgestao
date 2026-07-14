@@ -1,46 +1,92 @@
-## Objetivo
 
-No `TransactionFormDialog`, quando o usuário marcar **Recorrente** ou **Parcelado** e escolher periodicidade **Mensal** ou **Quinzenal**, exibir um seletor de **Dia do mês (1–31)**. O `dueDate` é recalculado ao trocar o dia, e o backend valida/alinha automaticamente — igual ao padrão já existente do semanal.
+# Plano padrão de categorias 360°FOOD
 
-## Regras de negócio
+## Decisões confirmadas
+- **Escopo:** só PJ — cada empresa nova recebe as 69 categorias no cadastro.
+- **Empresas existentes:** botão manual "Importar plano padrão 360°FOOD" na tela Categorias (idempotente por `template_code`).
+- **Subtipo (Custo/Despesa/Imposto/Investimento/Receita/Saída):** metadado que alimenta filtros e agrupamentos nos relatórios contábeis (DRE, Fluxo de Caixa).
+- **Liberdade total do usuário:** todas as 69 categorias padrão podem ser **renomeadas, editadas, movidas, reordenadas e excluídas**. O usuário pode **criar novas categorias sem qualquer limite**, em qualquer nível da árvore, misturadas às do template.
+- **`template_code` (ex.: `CAT000023`) é imutável** — permanece na categoria mesmo após renomeação/move, para preservar o histórico de lançamentos vinculados ao plano original. Categorias criadas pelo usuário nascem com `template_code = NULL`.
 
-- **Mensal**: 1 ocorrência por mês no dia escolhido.
-- **Quinzenal**: escolhe **1 dia** do mês; a 2ª ocorrência cai **15 dias depois** (rolando para o mês seguinte quando necessário).
-- **Meses curtos** (dia 29/30/31 inexistente): usa o **último dia do mês** (clamp). Ex.: dia 31 em fevereiro → 28/29.
-- Regra vale tanto na **criação** (gerando as parcelas/ocorrências) quanto na **edição** (recalcular `dueDate` da linha atual).
+---
 
-## Frontend — `src/components/transactions/TransactionFormDialog.tsx`
+## 1. Banco de dados
 
-1. Novo helper `shiftToMonthDay(date, dayOfMonth)`:
-   - Recebe uma data e o dia alvo (1–31).
-   - Retorna nova data no mesmo mês/ano com dia = `min(dayOfMonth, últimoDiaDoMês)`.
-2. Novo estado `monthDay: number` (default = dia da `date` base).
-3. Renderizar um `<Select>` "Dia do vencimento" (1–31) sempre que:
-   - `(isRecurring && recurrenceType ∈ {mensal, quinzenal})` **ou**
-   - `(isInstallment && installmentPeriod ∈ {mensal, quinzenal})`.
-   - Mesma UX/posição do seletor de dia da semana já existente.
-   - Também exibir no modo edição quando a transação for parcela/filha de série mensal ou quinzenal.
-4. `onChange` do seletor: `setDueDate(shiftToMonthDay(dueDate, novoDia))`.
-5. `useEffect` (espelhando o do semanal): quando `date`, `isRecurring/recurrenceType`, `isInstallment/installmentPeriod` mudarem e o modo for mensal/quinzenal, realinhar `dueDate` para o `monthDay` atual (com clamp de fim de mês).
-6. Geração das parcelas/ocorrências: ao calcular cada `due_date` futuro, aplicar `shiftToMonthDay` no mês correspondente. Quinzenal: base + 15 dias corridos (não força dia fixo na 2ª ocorrência).
+### 1.1. Nova migração em `public.categories`
+Adicionar colunas (nullable, para não quebrar dados legados):
+- `template_code TEXT` — imutável, único por (`user_id`, `company_id`, `template_code`).
+- `category_subtype TEXT` — valores: `receita`, `saida`, `custo`, `despesa`, `imposto`, `investimento`.
+- `ai_description TEXT` — descrição semântica para o agente IA.
+- `previous_index TEXT` — rastreabilidade do índice anterior da planilha.
+- `is_customizable BOOLEAN DEFAULT true` — flag apenas informativa (raízes vêm como `false`, mas UI não bloqueia nada).
+- `is_active BOOLEAN DEFAULT true` — soft-status; exclusão real continua permitida.
+- Índice único parcial: `(user_id, company_id, template_code) WHERE template_code IS NOT NULL` para garantir idempotência do import — não restringe a criação de categorias novas (que ficam com `template_code = NULL`).
 
-## Backend — nova migração SQL
+### 1.2. Nova tabela `public.category_templates`
+Catálogo mestre versionável das 69 categorias:
+- `code TEXT PRIMARY KEY` (`CAT000001` …)
+- `parent_code TEXT` (self-ref)
+- `name`, `level`, `sort_order`, `subtype`, `ai_description`, `previous_index`, `is_customizable`, `transaction_type` (receita/despesa)
+- Populada via seed SQL na mesma migração.
+- `GRANT SELECT ... TO authenticated`; escrita restrita a `service_role`.
 
-Estender o alinhamento hoje feito só para semanal:
+### 1.3. Função RPC `public.seed_default_categories(_company_id UUID)`
+- `SECURITY DEFINER`, valida ownership da empresa.
+- Percorre `category_templates` em ordem hierárquica (por `level` + `sort_order`).
+- Para cada template ainda não presente em `(user_id, company_id, template_code)`, cria a linha em `categories` respeitando `parent_id` mapeado pelos códigos já inseridos.
+- Não toca nas categorias criadas ou editadas pelo usuário.
+- Retorna quantas foram criadas / puladas.
 
-1. Nova função `enforce_monthly_due_date_alignment()`:
-   - Detecta se a transação é mensal/quinzenal (por `recurrence_type` própria, ou via parent quando `parent_transaction_id` presente).
-   - Se `due_date` existir e o dia não bater com o dia da `transaction_date` (clampado ao último dia do mês do `due_date`), reescreve `due_date`.
-   - Quinzenal: aceita `due_date` cujo dia bata com o da base **ou** 15 dias depois; caso contrário, alinha para o mais próximo.
-   - `SECURITY INVOKER`, `SET search_path = public`.
-2. Trigger `BEFORE INSERT OR UPDATE` em `public.transactions`.
-3. Manter o trigger semanal já existente — os dois cobrem periodicidades disjuntas.
+### 1.4. Trigger em `companies`
+`AFTER INSERT` em `public.companies` chama `seed_default_categories(NEW.id)` automaticamente para cada empresa nova.
 
-## Validação — `src/lib/validations.ts`
+---
 
-- Adicionar campo opcional `monthDay` (int 1–31), obrigatório apenas quando `recurrenceType`/`installmentPeriod` ∈ {mensal, quinzenal}.
+## 2. Frontend
 
-## Não muda
+### 2.1. `src/pages/Categorias.tsx`
+- Novo botão **"Importar plano padrão 360°FOOD"** (contexto PJ) — chama a RPC e mostra toast com contadores.
+- Botão existente **"Nova Categoria"** continua permitindo criação livre e ilimitada, em qualquer nível.
+- Exibir badge **Índice** (calculado no cliente a partir da árvore: `2.3.2.4.`).
+- Exibir badge do **Subtipo** com cor distinta por tipo.
+- Ícone/tooltip discreto quando `template_code` estiver preenchido, indicando "vem do plano padrão" — sem travar edição/exclusão.
 
-- Fluxo anual, diário, semanal, geração de N filhos, escopo de edição, saldos, cálculo de valores das parcelas.
-- Nenhuma mudança em Dashboard/FluxoCaixa/Lancamentos.
+### 2.2. `src/components/categories/CategoryFormDialog.tsx`
+- Campos novos:
+  - **Subtipo** (`Select`: Receita, Saída, Custo, Despesa, Imposto, Investimento).
+  - **Descrição para IA** (`Textarea`, opcional).
+- Campos somente-leitura quando a categoria tiver `template_code`:
+  - **ID Interno** (`template_code`).
+  - **Índice anterior** (`previous_index`).
+- Nome, pai, cor, subtipo, descrição IA, ordem: sempre editáveis. Exclusão sempre permitida.
+- Novas categorias criadas pelo usuário: todos os campos livres, `template_code` fica em branco.
+
+### 2.3. `src/components/onboarding/StepCategories.tsx`
+- Substituir o checklist atual por um resumo: "Sua empresa receberá o plano 360°FOOD (69 categorias em 4 níveis) — você poderá editar, excluir ou criar novas categorias à vontade" + prévia colapsável.
+- PF mantém o comportamento atual (categorias mínimas).
+
+### 2.4. Relatórios contábeis
+- `BalanceSheet.tsx`, `DreReport.tsx`, `AccountTreeTable.tsx`: filtro/agrupamento por `category_subtype` para separar Custos, Despesas, Impostos e Investimentos dentro de Saídas.
+
+### 2.5. Agente IA
+- `supabase/functions/_shared/plin-ia-context.ts` e `ai-financial-agent`: enviar `ai_description` das categorias no contexto para melhorar a classificação automática de lançamentos.
+
+---
+
+## 3. Compatibilidade e migração de dados
+
+- Nenhum lançamento existente é alterado — o vínculo continua via `category_id` (UUID).
+- Categorias legadas do usuário ficam com `template_code = NULL` e convivem com as importadas e com futuras criações livres.
+- Validação Zod (`categorySchema`) em `src/lib/validations.ts` ganha os novos campos opcionais.
+- Typegen do Supabase é atualizado automaticamente após a migração.
+
+---
+
+## Detalhes técnicos (para revisão)
+
+- **Ordem da migração:** (1) ALTER TABLE `categories`; (2) CREATE TABLE `category_templates` + GRANTs + RLS; (3) INSERT dos 69 templates; (4) CREATE FUNCTION `seed_default_categories`; (5) CREATE TRIGGER em `companies`.
+- **Idempotência:** índice único parcial + `ON CONFLICT DO NOTHING` no seed evitam duplicar categorias do template; categorias criadas pelo usuário (`template_code = NULL`) nunca colidem.
+- **Sem limite de categorias:** não há CHECK/quota no banco nem validação no frontend limitando quantidade.
+- **Mapeamento subtipo → transaction_type:** `receita` → `receita`; `saida`/`custo`/`despesa`/`imposto`/`investimento` → `despesa`.
+- **Cores padrão por subtipo:** Receita verde, Custo vermelho, Despesa laranja, Imposto roxo, Investimento azul, Saída cinza.
+- **Ordem de inserção no seed:** por `level` crescente e depois `sort_order`, garantindo que o `parent_id` já exista quando um filho é inserido.
