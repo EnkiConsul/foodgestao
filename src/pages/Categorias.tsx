@@ -199,7 +199,7 @@ export default function Categorias() {
           .eq("user_id", user!.id)
           .or("context.is.null,context.eq.pj")
           .eq("category_companies.company_id", selectedCompanyId!)
-          .order("hierarchy_index", { nullsFirst: false })
+          .order("parent_id", { nullsFirst: true })
           .order("sort_order")
           .order("name");
         return (data ?? []) as Category[];
@@ -211,7 +211,7 @@ export default function Categorias() {
         .eq("user_id", user!.id)
         .or("context.is.null,context.eq.pf")
         .eq("visible_pf", true)
-        .order("hierarchy_index", { nullsFirst: false })
+        .order("parent_id", { nullsFirst: true })
         .order("sort_order")
         .order("name");
       return (data ?? []) as Category[];
@@ -293,21 +293,8 @@ export default function Categorias() {
 
   const tree = useMemo(() => buildTree(filtered), [filtered]);
 
-  // Persist hierarchy_index to database whenever tree changes
-  const persistHierarchyIndex = useCallback(async () => {
-    if (!categories.length) return;
-    const fullTree = buildTree(categories);
-    const updates = fullTree
-      .filter((node) => node.hierarchy_index !== `${node.index}.`)
-      .map((node) =>
-        supabase.from("categories").update({ hierarchy_index: `${node.index}.` }).eq("id", node.id)
-      );
-    if (updates.length > 0) await Promise.all(updates);
-  }, [categories]);
-
-  useEffect(() => {
-    persistHierarchyIndex();
-  }, [persistHierarchyIndex]);
+  // hierarchy_index é apenas um rótulo visual calculado em memória pelo buildTree.
+  // Não é mais persistido a cada render — evita loop de update + realtime + reordenação instável.
 
   // Filter out children of collapsed parents
   const visibleTree = useMemo(() => {
