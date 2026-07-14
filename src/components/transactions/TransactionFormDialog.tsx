@@ -192,6 +192,31 @@ function currentWeekday(dateStr: string, fallback = 1): number {
   return isNaN(d.getTime()) ? fallback : d.getDay();
 }
 
+function lastDayOfMonth(year: number, monthIndex: number): number {
+  return new Date(year, monthIndex + 1, 0).getDate();
+}
+
+/** Shifts date to have the target day-of-month, clamping to last day of that month. */
+function shiftToMonthDay(dateStr: string, dayOfMonth: number): string {
+  if (!dateStr) return dateStr;
+  const d = parseLocalDate(dateStr);
+  const last = lastDayOfMonth(d.getFullYear(), d.getMonth());
+  const target = Math.max(1, Math.min(31, dayOfMonth));
+  d.setDate(Math.min(target, last));
+  return toLocalDateStr(d);
+}
+
+function currentMonthDay(dateStr: string, fallback = 1): number {
+  if (!dateStr) return fallback;
+  const d = parseLocalDate(dateStr);
+  return isNaN(d.getTime()) ? fallback : d.getDate();
+}
+
+const MONTH_DAYS: { value: string; label: string }[] = Array.from({ length: 31 }, (_, i) => ({
+  value: String(i + 1),
+  label: `Dia ${i + 1}`,
+}));
+
 const MAX_ATTACHMENTS = 5;
 
 export function TransactionFormDialog({ open, onOpenChange, onCreated, transaction, initialType, editScope = "single", duplicateSource }: Props) {
@@ -267,6 +292,21 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     const currentWd = parseLocalDate(dueDate).getDay();
     if (targetWeekday !== currentWd) {
       setDueDate(shiftToWeekday(dueDate, targetWeekday));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date, isRecurring, recurrenceType, isInstallment, installmentPeriod]);
+
+  // Auto-sync dueDate to base date's day-of-month when in mensal/quinzenal mode
+  useEffect(() => {
+    if (!date || !dueDate) return;
+    const isMonthly = (isRecurring && (recurrenceType === "mensal" || recurrenceType === "quinzenal"))
+      || (isInstallment && (installmentPeriod === "mensal" || installmentPeriod === "quinzenal"));
+    if (!isMonthly) return;
+    const targetDay = parseLocalDate(date).getDate();
+    const dueParsed = parseLocalDate(dueDate);
+    const clamped = Math.min(targetDay, lastDayOfMonth(dueParsed.getFullYear(), dueParsed.getMonth()));
+    if (dueParsed.getDate() !== clamped) {
+      setDueDate(shiftToMonthDay(dueDate, targetDay));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, isRecurring, recurrenceType, isInstallment, installmentPeriod]);
@@ -1076,6 +1116,24 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                   </Select>
                 </div>
               )}
+              {/* Month-day helper — visible when editing a monthly/biweekly recurring/installment child */}
+              {isEditing && dueDate && (transaction?.parent_transaction_id || (transaction?.installment_total ?? 0) > 0) && (
+                <div className="pt-1">
+                  <Label className="text-xs text-muted-foreground">Dia do mês do vencimento</Label>
+                  <Select
+                    value={String(currentMonthDay(dueDate))}
+                    onValueChange={(v) => setDueDate(shiftToMonthDay(dueDate, Number(v)))}
+                  >
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent className="max-h-64">
+                      {MONTH_DAYS.map((m) => (
+                        <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground mt-1">Dias 29–31 são ajustados para o último dia do mês quando necessário.</p>
+                </div>
+              )}
               <p className="text-[11px] text-muted-foreground">
                 Se preenchido, o lançamento será tratado como compromisso pendente.
               </p>
@@ -1155,6 +1213,31 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+                  )}
+                  {(recurrenceType === "mensal" || recurrenceType === "quinzenal") && (
+                    <div className="space-y-2">
+                      <Label>Dia do mês do vencimento</Label>
+                      <Select
+                        value={date ? String(parseLocalDate(date).getDate()) : "1"}
+                        onValueChange={(v) => {
+                          const d = Number(v);
+                          setDate(shiftToMonthDay(date, d));
+                          if (dueDate) setDueDate(shiftToMonthDay(dueDate, d));
+                        }}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent className="max-h-64">
+                          {MONTH_DAYS.map((m) => (
+                            <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[11px] text-muted-foreground">
+                        {recurrenceType === "quinzenal"
+                          ? "A 1ª ocorrência cai neste dia; a 2ª cai 15 dias depois. Dias 29–31 são ajustados para o último dia do mês."
+                          : "Todas as ocorrências caem neste dia. Dias 29–31 são ajustados para o último dia do mês."}
+                      </p>
                     </div>
                   )}
                   <div className="space-y-2">
@@ -1238,6 +1321,31 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                         </SelectContent>
                       </Select>
                       <p className="text-[11px] text-muted-foreground">A data de vencimento é ajustada para o próximo {WEEKDAYS.find(w => w.value === String(parseLocalDate(date).getDay()))?.label.toLowerCase()}.</p>
+                    </div>
+                  )}
+                  {(installmentPeriod === "mensal" || installmentPeriod === "quinzenal") && (
+                    <div className="space-y-2">
+                      <Label>Dia do mês do vencimento</Label>
+                      <Select
+                        value={date ? String(parseLocalDate(date).getDate()) : "1"}
+                        onValueChange={(v) => {
+                          const d = Number(v);
+                          setDate(shiftToMonthDay(date, d));
+                          if (dueDate) setDueDate(shiftToMonthDay(dueDate, d));
+                        }}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent className="max-h-64">
+                          {MONTH_DAYS.map((m) => (
+                            <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[11px] text-muted-foreground">
+                        {installmentPeriod === "quinzenal"
+                          ? "A 1ª parcela cai neste dia; a 2ª cai 15 dias depois, e assim por diante. Dias 29–31 são ajustados para o último dia do mês."
+                          : "Todas as parcelas caem neste dia do mês. Dias 29–31 são ajustados para o último dia do mês."}
+                      </p>
                     </div>
                   )}
                   <div className="space-y-2">
