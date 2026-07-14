@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   addMonths,
   eachDayOfInterval,
@@ -16,13 +17,19 @@ import {
   subMonths,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Loader2, CalendarDays } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, CalendarDays, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useAuth } from "@/hooks/useAuth";
+import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -57,10 +64,67 @@ const STATUS_LABEL: Record<Status, string> = {
 
 export default function DpFolgas() {
   const { selectedCompanyId } = useCompanyContext();
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const colabs = useDpColaboradores();
   const [cursor, setCursor] = useState(startOfMonth(new Date()));
   const [statusFilter, setStatusFilter] = useState<Status | "todas">("aprovada");
   const [tipoFilter, setTipoFilter] = useState<Tipo | "todos">("todos");
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState({
+    colaborador_id: "",
+    tipo: "folga" as Tipo,
+    data_alvo: "",
+    data_fim: "",
+    motivo: "",
+  });
+
+  const openNew = (preset?: { data_alvo?: string; data_fim?: string; tipo?: Tipo }) => {
+    setForm({
+      colaborador_id: "",
+      tipo: preset?.tipo ?? "folga",
+      data_alvo: preset?.data_alvo ?? "",
+      data_fim: preset?.data_fim ?? "",
+      motivo: "",
+    });
+    setDialogOpen(true);
+  };
+
+  useEffect(() => {
+    if (!dialogOpen) return;
+    if (!form.data_fim || !form.data_alvo) return;
+    if (form.data_fim < form.data_alvo) setForm((f) => ({ ...f, data_fim: f.data_alvo }));
+  }, [dialogOpen, form.data_alvo, form.data_fim]);
+
+  const create = useMutation({
+    mutationFn: async () => {
+      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
+      if (!form.colaborador_id) throw new Error("Selecione um colaborador");
+      if (!form.data_alvo) throw new Error("Informe a data inicial");
+      if (form.motivo.length > 500) throw new Error("Observações muito longas (máx. 500)");
+      const { error } = await supabase.from("dp_solicitacoes").insert({
+        company_id: selectedCompanyId,
+        colaborador_id: form.colaborador_id,
+        tipo: form.tipo,
+        data_alvo: form.data_alvo,
+        data_fim: form.data_fim || null,
+        motivo: form.motivo.trim() || null,
+        criado_por: user?.id,
+        status: "pendente",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Solicitação criada", { description: "Ficará como pendente até aprovação." });
+      qc.invalidateQueries({ queryKey: ["dp_folgas"] });
+      qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
+      qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
+      setDialogOpen(false);
+    },
+    onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
+  });
+
 
   const rangeStart = startOfWeek(startOfMonth(cursor), { weekStartsOn: 0 });
   const rangeEnd = endOfWeek(endOfMonth(cursor), { weekStartsOn: 0 });
@@ -145,6 +209,7 @@ export default function DpFolgas() {
               ))}
             </SelectContent>
           </Select>
+          <Button onClick={() => openNew()}><Plus className="h-4 w-4 mr-2" /> Nova solicitação</Button>
         </div>
       </div>
 
@@ -248,9 +313,19 @@ export default function DpFolgas() {
               <h3 className="font-semibold">
                 {format(selectedDay, "PPP", { locale: ptBR })}
               </h3>
-              <Button variant="ghost" size="sm" onClick={() => setSelectedDay(null)}>
-                Fechar
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    openNew({ data_alvo: format(selectedDay, "yyyy-MM-dd") })
+                  }
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Solicitar nesta data
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedDay(null)}>
+                  Fechar
+                </Button>
+              </div>
             </div>
             {selectedEvents.length === 0 ? (
               <div className="text-sm text-muted-foreground py-4 text-center">
@@ -278,6 +353,90 @@ export default function DpFolgas() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nova solicitação de ausência</DialogTitle>
+            <DialogDescription>
+              Selecione o colaborador, o tipo e o intervalo de datas. A solicitação ficará pendente até aprovação.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 py-2">
+            <div className="grid gap-1.5">
+              <Label>Colaborador *</Label>
+              <Select
+                value={form.colaborador_id}
+                onValueChange={(v) => setForm({ ...form, colaborador_id: v })}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectContent>
+                  {(colabs.data ?? []).filter((c) => c.ativo).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                  ))}
+                  {(colabs.data ?? []).filter((c) => c.ativo).length === 0 && (
+                    <div className="px-3 py-2 text-xs text-muted-foreground">
+                      Nenhum colaborador ativo. Cadastre em Colaboradores.
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Tipo *</Label>
+              <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as Tipo })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(TIPO_LABEL) as Tipo[]).map((t) => (
+                    <SelectItem key={t} value={t}>{TIPO_LABEL[t]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label>Data inicial *</Label>
+                <Input
+                  type="date"
+                  value={form.data_alvo}
+                  onChange={(e) => setForm({ ...form, data_alvo: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Data final</Label>
+                <Input
+                  type="date"
+                  min={form.data_alvo || undefined}
+                  value={form.data_fim}
+                  onChange={(e) => setForm({ ...form, data_fim: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Observações</Label>
+              <Textarea
+                rows={3}
+                maxLength={500}
+                placeholder="Motivo, contexto ou observação (opcional)"
+                value={form.motivo}
+                onChange={(e) => setForm({ ...form, motivo: e.target.value })}
+              />
+              <div className="text-[10px] text-muted-foreground text-right">
+                {form.motivo.length}/500
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDialogOpen(false)} disabled={create.isPending}>
+              Cancelar
+            </Button>
+            <Button onClick={() => create.mutate()} disabled={create.isPending}>
+              {create.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Enviar solicitação
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
