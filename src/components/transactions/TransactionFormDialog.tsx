@@ -285,6 +285,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const [installmentTotal, setInstallmentTotal] = useState<number>(2);
   const [installmentMode, setInstallmentMode] = useState<"total" | "parcela">("parcela");
   const [installmentPeriod, setInstallmentPeriod] = useState<string>("mensal");
+  const [previewCount, setPreviewCount] = useState<number>(6);
 
 
   const [accountDialogOpen, setAccountDialogOpen] = useState(false);
