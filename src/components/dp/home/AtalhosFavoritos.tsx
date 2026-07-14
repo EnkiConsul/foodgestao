@@ -15,7 +15,7 @@ export function AtalhosFavoritos({ items }: { items: Atalho[] }) {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
         {items.map((it) => (
           <Link
-            key={it.to}
+            key={`${it.label}-${it.to}`}
             to={it.to}
             className="flex flex-col items-center justify-center gap-2 aspect-square rounded-2xl border-2 border-dashed border-[hsl(var(--dp-border))] hover:border-primary hover:bg-accent transition-colors p-4"
           >
