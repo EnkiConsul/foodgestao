@@ -59,10 +59,10 @@ export default function RelatoriosContabeis() {
   return (
     <div className="space-y-4">
       <Helmet>
-        <title>Relatórios Contábeis | 360°FOOD</title>
+        <title>DRE Gerencial | 360°FOOD</title>
         <meta
           name="description"
-          content="DRE, balancete, balanço e razão gerados dinamicamente a partir do plano de contas."
+          content="DRE Gerencial gerada dinamicamente a partir do plano de contas."
         />
       </Helmet>
 
