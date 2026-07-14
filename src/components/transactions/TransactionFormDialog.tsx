@@ -1215,6 +1215,31 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                       </Select>
                     </div>
                   )}
+                  {(recurrenceType === "mensal" || recurrenceType === "quinzenal") && (
+                    <div className="space-y-2">
+                      <Label>Dia do mês do vencimento</Label>
+                      <Select
+                        value={date ? String(parseLocalDate(date).getDate()) : "1"}
+                        onValueChange={(v) => {
+                          const d = Number(v);
+                          setDate(shiftToMonthDay(date, d));
+                          if (dueDate) setDueDate(shiftToMonthDay(dueDate, d));
+                        }}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent className="max-h-64">
+                          {MONTH_DAYS.map((m) => (
+                            <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[11px] text-muted-foreground">
+                        {recurrenceType === "quinzenal"
+                          ? "A 1ª ocorrência cai neste dia; a 2ª cai 15 dias depois. Dias 29–31 são ajustados para o último dia do mês."
+                          : "Todas as ocorrências caem neste dia. Dias 29–31 são ajustados para o último dia do mês."}
+                      </p>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label>Data final da recorrência (opcional)</Label>
                     <div className="relative">
