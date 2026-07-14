@@ -209,6 +209,7 @@ export default function DpFolgas() {
               ))}
             </SelectContent>
           </Select>
+          <Button onClick={() => openNew()}><Plus className="h-4 w-4 mr-2" /> Nova solicitação</Button>
         </div>
       </div>
 
