@@ -18,6 +18,7 @@ import DpHome from "./pages/dp/DpHome";
 import DpColaboradores from "./pages/dp/DpColaboradores";
 import DpSolicitacoes from "./pages/dp/DpSolicitacoes";
 import DpDocumentos from "./pages/dp/DpDocumentos";
+import DpDocumentosHub from "./pages/dp/DpDocumentosHub";
 import DpFolgas from "./pages/dp/DpFolgas";
 import DpCadastrosHub from "./pages/dp/DpCadastrosHub";
 import DpUnidades from "./pages/dp/DpUnidades";
