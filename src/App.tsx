@@ -29,6 +29,12 @@ import DpMensagens from "./pages/dp/DpMensagens";
 import DpDisciplinar from "./pages/dp/DpDisciplinar";
 import DpBloqueios from "./pages/dp/DpBloqueios";
 import DpTrocas from "./pages/dp/DpTrocas";
+import { ColaboradorShell } from "./components/dp/ColaboradorShell";
+import DpMeuHome from "./pages/dp/portal/DpMeuHome";
+import DpMeuPerfil from "./pages/dp/portal/DpMeuPerfil";
+import DpMeuDocumentos from "./pages/dp/portal/DpMeuDocumentos";
+import DpMeuSolicitacoes from "./pages/dp/portal/DpMeuSolicitacoes";
+import DpMeuTrocas from "./pages/dp/portal/DpMeuTrocas";
 import AdminModulos from "./pages/admin/Modulos";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
@@ -137,8 +143,34 @@ function safeRedirect(value: string | null): string {
   return value;
 }
 
+function useIsDpColaborador() {
+  const { user } = useAuth();
+  const [is, setIs] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!user) { setIs(false); return; }
+    supabase.rpc("is_dp_colaborador", { _user_id: user.id }).then(({ data }) => setIs(!!data));
+  }, [user?.id]);
+  return is;
+}
+
 function RootGate() {
   const { user, loading } = useAuth();
+  const isColab = useIsDpColaborador();
+  if (loading || (user && isColab === null)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+  if (user && isColab) return <Navigate to="/dp/meu" replace />;
+  if (user) return <Navigate to="/hub" replace />;
+  return <Landing />;
+}
+
+function PortalProtected({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -146,8 +178,11 @@ function RootGate() {
       </div>
     );
   }
-  if (user) return <Navigate to="/hub" replace />;
-  return <Landing />;
+  if (!user) {
+    const redirect = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/auth?redirect=${redirect}`} replace />;
+  }
+  return <>{children}</>;
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -263,6 +298,13 @@ const AppRoutes = () => (
   <Routes>
     <Route path="/" element={<RootGate />} />
     <Route path="/auth" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
+    <Route path="/dp/meu" element={<PortalProtected><ColaboradorShell /></PortalProtected>}>
+      <Route index element={<DpMeuHome />} />
+      <Route path="perfil" element={<DpMeuPerfil />} />
+      <Route path="documentos" element={<DpMeuDocumentos />} />
+      <Route path="solicitacoes" element={<DpMeuSolicitacoes />} />
+      <Route path="trocas" element={<DpMeuTrocas />} />
+    </Route>
     <Route
       path="/onboarding"
       element={

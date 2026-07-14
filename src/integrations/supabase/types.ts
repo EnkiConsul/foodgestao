@@ -3476,6 +3476,7 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      dp_colaborador_of: { Args: { _user_id: string }; Returns: string }
       dre_apply_default_mapping: {
         Args: { _company_id: string }
         Returns: number
@@ -3629,6 +3630,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      is_dp_colaborador: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       list_active_bank_connections: {
         Args: never
@@ -3849,7 +3851,7 @@ export type Database = {
         | "dinheiro"
         | "outro"
       app_module: "financeiro" | "dp" | "crm" | "rh" | "pedidos"
-      app_role: "super_admin" | "admin" | "user"
+      app_role: "super_admin" | "admin" | "user" | "dp_colaborador"
       bill_status: "em_dia" | "vence_em_breve" | "atrasado" | "pago" | "parcial"
       billing_period: "monthly" | "yearly"
       budget_period: "mensal" | "anual"
@@ -4059,7 +4061,7 @@ export const Constants = {
         "outro",
       ],
       app_module: ["financeiro", "dp", "crm", "rh", "pedidos"],
-      app_role: ["super_admin", "admin", "user"],
+      app_role: ["super_admin", "admin", "user", "dp_colaborador"],
       bill_status: ["em_dia", "vence_em_breve", "atrasado", "pago", "parcial"],
       billing_period: ["monthly", "yearly"],
       budget_period: ["mensal", "anual"],
