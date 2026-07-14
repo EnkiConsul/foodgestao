@@ -3,7 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
 
-export type DpColaborador = Database["public"]["Tables"]["dp_colaboradores"]["Row"];
+export type DpColaborador = Database["public"]["Tables"]["dp_colaboradores"]["Row"] & {
+  cargo_nome?: string | null;
+  unidade_nome?: string | null;
+};
 export type DpColaboradorInsert = Database["public"]["Tables"]["dp_colaboradores"]["Insert"];
 
 export function useDpColaboradores() {
@@ -14,11 +17,15 @@ export function useDpColaboradores() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_colaboradores")
-        .select("*")
+        .select("*, dp_cargos(nome), dp_unidades(nome)")
         .eq("company_id", selectedCompanyId!)
         .order("nome");
       if (error) throw error;
-      return (data ?? []) as DpColaborador[];
+      return (data ?? []).map((r: any) => ({
+        ...r,
+        cargo_nome: r.dp_cargos?.nome ?? r.cargo ?? null,
+        unidade_nome: r.dp_unidades?.nome ?? null,
+      })) as DpColaborador[];
     },
   });
 }

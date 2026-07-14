@@ -77,7 +77,7 @@ export default function DpColaboradores() {
                       {c.cpf && <div className="text-xs text-muted-foreground">{c.cpf}</div>}
                     </TableCell>
                     <TableCell>{c.matricula ?? "—"}</TableCell>
-                    <TableCell>{c.cargo ?? "—"}</TableCell>
+                    <TableCell>{c.cargo_nome ?? c.cargo ?? "—"}</TableCell>
                     <TableCell className="uppercase text-xs">{c.regime}</TableCell>
                     <TableCell>{c.data_admissao ?? "—"}</TableCell>
                     <TableCell>
