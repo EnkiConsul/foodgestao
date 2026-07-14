@@ -661,7 +661,7 @@ export default function Categorias() {
                                           {(cat as any).template_code}
                                         </Badge>
                                       </TooltipTrigger>
-                                      <TooltipContent side="top"><p>Categoria do plano padrão 360°FOOD (editável)</p></TooltipContent>
+                                      <TooltipContent side="top"><p>ID Interno {(cat as any).template_code?.startsWith("USR-") ? "(gerado)" : "(plano padrão 360°FOOD)"} — imutável, preserva o histórico dos lançamentos.</p></TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
                                 )}
