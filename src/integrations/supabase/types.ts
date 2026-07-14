@@ -1613,6 +1613,105 @@ export type Database = {
         }
         Relationships: []
       }
+      dp_avisos: {
+        Row: {
+          autor_id: string | null
+          cargo_id: string | null
+          company_id: string
+          conteudo: string
+          created_at: string
+          escopo: string
+          expira_em: string | null
+          fixado: boolean
+          id: string
+          prioridade: string
+          publicado_em: string
+          titulo: string
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          autor_id?: string | null
+          cargo_id?: string | null
+          company_id: string
+          conteudo: string
+          created_at?: string
+          escopo?: string
+          expira_em?: string | null
+          fixado?: boolean
+          id?: string
+          prioridade?: string
+          publicado_em?: string
+          titulo: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          autor_id?: string | null
+          cargo_id?: string | null
+          company_id?: string
+          conteudo?: string
+          created_at?: string
+          escopo?: string
+          expira_em?: string | null
+          fixado?: boolean
+          id?: string
+          prioridade?: string
+          publicado_em?: string
+          titulo?: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_avisos_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_avisos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_avisos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_avisos_leituras: {
+        Row: {
+          aviso_id: string
+          lido_em: string
+          user_id: string
+        }
+        Insert: {
+          aviso_id: string
+          lido_em?: string
+          user_id: string
+        }
+        Update: {
+          aviso_id?: string
+          lido_em?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_avisos_leituras_aviso_id_fkey"
+            columns: ["aviso_id"]
+            isOneToOne: false
+            referencedRelation: "dp_avisos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_cargos: {
         Row: {
           ativo: boolean
@@ -1817,6 +1916,60 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_mensagens: {
+        Row: {
+          assunto: string
+          company_id: string
+          corpo: string
+          created_at: string
+          destinatario_colaborador_id: string | null
+          destinatario_user_id: string | null
+          id: string
+          lida_em: string | null
+          remetente_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          assunto: string
+          company_id: string
+          corpo: string
+          created_at?: string
+          destinatario_colaborador_id?: string | null
+          destinatario_user_id?: string | null
+          id?: string
+          lida_em?: string | null
+          remetente_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assunto?: string
+          company_id?: string
+          corpo?: string
+          created_at?: string
+          destinatario_colaborador_id?: string | null
+          destinatario_user_id?: string | null
+          id?: string
+          lida_em?: string | null
+          remetente_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_mensagens_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_mensagens_destinatario_colaborador_id_fkey"
+            columns: ["destinatario_colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
             referencedColumns: ["id"]
           },
         ]
