@@ -1298,11 +1298,24 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                     </div>
                   </div>
                   {(() => {
-                    const preview = buildOccurrencePreview(date, dueDate, recurrenceType, 6, recurrenceEndDate || undefined);
+                    const preview = buildOccurrencePreview(date, dueDate, recurrenceType, previewCount, recurrenceEndDate || undefined);
                     if (preview.length === 0) return null;
                     return (
                       <div className="rounded-md border bg-muted/30 p-3 space-y-1.5">
-                        <p className="text-xs font-medium">Próximas ocorrências (preview)</p>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-medium">Próximas ocorrências (preview)</p>
+                          <div className="flex items-center gap-1.5">
+                            <Label className="text-[10px] text-muted-foreground">Mostrar</Label>
+                            <Select value={String(previewCount)} onValueChange={(v) => setPreviewCount(Number(v))}>
+                              <SelectTrigger className="h-6 w-16 text-[11px]"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {[3, 6, 12, 24].map((n) => (
+                                  <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
                         <ul className="text-[11px] text-muted-foreground space-y-0.5">
                           {preview.map((p, idx) => (
                             <li key={idx} className="flex justify-between gap-3">
