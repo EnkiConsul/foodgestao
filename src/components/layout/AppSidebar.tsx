@@ -114,8 +114,27 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink
+                    to={hubItem.url}
+                    className="flex items-center gap-3 px-5 py-2.5 text-sm text-primary hover:bg-sidebar-accent rounded-lg mx-2 transition-all duration-200 hover:translate-x-1 font-medium"
+                    activeClassName="bg-sidebar-accent translate-x-1"
+                  >
+                    <hubItem.icon className="h-4 w-4 shrink-0" />
+                    <span>{hubItem.title}</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/50 text-xs uppercase tracking-wider px-5">
-            Principal
+            Financeiro 360°
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
