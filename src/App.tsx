@@ -23,6 +23,8 @@ import DpCadastrosHub from "./pages/dp/DpCadastrosHub";
 import DpUnidades from "./pages/dp/DpUnidades";
 import DpCargos from "./pages/dp/DpCargos";
 import DpSindicatos from "./pages/dp/DpSindicatos";
+import DpAvisos from "./pages/dp/DpAvisos";
+import DpMensagens from "./pages/dp/DpMensagens";
 import AdminModulos from "./pages/admin/Modulos";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
