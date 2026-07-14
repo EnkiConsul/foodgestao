@@ -27,7 +27,7 @@ const DEFAULTS: FiltersState = (() => {
 })();
 
 export default function RelatoriosContabeis() {
-  const { contextType, selectedCompanyId } = useCompanyContext();
+  const { contextType, selectedCompanyId, companies } = useCompanyContext();
   const [sp, setSp] = useSearchParams();
 
   const filters: FiltersState = useMemo(() => {
