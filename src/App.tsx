@@ -31,6 +31,9 @@ import DpMensagens from "./pages/dp/DpMensagens";
 import DpDisciplinar from "./pages/dp/DpDisciplinar";
 import DpBloqueios from "./pages/dp/DpBloqueios";
 import DpTrocas from "./pages/dp/DpTrocas";
+import DpFolhaHub from "./pages/dp/DpFolhaHub";
+import DpFolhaPeriodo from "./pages/dp/DpFolhaPeriodo";
+import DpFolhaAprovacoes from "./pages/dp/DpFolhaAprovacoes";
 import { ColaboradorShell } from "./components/dp/ColaboradorShell";
 import DpMeuHome from "./pages/dp/portal/DpMeuHome";
 import DpMeuPerfil from "./pages/dp/portal/DpMeuPerfil";
@@ -361,6 +364,9 @@ const AppRoutes = () => (
         <Route path="cadastros/cargos" element={<DpCargos />} />
         <Route path="cadastros/sindicatos" element={<DpSindicatos />} />
         <Route path="sindicatos/negociacoes" element={<DpSindicatoNegociacoes />} />
+        <Route path="folha" element={<DpFolhaHub />} />
+        <Route path="folha/aprovacoes" element={<DpFolhaAprovacoes />} />
+        <Route path="folha/periodos/:id" element={<DpFolhaPeriodo />} />
       </Route>
       <Route path="/crm" element={<ModuleGuard module="crm"><ModulePlaceholder module="crm" /></ModuleGuard>} />
       <Route path="/rh" element={<ModuleGuard module="rh"><ModulePlaceholder module="rh" /></ModuleGuard>} />
