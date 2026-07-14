@@ -2034,6 +2034,66 @@ export type Database = {
           },
         ]
       }
+      dp_notificacoes: {
+        Row: {
+          colaborador_id: string | null
+          company_id: string
+          created_at: string
+          descricao: string | null
+          id: string
+          lida_em: string | null
+          para_admins: boolean
+          ref_id: string
+          ref_table: string
+          tipo: Database["public"]["Enums"]["dp_notificacao_tipo"]
+          titulo: string
+          user_id: string | null
+        }
+        Insert: {
+          colaborador_id?: string | null
+          company_id: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          lida_em?: string | null
+          para_admins?: boolean
+          ref_id: string
+          ref_table: string
+          tipo: Database["public"]["Enums"]["dp_notificacao_tipo"]
+          titulo: string
+          user_id?: string | null
+        }
+        Update: {
+          colaborador_id?: string | null
+          company_id?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          lida_em?: string | null
+          para_admins?: boolean
+          ref_id?: string
+          ref_table?: string
+          tipo?: Database["public"]["Enums"]["dp_notificacao_tipo"]
+          titulo?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_notificacoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_notificacoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_registros_disciplinares: {
         Row: {
           aplicado_por: string | null
@@ -3939,6 +3999,13 @@ export type Database = {
         | "outros"
         | "sindicato"
         | "ferias"
+      dp_notificacao_tipo:
+        | "solicitacao_nova"
+        | "solicitacao_respondida"
+        | "troca_nova"
+        | "troca_resposta_colega"
+        | "troca_resposta_gestor"
+        | "disciplinar_novo"
       dp_regime_trabalho: "clt" | "pj" | "estagio" | "temporario" | "mei"
       dp_solicitacao_status: "pendente" | "aprovada" | "recusada" | "cancelada"
       dp_solicitacao_tipo:
@@ -4150,6 +4217,14 @@ export const Constants = {
         "outros",
         "sindicato",
         "ferias",
+      ],
+      dp_notificacao_tipo: [
+        "solicitacao_nova",
+        "solicitacao_respondida",
+        "troca_nova",
+        "troca_resposta_colega",
+        "troca_resposta_gestor",
+        "disciplinar_novo",
       ],
       dp_regime_trabalho: ["clt", "pj", "estagio", "temporario", "mei"],
       dp_solicitacao_status: ["pendente", "aprovada", "recusada", "cancelada"],
