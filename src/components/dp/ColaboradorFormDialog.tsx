@@ -76,6 +76,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         telefone: form.telefone.trim() || null,
         ativo: form.ativo,
         observacoes: form.observacoes.trim() || null,
+        unidade_id: form.unidade_id || null,
+        cargo_id: form.cargo_id || null,
+        sindicato_id: form.sindicato_id || null,
+        email_portal: form.email_portal.trim() || null,
       });
       toast.success(colaborador ? "Colaborador atualizado" : "Colaborador cadastrado");
       onOpenChange(false);
