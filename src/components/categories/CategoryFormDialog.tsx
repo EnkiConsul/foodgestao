@@ -145,7 +145,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
-    const catValidated = validateWithToast(categorySchema, { name, transaction_type: type, color }, toast.error);
+    const catValidated = validateWithToast(categorySchema, { name, transaction_type: type, color, category_subtype: subtype || undefined }, toast.error);
     if (!catValidated) return;
 
     setSaving(true);
@@ -354,11 +354,10 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
           </div>
 
           <div className="space-y-2">
-            <Label>Subtipo (para relatórios)</Label>
-            <Select value={subtype || "__none__"} onValueChange={(v) => setSubtype(v === "__none__" ? "" : v)}>
-              <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+            <Label>Subtipo <span className="text-destructive">*</span></Label>
+            <Select value={subtype} onValueChange={(v) => setSubtype(v)}>
+              <SelectTrigger><SelectValue placeholder="Selecione o subtipo" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__">Nenhum</SelectItem>
                 <SelectItem value="receita">Receita</SelectItem>
                 <SelectItem value="saida">Saída</SelectItem>
                 <SelectItem value="custo">Custo</SelectItem>
@@ -367,11 +366,11 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
                 <SelectItem value="investimento">Investimento</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">Usado para agrupar Custos, Despesas, Impostos e Investimentos nos relatórios contábeis.</p>
+            <p className="text-xs text-muted-foreground">Obrigatório. Usado para agrupar Receitas, Custos, Despesas, Impostos e Investimentos nos relatórios contábeis (DRE, Balanço).</p>
           </div>
 
           <div className="space-y-2">
-            <Label>Descrição para IA (opcional)</Label>
+            <Label>Descrição da Categoria para a IA (opcional)</Label>
             <Textarea
               value={aiDescription}
               onChange={(e) => setAiDescription(e.target.value)}
@@ -381,21 +380,27 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
             />
           </div>
 
-          {editCategory && ((editCategory as any).template_code || (editCategory as any).previous_index) && (
+          {editCategory && (
             <div className="grid grid-cols-2 gap-2 rounded-md border bg-muted/40 p-3 text-xs">
-              {(editCategory as any).template_code && (
-                <div>
-                  <p className="text-muted-foreground">ID Interno</p>
-                  <p className="font-mono">{(editCategory as any).template_code}</p>
-                </div>
-              )}
+              <div>
+                <p className="text-muted-foreground">ID Interno</p>
+                <p className="font-mono">{(editCategory as any).template_code ?? "—"}</p>
+              </div>
               {(editCategory as any).previous_index && (
                 <div>
                   <p className="text-muted-foreground">Índice anterior</p>
                   <p className="font-mono">{(editCategory as any).previous_index}</p>
                 </div>
               )}
-              <p className="col-span-2 text-[10px] text-muted-foreground">Campos de rastreabilidade do plano padrão — não editáveis.</p>
+              <p className="col-span-2 text-[10px] text-muted-foreground">
+                ID Interno é imutável — preserva o histórico dos lançamentos vinculados.
+              </p>
+            </div>
+          )}
+          {!editCategory && (
+            <div className="rounded-md border bg-muted/40 p-3 text-xs">
+              <p className="text-muted-foreground">ID Interno</p>
+              <p className="font-mono">Será gerado automaticamente (USR-####)</p>
             </div>
           )}
 

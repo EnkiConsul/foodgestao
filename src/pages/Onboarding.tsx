@@ -245,6 +245,7 @@ export default function Onboarding() {
           user_id: user.id,
           name,
           transaction_type: "despesa" as const,
+          category_subtype: "despesa" as const,
           is_system: true,
         }));
         await supabase.from("categories").insert(categories);
