@@ -1,71 +1,72 @@
-# Teste E2E do Módulo DP
+# Importar dados reais do Pakerê e re-rodar o E2E do DP
 
-## Objetivo
-Rodar um smoke test automatizado (Playwright headless, autenticado com sua sessão) em **todas as telas do menu DP** e do **Portal do Colaborador**, comparando o comportamento com o repositório de referência `pakere1996/portalcolaborador`. Entrega final: **relatório de bugs** com status por tela + screenshots. Não corrijo bugs neste passo — cada correção vira uma tarefa separada depois que você aprovar.
+## Escopo em 3 fases
 
-## Escopo
+### Fase 1 — Sondar acesso (1 requisição, read-only)
 
-### Admin DP 360° (`/dp/*`)
-| Grupo | Tela | O que testo |
-|---|---|---|
-| Início | `/dp` | Cards Pendências / Aniversariantes / Atalhos renderizam, sem erro no console |
-| Cadastro | Colaboradores, Cargos, Unidades, Sindicatos, Negociações Coletivas | Lista carrega, botão "Novo" abre dialog, criar 1 registro de teste, editar, excluir |
-| Folgas | Calendário Geral, Solicitações, Aprovações, Trocas, Datas Bloqueadas | Lista carrega, filtros funcionam, criar solicitação → aprovar → verificar reflexo no calendário |
-| Documentos | Contracheques, Adiantamentos, Ponto, Atestados, Disciplinares, ACT-CCT, Histórico | Categoria filtra corretamente, upload de 1 PDF dummy, download, exclusão |
-| Comunicação | Mensagens, Quadro de Avisos | Criar aviso, marcar como lido, enviar mensagem |
-| Folha (fora do menu) | `/dp/folha`, aprovações, período | Verificar se rota abre sem erro (não está no menu — reporto se deve entrar) |
+Antes de qualquer coisa, testo se a anon key `sb_publishable_...` consegue ler as tabelas `dp_*` de `pjogistzpszkcjucktrv.supabase.co`.
 
-### Portal do Colaborador (`/dp/meu/*`)
-Início, Perfil, Solicitações (criar folga), Trocas (propor troca), Documentos (visualizar próprio contracheque).
-
-## Estratégia de dados
-
-O repo do Pakerê **não tem seed.sql**, só migrations e edge functions. Então:
-
-1. **Antes do teste**, verifico se sua base já tem dados nas tabelas `dp_colaboradores`, `dp_cargos`, `dp_unidades`, etc.
-2. Se estiver vazia, **insiro um dataset mínimo** ligado à sua `company_id` atual via `psql`:
-   - 1 unidade "Matriz Teste"
-   - 2 cargos ("Atendente", "Gerente")
-   - 3 colaboradores fictícios (incluindo um vinculado ao seu `auth.uid()` para testar o Portal)
-   - 1 sindicato + 1 negociação
-   - 1 solicitação de folga pendente + 1 aprovada
-   - 1 aviso ativo
-3. Uso prefixo `TESTE_E2E_` nos nomes para facilitar limpeza depois.
-4. **Não mexo em produção** de outras companies — tudo escopado à sua `company_id`.
-
-## Execução (Playwright)
-
-- Sessão restaurada via `LOVABLE_BROWSER_SUPABASE_*` (já disponível).
-- Para cada tela: `goto` → aguarda `networkidle` → screenshot → executa ações críticas → captura erros de `console` e `pageerror`.
-- Ações que exigem clique: usam `getByRole` / `getByLabel` (nunca seletor CSS frágil).
-- Todos os artefatos em `/tmp/browser/dp-e2e/` (screenshots + log JSON).
-
-## Entrega
-
-Ao final, você recebe **em uma única resposta**:
-
-```text
-Tela                          Status   Observações
-────────────────────────────  ───────  ─────────────────────────────────
-/dp                           OK       —
-/dp/colaboradores             OK       Criar/editar/excluir OK
-/dp/cadastros/cargos          BUG      Botão "Novo" não abre dialog
-/dp/folgas                    OK       —
-/dp/solicitacoes              PARCIAL  Filtro "status" não aplica
-...
+```bash
+curl -s -H "apikey: <key>" \
+  "https://pjogistzpszkcjucktrv.supabase.co/rest/v1/dp_colaboradores?select=id&limit=1"
 ```
 
-+ pasta de screenshots + lista final numerada de bugs encontrados, cada um com: rota, passo que quebrou, mensagem de erro, screenshot.
+**3 desfechos possíveis:**
+- **200 com dados** → seguimos pra fase 2.
+- **200 vazio** (RLS bloqueando anon) → paro e reporto: precisaria de sessão autenticada de admin daquele Pakerê. Sem isso, não dá pra importar. Volto ao seed sintético.
+- **401/permission denied** → mesmo caso acima.
 
-## Fora de escopo (pergunte depois se quiser)
-- Corrigir os bugs encontrados
-- Escrever testes automatizados versionados no repo (`*.test.tsx`)
-- Testar fluxos financeiros do DP (integração folha → contas a pagar)
-- Testar RLS de outras companies
-- Limpar os dados `TESTE_E2E_` após rodar (posso fazer se pedir)
+Reporto o desfecho antes de continuar.
 
-## Detalhes técnicos
-- Ferramenta: Playwright + Python (já instalado no sandbox).
-- Autenticação: restauração de sessão Supabase existente, sem criar usuário novo.
-- Seed: `INSERT` direto via `psql` (acesso já configurado), escopado à `company_id` da sua sessão atual.
-- Referência: leitura das páginas em `pakere1996/portalcolaborador/src/pages/dp/**` para saber quais ações cada tela deve suportar; comparação apenas comportamental, não visual.
+### Fase 2 — Extração + normalização (se Fase 1 passar)
+
+Puxo cada tabela do DP do Pakerê via REST, na ordem de dependência:
+
+1. `dp_unidades`, `dp_cargos`, `dp_sindicatos`, `dp_sindicato_negociacoes`
+2. `dp_colaboradores`
+3. `dp_solicitacoes`, `dp_trocas`, `dp_bloqueios`, `dp_registros_disciplinares`
+4. `dp_avisos`, `dp_mensagens`, `dp_documentos` (só metadados, **sem baixar arquivos** do storage)
+5. `dp_folha_periodos`, `dp_folha_lancamentos`
+
+Para cada tabela:
+- Comparo colunas do Pakerê com nossa schema (`\d dp_*` já mapeada) e monto um **mapeamento explícito**.
+- Colunas que só existem lá → descarto e listo no relatório.
+- Colunas que só existem aqui → ficam com default/NULL.
+- Enums divergentes (ex.: `dp_troca_status`, `dp_disciplinar_tipo`) → mapeio pro valor equivalente nosso; se não houver, viro `NULL` ou default.
+
+**Remapeamento obrigatório:**
+- `company_id` → **sempre** ClicSorte `ec47f19b-27ef-4189-b903-43d133aaa541` da nossa base (não Raptor Systems).
+- `user_id` (em colaboradores) → só preencho no colaborador que corresponde ao seu login (`rcbruto77@gmail.com`); demais ficam `NULL`. Nunca herdo `user_id` de outro auth.
+- `criado_por`, `autor_id`, `aplicado_por`, `created_by` → seu `uid` ou `NULL`.
+- FKs internas (colaborador → cargo/unidade/sindicato, solicitação → colaborador) → mantenho **mapa antigo→novo** por UUID.
+- IDs finais → **novos UUIDs** (`gen_random_uuid`). Não reuso UUIDs do Pakerê pra evitar colisão futura.
+
+**Prefixo `PAKERE_` em todos os `nome`/`titulo`** pra ficar fácil identificar/limpar depois. Antes de inserir, **deleto o seed `TESTE_E2E_*`** que criei no teste anterior (já deixei um script preparado).
+
+### Fase 3 — Re-executar E2E (mesmo script anterior)
+
+Mesmo Playwright, 29 rotas, mesmos critérios (renderiza / dados aparecem / console errors / network 4xx-5xx). Diferença: agora os dados são reais do Pakerê. Espero:
+
+- Cobertura maior → mais chance de expor bugs de queries que só quebram com volume real (ex.: campos NULL não esperados, muitos registros num select sem paginação).
+- Novos bugs de UI que só aparecem com strings longas ou caracteres especiais.
+
+Entrego o mesmo formato de relatório (tabela + lista numerada de bugs + screenshots).
+
+## Riscos e limites que você precisa aceitar
+
+1. **LGPD** — nomes, CPFs, e-mails, telefones e possíveis dados sensíveis de colaboradores reais do Pakerê ficarão armazenados no **nosso** Supabase (Lovable Cloud da ClicSorte). Se quiser, eu **anonimizo CPF/telefone/e-mail** no import (substituo por `***.***.***-**`, `(00) 00000-0000`, `xxxx@example.com`) preservando só nome e estrutura organizacional — me diga se quer isso.
+2. **Arquivos (contracheques, ACT-CCT em PDF)** — **não vou baixar** do storage do Pakerê. Só metadados. As telas de Documentos vão mostrar as linhas mas o "baixar" retornará 404. Aceito reportar isso como esperado.
+3. **Edge functions do Pakerê** (`sorteio-folgas`, etc.) **não** existem no nosso backend — qualquer botão que chame edge function via RPC vai falhar. Reporto onde encontrar.
+4. **Diferenças de schema** — se uma tabela do Pakerê tiver colunas que nossa versão nem tem (ex.: `dp_sindicatos.sigla` que mencionei no bug anterior), a coluna é ignorada. Não faço `ALTER TABLE` sem sua aprovação explícita.
+5. **Volume** — se o Pakerê tiver, por exemplo, 5000 colaboradores, importo os primeiros N (proponho N=200) pra teste caber em tempo razoável. Você me diz o limite.
+
+## Reversibilidade
+
+Tudo importado leva prefixo `PAKERE_` no campo `nome`/`titulo`. Um único `DELETE FROM dp_* WHERE nome LIKE 'PAKERE_%'` (com CASCADE via FKs) limpa 100% se você quiser voltar atrás.
+
+## Fora de escopo
+- Baixar arquivos do storage do Pakerê
+- Copiar edge functions do Pakerê pra cá
+- Copiar `user_roles` do Pakerê (nossos usuários são outros)
+- Manter os dados importados após o teste (a menos que você peça)
+- Alterar schema da nossa base pra igualar 1:1 ao Pakerê
