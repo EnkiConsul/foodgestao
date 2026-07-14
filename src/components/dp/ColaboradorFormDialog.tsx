@@ -29,10 +29,15 @@ interface Props {
 
 export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props) {
   const upsert = useUpsertDpColaborador();
+  const unidades = useDpUnidades();
+  const cargos = useDpCargos();
+  const sindicatos = useDpSindicatos();
   const [form, setForm] = useState({
     nome: "", cpf: "", matricula: "", cargo: "",
     regime: "clt" as Regime, data_admissao: "", email: "", telefone: "",
     ativo: true, observacoes: "",
+    unidade_id: "" as string, cargo_id: "" as string, sindicato_id: "" as string,
+    email_portal: "",
   });
 
   useEffect(() => {
@@ -48,6 +53,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         telefone: colaborador?.telefone ?? "",
         ativo: colaborador?.ativo ?? true,
         observacoes: colaborador?.observacoes ?? "",
+        unidade_id: colaborador?.unidade_id ?? "",
+        cargo_id: colaborador?.cargo_id ?? "",
+        sindicato_id: colaborador?.sindicato_id ?? "",
+        email_portal: colaborador?.email_portal ?? "",
       });
     }
   }, [open, colaborador]);
