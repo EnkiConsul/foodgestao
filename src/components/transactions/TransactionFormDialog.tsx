@@ -1116,6 +1116,24 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                   </Select>
                 </div>
               )}
+              {/* Month-day helper — visible when editing a monthly/biweekly recurring/installment child */}
+              {isEditing && dueDate && (transaction?.parent_transaction_id || (transaction?.installment_total ?? 0) > 0) && (
+                <div className="pt-1">
+                  <Label className="text-xs text-muted-foreground">Dia do mês do vencimento</Label>
+                  <Select
+                    value={String(currentMonthDay(dueDate))}
+                    onValueChange={(v) => setDueDate(shiftToMonthDay(dueDate, Number(v)))}
+                  >
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent className="max-h-64">
+                      {MONTH_DAYS.map((m) => (
+                        <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground mt-1">Dias 29–31 são ajustados para o último dia do mês quando necessário.</p>
+                </div>
+              )}
               <p className="text-[11px] text-muted-foreground">
                 Se preenchido, o lançamento será tratado como compromisso pendente.
               </p>
