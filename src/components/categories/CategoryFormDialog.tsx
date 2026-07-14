@@ -48,6 +48,51 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
   const [aiDescription, setAiDescription] = useState<string>("");
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
+  const [generatingAi, setGeneratingAi] = useState(false);
+
+  const parentNameById = (id: string | null) => {
+    if (!id) return null;
+    return allCategories.find((c) => c.id === id)?.name ?? null;
+  };
+
+  const handleGenerateAiDescription = async () => {
+    if (!name.trim()) {
+      toast.error("Informe o nome da categoria antes de gerar a descrição.");
+      return;
+    }
+    if (!subtype) {
+      toast.error("Selecione o subtipo antes de gerar a descrição.");
+      return;
+    }
+    setGeneratingAi(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-category-ai-description", {
+        body: {
+          name: name.trim(),
+          subtype,
+          transaction_type: type,
+          parent_name: parentNameById(parentId),
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const desc = (data?.description ?? "").toString().slice(0, 500);
+      if (!desc) throw new Error("Resposta vazia da IA");
+      setAiDescription(desc);
+      toast.success("Descrição gerada pela IA!");
+    } catch (err: any) {
+      const msg = err?.message ?? "Falha ao gerar descrição";
+      if (/402|credit/i.test(msg)) {
+        toast.error("Créditos de IA esgotados", { description: "Adicione créditos para continuar usando a IA." });
+      } else if (/429|rate/i.test(msg)) {
+        toast.error("Muitas requisições", { description: "Aguarde alguns segundos e tente novamente." });
+      } else {
+        toast.error("Erro ao gerar descrição", { description: msg });
+      }
+    } finally {
+      setGeneratingAi(false);
+    }
+  };
 
   const { data: allCategories = [] } = useQuery({
     queryKey: ["categories-for-parent", user?.id, contextType],
