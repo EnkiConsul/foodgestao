@@ -3672,6 +3672,8 @@ export type Database = {
         | "ponto"
         | "disciplinar"
         | "outros"
+        | "sindicato"
+        | "ferias"
       dp_regime_trabalho: "clt" | "pj" | "estagio" | "temporario" | "mei"
       dp_solicitacao_status: "pendente" | "aprovada" | "recusada" | "cancelada"
       dp_solicitacao_tipo:
@@ -3867,6 +3869,8 @@ export const Constants = {
         "ponto",
         "disciplinar",
         "outros",
+        "sindicato",
+        "ferias",
       ],
       dp_regime_trabalho: ["clt", "pj", "estagio", "temporario", "mei"],
       dp_solicitacao_status: ["pendente", "aprovada", "recusada", "cancelada"],

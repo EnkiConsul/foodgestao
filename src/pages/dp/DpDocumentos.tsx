@@ -1,9 +1,10 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
+import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, Loader2, Download, Trash2, FileText } from "lucide-react";
+import { Upload, Loader2, Download, Trash2, FileText, ArrowLeft } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,19 +21,25 @@ import type { Database } from "@/integrations/supabase/types";
 type Tipo = Database["public"]["Enums"]["dp_documento_tipo"];
 type Row = Database["public"]["Tables"]["dp_documentos"]["Row"];
 
-const TIPOS: { value: Tipo; label: string }[] = [
+export const TIPOS: { value: Tipo; label: string }[] = [
   { value: "contracheque", label: "Contracheque" },
-  { value: "contrato", label: "Contrato" },
-  { value: "atestado", label: "Atestado" },
   { value: "adiantamento", label: "Adiantamento" },
+  { value: "contrato", label: "Contrato" },
   { value: "ponto", label: "Ponto" },
+  { value: "atestado", label: "Atestado" },
+  { value: "ferias", label: "Férias" },
   { value: "disciplinar", label: "Disciplinar" },
+  { value: "sindicato", label: "Sindicato" },
   { value: "outros", label: "Outros" },
 ];
 
 const BUCKET = "dp-documentos";
 
 export default function DpDocumentos() {
+  const { categoria } = useParams<{ categoria?: string }>();
+  const filterTipo = TIPOS.find((t) => t.value === categoria)?.value;
+  const currentLabel = TIPOS.find((t) => t.value === filterTipo)?.label;
+
   const { selectedCompanyId } = useCompanyContext();
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -40,53 +47,65 @@ export default function DpDocumentos() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({
-    colaborador_id: "", tipo: "outros" as Tipo, titulo: "", descricao: "", referencia_data: "",
+    colaborador_id: "", tipo: (filterTipo ?? "outros") as Tipo, titulo: "", descricao: "", referencia_data: "",
   });
   const [uploading, setUploading] = useState(false);
 
   const list = useQuery({
-    queryKey: ["dp_documentos", selectedCompanyId],
+    queryKey: ["dp_documentos", selectedCompanyId, filterTipo ?? "all"],
     enabled: !!selectedCompanyId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("dp_documentos")
         .select("*, dp_colaboradores(nome)")
         .eq("company_id", selectedCompanyId!)
         .order("created_at", { ascending: false });
+      if (filterTipo) q = q.eq("tipo", filterTipo);
+      const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as (Row & { dp_colaboradores: { nome: string } | null })[];
     },
   });
 
+  const openDialog = () => {
+    setForm({ colaborador_id: "", tipo: (filterTipo ?? "outros") as Tipo, titulo: "", descricao: "", referencia_data: "" });
+    setDialogOpen(true);
+  };
+
   const submit = async () => {
-    const file = fileRef.current?.files?.[0];
+    const files = fileRef.current?.files;
     if (!selectedCompanyId) return toast.error("Sem empresa selecionada");
-    if (!file) return toast.error("Selecione um arquivo");
-    if (!form.titulo.trim()) return toast.error("Título é obrigatório");
+    if (!files || files.length === 0) return toast.error("Selecione ao menos um arquivo");
+    if (files.length === 1 && !form.titulo.trim()) return toast.error("Título é obrigatório");
     setUploading(true);
     try {
-      const path = `${selectedCompanyId}/${form.colaborador_id || "geral"}/${Date.now()}-${file.name}`;
-      const up = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
-      if (up.error) throw up.error;
-      const { error } = await supabase.from("dp_documentos").insert({
-        company_id: selectedCompanyId,
-        colaborador_id: form.colaborador_id || null,
-        tipo: form.tipo,
-        titulo: form.titulo.trim(),
-        descricao: form.descricao.trim() || null,
-        file_path: path,
-        file_name: file.name,
-        file_size: file.size,
-        mime_type: file.type,
-        referencia_data: form.referencia_data || null,
-        uploaded_by: user?.id,
-      });
-      if (error) throw error;
-      toast.success("Documento enviado");
+      let ok = 0;
+      for (const file of Array.from(files)) {
+        const path = `${selectedCompanyId}/${form.colaborador_id || "geral"}/${Date.now()}-${file.name}`;
+        const up = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
+        if (up.error) throw up.error;
+        const titulo = files.length > 1 ? file.name.replace(/\.[^.]+$/, "") : form.titulo.trim();
+        const { error } = await supabase.from("dp_documentos").insert({
+          company_id: selectedCompanyId,
+          colaborador_id: form.colaborador_id || null,
+          tipo: form.tipo,
+          titulo,
+          descricao: form.descricao.trim() || null,
+          file_path: path,
+          file_name: file.name,
+          file_size: file.size,
+          mime_type: file.type,
+          referencia_data: form.referencia_data || null,
+          uploaded_by: user?.id,
+        });
+        if (error) throw error;
+        ok++;
+      }
+      toast.success(`${ok} documento(s) enviado(s)`);
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
       qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
+      qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
       setDialogOpen(false);
-      setForm({ colaborador_id: "", tipo: "outros", titulo: "", descricao: "", referencia_data: "" });
       if (fileRef.current) fileRef.current.value = "";
     } catch (e) {
       toast.error("Erro ao enviar", { description: e instanceof Error ? e.message : String(e) });
@@ -111,19 +130,29 @@ export default function DpDocumentos() {
       toast.success("Removido");
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
       qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
+      qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
     },
     onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
   });
 
+  const title = currentLabel ? `${currentLabel} — Documentos` : "Documentos";
+
   return (
     <div className="space-y-4">
-      <Helmet><title>Documentos — DP 360°</title></Helmet>
+      <Helmet><title>{title} — DP 360°</title></Helmet>
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold">Documentos</h2>
-          <p className="text-sm text-muted-foreground">Contracheques, contratos, atestados e demais documentos.</p>
+          {filterTipo && (
+            <Button asChild variant="ghost" size="sm" className="mb-1 -ml-2">
+              <Link to="/dp/documentos"><ArrowLeft className="h-4 w-4 mr-1" /> Categorias</Link>
+            </Button>
+          )}
+          <h2 className="text-xl font-semibold">{currentLabel ?? "Todos os documentos"}</h2>
+          <p className="text-sm text-muted-foreground">
+            {filterTipo ? `Documentos da categoria ${currentLabel}.` : "Contracheques, contratos, atestados e demais documentos."}
+          </p>
         </div>
-        <Button onClick={() => setDialogOpen(true)}><Upload className="h-4 w-4 mr-2" /> Enviar</Button>
+        <Button onClick={openDialog}><Upload className="h-4 w-4 mr-2" /> Enviar</Button>
       </div>
 
       <Card>
@@ -135,7 +164,7 @@ export default function DpDocumentos() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Título</TableHead>
-                  <TableHead>Tipo</TableHead>
+                  {!filterTipo && <TableHead>Tipo</TableHead>}
                   <TableHead>Colaborador</TableHead>
                   <TableHead>Referência</TableHead>
                   <TableHead>Arquivo</TableHead>
@@ -149,7 +178,7 @@ export default function DpDocumentos() {
                       {r.titulo}
                       {r.descricao && <div className="text-xs text-muted-foreground">{r.descricao}</div>}
                     </TableCell>
-                    <TableCell><Badge variant="outline" className="capitalize">{r.tipo}</Badge></TableCell>
+                    {!filterTipo && <TableCell><Badge variant="outline" className="capitalize">{r.tipo}</Badge></TableCell>}
                     <TableCell>{r.dp_colaboradores?.nome ?? "—"}</TableCell>
                     <TableCell>{r.referencia_data ?? "—"}</TableCell>
                     <TableCell>
@@ -167,7 +196,7 @@ export default function DpDocumentos() {
                   </TableRow>
                 ))}
                 {(list.data?.length ?? 0) === 0 && (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum documento.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={filterTipo ? 5 : 6} className="text-center text-muted-foreground py-8">Nenhum documento.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -180,13 +209,13 @@ export default function DpDocumentos() {
           <DialogHeader><DialogTitle>Novo documento</DialogTitle></DialogHeader>
           <div className="grid gap-3 py-2">
             <div className="grid gap-1.5">
-              <Label>Título *</Label>
+              <Label>Título {(fileRef.current?.files?.length ?? 0) > 1 ? "(ignorado em envio em lote)" : "*"}</Label>
               <Input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} placeholder="Ex.: Contracheque 07/2026" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
                 <Label>Tipo</Label>
-                <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as Tipo })}>
+                <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as Tipo })} disabled={!!filterTipo}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
                 </Select>
@@ -210,8 +239,8 @@ export default function DpDocumentos() {
               <Input value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} />
             </div>
             <div className="grid gap-1.5">
-              <Label>Arquivo *</Label>
-              <Input ref={fileRef} type="file" />
+              <Label>Arquivo(s) * <span className="text-xs text-muted-foreground">— selecione múltiplos para envio em lote</span></Label>
+              <Input ref={fileRef} type="file" multiple />
             </div>
           </div>
           <DialogFooter>
