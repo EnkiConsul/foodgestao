@@ -192,6 +192,31 @@ function currentWeekday(dateStr: string, fallback = 1): number {
   return isNaN(d.getTime()) ? fallback : d.getDay();
 }
 
+function lastDayOfMonth(year: number, monthIndex: number): number {
+  return new Date(year, monthIndex + 1, 0).getDate();
+}
+
+/** Shifts date to have the target day-of-month, clamping to last day of that month. */
+function shiftToMonthDay(dateStr: string, dayOfMonth: number): string {
+  if (!dateStr) return dateStr;
+  const d = parseLocalDate(dateStr);
+  const last = lastDayOfMonth(d.getFullYear(), d.getMonth());
+  const target = Math.max(1, Math.min(31, dayOfMonth));
+  d.setDate(Math.min(target, last));
+  return toLocalDateStr(d);
+}
+
+function currentMonthDay(dateStr: string, fallback = 1): number {
+  if (!dateStr) return fallback;
+  const d = parseLocalDate(dateStr);
+  return isNaN(d.getTime()) ? fallback : d.getDate();
+}
+
+const MONTH_DAYS: { value: string; label: string }[] = Array.from({ length: 31 }, (_, i) => ({
+  value: String(i + 1),
+  label: `Dia ${i + 1}`,
+}));
+
 const MAX_ATTACHMENTS = 5;
 
 export function TransactionFormDialog({ open, onOpenChange, onCreated, transaction, initialType, editScope = "single", duplicateSource }: Props) {
