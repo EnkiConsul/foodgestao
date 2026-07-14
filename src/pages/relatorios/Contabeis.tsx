@@ -10,8 +10,6 @@ import {
   type Preset,
 } from "@/components/relatorios/contabeis/ReportFilters";
 import { DreReport } from "@/components/relatorios/contabeis/DreReport";
-import { TrialBalance } from "@/components/relatorios/contabeis/TrialBalance";
-import { BalanceSheet } from "@/components/relatorios/contabeis/BalanceSheet";
 import { GeneralLedgerDrawer } from "@/components/relatorios/contabeis/GeneralLedgerDrawer";
 import { PendingClassificationPanel } from "@/components/relatorios/contabeis/PendingClassificationPanel";
 import { useContabeisReport, type ReportNode } from "@/hooks/useContabeisReport";
@@ -61,15 +59,15 @@ export default function RelatoriosContabeis() {
   return (
     <div className="space-y-4">
       <Helmet>
-        <title>Relatórios Contábeis | 360°FOOD</title>
+        <title>DRE Gerencial | 360°FOOD</title>
         <meta
           name="description"
-          content="DRE, balancete, balanço e razão gerados dinamicamente a partir do plano de contas."
+          content="DRE Gerencial gerada dinamicamente a partir do plano de contas."
         />
       </Helmet>
 
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold">Relatórios Contábeis</h1>
+        <h1 className="text-2xl font-bold">DRE Gerencial</h1>
         <p className="text-sm text-muted-foreground">
           Estrutura derivada 100% do plano de contas cadastrado. Alterações no cadastro refletem em
           tempo real.
@@ -90,8 +88,6 @@ export default function RelatoriosContabeis() {
         <Tabs defaultValue="dre" className="space-y-4">
           <TabsList className="flex flex-wrap gap-1">
             <TabsTrigger value="dre">DRE Gerencial</TabsTrigger>
-            <TabsTrigger value="balancete">Balancete</TabsTrigger>
-            <TabsTrigger value="balanco">Balanço Patrimonial</TabsTrigger>
             <TabsTrigger value="pendencias">Pendências</TabsTrigger>
           </TabsList>
 
@@ -115,12 +111,6 @@ export default function RelatoriosContabeis() {
             <>
               <TabsContent value="dre">
                 <DreReport nodes={nodes} onSelectAnalytic={setDrawerAccount} />
-              </TabsContent>
-              <TabsContent value="balancete">
-                <TrialBalance nodes={nodes} onSelectAnalytic={setDrawerAccount} />
-              </TabsContent>
-              <TabsContent value="balanco">
-                <BalanceSheet nodes={nodes} onSelectAnalytic={setDrawerAccount} />
               </TabsContent>
               <TabsContent value="pendencias">
                 <PendingClassificationPanel from={filters.from} to={filters.to} />
