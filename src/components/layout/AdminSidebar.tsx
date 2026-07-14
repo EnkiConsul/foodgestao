@@ -52,6 +52,7 @@ const billingItems = [
 const tenantItems = [
   { title: "Clientes", url: "/admin/clientes", icon: Users },
   { title: "Perfis de Acesso", url: "/admin/perfis-acesso", icon: Building2 },
+  { title: "Módulos", url: "/admin/modulos", icon: Sparkles },
   { title: "Bancos", url: "/admin/bancos", icon: Landmark },
   { title: "Resetar Dados", url: "/admin/resetar-dados", icon: Database },
 ];

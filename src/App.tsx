@@ -10,6 +10,10 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { useVisualViewport } from "@/hooks/useVisualViewport";
 import { usePageviewTracking } from "@/hooks/usePageviewTracking";
 import Auth from "./pages/Auth";
+import Hub from "./pages/Hub";
+import { ModuleGuard } from "@/components/modules/ModuleGuard";
+import { ModulePlaceholder } from "@/components/modules/ModulePlaceholder";
+import AdminModulos from "./pages/admin/Modulos";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import Lancamentos from "./pages/Lancamentos";
@@ -112,8 +116,8 @@ const queryClient = new QueryClient({
 });
 
 function safeRedirect(value: string | null): string {
-  if (!value) return "/dashboard";
-  if (!value.startsWith("/") || value.startsWith("//")) return "/dashboard";
+  if (!value) return "/hub";
+  if (!value.startsWith("/") || value.startsWith("//")) return "/hub";
   return value;
 }
 
@@ -126,7 +130,7 @@ function RootGate() {
       </div>
     );
   }
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to="/hub" replace />;
   return <Landing />;
 }
 
@@ -260,6 +264,7 @@ const AppRoutes = () => (
         </ProtectedRoute>
       }
     >
+      <Route path="/hub" element={<Hub />} />
       <Route path="/dashboard" element={<Dashboard />} />
       
       <Route path="/lancamentos" element={<Lancamentos />} />
@@ -276,6 +281,11 @@ const AppRoutes = () => (
       <Route path="/gestao-usuarios" element={<GestaoUsuarios />} />
       <Route path="/empresas" element={<Empresas />} />
       <Route path="/formas-pagamento" element={<FormasPagamento />} />
+      {/* Módulos em contratação avulsa */}
+      <Route path="/dp" element={<ModuleGuard module="dp"><ModulePlaceholder module="dp" /></ModuleGuard>} />
+      <Route path="/crm" element={<ModuleGuard module="crm"><ModulePlaceholder module="crm" /></ModuleGuard>} />
+      <Route path="/rh" element={<ModuleGuard module="rh"><ModulePlaceholder module="rh" /></ModuleGuard>} />
+      <Route path="/pedidos" element={<ModuleGuard module="pedidos"><ModulePlaceholder module="pedidos" /></ModuleGuard>} />
     </Route>
     <Route
       element={
@@ -302,6 +312,7 @@ const AppRoutes = () => (
       <Route path="/admin/documentos-legais" element={<AdminDocumentosLegais />} />
       <Route path="/admin/bancos" element={<AdminBancos />} />
       <Route path="/admin/seo-indexacao" element={<AdminSeoIndexacao />} />
+      <Route path="/admin/modulos" element={<AdminModulos />} />
     </Route>
     <Route path="/convite/:token" element={<AcceptInvite />} />
     <Route path="/reset-password" element={<ResetPassword />} />

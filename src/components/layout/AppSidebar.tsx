@@ -19,6 +19,7 @@ import {
   Receipt,
   MessageCircle,
   BookOpen,
+  LayoutGrid,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useState } from "react";
@@ -53,8 +54,10 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
+const hubItem = { title: "Hub de Módulos", url: "/hub", icon: LayoutGrid };
+
 const mainItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Lançamentos", url: "/lancamentos", icon: ArrowLeftRight },
   { title: "Fluxo de Caixa", url: "/fluxo-caixa", icon: TrendingUp },
   { title: "Orçamento", url: "/orcamento", icon: Target },
@@ -111,8 +114,27 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink
+                    to={hubItem.url}
+                    className="flex items-center gap-3 px-5 py-2.5 text-sm text-primary hover:bg-sidebar-accent rounded-lg mx-2 transition-all duration-200 hover:translate-x-1 font-medium"
+                    activeClassName="bg-sidebar-accent translate-x-1"
+                  >
+                    <hubItem.icon className="h-4 w-4 shrink-0" />
+                    <span>{hubItem.title}</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/50 text-xs uppercase tracking-wider px-5">
-            Principal
+            Financeiro 360°
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -121,7 +143,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      end={item.url === "/"}
+                      end
                       className="flex items-center gap-3 px-5 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground rounded-lg mx-2 transition-all duration-200 hover:translate-x-1"
                       activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium translate-x-1"
                     >

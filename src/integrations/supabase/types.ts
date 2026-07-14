@@ -1361,6 +1361,50 @@ export type Database = {
           },
         ]
       }
+      company_modules: {
+        Row: {
+          company_id: string
+          created_at: string
+          ends_at: string | null
+          id: string
+          module: Database["public"]["Enums"]["app_module"]
+          notes: string | null
+          starts_at: string | null
+          status: Database["public"]["Enums"]["module_status"]
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          module: Database["public"]["Enums"]["app_module"]
+          notes?: string | null
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["module_status"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          module?: Database["public"]["Enums"]["app_module"]
+          notes?: string | null
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["module_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_modules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_companies: {
         Row: {
           company_id: string
@@ -3084,6 +3128,7 @@ export type Database = {
         | "cartao_credito"
         | "dinheiro"
         | "outro"
+      app_module: "financeiro" | "dp" | "crm" | "rh" | "pedidos"
       app_role: "super_admin" | "admin" | "user"
       bill_status: "em_dia" | "vence_em_breve" | "atrasado" | "pago" | "parcial"
       billing_period: "monthly" | "yearly"
@@ -3101,6 +3146,12 @@ export type Database = {
         | "overdue"
         | "canceled"
         | "refunded"
+      module_status:
+        | "active"
+        | "trial"
+        | "suspended"
+        | "canceled"
+        | "not_contracted"
       parcel_direction: "entrada" | "saida"
       profile_type: "pf" | "mei" | "microempresa" | "hibrido"
       recurrence_type:
@@ -3256,6 +3307,7 @@ export const Constants = {
         "dinheiro",
         "outro",
       ],
+      app_module: ["financeiro", "dp", "crm", "rh", "pedidos"],
       app_role: ["super_admin", "admin", "user"],
       bill_status: ["em_dia", "vence_em_breve", "atrasado", "pago", "parcial"],
       billing_period: ["monthly", "yearly"],
@@ -3273,6 +3325,13 @@ export const Constants = {
         "overdue",
         "canceled",
         "refunded",
+      ],
+      module_status: [
+        "active",
+        "trial",
+        "suspended",
+        "canceled",
+        "not_contracted",
       ],
       parcel_direction: ["entrada", "saida"],
       profile_type: ["pf", "mei", "microempresa", "hibrido"],
