@@ -3849,7 +3849,7 @@ export type Database = {
         | "dinheiro"
         | "outro"
       app_module: "financeiro" | "dp" | "crm" | "rh" | "pedidos"
-      app_role: "super_admin" | "admin" | "user"
+      app_role: "super_admin" | "admin" | "user" | "dp_colaborador"
       bill_status: "em_dia" | "vence_em_breve" | "atrasado" | "pago" | "parcial"
       billing_period: "monthly" | "yearly"
       budget_period: "mensal" | "anual"
@@ -4059,7 +4059,7 @@ export const Constants = {
         "outro",
       ],
       app_module: ["financeiro", "dp", "crm", "rh", "pedidos"],
-      app_role: ["super_admin", "admin", "user"],
+      app_role: ["super_admin", "admin", "user", "dp_colaborador"],
       bill_status: ["em_dia", "vence_em_breve", "atrasado", "pago", "parcial"],
       billing_period: ["monthly", "yearly"],
       budget_period: ["mensal", "anual"],
