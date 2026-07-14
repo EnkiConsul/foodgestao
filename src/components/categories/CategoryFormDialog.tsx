@@ -44,6 +44,8 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
   const [chartAccountId, setChartAccountId] = useState<string | null>(null);
   const [chartAccountPopoverOpen, setChartAccountPopoverOpen] = useState(false);
   const [visiblePf, setVisiblePf] = useState(true);
+  const [subtype, setSubtype] = useState<string>("");
+  const [aiDescription, setAiDescription] = useState<string>("");
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
 
