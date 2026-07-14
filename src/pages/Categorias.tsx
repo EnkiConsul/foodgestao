@@ -88,6 +88,24 @@ export default function Categorias() {
   const [batchVisiblePf, setBatchVisiblePf] = useState(true);
   const [batchSelectedCompanies, setBatchSelectedCompanies] = useState<Set<string>>(new Set());
   const [batchVisibilitySaving, setBatchVisibilitySaving] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+
+  const handleSeedDefaults = async () => {
+    if (!selectedCompanyId) return;
+    setSeeding(true);
+    const { data, error } = await supabase.rpc("seed_default_categories", { _company_id: selectedCompanyId });
+    setSeeding(false);
+    if (error) {
+      toast.error("Erro ao importar plano padrão", { description: error.message });
+      return;
+    }
+    const created = (data as any)?.created ?? 0;
+    const skipped = (data as any)?.skipped ?? 0;
+    toast.success("Plano padrão 360°FOOD importado", {
+      description: `${created} categoria(s) criada(s), ${skipped} já existia(m).`,
+    });
+    refetchAll();
+  };
 
   const handleBatchColor = async (color: string) => {
     if (selected.size === 0) return;
