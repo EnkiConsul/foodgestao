@@ -7,6 +7,7 @@ const items = [
   { title: "Início", url: "/dp", icon: Home, end: true },
   { title: "Colaboradores", url: "/dp/colaboradores", icon: Users },
   { title: "Folgas", url: "/dp/folgas", icon: CalendarDays },
+  { title: "Trocas", url: "/dp/trocas", icon: Repeat },
   { title: "Solicitações", url: "/dp/solicitacoes", icon: ClipboardList },
   { title: "Avisos", url: "/dp/avisos", icon: Megaphone },
   { title: "Mensagens", url: "/dp/mensagens", icon: Mail },
