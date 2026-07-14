@@ -1,55 +1,46 @@
-
 ## Objetivo
 
-Remover a aba/tipo `parcelado` como categoria própria e transformar **Parcelado** em um **modificador** dentro de `receita` e `despesa`, exatamente no mesmo padrão do `Recorrente` (toggle no formulário, geração de N registros filhos amarrados por `parent_transaction_id`).
+No `TransactionFormDialog`, quando o usuário marcar **Recorrente** ou **Parcelado** e escolher periodicidade **Mensal** ou **Quinzenal**, exibir um seletor de **Dia do mês (1–31)**. O `dueDate` é recalculado ao trocar o dia, e o backend valida/alinha automaticamente — igual ao padrão já existente do semanal.
 
-## Como fica no formulário (`TransactionFormDialog`)
+## Regras de negócio
 
-Ao escolher **Receita** ou **Despesa**, o usuário verá dois seletores independentes de repetição (mutuamente exclusivos):
+- **Mensal**: 1 ocorrência por mês no dia escolhido.
+- **Quinzenal**: escolhe **1 dia** do mês; a 2ª ocorrência cai **15 dias depois** (rolando para o mês seguinte quando necessário).
+- **Meses curtos** (dia 29/30/31 inexistente): usa o **último dia do mês** (clamp). Ex.: dia 31 em fevereiro → 28/29.
+- Regra vale tanto na **criação** (gerando as parcelas/ocorrências) quanto na **edição** (recalcular `dueDate` da linha atual).
 
-- **Recorrente** (já existe): repetição contínua até 12 meses.
-- **Parcelado** (novo neste formato): número fixo de parcelas (2–360).
+## Frontend — `src/components/transactions/TransactionFormDialog.tsx`
 
-Quando "Parcelado" estiver ativo:
-- Campos: `nº de parcelas`, `periodicidade` (mensal/quinzenal/semanal/anual), `modo do valor` (valor total dividido em N **ou** valor por parcela × N).
-- Preview das parcelas (data de vencimento, valor) igual ao padrão que já foi montado.
-- Categoria segue restrita pelo `type` (receita ou despesa) — sem necessidade de `parcel_direction`.
+1. Novo helper `shiftToMonthDay(date, dayOfMonth)`:
+   - Recebe uma data e o dia alvo (1–31).
+   - Retorna nova data no mesmo mês/ano com dia = `min(dayOfMonth, últimoDiaDoMês)`.
+2. Novo estado `monthDay: number` (default = dia da `date` base).
+3. Renderizar um `<Select>` "Dia do vencimento" (1–31) sempre que:
+   - `(isRecurring && recurrenceType ∈ {mensal, quinzenal})` **ou**
+   - `(isInstallment && installmentPeriod ∈ {mensal, quinzenal})`.
+   - Mesma UX/posição do seletor de dia da semana já existente.
+   - Também exibir no modo edição quando a transação for parcela/filha de série mensal ou quinzenal.
+4. `onChange` do seletor: `setDueDate(shiftToMonthDay(dueDate, novoDia))`.
+5. `useEffect` (espelhando o do semanal): quando `date`, `isRecurring/recurrenceType`, `isInstallment/installmentPeriod` mudarem e o modo for mensal/quinzenal, realinhar `dueDate` para o `monthDay` atual (com clamp de fim de mês).
+6. Geração das parcelas/ocorrências: ao calcular cada `due_date` futuro, aplicar `shiftToMonthDay` no mês correspondente. Quinzenal: base + 15 dias corridos (não força dia fixo na 2ª ocorrência).
 
-Aba "Parcelado" no topo do dialog é removida.
+## Backend — nova migração SQL
 
-## Banco de dados
+Estender o alinhamento hoje feito só para semanal:
 
-O tipo `parcelado` no enum e a coluna `parcel_direction` deixam de fazer sentido:
+1. Nova função `enforce_monthly_due_date_alignment()`:
+   - Detecta se a transação é mensal/quinzenal (por `recurrence_type` própria, ou via parent quando `parent_transaction_id` presente).
+   - Se `due_date` existir e o dia não bater com o dia da `transaction_date` (clampado ao último dia do mês do `due_date`), reescreve `due_date`.
+   - Quinzenal: aceita `due_date` cujo dia bata com o da base **ou** 15 dias depois; caso contrário, alinha para o mais próximo.
+   - `SECURITY INVOKER`, `SET search_path = public`.
+2. Trigger `BEFORE INSERT OR UPDATE` em `public.transactions`.
+3. Manter o trigger semanal já existente — os dois cobrem periodicidades disjuntas.
 
-- **Manter** o enum `transaction_type` com `receita | despesa | transferencia` (o valor `parcelado` que foi adicionado ao enum permanece no schema — Postgres não permite remover valor de enum — mas passa a ser **não utilizado**; o form nunca gera e o backend não trata mais como caso especial).
-- **Remover** referência funcional a `parcel_direction`:
-  - Reverter `recompute_account_balance`, `get_balance_before`, `plin_ia_summary`, `plin_ia_cashflow` ao comportamento anterior (parcelas contam pelo próprio `type = receita/despesa`, como qualquer outra transação).
-  - Ajustar a trigger `validate_installment_transaction` para não exigir `parcel_direction`, apenas validar consistência de `installment_number/total/parent_transaction_id` quando presentes.
-  - A coluna `parcel_direction` pode ficar no schema (nullable, não usada) para evitar migração destrutiva; opcionalmente `DROP COLUMN` numa migração dedicada.
+## Validação — `src/lib/validations.ts`
 
-## Frontend
-
-- `src/lib/transaction-sign.ts`: remover lógica que lê `parcel_direction`; parcelas herdam o `type` normal.
-- `src/pages/Dashboard.tsx`, `FluxoCaixa.tsx`, `Lancamentos.tsx`: remover `effectiveTransactionType` — parcelas já são `receita/despesa`, entram nos somatórios naturalmente. O "parent âncora" continua com `status = cancelado` e é ignorado como hoje.
-- Badge "n/N" nas parcelas: mantido na listagem.
-- Diálogo de escopo (esta / esta e futuras / todas) via `parent_transaction_id`: mantido.
-- `src/lib/validations.ts`: ajustar schema — `installment_total ≥ 2` só quando `is_installment = true`; remover `parcel_direction`.
-
-## Geração de parcelas
-
-Ao salvar uma receita/despesa com "Parcelado" marcado:
-1. Cria 1 parent com `status = cancelado`, `installment_total = N`, sem `installment_number`.
-2. Cria N filhos com `type = receita|despesa` (herdado), `parent_transaction_id`, `installment_number = 1..N`, `installment_total = N`, `due_date` calculada pela periodicidade, valor conforme modo escolhido (última parcela ajusta centavos no modo "valor total").
-
-## Passos de implementação
-
-1. **Migração SQL:** reverter funções (`recompute_account_balance`, `get_balance_before`, `plin_ia_summary`, `plin_ia_cashflow`) para lógica sem `parcel_direction`; ajustar trigger `validate_installment_transaction`.
-2. **Form (`TransactionFormDialog.tsx`):** remover aba/tipo Parcelado; adicionar bloco `Parcelado` como toggle dentro de receita/despesa (espelhando o bloco Recorrente); mutex com Recorrente.
-3. **Validations (`src/lib/validations.ts`):** remover `parcel_direction`, condicionar campos ao flag `is_installment`.
-4. **transaction-sign / Dashboard / FluxoCaixa / Lancamentos:** remover `effectiveTransactionType` e uso de `parcel_direction`.
-5. **Types:** regenerar após migração.
+- Adicionar campo opcional `monthDay` (int 1–31), obrigatório apenas quando `recurrenceType`/`installmentPeriod` ∈ {mensal, quinzenal}.
 
 ## Não muda
 
-- Anexos, tags, categorias, contas, contatos, status, escopo de edição em massa: iguais.
-- Recorrente permanece exatamente como está.
+- Fluxo anual, diário, semanal, geração de N filhos, escopo de edição, saldos, cálculo de valores das parcelas.
+- Nenhuma mudança em Dashboard/FluxoCaixa/Lancamentos.
