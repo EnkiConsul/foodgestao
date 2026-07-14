@@ -54,8 +54,10 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
+const hubItem = { title: "Hub de Módulos", url: "/hub", icon: LayoutGrid };
+
 const mainItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Lançamentos", url: "/lancamentos", icon: ArrowLeftRight },
   { title: "Fluxo de Caixa", url: "/fluxo-caixa", icon: TrendingUp },
   { title: "Orçamento", url: "/orcamento", icon: Target },
