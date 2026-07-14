@@ -13,6 +13,11 @@ import Auth from "./pages/Auth";
 import Hub from "./pages/Hub";
 import { ModuleGuard } from "@/components/modules/ModuleGuard";
 import { ModulePlaceholder } from "@/components/modules/ModulePlaceholder";
+import { DpLayout } from "@/components/dp/DpLayout";
+import DpHome from "./pages/dp/DpHome";
+import DpColaboradores from "./pages/dp/DpColaboradores";
+import DpSolicitacoes from "./pages/dp/DpSolicitacoes";
+import DpDocumentos from "./pages/dp/DpDocumentos";
 import AdminModulos from "./pages/admin/Modulos";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
@@ -282,7 +287,12 @@ const AppRoutes = () => (
       <Route path="/empresas" element={<Empresas />} />
       <Route path="/formas-pagamento" element={<FormasPagamento />} />
       {/* Módulos em contratação avulsa */}
-      <Route path="/dp" element={<ModuleGuard module="dp"><ModulePlaceholder module="dp" /></ModuleGuard>} />
+      <Route path="/dp" element={<ModuleGuard module="dp"><DpLayout /></ModuleGuard>}>
+        <Route index element={<DpHome />} />
+        <Route path="colaboradores" element={<DpColaboradores />} />
+        <Route path="solicitacoes" element={<DpSolicitacoes />} />
+        <Route path="documentos" element={<DpDocumentos />} />
+      </Route>
       <Route path="/crm" element={<ModuleGuard module="crm"><ModulePlaceholder module="crm" /></ModuleGuard>} />
       <Route path="/rh" element={<ModuleGuard module="rh"><ModulePlaceholder module="rh" /></ModuleGuard>} />
       <Route path="/pedidos" element={<ModuleGuard module="pedidos"><ModulePlaceholder module="pedidos" /></ModuleGuard>} />

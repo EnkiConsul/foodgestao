@@ -28,10 +28,10 @@ export const MODULES: ModuleDefinition[] = [
     slug: "dp",
     name: "DP 360°",
     shortName: "DP",
-    description: "Departamento pessoal: colaboradores, folgas, atestados e documentos.",
+    description: "Departamento pessoal: colaboradores, solicitações e documentos.",
     icon: Users,
     entryRoute: "/dp",
-    available: false, // em implantação — placeholder até porte completo
+    available: true,
   },
   {
     slug: "crm",
