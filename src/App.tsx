@@ -24,6 +24,7 @@ import DpCadastrosHub from "./pages/dp/DpCadastrosHub";
 import DpUnidades from "./pages/dp/DpUnidades";
 import DpCargos from "./pages/dp/DpCargos";
 import DpSindicatos from "./pages/dp/DpSindicatos";
+import DpSindicatoNegociacoes from "./pages/dp/DpSindicatoNegociacoes";
 import DpAvisos from "./pages/dp/DpAvisos";
 import DpMensagens from "./pages/dp/DpMensagens";
 import DpDisciplinar from "./pages/dp/DpDisciplinar";
@@ -357,6 +358,7 @@ const AppRoutes = () => (
         <Route path="cadastros/unidades" element={<DpUnidades />} />
         <Route path="cadastros/cargos" element={<DpCargos />} />
         <Route path="cadastros/sindicatos" element={<DpSindicatos />} />
+        <Route path="sindicatos/negociacoes" element={<DpSindicatoNegociacoes />} />
       </Route>
       <Route path="/crm" element={<ModuleGuard module="crm"><ModulePlaceholder module="crm" /></ModuleGuard>} />
       <Route path="/rh" element={<ModuleGuard module="rh"><ModulePlaceholder module="rh" /></ModuleGuard>} />

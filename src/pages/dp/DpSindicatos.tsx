@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, FileText } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,7 +88,12 @@ export default function DpSindicatos() {
           <h2 className="text-xl font-semibold">Sindicatos</h2>
           <p className="text-sm text-muted-foreground">{list.data?.length ?? 0} cadastrados</p>
         </div>
-        <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> Novo</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link to="/dp/sindicatos/negociacoes"><FileText className="h-4 w-4 mr-2" /> Negociações</Link>
+          </Button>
+          <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> Novo</Button>
+        </div>
       </div>
 
       <Card>
