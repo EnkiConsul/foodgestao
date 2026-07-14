@@ -214,7 +214,6 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
         sort_order: nextSort,
         category_subtype: subtype || null,
         ai_description: aiDescription.trim() || null,
-        company_id: contextType === "pj" ? (selectedCompanies.size === 1 ? Array.from(selectedCompanies)[0] : null) : null,
       } as any).select("id").single();
 
       if (error) {
