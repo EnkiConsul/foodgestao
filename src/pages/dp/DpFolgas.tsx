@@ -64,10 +64,67 @@ const STATUS_LABEL: Record<Status, string> = {
 
 export default function DpFolgas() {
   const { selectedCompanyId } = useCompanyContext();
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const colabs = useDpColaboradores();
   const [cursor, setCursor] = useState(startOfMonth(new Date()));
   const [statusFilter, setStatusFilter] = useState<Status | "todas">("aprovada");
   const [tipoFilter, setTipoFilter] = useState<Tipo | "todos">("todos");
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState({
+    colaborador_id: "",
+    tipo: "folga" as Tipo,
+    data_alvo: "",
+    data_fim: "",
+    motivo: "",
+  });
+
+  const openNew = (preset?: { data_alvo?: string; data_fim?: string; tipo?: Tipo }) => {
+    setForm({
+      colaborador_id: "",
+      tipo: preset?.tipo ?? "folga",
+      data_alvo: preset?.data_alvo ?? "",
+      data_fim: preset?.data_fim ?? "",
+      motivo: "",
+    });
+    setDialogOpen(true);
+  };
+
+  useEffect(() => {
+    if (!dialogOpen) return;
+    if (!form.data_fim || !form.data_alvo) return;
+    if (form.data_fim < form.data_alvo) setForm((f) => ({ ...f, data_fim: f.data_alvo }));
+  }, [dialogOpen, form.data_alvo, form.data_fim]);
+
+  const create = useMutation({
+    mutationFn: async () => {
+      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
+      if (!form.colaborador_id) throw new Error("Selecione um colaborador");
+      if (!form.data_alvo) throw new Error("Informe a data inicial");
+      if (form.motivo.length > 500) throw new Error("Observações muito longas (máx. 500)");
+      const { error } = await supabase.from("dp_solicitacoes").insert({
+        company_id: selectedCompanyId,
+        colaborador_id: form.colaborador_id,
+        tipo: form.tipo,
+        data_alvo: form.data_alvo,
+        data_fim: form.data_fim || null,
+        motivo: form.motivo.trim() || null,
+        criado_por: user?.id,
+        status: "pendente",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Solicitação criada", { description: "Ficará como pendente até aprovação." });
+      qc.invalidateQueries({ queryKey: ["dp_folgas"] });
+      qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
+      qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
+      setDialogOpen(false);
+    },
+    onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
+  });
+
 
   const rangeStart = startOfWeek(startOfMonth(cursor), { weekStartsOn: 0 });
   const rangeEnd = endOfWeek(endOfMonth(cursor), { weekStartsOn: 0 });
