@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Users, ClipboardList, FolderOpen, Home, CalendarDays, Building2, Megaphone, Mail, AlertOctagon, Ban } from "lucide-react";
+import { Users, ClipboardList, FolderOpen, Home, CalendarDays, Building2, Megaphone, Mail, AlertOctagon, Ban, Repeat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 
@@ -7,6 +7,7 @@ const items = [
   { title: "Início", url: "/dp", icon: Home, end: true },
   { title: "Colaboradores", url: "/dp/colaboradores", icon: Users },
   { title: "Folgas", url: "/dp/folgas", icon: CalendarDays },
+  { title: "Trocas", url: "/dp/trocas", icon: Repeat },
   { title: "Solicitações", url: "/dp/solicitacoes", icon: ClipboardList },
   { title: "Avisos", url: "/dp/avisos", icon: Megaphone },
   { title: "Mensagens", url: "/dp/mensagens", icon: Mail },
