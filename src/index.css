@@ -51,6 +51,16 @@
     --sidebar-accent-foreground: 30 25% 96%;
     --sidebar-border: 224 45% 25%;
     --sidebar-ring: 18 84% 55%;
+
+    /* DP 360° tokens — só usados dentro de .dp-shell */
+    --dp-canvas: 36 45% 97%;
+    --dp-border: 30 25% 88%;
+    --dp-pending-bg: 38 90% 96%;
+    --dp-pending-border: 38 85% 82%;
+    --dp-birthday-bg: 30 60% 97%;
+    --dp-birthday-border: 30 55% 85%;
+    --dp-birthday-nasc: 340 80% 92%;
+    --dp-birthday-contrat: 200 75% 90%;
   }
 
   .dark {
