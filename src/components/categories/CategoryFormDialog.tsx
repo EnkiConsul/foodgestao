@@ -353,6 +353,53 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
             )}
           </div>
 
+          <div className="space-y-2">
+            <Label>Subtipo (para relatórios)</Label>
+            <Select value={subtype || "__none__"} onValueChange={(v) => setSubtype(v === "__none__" ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Nenhum</SelectItem>
+                <SelectItem value="receita">Receita</SelectItem>
+                <SelectItem value="saida">Saída</SelectItem>
+                <SelectItem value="custo">Custo</SelectItem>
+                <SelectItem value="despesa">Despesa</SelectItem>
+                <SelectItem value="imposto">Imposto</SelectItem>
+                <SelectItem value="investimento">Investimento</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Usado para agrupar Custos, Despesas, Impostos e Investimentos nos relatórios contábeis.</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Descrição para IA (opcional)</Label>
+            <Textarea
+              value={aiDescription}
+              onChange={(e) => setAiDescription(e.target.value)}
+              placeholder="Contexto para o agente classificar lançamentos automaticamente nesta categoria."
+              rows={2}
+              maxLength={500}
+            />
+          </div>
+
+          {editCategory && ((editCategory as any).template_code || (editCategory as any).previous_index) && (
+            <div className="grid grid-cols-2 gap-2 rounded-md border bg-muted/40 p-3 text-xs">
+              {(editCategory as any).template_code && (
+                <div>
+                  <p className="text-muted-foreground">ID Interno</p>
+                  <p className="font-mono">{(editCategory as any).template_code}</p>
+                </div>
+              )}
+              {(editCategory as any).previous_index && (
+                <div>
+                  <p className="text-muted-foreground">Índice anterior</p>
+                  <p className="font-mono">{(editCategory as any).previous_index}</p>
+                </div>
+              )}
+              <p className="col-span-2 text-[10px] text-muted-foreground">Campos de rastreabilidade do plano padrão — não editáveis.</p>
+            </div>
+          )}
+
+
 
 
 
