@@ -26,6 +26,8 @@ import DpCargos from "./pages/dp/DpCargos";
 import DpSindicatos from "./pages/dp/DpSindicatos";
 import DpAvisos from "./pages/dp/DpAvisos";
 import DpMensagens from "./pages/dp/DpMensagens";
+import DpDisciplinar from "./pages/dp/DpDisciplinar";
+import DpBloqueios from "./pages/dp/DpBloqueios";
 import AdminModulos from "./pages/admin/Modulos";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
@@ -305,6 +307,8 @@ const AppRoutes = () => (
         <Route path="documentos/:categoria" element={<DpDocumentos />} />
         <Route path="avisos" element={<DpAvisos />} />
         <Route path="mensagens" element={<DpMensagens />} />
+        <Route path="disciplinar" element={<DpDisciplinar />} />
+        <Route path="bloqueios" element={<DpBloqueios />} />
         <Route path="cadastros" element={<DpCadastrosHub />} />
         <Route path="cadastros/unidades" element={<DpUnidades />} />
         <Route path="cadastros/cargos" element={<DpCargos />} />
