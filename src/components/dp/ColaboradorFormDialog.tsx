@@ -38,6 +38,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     ativo: true, observacoes: "",
     unidade_id: "" as string, cargo_id: "" as string, sindicato_id: "" as string,
     email_portal: "",
+    data_nascimento: "",
   });
 
   useEffect(() => {
@@ -57,6 +58,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         cargo_id: colaborador?.cargo_id ?? "",
         sindicato_id: colaborador?.sindicato_id ?? "",
         email_portal: colaborador?.email_portal ?? "",
+        data_nascimento: (colaborador as any)?.data_nascimento ?? "",
       });
     }
   }, [open, colaborador]);
@@ -80,7 +82,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         cargo_id: form.cargo_id || null,
         sindicato_id: form.sindicato_id || null,
         email_portal: form.email_portal.trim() || null,
-      });
+        data_nascimento: form.data_nascimento || null,
+      } as any);
       toast.success(colaborador ? "Colaborador atualizado" : "Colaborador cadastrado");
       onOpenChange(false);
     } catch (e) {
@@ -130,9 +133,13 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
               <Input type="date" value={form.data_admissao} onChange={(e) => setForm({ ...form, data_admissao: e.target.value })} />
             </div>
             <div className="grid gap-1.5">
-              <Label>Telefone</Label>
-              <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
+              <Label>Data de nascimento</Label>
+              <Input type="date" value={form.data_nascimento} onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })} />
             </div>
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Telefone</Label>
+            <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
           </div>
           <div className="grid gap-1.5">
             <Label>E-mail</Label>
