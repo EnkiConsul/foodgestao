@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Users, ClipboardList, FolderOpen, Home, CalendarDays, Building2, Megaphone, Mail, AlertOctagon, Ban, Repeat, Inbox } from "lucide-react";
+import { Users, ClipboardList, FolderOpen, Home, CalendarDays, Building2, Megaphone, Mail, AlertOctagon, Ban, Repeat, Inbox, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { DpNotificacoesBell } from "@/components/dp/DpNotificacoesBell";
