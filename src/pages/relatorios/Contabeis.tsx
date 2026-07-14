@@ -110,7 +110,18 @@ export default function RelatoriosContabeis() {
           {!isLoading && !error && (
             <>
               <TabsContent value="dre">
-                <DreReport nodes={nodes} onSelectAnalytic={setDrawerAccount} />
+                <DreReport
+                  nodes={nodes}
+                  onSelectAnalytic={setDrawerAccount}
+                  from={filters.from}
+                  to={filters.to}
+                  regime={filters.regime}
+                  contextLabel={
+                    contextType === "pj"
+                      ? companies.find((c) => c.id === selectedCompanyId)?.name ?? "Empresa"
+                      : "Pessoa Física"
+                  }
+                />
               </TabsContent>
               <TabsContent value="pendencias">
                 <PendingClassificationPanel from={filters.from} to={filters.to} />
