@@ -353,6 +353,90 @@ export default function DpFolgas() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nova solicitação de ausência</DialogTitle>
+            <DialogDescription>
+              Selecione o colaborador, o tipo e o intervalo de datas. A solicitação ficará pendente até aprovação.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 py-2">
+            <div className="grid gap-1.5">
+              <Label>Colaborador *</Label>
+              <Select
+                value={form.colaborador_id}
+                onValueChange={(v) => setForm({ ...form, colaborador_id: v })}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectContent>
+                  {(colabs.data ?? []).filter((c) => c.ativo).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                  ))}
+                  {(colabs.data ?? []).filter((c) => c.ativo).length === 0 && (
+                    <div className="px-3 py-2 text-xs text-muted-foreground">
+                      Nenhum colaborador ativo. Cadastre em Colaboradores.
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Tipo *</Label>
+              <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as Tipo })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(TIPO_LABEL) as Tipo[]).map((t) => (
+                    <SelectItem key={t} value={t}>{TIPO_LABEL[t]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label>Data inicial *</Label>
+                <Input
+                  type="date"
+                  value={form.data_alvo}
+                  onChange={(e) => setForm({ ...form, data_alvo: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Data final</Label>
+                <Input
+                  type="date"
+                  min={form.data_alvo || undefined}
+                  value={form.data_fim}
+                  onChange={(e) => setForm({ ...form, data_fim: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Observações</Label>
+              <Textarea
+                rows={3}
+                maxLength={500}
+                placeholder="Motivo, contexto ou observação (opcional)"
+                value={form.motivo}
+                onChange={(e) => setForm({ ...form, motivo: e.target.value })}
+              />
+              <div className="text-[10px] text-muted-foreground text-right">
+                {form.motivo.length}/500
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDialogOpen(false)} disabled={create.isPending}>
+              Cancelar
+            </Button>
+            <Button onClick={() => create.mutate()} disabled={create.isPending}>
+              {create.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Enviar solicitação
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
