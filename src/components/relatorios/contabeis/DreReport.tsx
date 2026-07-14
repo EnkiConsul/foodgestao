@@ -1,6 +1,9 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { ReportNode } from "@/hooks/useContabeisReport";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
+import { format } from "date-fns";
+import type { ReportNode, Regime } from "@/hooks/useContabeisReport";
 import { AccountTreeTable } from "./AccountTreeTable";
 import { brlAcc, pct, signClass } from "@/lib/format-contabil";
 import { cn } from "@/lib/utils";
@@ -8,6 +11,10 @@ import { cn } from "@/lib/utils";
 interface Props {
   nodes: ReportNode[];
   onSelectAnalytic?: (n: ReportNode) => void;
+  from?: string;
+  to?: string;
+  regime?: Regime;
+  contextLabel?: string;
 }
 
 function totalByNature(nodes: ReportNode[], nature: string): number {
