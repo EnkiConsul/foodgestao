@@ -75,7 +75,7 @@ export function useDpPendencias() {
         .from("dp_folha_periodos")
         .select("id, competencia, status, created_at")
         .eq("company_id", selectedCompanyId!)
-        .in("status", ["aberto", "em_processamento"])
+        .in("status", ["aberto"])
         .order("competencia", { ascending: false })
         .limit(6);
       (folhas ?? []).forEach((f: any) => {
