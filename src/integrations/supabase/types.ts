@@ -2207,6 +2207,85 @@ export type Database = {
           },
         ]
       }
+      dp_trocas: {
+        Row: {
+          colega_respondido_em: string | null
+          colega_resposta: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          data_original: string
+          data_proposta: string
+          destino_id: string
+          gestor_id: string | null
+          gestor_respondido_em: string | null
+          gestor_resposta: string | null
+          id: string
+          motivo: string
+          solicitante_id: string
+          status: Database["public"]["Enums"]["dp_troca_status"]
+          updated_at: string
+        }
+        Insert: {
+          colega_respondido_em?: string | null
+          colega_resposta?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          data_original: string
+          data_proposta: string
+          destino_id: string
+          gestor_id?: string | null
+          gestor_respondido_em?: string | null
+          gestor_resposta?: string | null
+          id?: string
+          motivo: string
+          solicitante_id: string
+          status?: Database["public"]["Enums"]["dp_troca_status"]
+          updated_at?: string
+        }
+        Update: {
+          colega_respondido_em?: string | null
+          colega_resposta?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          data_original?: string
+          data_proposta?: string
+          destino_id?: string
+          gestor_id?: string | null
+          gestor_respondido_em?: string | null
+          gestor_resposta?: string | null
+          id?: string
+          motivo?: string
+          solicitante_id?: string
+          status?: Database["public"]["Enums"]["dp_troca_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_trocas_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_trocas_destino_id_fkey"
+            columns: ["destino_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_trocas_solicitante_id_fkey"
+            columns: ["solicitante_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_unidades: {
         Row: {
           ativo: boolean
@@ -3803,6 +3882,12 @@ export type Database = {
         | "atestado"
         | "adiantamento"
         | "outros"
+      dp_troca_status:
+        | "pendente_colega"
+        | "pendente_gestor"
+        | "aprovada"
+        | "recusada"
+        | "cancelada"
       invite_status: "pending" | "accepted" | "rejected" | "expired"
       invoice_payment_method: "pix" | "boleto" | "card" | "manual"
       invoice_status:
@@ -4009,6 +4094,13 @@ export const Constants = {
         "atestado",
         "adiantamento",
         "outros",
+      ],
+      dp_troca_status: [
+        "pendente_colega",
+        "pendente_gestor",
+        "aprovada",
+        "recusada",
+        "cancelada",
       ],
       invite_status: ["pending", "accepted", "rejected", "expired"],
       invoice_payment_method: ["pix", "boleto", "card", "manual"],
