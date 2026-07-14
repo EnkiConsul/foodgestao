@@ -50,6 +50,10 @@ export const categorySchema = z.object({
   name: z.string().trim().min(1, "Nome é obrigatório").max(50),
   transaction_type: z.enum(["receita", "despesa"]),
   color: z.string().max(20).optional().nullable(),
+  category_subtype: z.enum(
+    ["receita", "saida", "custo", "despesa", "imposto", "investimento"],
+    { required_error: "Subtipo é obrigatório", invalid_type_error: "Subtipo é obrigatório" }
+  ),
 });
 
 // ---- Budget ----
