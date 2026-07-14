@@ -138,6 +138,48 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             <Label>E-mail</Label>
             <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
           </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="grid gap-1.5">
+              <Label>Unidade</Label>
+              <Select value={form.unidade_id || "__none"} onValueChange={(v) => setForm({ ...form, unidade_id: v === "__none" ? "" : v })}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">— Nenhuma —</SelectItem>
+                  {(unidades.data ?? []).map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Cargo (catálogo)</Label>
+              <Select value={form.cargo_id || "__none"} onValueChange={(v) => setForm({ ...form, cargo_id: v === "__none" ? "" : v })}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">— Nenhum —</SelectItem>
+                  {(cargos.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Sindicato</Label>
+              <Select value={form.sindicato_id || "__none"} onValueChange={(v) => setForm({ ...form, sindicato_id: v === "__none" ? "" : v })}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">— Nenhum —</SelectItem>
+                  {(sindicatos.data ?? []).map((s) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="rounded-md border p-3 space-y-2 bg-muted/30">
+            <div>
+              <Label>E-mail do portal do colaborador</Label>
+              <p className="text-xs text-muted-foreground">Guarde o e-mail que dará acesso ao portal. O envio de convite é habilitado na Fase 8.</p>
+            </div>
+            <Input type="email" value={form.email_portal} onChange={(e) => setForm({ ...form, email_portal: e.target.value })} placeholder="colaborador@empresa.com" />
+          </div>
+
           <div className="grid gap-1.5">
             <Label>Observações</Label>
             <Textarea rows={3} value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} />
