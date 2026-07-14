@@ -264,6 +264,7 @@ const AppRoutes = () => (
         </ProtectedRoute>
       }
     >
+      <Route path="/hub" element={<Hub />} />
       <Route path="/dashboard" element={<Dashboard />} />
       
       <Route path="/lancamentos" element={<Lancamentos />} />
@@ -280,6 +281,11 @@ const AppRoutes = () => (
       <Route path="/gestao-usuarios" element={<GestaoUsuarios />} />
       <Route path="/empresas" element={<Empresas />} />
       <Route path="/formas-pagamento" element={<FormasPagamento />} />
+      {/* Módulos em contratação avulsa */}
+      <Route path="/dp" element={<ModuleGuard module="dp"><ModulePlaceholder module="dp" /></ModuleGuard>} />
+      <Route path="/crm" element={<ModuleGuard module="crm"><ModulePlaceholder module="crm" /></ModuleGuard>} />
+      <Route path="/rh" element={<ModuleGuard module="rh"><ModulePlaceholder module="rh" /></ModuleGuard>} />
+      <Route path="/pedidos" element={<ModuleGuard module="pedidos"><ModulePlaceholder module="pedidos" /></ModuleGuard>} />
     </Route>
     <Route
       element={
