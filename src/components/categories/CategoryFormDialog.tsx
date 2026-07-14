@@ -105,6 +105,8 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       setParentId(editCategory.parent_id ?? null);
       setChartAccountId((editCategory as any).chart_account_id ?? null);
       setVisiblePf((editCategory as any).visible_pf ?? true);
+      setSubtype((editCategory as any).category_subtype ?? "");
+      setAiDescription((editCategory as any).ai_description ?? "");
       // Load linked companies
       supabase
         .from("category_companies")
@@ -120,6 +122,8 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       setParentId(defaultParentId || null);
       setChartAccountId(null);
       setVisiblePf(true);
+      setSubtype("");
+      setAiDescription("");
       setSelectedCompanies(new Set(companies.map((c) => c.id)));
     }
   }, [editCategory, open, defaultParentId, defaultType, defaultName]);
