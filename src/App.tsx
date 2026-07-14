@@ -345,32 +345,42 @@ const AppRoutes = () => (
       <Route path="/empresas" element={<Empresas />} />
       <Route path="/formas-pagamento" element={<FormasPagamento />} />
       {/* Módulos em contratação avulsa */}
-      <Route path="/dp" element={<ModuleGuard module="dp"><DpLayout /></ModuleGuard>}>
-        <Route index element={<DpHome />} />
-        <Route path="colaboradores" element={<DpColaboradores />} />
-        <Route path="solicitacoes" element={<DpSolicitacoes />} />
-        <Route path="folgas" element={<DpFolgas />} />
-        <Route path="documentos" element={<DpDocumentosHub />} />
-        <Route path="documentos/todos" element={<DpDocumentos />} />
-        <Route path="documentos/:categoria" element={<DpDocumentos />} />
-        <Route path="avisos" element={<DpAvisos />} />
-        <Route path="mensagens" element={<DpMensagens />} />
-        <Route path="disciplinar" element={<DpDisciplinar />} />
-        <Route path="bloqueios" element={<DpBloqueios />} />
-        <Route path="trocas" element={<DpTrocas />} />
-        <Route path="aprovacoes" element={<DpAprovacoes />} />
-        <Route path="cadastros" element={<DpCadastrosHub />} />
-        <Route path="cadastros/unidades" element={<DpUnidades />} />
-        <Route path="cadastros/cargos" element={<DpCargos />} />
-        <Route path="cadastros/sindicatos" element={<DpSindicatos />} />
-        <Route path="sindicatos/negociacoes" element={<DpSindicatoNegociacoes />} />
-        <Route path="folha" element={<DpFolhaHub />} />
-        <Route path="folha/aprovacoes" element={<DpFolhaAprovacoes />} />
-        <Route path="folha/periodos/:id" element={<DpFolhaPeriodo />} />
-      </Route>
       <Route path="/crm" element={<ModuleGuard module="crm"><ModulePlaceholder module="crm" /></ModuleGuard>} />
       <Route path="/rh" element={<ModuleGuard module="rh"><ModulePlaceholder module="rh" /></ModuleGuard>} />
       <Route path="/pedidos" element={<ModuleGuard module="pedidos"><ModulePlaceholder module="pedidos" /></ModuleGuard>} />
+    </Route>
+    {/* DP 360° — shell próprio (fora do AppLayout do Financeiro) */}
+    <Route
+      path="/dp"
+      element={
+        <ProtectedRoute>
+          <SubscriptionGuard>
+            <ModuleGuard module="dp"><DpLayout /></ModuleGuard>
+          </SubscriptionGuard>
+        </ProtectedRoute>
+      }
+    >
+      <Route index element={<DpHome />} />
+      <Route path="colaboradores" element={<DpColaboradores />} />
+      <Route path="solicitacoes" element={<DpSolicitacoes />} />
+      <Route path="folgas" element={<DpFolgas />} />
+      <Route path="documentos" element={<DpDocumentosHub />} />
+      <Route path="documentos/todos" element={<DpDocumentos />} />
+      <Route path="documentos/:categoria" element={<DpDocumentos />} />
+      <Route path="avisos" element={<DpAvisos />} />
+      <Route path="mensagens" element={<DpMensagens />} />
+      <Route path="disciplinar" element={<DpDisciplinar />} />
+      <Route path="bloqueios" element={<DpBloqueios />} />
+      <Route path="trocas" element={<DpTrocas />} />
+      <Route path="aprovacoes" element={<DpAprovacoes />} />
+      <Route path="cadastros" element={<DpCadastrosHub />} />
+      <Route path="cadastros/unidades" element={<DpUnidades />} />
+      <Route path="cadastros/cargos" element={<DpCargos />} />
+      <Route path="cadastros/sindicatos" element={<DpSindicatos />} />
+      <Route path="sindicatos/negociacoes" element={<DpSindicatoNegociacoes />} />
+      <Route path="folha" element={<DpFolhaHub />} />
+      <Route path="folha/aprovacoes" element={<DpFolhaAprovacoes />} />
+      <Route path="folha/periodos/:id" element={<DpFolhaPeriodo />} />
     </Route>
     <Route
       element={
