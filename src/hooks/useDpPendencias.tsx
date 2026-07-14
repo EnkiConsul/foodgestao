@@ -92,24 +92,24 @@ export function useDpPendencias() {
         });
       });
 
-      // Negociações sindicais expirando
+      // Negociações sindicais expirando (vigencia_fim nos próximos 60 dias)
       const { data: negs } = await supabase
         .from("dp_sindicato_negociacoes")
-        .select("id, sindicato_id, data_termino, dp_sindicatos(sigla, nome)")
+        .select("id, sindicato_id, vigencia_fim, dp_sindicatos(nome)")
         .eq("company_id", selectedCompanyId!)
-        .not("data_termino", "is", null)
-        .lte("data_termino", new Date(today.getTime() + 60 * 86400_000).toISOString().slice(0, 10))
-        .order("data_termino", { ascending: true })
+        .not("vigencia_fim", "is", null)
+        .lte("vigencia_fim", new Date(today.getTime() + 60 * 86400_000).toISOString().slice(0, 10))
+        .order("vigencia_fim", { ascending: true })
         .limit(10);
       (negs ?? []).forEach((n: any) => {
-        const dias = differenceInCalendarDays(today, new Date(n.data_termino));
+        const dias = differenceInCalendarDays(today, new Date(n.vigencia_fim));
         results.push({
           id: `neg-${n.id}`,
           icon: FileText,
-          titulo: `Negociação coletiva - ${n.dp_sindicatos?.sigla ?? "Sindicato"}`,
-          subtitulo: `Término: ${n.data_termino}`,
+          titulo: `Negociação coletiva - ${n.dp_sindicatos?.nome ?? "Sindicato"}`,
+          subtitulo: `Término: ${n.vigencia_fim}`,
           tipo: "Negociação",
-          vencimento: n.data_termino,
+          vencimento: n.vigencia_fim,
           atrasoDias: dias > 0 ? dias : null,
           url: "/dp/sindicatos/negociacoes",
         });
