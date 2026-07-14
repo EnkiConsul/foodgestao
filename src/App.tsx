@@ -18,6 +18,7 @@ import DpHome from "./pages/dp/DpHome";
 import DpColaboradores from "./pages/dp/DpColaboradores";
 import DpSolicitacoes from "./pages/dp/DpSolicitacoes";
 import DpDocumentos from "./pages/dp/DpDocumentos";
+import DpFolgas from "./pages/dp/DpFolgas";
 import AdminModulos from "./pages/admin/Modulos";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
@@ -291,6 +292,7 @@ const AppRoutes = () => (
         <Route index element={<DpHome />} />
         <Route path="colaboradores" element={<DpColaboradores />} />
         <Route path="solicitacoes" element={<DpSolicitacoes />} />
+        <Route path="folgas" element={<DpFolgas />} />
         <Route path="documentos" element={<DpDocumentos />} />
       </Route>
       <Route path="/crm" element={<ModuleGuard module="crm"><ModulePlaceholder module="crm" /></ModuleGuard>} />
