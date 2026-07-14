@@ -638,6 +638,33 @@ export default function Categorias() {
                                     {chartAccountMap.get((cat as any).chart_account_id)}
                                   </Badge>
                                 )}
+                                {(cat as any).category_subtype && (() => {
+                                  const s = (cat as any).category_subtype as string;
+                                  const cls: Record<string, string> = {
+                                    receita: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+                                    saida: "bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400",
+                                    custo: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+                                    despesa: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+                                    imposto: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+                                    investimento: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+                                  };
+                                  const label: Record<string, string> = { receita: "Receita", saida: "Saída", custo: "Custo", despesa: "Despesa", imposto: "Imposto", investimento: "Investimento" };
+                                  return (
+                                    <Badge variant="secondary" className={`text-[10px] h-4 px-1.5 ml-1 ${cls[s] ?? ""}`}>{label[s] ?? s}</Badge>
+                                  );
+                                })()}
+                                {(cat as any).template_code && (
+                                  <TooltipProvider delayDuration={300}>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Badge variant="outline" className="text-[10px] h-4 px-1.5 ml-1 font-mono cursor-help">
+                                          {(cat as any).template_code}
+                                        </Badge>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top"><p>Categoria do plano padrão 360°FOOD (editável)</p></TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
                               </div>
                             </TableCell>
 
