@@ -116,8 +116,8 @@ const queryClient = new QueryClient({
 });
 
 function safeRedirect(value: string | null): string {
-  if (!value) return "/dashboard";
-  if (!value.startsWith("/") || value.startsWith("//")) return "/dashboard";
+  if (!value) return "/hub";
+  if (!value.startsWith("/") || value.startsWith("//")) return "/hub";
   return value;
 }
 
