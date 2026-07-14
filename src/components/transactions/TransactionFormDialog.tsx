@@ -1323,6 +1323,31 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                       <p className="text-[11px] text-muted-foreground">A data de vencimento é ajustada para o próximo {WEEKDAYS.find(w => w.value === String(parseLocalDate(date).getDay()))?.label.toLowerCase()}.</p>
                     </div>
                   )}
+                  {(installmentPeriod === "mensal" || installmentPeriod === "quinzenal") && (
+                    <div className="space-y-2">
+                      <Label>Dia do mês do vencimento</Label>
+                      <Select
+                        value={date ? String(parseLocalDate(date).getDate()) : "1"}
+                        onValueChange={(v) => {
+                          const d = Number(v);
+                          setDate(shiftToMonthDay(date, d));
+                          if (dueDate) setDueDate(shiftToMonthDay(dueDate, d));
+                        }}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent className="max-h-64">
+                          {MONTH_DAYS.map((m) => (
+                            <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[11px] text-muted-foreground">
+                        {installmentPeriod === "quinzenal"
+                          ? "A 1ª parcela cai neste dia; a 2ª cai 15 dias depois, e assim por diante. Dias 29–31 são ajustados para o último dia do mês."
+                          : "Todas as parcelas caem neste dia do mês. Dias 29–31 são ajustados para o último dia do mês."}
+                      </p>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label>Valor informado é</Label>
                     <Select value={installmentMode} onValueChange={(v) => setInstallmentMode(v as "total" | "parcela")}>
