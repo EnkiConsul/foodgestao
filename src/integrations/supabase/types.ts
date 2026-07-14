@@ -1980,6 +1980,160 @@ export type Database = {
           },
         ]
       }
+      dp_folha_lancamentos: {
+        Row: {
+          colaborador_id: string
+          company_id: string
+          contracheque_documento_id: string | null
+          created_at: string
+          descontos: Json
+          financeiro_account_id: string | null
+          financeiro_categoria_id: string | null
+          id: string
+          observacoes: string | null
+          periodo_id: string
+          status: Database["public"]["Enums"]["dp_folha_lancamento_status"]
+          tipo: Database["public"]["Enums"]["dp_folha_tipo"]
+          transaction_id: string | null
+          updated_at: string
+          valor_bruto: number
+          valor_liquido: number
+        }
+        Insert: {
+          colaborador_id: string
+          company_id: string
+          contracheque_documento_id?: string | null
+          created_at?: string
+          descontos?: Json
+          financeiro_account_id?: string | null
+          financeiro_categoria_id?: string | null
+          id?: string
+          observacoes?: string | null
+          periodo_id: string
+          status?: Database["public"]["Enums"]["dp_folha_lancamento_status"]
+          tipo: Database["public"]["Enums"]["dp_folha_tipo"]
+          transaction_id?: string | null
+          updated_at?: string
+          valor_bruto?: number
+          valor_liquido?: number
+        }
+        Update: {
+          colaborador_id?: string
+          company_id?: string
+          contracheque_documento_id?: string | null
+          created_at?: string
+          descontos?: Json
+          financeiro_account_id?: string | null
+          financeiro_categoria_id?: string | null
+          id?: string
+          observacoes?: string | null
+          periodo_id?: string
+          status?: Database["public"]["Enums"]["dp_folha_lancamento_status"]
+          tipo?: Database["public"]["Enums"]["dp_folha_tipo"]
+          transaction_id?: string | null
+          updated_at?: string
+          valor_bruto?: number
+          valor_liquido?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_folha_lancamentos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_folha_lancamentos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_folha_lancamentos_contracheque_documento_id_fkey"
+            columns: ["contracheque_documento_id"]
+            isOneToOne: false
+            referencedRelation: "dp_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_folha_lancamentos_financeiro_account_id_fkey"
+            columns: ["financeiro_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_folha_lancamentos_financeiro_categoria_id_fkey"
+            columns: ["financeiro_categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_folha_lancamentos_periodo_id_fkey"
+            columns: ["periodo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_folha_periodos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_folha_lancamentos_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_folha_periodos: {
+        Row: {
+          company_id: string
+          competencia: string
+          created_at: string
+          created_by: string | null
+          data_pagamento: string | null
+          id: string
+          observacoes: string | null
+          status: Database["public"]["Enums"]["dp_folha_periodo_status"]
+          tipo: Database["public"]["Enums"]["dp_folha_tipo"]
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          competencia: string
+          created_at?: string
+          created_by?: string | null
+          data_pagamento?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["dp_folha_periodo_status"]
+          tipo: Database["public"]["Enums"]["dp_folha_tipo"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          competencia?: string
+          created_at?: string
+          created_by?: string | null
+          data_pagamento?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["dp_folha_periodo_status"]
+          tipo?: Database["public"]["Enums"]["dp_folha_tipo"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_folha_periodos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_mensagens: {
         Row: {
           assunto: string
@@ -3600,6 +3754,10 @@ export type Database = {
         Returns: boolean
       }
       dp_colaborador_of: { Args: { _user_id: string }; Returns: string }
+      dp_folha_gerar_lancamentos: {
+        Args: { _periodo_id: string }
+        Returns: number
+      }
       dre_apply_default_mapping: {
         Args: { _company_id: string }
         Returns: number
@@ -3999,6 +4157,26 @@ export type Database = {
         | "outros"
         | "sindicato"
         | "ferias"
+      dp_folha_lancamento_status:
+        | "rascunho"
+        | "aprovado_dp"
+        | "aprovado_financeiro"
+        | "pago"
+        | "cancelado"
+      dp_folha_periodo_status:
+        | "aberto"
+        | "fechado"
+        | "aprovado_dp"
+        | "aprovado_financeiro"
+        | "pago"
+      dp_folha_tipo:
+        | "adiantamento"
+        | "contracheque_mensal"
+        | "contracheque_quinzenal"
+        | "decimo_terceiro"
+        | "ferias"
+        | "vale_alimentacao"
+        | "vale_transporte"
       dp_notificacao_tipo:
         | "solicitacao_nova"
         | "solicitacao_respondida"
@@ -4217,6 +4395,29 @@ export const Constants = {
         "outros",
         "sindicato",
         "ferias",
+      ],
+      dp_folha_lancamento_status: [
+        "rascunho",
+        "aprovado_dp",
+        "aprovado_financeiro",
+        "pago",
+        "cancelado",
+      ],
+      dp_folha_periodo_status: [
+        "aberto",
+        "fechado",
+        "aprovado_dp",
+        "aprovado_financeiro",
+        "pago",
+      ],
+      dp_folha_tipo: [
+        "adiantamento",
+        "contracheque_mensal",
+        "contracheque_quinzenal",
+        "decimo_terceiro",
+        "ferias",
+        "vale_alimentacao",
+        "vale_transporte",
       ],
       dp_notificacao_tipo: [
         "solicitacao_nova",
