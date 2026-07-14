@@ -1435,6 +1435,27 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                       </p>
                     );
                   })()}
+                  {(() => {
+                    const count = Math.min(6, Math.max(2, installmentTotal || 0));
+                    const preview = buildOccurrencePreview(date, dueDate, installmentPeriod, count);
+                    if (preview.length === 0) return null;
+                    return (
+                      <div className="rounded-md border bg-muted/30 p-3 space-y-1.5">
+                        <p className="text-xs font-medium">
+                          Preview das parcelas {installmentTotal > 6 ? `(1–6 de ${installmentTotal})` : `(${installmentTotal})`}
+                        </p>
+                        <ul className="text-[11px] text-muted-foreground space-y-0.5">
+                          {preview.map((p, idx) => (
+                            <li key={idx} className="flex justify-between gap-3">
+                              <span>{idx + 1}/{installmentTotal}. Lançamento: <strong className="text-foreground">{formatBR(p.date)}</strong></span>
+                              {p.due && <span>Venc.: <strong className="text-foreground">{formatBR(p.due)}</strong></span>}
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="text-[10px] text-muted-foreground">Confirme o dia antes de salvar. Dias 29–31 caem no último dia do mês curto.</p>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
