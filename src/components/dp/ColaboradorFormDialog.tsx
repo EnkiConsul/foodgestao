@@ -183,10 +183,39 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
           <div className="rounded-md border p-3 space-y-2 bg-muted/30">
             <div>
-              <Label>E-mail do portal do colaborador</Label>
-              <p className="text-xs text-muted-foreground">Guarde o e-mail que dará acesso ao portal. O envio de convite é habilitado na Fase 8.</p>
+              <Label>Acesso ao Portal do Colaborador</Label>
+              <p className="text-xs text-muted-foreground">
+                {(colaborador as any)?.user_id
+                  ? "Este colaborador já possui acesso ao portal."
+                  : "Ao enviar convite, o colaborador recebe um e-mail para criar senha e acessar apenas o Portal do DP."}
+              </p>
             </div>
-            <Input type="email" value={form.email_portal} onChange={(e) => setForm({ ...form, email_portal: e.target.value })} placeholder="colaborador@empresa.com" />
+            <div className="flex gap-2">
+              <Input
+                type="email"
+                value={form.email_portal}
+                onChange={(e) => setForm({ ...form, email_portal: e.target.value })}
+                placeholder="colaborador@empresa.com"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!colaborador?.id || !form.email_portal.trim()}
+                onClick={async () => {
+                  if (!colaborador?.id) return;
+                  const { data, error } = await supabase.functions.invoke("dp-invite-colaborador", {
+                    body: { colaborador_id: colaborador.id, email: form.email_portal.trim() },
+                  });
+                  if (error || (data as any)?.error) {
+                    toast.error((data as any)?.error ?? error?.message ?? "Erro ao enviar convite");
+                  } else {
+                    toast.success((data as any)?.reused ? "Usuário existente vinculado" : "Convite enviado");
+                  }
+                }}
+              >
+                <Send className="h-4 w-4 mr-1" /> Convidar
+              </Button>
+            </div>
           </div>
 
           <div className="grid gap-1.5">
