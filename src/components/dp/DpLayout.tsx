@@ -15,6 +15,7 @@ const items = [
   { title: "Mensagens", url: "/dp/mensagens", icon: Mail },
   { title: "Disciplinar", url: "/dp/disciplinar", icon: AlertOctagon },
   { title: "Bloqueios", url: "/dp/bloqueios", icon: Ban },
+  { title: "Folha", url: "/dp/folha", icon: Wallet },
   { title: "Documentos", url: "/dp/documentos", icon: FolderOpen },
   { title: "Cadastros", url: "/dp/cadastros", icon: Building2 },
 ];
