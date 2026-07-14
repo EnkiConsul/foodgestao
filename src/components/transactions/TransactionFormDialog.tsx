@@ -285,6 +285,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const [installmentTotal, setInstallmentTotal] = useState<number>(2);
   const [installmentMode, setInstallmentMode] = useState<"total" | "parcela">("parcela");
   const [installmentPeriod, setInstallmentPeriod] = useState<string>("mensal");
+  const [previewCount, setPreviewCount] = useState<number>(6);
 
 
   const [accountDialogOpen, setAccountDialogOpen] = useState(false);
@@ -1297,11 +1298,24 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                     </div>
                   </div>
                   {(() => {
-                    const preview = buildOccurrencePreview(date, dueDate, recurrenceType, 6, recurrenceEndDate || undefined);
+                    const preview = buildOccurrencePreview(date, dueDate, recurrenceType, previewCount, recurrenceEndDate || undefined);
                     if (preview.length === 0) return null;
                     return (
                       <div className="rounded-md border bg-muted/30 p-3 space-y-1.5">
-                        <p className="text-xs font-medium">Próximas ocorrências (preview)</p>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-medium">Próximas ocorrências (preview)</p>
+                          <div className="flex items-center gap-1.5">
+                            <Label className="text-[10px] text-muted-foreground">Mostrar</Label>
+                            <Select value={String(previewCount)} onValueChange={(v) => setPreviewCount(Number(v))}>
+                              <SelectTrigger className="h-6 w-16 text-[11px]"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {[3, 6, 12, 24].map((n) => (
+                                  <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
                         <ul className="text-[11px] text-muted-foreground space-y-0.5">
                           {preview.map((p, idx) => (
                             <li key={idx} className="flex justify-between gap-3">
@@ -1436,18 +1450,32 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                     );
                   })()}
                   {(() => {
-                    const count = Math.min(6, Math.max(2, installmentTotal || 0));
+                    const total = installmentTotal || 0;
+                    const count = Math.min(previewCount, Math.max(2, total));
                     const preview = buildOccurrencePreview(date, dueDate, installmentPeriod, count);
                     if (preview.length === 0) return null;
                     return (
                       <div className="rounded-md border bg-muted/30 p-3 space-y-1.5">
-                        <p className="text-xs font-medium">
-                          Preview das parcelas {installmentTotal > 6 ? `(1–6 de ${installmentTotal})` : `(${installmentTotal})`}
-                        </p>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-medium">
+                            Preview das parcelas {total > count ? `(1–${count} de ${total})` : `(${total})`}
+                          </p>
+                          <div className="flex items-center gap-1.5">
+                            <Label className="text-[10px] text-muted-foreground">Mostrar</Label>
+                            <Select value={String(previewCount)} onValueChange={(v) => setPreviewCount(Number(v))}>
+                              <SelectTrigger className="h-6 w-16 text-[11px]"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {[3, 6, 12, 24].map((n) => (
+                                  <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
                         <ul className="text-[11px] text-muted-foreground space-y-0.5">
                           {preview.map((p, idx) => (
                             <li key={idx} className="flex justify-between gap-3">
-                              <span>{idx + 1}/{installmentTotal}. Lançamento: <strong className="text-foreground">{formatBR(p.date)}</strong></span>
+                              <span>{idx + 1}/{total}. Lançamento: <strong className="text-foreground">{formatBR(p.date)}</strong></span>
                               {p.due && <span>Venc.: <strong className="text-foreground">{formatBR(p.due)}</strong></span>}
                             </li>
                           ))}
