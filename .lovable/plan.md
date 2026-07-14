@@ -1,92 +1,88 @@
-## Objetivo
+## Origem confirmada
 
-Replicar fielmente a estrutura do projeto referência (Pakerê Portal do Colaborador) nos módulos **DP 360°** e **Portal do Colaborador**, mantendo as cores da marca 360°FOOD (laranja `#EB6119`, marinho `#0F1B3D`). O módulo Financeiro permanece como está.
+Li `src/components/AppShell.tsx` de `pakere1996/portalcolaborador` (branch `main`). A sidebar real usa 5 grupos: **Início · Cadastro · Folgas · Documentos · Comunicação**. Meu agrupamento anterior ("Compliance / Operação / Folha") foi invenção minha — não existe no repositório.
 
-## O que muda
+## Correção da sidebar
 
-### 1. Shell dedicado para DP/Portal (`DpShell`)
+### DP 360° (`/dp/*` — modo Admin)
 
-Novo layout específico para rotas `/dp/*`, independente do `AppLayout` do Financeiro:
+Espelho exato do `adminCadastroNav / adminFolgaNav / adminDocsNav / adminComunicacaoNav` do Pakerê, com as rotas equivalentes já existentes no 360°FOOD:
 
-- **Sidebar branca fina** (~240px), sem gradiente, borda direita sutil.
-  - Topo: logo 360°FOOD + subtítulo ("DP 360°" ou "Portal do Colaborador").
-  - Itens de menu com ícone à esquerda, texto médio; item ativo em **pílula laranja sólida** (`bg-primary`) com texto branco e cantos arredondados (`rounded-lg`).
-  - Itens expansíveis (Cadastro, Comunicação) com chevron à direita e submenu recuado.
-  - Rodapé fixo: nome do usuário em CAPS, cargo/e-mail abaixo, link **Sair** em laranja.
-  - **Sem grupo "Conta"**, **sem link "Hub"** na barra lateral. Um botão discreto "← Voltar ao Hub" acima do rodapé.
-- **Header** simples: só o `SidebarTrigger`, o `ContextSelector` (quando aplicável) e o sino de notificações. Sem toggle de privacidade.
-- **Main** com fundo creme muito sutil (`bg-[hsl(var(--dp-canvas))]`), padding generoso.
+```text
+Início                                → /dp
 
-### 2. Menu isolado do módulo
+Cadastro
+  Colaboradores                       → /dp/colaboradores
+  Cargos                              → /dp/cadastros/cargos
+  Unidades                            → /dp/cadastros/unidades
+  Sindicatos                          → /dp/cadastros/sindicatos
+  Negociações Coletivas               → /dp/sindicatos/negociacoes
 
-Ao entrar em `/dp` a sidebar mostra **apenas** o menu do DP:
-- Início
-- Cadastro (Colaboradores, Unidades, Cargos, Sindicatos, Negociações)
-- Operação (Folgas, Trocas, Solicitações, Aprovações)
-- Compliance (Disciplinar, Bloqueios, Documentos)
-- Folha (Períodos, Aprovações Financeiro)
-- Comunicação (Avisos, Mensagens)
+Folgas
+  Calendário Geral                    → /dp/folgas
+  Solicitações                        → /dp/solicitacoes
+  Aprovações                          → /dp/aprovacoes
+  Trocas                              → /dp/trocas
+  Datas Bloqueadas                    → /dp/bloqueios
 
-Em `/dp/meu` (Portal do Colaborador):
-- Início
-- Cadastro (Meus dados)
-- Folgas / Trocas
-- Documentos
-- Comunicação (Avisos, Mensagens)
+Documentos
+  Contracheques                       → /dp/documentos/contracheque
+  Adiantamentos                       → /dp/documentos/adiantamento
+  Folhas de Ponto                     → /dp/documentos/ponto
+  Atestados                           → /dp/documentos/atestado
+  Registros Disciplinares             → /dp/disciplinar
+  ACT-CCT / Sindicato                 → /dp/documentos/sindicato
+  Histórico Completo                  → /dp/documentos
 
-Nada de Financeiro/Empresas/Usuários/Planos aparece nessas rotas.
+Comunicação
+  Mensagens                           → /dp/mensagens
+  Quadro de Avisos                    → /dp/avisos
+```
 
-### 3. Nova Home `/dp` — "Painel Administrativo"
+**Folha (`/dp/folha`, `/dp/folha/aprovacoes`)** é funcionalidade nossa que não existe no Pakerê. Duas opções — vou adotar a **opção A** (mais fiel: nenhum grupo extra):
 
-Reformular `DpHome.tsx` para espelhar a referência:
+- **A. Não expor no menu** — as rotas continuam funcionando, e o link para "Períodos"/"Aprovações Financeiro" aparece via `/dp/documentos/contracheque` (mesma família). Comportamento igual ao Pakerê.
+- B. Se preferir, adicionamos um sexto grupo "Folha" abaixo de Documentos. Confirme na próxima interação se quiser mudar.
 
-- **Cabeçalho**: sino + "Painel Administrativo" + subtítulo "Visão geral e atalhos rápidos".
-- **Grid 2 colunas** (desktop):
-  - **Pendências do Sistema** (badge com contador) — lista rolável de cards internos com ícone à esquerda, título, subtítulo (empresa/período), tag "Atrasado Xd" vermelha, botões **Resolver** / **Adiar**. Fonte: agregação de solicitações pendentes + folhas não fechadas + negociações sindicais vencidas + documentos em atraso (query no client, sem migration).
-  - **Aniversariantes dos Próximos 30 Dias** (badge com contador) — cards com dia/mês em círculo pastel, nome, tag "Contratação" ou "Nascimento", tempo de casa/idade, botão **Mensagem** (link p/ `/dp/mensagens?to=<id>`).
-- **Atalhos Favoritos** (grid de 5 tiles arredondados, borda tracejada suave): Colaboradores, Folha, Solicitações, Documentos, Avisos. Clique navega; ordem fixa por enquanto (o "pressione para reordenar" fica como TODO textual).
+### Portal do Colaborador (`/dp/meu/*`)
 
-Home `/dp/meu` recebe o mesmo tratamento visual (Pendências = minhas solicitações abertas; Aniversariantes = da equipe; Atalhos = Documentos, Solicitações, Trocas, Avisos, Meus Dados).
+```text
+Início                                → /dp/meu
+Perfil                                → /dp/meu/perfil
 
-### 4. Tokens visuais (sem quebrar o resto)
+Folgas
+  Calendário / Solicitações           → /dp/meu/solicitacoes
+  Trocas                              → /dp/meu/trocas
 
-Adicionar em `src/index.css` (escopo só para `.dp-shell`):
-- `--dp-canvas` — fundo creme muito claro
-- `--dp-card` — branco puro com borda âmbar suave
-- `--dp-pending` — vermelho pastel para tags "Atrasado"
-- `--dp-birthday-nasc` / `--dp-birthday-contrat` — pastéis rosa/azul
+Documentos
+  Meus Documentos                     → /dp/meu/documentos
+```
 
-Cores da marca (laranja/marinho) continuam sendo `--primary` e `--sidebar-primary` — nada é reescrito globalmente.
+(nosso Portal tem menos páginas que o Pakerê — mantenho só o que existe; Atestados/Sindicato/Disciplinar do colaborador ficam como filtros dentro de `/dp/meu/documentos`, sem inventar rotas.)
+
+## Detalhe visual observado
+
+No Pakerê o item **Início** ativo usa `bg-red-600 text-white font-bold` (pílula sólida vermelha), enquanto os demais ativos usam `bg-primary/15 text-primary` (fundo suave + texto). Vou replicar:
+
+- **Início ativo** → pílula sólida `bg-primary text-primary-foreground` (nosso laranja 360°FOOD ocupa o papel do vermelho do Pakerê).
+- **Demais itens ativos** → `bg-primary/10 text-primary font-medium`.
+- Grupos colapsáveis com chevron; abrem automaticamente quando a rota atual pertence ao grupo (mesma lógica do `useEffect` deles).
 
 ## Arquivos afetados
 
-**Novos**
-- `src/components/dp/DpShell.tsx` — layout completo (SidebarProvider + DpSidebar + DpHeader + Outlet)
-- `src/components/dp/DpSidebar.tsx` — sidebar branca fina, item ativo em pílula, rodapé com usuário/Sair
-- `src/components/dp/DpHeader.tsx` — header enxuto
-- `src/components/dp/home/PendenciasCard.tsx`
-- `src/components/dp/home/AniversariantesCard.tsx`
-- `src/components/dp/home/AtalhosFavoritos.tsx`
-- `src/hooks/useDpPendencias.tsx` — agrega pendências do módulo
-- `src/hooks/useDpAniversariantes30d.tsx` — próximos 30 dias (nascimento + contratação)
-
 **Modificados**
-- `src/App.tsx` — rotas `/dp/*` e `/dp/meu/*` passam a usar `DpShell` em vez de `AppLayout + DpLayout`
-- `src/components/dp/DpLayout.tsx` — reduzido a guard de contexto PJ (retorna `<Outlet />`)
-- `src/components/dp/ColaboradorShell.tsx` — passa a envolver com `DpShell` no modo portal
-- `src/pages/dp/DpHome.tsx` — reescrito no padrão "Painel Administrativo"
-- `src/pages/dp/portal/DpMeuHome.tsx` — mesmo padrão em versão colaborador
-- `src/index.css` — novos tokens `--dp-*`
-- `src/hooks/useActiveModule.tsx` — não precisa mudar (DP continua isolado)
-- **Não** alterar `AppSidebar.tsx` / `AppLayout.tsx` / rotas do Financeiro
-- **Remover** os menus do DP/Portal de `sidebar-menus/DpMenu.tsx` e `PortalMenu.tsx` (deixam de ser usados) — arquivos deletados
+- `src/components/dp/DpSidebar.tsx` — reescrever `ADMIN_ITEMS` e `PORTAL_ITEMS` conforme o mapa acima; ajustar estilos ativos (Início sólido, demais suaves).
+
+**Sem alteração**
+- Rotas em `App.tsx` (todas as URLs listadas já existem).
+- `DpShell.tsx`, `DpHeader.tsx`, `DpHome.tsx`, cards de home, tokens CSS.
+- Módulos Financeiro/CRM/RH/Backoffice.
 
 ## Validação
-- `tsgo --noEmit`
-- Screenshot Playwright em `/dp` e `/dp/meu` comparando com a referência (sidebar, pílula ativa, painel).
-- Verificar que `/dashboard` (Financeiro) segue idêntico.
+- `tsgo --noEmit`.
+- Screenshot Playwright de `/dp`, `/dp/folgas`, `/dp/documentos/contracheque` confirmando grupo correto aberto e pílula ativa igual à referência.
 
 ## Fora de escopo
-- Reordenação drag-and-drop de "Atalhos Favoritos" (só marcação textual)
-- Persistência de favoritos por usuário
-- Alterações em CRM/RH/Pedidos/Backoffice
+- Recriar páginas ACT-CCT / Adiantamentos / Ponto separadas (usamos a rota genérica `/dp/documentos/:categoria` que já existe).
+- Renomear rotas.
+- Alterar Portal para adicionar sub-páginas que não existem no 360°FOOD.

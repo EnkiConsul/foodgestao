@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, useLocation, Link } from "react-router-dom";
 import {
-  Home, Users, CalendarDays, FileText, MessageSquareText, ChevronDown,
-  Building2, Wallet, ShieldAlert, LogOut, ArrowLeft, User,
+  Home, Users, Briefcase, Building2, Scale, FileSignature,
+  Calendar, ClipboardList, UserCheck, ArrowLeftRight, Ban,
+  FileText, Coins, Clock, HeartPulse, ShieldAlert, ListChecks,
+  MessageSquare, Bell, ChevronDown, LogOut, ArrowLeft, User, Repeat,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import assinatura360 from "@/assets/360food-assinatura.png.asset.json";
@@ -15,62 +17,76 @@ import {
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
-type Sub = { title: string; url: string; end?: boolean };
+type Sub = { title: string; url: string; icon: LucideIcon; end?: boolean };
 type Item =
-  | { kind: "link"; title: string; url: string; icon: LucideIcon; end?: boolean }
-  | { kind: "group"; title: string; icon: LucideIcon; prefix: string; items: Sub[] };
+  | { kind: "link"; title: string; url: string; icon: LucideIcon; end?: boolean; home?: boolean }
+  | { kind: "group"; title: string; icon: LucideIcon; prefixes: string[]; items: Sub[] };
 
 const ADMIN_ITEMS: Item[] = [
-  { kind: "link", title: "Início", url: "/dp", icon: Home, end: true },
+  { kind: "link", title: "Início", url: "/dp", icon: Home, end: true, home: true },
   {
-    kind: "group", title: "Cadastro", icon: Users, prefix: "/dp/cadastros",
+    kind: "group", title: "Cadastro", icon: Users,
+    prefixes: ["/dp/colaboradores", "/dp/cadastros", "/dp/sindicatos"],
     items: [
-      { title: "Colaboradores", url: "/dp/colaboradores" },
-      { title: "Unidades", url: "/dp/cadastros/unidades" },
-      { title: "Cargos", url: "/dp/cadastros/cargos" },
-      { title: "Sindicatos", url: "/dp/cadastros/sindicatos" },
-      { title: "Negociações", url: "/dp/sindicatos/negociacoes" },
+      { title: "Colaboradores", url: "/dp/colaboradores", icon: Users },
+      { title: "Cargos", url: "/dp/cadastros/cargos", icon: Briefcase },
+      { title: "Unidades", url: "/dp/cadastros/unidades", icon: Building2 },
+      { title: "Sindicatos", url: "/dp/cadastros/sindicatos", icon: Scale },
+      { title: "Negociações Coletivas", url: "/dp/sindicatos/negociacoes", icon: FileSignature },
     ],
   },
   {
-    kind: "group", title: "Operação", icon: CalendarDays, prefix: "/dp/folgas|/dp/trocas|/dp/solicitacoes|/dp/aprovacoes",
+    kind: "group", title: "Folgas", icon: Calendar,
+    prefixes: ["/dp/folgas", "/dp/solicitacoes", "/dp/aprovacoes", "/dp/trocas", "/dp/bloqueios"],
     items: [
-      { title: "Folgas", url: "/dp/folgas" },
-      { title: "Trocas", url: "/dp/trocas" },
-      { title: "Solicitações", url: "/dp/solicitacoes" },
-      { title: "Aprovações", url: "/dp/aprovacoes" },
+      { title: "Calendário Geral", url: "/dp/folgas", icon: Calendar },
+      { title: "Solicitações", url: "/dp/solicitacoes", icon: ClipboardList },
+      { title: "Aprovações", url: "/dp/aprovacoes", icon: UserCheck },
+      { title: "Trocas", url: "/dp/trocas", icon: ArrowLeftRight },
+      { title: "Datas Bloqueadas", url: "/dp/bloqueios", icon: Ban },
     ],
   },
   {
-    kind: "group", title: "Compliance", icon: ShieldAlert, prefix: "/dp/disciplinar|/dp/bloqueios|/dp/documentos",
+    kind: "group", title: "Documentos", icon: FileText,
+    prefixes: ["/dp/documentos", "/dp/disciplinar"],
     items: [
-      { title: "Disciplinar", url: "/dp/disciplinar" },
-      { title: "Bloqueios", url: "/dp/bloqueios" },
-      { title: "Documentos", url: "/dp/documentos" },
+      { title: "Contracheques", url: "/dp/documentos/contracheque", icon: FileText },
+      { title: "Adiantamentos", url: "/dp/documentos/adiantamento", icon: Coins },
+      { title: "Folhas de Ponto", url: "/dp/documentos/ponto", icon: Clock },
+      { title: "Atestados", url: "/dp/documentos/atestado", icon: HeartPulse },
+      { title: "Registros Disciplinares", url: "/dp/disciplinar", icon: ShieldAlert },
+      { title: "ACT-CCT / Sindicato", url: "/dp/documentos/sindicato", icon: Scale },
+      { title: "Histórico Completo", url: "/dp/documentos", icon: ListChecks, end: true },
     ],
   },
   {
-    kind: "group", title: "Folha", icon: Wallet, prefix: "/dp/folha",
+    kind: "group", title: "Comunicação", icon: MessageSquare,
+    prefixes: ["/dp/mensagens", "/dp/avisos"],
     items: [
-      { title: "Períodos", url: "/dp/folha", end: true },
-      { title: "Aprovações Financeiro", url: "/dp/folha/aprovacoes" },
-    ],
-  },
-  {
-    kind: "group", title: "Comunicação", icon: MessageSquareText, prefix: "/dp/avisos|/dp/mensagens",
-    items: [
-      { title: "Avisos", url: "/dp/avisos" },
-      { title: "Mensagens", url: "/dp/mensagens" },
+      { title: "Mensagens", url: "/dp/mensagens", icon: MessageSquare },
+      { title: "Quadro de Avisos", url: "/dp/avisos", icon: Bell },
     ],
   },
 ];
 
 const PORTAL_ITEMS: Item[] = [
-  { kind: "link", title: "Início", url: "/dp/meu", icon: Home, end: true },
-  { kind: "link", title: "Meus dados", url: "/dp/meu/perfil", icon: User },
-  { kind: "link", title: "Documentos", url: "/dp/meu/documentos", icon: FileText },
-  { kind: "link", title: "Solicitações", url: "/dp/meu/solicitacoes", icon: CalendarDays },
-  { kind: "link", title: "Trocas", url: "/dp/meu/trocas", icon: Users },
+  { kind: "link", title: "Início", url: "/dp/meu", icon: Home, end: true, home: true },
+  { kind: "link", title: "Perfil", url: "/dp/meu/perfil", icon: User },
+  {
+    kind: "group", title: "Folgas", icon: Calendar,
+    prefixes: ["/dp/meu/solicitacoes", "/dp/meu/trocas"],
+    items: [
+      { title: "Solicitações", url: "/dp/meu/solicitacoes", icon: ClipboardList },
+      { title: "Trocas", url: "/dp/meu/trocas", icon: Repeat },
+    ],
+  },
+  {
+    kind: "group", title: "Documentos", icon: FileText,
+    prefixes: ["/dp/meu/documentos"],
+    items: [
+      { title: "Meus Documentos", url: "/dp/meu/documentos", icon: FileText },
+    ],
+  },
 ];
 
 export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" }) {
@@ -154,7 +170,9 @@ function DpLink({ item, collapsed }: { item: Extract<Item, { kind: "link" }>; co
           cn(
             "flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors",
             isActive
-              ? "bg-primary text-primary-foreground font-medium shadow-sm"
+              ? item.home
+                ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+                : "bg-primary/10 text-primary font-medium"
               : "text-foreground/70 hover:bg-accent hover:text-foreground",
           )
         }
@@ -168,9 +186,12 @@ function DpLink({ item, collapsed }: { item: Extract<Item, { kind: "link" }>; co
 
 function DpGroup({ item, collapsed }: { item: Extract<Item, { kind: "group" }>; collapsed: boolean }) {
   const { pathname } = useLocation();
-  const prefixes = item.prefix.split("|");
-  const active = prefixes.some((p) => pathname.startsWith(p));
+  const active = item.prefixes.some((p) => pathname.startsWith(p));
   const [open, setOpen] = useState(active);
+
+  useEffect(() => {
+    if (active) setOpen(true);
+  }, [active]);
 
   if (collapsed) {
     return (
@@ -179,7 +200,7 @@ function DpGroup({ item, collapsed }: { item: Extract<Item, { kind: "group" }>; 
           to={item.items[0].url}
           className={cn(
             "flex items-center justify-center px-3 py-2.5 rounded-lg transition-colors",
-            active ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:bg-accent",
+            active ? "bg-primary/10 text-primary" : "text-foreground/70 hover:bg-accent",
           )}
         >
           <item.icon className="h-4 w-4" />
@@ -213,14 +234,15 @@ function DpGroup({ item, collapsed }: { item: Extract<Item, { kind: "group" }>; 
               end={sub.end}
               className={({ isActive }) =>
                 cn(
-                  "block px-3 py-2 text-sm rounded-md transition-colors",
+                  "flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors",
                   isActive
-                    ? "bg-primary text-primary-foreground font-medium"
+                    ? "bg-primary/10 text-primary font-medium"
                     : "text-foreground/60 hover:bg-accent hover:text-foreground",
                 )
               }
             >
-              {sub.title}
+              <sub.icon className="h-3.5 w-3.5 shrink-0" />
+              <span>{sub.title}</span>
             </NavLink>
           ))}
         </div>
