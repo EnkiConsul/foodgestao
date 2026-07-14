@@ -282,31 +282,40 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     return () => clearTimeout(t);
   }, [errorField]);
 
-  // Auto-sync dueDate to base date's weekday when in weekly mode
+  // Unified auto-sync of dueDate whenever frequency/periodicity/date changes.
+  // Recalcula sem depender do submit: cobre alternar entre semanal/quinzenal/mensal,
+  // ativar/desativar Recorrente ou Parcelado e mudança do dia base.
   useEffect(() => {
-    if (!date || !dueDate) return;
-    const weeklyRecurring = isRecurring && recurrenceType === "semanal";
-    const weeklyInstallment = isInstallment && installmentPeriod === "semanal";
-    if (!weeklyRecurring && !weeklyInstallment) return;
-    const targetWeekday = parseLocalDate(date).getDay();
-    const currentWd = parseLocalDate(dueDate).getDay();
-    if (targetWeekday !== currentWd) {
-      setDueDate(shiftToWeekday(dueDate, targetWeekday));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date, isRecurring, recurrenceType, isInstallment, installmentPeriod]);
+    if (!date) return;
+    const activePeriod =
+      (isRecurring && recurrenceType) ||
+      (isInstallment && installmentPeriod) ||
+      null;
+    if (!activePeriod) return;
 
-  // Auto-sync dueDate to base date's day-of-month when in mensal/quinzenal mode
-  useEffect(() => {
-    if (!date || !dueDate) return;
-    const isMonthly = (isRecurring && (recurrenceType === "mensal" || recurrenceType === "quinzenal"))
-      || (isInstallment && (installmentPeriod === "mensal" || installmentPeriod === "quinzenal"));
-    if (!isMonthly) return;
-    const targetDay = parseLocalDate(date).getDate();
-    const dueParsed = parseLocalDate(dueDate);
-    const clamped = Math.min(targetDay, lastDayOfMonth(dueParsed.getFullYear(), dueParsed.getMonth()));
-    if (dueParsed.getDate() !== clamped) {
-      setDueDate(shiftToMonthDay(dueDate, targetDay));
+    // Se não há dueDate ainda, inicializa com a data base para modos periódicos.
+    if (!dueDate) {
+      if (activePeriod === "semanal" || activePeriod === "mensal" || activePeriod === "quinzenal") {
+        setDueDate(date);
+      }
+      return;
+    }
+
+    if (activePeriod === "semanal") {
+      const targetWd = parseLocalDate(date).getDay();
+      if (parseLocalDate(dueDate).getDay() !== targetWd) {
+        setDueDate(shiftToWeekday(dueDate, targetWd));
+      }
+      return;
+    }
+
+    if (activePeriod === "mensal" || activePeriod === "quinzenal") {
+      const targetDay = parseLocalDate(date).getDate();
+      const dueParsed = parseLocalDate(dueDate);
+      const clamped = Math.min(targetDay, lastDayOfMonth(dueParsed.getFullYear(), dueParsed.getMonth()));
+      if (dueParsed.getDate() !== clamped) {
+        setDueDate(shiftToMonthDay(dueDate, targetDay));
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, isRecurring, recurrenceType, isInstallment, installmentPeriod]);
