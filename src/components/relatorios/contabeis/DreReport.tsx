@@ -57,8 +57,103 @@ export function DreReport({ nodes, onSelectAnalytic, from, to, regime, contextLa
   // Filtra roots que entram na DRE (in_dre = true) → 4,5,6,7,8
   const dreRoots = ["4", "5", "6", "7", "8"];
 
+  const handleExportPdf = () => {
+    const periodLabel =
+      from && to
+        ? `${format(new Date(from + "T00:00:00"), "dd/MM/yyyy")} a ${format(new Date(to + "T00:00:00"), "dd/MM/yyyy")}`
+        : "";
+    const regimeLabel = regime === "caixa" ? "Caixa" : "Competência";
+    const now = format(new Date(), "dd/MM/yyyy 'às' HH:mm");
+    const fmt = (v: number) => brlAcc(v);
+
+    // Linhas analíticas (contas com movimento) ordenadas por código
+    const analytics = nodes
+      .filter((n) => dreRoots.includes(n.root_code) && n.is_analytic && (n.has_movement || Number(n.saldo_proprio) !== 0))
+      .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
+
+    const analyticRows = analytics
+      .map(
+        (n) => `
+        <tr>
+          <td>${n.code}</td>
+          <td>${n.name}</td>
+          <td class="num">${fmt(Number(n.saldo_proprio || 0))}</td>
+        </tr>`
+      )
+      .join("");
+
+    const pdfWindow = window.open("", "_blank");
+    if (!pdfWindow) return;
+    pdfWindow.document.write(`
+      <!DOCTYPE html><html><head><title>DRE Gerencial ${periodLabel}</title>
+      <style>
+        body { font-family: Arial, sans-serif; font-size: 11px; padding: 16px; color: #111; }
+        h1 { font-size: 18px; margin: 0 0 4px; }
+        h2 { font-size: 13px; margin: 18px 0 6px; }
+        .meta { font-size: 11px; color: #555; margin-bottom: 12px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+        th, td { padding: 5px 8px; border-bottom: 1px solid #e5e7eb; }
+        th { background: #f5f5f5; text-align: left; font-size: 11px; }
+        .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .bold { font-weight: 700; }
+        .muted { color: #555; }
+        .highlight { background: #fff7ed; }
+        .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+        .kpi { border: 1px solid #e5e7eb; padding: 8px 10px; border-radius: 6px; }
+        .kpi .t { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: .05em; }
+        .kpi .v { font-size: 16px; font-weight: 700; }
+        .kpi .s { font-size: 10px; color: #666; }
+        @page { size: A4; margin: 12mm; }
+        @media print { body { padding: 0; } }
+      </style></head><body>
+      <h1>DRE Gerencial</h1>
+      <div class="meta">
+        ${contextLabel ? `<div><strong>${contextLabel}</strong></div>` : ""}
+        <div>Período: ${periodLabel} · Regime: ${regimeLabel}</div>
+        <div>Gerado em ${now}</div>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi"><div class="t">Receita Líquida</div><div class="v">${fmt(totais.receita_liquida)}</div></div>
+        <div class="kpi"><div class="t">Lucro Bruto</div><div class="v">${fmt(totais.lucro_bruto)}</div><div class="s">Margem ${pct(totais.mBruta)}</div></div>
+        <div class="kpi"><div class="t">EBITDA</div><div class="v">${fmt(totais.ebitda)}</div></div>
+        <div class="kpi"><div class="t">Resultado Líquido</div><div class="v">${fmt(totais.resultado)}</div><div class="s">Margem ${pct(totais.mLiquida)}</div></div>
+      </div>
+
+      <h2>Demonstração de Resultado</h2>
+      <table>
+        <tbody>
+          <tr><td>Receita Bruta</td><td class="num">${fmt(totais.receita)}</td></tr>
+          <tr class="muted"><td>(−) Impostos sobre Vendas</td><td class="num">${fmt(-totais.impostos)}</td></tr>
+          <tr class="bold"><td>= Receita Líquida</td><td class="num">${fmt(totais.receita_liquida)}</td></tr>
+          <tr class="muted"><td>(−) Custos</td><td class="num">${fmt(-totais.custos)}</td></tr>
+          <tr class="bold"><td>= Lucro Bruto (Margem ${pct(totais.mBruta)})</td><td class="num">${fmt(totais.lucro_bruto)}</td></tr>
+          <tr class="muted"><td>(−) Despesas Operacionais</td><td class="num">${fmt(-totais.despOp)}</td></tr>
+          <tr class="bold"><td>= EBITDA / Operacional</td><td class="num">${fmt(totais.ebitda)}</td></tr>
+          <tr class="muted"><td>(−) Despesas Financeiras</td><td class="num">${fmt(-totais.despFin)}</td></tr>
+          <tr class="bold highlight"><td>= Resultado Líquido (Margem ${pct(totais.mLiquida)})</td><td class="num">${fmt(totais.resultado)}</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Detalhamento por Conta Contábil</h2>
+      <table>
+        <thead><tr><th style="width:90px;">Código</th><th>Conta</th><th class="num" style="width:140px;">Saldo</th></tr></thead>
+        <tbody>${analyticRows || `<tr><td colspan="3" class="muted">Sem movimento no período.</td></tr>`}</tbody>
+      </table>
+      </body></html>
+    `);
+    pdfWindow.document.close();
+    setTimeout(() => pdfWindow.print(), 300);
+  };
+
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" className="gap-1" onClick={handleExportPdf}>
+          <Download className="h-3.5 w-3.5" /> Exportar PDF
+        </Button>
+      </div>
+
       {/* Cards de KPIs */}
       <div className="grid gap-3 md:grid-cols-4">
         <KpiCard title="Receita Líquida" value={totais.receita_liquida} />
