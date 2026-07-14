@@ -3476,6 +3476,7 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      dp_colaborador_of: { Args: { _user_id: string }; Returns: string }
       dre_apply_default_mapping: {
         Args: { _company_id: string }
         Returns: number
@@ -3629,6 +3630,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      is_dp_colaborador: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       list_active_bank_connections: {
         Args: never
