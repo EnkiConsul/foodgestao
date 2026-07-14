@@ -82,7 +82,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         cargo_id: form.cargo_id || null,
         sindicato_id: form.sindicato_id || null,
         email_portal: form.email_portal.trim() || null,
-      });
+        data_nascimento: form.data_nascimento || null,
+      } as any);
       toast.success(colaborador ? "Colaborador atualizado" : "Colaborador cadastrado");
       onOpenChange(false);
     } catch (e) {
