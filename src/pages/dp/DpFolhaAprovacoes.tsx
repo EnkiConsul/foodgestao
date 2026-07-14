@@ -29,7 +29,7 @@ export default function DpFolhaAprovacoes() {
       const { data, error } = await supabase
         .from("accounts").select("id, name")
         .eq("company_id", selectedCompanyId!)
-        .eq("context", "pj").eq("active", true);
+        .eq("context", "pj").eq("is_active", true);
       if (error) throw error;
       return data ?? [];
     },
