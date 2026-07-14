@@ -364,6 +364,9 @@ const AppRoutes = () => (
         <Route path="cadastros/cargos" element={<DpCargos />} />
         <Route path="cadastros/sindicatos" element={<DpSindicatos />} />
         <Route path="sindicatos/negociacoes" element={<DpSindicatoNegociacoes />} />
+        <Route path="folha" element={<DpFolhaHub />} />
+        <Route path="folha/aprovacoes" element={<DpFolhaAprovacoes />} />
+        <Route path="folha/periodos/:id" element={<DpFolhaPeriodo />} />
       </Route>
       <Route path="/crm" element={<ModuleGuard module="crm"><ModulePlaceholder module="crm" /></ModuleGuard>} />
       <Route path="/rh" element={<ModuleGuard module="rh"><ModulePlaceholder module="rh" /></ModuleGuard>} />
