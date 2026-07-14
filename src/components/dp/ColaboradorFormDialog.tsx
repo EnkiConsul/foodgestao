@@ -38,6 +38,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     ativo: true, observacoes: "",
     unidade_id: "" as string, cargo_id: "" as string, sindicato_id: "" as string,
     email_portal: "",
+    data_nascimento: "",
   });
 
   useEffect(() => {
