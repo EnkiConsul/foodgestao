@@ -19,6 +19,7 @@ import {
   Receipt,
   MessageCircle,
   BookOpen,
+  LayoutGrid,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useState } from "react";
