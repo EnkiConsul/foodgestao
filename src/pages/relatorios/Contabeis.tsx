@@ -88,8 +88,6 @@ export default function RelatoriosContabeis() {
         <Tabs defaultValue="dre" className="space-y-4">
           <TabsList className="flex flex-wrap gap-1">
             <TabsTrigger value="dre">DRE Gerencial</TabsTrigger>
-            <TabsTrigger value="balancete">Balancete</TabsTrigger>
-            <TabsTrigger value="balanco">Balanço Patrimonial</TabsTrigger>
             <TabsTrigger value="pendencias">Pendências</TabsTrigger>
           </TabsList>
 
@@ -113,12 +111,6 @@ export default function RelatoriosContabeis() {
             <>
               <TabsContent value="dre">
                 <DreReport nodes={nodes} onSelectAnalytic={setDrawerAccount} />
-              </TabsContent>
-              <TabsContent value="balancete">
-                <TrialBalance nodes={nodes} onSelectAnalytic={setDrawerAccount} />
-              </TabsContent>
-              <TabsContent value="balanco">
-                <BalanceSheet nodes={nodes} onSelectAnalytic={setDrawerAccount} />
               </TabsContent>
               <TabsContent value="pendencias">
                 <PendingClassificationPanel from={filters.from} to={filters.to} />
