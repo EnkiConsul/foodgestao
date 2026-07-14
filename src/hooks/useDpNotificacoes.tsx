@@ -30,7 +30,7 @@ export function useDpNotificacoes(opts?: { onlyUnread?: boolean }) {
   useEffect(() => {
     if (!selectedCompanyId) return;
     const channel = supabase
-      .channel(`dp_notif_${selectedCompanyId}`)
+      .channel(`dp_notif_${selectedCompanyId}_${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "dp_notificacoes", filter: `company_id=eq.${selectedCompanyId}` },
