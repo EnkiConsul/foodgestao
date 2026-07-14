@@ -58,6 +58,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         cargo_id: colaborador?.cargo_id ?? "",
         sindicato_id: colaborador?.sindicato_id ?? "",
         email_portal: colaborador?.email_portal ?? "",
+        data_nascimento: (colaborador as any)?.data_nascimento ?? "",
       });
     }
   }, [open, colaborador]);
