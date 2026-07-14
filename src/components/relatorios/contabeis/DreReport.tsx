@@ -24,7 +24,7 @@ function totalByNature(nodes: ReportNode[], nature: string): number {
     .reduce((s, n) => s + Number(n.saldo_consolidado || 0), 0);
 }
 
-export function DreReport({ nodes, onSelectAnalytic }: Props) {
+export function DreReport({ nodes, onSelectAnalytic, from, to, regime, contextLabel }: Props) {
   const totais = useMemo(() => {
     const receita = totalByNature(nodes, "receita");
     const impostos = totalByNature(nodes, "imposto");
