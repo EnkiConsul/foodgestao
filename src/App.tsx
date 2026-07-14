@@ -28,6 +28,7 @@ import DpAvisos from "./pages/dp/DpAvisos";
 import DpMensagens from "./pages/dp/DpMensagens";
 import DpDisciplinar from "./pages/dp/DpDisciplinar";
 import DpBloqueios from "./pages/dp/DpBloqueios";
+import DpTrocas from "./pages/dp/DpTrocas";
 import AdminModulos from "./pages/admin/Modulos";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
