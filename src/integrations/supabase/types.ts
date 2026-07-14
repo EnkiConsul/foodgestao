@@ -1613,6 +1613,203 @@ export type Database = {
         }
         Relationships: []
       }
+      dp_colaboradores: {
+        Row: {
+          ativo: boolean
+          cargo: string | null
+          company_id: string
+          cpf: string | null
+          created_at: string
+          data_admissao: string | null
+          data_desligamento: string | null
+          email: string | null
+          id: string
+          matricula: string | null
+          nome: string
+          observacoes: string | null
+          regime: Database["public"]["Enums"]["dp_regime_trabalho"]
+          telefone: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          cargo?: string | null
+          company_id: string
+          cpf?: string | null
+          created_at?: string
+          data_admissao?: string | null
+          data_desligamento?: string | null
+          email?: string | null
+          id?: string
+          matricula?: string | null
+          nome: string
+          observacoes?: string | null
+          regime?: Database["public"]["Enums"]["dp_regime_trabalho"]
+          telefone?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          cargo?: string | null
+          company_id?: string
+          cpf?: string | null
+          created_at?: string
+          data_admissao?: string | null
+          data_desligamento?: string | null
+          email?: string | null
+          id?: string
+          matricula?: string | null
+          nome?: string
+          observacoes?: string | null
+          regime?: Database["public"]["Enums"]["dp_regime_trabalho"]
+          telefone?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_colaboradores_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_documentos: {
+        Row: {
+          colaborador_id: string | null
+          company_id: string
+          created_at: string
+          descricao: string | null
+          file_name: string | null
+          file_path: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          referencia_data: string | null
+          tipo: Database["public"]["Enums"]["dp_documento_tipo"]
+          titulo: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          colaborador_id?: string | null
+          company_id: string
+          created_at?: string
+          descricao?: string | null
+          file_name?: string | null
+          file_path: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          referencia_data?: string | null
+          tipo?: Database["public"]["Enums"]["dp_documento_tipo"]
+          titulo: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          colaborador_id?: string | null
+          company_id?: string
+          created_at?: string
+          descricao?: string | null
+          file_name?: string | null
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          referencia_data?: string | null
+          tipo?: Database["public"]["Enums"]["dp_documento_tipo"]
+          titulo?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_documentos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_documentos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_solicitacoes: {
+        Row: {
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          criado_por: string | null
+          data_alvo: string | null
+          data_fim: string | null
+          id: string
+          motivo: string | null
+          respondido_em: string | null
+          respondido_por: string | null
+          resposta_admin: string | null
+          status: Database["public"]["Enums"]["dp_solicitacao_status"]
+          tipo: Database["public"]["Enums"]["dp_solicitacao_tipo"]
+          updated_at: string
+        }
+        Insert: {
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          criado_por?: string | null
+          data_alvo?: string | null
+          data_fim?: string | null
+          id?: string
+          motivo?: string | null
+          respondido_em?: string | null
+          respondido_por?: string | null
+          resposta_admin?: string | null
+          status?: Database["public"]["Enums"]["dp_solicitacao_status"]
+          tipo: Database["public"]["Enums"]["dp_solicitacao_tipo"]
+          updated_at?: string
+        }
+        Update: {
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          criado_por?: string | null
+          data_alvo?: string | null
+          data_fim?: string | null
+          id?: string
+          motivo?: string | null
+          respondido_em?: string | null
+          respondido_por?: string | null
+          resposta_admin?: string | null
+          status?: Database["public"]["Enums"]["dp_solicitacao_status"]
+          tipo?: Database["public"]["Enums"]["dp_solicitacao_tipo"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_solicitacoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_solicitacoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -3137,6 +3334,22 @@ export type Database = {
       contact_type: "cliente" | "fornecedor" | "ambos"
       context_type: "pf" | "pj"
       discount_type: "percent" | "fixed"
+      dp_documento_tipo:
+        | "contracheque"
+        | "contrato"
+        | "atestado"
+        | "adiantamento"
+        | "ponto"
+        | "disciplinar"
+        | "outros"
+      dp_regime_trabalho: "clt" | "pj" | "estagio" | "temporario" | "mei"
+      dp_solicitacao_status: "pendente" | "aprovada" | "recusada" | "cancelada"
+      dp_solicitacao_tipo:
+        | "folga"
+        | "ferias"
+        | "atestado"
+        | "adiantamento"
+        | "outros"
       invite_status: "pending" | "accepted" | "rejected" | "expired"
       invoice_payment_method: "pix" | "boleto" | "card" | "manual"
       invoice_status:
@@ -3316,6 +3529,24 @@ export const Constants = {
       contact_type: ["cliente", "fornecedor", "ambos"],
       context_type: ["pf", "pj"],
       discount_type: ["percent", "fixed"],
+      dp_documento_tipo: [
+        "contracheque",
+        "contrato",
+        "atestado",
+        "adiantamento",
+        "ponto",
+        "disciplinar",
+        "outros",
+      ],
+      dp_regime_trabalho: ["clt", "pj", "estagio", "temporario", "mei"],
+      dp_solicitacao_status: ["pendente", "aprovada", "recusada", "cancelada"],
+      dp_solicitacao_tipo: [
+        "folga",
+        "ferias",
+        "atestado",
+        "adiantamento",
+        "outros",
+      ],
       invite_status: ["pending", "accepted", "rejected", "expired"],
       invoice_payment_method: ["pix", "boleto", "card", "manual"],
       invoice_status: [
