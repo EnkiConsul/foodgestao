@@ -18,6 +18,7 @@ import DpHome from "./pages/dp/DpHome";
 import DpColaboradores from "./pages/dp/DpColaboradores";
 import DpSolicitacoes from "./pages/dp/DpSolicitacoes";
 import DpDocumentos from "./pages/dp/DpDocumentos";
+import DpFolgas from "./pages/dp/DpFolgas";
 import AdminModulos from "./pages/admin/Modulos";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
