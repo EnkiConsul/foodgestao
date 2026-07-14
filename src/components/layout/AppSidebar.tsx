@@ -1,51 +1,15 @@
-import {
-  LayoutDashboard,
-  ArrowLeftRight,
-  Wallet,
-  TrendingUp,
-  Target,
-  FileBarChart,
-  Users,
-  UserCog,
-  FolderTree,
-  Landmark,
-  Building2,
-  CreditCard,
-  Settings,
-  LogOut,
-  Shield,
-  Sparkles,
-  ChevronRight,
-  Receipt,
-  MessageCircle,
-  BookOpen,
-  LayoutGrid,
-} from "lucide-react";
-import { useLocation } from "react-router-dom";
-import { useState } from "react";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-} from "@/components/ui/sidebar";
+import { LogOut, MessageCircle, LayoutGrid } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { Logo } from "@/components/Logo";
 import assinatura360 from "@/assets/360food-assinatura.png.asset.json";
 import symbol360 from "@/assets/360food-symbol.png.asset.json";
 
 import { useAuth } from "@/hooks/useAuth";
-import { useSuperAdmin } from "@/hooks/useSuperAdmin";
+import { useActiveModule } from "@/hooks/useActiveModule";
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -54,46 +18,34 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const hubItem = { title: "Hub de Módulos", url: "/hub", icon: LayoutGrid };
-
-const mainItems = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Lançamentos", url: "/lancamentos", icon: ArrowLeftRight },
-  { title: "Fluxo de Caixa", url: "/fluxo-caixa", icon: TrendingUp },
-  { title: "Orçamento", url: "/orcamento", icon: Target },
-];
-
-const reportsSubItems = [
-  { title: "Financeiros", url: "/relatorios" },
-  { title: "Contábeis", url: "/relatorios/contabeis" },
-];
-
-const secondaryItems = [
-  { title: "Perfis de Acesso", url: "/empresas", icon: Building2 },
-  { title: "Contas Bancárias", url: "/contas-bancarias", icon: Landmark },
-  { title: "Formas de Pagamento", url: "/formas-pagamento", icon: CreditCard },
-  { title: "Clientes / Fornecedores", url: "/contatos", icon: Users },
-  { title: "Categorias", url: "/categorias", icon: FolderTree },
-  { title: "Contas Contábeis", url: "/contas-contabeis", icon: BookOpen },
-  { title: "Usuários", url: "/gestao-usuarios", icon: UserCog },
-  { title: "Meu Plano", url: "/planos", icon: Sparkles },
-  { title: "Minhas Faturas", url: "/faturas", icon: Receipt },
-  { title: "Configurações", url: "/configuracoes", icon: Settings },
-];
+import { FinanceiroMenu } from "./sidebar-menus/FinanceiroMenu";
+import { DpMenu } from "./sidebar-menus/DpMenu";
+import { PortalMenu } from "./sidebar-menus/PortalMenu";
+import { AccountMenu } from "./sidebar-menus/AccountMenu";
+import { ComingSoonMenu } from "./sidebar-menus/ComingSoonMenu";
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  
   const { signOut } = useAuth();
-  const { isSuperAdmin } = useSuperAdmin();
-  const { pathname } = useLocation();
-  const reportsActive = pathname.startsWith("/relatorios");
-  const [reportsOpen, setReportsOpen] = useState(reportsActive);
+  const activeModule = useActiveModule();
 
-  const visibleSecondaryItems = isSuperAdmin
-    ? [...secondaryItems, { title: "Backoffice", url: "/admin", icon: Shield }]
-    : secondaryItems;
+  const renderModuleMenu = () => {
+    switch (activeModule) {
+      case "financeiro": return <FinanceiroMenu />;
+      case "dp": return <DpMenu />;
+      case "portal_colaborador": return <PortalMenu />;
+      case "crm": return <ComingSoonMenu label="CRM 360°" />;
+      case "rh": return <ComingSoonMenu label="RH 360°" />;
+      case "pedidos": return <ComingSoonMenu label="Pedidos 360°" />;
+      case "hub":
+      case "admin":
+      default: return null;
+    }
+  };
+
+  const accountVariant = activeModule === "portal_colaborador" ? "portal" : "full";
+  const showAccount = activeModule !== "admin";
 
   return (
     <Sidebar className="border-r-0" collapsible="icon">
@@ -113,112 +65,32 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink
-                    to={hubItem.url}
-                    className="flex items-center gap-3 px-5 py-2.5 text-sm text-primary hover:bg-sidebar-accent rounded-lg mx-2 transition-all duration-200 hover:translate-x-1 font-medium"
-                    activeClassName="bg-sidebar-accent translate-x-1"
-                  >
-                    <hubItem.icon className="h-4 w-4 shrink-0" />
-                    <span>{hubItem.title}</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/50 text-xs uppercase tracking-wider px-5">
-            Financeiro 360°
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {mainItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end
-                      className="flex items-center gap-3 px-5 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground rounded-lg mx-2 transition-all duration-200 hover:translate-x-1"
-                      activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium translate-x-1"
-                    >
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-
-              <Collapsible open={reportsOpen} onOpenChange={setReportsOpen}>
+        {/* Hub link — presente em todos os módulos exceto no portal do colaborador (que não tem acesso ao hub) */}
+        {activeModule !== "portal_colaborador" && activeModule !== "admin" && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
                 <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton
-                      className={`flex items-center gap-3 px-5 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground rounded-lg mx-2 transition-all duration-200 hover:translate-x-1 ${
-                        reportsActive ? "bg-sidebar-accent text-sidebar-foreground font-medium translate-x-1" : ""
-                      }`}
-                    >
-                      <FileBarChart className="h-4 w-4 shrink-0" />
-                      <span>Relatórios</span>
-                      <ChevronRight
-                        className={`ml-auto h-4 w-4 transition-transform duration-200 ${
-                          reportsOpen ? "rotate-90" : ""
-                        }`}
-                      />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {reportsSubItems.map((sub) => (
-                        <SidebarMenuSubItem key={sub.url}>
-                          <SidebarMenuSubButton asChild>
-                            <NavLink
-                              to={sub.url}
-                              end
-                              className="text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground"
-                              activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
-                            >
-                              <span>{sub.title}</span>
-                            </NavLink>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/50 text-xs uppercase tracking-wider px-5">
-            Gerenciar
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {visibleSecondaryItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
-                      to={item.url}
-                      className="flex items-center gap-3 px-5 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground rounded-lg mx-2 transition-all duration-200 hover:translate-x-1"
-                      activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium translate-x-1"
+                      to="/hub"
+                      end
+                      className="flex items-center gap-3 px-5 py-2.5 text-sm text-primary hover:bg-sidebar-accent rounded-lg mx-2 transition-all duration-200 hover:translate-x-1 font-medium"
+                      activeClassName="bg-sidebar-accent translate-x-1"
                     >
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      <span>{item.title}</span>
+                      <LayoutGrid className="h-4 w-4 shrink-0" />
+                      <span>Hub de Módulos</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
+        {renderModuleMenu()}
+
+        {showAccount && <AccountMenu variant={accountVariant} />}
       </SidebarContent>
 
       <SidebarFooter className="p-4 border-t border-sidebar-border space-y-1">
