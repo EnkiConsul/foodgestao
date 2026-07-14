@@ -1,101 +1,92 @@
+## Objetivo
 
-# Padronização de Layout — Sidebar contextual por módulo
+Replicar fielmente a estrutura do projeto referência (Pakerê Portal do Colaborador) nos módulos **DP 360°** e **Portal do Colaborador**, mantendo as cores da marca 360°FOOD (laranja `#EB6119`, marinho `#0F1B3D`). O módulo Financeiro permanece como está.
 
-Unificar todo o sistema no mesmo esqueleto do `AppLayout` (sidebar à esquerda + header + main), com o **conteúdo da sidebar mudando conforme o módulo ativo**. Nada de nova paleta, nova tipografia ou novo design — apenas reorganização estrutural preservando 100% dos tokens 360°FOOD (laranja `#EB6119` + marinho `#0F1B3D`).
+## O que muda
 
-## O que muda de layout
+### 1. Shell dedicado para DP/Portal (`DpShell`)
 
-| Área | Hoje | Depois |
-|---|---|---|
-| Financeiro (`/dashboard`, `/lancamentos`, …) | AppSidebar com tudo | AppSidebar com **só menu Financeiro** + grupo Conta |
-| DP admin (`/dp/*`) | Barra horizontal `DpLayout` | AppSidebar com **menu DP agrupado** + grupo Conta |
-| Portal Colaborador (`/dp/meu/*`) | Header minimalista `ColaboradorShell` | AppSidebar com **menu do colaborador** + grupo Conta |
-| CRM/RH/Pedidos (placeholders) | AppLayout, sem menu próprio | AppSidebar preparada para receber menu próprio quando o módulo for construído |
-| Hub `/hub` | AppSidebar completa | AppSidebar **só com o item "Hub de Módulos"** (limpa, para escolher módulo) |
+Novo layout específico para rotas `/dp/*`, independente do `AppLayout` do Financeiro:
 
-## Estrutura da nova sidebar
+- **Sidebar branca fina** (~240px), sem gradiente, borda direita sutil.
+  - Topo: logo 360°FOOD + subtítulo ("DP 360°" ou "Portal do Colaborador").
+  - Itens de menu com ícone à esquerda, texto médio; item ativo em **pílula laranja sólida** (`bg-primary`) com texto branco e cantos arredondados (`rounded-lg`).
+  - Itens expansíveis (Cadastro, Comunicação) com chevron à direita e submenu recuado.
+  - Rodapé fixo: nome do usuário em CAPS, cargo/e-mail abaixo, link **Sair** em laranja.
+  - **Sem grupo "Conta"**, **sem link "Hub"** na barra lateral. Um botão discreto "← Voltar ao Hub" acima do rodapé.
+- **Header** simples: só o `SidebarTrigger`, o `ContextSelector` (quando aplicável) e o sino de notificações. Sem toggle de privacidade.
+- **Main** com fundo creme muito sutil (`bg-[hsl(var(--dp-canvas))]`), padding generoso.
 
-```text
-┌─ Logo 360°FOOD ────────────┐
-│ ⌂ Hub de Módulos           │  ← sempre presente (voltar)
-├────────────────────────────┤
-│ [MÓDULO ATIVO]             │  ← "Financeiro 360°" | "DP 360°" | "Portal"
-│   Item 1                    │
-│   Item 2                    │
-│   ▸ Subgrupo (collapsible)  │
-├────────────────────────────┤
-│ CONTA                       │  ← fixo em todos os módulos
-│   Empresas                  │
-│   Usuários                  │
-│   Meu Plano                 │
-│   Minhas Faturas            │
-│   Configurações             │
-│   Backoffice (super-admin)  │
-├────────────────────────────┤
-│ Suporte · Sair              │  ← footer
-└────────────────────────────┘
-```
+### 2. Menu isolado do módulo
 
-## Menu por módulo
-
-**Financeiro 360°** (mantém o que já existe):
-- Dashboard · Lançamentos · Fluxo de Caixa · Orçamento · Relatórios (Financeiros / Contábeis) · Contas Bancárias · Formas de Pagamento · Clientes/Fornecedores · Categorias · Contas Contábeis
-
-**DP 360°** (migrado da barra horizontal, agrupado):
+Ao entrar em `/dp` a sidebar mostra **apenas** o menu do DP:
 - Início
-- **Operação** (collapsible): Colaboradores, Folgas, Trocas, Solicitações, Aprovações
-- **Comunicação** (collapsible): Avisos, Mensagens
-- **Compliance** (collapsible): Disciplinar, Bloqueios, Documentos
-- **Folha** (collapsible): Períodos, Aprovações Financeiro
-- **Cadastros** (collapsible): Unidades, Cargos, Sindicatos, Negociações
+- Cadastro (Colaboradores, Unidades, Cargos, Sindicatos, Negociações)
+- Operação (Folgas, Trocas, Solicitações, Aprovações)
+- Compliance (Disciplinar, Bloqueios, Documentos)
+- Folha (Períodos, Aprovações Financeiro)
+- Comunicação (Avisos, Mensagens)
 
-**Portal do Colaborador** (`/dp/meu/*`):
-- Início · Meus dados · Documentos · Solicitações · Trocas
-- (grupo Conta reduzido: só Configurações + Sair; sem Empresas/Usuários/Planos)
+Em `/dp/meu` (Portal do Colaborador):
+- Início
+- Cadastro (Meus dados)
+- Folgas / Trocas
+- Documentos
+- Comunicação (Avisos, Mensagens)
 
-## Como o menu troca
+Nada de Financeiro/Empresas/Usuários/Planos aparece nessas rotas.
 
-Novo hook `useActiveModule()` (em `src/hooks/useActiveModule.tsx`) que detecta o módulo pela rota:
-- `/hub` → `hub` (sidebar mínima)
-- `/dp/meu/*` → `portal_colaborador`
-- `/dp/*` → `dp`
-- `/crm/*` → `crm` · `/rh/*` → `rh` · `/pedidos/*` → `pedidos`
-- resto (`/dashboard`, `/lancamentos`, `/relatorios`, …) → `financeiro`
+### 3. Nova Home `/dp` — "Painel Administrativo"
 
-`AppSidebar` lê esse hook e renderiza o bloco de menu correspondente (um componente por módulo em `src/components/layout/sidebar-menus/`: `FinanceiroMenu.tsx`, `DpMenu.tsx`, `PortalMenu.tsx`, `CrmMenu.tsx`, `RhMenu.tsx`, `PedidosMenu.tsx`, `HubMenu.tsx`). Grupo "Conta" e footer são compartilhados.
+Reformular `DpHome.tsx` para espelhar a referência:
+
+- **Cabeçalho**: sino + "Painel Administrativo" + subtítulo "Visão geral e atalhos rápidos".
+- **Grid 2 colunas** (desktop):
+  - **Pendências do Sistema** (badge com contador) — lista rolável de cards internos com ícone à esquerda, título, subtítulo (empresa/período), tag "Atrasado Xd" vermelha, botões **Resolver** / **Adiar**. Fonte: agregação de solicitações pendentes + folhas não fechadas + negociações sindicais vencidas + documentos em atraso (query no client, sem migration).
+  - **Aniversariantes dos Próximos 30 Dias** (badge com contador) — cards com dia/mês em círculo pastel, nome, tag "Contratação" ou "Nascimento", tempo de casa/idade, botão **Mensagem** (link p/ `/dp/mensagens?to=<id>`).
+- **Atalhos Favoritos** (grid de 5 tiles arredondados, borda tracejada suave): Colaboradores, Folha, Solicitações, Documentos, Avisos. Clique navega; ordem fixa por enquanto (o "pressione para reordenar" fica como TODO textual).
+
+Home `/dp/meu` recebe o mesmo tratamento visual (Pendências = minhas solicitações abertas; Aniversariantes = da equipe; Atalhos = Documentos, Solicitações, Trocas, Avisos, Meus Dados).
+
+### 4. Tokens visuais (sem quebrar o resto)
+
+Adicionar em `src/index.css` (escopo só para `.dp-shell`):
+- `--dp-canvas` — fundo creme muito claro
+- `--dp-card` — branco puro com borda âmbar suave
+- `--dp-pending` — vermelho pastel para tags "Atrasado"
+- `--dp-birthday-nasc` / `--dp-birthday-contrat` — pastéis rosa/azul
+
+Cores da marca (laranja/marinho) continuam sendo `--primary` e `--sidebar-primary` — nada é reescrito globalmente.
 
 ## Arquivos afetados
 
-**Novos:**
-- `src/hooks/useActiveModule.tsx`
-- `src/components/layout/sidebar-menus/FinanceiroMenu.tsx`
-- `src/components/layout/sidebar-menus/DpMenu.tsx`
-- `src/components/layout/sidebar-menus/PortalMenu.tsx`
-- `src/components/layout/sidebar-menus/CrmMenu.tsx`, `RhMenu.tsx`, `PedidosMenu.tsx`, `HubMenu.tsx`
-- `src/components/layout/sidebar-menus/AccountMenu.tsx` (grupo Conta reusável)
+**Novos**
+- `src/components/dp/DpShell.tsx` — layout completo (SidebarProvider + DpSidebar + DpHeader + Outlet)
+- `src/components/dp/DpSidebar.tsx` — sidebar branca fina, item ativo em pílula, rodapé com usuário/Sair
+- `src/components/dp/DpHeader.tsx` — header enxuto
+- `src/components/dp/home/PendenciasCard.tsx`
+- `src/components/dp/home/AniversariantesCard.tsx`
+- `src/components/dp/home/AtalhosFavoritos.tsx`
+- `src/hooks/useDpPendencias.tsx` — agrega pendências do módulo
+- `src/hooks/useDpAniversariantes30d.tsx` — próximos 30 dias (nascimento + contratação)
 
-**Modificados:**
-- `src/components/layout/AppSidebar.tsx` — passa a delegar o bloco central ao menu do módulo ativo.
-- `src/components/dp/DpLayout.tsx` — vira `<Outlet />` puro (o menu horizontal some; guard PJ + sino de notificações vão para o `AppHeader` como área contextual do DP).
-- `src/components/dp/ColaboradorShell.tsx` — vira thin wrapper que reutiliza o `AppLayout`, mantendo o gate de `is_dp_colaborador`.
-- `src/App.tsx` — `/dp/meu/*` passa a usar o `AppLayout` normal (com Portal ativo detectado pela rota); rota `/dp/*` também.
-- `src/pages/Hub.tsx` — sem mudanças de conteúdo; só se beneficia da sidebar mais limpa.
+**Modificados**
+- `src/App.tsx` — rotas `/dp/*` e `/dp/meu/*` passam a usar `DpShell` em vez de `AppLayout + DpLayout`
+- `src/components/dp/DpLayout.tsx` — reduzido a guard de contexto PJ (retorna `<Outlet />`)
+- `src/components/dp/ColaboradorShell.tsx` — passa a envolver com `DpShell` no modo portal
+- `src/pages/dp/DpHome.tsx` — reescrito no padrão "Painel Administrativo"
+- `src/pages/dp/portal/DpMeuHome.tsx` — mesmo padrão em versão colaborador
+- `src/index.css` — novos tokens `--dp-*`
+- `src/hooks/useActiveModule.tsx` — não precisa mudar (DP continua isolado)
+- **Não** alterar `AppSidebar.tsx` / `AppLayout.tsx` / rotas do Financeiro
+- **Remover** os menus do DP/Portal de `sidebar-menus/DpMenu.tsx` e `PortalMenu.tsx` (deixam de ser usados) — arquivos deletados
 
-**Removido:**
-- Barra horizontal do DP (código inline em `DpLayout.tsx`).
-- Header próprio do `ColaboradorShell.tsx` (substituído pelo `AppHeader`).
+## Validação
+- `tsgo --noEmit`
+- Screenshot Playwright em `/dp` e `/dp/meu` comparando com a referência (sidebar, pílula ativa, painel).
+- Verificar que `/dashboard` (Financeiro) segue idêntico.
 
-## Preservado (não muda)
-
-- Todos os tokens de cor em `index.css` e `tailwind.config.ts`.
-- Logo, header, breadcrumbs, bottom nav mobile, install prompt.
-- Rotas atuais e permissões (ModuleGuard continua envolvendo `/dp`, `/crm` etc.).
-- Sino de notificações do DP (`DpNotificacoesBell`) — passa a viver no `AppHeader` quando módulo ativo = DP.
-- Comportamento `collapsible="icon"`, hover `translate-x-1`, subgrupos collapsible, ativação por `NavLink`.
-
-## Validação final
-
-- `tsgo --noEmit` limpo.
-- Navegar por Hub → Financeiro → DP → Portal → Hub e confirmar que a sidebar troca corretamente em cada rota.
-- Portal do colaborador: verificar que grupo Conta aparece reduzido (só Configurações/Sair).
-- Super-admin: item Backoffice continua aparecendo no grupo Conta.
+## Fora de escopo
+- Reordenação drag-and-drop de "Atalhos Favoritos" (só marcação textual)
+- Persistência de favoritos por usuário
+- Alterações em CRM/RH/Pedidos/Backoffice
