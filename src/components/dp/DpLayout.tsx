@@ -1,7 +1,10 @@
 import { Outlet } from "react-router-dom";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { DpNotificacoesBell } from "@/components/dp/DpNotificacoesBell";
+import { DpShell } from "@/components/dp/DpShell";
 
+/**
+ * DpLayout: guard de contexto PJ + DpShell (sidebar/header próprios do módulo).
+ */
 export function DpLayout() {
   const { contextType } = useCompanyContext();
 
@@ -13,12 +16,10 @@ export function DpLayout() {
     );
   }
 
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <DpNotificacoesBell />
-      </div>
-      <Outlet />
-    </div>
-  );
+  return <DpShell variant="admin" />;
+}
+
+// Wrapper interno usado pelo DpShell — Outlet
+export function DpLayoutOutlet() {
+  return <Outlet />;
 }
