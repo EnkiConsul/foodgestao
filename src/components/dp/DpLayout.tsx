@@ -1,11 +1,12 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Users, ClipboardList, FolderOpen, Home } from "lucide-react";
+import { Users, ClipboardList, FolderOpen, Home, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 
 const items = [
   { title: "Início", url: "/dp", icon: Home, end: true },
   { title: "Colaboradores", url: "/dp/colaboradores", icon: Users },
+  { title: "Folgas", url: "/dp/folgas", icon: CalendarDays },
   { title: "Solicitações", url: "/dp/solicitacoes", icon: ClipboardList },
   { title: "Documentos", url: "/dp/documentos", icon: FolderOpen },
 ];
