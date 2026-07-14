@@ -415,14 +415,35 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
           </div>
 
           <div className="space-y-2">
-            <Label>Descrição da Categoria para a IA (opcional)</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label>Descrição da Categoria para a IA (opcional)</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateAiDescription}
+                disabled={generatingAi || !name.trim() || !subtype}
+                className="h-7 gap-1.5 text-xs"
+              >
+                {generatingAi ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3.5 w-3.5" />
+                )}
+                {generatingAi ? "Gerando..." : "Gerar com IA"}
+              </Button>
+            </div>
             <Textarea
               value={aiDescription}
               onChange={(e) => setAiDescription(e.target.value)}
               placeholder="Contexto para o agente classificar lançamentos automaticamente nesta categoria."
-              rows={2}
+              rows={3}
               maxLength={500}
+              disabled={generatingAi}
             />
+            <p className="text-[10px] text-muted-foreground">
+              A IA usa o nome e o subtipo para sugerir a descrição. Você pode editar antes de salvar.
+            </p>
           </div>
 
           {editCategory && (
