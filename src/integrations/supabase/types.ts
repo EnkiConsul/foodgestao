@@ -1712,6 +1712,63 @@ export type Database = {
           },
         ]
       }
+      dp_bloqueios: {
+        Row: {
+          ativo: boolean
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          criado_por: string | null
+          fim: string | null
+          id: string
+          inicio: string
+          motivo: string
+          tipo: Database["public"]["Enums"]["dp_bloqueio_tipo"]
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          criado_por?: string | null
+          fim?: string | null
+          id?: string
+          inicio?: string
+          motivo: string
+          tipo?: Database["public"]["Enums"]["dp_bloqueio_tipo"]
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          criado_por?: string | null
+          fim?: string | null
+          id?: string
+          inicio?: string
+          motivo?: string
+          tipo?: Database["public"]["Enums"]["dp_bloqueio_tipo"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_bloqueios_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_bloqueios_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_cargos: {
         Row: {
           ativo: boolean
@@ -1973,6 +2030,63 @@ export type Database = {
             columns: ["destinatario_colaborador_id"]
             isOneToOne: false
             referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_registros_disciplinares: {
+        Row: {
+          aplicado_por: string | null
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          data: string
+          descricao: string | null
+          id: string
+          motivo: string
+          suspensao_dias: number | null
+          tipo: Database["public"]["Enums"]["dp_disciplinar_tipo"]
+          updated_at: string
+        }
+        Insert: {
+          aplicado_por?: string | null
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          id?: string
+          motivo: string
+          suspensao_dias?: number | null
+          tipo: Database["public"]["Enums"]["dp_disciplinar_tipo"]
+          updated_at?: string
+        }
+        Update: {
+          aplicado_por?: string | null
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          id?: string
+          motivo?: string
+          suspensao_dias?: number | null
+          tipo?: Database["public"]["Enums"]["dp_disciplinar_tipo"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_registros_disciplinares_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_registros_disciplinares_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -3664,6 +3778,13 @@ export type Database = {
       contact_type: "cliente" | "fornecedor" | "ambos"
       context_type: "pf" | "pj"
       discount_type: "percent" | "fixed"
+      dp_bloqueio_tipo: "folga" | "troca" | "solicitacoes" | "todos"
+      dp_disciplinar_tipo:
+        | "advertencia_verbal"
+        | "advertencia_escrita"
+        | "suspensao"
+        | "elogio"
+        | "observacao"
       dp_documento_tipo:
         | "contracheque"
         | "contrato"
@@ -3861,6 +3982,14 @@ export const Constants = {
       contact_type: ["cliente", "fornecedor", "ambos"],
       context_type: ["pf", "pj"],
       discount_type: ["percent", "fixed"],
+      dp_bloqueio_tipo: ["folga", "troca", "solicitacoes", "todos"],
+      dp_disciplinar_tipo: [
+        "advertencia_verbal",
+        "advertencia_escrita",
+        "suspensao",
+        "elogio",
+        "observacao",
+      ],
       dp_documento_tipo: [
         "contracheque",
         "contrato",
