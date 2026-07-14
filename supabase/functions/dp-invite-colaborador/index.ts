@@ -69,17 +69,25 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verifica se o solicitante é admin/owner da empresa
-    const { data: isAdmin } = await admin.rpc("has_role", {
-      _user_id: userRes.user.id, _role: "admin",
-    });
+    // Verifica se o solicitante é admin/owner DESTA empresa específica (não papel global).
     const { data: isSuper } = await admin.rpc("has_role", {
       _user_id: userRes.user.id, _role: "super_admin",
     });
     const { data: company } = await admin
       .from("companies").select("user_id").eq("id", colab.company_id).single();
     const isOwner = company?.user_id === userRes.user.id;
-    if (!isAdmin && !isSuper && !isOwner) {
+    // Checa membership como admin/owner na empresa alvo.
+    let isCompanyAdmin = false;
+    if (!isOwner && !isSuper) {
+      const { data: member } = await admin
+        .from("company_members")
+        .select("role")
+        .eq("company_id", colab.company_id)
+        .eq("user_id", userRes.user.id)
+        .maybeSingle();
+      isCompanyAdmin = member?.role === "admin" || member?.role === "owner";
+    }
+    if (!isSuper && !isOwner && !isCompanyAdmin) {
       return new Response(JSON.stringify({ error: "Sem permissão" }), {
         status: 403, headers: { ...cors, "Content-Type": "application/json" },
       });
