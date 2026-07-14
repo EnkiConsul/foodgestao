@@ -25,6 +25,7 @@ import DpUnidades from "./pages/dp/DpUnidades";
 import DpCargos from "./pages/dp/DpCargos";
 import DpSindicatos from "./pages/dp/DpSindicatos";
 import DpSindicatoNegociacoes from "./pages/dp/DpSindicatoNegociacoes";
+import DpAprovacoes from "./pages/dp/DpAprovacoes";
 import DpAvisos from "./pages/dp/DpAvisos";
 import DpMensagens from "./pages/dp/DpMensagens";
 import DpDisciplinar from "./pages/dp/DpDisciplinar";
