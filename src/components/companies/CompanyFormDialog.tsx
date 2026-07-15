@@ -25,6 +25,7 @@ interface CompanyFormDialogProps {
 export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: CompanyFormDialogProps) {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [cnpjLookupPending, setCnpjLookupPending] = useState(false);
   const [profileType, setProfileType] = useState<"pessoal" | "empresarial">("empresarial");
   const [name, setName] = useState("");
   const [tradeName, setTradeName] = useState("");
