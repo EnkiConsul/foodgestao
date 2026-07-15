@@ -11,10 +11,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { contactSchema, validateWithToast } from "@/lib/validations";
-import { CnpjInput } from "@/components/shared/CnpjInput";
-import type { CnpjLookupResult } from "@/hooks/useCnpjLookup";
-import type { Tables } from "@/integrations/supabase/types";
+import { useCnpjLookup } from "@/hooks/useCnpjLookup";
+import { Loader2, Search } from "lucide-react";
+import { maskCpfCnpj, isValidCpf } from "@/lib/cpf";
 import { isValidCnpj } from "@/lib/cnpj";
+import { cn } from "@/lib/utils";
+import type { Tables } from "@/integrations/supabase/types";
 
 interface Props {
   open: boolean;
@@ -38,7 +40,8 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact, de
   const [visiblePf, setVisiblePf] = useState(true);
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  const [cnpjLookupPending, setCnpjLookupPending] = useState(false);
+  const cnpjLookup = useCnpjLookup();
+  const cnpjLookupPending = cnpjLookup.isPending;
 
   useEffect(() => {
     if (editContact) {
@@ -86,12 +89,16 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact, de
     }
 
     const docDigits = document.replace(/\D/g, "");
-    if (docDigits.length > 11) {
-      if (docDigits.length !== 14) {
-        toast.error("CNPJ deve conter 14 dígitos.");
+    if (docDigits.length > 0) {
+      if (docDigits.length !== 11 && docDigits.length !== 14) {
+        toast.error("Documento deve ter 11 dígitos (CPF) ou 14 dígitos (CNPJ).");
         return;
       }
-      if (!isValidCnpj(docDigits)) {
+      if (docDigits.length === 11 && !isValidCpf(docDigits)) {
+        toast.error("CPF inválido — dígitos verificadores incorretos.");
+        return;
+      }
+      if (docDigits.length === 14 && !isValidCnpj(docDigits)) {
         toast.error("CNPJ inválido — dígitos verificadores incorretos.");
         return;
       }
@@ -171,22 +178,64 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact, de
             </div>
             <div className="space-y-2">
               <Label>CPF/CNPJ</Label>
-              {document.replace(/\D/g, "").length > 11 || (contactType !== "cliente" && document.replace(/\D/g, "").length === 0) ? (
-                <CnpjInput
-                  value={document}
-                  onChange={setDocument}
-                  onLookup={(d: CnpjLookupResult) => {
+              {(() => {
+                const docDigits = document.replace(/\D/g, "");
+                const isCnpj = docDigits.length > 11;
+                const invalid =
+                  (docDigits.length === 11 && !isValidCpf(docDigits)) ||
+                  (docDigits.length === 14 && !isValidCnpj(docDigits));
+                const canLookup = docDigits.length === 14 && isValidCnpj(docDigits) && !cnpjLookupPending;
+                const runLookup = async () => {
+                  if (!canLookup) return;
+                  try {
+                    const d = await cnpjLookup.mutateAsync(docDigits);
                     if (d.razao_social) setName(d.nome_fantasia || d.razao_social);
                     if (d.email && !email) setEmail(d.email);
                     if (d.telefone && !phone) setPhone(d.telefone);
                     if (d.endereco_formatado) setAddress(d.endereco_formatado);
-                  }}
-                  onPendingChange={setCnpjLookupPending}
-                  placeholder="CNPJ: 00.000.000/0000-00"
-                />
-              ) : (
-                <Input value={document} onChange={(e) => setDocument(e.target.value)} placeholder="CPF ou CNPJ" maxLength={20} />
-              )}
+                    toast.success("CNPJ encontrado", { description: d.razao_social ?? undefined });
+                  } catch (e) {
+                    toast.error("Falha na consulta", { description: e instanceof Error ? e.message : String(e) });
+                  }
+                };
+                return (
+                  <div className="space-y-1">
+                    <div className="flex gap-2">
+                      <Input
+                        value={document}
+                        onChange={(e) => setDocument(maskCpfCnpj(e.target.value))}
+                        placeholder="CPF ou CNPJ"
+                        maxLength={18}
+                        inputMode="numeric"
+                        disabled={cnpjLookupPending}
+                        aria-invalid={invalid}
+                        className={cn(invalid && "border-destructive focus-visible:ring-destructive")}
+                      />
+                      {isCnpj && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={runLookup}
+                          disabled={!canLookup}
+                          title="Buscar dados do CNPJ na Receita Federal"
+                          aria-label="Buscar CNPJ"
+                        >
+                          {cnpjLookupPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                        </Button>
+                      )}
+                    </div>
+                    {invalid && (
+                      <p className="text-xs text-destructive">
+                        {docDigits.length === 11 ? "CPF" : "CNPJ"} inválido — verifique os dígitos.
+                      </p>
+                    )}
+                    {cnpjLookupPending && (
+                      <p className="text-xs text-muted-foreground">Consultando Receita Federal…</p>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
             <div className="space-y-2">
               <Label>E-mail</Label>
