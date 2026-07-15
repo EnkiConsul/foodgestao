@@ -99,6 +99,7 @@ import { useCurrentSubscription } from "@/hooks/useCurrentSubscription";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import TrialExpired from "./pages/TrialExpired";
 import { resolveOnboardingStatus } from "@/lib/onboardingStatus";
+import { ProtectedRoute, OnboardingGuard } from "@/routes/onboardingGuards";
 
 // Rotas acessíveis mesmo com trial/assinatura expirada
 const TRIAL_EXPIRED_WHITELIST = [
