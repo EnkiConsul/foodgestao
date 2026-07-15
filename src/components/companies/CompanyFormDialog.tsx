@@ -157,7 +157,18 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="company-cnpj">CNPJ</Label>
-                  <Input id="company-cnpj" value={cnpj} onChange={(e) => setCnpj(e.target.value)} placeholder="00.000.000/0000-00" maxLength={20} />
+                  <CnpjInput
+                    id="company-cnpj"
+                    value={cnpj}
+                    onChange={setCnpj}
+                    onLookup={(d: CnpjLookupResult) => {
+                      if (d.razao_social) setName(d.razao_social);
+                      if (d.nome_fantasia) setTradeName(d.nome_fantasia);
+                      if (d.email && !email) setEmail(d.email);
+                      if (d.telefone && !phone) setPhone(d.telefone);
+                      if (d.endereco_formatado) setAddress(d.endereco_formatado);
+                    }}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="company-phone">Telefone</Label>
