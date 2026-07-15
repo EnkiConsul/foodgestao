@@ -94,6 +94,7 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
       cnpj: cnpj || null,
       email: email || null,
       phone: phone || null,
+      whatsapp: whatsapp || null,
       address: address || null,
     }, toast.error);
     if (!validated) return;
