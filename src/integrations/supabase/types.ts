@@ -1255,47 +1255,91 @@ export type Database = {
       companies: {
         Row: {
           address: string | null
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
           cnpj: string | null
+          complemento: string | null
           created_at: string
           email: string | null
           id: string
           is_active: boolean
+          logradouro: string | null
           name: string
+          numero: string | null
           phone: string | null
           profile_type: string
+          segmento_id: string | null
+          status_tenant: string
           trade_name: string | null
+          trial_iniciado_em: string | null
+          trial_termina_em: string | null
+          uf: string | null
           updated_at: string
           user_id: string
+          whatsapp: string | null
         }
         Insert: {
           address?: string | null
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
           cnpj?: string | null
+          complemento?: string | null
           created_at?: string
           email?: string | null
           id?: string
           is_active?: boolean
+          logradouro?: string | null
           name: string
+          numero?: string | null
           phone?: string | null
           profile_type?: string
+          segmento_id?: string | null
+          status_tenant?: string
           trade_name?: string | null
+          trial_iniciado_em?: string | null
+          trial_termina_em?: string | null
+          uf?: string | null
           updated_at?: string
           user_id: string
+          whatsapp?: string | null
         }
         Update: {
           address?: string | null
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
           cnpj?: string | null
+          complemento?: string | null
           created_at?: string
           email?: string | null
           id?: string
           is_active?: boolean
+          logradouro?: string | null
           name?: string
+          numero?: string | null
           phone?: string | null
           profile_type?: string
+          segmento_id?: string | null
+          status_tenant?: string
           trade_name?: string | null
+          trial_iniciado_em?: string | null
+          trial_termina_em?: string | null
+          uf?: string | null
           updated_at?: string
           user_id?: string
+          whatsapp?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "companies_segmento_id_fkey"
+            columns: ["segmento_id"]
+            isOneToOne: false
+            referencedRelation: "segmentos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       company_invites: {
         Row: {
@@ -1387,7 +1431,9 @@ export type Database = {
       }
       company_modules: {
         Row: {
+          cancelado_em: string | null
           company_id: string
+          contratado_em: string | null
           created_at: string
           ends_at: string | null
           id: string
@@ -1395,10 +1441,15 @@ export type Database = {
           notes: string | null
           starts_at: string | null
           status: Database["public"]["Enums"]["module_status"]
+          trial_iniciado_em: string | null
+          trial_termina_em: string | null
           updated_at: string
+          valor_mensal: number | null
         }
         Insert: {
+          cancelado_em?: string | null
           company_id: string
+          contratado_em?: string | null
           created_at?: string
           ends_at?: string | null
           id?: string
@@ -1406,10 +1457,15 @@ export type Database = {
           notes?: string | null
           starts_at?: string | null
           status?: Database["public"]["Enums"]["module_status"]
+          trial_iniciado_em?: string | null
+          trial_termina_em?: string | null
           updated_at?: string
+          valor_mensal?: number | null
         }
         Update: {
+          cancelado_em?: string | null
           company_id?: string
+          contratado_em?: string | null
           created_at?: string
           ends_at?: string | null
           id?: string
@@ -1417,7 +1473,10 @@ export type Database = {
           notes?: string | null
           starts_at?: string | null
           status?: Database["public"]["Enums"]["module_status"]
+          trial_iniciado_em?: string | null
+          trial_termina_em?: string | null
           updated_at?: string
+          valor_mensal?: number | null
         }
         Relationships: [
           {
@@ -2994,6 +3053,39 @@ export type Database = {
         }
         Relationships: []
       }
+      modulos_catalogo: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao_curta: string
+          icone: string
+          id: string
+          nome: string
+          ordem: number
+          slug: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao_curta: string
+          icone: string
+          id?: string
+          nome: string
+          ordem?: number
+          slug: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao_curta?: string
+          icone?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          slug?: string
+        }
+        Relationships: []
+      }
       payment_method_companies: {
         Row: {
           company_id: string
@@ -3201,6 +3293,33 @@ export type Database = {
           transaction_field_settings?: Json
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      segmentos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          slug: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          slug: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          slug?: string
         }
         Relationships: []
       }
@@ -3813,6 +3932,30 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      fn_cadastrar_empresa_onboarding: {
+        Args: {
+          p_bairro: string
+          p_cep: string
+          p_cidade: string
+          p_cnpj: string
+          p_complemento: string
+          p_email_cliente: string
+          p_email_empresa: string
+          p_logradouro: string
+          p_modulos_slugs: string[]
+          p_nome_completo: string
+          p_nome_fantasia: string
+          p_numero: string
+          p_razao_social: string
+          p_segmento_id: string
+          p_telefone_cliente: string
+          p_telefone_empresa: string
+          p_uf: string
+          p_whatsapp_cliente: string
+          p_whatsapp_empresa: string
+        }
+        Returns: Json
+      }
       get_accessible_accounts: {
         Args: {
           _company_id?: string
@@ -4155,7 +4298,14 @@ export type Database = {
         | "cartao_credito"
         | "dinheiro"
         | "outro"
-      app_module: "financeiro" | "dp" | "crm" | "rh" | "pedidos"
+      app_module:
+        | "financeiro"
+        | "dp"
+        | "crm"
+        | "rh"
+        | "pedidos"
+        | "bi"
+        | "financeiro_pessoal"
       app_role: "super_admin" | "admin" | "user" | "dp_colaborador"
       bill_status: "em_dia" | "vence_em_breve" | "atrasado" | "pago" | "parcial"
       billing_period: "monthly" | "yearly"
@@ -4237,6 +4387,7 @@ export type Database = {
         | "suspended"
         | "canceled"
         | "not_contracted"
+        | "trial_expirado"
       parcel_direction: "entrada" | "saida"
       profile_type: "pf" | "mei" | "microempresa" | "hibrido"
       recurrence_type:
@@ -4392,7 +4543,15 @@ export const Constants = {
         "dinheiro",
         "outro",
       ],
-      app_module: ["financeiro", "dp", "crm", "rh", "pedidos"],
+      app_module: [
+        "financeiro",
+        "dp",
+        "crm",
+        "rh",
+        "pedidos",
+        "bi",
+        "financeiro_pessoal",
+      ],
       app_role: ["super_admin", "admin", "user", "dp_colaborador"],
       bill_status: ["em_dia", "vence_em_breve", "atrasado", "pago", "parcial"],
       billing_period: ["monthly", "yearly"],
@@ -4483,6 +4642,7 @@ export const Constants = {
         "suspended",
         "canceled",
         "not_contracted",
+        "trial_expirado",
       ],
       parcel_direction: ["entrada", "saida"],
       profile_type: ["pf", "mei", "microempresa", "hibrido"],
