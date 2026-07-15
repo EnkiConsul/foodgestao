@@ -24,6 +24,7 @@ import { isValidPhone } from "@/lib/phone";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useOnboardingSubmit, mensagemErroOnboarding } from "@/hooks/useOnboardingSubmit";
 import { marcarOnboardingConcluido } from "@/lib/onboardingFinalize";
+import { resolveOnboardingByExistingCnpj } from "@/lib/onboardingStatus";
 
 export interface EmpresaFormData {
   nomeCompleto: string;
@@ -174,6 +175,15 @@ export default function Onboarding() {
       setStep(3);
     } catch (err) {
       const code = (err as Error & { code?: string })?.code;
+      if (code === "empresa_ja_cadastrada" && user) {
+        const existing = await resolveOnboardingByExistingCnpj(user.id, empresa.cnpj);
+        if (existing.completed && existing.companyId) {
+          setContext("pj", existing.companyId);
+          toast.success("Empresa já vinculada. Acessando painel.");
+          navigate("/hub", { replace: true });
+          return;
+        }
+      }
       toast.error(mensagemErroOnboarding(code));
     }
   };
