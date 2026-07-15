@@ -62,6 +62,7 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
       setCnpj("");
       setEmail("");
       setPhone("");
+      setWhatsapp("");
       setAddress("");
     }
   }, [company, open]);
