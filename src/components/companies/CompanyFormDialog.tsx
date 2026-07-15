@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { companySchema, validateWithToast } from "@/lib/validations";
 import { CnpjInput } from "@/components/shared/CnpjInput";
 import type { CnpjLookupResult } from "@/hooks/useCnpjLookup";
+import { isValidCnpj } from "@/lib/cnpj";
 import type { Database } from "@/integrations/supabase/types";
 
 type Company = Database["public"]["Tables"]["companies"]["Row"];
@@ -24,6 +25,7 @@ interface CompanyFormDialogProps {
 export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: CompanyFormDialogProps) {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [cnpjLookupPending, setCnpjLookupPending] = useState(false);
   const [profileType, setProfileType] = useState<"pessoal" | "empresarial">("empresarial");
   const [name, setName] = useState("");
   const [tradeName, setTradeName] = useState("");
@@ -55,8 +57,23 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (cnpjLookupPending) {
+      toast.error("Aguarde a consulta do CNPJ finalizar.");
+      return;
+    }
 
     const isPessoal = profileType === "pessoal";
+    const cnpjDigits = cnpj.replace(/\D/g, "");
+    if (!isPessoal && cnpjDigits.length > 0) {
+      if (cnpjDigits.length !== 14) {
+        toast.error("CNPJ deve conter 14 dígitos.");
+        return;
+      }
+      if (!isValidCnpj(cnpjDigits)) {
+        toast.error("CNPJ inválido — dígitos verificadores incorretos.");
+        return;
+      }
+    }
 
     const validated = validateWithToast(companySchema, {
       name,
@@ -168,6 +185,7 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
                       if (d.telefone && !phone) setPhone(d.telefone);
                       if (d.endereco_formatado) setAddress(d.endereco_formatado);
                     }}
+                    onPendingChange={setCnpjLookupPending}
                   />
                 </div>
                 <div className="space-y-2">
@@ -187,8 +205,8 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
           )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={saving || !name.trim()}>
-              {saving ? "Salvando..." : company ? "Salvar" : "Criar Perfil"}
+            <Button type="submit" disabled={saving || cnpjLookupPending || !name.trim()}>
+              {saving ? "Salvando..." : cnpjLookupPending ? "Consultando CNPJ..." : company ? "Salvar" : "Criar Perfil"}
             </Button>
           </DialogFooter>
         </form>

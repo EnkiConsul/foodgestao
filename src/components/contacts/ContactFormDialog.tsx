@@ -14,6 +14,7 @@ import { contactSchema, validateWithToast } from "@/lib/validations";
 import { CnpjInput } from "@/components/shared/CnpjInput";
 import type { CnpjLookupResult } from "@/hooks/useCnpjLookup";
 import type { Tables } from "@/integrations/supabase/types";
+import { isValidCnpj } from "@/lib/cnpj";
 
 interface Props {
   open: boolean;
@@ -37,6 +38,7 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact, de
   const [visiblePf, setVisiblePf] = useState(true);
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [cnpjLookupPending, setCnpjLookupPending] = useState(false);
 
   useEffect(() => {
     if (editContact) {
@@ -73,10 +75,26 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact, de
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (cnpjLookupPending) {
+      toast.error("Aguarde a consulta do CNPJ finalizar.");
+      return;
+    }
 
     if (!visiblePf && selectedCompanyIds.length === 0) {
       toast.error("Selecione pelo menos uma vinculação (Pessoa Física ou empresa).");
       return;
+    }
+
+    const docDigits = document.replace(/\D/g, "");
+    if (docDigits.length > 11) {
+      if (docDigits.length !== 14) {
+        toast.error("CNPJ deve conter 14 dígitos.");
+        return;
+      }
+      if (!isValidCnpj(docDigits)) {
+        toast.error("CNPJ inválido — dígitos verificadores incorretos.");
+        return;
+      }
     }
 
     const validated = validateWithToast(contactSchema, {
@@ -163,6 +181,7 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact, de
                     if (d.telefone && !phone) setPhone(d.telefone);
                     if (d.endereco_formatado) setAddress(d.endereco_formatado);
                   }}
+                  onPendingChange={setCnpjLookupPending}
                   placeholder="CNPJ: 00.000.000/0000-00"
                 />
               ) : (
@@ -207,8 +226,8 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact, de
               <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Anotações sobre o contato..." rows={3} maxLength={500} />
             </div>
           </div>
-          <Button type="submit" className="w-full" disabled={saving}>
-            {saving ? "Salvando..." : editContact ? "Atualizar" : "Criar Contato"}
+          <Button type="submit" className="w-full" disabled={saving || cnpjLookupPending}>
+            {saving ? "Salvando..." : cnpjLookupPending ? "Consultando CNPJ..." : editContact ? "Atualizar" : "Criar Contato"}
           </Button>
         </form>
       </DialogContent>
