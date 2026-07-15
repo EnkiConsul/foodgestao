@@ -23,6 +23,7 @@ import { isValidCnpj } from "@/lib/cnpj";
 import { isValidPhone } from "@/lib/phone";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useOnboardingSubmit, mensagemErroOnboarding } from "@/hooks/useOnboardingSubmit";
+import { marcarOnboardingConcluido } from "@/lib/onboardingFinalize";
 
 export interface EmpresaFormData {
   nomeCompleto: string;
@@ -166,13 +167,7 @@ export default function Onboarding() {
 
       // Marca onboarding concluído no profile
       if (user) {
-        const { error: profileErr } = await supabase
-          .from("profiles")
-          .update({ onboarding_completed: true })
-          .eq("user_id", user.id);
-        if (profileErr) {
-          console.error("[onboarding] falha ao marcar onboarding_completed", profileErr);
-        }
+        await marcarOnboardingConcluido(user.id);
       }
 
       setResult(res);
