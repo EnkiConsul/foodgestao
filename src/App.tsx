@@ -214,9 +214,7 @@ function PortalProtected({ children }: { children: React.ReactNode }) {
   }
   return <>{children}</>;
 }
-
-
-
+function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const [searchParams] = useSearchParams();
   const [mfaChecking, setMfaChecking] = useState(true);
