@@ -158,16 +158,39 @@ function useIsDpColaborador() {
   return is;
 }
 
+function useIsAdminOrOwner() {
+  const { user } = useAuth();
+  const [is, setIs] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!user) { setIs(false); return; }
+    (async () => {
+      const [roleRes, ownerRes, memberRes] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "super_admin").maybeSingle(),
+        supabase.from("companies").select("id").eq("user_id", user.id).limit(1),
+        supabase.from("company_members").select("role").eq("user_id", user.id).in("role", ["owner", "admin"]).limit(1),
+      ]);
+      const hasSuper = !!roleRes.data;
+      const hasOwn = !!(ownerRes.data && ownerRes.data.length > 0);
+      const hasAdminMember = !!(memberRes.data && memberRes.data.length > 0);
+      setIs(hasSuper || hasOwn || hasAdminMember);
+    })();
+  }, [user?.id]);
+  return is;
+}
+
 function RootGate() {
   const { user, loading } = useAuth();
   const isColab = useIsDpColaborador();
-  if (loading || (user && isColab === null)) {
+  const isAdminOrOwner = useIsAdminOrOwner();
+  if (loading || (user && (isColab === null || isAdminOrOwner === null))) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
       </div>
     );
   }
+  // super_admin / owner / admin sempre vão ao Hub, mesmo com vínculo residual em dp_colaboradores
+  if (user && isAdminOrOwner) return <Navigate to="/hub" replace />;
   if (user && isColab) return <Navigate to="/dp/meu" replace />;
   if (user) return <Navigate to="/hub" replace />;
   return <Landing />;
