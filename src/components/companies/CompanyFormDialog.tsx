@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { companySchema, validateWithToast } from "@/lib/validations";
+import { CnpjInput } from "@/components/shared/CnpjInput";
+import type { CnpjLookupResult } from "@/hooks/useCnpjLookup";
 import type { Database } from "@/integrations/supabase/types";
 
 type Company = Database["public"]["Tables"]["companies"]["Row"];
