@@ -1,60 +1,45 @@
-# Por que rcbruto77 foi para /dp/meu
+## Diagnóstico
 
-O `RootGate` redireciona para `/dp/meu` sempre que a RPC `is_dp_colaborador(user)` retorna `true`. Investigando:
+Confirmei no banco de dados agora:
 
-1. `is_dp_colaborador` **não olha** a tabela `dp_colaboradores` — ela só faz `SELECT ... FROM user_roles WHERE role = 'dp_colaborador'`.
-2. O usuário `rcbruto77@gmail.com` tem **duas linhas** em `user_roles`:
-   - `super_admin` (14/02/2026 — legítima)
-   - `dp_colaborador` (14/07/2026 — **resíduo dos testes** `PAKERE_` / `TESTE_E2E_` que rodamos na limpeza anterior)
-3. Não existe nenhum registro em `dp_colaboradores` com o `user_id` ou o e-mail dele — a role virou órfã depois da limpeza dos `PAKERE_*`.
+- **`dp_colaboradores`**: existem **0 registros** na base inteira — nem para o `rcbruto77` nem para qualquer outro usuário. Nenhum colaborador está cadastrado.
+- **`user_roles`** do usuário `7432cb5e...` (rcbruto77): apenas `super_admin`. A role órfã `dp_colaborador` já foi removida na migração anterior.
+- **`user_roles` role `dp_colaborador`**: 0 linhas em toda a tabela.
+- **RPCs**: `is_dp_colaborador('7432cb...')` = `false`, `dp_colaborador_of('7432cb...')` = `NULL`.
+- **Triggers em `dp_colaboradores`**: apenas as esperadas (`trg_dp_colab_upd` para `updated_at` e `trg_sync_dp_colaborador_role` para sincronizar a role — nenhuma cria vínculo automaticamente para super_admin).
+- **Audit logs**: sem histórico de INSERT em `dp_colaboradores` para esse usuário.
 
-Ou seja, ele é super_admin e dono das empresas ClicSorte e Raptor, mas a role órfã força o portal. Além disso, a regra que você escolheu ("só é colaborador em empresas onde NÃO é owner/admin") não está implementada em lugar nenhum hoje.
+**Conclusão:** sua conta **não está vinculada** a nenhum colaborador do DP no banco. Se o preview ainda mostra `/dp/meu/perfil`, o motivo é um dos seguintes:
 
----
+1. Você digitou/navegou a URL do portal diretamente (o React Router não bloqueia).
+2. O React Query ainda tem em cache `is_dp_colaborador = true` de antes da correção — permanece até refresh forçado ou re-login.
 
-# Plano
+A tela `DpMeuPerfil` só faz `SELECT ... FROM dp_colaboradores WHERE user_id = seu_id`. Como não há registro, ela mostra “Perfil não encontrado”. Não há vínculo real.
 
-## 1. Limpar a role órfã do rcbruto77
-Deletar de `user_roles` a linha `role = 'dp_colaborador'` do usuário `7432cb5e-27ef-4189-b903-43d133aaa541`. Isso resolve o sintoma imediato — próximo login vai direto para `/hub`.
+## O que corrigir para nunca mais acontecer
 
-## 2. Varrer outras roles `dp_colaborador` órfãs
-Após a limpeza dos `PAKERE_*` da rodada passada podem ter sobrado outras. Deletar de `user_roles` toda linha `role = 'dp_colaborador'` cujo `user_id` **não** aparece em `dp_colaboradores` (por `user_id` nem por e-mail via `auth.users`).
+### 1. Bloquear rotas `/dp/meu/*` para super_admin e owners
+Hoje, o `ColaboradorShell` só valida `is_dp_colaborador`. Se der `false`, exibe "Portal indisponível" — mas ainda é uma tela do portal. Ajuste:
 
-## 3. Corrigir `is_dp_colaborador` para refletir a regra escolhida
-Reescrever a função para retornar `true` somente se existir vínculo **efetivo** em `dp_colaboradores` numa empresa onde o usuário **não** é owner nem admin/owner via `company_members`. Regra em SQL (SECURITY DEFINER, search_path fixo):
+- Em `src/components/dp/ColaboradorShell.tsx`, se `useSuperAdmin()` retornar `true`, redirecionar direto para `/hub` com `<Navigate to="/hub" replace />`.
+- Mesma verificação para usuários que são owner/admin de qualquer empresa via `company_members` (opcional — a próxima seção resolve isso mais amplamente).
 
-```text
-EXISTS colaborador C em dp_colaboradores tal que:
-   C.user_id = _user_id  OR  lower(C.email) = lower(auth.email de _user_id)
-AND NOT EXISTS empresa dele:
-   companies.user_id = _user_id AND companies.id = C.company_id
-AND NOT EXISTS company_members M:
-   M.user_id = _user_id AND M.company_id = C.company_id AND M.role IN ('owner','admin')
-```
+### 2. Reforçar `RootGate` em `src/App.tsx`
+No trecho onde chama `is_dp_colaborador` e navega para `/dp/meu`, adicionar guarda: se o usuário for super_admin **ou** owner de alguma empresa, ignorar o resultado e ir para `/hub`. Isso protege contra qualquer resíduo futuro de role/registro órfão.
 
-Efeitos colaterais previstos:
-- `RootGate`, `PortalProtected` e `ColaboradorShell` (que já chamam a mesma RPC) passam a respeitar a nova regra sem alteração de código.
-- `dp_colaborador_of` — usada no portal para descobrir "qual colaborador sou eu" — precisa aplicar o mesmo filtro para não permitir que um owner acesse `/dp/meu` de uma empresa própria. Vai ser ajustada na mesma migração.
+### 3. Invalidar cache do React Query no logout
+Garantir que ao fazer signOut o `queryClient.clear()` é chamado, para não sobreviver `is_dp_colaborador = true` entre sessões distintas no mesmo dispositivo.
 
-## 4. Sincronização automática da role (opcional, mas recomendado)
-Trigger em `dp_colaboradores` (AFTER INSERT/UPDATE/DELETE) que insere/remove a role `dp_colaborador` em `user_roles` de acordo com o vínculo real, para evitar que resíduos de testes reapareçam no futuro. Sem esse trigger, uma reinstalação da role via seed volta a quebrar. Se preferir manter só a limpeza pontual (itens 1–3) e cuidar disso no futuro, eu removo esse item.
+## Arquivos tocados
 
-## 5. Verificação
-- Rodar `is_dp_colaborador('7432cb...')` — deve retornar `false`.
-- Contar quantas roles `dp_colaborador` órfãs sobraram — deve ser 0.
-- Simular login do rcbruto77: o `RootGate` deve navegar para `/hub`.
+- `src/components/dp/ColaboradorShell.tsx` — guarda anti-superadmin.
+- `src/App.tsx` — reforço no `RootGate`.
+- `src/hooks/useAuth.tsx` (ou onde está o `signOut`) — `queryClient.clear()` no logout.
 
----
+**Sem migrações SQL** — o banco já está consistente.
 
-# Detalhes técnicos
+## Verificação
 
-**Arquivos tocados:**
-- 1 migração SQL:
-  - `DELETE FROM user_roles WHERE role = 'dp_colaborador' AND user_id NOT IN (SELECT user_id FROM dp_colaboradores WHERE user_id IS NOT NULL UNION SELECT u.id FROM auth.users u JOIN dp_colaboradores c ON lower(c.email) = lower(u.email))`
-  - `CREATE OR REPLACE FUNCTION public.is_dp_colaborador(...)` com a nova lógica (STABLE, SECURITY DEFINER, `SET search_path = public`, sem SQL dinâmico — em conformidade com `@security-memory`).
-  - `CREATE OR REPLACE FUNCTION public.dp_colaborador_of(...)` com o mesmo filtro anti-owner.
-  - (Item 4) `CREATE OR REPLACE FUNCTION public.sync_dp_colaborador_role()` + `CREATE TRIGGER` em `dp_colaboradores`.
-
-**Sem alterações no frontend** — a lógica está toda no banco.
-
-**Compatibilidade:** colaboradores legítimos que existem em `dp_colaboradores` e não são owner/admin da empresa vinculada continuam entrando no portal normalmente.
+- Login com `rcbruto77` → deve cair em `/hub`.
+- Acessar `/dp/meu/perfil` manualmente → deve redirecionar para `/hub`.
+- Logout + login como colaborador legítimo (quando existir) → deve entrar no portal normalmente.
