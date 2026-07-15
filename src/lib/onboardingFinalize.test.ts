@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { marcarOnboardingConcluido } from "./onboardingFinalize";
 
-const eqMock = vi.fn();
-const updateMock = vi.fn(() => ({ eq: eqMock }));
-const fromMock = vi.fn(() => ({ update: updateMock }));
+const eqMock: any = vi.fn();
+const updateMock: any = vi.fn(() => ({ eq: eqMock }));
+const fromMock: any = vi.fn(() => ({ update: updateMock }));
 
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { from: (...args: any[]) => fromMock(...args) },
+  supabase: { from: (name: string) => fromMock(name) },
 }));
 
 describe("marcarOnboardingConcluido", () => {
