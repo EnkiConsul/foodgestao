@@ -40,7 +40,8 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact, de
   const [visiblePf, setVisiblePf] = useState(true);
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  const [cnpjLookupPending, setCnpjLookupPending] = useState(false);
+  const cnpjLookup = useCnpjLookup();
+  const cnpjLookupPending = cnpjLookup.isPending;
 
   useEffect(() => {
     if (editContact) {
