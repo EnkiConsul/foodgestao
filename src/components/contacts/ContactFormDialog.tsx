@@ -16,6 +16,7 @@ import { Loader2, Search } from "lucide-react";
 import { maskCpfCnpj, isValidCpf } from "@/lib/cpf";
 import { isValidCnpj } from "@/lib/cnpj";
 import { cn } from "@/lib/utils";
+import { notifyCnpjSuccess, notifyCnpjError } from "@/lib/cnpj-messages";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface Props {
