@@ -23,6 +23,7 @@ import { isValidCnpj } from "@/lib/cnpj";
 import { isValidPhone } from "@/lib/phone";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useOnboardingSubmit, mensagemErroOnboarding } from "@/hooks/useOnboardingSubmit";
+import { marcarOnboardingConcluido } from "@/lib/onboardingFinalize";
 
 export interface EmpresaFormData {
   nomeCompleto: string;
