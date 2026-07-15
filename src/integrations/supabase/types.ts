@@ -1228,6 +1228,30 @@ export type Database = {
         }
         Relationships: []
       }
+      cnpj_cache: {
+        Row: {
+          cnpj: string
+          created_at: string
+          fetched_at: string
+          payload: Json
+          updated_at: string
+        }
+        Insert: {
+          cnpj: string
+          created_at?: string
+          fetched_at?: string
+          payload: Json
+          updated_at?: string
+        }
+        Update: {
+          cnpj?: string
+          created_at?: string
+          fetched_at?: string
+          payload?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           address: string | null
