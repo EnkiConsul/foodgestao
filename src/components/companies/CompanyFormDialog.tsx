@@ -42,7 +42,17 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
       setCnpj(company.cnpj ?? "");
       setEmail(company.email ?? "");
       setPhone(company.phone ?? "");
-      setAddress(company.address ?? "");
+      const legacy = (company.address ?? "").trim();
+      if (legacy) {
+        setAddress(legacy);
+      } else {
+        const c = company as any;
+        const linha1 = [c.logradouro, c.numero].filter(Boolean).join(", ");
+        const linha2 = [c.complemento, c.bairro].filter(Boolean).join(" - ");
+        const linha3 = [c.cidade, c.uf].filter(Boolean).join(" - ");
+        const composed = [linha1, linha2, linha3, c.cep].filter(Boolean).join(", ");
+        setAddress(composed);
+      }
     } else {
       setProfileType("empresarial");
       setName("");
