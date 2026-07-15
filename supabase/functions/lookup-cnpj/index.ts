@@ -62,24 +62,57 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 2) Fetch from BrasilAPI
-    const resp = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`, {
-      headers: { Accept: 'application/json' },
-    });
+    // 2) Fetch from BrasilAPI (timeout 8s)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    let resp: Response;
+    try {
+      resp = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`, {
+        headers: { Accept: 'application/json' },
+        signal: controller.signal,
+      });
+    } catch (fetchErr) {
+      clearTimeout(timeoutId);
+      const isAbort = (fetchErr as Error)?.name === 'AbortError';
+      console.error('BrasilAPI network error', fetchErr);
+      const stale = await readStale(cnpj);
+      if (stale) {
+        return json({ ...(stale.payload as object), _cached: true, _stale: true, _fetched_at: stale.fetched_at, _warning: 'stale' }, 200);
+      }
+      return json({
+        error: isAbort
+          ? 'A consulta à Receita Federal demorou demais para responder. Tente novamente em instantes.'
+          : 'Não foi possível contatar a Receita Federal agora. Verifique sua conexão e tente novamente.',
+        code: isAbort ? 'timeout' : 'network_error',
+      }, 504);
+    }
+    clearTimeout(timeoutId);
 
     if (resp.status === 404) {
-      return json({ error: 'CNPJ não encontrado na base da Receita Federal.' }, 404);
+      return json({ error: 'CNPJ não encontrado na base da Receita Federal.', code: 'not_found' }, 404);
+    }
+    if (resp.status === 429) {
+      const stale = await readStale(cnpj);
+      if (stale) {
+        return json({ ...(stale.payload as object), _cached: true, _stale: true, _fetched_at: stale.fetched_at, _warning: 'rate_limited' }, 200);
+      }
+      return json({
+        error: 'Muitas consultas em pouco tempo. Aguarde alguns segundos e tente novamente.',
+        code: 'rate_limited',
+      }, 429);
     }
     if (!resp.ok) {
       const text = await resp.text();
       console.error('BrasilAPI error', resp.status, text);
-      // fallback: retornar cache expirado se existir
-      const { data: stale } = await supabaseAdmin
-        .from('cnpj_cache').select('payload, fetched_at').eq('cnpj', cnpj).maybeSingle();
+      const stale = await readStale(cnpj);
       if (stale) {
-        return json({ ...(stale.payload as object), _cached: true, _stale: true, _fetched_at: stale.fetched_at }, 200);
+        return json({ ...(stale.payload as object), _cached: true, _stale: true, _fetched_at: stale.fetched_at, _warning: 'upstream_error' }, 200);
       }
-      return json({ error: 'Falha ao consultar CNPJ. Tente novamente.', status: resp.status }, 502);
+      return json({
+        error: 'A Receita Federal está temporariamente indisponível. Por favor, tente novamente em alguns minutos.',
+        code: 'upstream_unavailable',
+        status: resp.status,
+      }, 502);
     }
 
     const data = (await resp.json()) as BrasilApiCnpj;
