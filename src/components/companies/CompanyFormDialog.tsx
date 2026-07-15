@@ -205,8 +205,8 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
           )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={saving || !name.trim()}>
-              {saving ? "Salvando..." : company ? "Salvar" : "Criar Perfil"}
+            <Button type="submit" disabled={saving || cnpjLookupPending || !name.trim()}>
+              {saving ? "Salvando..." : cnpjLookupPending ? "Consultando CNPJ..." : company ? "Salvar" : "Criar Perfil"}
             </Button>
           </DialogFooter>
         </form>
