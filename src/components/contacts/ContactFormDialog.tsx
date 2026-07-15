@@ -181,6 +181,7 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact, de
                     if (d.telefone && !phone) setPhone(d.telefone);
                     if (d.endereco_formatado) setAddress(d.endereco_formatado);
                   }}
+                  onPendingChange={setCnpjLookupPending}
                   placeholder="CNPJ: 00.000.000/0000-00"
                 />
               ) : (
