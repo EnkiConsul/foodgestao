@@ -51,14 +51,26 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
       return;
     }
     setLoading(true);
-    supabase
-      .from("companies")
-      .select("id, name, trade_name")
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .order("name")
-      .then(({ data }) => {
-        setCompanies(data ?? []);
+    Promise.all([
+      supabase
+        .from("companies")
+        .select("id, name, trade_name")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .order("name"),
+      supabase
+        .from("company_members")
+        .select("company_id, companies!inner(id, name, trade_name, is_active)")
+        .eq("user_id", user.id)
+        .eq("companies.is_active", true),
+    ]).then(([ownedRes, memberRes]) => {
+        const byId = new Map<string, Company>();
+        (ownedRes.data ?? []).forEach((c) => byId.set(c.id, c));
+        (memberRes.data ?? []).forEach((row: any) => {
+          const c = row.companies;
+          if (c?.id) byId.set(c.id, { id: c.id, name: c.name, trade_name: c.trade_name });
+        });
+        setCompanies(Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name)));
         setLoading(false);
       });
     // Depende apenas do user.id para não refazer fetch em refresh de token
