@@ -1,20 +1,19 @@
-Identifiquei a causa do erro exibido na tela.
+## Problema
+No final do onboarding (`src/pages/Onboarding.tsx`, linha 171), tentamos gravar `profile_type: "empresarial"` no `profiles`, mas o enum `profile_type` no banco só aceita `pf | mei | microempresa | hibrido`. O PATCH retorna 400 (`invalid input value for enum profile_type: "empresarial"`), `onboarding_completed` nunca vira `true`, e o Hub devolve o usuário para `/onboarding`.
 
-O cadastro está chamando a função de onboarding no backend, mas ela tenta criar manualmente o vínculo do usuário como dono da empresa em `company_members`. Ao mesmo tempo, já existe um gatilho automático no banco que faz exatamente isso quando uma empresa é criada. Resultado: o mesmo vínculo é inserido duas vezes e o banco retorna erro `23505 duplicate key`, por isso a interface mostra a mensagem genérica “Não foi possível concluir o cadastro”.
+Além disso, a RPC `fn_cadastrar_empresa_onboarding` já retorna sucesso e cria a empresa — só a marcação de conclusão do perfil falha.
 
-Plano de correção:
+## Correção
 
-1. Ajustar a função `fn_cadastrar_empresa_onboarding`
-   - Remover a inserção manual em `company_members` ou torná-la idempotente com `ON CONFLICT DO NOTHING`.
-   - Manter o gatilho automático existente como responsável por criar o owner da empresa.
+**1. `src/pages/Onboarding.tsx`**
+- Remover `profile_type` do update; deixar apenas `onboarding_completed: true`. O `profile_type` já é definido no signup/perfil e não precisa mudar aqui (a empresa vive em `companies`, não no enum de perfil).
+- Tratar erro do update (log + toast) para não avançar silenciosamente caso falhe.
 
-2. Melhorar a mensagem de erro no frontend
-   - Mapear erro `23505`/duplicidade para uma mensagem mais clara quando ocorrer.
-   - Evitar que o usuário veja apenas erro genérico em falhas conhecidas.
+**2. `src/hooks/useOnboardingSubmit.tsx` (opcional, defensivo)**
+- Se a RPC retorna sucesso mas o `update profiles` falhar, ainda mostrar sucesso (a empresa foi criada), mas logar para diagnóstico.
 
-3. Validar o fluxo
-   - Confirmar que a empresa é criada.
-   - Confirmar que o vínculo do usuário como owner é criado uma única vez.
-   - Confirmar que os módulos selecionados entram em trial normalmente.
-
-Detalhe técnico: a falha vem da restrição única `company_members_company_id_user_id_key`, causada pela duplicidade entre o trigger `trigger_auto_add_company_owner` e o `INSERT INTO public.company_members` dentro da RPC de onboarding.
+## Validação
+- Rodar o fluxo de onboarding novamente e confirmar:
+  - PATCH `/profiles` retorna 204.
+  - Tela "Cadastro concluído!" aparece.
+  - Clicar em "Acessar Painel" navega para `/` e permanece (não volta para `/onboarding`).
