@@ -15,7 +15,7 @@ import { useCnpjLookup, type CnpjLookupResult } from "@/hooks/useCnpjLookup";
 import { Loader2, Search } from "lucide-react";
 import { maskCpfCnpj, isValidCpf } from "@/lib/cpf";
 import { isValidCnpj } from "@/lib/cnpj";
-import { toast as _toast } from "sonner";
+import { cn } from "@/lib/utils";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface Props {
