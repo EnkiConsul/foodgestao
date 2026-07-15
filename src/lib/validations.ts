@@ -7,6 +7,7 @@ export const companySchema = z.object({
   cnpj: z.string().trim().max(20).optional().nullable(),
   email: z.string().trim().email("E-mail inválido").max(100).optional().nullable().or(z.literal("")),
   phone: z.string().trim().max(20).optional().nullable(),
+  whatsapp: z.string().trim().max(20).optional().nullable(),
   address: z.string().trim().max(300).optional().nullable(),
 });
 
