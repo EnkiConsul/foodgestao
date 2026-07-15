@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -61,6 +61,11 @@
     --dp-birthday-border: 30 55% 85%;
     --dp-birthday-nasc: 340 80% 92%;
     --dp-birthday-contrat: 200 75% 90%;
+
+    /* Onboarding wizard tokens */
+    --onboarding-canvas: 224 60% 12%;
+    --onboarding-card: 0 0% 100%;
+    --onboarding-accent-soft: 18 90% 96%;
   }
 
   .dark {
