@@ -56,12 +56,13 @@ export function useOnboardingSubmit() {
       });
 
       if (error) {
-        const raw = error.message || "";
+        const raw = [error.message, error.details, error.code].filter(Boolean).join(" ");
         let code = "erro_desconhecido";
         if (raw.includes("empresa_ja_cadastrada")) code = "empresa_ja_cadastrada";
         else if (raw.includes("nenhum_modulo_selecionado")) code = "nenhum_modulo_selecionado";
         else if (raw.includes("cnpj_invalido")) code = "cnpj_invalido";
         else if (raw.includes("usuario_nao_autenticado")) code = "usuario_nao_autenticado";
+        else if (raw.includes("23505") || raw.includes("duplicate key")) code = "cadastro_duplicado";
         const err = new Error(raw) as Error & { code?: string };
         err.code = code;
         throw err;
@@ -82,6 +83,8 @@ export function mensagemErroOnboarding(code?: string): string {
       return "CNPJ inválido. Verifique o número informado.";
     case "usuario_nao_autenticado":
       return "Sua sessão expirou. Faça login novamente.";
+    case "cadastro_duplicado":
+      return "Já existe um cadastro em andamento para esses dados. Recarregue a página e tente novamente.";
     default:
       return "Não foi possível concluir o cadastro. Tente novamente em instantes.";
   }
