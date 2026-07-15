@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { contactSchema, validateWithToast } from "@/lib/validations";
-import { useCnpjLookup, type CnpjLookupResult } from "@/hooks/useCnpjLookup";
+import { useCnpjLookup } from "@/hooks/useCnpjLookup";
 import { Loader2, Search } from "lucide-react";
 import { maskCpfCnpj, isValidCpf } from "@/lib/cpf";
 import { isValidCnpj } from "@/lib/cnpj";
