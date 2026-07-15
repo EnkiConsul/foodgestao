@@ -11,6 +11,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { contactSchema, validateWithToast } from "@/lib/validations";
+import { CnpjInput } from "@/components/shared/CnpjInput";
+import type { CnpjLookupResult } from "@/hooks/useCnpjLookup";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface Props {
@@ -151,7 +153,21 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact, de
             </div>
             <div className="space-y-2">
               <Label>CPF/CNPJ</Label>
-              <Input value={document} onChange={(e) => setDocument(e.target.value)} placeholder="000.000.000-00" maxLength={20} />
+              {document.replace(/\D/g, "").length > 11 || (contactType !== "cliente" && document.replace(/\D/g, "").length === 0) ? (
+                <CnpjInput
+                  value={document}
+                  onChange={setDocument}
+                  onLookup={(d: CnpjLookupResult) => {
+                    if (d.razao_social) setName(d.nome_fantasia || d.razao_social);
+                    if (d.email && !email) setEmail(d.email);
+                    if (d.telefone && !phone) setPhone(d.telefone);
+                    if (d.endereco_formatado) setAddress(d.endereco_formatado);
+                  }}
+                  placeholder="CNPJ: 00.000.000/0000-00"
+                />
+              ) : (
+                <Input value={document} onChange={(e) => setDocument(e.target.value)} placeholder="CPF ou CNPJ" maxLength={20} />
+              )}
             </div>
             <div className="space-y-2">
               <Label>E-mail</Label>

@@ -1,45 +1,44 @@
-## Diagnóstico
 
-Confirmei no banco de dados agora:
+# Integração de consulta de CNPJ via BrasilAPI
 
-- **`dp_colaboradores`**: existem **0 registros** na base inteira — nem para o `rcbruto77` nem para qualquer outro usuário. Nenhum colaborador está cadastrado.
-- **`user_roles`** do usuário `7432cb5e...` (rcbruto77): apenas `super_admin`. A role órfã `dp_colaborador` já foi removida na migração anterior.
-- **`user_roles` role `dp_colaborador`**: 0 linhas em toda a tabela.
-- **RPCs**: `is_dp_colaborador('7432cb...')` = `false`, `dp_colaborador_of('7432cb...')` = `NULL`.
-- **Triggers em `dp_colaboradores`**: apenas as esperadas (`trg_dp_colab_upd` para `updated_at` e `trg_sync_dp_colaborador_role` para sincronizar a role — nenhuma cria vínculo automaticamente para super_admin).
-- **Audit logs**: sem histórico de INSERT em `dp_colaboradores` para esse usuário.
+A Receita Federal não expõe uma API pública oficial. Usaremos a **BrasilAPI** (`https://brasilapi.com.br/api/cnpj/v1/{cnpj}`), que é gratuita, sem cadastro nem chave, e devolve os dados oficiais da Receita (razão social, fantasia, endereço, telefone, e-mail, situação cadastral, CNAE, etc.).
 
-**Conclusão:** sua conta **não está vinculada** a nenhum colaborador do DP no banco. Se o preview ainda mostra `/dp/meu/perfil`, o motivo é um dos seguintes:
+## O que será entregue
 
-1. Você digitou/navegou a URL do portal diretamente (o React Router não bloqueia).
-2. O React Query ainda tem em cache `is_dp_colaborador = true` de antes da correção — permanece até refresh forçado ou re-login.
+1. **Botão "Buscar CNPJ"** no campo CNPJ dos formulários:
+   - `CompanyFormDialog` (Perfil Empresarial)
+   - `ContactFormDialog` (Contatos PJ)
+2. Ao clicar (ou ao completar 14 dígitos + blur), o sistema consulta o CNPJ e **preenche automaticamente**: Razão Social, Nome Fantasia, E-mail, Telefone, Endereço (logradouro, número, complemento, bairro, município, UF, CEP).
+3. Máscara `00.000.000/0000-00` já é aplicada, validação de dígito verificador via `isValidCnpj` já existente.
+4. Feedback visual: spinner no botão, toast de sucesso/erro, mensagens claras ("CNPJ não encontrado", "CNPJ inválido", "Falha de conexão").
 
-A tela `DpMeuPerfil` só faz `SELECT ... FROM dp_colaboradores WHERE user_id = seu_id`. Como não há registro, ela mostra “Perfil não encontrado”. Não há vínculo real.
+## Como funciona (técnico)
 
-## O que corrigir para nunca mais acontecer
+- **Edge Function `lookup-cnpj`** (Lovable Cloud) atua como proxy para a BrasilAPI. Motivo:
+  - Evita problemas de CORS.
+  - Permite cache futuro e rate-limit por usuário.
+  - Exige JWT válido (`verify_jwt = true`) para impedir uso anônimo.
+- Entrada: `{ cnpj: string }` (aceita com ou sem máscara). Saída normalizada:
+  ```
+  { razao_social, nome_fantasia, email, telefone, endereco_formatado,
+    logradouro, numero, complemento, bairro, municipio, uf, cep, situacao }
+  ```
+- **Hook `useCnpjLookup`** encapsula a chamada com React Query (`useMutation`) e trata erros.
+- **Componente `CnpjInput`** reutilizável: input com máscara + botão de busca (ícone `Search`) + estado de loading.
 
-### 1. Bloquear rotas `/dp/meu/*` para super_admin e owners
-Hoje, o `ColaboradorShell` só valida `is_dp_colaborador`. Se der `false`, exibe "Portal indisponível" — mas ainda é uma tela do portal. Ajuste:
+## Arquivos a criar/editar
 
-- Em `src/components/dp/ColaboradorShell.tsx`, se `useSuperAdmin()` retornar `true`, redirecionar direto para `/hub` com `<Navigate to="/hub" replace />`.
-- Mesma verificação para usuários que são owner/admin de qualquer empresa via `company_members` (opcional — a próxima seção resolve isso mais amplamente).
+| Arquivo | Ação |
+|---|---|
+| `supabase/functions/lookup-cnpj/index.ts` | Criar edge function (proxy + validação Zod) |
+| `src/hooks/useCnpjLookup.tsx` | Criar hook |
+| `src/components/shared/CnpjInput.tsx` | Criar input reutilizável |
+| `src/components/companies/CompanyFormDialog.tsx` | Substituir input CNPJ por `CnpjInput` e aplicar preenchimento |
+| `src/components/contacts/ContactFormDialog.tsx` | Idem para contatos PJ |
 
-### 2. Reforçar `RootGate` em `src/App.tsx`
-No trecho onde chama `is_dp_colaborador` e navega para `/dp/meu`, adicionar guarda: se o usuário for super_admin **ou** owner de alguma empresa, ignorar o resultado e ir para `/hub`. Isso protege contra qualquer resíduo futuro de role/registro órfão.
+## Fora do escopo
 
-### 3. Invalidar cache do React Query no logout
-Garantir que ao fazer signOut o `queryClient.clear()` é chamado, para não sobreviver `is_dp_colaborador = true` entre sessões distintas no mesmo dispositivo.
-
-## Arquivos tocados
-
-- `src/components/dp/ColaboradorShell.tsx` — guarda anti-superadmin.
-- `src/App.tsx` — reforço no `RootGate`.
-- `src/hooks/useAuth.tsx` (ou onde está o `signOut`) — `queryClient.clear()` no logout.
-
-**Sem migrações SQL** — o banco já está consistente.
-
-## Verificação
-
-- Login com `rcbruto77` → deve cair em `/hub`.
-- Acessar `/dp/meu/perfil` manualmente → deve redirecionar para `/hub`.
-- Logout + login como colaborador legítimo (quando existir) → deve entrar no portal normalmente.
+- Consulta de QSA (sócios) — a BrasilAPI retorna, mas não temos campo hoje.
+- Consulta em lote / atualização em massa de cadastros existentes.
+- Uso no Onboarding (você não marcou; podemos adicionar depois).
+- CPF (a Receita não permite consulta pública de CPF por API).
