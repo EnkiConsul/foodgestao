@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { companySchema, validateWithToast } from "@/lib/validations";
 import { CnpjInput } from "@/components/shared/CnpjInput";
 import type { CnpjLookupResult } from "@/hooks/useCnpjLookup";
+import { isValidCnpj } from "@/lib/cnpj";
 import type { Database } from "@/integrations/supabase/types";
 
 type Company = Database["public"]["Tables"]["companies"]["Row"];
