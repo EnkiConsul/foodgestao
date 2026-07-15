@@ -11,10 +11,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { contactSchema, validateWithToast } from "@/lib/validations";
-import { CnpjInput } from "@/components/shared/CnpjInput";
-import type { CnpjLookupResult } from "@/hooks/useCnpjLookup";
-import type { Tables } from "@/integrations/supabase/types";
+import { useCnpjLookup, type CnpjLookupResult } from "@/hooks/useCnpjLookup";
+import { Loader2, Search } from "lucide-react";
+import { maskCpfCnpj, isValidCpf } from "@/lib/cpf";
 import { isValidCnpj } from "@/lib/cnpj";
+import { toast as _toast } from "sonner";
+import type { Tables } from "@/integrations/supabase/types";
 
 interface Props {
   open: boolean;
