@@ -89,12 +89,16 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact, de
     }
 
     const docDigits = document.replace(/\D/g, "");
-    if (docDigits.length > 11) {
-      if (docDigits.length !== 14) {
-        toast.error("CNPJ deve conter 14 dígitos.");
+    if (docDigits.length > 0) {
+      if (docDigits.length !== 11 && docDigits.length !== 14) {
+        toast.error("Documento deve ter 11 dígitos (CPF) ou 14 dígitos (CNPJ).");
         return;
       }
-      if (!isValidCnpj(docDigits)) {
+      if (docDigits.length === 11 && !isValidCpf(docDigits)) {
+        toast.error("CPF inválido — dígitos verificadores incorretos.");
+        return;
+      }
+      if (docDigits.length === 14 && !isValidCnpj(docDigits)) {
         toast.error("CNPJ inválido — dígitos verificadores incorretos.");
         return;
       }
