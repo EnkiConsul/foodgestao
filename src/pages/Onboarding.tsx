@@ -1,389 +1,273 @@
-import { useEffect, useRef, useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Card, CardContent } from "@/components/ui/card";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { StepProfileType } from "@/components/onboarding/StepProfileType";
-import { StepProfileData } from "@/components/onboarding/StepProfileData";
-import { StepAccount } from "@/components/onboarding/StepAccount";
-import { StepCategories } from "@/components/onboarding/StepCategories";
-import { StepPlan } from "@/components/onboarding/StepPlan";
-import { useCurrentSubscription } from "@/hooks/useCurrentSubscription";
-import { useBillingRealtime } from "@/hooks/useBillingRealtime";
-import { CheckCircle2, Circle, Rocket, SkipForward } from "lucide-react";
-import { Logo } from "@/components/Logo";
-import { cn } from "@/lib/utils";
+import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { OnboardingShell } from "@/components/onboarding/food/OnboardingShell";
+import { StepEmpresa } from "@/components/onboarding/food/StepEmpresa";
+import { StepModulos } from "@/components/onboarding/food/StepModulos";
+import { StepSucesso } from "@/components/onboarding/food/StepSucesso";
 import { isValidCnpj } from "@/lib/cnpj";
-import { isValidCpf } from "@/lib/cpf";
 import { isValidPhone } from "@/lib/phone";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useOnboardingSubmit, mensagemErroOnboarding } from "@/hooks/useOnboardingSubmit";
 
-export type OnboardingData = {
-  profileType: string;
-  fullName: string;
-  document: string;
-  phone: string;
-  companyName: string;
-  companyCnpj: string;
-  accountName: string;
-  accountType: string;
-  initialBalance: string;
-  selectedCategories: string[];
-  selectedPlanSlug: string;
+export interface EmpresaFormData {
+  nomeCompleto: string;
+  cnpj: string;
+  razaoSocial: string;
+  nomeFantasia: string;
+  segmentoId: string;
+  cep: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  cidade: string;
+  uf: string;
+  telefoneEmpresa: string;
+  whatsappEmpresa: string;
+  emailEmpresa: string;
+  aceitouLgpd: boolean;
+}
+
+const EMPTY_EMPRESA: EmpresaFormData = {
+  nomeCompleto: "",
+  cnpj: "",
+  razaoSocial: "",
+  nomeFantasia: "",
+  segmentoId: "",
+  cep: "",
+  logradouro: "",
+  numero: "",
+  complemento: "",
+  bairro: "",
+  cidade: "",
+  uf: "",
+  telefoneEmpresa: "",
+  whatsappEmpresa: "",
+  emailEmpresa: "",
+  aceitouLgpd: false,
 };
 
-type StepKey = "profile" | "plan" | "data" | "account" | "categories";
-
-const STEPS: { key: StepKey; title: string; description: string }[] = [
-  { key: "profile", title: "Tipo de perfil", description: "Defina se você é PF, MEI, Microempresa ou Híbrido." },
-  { key: "plan", title: "Escolha seu plano", description: "Selecione o plano ideal para você. Comece grátis e evolua quando quiser." },
-  { key: "data", title: "Seus dados", description: "Nome, documento e telefone (e dados da empresa, se PJ)." },
-  { key: "account", title: "Primeira conta financeira", description: "Cadastre uma conta com saldo inicial." },
-  { key: "categories", title: "Categorias iniciais", description: "Escolha categorias para começar a lançar." },
-];
-
-const DEFAULT_DATA: OnboardingData = {
-  profileType: "pf",
-  fullName: "",
-  document: "",
-  phone: "",
-  companyName: "",
-  companyCnpj: "",
-  accountName: "Conta Principal",
-  accountType: "corrente",
-  initialBalance: "0",
-  selectedCategories: [],
-  selectedPlanSlug: "free",
-};
-
-const DEFAULT_COMPLETED: Record<StepKey, boolean> = {
-  profile: false,
-  plan: false,
-  data: false,
-  account: false,
-  categories: false,
-};
+function validateEmpresa(d: EmpresaFormData): Partial<Record<keyof EmpresaFormData, string>> {
+  const e: Partial<Record<keyof EmpresaFormData, string>> = {};
+  if (!d.nomeCompleto.trim()) e.nomeCompleto = "Informe seu nome completo.";
+  if (!d.cnpj.trim()) e.cnpj = "Informe o CNPJ.";
+  else if (!isValidCnpj(d.cnpj)) e.cnpj = "CNPJ inválido.";
+  if (!d.razaoSocial.trim()) e.razaoSocial = "Informe a Razão Social.";
+  if (!d.segmentoId) e.segmentoId = "Selecione o segmento.";
+  if (!d.cep.trim()) e.cep = "Informe o CEP.";
+  if (!d.logradouro.trim()) e.logradouro = "Informe o logradouro.";
+  if (!d.numero.trim()) e.numero = "Informe o número.";
+  if (!d.bairro.trim()) e.bairro = "Informe o bairro.";
+  if (!d.cidade.trim()) e.cidade = "Informe a cidade.";
+  if (!d.uf.trim() || d.uf.length !== 2) e.uf = "UF inválida.";
+  if (!d.whatsappEmpresa.trim()) e.whatsappEmpresa = "Informe o WhatsApp.";
+  else if (!isValidPhone(d.whatsappEmpresa)) e.whatsappEmpresa = "WhatsApp inválido.";
+  if (d.telefoneEmpresa && !isValidPhone(d.telefoneEmpresa)) e.telefoneEmpresa = "Telefone inválido.";
+  if (!d.emailEmpresa.trim()) e.emailEmpresa = "Informe o e-mail.";
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.emailEmpresa)) e.emailEmpresa = "E-mail inválido.";
+  if (!d.aceitouLgpd) e.aceitouLgpd = "Você precisa aceitar os Termos e a Política de Privacidade.";
+  return e;
+}
 
 export default function Onboarding() {
-  const [completed, setCompleted] = useState<Record<StepKey, boolean>>(DEFAULT_COMPLETED);
-  const [openItem, setOpenItem] = useState<string | undefined>("profile");
-  const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { data: currentSub } = useCurrentSubscription();
-  useBillingRealtime();
+  const { setContext } = useCompanyContext();
+  const submit = useOnboardingSubmit();
 
-  const [data, setData] = useState<OnboardingData>(DEFAULT_DATA);
-  const hydratedRef = useRef(false);
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [empresa, setEmpresa] = useState<EmpresaFormData>(EMPTY_EMPRESA);
+  const [modulos, setModulos] = useState<string[]>([]);
+  const [errors, setErrors] = useState<Partial<Record<keyof EmpresaFormData, string>>>({});
+  const [cnpjPending, setCnpjPending] = useState(false);
+  const [cnpjInactive, setCnpjInactive] = useState(false);
+  const [exitOpen, setExitOpen] = useState(false);
+  const [result, setResult] = useState<{ company_id: string; trial_termina_em: string } | null>(null);
 
-  // Load saved progress on mount
+  // Prefill nome/email do usuário logado
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("profiles")
-      .select("onboarding_data, full_name, phone, document, profile_type")
-      .eq("user_id", user.id)
-      .single()
-      .then(({ data: profile }) => {
-        const saved = (profile?.onboarding_data ?? null) as
-          | { data?: Partial<OnboardingData>; completed?: Partial<Record<StepKey, boolean>>; openItem?: string }
-          | null;
-        setData((d) => ({
-          ...d,
-          fullName: profile?.full_name ?? d.fullName,
-          phone: profile?.phone ?? d.phone,
-          document: profile?.document ?? d.document,
-          profileType: profile?.profile_type ?? d.profileType,
-          ...(saved?.data ?? {}),
-        }));
-        if (saved?.completed) {
-          setCompleted({ ...DEFAULT_COMPLETED, ...saved.completed });
-        }
-        if (saved?.openItem) setOpenItem(saved.openItem);
-        hydratedRef.current = true;
-        setLoading(false);
-      });
+    setEmpresa((d) => ({
+      ...d,
+      nomeCompleto: d.nomeCompleto || (user.user_metadata?.full_name as string) || "",
+      emailEmpresa: d.emailEmpresa || user.email || "",
+    }));
   }, [user]);
 
-  // Debounced autosave
-  useEffect(() => {
-    if (!user || !hydratedRef.current) return;
-    setAutoSaveStatus("saving");
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(async () => {
-      await supabase
-        .from("profiles")
-        .update({ onboarding_data: { data, completed, openItem } as any })
-        .eq("user_id", user.id);
-      setAutoSaveStatus("saved");
-    }, 800);
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    };
-  }, [data, completed, openItem, user]);
-
-  const update = (partial: Partial<OnboardingData>) => setData((d) => ({ ...d, ...partial }));
-
-  const isPJ = ["mei", "microempresa", "hibrido"].includes(data.profileType);
-
-  const validateStep = (key: StepKey): string | null => {
-    switch (key) {
-      case "profile":
-        return data.profileType ? null : "Selecione um tipo de perfil.";
-      case "plan": {
-        if (!data.selectedPlanSlug) return "Selecione um plano para continuar.";
-        const selected = (currentSub?.plan as any) ?? null;
-        const selectedIsPaid = selected ? (selected.price_cents ?? 0) > 0 : false;
-        // If user picked a paid plan that isn't yet active, require checkout
-        if (data.selectedPlanSlug !== "free") {
-          const isActiveOnSelected =
-            currentSub?.plan?.slug === data.selectedPlanSlug &&
-            ["trialing", "active"].includes(currentSub?.status ?? "");
-          if (!isActiveOnSelected && !selectedIsPaid) {
-            return "Conclua o pagamento do plano selecionado para continuar.";
-          }
-          if (!isActiveOnSelected) {
-            return "Conclua o pagamento do plano selecionado para continuar.";
-          }
-        }
-        return null;
-      }
-      case "data":
-        if (isPJ) {
-          if (!data.companyName.trim()) return "Informe o nome da empresa.";
-          if (!data.companyCnpj.trim()) return "Informe o CNPJ.";
-          if (!isValidCnpj(data.companyCnpj)) return "CNPJ inválido. Verifique o número informado.";
-        }
-        if (!isPJ || data.profileType === "hibrido") {
-          if (!data.fullName.trim()) return "Informe seu nome completo.";
-          if (!data.document.trim()) return "Informe seu CPF.";
-          if (!isValidCpf(data.document)) return "CPF inválido. Verifique o número informado.";
-          if (!data.phone.trim()) return "Informe seu telefone.";
-          if (!isValidPhone(data.phone)) return "Telefone inválido. Verifique o número informado.";
-        }
-        return null;
-      case "account":
-        return data.accountName.trim() ? null : "Informe o nome da conta.";
-      case "categories":
-        return data.selectedCategories.length > 0 ? null : "Selecione ao menos uma categoria.";
-    }
+  const updateEmpresa = (patch: Partial<EmpresaFormData>) => {
+    setEmpresa((d) => ({ ...d, ...patch }));
+    setErrors((e) => {
+      const next = { ...e };
+      for (const k of Object.keys(patch) as (keyof EmpresaFormData)[]) delete next[k];
+      return next;
+    });
   };
 
-  const handleConfirmStep = (key: StepKey) => {
-    const err = validateStep(key);
-    if (err) {
-      toast.error(err);
+  const toggleModulo = (slug: string) => {
+    setModulos((m) => (m.includes(slug) ? m.filter((s) => s !== slug) : [...m, slug]));
+  };
+
+  const handleAvancar = () => {
+    if (cnpjPending) {
+      toast.error("Aguarde a consulta do CNPJ finalizar.");
       return;
     }
-    setCompleted((c) => ({ ...c, [key]: true }));
-    const order: StepKey[] = STEPS.map((s) => s.key);
-    const next = order.find((k) => !{ ...completed, [key]: true }[k]);
-    setOpenItem(next);
-    toast.success("Etapa concluída!");
+    const e = validateEmpresa(empresa);
+    setErrors(e);
+    if (Object.keys(e).length > 0) {
+      toast.error("Preencha os campos obrigatórios.");
+      return;
+    }
+    setStep(2);
   };
 
-  const allDone = Object.values(completed).every(Boolean);
-  const completedCount = Object.values(completed).filter(Boolean).length;
-  const progress = (completedCount / STEPS.length) * 100;
-
-  const handleFinish = async () => {
-    if (!user || !allDone) return;
-    setSaving(true);
+  const handleConcluir = async () => {
+    if (modulos.length === 0) {
+      toast.error("Selecione pelo menos 1 módulo.");
+      return;
+    }
     try {
-      // Cancel any pending debounced autosave and flush a final snapshot first
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current);
-        saveTimerRef.current = null;
-      }
-      setAutoSaveStatus("saving");
-      await supabase
-        .from("profiles")
-        .update({ onboarding_data: { data, completed, openItem } as any })
-        .eq("user_id", user.id);
-      setAutoSaveStatus("saved");
-
-      // Then mark onboarding as completed and persist final profile fields
-      await supabase.from("profiles").update({
-        profile_type: data.profileType as any,
-        full_name: data.fullName || undefined,
-        phone: data.phone || undefined,
-        document: data.document || undefined,
-        onboarding_completed: true,
-      }).eq("user_id", user.id);
-
-      if (isPJ && data.companyName) {
-        await supabase.from("companies").insert({
-          user_id: user.id,
-          name: data.companyName,
-          cnpj: data.companyCnpj || undefined,
-        });
-      }
-
-      const balance = parseFloat(data.initialBalance.replace(/[^\d,-]/g, "").replace(",", ".")) || 0;
-      await supabase.from("accounts").insert({
-        user_id: user.id,
-        name: data.accountName || "Conta Principal",
-        account_type: data.accountType as any,
-        initial_balance: balance,
-        current_balance: balance,
-        context: ["mei", "microempresa"].includes(data.profileType) ? "pj" : "pf",
+      const res = await submit.mutateAsync({
+        nomeCompleto: empresa.nomeCompleto,
+        emailCliente: empresa.emailEmpresa,
+        telefoneCliente: empresa.telefoneEmpresa,
+        whatsappCliente: empresa.whatsappEmpresa,
+        cnpj: empresa.cnpj,
+        razaoSocial: empresa.razaoSocial,
+        nomeFantasia: empresa.nomeFantasia,
+        segmentoId: empresa.segmentoId,
+        cep: empresa.cep,
+        logradouro: empresa.logradouro,
+        numero: empresa.numero,
+        complemento: empresa.complemento,
+        bairro: empresa.bairro,
+        cidade: empresa.cidade,
+        uf: empresa.uf,
+        telefoneEmpresa: empresa.telefoneEmpresa,
+        whatsappEmpresa: empresa.whatsappEmpresa,
+        emailEmpresa: empresa.emailEmpresa,
+        modulosSlugs: modulos,
       });
 
-      if (data.selectedCategories.length > 0) {
-        const categories = data.selectedCategories.map((name) => ({
-          user_id: user.id,
-          name,
-          transaction_type: "despesa" as const,
-          category_subtype: "despesa" as const,
-          is_system: true,
-        }));
-        await supabase.from("categories").insert(categories);
+      // Marca onboarding concluído no profile
+      if (user) {
+        await supabase
+          .from("profiles")
+          .update({ onboarding_completed: true, profile_type: "empresarial" as any })
+          .eq("user_id", user.id);
       }
 
-      toast.success("Tudo pronto!", { description: "Seu painel foi liberado." });
-      navigate("/");
-    } catch {
-      toast.error("Erro ao salvar dados");
-    } finally {
-      setSaving(false);
+      setResult(res);
+      setStep(3);
+    } catch (err) {
+      const code = (err as Error & { code?: string })?.code;
+      toast.error(mensagemErroOnboarding(code));
     }
   };
 
-  const handleSkip = async () => {
-    if (!user) return;
-    setSaving(true);
-    await supabase.from("profiles").update({ onboarding_completed: true }).eq("user_id", user.id);
+  const handleAcessarPainel = () => {
+    if (result?.company_id) {
+      setContext("pj", result.company_id);
+    }
     navigate("/");
-    setSaving(false);
   };
 
-  const renderStepContent = (key: StepKey) => {
-    switch (key) {
-      case "profile":
-        return <StepProfileType data={data} update={update} />;
-      case "plan":
-        return <StepPlan data={data} update={update} />;
-      case "data":
-        return <StepProfileData data={data} update={update} />;
-      case "account":
-        return <StepAccount data={data} update={update} />;
-      case "categories":
-        return <StepCategories data={data} update={update} />;
-    }
+  const requestExit = () => {
+    if (step === 3) return navigate("/");
+    setExitOpen(true);
   };
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-background p-4 py-10">
-      <div className="mx-auto w-full max-w-2xl space-y-6">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Logo variant="icon" linkTo={null} className="h-10 w-10" />
-            <div>
-              <h1 className="text-2xl font-bold">Bem-vindo ao 360°FOOD</h1>
-              <p className="text-sm text-muted-foreground">
-                Conclua o checklist abaixo para liberar seu Dashboard.
-              </p>
+    <>
+      <OnboardingShell currentStep={step}>
+        {step === 1 && (
+          <>
+            <StepEmpresa
+              data={empresa}
+              update={updateEmpresa}
+              errors={errors}
+              setCnpjPending={setCnpjPending}
+              cnpjInactive={cnpjInactive}
+              setCnpjInactive={setCnpjInactive}
+            />
+            <div className="mt-8 flex items-center justify-between gap-3">
+              <Button variant="ghost" onClick={requestExit}>
+                Sair
+              </Button>
+              <Button onClick={handleAvancar} disabled={cnpjPending} size="lg">
+                Avançar
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             </div>
-          </div>
-          <span className="shrink-0 text-xs text-muted-foreground pt-2">
-            {autoSaveStatus === "saving" && "Salvando..."}
-            {autoSaveStatus === "saved" && "Progresso salvo"}
-          </span>
-        </div>
+          </>
+        )}
 
-        {/* Progress card */}
-        <Card>
-          <CardContent className="space-y-3 p-4">
-            <div className="flex items-center justify-between text-sm">
-              <span className="font-medium">
-                {completedCount} de {STEPS.length} etapas concluídas
-              </span>
-              <span className="text-muted-foreground">{Math.round(progress)}%</span>
-            </div>
-            <Progress value={progress} className="h-2" />
-          </CardContent>
-        </Card>
-
-        {/* Checklist */}
-        <Accordion
-          type="single"
-          collapsible
-          value={openItem}
-          onValueChange={setOpenItem}
-          className="space-y-3"
-        >
-          {STEPS.map((s, idx) => {
-            const done = completed[s.key];
-            return (
-              <AccordionItem
-                key={s.key}
-                value={s.key}
-                className={cn(
-                  "rounded-lg border bg-card px-4 transition-colors",
-                  done && "border-primary/40 bg-primary/5"
-                )}
+        {step === 2 && (
+          <>
+            <StepModulos selectedSlugs={modulos} onToggle={toggleModulo} />
+            <div className="mt-8 flex items-center justify-between gap-3">
+              <Button variant="ghost" onClick={() => setStep(1)} disabled={submit.isPending}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Voltar
+              </Button>
+              <Button
+                onClick={handleConcluir}
+                disabled={modulos.length === 0 || submit.isPending}
+                size="lg"
               >
-                <AccordionTrigger className="hover:no-underline">
-                  <div className="flex items-center gap-3 text-left">
-                    {done ? (
-                      <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />
-                    ) : (
-                      <Circle className="h-5 w-5 shrink-0 text-muted-foreground" />
-                    )}
-                    <div>
-                      <p className={cn("text-sm font-semibold", done && "text-primary")}>
-                        {idx + 1}. {s.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{s.description}</p>
-                    </div>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pt-2">
-                  <div className="space-y-4">
-                    {renderStepContent(s.key)}
-                    <div className="flex justify-end">
-                      <Button onClick={() => handleConfirmStep(s.key)} size="sm">
-                        {done ? "Atualizar etapa" : "Marcar como concluída"}
-                      </Button>
-                    </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            );
-          })}
-        </Accordion>
+                {submit.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Concluindo…
+                  </>
+                ) : (
+                  <>Concluir Cadastro e Iniciar Teste Grátis</>
+                )}
+              </Button>
+            </div>
+          </>
+        )}
 
-        {/* Footer actions */}
-        <div className="flex items-center justify-between gap-3 pt-2">
-          <Button variant="ghost" size="sm" onClick={handleSkip} disabled={saving}>
-            <SkipForward className="mr-1 h-4 w-4" /> Pular onboarding
-          </Button>
-          <Button onClick={handleFinish} disabled={!allDone || saving} size="lg">
-            <Rocket className="mr-2 h-4 w-4" />
-            {saving ? "Liberando..." : "Liberar Dashboard"}
-          </Button>
-        </div>
-      </div>
-    </div>
+        {step === 3 && result && (
+          <StepSucesso
+            nomeFantasia={empresa.nomeFantasia}
+            razaoSocial={empresa.razaoSocial}
+            modulosSlugs={modulos}
+            trialTerminaEm={result.trial_termina_em}
+            onContinuar={handleAcessarPainel}
+          />
+        )}
+      </OnboardingShell>
+
+      <AlertDialog open={exitOpen} onOpenChange={setExitOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deseja sair do cadastro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Os dados preenchidos serão perdidos e você precisará reiniciar o wizard.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continuar cadastro</AlertDialogCancel>
+            <AlertDialogAction onClick={() => navigate("/")}>Sair mesmo assim</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

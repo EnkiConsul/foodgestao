@@ -5,6 +5,8 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 export function ContextSelector() {
   const { contextType, selectedCompanyId, companies, setContext } = useCompanyContext();
 
+  // PF só aparece se o usuário estiver ativamente em PF (legado) — novos cadastros são PJ.
+  const isLegacyPf = contextType === "pf";
   const currentValue = contextType === "pf" ? "pf|null" : `pj|${selectedCompanyId}`;
 
   const handleChange = (val: string) => {
@@ -20,14 +22,16 @@ export function ContextSelector() {
         ) : (
           <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         )}
-        <SelectValue placeholder="Selecione o perfil" />
+        <SelectValue placeholder="Selecione a empresa" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="pf|null">
-          <span className="flex items-center gap-2">
-            <User className="h-3.5 w-3.5" /> Pessoal
-          </span>
-        </SelectItem>
+        {isLegacyPf && (
+          <SelectItem value="pf|null">
+            <span className="flex items-center gap-2">
+              <User className="h-3.5 w-3.5" /> Pessoal
+            </span>
+          </SelectItem>
+        )}
         {companies.map((c) => (
           <SelectItem key={c.id} value={`pj|${c.id}`}>
             <span className="flex items-center gap-2">

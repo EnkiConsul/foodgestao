@@ -123,19 +123,22 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Tipo de Perfil *</Label>
-            <RadioGroup value={profileType} onValueChange={(v) => setProfileType(v as "pessoal" | "empresarial")} className="flex gap-4">
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="pessoal" id="profile-pessoal" />
-                <Label htmlFor="profile-pessoal" className="font-normal cursor-pointer">Pessoal</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="empresarial" id="profile-empresarial" />
-                <Label htmlFor="profile-empresarial" className="font-normal cursor-pointer">Empresarial</Label>
-              </div>
-            </RadioGroup>
-          </div>
+          {/* Tipo de perfil visível apenas ao editar perfis legados PF */}
+          {company && company.profile_type === "pessoal" ? (
+            <div className="space-y-2">
+              <Label>Tipo de Perfil</Label>
+              <RadioGroup value={profileType} onValueChange={(v) => setProfileType(v as "pessoal" | "empresarial")} className="flex gap-4">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="pessoal" id="profile-pessoal" />
+                  <Label htmlFor="profile-pessoal" className="font-normal cursor-pointer">Pessoal</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="empresarial" id="profile-empresarial" />
+                  <Label htmlFor="profile-empresarial" className="font-normal cursor-pointer">Empresarial</Label>
+                </div>
+              </RadioGroup>
+            </div>
+          ) : null}
           {profileType === "pessoal" ? (
             <>
               <div className="space-y-2">
