@@ -1,35 +1,23 @@
-## Diagnóstico
+# Document access-control rules
 
-A conta nova está caindo sempre em `/onboarding` porque o guard de rotas lê `profiles.onboarding_completed=false`. Ao tentar finalizar o wizard com o CNPJ `58.241.366/0001-32`, a função de cadastro retorna `empresa_ja_cadastrada`, pois a empresa já existe no banco. Como esse erro interrompe o fluxo antes de marcar `onboarding_completed=true`, o usuário fica preso no onboarding mesmo já tendo vínculo/empresa cadastrada.
+Update the security memory document (`security--update_memory`) to record the invariants for two sensitive tables so future scans and edits don't reintroduce exposure.
 
-## Plano de correção
+## What to add
 
-1. **Criar regra reutilizável para resolver onboarding**
-   - Manter a regra atual de marcar `profiles.onboarding_completed=true` sem enviar `profile_type`.
-   - Adicionar uma verificação defensiva: se o usuário já tem empresa própria ou vínculo ativo em empresa, ele deve ser considerado onboarding concluído.
+### CNPJ cache (`public.cnpj_cache`)
+- Server-only table. Populated and read exclusively by the `lookup-cnpj` edge function using `service_role`.
+- No `SELECT`/`INSERT`/`UPDATE`/`DELETE` grants to `anon` or `authenticated`.
+- No RLS policy should expose rows to authenticated users (no `USING (true)`).
+- If client-side lookup is ever needed, it must go through an edge function, not direct table access.
 
-2. **Corrigir o redirecionamento das rotas protegidas**
-   - Em `ProtectedRoute`, ao consultar o perfil, também verificar se existe empresa/vínculo para o usuário.
-   - Se `onboarding_completed=false`, mas houver empresa ou vínculo ativo, atualizar `profiles.onboarding_completed=true` e permitir entrada no Hub.
-   - Se não houver empresa/vínculo, continuar redirecionando para `/onboarding`.
+### Payroll entries (`public.dp_folha_lancamentos`)
+- Access model:
+  - Company owners, admins and members: full visibility via `is_company_member` / `is_company_admin_or_owner`.
+  - Super admins: full visibility via `is_super_admin`.
+  - Colaboradores (employees): can view **only their own** lines (`dc.user_id = auth.uid()`) and **only** when `status IN ('aprovado_dp', 'aprovado_financeiro', 'pago')`.
+- Invariant: draft/pending statuses (anything outside the approved-or-paid set) must never be visible to the colaborador role. Any new value added to the `dp_folha_lancamento_status` enum must be explicitly reviewed against this policy before being added to the allowlist.
+- Writes remain restricted to company admins/owners and super admins.
 
-3. **Corrigir o guard da tela de onboarding**
-   - Ao abrir `/onboarding`, verificar se o usuário já tem onboarding concluído ou empresa/vínculo ativo.
-   - Se tiver, redirecionar direto para `/hub` em vez de mostrar o wizard novamente.
+## Deliverable
 
-4. **Tratar o caso `empresa_ja_cadastrada` no submit**
-   - Quando a RPC retornar `empresa_ja_cadastrada`, verificar se o CNPJ pertence a uma empresa do próprio usuário ou onde ele é membro.
-   - Se sim, marcar `onboarding_completed=true`, selecionar a empresa no contexto e ir para a tela de sucesso/Hub.
-   - Se não for vínculo do usuário, manter a mensagem atual: “Este CNPJ já está cadastrado...”.
-
-5. **Adicionar testes automatizados**
-   - Expandir os testes do helper para garantir que:
-     - onboarding é concluído quando há empresa/vínculo existente;
-     - `profile_type` nunca é enviado;
-     - erro de CNPJ já cadastrado só é tratado como sucesso quando pertence ao usuário.
-
-## Validação
-
-- Login com a conta nova do CNPJ informado deve abrir o Hub/painel, não o wizard.
-- A tabela `profiles` deve ficar com `onboarding_completed=true` para esse usuário.
-- Usuários sem empresa/vínculo continuam indo para `/onboarding`.
+A single `security--update_memory` call that merges these rules into the existing security memory (keeping any current content about the app's access model, and removing stale entries about these two tables if present). No code or schema changes.
