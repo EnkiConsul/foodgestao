@@ -51,23 +51,30 @@ export function useCnpjLookup() {
 
       if (error) {
         const anyErr = error as any;
+        let code: string | undefined;
+        let message = error.message || "Falha ao consultar CNPJ.";
         try {
           const ctxText = anyErr?.context ? await anyErr.context.text() : null;
           if (ctxText) {
             try {
               const parsed = JSON.parse(ctxText);
-              throw new Error(parsed.error || ctxText);
+              message = parsed.error || message;
+              code = parsed.code;
             } catch {
-              throw new Error(ctxText);
+              message = ctxText;
             }
           }
-        } catch (e) {
-          if (e instanceof Error) throw e;
-        }
-        throw new Error(error.message || "Falha ao consultar CNPJ");
+        } catch { /* ignore */ }
+        const err = new Error(message) as Error & { code?: string };
+        err.code = code;
+        throw err;
       }
 
-      if (!data) throw new Error("Sem resposta da consulta.");
+      if (!data) {
+        const err = new Error("Sem resposta da consulta. Tente novamente.") as Error & { code?: string };
+        err.code = "empty_response";
+        throw err;
+      }
 
       const result = data as CnpjLookupResult;
       qc.setQueryData(key, result);
@@ -75,3 +82,4 @@ export function useCnpjLookup() {
     },
   });
 }
+
