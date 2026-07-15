@@ -14,6 +14,7 @@ import { contactSchema, validateWithToast } from "@/lib/validations";
 import { CnpjInput } from "@/components/shared/CnpjInput";
 import type { CnpjLookupResult } from "@/hooks/useCnpjLookup";
 import type { Tables } from "@/integrations/supabase/types";
+import { isValidCnpj } from "@/lib/cnpj";
 
 interface Props {
   open: boolean;
