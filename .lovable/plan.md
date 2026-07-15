@@ -1,72 +1,60 @@
-# Importar dados reais do Pakerê e re-rodar o E2E do DP
+# Por que rcbruto77 foi para /dp/meu
 
-## Escopo em 3 fases
+O `RootGate` redireciona para `/dp/meu` sempre que a RPC `is_dp_colaborador(user)` retorna `true`. Investigando:
 
-### Fase 1 — Sondar acesso (1 requisição, read-only)
+1. `is_dp_colaborador` **não olha** a tabela `dp_colaboradores` — ela só faz `SELECT ... FROM user_roles WHERE role = 'dp_colaborador'`.
+2. O usuário `rcbruto77@gmail.com` tem **duas linhas** em `user_roles`:
+   - `super_admin` (14/02/2026 — legítima)
+   - `dp_colaborador` (14/07/2026 — **resíduo dos testes** `PAKERE_` / `TESTE_E2E_` que rodamos na limpeza anterior)
+3. Não existe nenhum registro em `dp_colaboradores` com o `user_id` ou o e-mail dele — a role virou órfã depois da limpeza dos `PAKERE_*`.
 
-Antes de qualquer coisa, testo se a anon key `sb_publishable_...` consegue ler as tabelas `dp_*` de `pjogistzpszkcjucktrv.supabase.co`.
+Ou seja, ele é super_admin e dono das empresas ClicSorte e Raptor, mas a role órfã força o portal. Além disso, a regra que você escolheu ("só é colaborador em empresas onde NÃO é owner/admin") não está implementada em lugar nenhum hoje.
 
-```bash
-curl -s -H "apikey: <key>" \
-  "https://pjogistzpszkcjucktrv.supabase.co/rest/v1/dp_colaboradores?select=id&limit=1"
+---
+
+# Plano
+
+## 1. Limpar a role órfã do rcbruto77
+Deletar de `user_roles` a linha `role = 'dp_colaborador'` do usuário `7432cb5e-27ef-4189-b903-43d133aaa541`. Isso resolve o sintoma imediato — próximo login vai direto para `/hub`.
+
+## 2. Varrer outras roles `dp_colaborador` órfãs
+Após a limpeza dos `PAKERE_*` da rodada passada podem ter sobrado outras. Deletar de `user_roles` toda linha `role = 'dp_colaborador'` cujo `user_id` **não** aparece em `dp_colaboradores` (por `user_id` nem por e-mail via `auth.users`).
+
+## 3. Corrigir `is_dp_colaborador` para refletir a regra escolhida
+Reescrever a função para retornar `true` somente se existir vínculo **efetivo** em `dp_colaboradores` numa empresa onde o usuário **não** é owner nem admin/owner via `company_members`. Regra em SQL (SECURITY DEFINER, search_path fixo):
+
+```text
+EXISTS colaborador C em dp_colaboradores tal que:
+   C.user_id = _user_id  OR  lower(C.email) = lower(auth.email de _user_id)
+AND NOT EXISTS empresa dele:
+   companies.user_id = _user_id AND companies.id = C.company_id
+AND NOT EXISTS company_members M:
+   M.user_id = _user_id AND M.company_id = C.company_id AND M.role IN ('owner','admin')
 ```
 
-**3 desfechos possíveis:**
-- **200 com dados** → seguimos pra fase 2.
-- **200 vazio** (RLS bloqueando anon) → paro e reporto: precisaria de sessão autenticada de admin daquele Pakerê. Sem isso, não dá pra importar. Volto ao seed sintético.
-- **401/permission denied** → mesmo caso acima.
+Efeitos colaterais previstos:
+- `RootGate`, `PortalProtected` e `ColaboradorShell` (que já chamam a mesma RPC) passam a respeitar a nova regra sem alteração de código.
+- `dp_colaborador_of` — usada no portal para descobrir "qual colaborador sou eu" — precisa aplicar o mesmo filtro para não permitir que um owner acesse `/dp/meu` de uma empresa própria. Vai ser ajustada na mesma migração.
 
-Reporto o desfecho antes de continuar.
+## 4. Sincronização automática da role (opcional, mas recomendado)
+Trigger em `dp_colaboradores` (AFTER INSERT/UPDATE/DELETE) que insere/remove a role `dp_colaborador` em `user_roles` de acordo com o vínculo real, para evitar que resíduos de testes reapareçam no futuro. Sem esse trigger, uma reinstalação da role via seed volta a quebrar. Se preferir manter só a limpeza pontual (itens 1–3) e cuidar disso no futuro, eu removo esse item.
 
-### Fase 2 — Extração + normalização (se Fase 1 passar)
+## 5. Verificação
+- Rodar `is_dp_colaborador('7432cb...')` — deve retornar `false`.
+- Contar quantas roles `dp_colaborador` órfãs sobraram — deve ser 0.
+- Simular login do rcbruto77: o `RootGate` deve navegar para `/hub`.
 
-Puxo cada tabela do DP do Pakerê via REST, na ordem de dependência:
+---
 
-1. `dp_unidades`, `dp_cargos`, `dp_sindicatos`, `dp_sindicato_negociacoes`
-2. `dp_colaboradores`
-3. `dp_solicitacoes`, `dp_trocas`, `dp_bloqueios`, `dp_registros_disciplinares`
-4. `dp_avisos`, `dp_mensagens`, `dp_documentos` (só metadados, **sem baixar arquivos** do storage)
-5. `dp_folha_periodos`, `dp_folha_lancamentos`
+# Detalhes técnicos
 
-Para cada tabela:
-- Comparo colunas do Pakerê com nossa schema (`\d dp_*` já mapeada) e monto um **mapeamento explícito**.
-- Colunas que só existem lá → descarto e listo no relatório.
-- Colunas que só existem aqui → ficam com default/NULL.
-- Enums divergentes (ex.: `dp_troca_status`, `dp_disciplinar_tipo`) → mapeio pro valor equivalente nosso; se não houver, viro `NULL` ou default.
+**Arquivos tocados:**
+- 1 migração SQL:
+  - `DELETE FROM user_roles WHERE role = 'dp_colaborador' AND user_id NOT IN (SELECT user_id FROM dp_colaboradores WHERE user_id IS NOT NULL UNION SELECT u.id FROM auth.users u JOIN dp_colaboradores c ON lower(c.email) = lower(u.email))`
+  - `CREATE OR REPLACE FUNCTION public.is_dp_colaborador(...)` com a nova lógica (STABLE, SECURITY DEFINER, `SET search_path = public`, sem SQL dinâmico — em conformidade com `@security-memory`).
+  - `CREATE OR REPLACE FUNCTION public.dp_colaborador_of(...)` com o mesmo filtro anti-owner.
+  - (Item 4) `CREATE OR REPLACE FUNCTION public.sync_dp_colaborador_role()` + `CREATE TRIGGER` em `dp_colaboradores`.
 
-**Remapeamento obrigatório:**
-- `company_id` → **sempre** ClicSorte `ec47f19b-27ef-4189-b903-43d133aaa541` da nossa base (não Raptor Systems).
-- `user_id` (em colaboradores) → só preencho no colaborador que corresponde ao seu login (`rcbruto77@gmail.com`); demais ficam `NULL`. Nunca herdo `user_id` de outro auth.
-- `criado_por`, `autor_id`, `aplicado_por`, `created_by` → seu `uid` ou `NULL`.
-- FKs internas (colaborador → cargo/unidade/sindicato, solicitação → colaborador) → mantenho **mapa antigo→novo** por UUID.
-- IDs finais → **novos UUIDs** (`gen_random_uuid`). Não reuso UUIDs do Pakerê pra evitar colisão futura.
+**Sem alterações no frontend** — a lógica está toda no banco.
 
-**Prefixo `PAKERE_` em todos os `nome`/`titulo`** pra ficar fácil identificar/limpar depois. Antes de inserir, **deleto o seed `TESTE_E2E_*`** que criei no teste anterior (já deixei um script preparado).
-
-### Fase 3 — Re-executar E2E (mesmo script anterior)
-
-Mesmo Playwright, 29 rotas, mesmos critérios (renderiza / dados aparecem / console errors / network 4xx-5xx). Diferença: agora os dados são reais do Pakerê. Espero:
-
-- Cobertura maior → mais chance de expor bugs de queries que só quebram com volume real (ex.: campos NULL não esperados, muitos registros num select sem paginação).
-- Novos bugs de UI que só aparecem com strings longas ou caracteres especiais.
-
-Entrego o mesmo formato de relatório (tabela + lista numerada de bugs + screenshots).
-
-## Riscos e limites que você precisa aceitar
-
-1. **LGPD** — nomes, CPFs, e-mails, telefones e possíveis dados sensíveis de colaboradores reais do Pakerê ficarão armazenados no **nosso** Supabase (Lovable Cloud da ClicSorte). Se quiser, eu **anonimizo CPF/telefone/e-mail** no import (substituo por `***.***.***-**`, `(00) 00000-0000`, `xxxx@example.com`) preservando só nome e estrutura organizacional — me diga se quer isso.
-2. **Arquivos (contracheques, ACT-CCT em PDF)** — **não vou baixar** do storage do Pakerê. Só metadados. As telas de Documentos vão mostrar as linhas mas o "baixar" retornará 404. Aceito reportar isso como esperado.
-3. **Edge functions do Pakerê** (`sorteio-folgas`, etc.) **não** existem no nosso backend — qualquer botão que chame edge function via RPC vai falhar. Reporto onde encontrar.
-4. **Diferenças de schema** — se uma tabela do Pakerê tiver colunas que nossa versão nem tem (ex.: `dp_sindicatos.sigla` que mencionei no bug anterior), a coluna é ignorada. Não faço `ALTER TABLE` sem sua aprovação explícita.
-5. **Volume** — se o Pakerê tiver, por exemplo, 5000 colaboradores, importo os primeiros N (proponho N=200) pra teste caber em tempo razoável. Você me diz o limite.
-
-## Reversibilidade
-
-Tudo importado leva prefixo `PAKERE_` no campo `nome`/`titulo`. Um único `DELETE FROM dp_* WHERE nome LIKE 'PAKERE_%'` (com CASCADE via FKs) limpa 100% se você quiser voltar atrás.
-
-## Fora de escopo
-- Baixar arquivos do storage do Pakerê
-- Copiar edge functions do Pakerê pra cá
-- Copiar `user_roles` do Pakerê (nossos usuários são outros)
-- Manter os dados importados após o teste (a menos que você peça)
-- Alterar schema da nossa base pra igualar 1:1 ao Pakerê
+**Compatibilidade:** colaboradores legítimos que existem em `dp_colaboradores` e não são owner/admin da empresa vinculada continuam entrando no portal normalmente.
