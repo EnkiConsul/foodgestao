@@ -216,9 +216,15 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
                   <Input id="company-phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" maxLength={20} />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="company-email">E-mail</Label>
-                <Input id="company-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="empresa@exemplo.com" maxLength={100} />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="company-whatsapp">WhatsApp Cadastrado</Label>
+                  <Input id="company-whatsapp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(00) 00000-0000" maxLength={20} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="company-email">E-mail</Label>
+                  <Input id="company-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="empresa@exemplo.com" maxLength={100} />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="company-address">Endereço</Label>
