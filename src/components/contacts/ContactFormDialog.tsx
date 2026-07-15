@@ -75,10 +75,26 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact, de
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (cnpjLookupPending) {
+      toast.error("Aguarde a consulta do CNPJ finalizar.");
+      return;
+    }
 
     if (!visiblePf && selectedCompanyIds.length === 0) {
       toast.error("Selecione pelo menos uma vinculação (Pessoa Física ou empresa).");
       return;
+    }
+
+    const docDigits = document.replace(/\D/g, "");
+    if (docDigits.length > 11) {
+      if (docDigits.length !== 14) {
+        toast.error("CNPJ deve conter 14 dígitos.");
+        return;
+      }
+      if (!isValidCnpj(docDigits)) {
+        toast.error("CNPJ inválido — dígitos verificadores incorretos.");
+        return;
+      }
     }
 
     const validated = validateWithToast(contactSchema, {
