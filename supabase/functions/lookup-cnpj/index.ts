@@ -165,9 +165,22 @@ Deno.serve(async (req) => {
     return json({ ...payload, _cached: false }, 200);
   } catch (e) {
     console.error('lookup-cnpj error', e);
-    return json({ error: e instanceof Error ? e.message : 'Erro interno' }, 500);
+    return json({
+      error: 'Erro interno ao consultar CNPJ. Tente novamente.',
+      code: 'internal_error',
+      details: e instanceof Error ? e.message : String(e),
+    }, 500);
   }
 });
+
+async function readStale(cnpj: string) {
+  const { data } = await supabaseAdmin
+    .from('cnpj_cache')
+    .select('payload, fetched_at')
+    .eq('cnpj', cnpj)
+    .maybeSingle();
+  return data;
+}
 
 function json(payload: unknown, status: number) {
   return new Response(JSON.stringify(payload), {
@@ -175,3 +188,4 @@ function json(payload: unknown, status: number) {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 }
+
