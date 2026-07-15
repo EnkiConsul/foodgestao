@@ -185,6 +185,7 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
                       if (d.telefone && !phone) setPhone(d.telefone);
                       if (d.endereco_formatado) setAddress(d.endereco_formatado);
                     }}
+                    onPendingChange={setCnpjLookupPending}
                   />
                 </div>
                 <div className="space-y-2">
