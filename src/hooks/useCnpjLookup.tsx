@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidCnpj } from "@/lib/cnpj";
 
@@ -17,21 +17,39 @@ export interface CnpjLookupResult {
   cep: string | null;
   situacao: string | null;
   endereco_formatado: string;
+  _cached?: boolean;
+  _stale?: boolean;
+  _fetched_at?: string;
 }
 
+// Cache client-side: 6h. Após isso, refetch (que ainda pode voltar do cache do servidor).
+const CLIENT_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+
+export const cnpjQueryKey = (digits: string) => ["cnpj-lookup", digits] as const;
+
 export function useCnpjLookup() {
+  const qc = useQueryClient();
+
   return useMutation<CnpjLookupResult, Error, string>({
     mutationFn: async (cnpj: string) => {
       const digits = cnpj.replace(/\D/g, "");
       if (digits.length !== 14) throw new Error("Informe um CNPJ com 14 dígitos.");
       if (!isValidCnpj(digits)) throw new Error("CNPJ inválido (dígitos verificadores).");
 
+      // 1) Client cache hit?
+      const key = cnpjQueryKey(digits);
+      const cached = qc.getQueryData<CnpjLookupResult>(key);
+      const cachedAt = qc.getQueryState(key)?.dataUpdatedAt ?? 0;
+      if (cached && Date.now() - cachedAt < CLIENT_CACHE_TTL_MS) {
+        return { ...cached, _cached: true };
+      }
+
+      // 2) Call edge function (which has its own DB cache)
       const { data, error } = await supabase.functions.invoke("lookup-cnpj", {
         body: { cnpj: digits },
       });
 
       if (error) {
-        // Try to surface the real message returned by the edge function
         const anyErr = error as any;
         try {
           const ctxText = anyErr?.context ? await anyErr.context.text() : null;
@@ -50,7 +68,10 @@ export function useCnpjLookup() {
       }
 
       if (!data) throw new Error("Sem resposta da consulta.");
-      return data as CnpjLookupResult;
+
+      const result = data as CnpjLookupResult;
+      qc.setQueryData(key, result);
+      return result;
     },
   });
 }
