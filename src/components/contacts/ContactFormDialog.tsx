@@ -226,8 +226,8 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact, de
               <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Anotações sobre o contato..." rows={3} maxLength={500} />
             </div>
           </div>
-          <Button type="submit" className="w-full" disabled={saving}>
-            {saving ? "Salvando..." : editContact ? "Atualizar" : "Criar Contato"}
+          <Button type="submit" className="w-full" disabled={saving || cnpjLookupPending}>
+            {saving ? "Salvando..." : cnpjLookupPending ? "Consultando CNPJ..." : editContact ? "Atualizar" : "Criar Contato"}
           </Button>
         </form>
       </DialogContent>
