@@ -43,6 +43,7 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
       setCnpj(company.cnpj ?? "");
       setEmail(company.email ?? "");
       setPhone(company.phone ?? "");
+      setWhatsapp((company as any).whatsapp ?? "");
       const legacy = (company.address ?? "").trim();
       if (legacy) {
         setAddress(legacy);
