@@ -57,8 +57,23 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (cnpjLookupPending) {
+      toast.error("Aguarde a consulta do CNPJ finalizar.");
+      return;
+    }
 
     const isPessoal = profileType === "pessoal";
+    const cnpjDigits = cnpj.replace(/\D/g, "");
+    if (!isPessoal && cnpjDigits.length > 0) {
+      if (cnpjDigits.length !== 14) {
+        toast.error("CNPJ deve conter 14 dígitos.");
+        return;
+      }
+      if (!isValidCnpj(cnpjDigits)) {
+        toast.error("CNPJ inválido — dígitos verificadores incorretos.");
+        return;
+      }
+    }
 
     const validated = validateWithToast(companySchema, {
       name,
