@@ -16,6 +16,7 @@ import { Loader2, Search } from "lucide-react";
 import { maskCpfCnpj, isValidCpf } from "@/lib/cpf";
 import { isValidCnpj } from "@/lib/cnpj";
 import { cn } from "@/lib/utils";
+import { notifyCnpjSuccess, notifyCnpjError } from "@/lib/cnpj-messages";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface Props {
@@ -193,9 +194,9 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact, de
                     if (d.email && !email) setEmail(d.email);
                     if (d.telefone && !phone) setPhone(d.telefone);
                     if (d.endereco_formatado) setAddress(d.endereco_formatado);
-                    toast.success("CNPJ encontrado", { description: d.razao_social ?? undefined });
+                    notifyCnpjSuccess(d);
                   } catch (e) {
-                    toast.error("Falha na consulta", { description: e instanceof Error ? e.message : String(e) });
+                    notifyCnpjError(e, { onRetry: () => { void runLookup(); } });
                   }
                 };
                 return (

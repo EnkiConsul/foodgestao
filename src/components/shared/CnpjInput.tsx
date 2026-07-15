@@ -2,9 +2,9 @@ import { forwardRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, Search } from "lucide-react";
-import { toast } from "sonner";
 import { maskCnpj, isValidCnpj } from "@/lib/cnpj";
 import { useCnpjLookup, type CnpjLookupResult } from "@/hooks/useCnpjLookup";
+import { notifyCnpjSuccess, notifyCnpjError } from "@/lib/cnpj-messages";
 import { cn } from "@/lib/utils";
 
 interface CnpjInputProps {
@@ -38,9 +38,9 @@ export const CnpjInput = forwardRef<HTMLInputElement, CnpjInputProps>(function C
     try {
       const data = await lookup.mutateAsync(digits);
       onLookup(data);
-      toast.success("CNPJ encontrado", { description: data.razao_social ?? undefined });
+      notifyCnpjSuccess(data);
     } catch (e) {
-      toast.error("Falha na consulta", { description: e instanceof Error ? e.message : String(e) });
+      notifyCnpjError(e, { onRetry: () => { void handleLookup(); } });
     }
   };
 
