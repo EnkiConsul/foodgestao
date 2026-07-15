@@ -3,7 +3,7 @@ import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { SidebarSection, SidebarNavItem, type MenuItem } from "./shared";
 
 const full: MenuItem[] = [
-  { title: "Perfis de Acesso", url: "/empresas", icon: Building2 },
+  { title: "Minhas Empresas", url: "/empresas", icon: Building2 },
   { title: "Usuários", url: "/gestao-usuarios", icon: UserCog },
   { title: "Meu Plano", url: "/planos", icon: Sparkles },
   { title: "Minhas Faturas", url: "/faturas", icon: Receipt },
