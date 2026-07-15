@@ -32,6 +32,7 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
   const [cnpj, setCnpj] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
   const [address, setAddress] = useState("");
 
   useEffect(() => {
