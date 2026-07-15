@@ -38,9 +38,59 @@ export const CnpjInput = forwardRef<HTMLInputElement, CnpjInputProps>(function C
     try {
       const data = await lookup.mutateAsync(digits);
       onLookup(data);
-      toast.success("CNPJ encontrado", { description: data.razao_social ?? undefined });
+      if (data._stale) {
+        toast.warning("Usando dados salvos", {
+          description: "A Receita Federal está indisponível no momento. Os dados exibidos podem estar desatualizados.",
+        });
+      } else {
+        toast.success("CNPJ encontrado", {
+          description: data.razao_social ?? undefined,
+        });
+      }
     } catch (e) {
-      toast.error("Falha na consulta", { description: e instanceof Error ? e.message : String(e) });
+      const err = e as Error & { code?: string };
+      const code = err.code;
+      const messages: Record<string, { title: string; description: string; retry: boolean }> = {
+        not_found: {
+          title: "CNPJ não encontrado",
+          description: "Verifique se o número está correto ou preencha os dados manualmente.",
+          retry: false,
+        },
+        rate_limited: {
+          title: "Muitas consultas",
+          description: "Aguarde alguns segundos antes de tentar novamente.",
+          retry: true,
+        },
+        timeout: {
+          title: "Tempo esgotado",
+          description: "A Receita Federal demorou para responder. Tente novamente em instantes.",
+          retry: true,
+        },
+        network_error: {
+          title: "Sem conexão",
+          description: "Não foi possível contatar a Receita Federal. Verifique sua internet e tente novamente.",
+          retry: true,
+        },
+        upstream_unavailable: {
+          title: "Receita Federal indisponível",
+          description: "O serviço está fora do ar temporariamente. Tente novamente em alguns minutos ou preencha manualmente.",
+          retry: true,
+        },
+        internal_error: {
+          title: "Erro na consulta",
+          description: "Ocorreu um erro inesperado. Tente novamente.",
+          retry: true,
+        },
+      };
+      const info = (code && messages[code]) || {
+        title: "Falha na consulta",
+        description: err.message || "Não foi possível consultar o CNPJ.",
+        retry: true,
+      };
+      toast.error(info.title, {
+        description: info.description,
+        action: info.retry ? { label: "Tentar novamente", onClick: () => { void handleLookup(); } } : undefined,
+      });
     }
   };
 
