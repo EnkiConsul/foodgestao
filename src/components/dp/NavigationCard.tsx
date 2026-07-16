@@ -20,7 +20,7 @@ interface NavigationCardProps {
 export function NavigationCard({ title, description, to, icon: Icon, count, className }: NavigationCardProps) {
   return (
     <Link to={to} className="group focus:outline-none">
-      <Card className={cn("hover:border-primary/60 transition-colors h-full", className)}>
+      <Card className={cn("dp-content-card h-full border-[hsl(var(--dp-border))] bg-card transition-colors hover:border-primary/60", className)}>
         <CardContent className="p-5">
           <div className="flex items-start justify-between mb-3">
             <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -30,7 +30,7 @@ export function NavigationCard({ title, description, to, icon: Icon, count, clas
           </div>
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
-              <p className="font-medium truncate">{title}</p>
+              <p className="font-semibold truncate">{title}</p>
               {description && (
                 <p className="text-xs text-muted-foreground line-clamp-2">{description}</p>
               )}

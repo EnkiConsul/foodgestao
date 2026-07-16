@@ -137,6 +137,66 @@
   }
 }
 
+@layer components {
+  .dp-shell main {
+    background-color: hsl(var(--dp-canvas));
+    background-image:
+      radial-gradient(circle at 1px 1px, hsl(var(--dp-border) / 0.45) 1px, transparent 0);
+    background-size: 26px 26px;
+  }
+
+  .dp-shell .dp-page > header,
+  .dp-shell .dp-page > .dp-page-header {
+    padding-top: 0.25rem;
+  }
+
+  .dp-shell .dp-page h1,
+  .dp-shell .dp-page h2,
+  .dp-shell .dp-page h3 {
+    letter-spacing: 0;
+  }
+
+  .dp-shell .dp-content-card,
+  .dp-shell .dp-filter-card,
+  .dp-shell .dp-page > .rounded-2xl,
+  .dp-shell .dp-page > .grid > section,
+  .dp-shell .dp-page > .grid > a,
+  .dp-shell .dp-page > .grid > div > .rounded-2xl {
+    border-color: hsl(var(--dp-border));
+    background-color: hsl(var(--card));
+    box-shadow: 0 1px 2px 0 hsl(var(--foreground) / 0.05);
+  }
+
+  .dp-shell .dp-content-card,
+  .dp-shell .dp-filter-card {
+    overflow: hidden;
+  }
+
+  .dp-shell table thead tr {
+    background-color: hsl(var(--muted) / 0.35);
+  }
+
+  .dp-shell table th {
+    height: 3.5rem;
+    color: hsl(var(--foreground));
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0;
+  }
+
+  .dp-shell table td {
+    height: 4.75rem;
+    vertical-align: middle;
+  }
+
+  .dp-shell .dp-filter-card label {
+    color: hsl(var(--foreground));
+    font-weight: 700;
+    letter-spacing: 0;
+  }
+}
+
 @keyframes fade-in {
   from { opacity: 0; transform: scale(0.95); }
   to { opacity: 1; transform: scale(1); }
