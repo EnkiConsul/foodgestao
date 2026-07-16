@@ -564,124 +564,49 @@ export default function DpFolgas() {
         </div>
       </DpContentCard>
 
-      <Dialog
-        open={!!selectedDay}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedDay(null);
-            setQuickColabId("");
-          }
+      <DpCalendarDayDialog
+        day={selectedDay}
+        onClose={() => {
+          setSelectedDay(null);
+          setQuickColabId("");
         }}
-      >
-        <DialogContent className="sm:max-w-lg">
-          {selectedDay && (
+        schedule={selectedEvents.map<DpDayScheduleEntry>((ev) => ({
+          id: ev.id,
+          name: ev.dp_colaboradores?.nome ?? "—",
+          meta: (
             <>
-              <DialogHeader>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <CalendarIcon className="h-6 w-6" />
-                  </div>
-                  <DialogTitle className="text-3xl font-bold tracking-tight">
-                    {format(selectedDay, "dd/MM/yyyy")}
-                  </DialogTitle>
-                </div>
-                <DialogDescription className="sr-only">
-                  Detalhes da escala do dia selecionado
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-2">
-                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Escala do dia
-                </div>
-                {selectedEvents.length === 0 ? (
-                  <div className="rounded-xl border-2 border-dashed border-border/70 bg-muted/30 py-10 text-center text-sm text-muted-foreground">
-                    Ninguém escalado para este dia.
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {selectedEvents.map((ev) => (
-                      <div
-                        key={ev.id}
-                        className="flex items-center justify-between rounded-xl border bg-card p-3"
-                      >
-                        <div className="min-w-0">
-                          <div className="truncate font-medium">
-                            {ev.dp_colaboradores?.nome ?? "—"}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {TIPO_LABEL[ev.tipo]}
-                            {ev.data_fim ? ` · até ${ev.data_fim}` : ""}
-                            {ev.motivo ? ` · ${ev.motivo}` : ""}
-                          </div>
-                        </div>
-                        <Badge variant="outline">{STATUS_LABEL[ev.status]}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2 border-t pt-4">
-                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Atribuir folga manual
-                </div>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Select value={quickColabId} onValueChange={setQuickColabId}>
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Escolher colaborador..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(colabs.data ?? [])
-                        .filter((c) => c.ativo !== false)
-                        .filter((c) =>
-                          unidadeFilter === "todas" ? true : c.unidade_id === unidadeFilter,
-                        )
-                        .map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.nome}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    onClick={() => quickAssign.mutate()}
-                    disabled={!quickColabId || quickAssign.isPending}
-                    className="sm:min-w-[140px]"
-                  >
-                    <Plus className="mr-1 h-4 w-4" />
-                    {quickAssign.isPending ? "Atribuindo..." : "Atribuir"}
-                  </Button>
-                </div>
-                <div className="pt-1">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      openNew({ data_alvo: format(selectedDay, "yyyy-MM-dd") })
-                    }
-                    className="text-xs font-medium text-primary hover:underline"
-                  >
-                    Solicitar ausência avançada (férias, atestado, período)
-                  </button>
-                </div>
-              </div>
-
-              <DialogFooter className="sm:justify-center">
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setSelectedDay(null);
-                    setQuickColabId("");
-                  }}
-                  className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-                >
-                  Fechar detalhes
-                </Button>
-              </DialogFooter>
+              {TIPO_LABEL[ev.tipo]}
+              {ev.data_fim ? ` · até ${ev.data_fim}` : ""}
+              {ev.motivo ? ` · ${ev.motivo}` : ""}
             </>
-          )}
-        </DialogContent>
-      </Dialog>
+          ),
+          status: (
+            <DpStatusBadge tone={statusToneFor(ev.status)}>
+              {STATUS_LABEL[ev.status]}
+            </DpStatusBadge>
+          ),
+        }))}
+        assignOptions={(colabs.data ?? [])
+          .filter((c) => c.ativo !== false)
+          .filter((c) =>
+            unidadeFilter === "todas" ? true : c.unidade_id === unidadeFilter,
+          )
+          .map((c) => ({ value: c.id, label: c.nome }))}
+        assignValue={quickColabId}
+        onAssignChange={setQuickColabId}
+        onAssign={() => quickAssign.mutate()}
+        assignPending={quickAssign.isPending}
+        secondaryAction={
+          selectedDay
+            ? {
+                label: "Solicitar ausência avançada (férias, atestado, período)",
+                onClick: () =>
+                  openNew({ data_alvo: format(selectedDay, "yyyy-MM-dd") }),
+              }
+            : undefined
+        }
+      />
+
 
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
