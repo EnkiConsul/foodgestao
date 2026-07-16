@@ -362,7 +362,7 @@ export default function DpDocumentos() {
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Novo documento</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Novo documento</DialogTitle><DialogDescription>Envie um ou mais arquivos vinculados a uma categoria e opcionalmente a um colaborador.</DialogDescription></DialogHeader>
           <div className="grid gap-3 py-2">
             <div className="grid gap-1.5">
               <Label>Título {(fileRef.current?.files?.length ?? 0) > 1 ? "(ignorado em envio em lote)" : "*"}</Label>
