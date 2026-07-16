@@ -32,6 +32,7 @@ const formatCNPJ = (value: string) => {
 };
 
 const blank = {
+  company_id: "",
   nome: "",
   cnpj: "",
   endereco: "",
