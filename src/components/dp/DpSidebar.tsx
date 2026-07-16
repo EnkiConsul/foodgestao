@@ -74,19 +74,23 @@ const ADMIN_ITEMS: Item[] = [
 const PORTAL_ITEMS: Item[] = [
   { kind: "link", title: "Início", url: "/dp/meu", icon: Home, end: true, home: true },
   { kind: "link", title: "Perfil", url: "/dp/meu/perfil", icon: User },
+  { kind: "link", title: "Calendário", url: "/dp/meu/calendario", icon: Calendar },
   {
     kind: "group", title: "Folgas", icon: Calendar,
-    prefixes: ["/dp/meu/solicitacoes", "/dp/meu/trocas"],
+    prefixes: ["/dp/meu/solicitacoes", "/dp/meu/trocas", "/dp/meu/atestados"],
     items: [
       { title: "Solicitações", url: "/dp/meu/solicitacoes", icon: ClipboardList },
+      { title: "Atestados", url: "/dp/meu/atestados", icon: HeartPulse },
       { title: "Trocas", url: "/dp/meu/trocas", icon: Repeat },
     ],
   },
   {
     kind: "group", title: "Documentos", icon: FileText,
-    prefixes: ["/dp/meu/documentos"],
+    prefixes: ["/dp/meu/documentos", "/dp/meu/disciplinar", "/dp/meu/sindicato"],
     items: [
       { title: "Meus Documentos", url: "/dp/meu/documentos", icon: FileText },
+      { title: "Disciplinar", url: "/dp/meu/disciplinar", icon: ShieldAlert },
+      { title: "Meu Sindicato", url: "/dp/meu/sindicato", icon: Scale },
     ],
   },
 ];
