@@ -80,7 +80,9 @@ export default function DpAtestados() {
       toast.success(vars.status === "aprovada" ? "Atestado aprovado" : "Atestado recusado");
       qc.invalidateQueries({ queryKey: ["dp_atestados_admin"] });
       qc.invalidateQueries({ queryKey: ["dp_atestados_pendentes"] });
+      qc.invalidateQueries({ queryKey: ["dp_atestados_counts"] });
       qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
+      setRecusaId(null);
     },
     onError: (e: any) => toast.error(e.message ?? "Erro"),
   });
