@@ -1,0 +1,136 @@
+// Edge function: dp-doc-bulk-approve
+// Aprova itens de um lote de importação: copia o PDF da página do bucket
+// dp-bulk-import para dp-documentos e insere linha em dp_documentos.
+//
+// Body: { item_ids: uuid[] } (todos do mesmo batch)
+
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { z } from "npm:zod@3";
+
+const SRC_BUCKET = "dp-bulk-import";
+const DST_BUCKET = "dp-documentos";
+
+const BodySchema = z.object({
+  item_ids: z.array(z.string().uuid()).min(1).max(200),
+});
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return json({ error: "Missing Authorization header" }, 401);
+
+    const parsed = BodySchema.safeParse(await req.json());
+    if (!parsed.success) return json({ error: parsed.error.flatten().fieldErrors }, 400);
+
+    const url = Deno.env.get("SUPABASE_URL")!;
+    const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const userClient = createClient(url, anon, { global: { headers: { Authorization: authHeader } } });
+    const svc = createClient(url, service);
+
+    const { data: userData } = await userClient.auth.getUser();
+    const uid = userData?.user?.id;
+    if (!uid) return json({ error: "Não autenticado" }, 401);
+
+    const { data: items, error: iErr } = await userClient
+      .from("dp_bulk_import_items")
+      .select("*, dp_bulk_import_batches!inner(id, company_id, tipo, referencia_data, source_file_name)")
+      .in("id", parsed.data.item_ids);
+    if (iErr) return json({ error: iErr.message }, 500);
+    if (!items || items.length === 0) return json({ error: "Nenhum item encontrado" }, 404);
+
+    const results: Array<{ id: string; ok: boolean; documento_id?: string; error?: string }> = [];
+
+    for (const it of items as any[]) {
+      try {
+        if (!it.matched_colaborador_id) {
+          results.push({ id: it.id, ok: false, error: "Sem colaborador vinculado" });
+          continue;
+        }
+        if (it.status === "imported") {
+          results.push({ id: it.id, ok: true, documento_id: it.imported_documento_id });
+          continue;
+        }
+
+        const batch = it.dp_bulk_import_batches;
+        const src = await svc.storage.from(SRC_BUCKET).download(it.page_file_path);
+        if (src.error || !src.data) throw new Error(src.error?.message ?? "Falha ao ler página");
+        const bytes = new Uint8Array(await src.data.arrayBuffer());
+
+        const dstPath = `${batch.company_id}/${it.matched_colaborador_id}/${batch.id}_p${it.page_index}.pdf`;
+        const up = await svc.storage.from(DST_BUCKET).upload(dstPath, bytes, {
+          contentType: "application/pdf", upsert: true,
+        });
+        if (up.error) throw new Error(up.error.message);
+
+        const titulo = `${prettyTipo(batch.tipo)} p.${it.page_index} — ${batch.source_file_name ?? "lote"}`;
+        const { data: doc, error: dErr } = await svc.from("dp_documentos").insert({
+          company_id: batch.company_id,
+          colaborador_id: it.matched_colaborador_id,
+          tipo: batch.tipo,
+          titulo,
+          file_path: dstPath,
+          file_name: `${batch.id}_p${it.page_index}.pdf`,
+          file_size: bytes.byteLength,
+          mime_type: "application/pdf",
+          referencia_data: batch.referencia_data,
+          uploaded_by: uid,
+        }).select("id").single();
+        if (dErr) throw new Error(dErr.message);
+
+        await svc.from("dp_bulk_import_items").update({
+          status: "imported",
+          decided_by: uid,
+          decided_at: new Date().toISOString(),
+          imported_documento_id: doc.id,
+          error_message: null,
+        }).eq("id", it.id);
+
+        results.push({ id: it.id, ok: true, documento_id: doc.id });
+      } catch (e) {
+        await svc.from("dp_bulk_import_items").update({
+          status: "failed", error_message: (e as Error).message,
+        }).eq("id", it.id);
+        results.push({ id: it.id, ok: false, error: (e as Error).message });
+      }
+    }
+
+    // Atualiza status do batch
+    const batchIds = [...new Set((items as any[]).map((i) => i.batch_id))];
+    for (const bid of batchIds) {
+      const { data: remaining } = await svc.from("dp_bulk_import_items")
+        .select("status").eq("batch_id", bid);
+      const all = remaining ?? [];
+      const done = all.every((r) => r.status === "imported" || r.status === "rejected");
+      const some = all.some((r) => r.status === "imported");
+      await svc.from("dp_bulk_import_batches")
+        .update({ status: done ? "imported" : some ? "partially_imported" : "ready" })
+        .eq("id", bid);
+    }
+
+    return json({ results });
+  } catch (e) {
+    return json({ error: (e as Error).message }, 500);
+  }
+});
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function prettyTipo(t: string) {
+  return ({
+    contracheque: "Contracheque",
+    ponto: "Ponto",
+    atestado: "Atestado",
+    ferias: "Férias",
+    adiantamento: "Adiantamento",
+    outros: "Documento",
+  } as Record<string, string>)[t] ?? "Documento";
+}
