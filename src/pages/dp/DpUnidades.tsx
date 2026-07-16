@@ -548,6 +548,10 @@ export default function DpUnidades() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remover unidade "{toDelete?.nome}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Colaboradores, folgas, escalas e vínculos sindicais associados a esta unidade ficarão sem referência.
+              Se houver registros vinculados, a exclusão será bloqueada pelo banco de dados.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
