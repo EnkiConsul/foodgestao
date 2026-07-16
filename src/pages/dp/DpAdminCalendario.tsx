@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { FolgaCalendar, type FolgaCell } from "@/components/dp/FolgaCalendar";
+import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 export default function DpAdminCalendario() {
   const { selectedCompanyId } = useCompanyContext();
@@ -164,16 +165,14 @@ export default function DpAdminCalendario() {
   const dayFolgas = (folgasQuery.data ?? []).filter((f) => f.data === dayOpen);
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Calendário de folgas — DP 360°</title></Helmet>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <CalendarDays className="h-6 w-6" /> Calendário de folgas
-          </h1>
-          <p className="text-muted-foreground">Sorteio automático, atribuição manual e limites por dia.</p>
-        </div>
-        <div className="flex gap-2">
+      <DpPageHeader
+        icon={CalendarDays}
+        title="Calendário de folgas"
+        description="Sorteio automático, atribuição manual e limites por dia."
+        actions={
+          <>
           <Button variant="outline" onClick={() => gerarBloqueios.mutate()} disabled={gerarBloqueios.isPending}>
             <ShieldAlert className="h-4 w-4 mr-1" /> Gerar bloqueios do ano
           </Button>
@@ -181,11 +180,11 @@ export default function DpAdminCalendario() {
             {sortear.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Shuffle className="h-4 w-4 mr-1" />}
             Sortear folgas do mês
           </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
-      <Card>
-        <CardContent className="pt-6">
+      <DpContentCard contentClassName="p-4 md:p-6">
           <FolgaCalendar
             ano={ano} mes={mes}
             folgas={folgasQuery.data ?? []}
@@ -194,8 +193,7 @@ export default function DpAdminCalendario() {
             onChangeMonth={(a, m) => { setAno(a); setMes(m); }}
             onDayClick={openDay}
           />
-        </CardContent>
-      </Card>
+      </DpContentCard>
 
       <Dialog open={!!dayOpen} onOpenChange={(o) => !o && setDayOpen(null)}>
         <DialogContent className="max-w-lg">
@@ -255,6 +253,6 @@ export default function DpAdminCalendario() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </DpPage>
   );
 }

@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 const TIPO_OPTS = [
   { v: "contracheque", l: "Contracheque" },
@@ -164,20 +165,17 @@ export default function DpDocImportBulk() {
   };
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Importação em massa — DP 360°</title></Helmet>
-      <div>
-        <h2 className="text-xl font-semibold flex items-center gap-2">
-          <FileStack className="h-5 w-5" /> Importação em massa de documentos
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Envie um PDF multi-página. Cada página é dividida, passa por OCR e é vinculada ao colaborador (por CPF ou nome) para aprovação.
-        </p>
-      </div>
+      <DpPageHeader
+        icon={FileStack}
+        title="Importação em massa de documentos"
+        description="Envie um PDF multi-página. Cada página é dividida, passa por OCR e é vinculada ao colaborador para aprovação."
+      />
 
-      <Card>
-        <CardHeader><CardTitle className="text-base">Novo lote</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
+      <DpFilterCard>
+        <div className="space-y-3">
+          <h2 className="text-base font-semibold">Novo lote</h2>
           <div className="grid gap-3 md:grid-cols-4">
             <div className="md:col-span-2 space-y-1">
               <Label>PDF</Label>
@@ -204,10 +202,10 @@ export default function DpDocImportBulk() {
               Limite: 60 páginas por lote. OCR feito com IA (Lovable AI).
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </DpFilterCard>
 
-      <Card>
+      <Card className="dp-content-card">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Lotes recentes</CardTitle>
           <Button size="sm" variant="ghost" onClick={() => batches.refetch()}>
@@ -293,6 +291,6 @@ export default function DpDocImportBulk() {
           })}
         </CardContent>
       </Card>
-    </div>
+    </DpPage>
   );
 }
