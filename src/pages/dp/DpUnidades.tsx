@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
+import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
