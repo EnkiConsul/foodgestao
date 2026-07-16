@@ -214,9 +214,12 @@ export default function DpSindicatos() {
         title="Sindicatos"
         description="Gerencie sindicatos patronais e laborais separadamente."
         actions={
-          <Button variant="outline" asChild>
-            <Link to="/dp/documentos/act-cct"><FileText className="h-4 w-4 mr-2" /> Negociações</Link>
-          </Button>
+          <>
+            <Button variant="outline" asChild>
+              <Link to="/dp/documentos/act-cct"><FileText className="h-4 w-4 mr-2" /> Negociações</Link>
+            </Button>
+            <FavoriteToggle />
+          </>
         }
       />
 
