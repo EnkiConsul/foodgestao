@@ -1,4 +1,4 @@
-import { Home, Users, Megaphone, AlertOctagon, Wallet, Building2 } from "lucide-react";
+import { Home, Users, Megaphone, AlertOctagon, Wallet, Building2, FileSignature } from "lucide-react";
 import { SidebarSection, SidebarNavItem, SidebarCollapsibleGroup } from "./shared";
 
 export function DpMenu() {
@@ -55,9 +55,9 @@ export function DpMenu() {
           { title: "Unidades", url: "/dp/cadastros/unidades" },
           { title: "Cargos", url: "/dp/cadastros/cargos" },
           { title: "Sindicatos", url: "/dp/cadastros/sindicatos" },
-          { title: "Negociações", url: "/dp/sindicatos/negociacoes" },
         ]}
       />
+      <SidebarNavItem item={{ title: "Negociações Coletivas", url: "/dp/sindicatos/negociacoes", icon: FileSignature }} />
     </SidebarSection>
   );
 }
