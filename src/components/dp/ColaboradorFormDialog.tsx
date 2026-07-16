@@ -89,15 +89,22 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         cargo: form.cargo.trim() || null,
         regime: form.regime,
         data_admissao: form.data_admissao || null,
+        data_desligamento: form.data_desligamento || null,
         email: form.email.trim() || null,
         telefone: form.telefone.trim() || null,
+        whatsapp: form.whatsapp.trim() || null,
         ativo: form.ativo,
         observacoes: form.observacoes.trim() || null,
         unidade_id: form.unidade_id || null,
         cargo_id: form.cargo_id || null,
         sindicato_id: form.sindicato_id || null,
         email_portal: form.email_portal.trim() || null,
+        email_contato: form.email_contato.trim() || null,
         data_nascimento: form.data_nascimento || null,
+        perfil_acesso: form.perfil_acesso,
+        folga_fixa_semana: form.folga_fixa_semana ? Number(form.folga_fixa_semana) : null,
+        possui_folha_ponto: form.possui_folha_ponto,
+        optante_adiantamento: form.optante_adiantamento,
       } as any);
       toast.success(colaborador ? "Colaborador atualizado" : "Colaborador cadastrado");
       onOpenChange(false);
