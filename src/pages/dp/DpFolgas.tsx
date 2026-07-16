@@ -181,6 +181,35 @@ export default function DpFolgas() {
     onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
   });
 
+  const quickAssign = useMutation({
+    mutationFn: async () => {
+      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
+      if (!selectedDay) throw new Error("Selecione um dia");
+      if (!quickColabId) throw new Error("Escolha um colaborador");
+      const { error } = await supabase.from("dp_solicitacoes").insert({
+        company_id: selectedCompanyId,
+        colaborador_id: quickColabId,
+        tipo: "folga",
+        data_alvo: format(selectedDay, "yyyy-MM-dd"),
+        data_fim: null,
+        motivo: null,
+        criado_por: user?.id,
+        status: "aprovada",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Folga atribuída");
+      qc.invalidateQueries({ queryKey: ["dp_folgas"] });
+      qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
+      qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
+      setQuickColabId("");
+    },
+    onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
+  });
+
+
+
   const rangeStart = startOfWeek(startOfMonth(cursor), { weekStartsOn: 0 });
   const rangeEnd = endOfWeek(endOfMonth(cursor), { weekStartsOn: 0 });
   const monthStart = startOfMonth(cursor);
