@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -21,6 +22,21 @@ import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { supabase } from "@/integrations/supabase/client";
+
+const REGIME_LABEL: Record<string, string> = {
+  clt: "CLT",
+  pj: "PJ",
+  estagio: "Estagiário",
+  temporario: "Temporário",
+  mei: "MEI",
+};
+
+const PERFIL_LABEL: Record<string, string> = {
+  colaborador: "Colaborador",
+  gestor: "Gestor",
+  admin: "Admin",
+};
 
 export default function DpColaboradores() {
   const list = useDpColaboradores();
@@ -33,10 +49,21 @@ export default function DpColaboradores() {
   const [unidadeFilter, setUnidadeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [cargoFilter, setCargoFilter] = useState<string>("all");
+  const [perfilFilter, setPerfilFilter] = useState<string>("all");
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<DpColaborador | null>(null);
   const [toDelete, setToDelete] = useState<DpColaborador | null>(null);
+  const [resetting, setResetting] = useState<string | null>(null);
+
+  const counts = useMemo(() => {
+    const all = list.data ?? [];
+    return {
+      todos: all.length,
+      ativos: all.filter((c) => c.ativo).length,
+      inativos: all.filter((c) => !c.ativo).length,
+    };
+  }, [list.data]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -50,11 +77,12 @@ export default function DpColaboradores() {
       }
       if (unidadeFilter !== "all" && c.unidade_id !== unidadeFilter) return false;
       if (cargoFilter !== "all" && c.cargo_id !== cargoFilter) return false;
+      if (perfilFilter !== "all" && (c as any).perfil_acesso !== perfilFilter) return false;
       if (statusFilter === "ativos" && !c.ativo) return false;
       if (statusFilter === "inativos" && c.ativo) return false;
       return true;
     });
-  }, [list.data, search, unidadeFilter, cargoFilter, statusFilter]);
+  }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, statusFilter]);
 
   const handleDelete = async () => {
     if (!toDelete) return;
@@ -73,6 +101,28 @@ export default function DpColaboradores() {
       toast.success(ativo ? "Colaborador ativado" : "Colaborador inativado");
     } catch (e) {
       toast.error("Erro ao atualizar status", { description: e instanceof Error ? e.message : String(e) });
+    }
+  };
+
+  const handleReset = async (c: DpColaborador) => {
+    if (!c.user_id) {
+      toast.error("Colaborador não possui usuário vinculado ao portal");
+      return;
+    }
+    setResetting(c.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("dp-reset-password", {
+        body: { colaborador_id: c.id },
+      });
+      if (error) throw error;
+      const pwd = (data as any)?.password;
+      toast.success("Senha redefinida", {
+        description: pwd ? `Nova senha: ${pwd} (6 últimos do CPF)` : undefined,
+      });
+    } catch (e) {
+      toast.error("Erro ao redefinir senha", { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setResetting(null);
     }
   };
 
@@ -97,6 +147,14 @@ export default function DpColaboradores() {
           </>
         }
       />
+
+      <Tabs value={statusFilter} onValueChange={setStatusFilter}>
+        <TabsList>
+          <TabsTrigger value="all">Todos ({counts.todos})</TabsTrigger>
+          <TabsTrigger value="ativos">Ativos ({counts.ativos})</TabsTrigger>
+          <TabsTrigger value="inativos">Inativos ({counts.inativos})</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       <DpFilterCard>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -125,17 +183,6 @@ export default function DpColaboradores() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold tracking-wider text-muted-foreground">STATUS</label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="ativos">Ativos</SelectItem>
-                  <SelectItem value="inativos">Inativos</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
               <label className="text-xs font-semibold tracking-wider text-muted-foreground">CARGO</label>
               <Select value={cargoFilter} onValueChange={setCargoFilter}>
                 <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
@@ -144,6 +191,18 @@ export default function DpColaboradores() {
                   {(cargos.data ?? []).map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold tracking-wider text-muted-foreground">PERFIL</label>
+              <Select value={perfilFilter} onValueChange={setPerfilFilter}>
+                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="colaborador">Colaborador</SelectItem>
+                  <SelectItem value="gestor">Gestor</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -183,7 +242,7 @@ export default function DpColaboradores() {
                       <TableCell>{c.unidade_nome ?? "—"}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="uppercase border-primary/30 text-primary bg-primary/5">
-                          {c.regime ?? "—"}
+                          {REGIME_LABEL[c.regime ?? ""] ?? c.regime ?? "—"}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -196,9 +255,13 @@ export default function DpColaboradores() {
                       <TableCell>
                         <Badge
                           variant="outline"
-                          className={perfil === "admin" ? "bg-destructive/10 text-destructive border-destructive/30" : ""}
+                          className={
+                            perfil === "admin" ? "bg-destructive/10 text-destructive border-destructive/30"
+                            : perfil === "gestor" ? "bg-primary/10 text-primary border-primary/30"
+                            : ""
+                          }
                         >
-                          {perfil === "admin" ? "Admin" : "Colaborador"}
+                          {PERFIL_LABEL[perfil ?? "colaborador"]}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -219,8 +282,9 @@ export default function DpColaboradores() {
                           <Button
                             size="icon"
                             variant="ghost"
-                            title="Resetar acesso"
-                            onClick={() => toast.info("Redefinição de acesso em breve")}
+                            title={c.user_id ? "Resetar senha para 6 últimos do CPF" : "Sem usuário vinculado"}
+                            disabled={!c.user_id || resetting === c.id}
+                            onClick={() => handleReset(c)}
                           >
                             <KeyRound className="h-4 w-4" />
                           </Button>

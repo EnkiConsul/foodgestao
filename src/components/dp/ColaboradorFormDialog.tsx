@@ -22,15 +22,8 @@ const TIPOS_VINCULO: { value: string; label: string }[] = [
   { value: "Temporario", label: "Temporário" },
 ];
 
-const REGIMES_TRABALHO = [
-  { value: "nao_informado", label: "Não informado" },
-  { value: "CLT", label: "CLT" },
-  { value: "Estatutário", label: "Estatutário" },
-  { value: "PJ", label: "Pessoa Jurídica" },
-  { value: "Autônomo", label: "Autônomo" },
-  { value: "Estagiário", label: "Estagiário" },
-  { value: "Temporário", label: "Temporário" },
-];
+// (Dropdown "Regime de Trabalho" removido: duplicava o Tipo de Vínculo e não era persistido.
+//  O regime do banco é derivado de tipo_vinculo via VINCULO_TO_REGIME abaixo.)
 
 // Map UI "Tipo de Vínculo" (rótulos da documentação) para enum do banco (dp_regime_trabalho)
 const VINCULO_TO_REGIME: Record<string, Regime> = {
@@ -70,10 +63,9 @@ const blank = {
   data_admissao: "",
   data_nascimento: "",
   data_desligamento: "",
-  regime_trabalho: "nao_informado",
   tipo_vinculo: "CLT",
   folga_fixa_semana: "none",
-  perfil_acesso: "colaborador" as "colaborador" | "admin",
+  perfil_acesso: "colaborador" as "colaborador" | "gestor" | "admin",
   ativo: true,
   possui_folha_ponto: false,
   optante_adiantamento: false,
@@ -101,7 +93,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       data_admissao: c.data_admissao ?? "",
       data_nascimento: c.data_nascimento ?? "",
       data_desligamento: c.data_desligamento ?? "",
-      regime_trabalho: c.regime_trabalho ?? "nao_informado",
+      
       tipo_vinculo: c.tipo_vinculo ?? (c.regime ? String(c.regime).toUpperCase() : "CLT"),
       folga_fixa_semana: c.folga_fixa_semana != null ? String(c.folga_fixa_semana) : "none",
       perfil_acesso: c.perfil_acesso ?? "colaborador",
@@ -165,6 +157,18 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       return;
     }
 
+    // Duplicidade de CPF na empresa
+    try {
+      const { data: dup } = await (await import("@/integrations/supabase/client")).supabase
+        .from("dp_colaboradores")
+        .select("id")
+        .eq("cpf", cpfDigits)
+        .maybeSingle();
+      if (dup && dup.id !== colaborador?.id) {
+        toast.error("Já existe um colaborador com este CPF nesta empresa");
+        return;
+      }
+    } catch { /* silencioso — o banco tem constraint de reserva */ }
 
     const cargoNome = (cargos.data ?? []).find((c) => c.id === form.cargo_id)?.nome ?? null;
 
@@ -294,21 +298,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             />
           </div>
 
-          {/* Regime de Trabalho / Tipo de Vínculo */}
-          <div className="space-y-2">
-            <Label>Regime de Trabalho</Label>
-            <Select
-              value={form.regime_trabalho}
-              onValueChange={(v) => setForm({ ...form, regime_trabalho: v })}
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {REGIMES_TRABALHO.map((r) => (
-                  <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Tipo de Vínculo (o regime do banco é derivado deste campo) */}
           <div className="space-y-2">
             <Label>Tipo de Vínculo</Label>
             <Select
@@ -348,7 +338,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="colaborador">Colaborador</SelectItem>
-                
+                <SelectItem value="gestor">Gestor</SelectItem>
                 <SelectItem value="admin">Administrador</SelectItem>
               </SelectContent>
             </Select>
@@ -359,7 +349,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             <Switch
               id="ativo"
               checked={form.ativo}
-              onCheckedChange={(v) => setForm({ ...form, ativo: v })}
+              onCheckedChange={(v) => setForm({ ...form, ativo: v, data_desligamento: v ? "" : form.data_desligamento })}
             />
             <Label htmlFor="ativo" className="cursor-pointer">Ativo</Label>
           </div>

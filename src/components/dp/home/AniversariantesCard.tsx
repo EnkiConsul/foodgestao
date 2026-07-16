@@ -29,7 +29,7 @@ export function AniversariantesCard() {
         {data.map((a) => (
           <div
             key={a.id}
-            className="flex items-center gap-3 rounded-xl bg-white border border-[hsl(var(--dp-border))] p-3"
+            className="flex items-center gap-3 rounded-xl bg-card border border-[hsl(var(--dp-border))] p-3"
           >
             <div
               className={cn(
