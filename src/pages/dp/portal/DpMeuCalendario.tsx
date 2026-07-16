@@ -5,8 +5,8 @@ import { endOfMonth, format, startOfMonth } from "date-fns";
 import { CalendarDays } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
 import { FolgaCalendar, type FolgaCell } from "@/components/dp/FolgaCalendar";
+import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 export default function DpMeuCalendario() {
   const { user } = useAuth();
@@ -78,13 +78,10 @@ export default function DpMeuCalendario() {
   });
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Calendário — Portal</title></Helmet>
-      <h1 className="text-2xl font-bold flex items-center gap-2">
-        <CalendarDays className="h-6 w-6" /> Calendário de folgas
-      </h1>
-      <Card>
-        <CardContent className="pt-6">
+      <DpPageHeader icon={CalendarDays} title="Calendário de folgas" />
+      <DpContentCard contentClassName="p-4 md:p-6">
           <FolgaCalendar
             ano={ano} mes={mes}
             folgas={folgasQuery.data ?? []}
@@ -93,11 +90,10 @@ export default function DpMeuCalendario() {
             onChangeMonth={(a, m) => { setAno(a); setMes(m); }}
             highlightColaboradorId={meRef.data?.id}
           />
-        </CardContent>
-      </Card>
+      </DpContentCard>
       <p className="text-xs text-muted-foreground">
         Suas folgas aparecem destacadas com borda. Datas bloqueadas mostram cadeado.
       </p>
-    </div>
+    </DpPage>
   );
 }

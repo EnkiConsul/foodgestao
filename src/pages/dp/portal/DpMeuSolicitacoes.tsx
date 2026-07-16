@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 const TIPOS = [
   { value: "folga", label: "Folga" },
@@ -77,12 +78,12 @@ export default function DpMeuSolicitacoes() {
   });
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Minhas solicitações — Portal</title></Helmet>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <ClipboardList className="h-6 w-6" /> Minhas solicitações
-        </h1>
+      <DpPageHeader
+        icon={ClipboardList}
+        title="Minhas solicitações"
+        actions={
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" /> Nova</Button></DialogTrigger>
           <DialogContent className="max-w-md">
@@ -116,14 +117,15 @@ export default function DpMeuSolicitacoes() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
+        }
+      />
 
       {(list.data?.length ?? 0) === 0 ? (
-        <Card><CardContent className="py-10 text-center text-muted-foreground">Sem solicitações.</CardContent></Card>
+        <DpContentCard><DpEmptyState icon={ClipboardList}>Sem solicitações.</DpEmptyState></DpContentCard>
       ) : (
         <div className="grid gap-3">
           {list.data?.map((s: any) => (
-            <Card key={s.id}>
+            <Card key={s.id} className="dp-content-card">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between gap-2">
                   <CardTitle className="text-base capitalize">{s.tipo}</CardTitle>
@@ -144,6 +146,6 @@ export default function DpMeuSolicitacoes() {
           ))}
         </div>
       )}
-    </div>
+    </DpPage>
   );
 }

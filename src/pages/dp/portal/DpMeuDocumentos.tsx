@@ -5,12 +5,12 @@ import { Download, FileText, Eye, DownloadCloud } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
+import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 const TABS: { key: string; label: string }[] = [
   { key: "all", label: "Todos" },
@@ -77,31 +77,31 @@ export default function DpMeuDocumentos() {
   };
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Meus documentos — Portal</title></Helmet>
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <FileText className="h-6 w-6" /> Meus documentos
-        </h1>
-        <Button
+      <DpPageHeader
+        icon={FileText}
+        title="Meus documentos"
+        actions={<Button
           size="sm"
           variant="outline"
           onClick={downloadAll}
           disabled={filtered.length === 0}
         >
           <DownloadCloud className="h-4 w-4 mr-1" /> Baixar todos ({filtered.length})
-        </Button>
-      </div>
+        </Button>}
+      />
 
       <Tabs value={tab} onValueChange={setTab}>
+        <DpFilterCard>
         <TabsList className="flex-wrap h-auto">
           {TABS.map((t) => (
             <TabsTrigger key={t.key} value={t.key}>{t.label}</TabsTrigger>
           ))}
         </TabsList>
+        </DpFilterCard>
         <TabsContent value={tab} className="mt-4">
-          <Card>
-            <CardContent className="p-0 overflow-x-auto">
+          <DpContentCard contentClassName="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -136,8 +136,7 @@ export default function DpMeuDocumentos() {
                   )}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
+          </DpContentCard>
         </TabsContent>
       </Tabs>
 
@@ -149,6 +148,6 @@ export default function DpMeuDocumentos() {
         path={preview?.file_path}
         mime={preview?.mime_type}
       />
-    </div>
+    </DpPage>
   );
 }
