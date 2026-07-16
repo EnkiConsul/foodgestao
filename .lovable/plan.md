@@ -1,7 +1,7 @@
 # Auditoria DP — status
 
-Concluídas: DP-G00→G07 (correções aplicadas).
-Em andamento: **DP-G08 — Cargos, Unidades, Sindicatos, Negociações e Configurações** (relatório em `.lovable/auditoria/dp-g08-cadastros-sindicatos-config.md`). Grupo 1 já aplicado (bugs: botão duplicado em Unidades, PDF de negociações sem onClick + upload, race de vínculos em Sindicatos, tokens de cor). Aguardando aprovação dos Grupos 2-5.
+Concluídas: DP-G00→G08 (correções aplicadas).
+Em andamento: **DP-G09 — Comunicação (Avisos, Mensagens, Modelos, Notificações) + Documentos gerais** (relatório em `.lovable/auditoria/dp-g09-comunicacao-documentos.md`). 27 divergências mapeadas em 5 grupos. Nenhuma alteração aplicada — aguardando aprovação.
 
 Sequência sugerida pelo prompt mestre:
 
