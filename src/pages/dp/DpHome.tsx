@@ -3,7 +3,6 @@ import { Bell } from "lucide-react";
 import { PendenciasCard } from "@/components/dp/home/PendenciasCard";
 import { AniversariantesCard } from "@/components/dp/home/AniversariantesCard";
 import { AtalhosFavoritos } from "@/components/dp/home/AtalhosFavoritos";
-import { AvisosPopout } from "@/components/dp/home/AvisosPopout";
 import { AtestadosPendentesPopout } from "@/components/dp/home/AtestadosPendentesPopout";
 
 export default function DpHome() {
@@ -11,7 +10,7 @@ export default function DpHome() {
     <div className="space-y-6 max-w-7xl mx-auto">
       <Helmet><title>Painel Administrativo — DP 360°</title></Helmet>
 
-      <AvisosPopout />
+      <AtestadosPendentesPopout />
 
       <header>
         <div className="flex items-center gap-2">
