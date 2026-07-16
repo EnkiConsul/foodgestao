@@ -20,13 +20,14 @@ import { cn } from "@/lib/utils";
 type Sub = { title: string; url: string; icon: LucideIcon; end?: boolean };
 type Item =
   | { kind: "link"; title: string; url: string; icon: LucideIcon; end?: boolean; home?: boolean }
-  | { kind: "group"; title: string; icon: LucideIcon; prefixes: string[]; items: Sub[] };
+  | { kind: "group"; title: string; icon: LucideIcon; prefixes: string[]; items: Sub[]; hubUrl?: string };
 
 const ADMIN_ITEMS: Item[] = [
   { kind: "link", title: "Início", url: "/dp", icon: Home, end: true, home: true },
   {
     kind: "group", title: "Cadastro", icon: Users,
     prefixes: ["/dp/colaboradores", "/dp/cadastros"],
+    hubUrl: "/dp/cadastros",
     items: [
       { title: "Colaboradores", url: "/dp/colaboradores", icon: Users },
       { title: "Cargos", url: "/dp/cadastros/cargos", icon: Briefcase },
