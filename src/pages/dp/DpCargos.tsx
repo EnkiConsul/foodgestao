@@ -150,6 +150,11 @@ export default function DpCargos() {
                   >
                     <td className="p-4 font-bold uppercase">{c.nome}</td>
                     <td className="p-4 hidden md:table-cell text-muted-foreground">{descricao || "—"}</td>
+                    <td className="p-4 text-center">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                        <Users className="size-3" /> {c.colaboradores_count}
+                      </span>
+                    </td>
                     <td className="p-4 text-right whitespace-nowrap">
                       <div className="flex justify-end gap-1">
                         <Button
