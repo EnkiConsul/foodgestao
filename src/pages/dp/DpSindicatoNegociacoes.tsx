@@ -191,6 +191,12 @@ export default function DpSindicatoNegociacoes() {
     return n.vigencia_inicio <= hoje && (!n.vigencia_fim || n.vigencia_fim >= hoje);
   };
 
+  const filtered = useMemo(() => {
+    const all = list.data ?? [];
+    if (statusFilter === "all") return all;
+    return all.filter((n) => (statusFilter === "vigente") === isVigente(n));
+  }, [list.data, statusFilter]);
+
   return (
     <DpPage>
       <Helmet><title>Negociações sindicais — DP 360°</title></Helmet>
@@ -202,13 +208,10 @@ export default function DpSindicatoNegociacoes() {
         onChange={handleFileChange}
       />
 
-      <Button size="sm" variant="ghost" asChild className="w-fit">
-            <Link to="/dp/documentos"><ArrowLeft className="h-4 w-4 mr-1" /> Documentos</Link>
-      </Button>
       <DpPageHeader
         icon={FileText}
         title="Negociações sindicais"
-        description={`${list.data?.length ?? 0} acordo(s) registrados`}
+        description={`${filtered.length} de ${list.data?.length ?? 0} acordo(s)`}
         actions={<Button onClick={openNew} disabled={(sindicatos.data ?? []).length === 0}>
             <Plus className="h-4 w-4 mr-2" /> Nova negociação
           </Button>}
@@ -228,8 +231,20 @@ export default function DpSindicatoNegociacoes() {
             </SelectContent>
           </Select>
           </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">STATUS</Label>
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="vigente">Vigentes</SelectItem>
+                <SelectItem value="expirado">Expirados</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </DpFilterCard>
+
 
       <DpContentCard contentClassName="overflow-x-auto">
           {list.isLoading ? (
