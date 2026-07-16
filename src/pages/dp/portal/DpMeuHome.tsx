@@ -247,6 +247,11 @@ export default function DpMeuHome() {
         </section>
       </div>
 
+      <div className="grid gap-5 lg:grid-cols-2">
+        <PendenciasCard />
+        <AniversariantesCard />
+      </div>
+
       <AtalhosFavoritos />
 
     </DpPage>
