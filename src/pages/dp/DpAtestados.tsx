@@ -141,7 +141,16 @@ export default function DpAtestados() {
                   const arquivo = (r as any).arquivo_path as string | null;
                   return (
                     <TableRow key={r.id}>
-                      <TableCell className="font-medium">{r.dp_colaboradores?.nome ?? "—"}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {r.dp_colaboradores?.nome ?? "—"}
+                          {arquivo && (
+                            <Badge variant="outline" className="text-[10px] gap-1">
+                              <Paperclip className="h-3 w-3" /> Anexo
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         {r.data_alvo ?? "—"}
                         {r.data_fim ? ` → ${r.data_fim}` : ""}
@@ -178,10 +187,7 @@ export default function DpAtestados() {
                                 size="icon"
                                 variant="ghost"
                                 title="Recusar"
-                                onClick={() => {
-                                  const resposta = window.prompt("Motivo da recusa (opcional):") ?? undefined;
-                                  respond.mutate({ id: r.id, status: "recusada", resposta });
-                                }}
+                                onClick={() => setRecusaId(r.id)}
                               >
                                 <X className="h-4 w-4 text-destructive" />
                               </Button>
