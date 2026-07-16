@@ -1,11 +1,13 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bell, ArrowRight, Clock, Clock3, CalendarClock, AlarmClockOff } from "lucide-react";
+import { Bell, ArrowRight, Clock, Clock3, CalendarClock, AlarmClockOff, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useDpPendencias, type Pendencia } from "@/hooks/useDpPendencias";
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
-import { addDays, isAfter } from "date-fns";
+import { addDays, isAfter, format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
 function isPostponed(id: string, map: Record<string, string>) {
