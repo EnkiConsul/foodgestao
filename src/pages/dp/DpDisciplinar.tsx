@@ -2,7 +2,7 @@ import { Helmet } from "react-helmet-async";
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Trash2, AlertOctagon } from "lucide-react";
+import { Plus, Trash2, AlertOctagon, FileText, FileSignature } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -88,6 +88,27 @@ export default function DpDisciplinar() {
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["dp_disciplinar"] }); toast.success("Removido"); },
   });
+
+  const genPdf = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.functions.invoke("dp-generate-disciplinary-pdf", { body: { registro_id: id } });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      return data as { path: string; signed_url: string };
+    },
+    onSuccess: (data) => {
+      toast.success("PDF gerado");
+      if (data.signed_url) window.open(data.signed_url, "_blank");
+      qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao gerar PDF"),
+  });
+
+  const openPdf = async (path: string) => {
+    const { data, error } = await supabase.storage.from("dp-disciplinar").createSignedUrl(path, 60);
+    if (error) return toast.error(error.message);
+    window.open(data.signedUrl, "_blank");
+  };
 
   return (
     <div className="space-y-4">
