@@ -1,51 +1,43 @@
 ## Objetivo
+Corrigir todas as telas do módulo DP para seguirem a estrutura visual e de navegação da documentação anexada do GitHub, mantendo as cores atuais do projeto.
 
-Reescrever `src/pages/dp/DpColaboradores.tsx` para replicar a estrutura/design da documentação (imagem de referência): header rico, card de filtros e tabela com colunas Colaborador, CPF, Cargo, Unidade, Vínculo, Status (switch), Perfil, Folha Ponto e Ações. Sem alterar cores da identidade (paleta 360°FOOD já em uso no `.dp-shell`).
+## Escopo
+Serão alinhadas as páginas administrativas e do portal do colaborador dentro de `/dp` e `/dp/meu`, sem alterar regras de negócio, banco de dados, permissões ou paleta global.
 
-## Mudanças
+## Direção visual a aplicar
+- Manter o layout com sidebar DP, fundo claro/padronizado e conteúdo central com largura consistente, como nos anexos.
+- Usar cabeçalhos padronizados: ícone + título, subtítulo abaixo, ação principal à direita e favorito/notificação quando aplicável.
+- Usar cards e tabelas com a mesma hierarquia da documentação: borda sutil, cantos moderados, filtros em faixa/card antes da listagem e ações por ícones.
+- Manter as cores já existentes do app/DP; a correção será de estrutura, espaçamento, componentes, hierarquia e organização.
 
-### 1. Header da página
-- Título grande "Colaboradores" com ícone `Users` à esquerda (cor `primary`).
-- Subtítulo: "Gerencie a equipe, cargos e acessos ao sistema."
-- Do lado direito: `<FavoriteToggle />` (já existente) + botão vermelho `+ Novo Colaborador` (variant default herda tema DP).
+## Implementação proposta
+1. **Criar base reutilizável de layout DP**
+   - Componentes comuns para `DpPage`, `DpPageHeader`, `DpFilterBar`, `DpSectionCard`, `DpMetricCard` e estados vazios/loading.
+   - Isso evita corrigir tela por tela com estilos divergentes.
 
-### 2. Card de Filtros (novo)
-Card único com 4 controles alinhados horizontalmente (labels em uppercase pequenas, como na imagem):
-- **BUSCAR**: input com ícone lupa — filtra por nome/CPF/matrícula (mantém lógica atual).
-- **UNIDADE**: `Select` populado via `useDpUnidades` (se existir; senão via `dp_unidades`), com opção "Todas".
-- **STATUS**: `Select` com Todos / Ativos / Inativos.
-- **CARGO**: `Select` populado via `useDpCargos` (ou `dp_cargos`), com opção "Todos".
-Filtro combinado aplicado antes de renderizar a tabela.
+2. **Padronizar páginas administrativas principais**
+   - `DpHome`: alinhar com o painel administrativo da documentação, com pendências, aniversariantes e atalhos favoritos no mesmo padrão.
+   - `DpColaboradores`: manter a estrutura da documentação e corrigir inconsistências visuais restantes, incluindo filtros, tabela, badges, switches e ações.
+   - `DpSolicitacoes`, `DpFolgas`, `DpAprovacoes`, `DpAtestados`, `DpTrocas`, `DpBloqueios`: aplicar cabeçalho, filtros/tabs e listas/calendário no mesmo padrão.
+   - `DpDocumentosHub`, `DpDocumentos`, `DpHistoricoCompleto`, `DpDocImportBulk`, `DpDisciplinar`: unificar estrutura de documentos, cards de categoria, histórico, importação e registros.
+   - `DpCadastrosHub`, `DpUnidades`, `DpCargos`, `DpSindicatos`, `DpSindicatoNegociacoes`: alinhar cadastros ao padrão de listagem/formulário da documentação.
+   - `DpComunicacaoHub`, `DpAvisos`, `DpMensagens`, `DpModelosMensagem`: alinhar comunicação ao padrão de cards/listas e ações.
+   - `DpFolhaHub`, `DpFolhaAprovacoes`, `DpFolhaPeriodo`: aplicar a mesma estrutura visual para folha e aprovações.
 
-### 3. Tabela
-Substituir colunas atuais por:
-| COLABORADOR | CPF | CARGO | UNIDADE | VÍNCULO | STATUS | PERFIL | FOLHA PONTO | AÇÕES |
+3. **Padronizar portal do colaborador**
+   - Ajustar `DpMeuHome`, `DpMeuPerfil`, `DpMeuDocumentos`, `DpMeuSolicitacoes`, `DpMeuTrocas`, `DpMeuCalendario`, `DpMeuAtestados`, `DpMeuDisciplinar`, `DpMeuSindicato` e `DpMeuHistorico` para seguirem a mesma linguagem visual da documentação, com foco em experiência simplificada para colaborador.
 
-- **Colaborador**: nome em negrito (uppercase como na doc).
-- **CPF**: `c.cpf` formatado (usar util existente se houver; senão exibir cru).
-- **Cargo**: `c.cargo_nome ?? c.cargo ?? "—"`.
-- **Unidade**: `c.unidade_nome ?? "—"`.
-- **Vínculo**: `Badge` com `c.regime` em maiúsculas (CLT/PJ/…), estilo outline azul-claro.
-- **Status**: componente `Switch` (shadcn) ligado a `c.ativo`; on-change chama nova mutation `useToggleDpColaboradorAtivo` (adicionada em `useDpColaboradores.tsx`) que faz `update({ ativo }).eq('id', id)` e invalida a query.
-- **Perfil**: `Badge` mostrando `c.perfil_acesso` (Colaborador/Admin). Cor sutil (secondary/outline).
-- **Folha Ponto**: `Badge` "Sim" (verde suave) / "Não" (cinza), lendo `c.possui_folha_ponto`.
-- **Ações**: 3 botões ghost com ícones — `Pencil` (editar), `KeyRound` (resetar/definir acesso — abre toast "em breve" por ora, pois não faz parte do escopo funcional atual), `Trash2` (remover, mantém AlertDialog atual).
+4. **Ajustar navegação e consistência**
+   - Garantir sidebar com grupos, estados ativos e espaçamentos compatíveis com os anexos.
+   - Garantir que hubs, atalhos e rotas internas tenham o mesmo padrão de cards e botões.
 
-### 4. Hook
-Adicionar em `src/hooks/useDpColaboradores.tsx`:
-```ts
-export function useToggleDpColaboradorAtivo() { ... update ativo ... }
-```
-Nenhuma mudança nos demais hooks.
+5. **Validação**
+   - Conferir visualmente as telas principais em desktop.
+   - Rodar typecheck/teste aplicável.
+   - Não alterar cores globais nem adicionar migrations/backend.
 
-## Fora de escopo
-- Não alterar cores/tokens globais (identidade 360°FOOD preservada).
-- Não implementar de fato o fluxo "resetar acesso" (ícone chave) — apenas placeholder com toast, para preservar paridade visual sem introduzir back-end novo.
-- Sem alterações em migrations, RLS ou outras páginas.
-
-## Arquivos afetados
-- `src/pages/dp/DpColaboradores.tsx` (reescrita)
-- `src/hooks/useDpColaboradores.tsx` (novo hook de toggle)
-
-## Risco de regressão
-Baixo — mudança isolada a uma única página + adição aditiva de hook. Filtros e switch operam sobre campos já existentes na tabela `dp_colaboradores`.
+## Fora do escopo
+- Alterar paleta, marca ou tokens de cor.
+- Criar novas funcionalidades de backend.
+- Reestruturar permissões, tabelas ou regras de negócio.
+- Publicar/deployar automaticamente.
