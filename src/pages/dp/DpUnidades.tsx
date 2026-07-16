@@ -492,8 +492,6 @@ export default function DpUnidades() {
             <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
             <Button onClick={save} disabled={upsert.isPending}>
               {upsert.isPending ? "Salvando..." : editing ? "Salvar" : "Cadastrar"}
-
-              {upsert.isPending ? "Salvando..." : "Salvar"}
             </Button>
           </DialogFooter>
         </DialogContent>
