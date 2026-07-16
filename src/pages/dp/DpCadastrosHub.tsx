@@ -1,7 +1,6 @@
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
 import { Building2, Briefcase, HandshakeIcon } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { NavigationCard } from "@/components/dp/NavigationCard";
 
 const items = [
   { title: "Unidades", desc: "Filiais, lojas e centros de custo", url: "/dp/cadastros/unidades", icon: Building2 },
@@ -19,18 +18,7 @@ export default function DpCadastrosHub() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((it) => (
-          <Link key={it.url} to={it.url}>
-            <Card className="hover:border-primary transition-colors h-full">
-              <CardHeader className="flex flex-row items-center gap-3 space-y-0">
-                <it.icon className="h-6 w-6 text-primary" />
-                <div>
-                  <CardTitle className="text-base">{it.title}</CardTitle>
-                  <CardDescription>{it.desc}</CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent />
-            </Card>
-          </Link>
+          <NavigationCard key={it.url} title={it.title} description={it.desc} to={it.url} icon={it.icon} />
         ))}
       </div>
     </div>
