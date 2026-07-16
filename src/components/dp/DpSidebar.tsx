@@ -57,14 +57,16 @@ const ADMIN_ITEMS: Item[] = [
       { title: "Registros Disciplinares", url: "/dp/disciplinar", icon: ShieldAlert },
       { title: "ACT-CCT / Sindicato", url: "/dp/documentos/sindicato", icon: Scale },
       { title: "Histórico Completo", url: "/dp/documentos", icon: ListChecks, end: true },
+      { title: "Importar em massa", url: "/dp/documentos/importar", icon: FileText },
     ],
   },
   {
     kind: "group", title: "Comunicação", icon: MessageSquare,
-    prefixes: ["/dp/mensagens", "/dp/avisos"],
+    prefixes: ["/dp/mensagens", "/dp/avisos", "/dp/modelos-mensagem"],
     items: [
       { title: "Mensagens", url: "/dp/mensagens", icon: MessageSquare },
       { title: "Quadro de Avisos", url: "/dp/avisos", icon: Bell },
+      { title: "Modelos de Mensagem", url: "/dp/modelos-mensagem", icon: MessageSquare },
     ],
   },
 ];
