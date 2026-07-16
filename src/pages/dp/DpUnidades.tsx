@@ -57,6 +57,9 @@ export default function DpUnidades() {
   const [editing, setEditing] = useState<DpUnidadeWithCounts | null>(null);
   const [toDelete, setToDelete] = useState<DpUnidadeWithCounts | null>(null);
   const [form, setForm] = useState(blank);
+  const [busca, setBusca] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "ativa" | "inativa">("all");
+  const [loadingBrasilApi, setLoadingBrasilApi] = useState(false);
 
   const [viewOpen, setViewOpen] = useState(false);
   const [viewing, setViewing] = useState<DpUnidadeWithCounts | null>(null);
