@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileStack, Upload, Loader2, Check, X, ChevronDown, ChevronRight, RefreshCw, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
@@ -12,6 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 const TIPO_OPTS = [
@@ -33,9 +37,11 @@ export default function DpDocImportBulk() {
   const [referencia, setReferencia] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [batchLimit, setBatchLimit] = useState<number>(20);
 
   const batches = useQuery({
-    queryKey: ["dp_bulk_batches", selectedCompanyId],
+    queryKey: ["dp_bulk_batches", selectedCompanyId, batchLimit],
     enabled: !!selectedCompanyId,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -43,11 +49,15 @@ export default function DpDocImportBulk() {
         .select("*")
         .eq("company_id", selectedCompanyId!)
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(batchLimit);
       if (error) throw error;
       return data as any[];
     },
   });
+
+  const filteredBatches = useMemo(() => {
+    return (batches.data ?? []).filter((b) => statusFilter === "all" ? true : b.status === statusFilter);
+  }, [batches.data, statusFilter]);
 
   const items = useQuery({
     queryKey: ["dp_bulk_items", Object.keys(expanded).filter((k) => expanded[k])],
@@ -161,7 +171,14 @@ export default function DpDocImportBulk() {
 
   const openPage = async (path: string) => {
     const { data } = await supabase.storage.from("dp-bulk-import").createSignedUrl(path, 300);
-    if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+    if (!data?.signedUrl) return;
+    const a = document.createElement("a");
+    a.href = data.signedUrl;
+    a.rel = "noopener noreferrer";
+    a.target = "_blank";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   return (
@@ -206,19 +223,33 @@ export default function DpDocImportBulk() {
       </DpFilterCard>
 
       <Card className="dp-content-card">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-row items-center justify-between gap-2">
           <CardTitle className="text-base">Lotes recentes</CardTitle>
-          <Button size="sm" variant="ghost" onClick={() => batches.refetch()}>
-            <RefreshCw className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-40 h-8"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos status</SelectItem>
+                <SelectItem value="processing">Processando</SelectItem>
+                <SelectItem value="ready">Pronto</SelectItem>
+                <SelectItem value="imported">Importado</SelectItem>
+                <SelectItem value="failed">Falhou</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button size="sm" variant="ghost" onClick={() => batches.refetch()}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-2">
           {batches.isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
-          {batches.data?.length === 0 && <p className="text-sm text-muted-foreground">Nenhum lote ainda.</p>}
-          {batches.data?.map((b) => {
+          {filteredBatches.length === 0 && <p className="text-sm text-muted-foreground">Nenhum lote encontrado.</p>}
+          {filteredBatches.map((b) => {
             const bItems = (items.data ?? []).filter((i) => i.batch_id === b.id);
             const pending = bItems.filter((i) => i.status === "pending" && i.matched_colaborador_id);
             const isOpen = !!expanded[b.id];
+            const totalPag = b.total_pages ?? 0;
+            const importadas = bItems.filter((i) => i.status === "imported").length;
             return (
               <div key={b.id} className="border rounded-md">
                 <button
@@ -230,7 +261,8 @@ export default function DpDocImportBulk() {
                     <div>
                       <div className="text-sm font-medium">{b.source_file_name ?? b.id.slice(0, 8)}</div>
                       <div className="text-xs text-muted-foreground">
-                        {b.tipo} · {b.total_pages} páginas · {b.matched_count} vinculadas · {new Date(b.created_at).toLocaleString("pt-BR")}
+                        {b.tipo} · {totalPag} páginas · {b.matched_count} vinculadas
+                        {isOpen && bItems.length > 0 ? ` · ${importadas}/${totalPag} importadas` : ""} · {new Date(b.created_at).toLocaleString("pt-BR")}
                       </div>
                     </div>
                   </div>
@@ -278,9 +310,25 @@ export default function DpDocImportBulk() {
                           <Button size="icon" variant="ghost" onClick={() => openPage(it.page_file_path)} title="Ver página">
                             <ExternalLink className="h-4 w-4" />
                           </Button>
-                          <Button size="icon" variant="ghost" onClick={() => reject.mutate(it.id)} disabled={it.status !== "pending"} title="Rejeitar">
-                            <X className="h-4 w-4" />
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="icon" variant="ghost" disabled={it.status !== "pending"} title="Rejeitar">
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Rejeitar página {it.page_index}?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  A página será marcada como rejeitada e não poderá ser importada.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => reject.mutate(it.id)}>Rejeitar</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </div>
                     ))}
@@ -289,8 +337,16 @@ export default function DpDocImportBulk() {
               </div>
             );
           })}
+          {batches.data && batches.data.length >= batchLimit && (
+            <div className="flex justify-center pt-2">
+              <Button size="sm" variant="outline" onClick={() => setBatchLimit((n) => n + 20)}>
+                Carregar mais
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </DpPage>
   );
 }
+

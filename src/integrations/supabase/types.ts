@@ -4879,9 +4879,17 @@ export type Database = {
         Returns: string
       }
       dp_colaborador_of: { Args: { _user_id: string }; Returns: string }
+      dp_folha_enviar_financeiro: {
+        Args: { _periodo_id: string }
+        Returns: undefined
+      }
       dp_folha_gerar_lancamentos: {
         Args: { _periodo_id: string }
         Returns: number
+      }
+      dp_folha_reabrir_periodo: {
+        Args: { _periodo_id: string }
+        Returns: undefined
       }
       dp_gerar_bloqueios_ano: {
         Args: { _ano: number; _company_id: string }

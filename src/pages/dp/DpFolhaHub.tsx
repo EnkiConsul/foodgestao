@@ -1,16 +1,17 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, ArrowRight, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import type { Database } from "@/integrations/supabase/types";
@@ -41,13 +42,26 @@ function NovoPeriodoDialog({ tipo, companyId }: { tipo: Tipo; companyId: string 
 
   const create = useMutation({
     mutationFn: async () => {
+      // Pré-check de duplicidade (company_id + competencia + tipo)
+      const { data: existing } = await supabase
+        .from("dp_folha_periodos")
+        .select("id")
+        .eq("company_id", companyId)
+        .eq("competencia", competencia)
+        .eq("tipo", tipo)
+        .maybeSingle();
+      if (existing) throw new Error("Já existe um período com essa competência e tipo.");
+
       const { error } = await supabase.from("dp_folha_periodos").insert({
         company_id: companyId,
         competencia,
         tipo,
         data_pagamento: dataPagamento || null,
       });
-      if (error) throw error;
+      if (error) {
+        if (error.code === "23505") throw new Error("Já existe um período com essa competência e tipo.");
+        throw error;
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dp_folha_periodos"] });
@@ -63,7 +77,10 @@ function NovoPeriodoDialog({ tipo, companyId }: { tipo: Tipo; companyId: string 
         <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Novo período</Button>
       </DialogTrigger>
       <DialogContent>
-        <DialogHeader><DialogTitle>Novo período — {TIPOS.find(t => t.key === tipo)?.label}</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Novo período — {TIPOS.find(t => t.key === tipo)?.label}</DialogTitle>
+          <DialogDescription>Defina a competência (mês/ano) e a data de pagamento.</DialogDescription>
+        </DialogHeader>
         <div className="space-y-3">
           <div>
             <Label>Competência</Label>
@@ -82,7 +99,7 @@ function NovoPeriodoDialog({ tipo, companyId }: { tipo: Tipo; companyId: string 
   );
 }
 
-function PeriodosLista({ tipo, companyId }: { tipo: Tipo; companyId: string }) {
+function PeriodosLista({ tipo, companyId, statusFilter }: { tipo: Tipo; companyId: string; statusFilter: string }) {
   const nav = useNavigate();
   const q = useQuery({
     queryKey: ["dp_folha_periodos", companyId, tipo],
@@ -98,10 +115,15 @@ function PeriodosLista({ tipo, companyId }: { tipo: Tipo; companyId: string }) {
     },
   });
 
+  const filtered = useMemo(
+    () => (q.data ?? []).filter((p) => statusFilter === "all" ? true : p.status === statusFilter),
+    [q.data, statusFilter],
+  );
+
   return (
     <div className="space-y-2">
-      {q.data?.length === 0 && <p className="text-sm text-muted-foreground">Nenhum período criado.</p>}
-      {q.data?.map((p) => (
+      {filtered.length === 0 && <p className="text-sm text-muted-foreground">Nenhum período encontrado.</p>}
+      {filtered.map((p) => (
         <Card key={p.id} className="dp-content-card cursor-pointer hover:bg-muted/50" onClick={() => nav(`/dp/folha/periodos/${p.id}`)}>
           <CardContent className="p-4 flex items-center justify-between">
             <div>
@@ -111,7 +133,7 @@ function PeriodosLista({ tipo, companyId }: { tipo: Tipo; companyId: string }) {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="outline">{STATUS_LABEL[p.status]}</Badge>
+              <Badge variant="outline">{STATUS_LABEL[p.status] ?? p.status}</Badge>
               <ArrowRight className="h-4 w-4 text-muted-foreground" />
             </div>
           </CardContent>
@@ -122,8 +144,10 @@ function PeriodosLista({ tipo, companyId }: { tipo: Tipo; companyId: string }) {
 }
 
 export default function DpFolhaHub() {
+  const nav = useNavigate();
   const { selectedCompanyId } = useCompanyContext();
   const [tab, setTab] = useState<Tipo>("adiantamento");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   if (!selectedCompanyId) return <DpPage><DpContentCard contentClassName="p-6"><p className="text-muted-foreground">Selecione uma empresa.</p></DpContentCard></DpPage>;
 
   return (
@@ -133,26 +157,37 @@ export default function DpFolhaHub() {
         title="Folha de Pagamento"
         description="Gerencie períodos de adiantamento, mensal, quinzenal e 13º."
         actions={
-        <Button variant="outline" size="sm" onClick={() => window.location.assign("/dp/folha/aprovacoes")}>
-          Aprovações
-        </Button>
+          <Button variant="outline" size="sm" onClick={() => nav("/dp/folha/aprovacoes")}>
+            Aprovações
+          </Button>
         }
       />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as Tipo)}>
         <DpFilterCard>
-        <TabsList>
-          {TIPOS.map((t) => (
-            <TabsTrigger key={t.key} value={t.key}>{t.label}</TabsTrigger>
-          ))}
-        </TabsList>
+          <div className="flex flex-wrap items-center gap-3">
+            <TabsList>
+              {TIPOS.map((t) => (
+                <TabsTrigger key={t.key} value={t.key}>{t.label}</TabsTrigger>
+              ))}
+            </TabsList>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-48"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                {Object.entries(STATUS_LABEL).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </DpFilterCard>
         {TIPOS.map((t) => (
           <TabsContent key={t.key} value={t.key} className="space-y-3">
             <div className="flex justify-end">
               <NovoPeriodoDialog tipo={t.key} companyId={selectedCompanyId} />
             </div>
-            <PeriodosLista tipo={t.key} companyId={selectedCompanyId} />
+            <PeriodosLista tipo={t.key} companyId={selectedCompanyId} statusFilter={statusFilter} />
           </TabsContent>
         ))}
       </Tabs>
