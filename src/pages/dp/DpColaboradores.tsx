@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -21,6 +22,21 @@ import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { supabase } from "@/integrations/supabase/client";
+
+const REGIME_LABEL: Record<string, string> = {
+  clt: "CLT",
+  pj: "PJ",
+  estagio: "Estagiário",
+  temporario: "Temporário",
+  mei: "MEI",
+};
+
+const PERFIL_LABEL: Record<string, string> = {
+  colaborador: "Colaborador",
+  gestor: "Gestor",
+  admin: "Admin",
+};
 
 export default function DpColaboradores() {
   const list = useDpColaboradores();
