@@ -1,7 +1,7 @@
 # Auditoria DP — status
 
-Concluídas: DP-G00→G08 (correções aplicadas).
-Em andamento: **DP-G09 — Comunicação (Avisos, Mensagens, Modelos, Notificações) + Documentos gerais** (relatório em `.lovable/auditoria/dp-g09-comunicacao-documentos.md`). 27 divergências mapeadas em 5 grupos. Nenhuma alteração aplicada — aguardando aprovação.
+Concluídas: DP-G00→G09 (correções aplicadas).
+Em andamento: **DP-G10 — Folha + Importação em massa + Aprovações + Histórico + Home admin** (relatório em `.lovable/auditoria/dp-g10-folha-importacao-historico.md`). 23 divergências em 5 grupos. Nenhuma alteração aplicada — aguardando aprovação.
 
 Sequência sugerida pelo prompt mestre:
 
