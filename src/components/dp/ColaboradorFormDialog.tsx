@@ -22,15 +22,8 @@ const TIPOS_VINCULO: { value: string; label: string }[] = [
   { value: "Temporario", label: "Temporário" },
 ];
 
-const REGIMES_TRABALHO = [
-  { value: "nao_informado", label: "Não informado" },
-  { value: "CLT", label: "CLT" },
-  { value: "Estatutário", label: "Estatutário" },
-  { value: "PJ", label: "Pessoa Jurídica" },
-  { value: "Autônomo", label: "Autônomo" },
-  { value: "Estagiário", label: "Estagiário" },
-  { value: "Temporário", label: "Temporário" },
-];
+// (Dropdown "Regime de Trabalho" removido: duplicava o Tipo de Vínculo e não era persistido.
+//  O regime do banco é derivado de tipo_vinculo via VINCULO_TO_REGIME abaixo.)
 
 // Map UI "Tipo de Vínculo" (rótulos da documentação) para enum do banco (dp_regime_trabalho)
 const VINCULO_TO_REGIME: Record<string, Regime> = {
@@ -70,10 +63,9 @@ const blank = {
   data_admissao: "",
   data_nascimento: "",
   data_desligamento: "",
-  regime_trabalho: "nao_informado",
   tipo_vinculo: "CLT",
   folga_fixa_semana: "none",
-  perfil_acesso: "colaborador" as "colaborador" | "admin",
+  perfil_acesso: "colaborador" as "colaborador" | "gestor" | "admin",
   ativo: true,
   possui_folha_ponto: false,
   optante_adiantamento: false,
@@ -101,7 +93,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       data_admissao: c.data_admissao ?? "",
       data_nascimento: c.data_nascimento ?? "",
       data_desligamento: c.data_desligamento ?? "",
-      regime_trabalho: c.regime_trabalho ?? "nao_informado",
+      
       tipo_vinculo: c.tipo_vinculo ?? (c.regime ? String(c.regime).toUpperCase() : "CLT"),
       folga_fixa_semana: c.folga_fixa_semana != null ? String(c.folga_fixa_semana) : "none",
       perfil_acesso: c.perfil_acesso ?? "colaborador",
