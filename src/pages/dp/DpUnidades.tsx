@@ -18,6 +18,8 @@ import {
 } from "@/hooks/useDpCadastros";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { Link } from "react-router-dom";
 
 const onlyNumbers = (v: string) => v.replace(/\D/g, "");
 const formatCNPJ = (value: string) => {
