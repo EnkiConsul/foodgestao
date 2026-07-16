@@ -45,6 +45,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
+import { DpCalendarDayDialog, type DpDayScheduleEntry } from "@/components/dp/DpCalendarDayDialog";
+import { DpStatusBadge, statusToneFor } from "@/components/dp/DpStatusBadge";
 import type { Database } from "@/integrations/supabase/types";
 
 type Row = Database["public"]["Tables"]["dp_solicitacoes"]["Row"] & {
