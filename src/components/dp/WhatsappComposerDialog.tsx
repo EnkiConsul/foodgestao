@@ -74,7 +74,7 @@ export function WhatsappComposerDialog({ open, onClose, colaboradorId, nome, con
               <SelectTrigger><SelectValue placeholder={modelos.length ? "Escolha um modelo…" : "Nenhum modelo cadastrado"} /></SelectTrigger>
               <SelectContent>
                 {modelos.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                  <SelectItem key={m.id} value={m.id}>{m.titulo}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
