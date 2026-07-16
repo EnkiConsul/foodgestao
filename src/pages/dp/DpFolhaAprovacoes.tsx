@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle, WalletCards } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
+import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import type { Database } from "@/integrations/supabase/types";
 
 type Lancamento = Database["public"]["Tables"]["dp_folha_lancamentos"]["Row"] & {
@@ -90,13 +91,15 @@ export default function DpFolhaAprovacoes() {
   const toggleAll = () => setSelected((s) => s.size === lancs.data?.length ? new Set() : new Set((lancs.data ?? []).map(l => l.id)));
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold">Aprovações do Financeiro</h1>
-        <p className="text-sm text-muted-foreground">Aprove lançamentos de folha para gerar despesas a pagar automaticamente.</p>
-      </div>
+    <DpPage>
+      <DpPageHeader
+        icon={WalletCards}
+        title="Aprovações do Financeiro"
+        description="Aprove lançamentos de folha para gerar despesas a pagar automaticamente."
+      />
 
-      <div className="flex flex-wrap items-center gap-2 border-b pb-3">
+      <DpFilterCard>
+      <div className="flex flex-wrap items-center gap-2">
         <Select value={accountId} onValueChange={setAccountId}>
           <SelectTrigger className="w-64"><SelectValue placeholder="Conta bancária de origem (opcional)" /></SelectTrigger>
           <SelectContent>
@@ -110,7 +113,9 @@ export default function DpFolhaAprovacoes() {
           <XCircle className="h-4 w-4 mr-1" /> Rejeitar
         </Button>
       </div>
+      </DpFilterCard>
 
+      <DpContentCard contentClassName="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
@@ -140,6 +145,7 @@ export default function DpFolhaAprovacoes() {
           ))}
         </TableBody>
       </Table>
-    </div>
+      </DpContentCard>
+    </DpPage>
   );
 }
