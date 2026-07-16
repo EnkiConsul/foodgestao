@@ -67,8 +67,16 @@ export default function DpSindicatos() {
     setCargosSel(vinculos.data.cargos);
   }, [vinculos.data]);
 
-  const patronais = useMemo(() => (list.data ?? []).filter((s) => (s as any).tipo === "patronal"), [list.data]);
-  const laborais = useMemo(() => (list.data ?? []).filter((s) => (s as any).tipo === "laboral"), [list.data]);
+  const [busca, setBusca] = useState("");
+  const filtrado = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return (list.data ?? []).filter((s) => {
+      if (!q) return true;
+      return s.nome.toLowerCase().includes(q) || (s.cnpj ?? "").includes(onlyDigits(q));
+    });
+  }, [list.data, busca]);
+  const patronais = useMemo(() => filtrado.filter((s) => (s as any).tipo === "patronal"), [filtrado]);
+  const laborais = useMemo(() => filtrado.filter((s) => (s as any).tipo === "laboral"), [filtrado]);
 
   const abrirNovo = (t: Tipo) => {
     setTipo(t);
