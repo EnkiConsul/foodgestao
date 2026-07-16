@@ -25,6 +25,7 @@ import type { Database } from "@/integrations/supabase/types";
 type Tipo = Database["public"]["Enums"]["dp_solicitacao_tipo"];
 type Status = Database["public"]["Enums"]["dp_solicitacao_status"];
 type Row = Database["public"]["Tables"]["dp_solicitacoes"]["Row"];
+type RowWithColab = Row & { dp_colaboradores: { nome: string } | null };
 
 const TIPOS: { value: Tipo; label: string }[] = [
   { value: "folga", label: "Folga" },
