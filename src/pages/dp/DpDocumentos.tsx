@@ -57,6 +57,9 @@ export default function DpDocumentos() {
     colaborador_id: "", tipo: (filterTipo ?? "outros") as Tipo, titulo: "", descricao: "", referencia_data: "",
   });
   const [uploading, setUploading] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<Aprov | "todos">("todos");
+  const [rejectRow, setRejectRow] = useState<Row | null>(null);
+  const [rejectMotivo, setRejectMotivo] = useState("");
 
   const list = useQuery({
     queryKey: ["dp_documentos", selectedCompanyId, filterTipo ?? "all"],
@@ -73,6 +76,18 @@ export default function DpDocumentos() {
       return (data ?? []) as (Row & { dp_colaboradores: { nome: string } | null })[];
     },
   });
+
+  const filteredRows = useMemo(() => {
+    const all = list.data ?? [];
+    if (statusFilter === "todos") return all;
+    return all.filter((r) => (r as any).aprovacao_status === statusFilter);
+  }, [list.data, statusFilter]);
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { todos: list.data?.length ?? 0, pendente: 0, aprovado: 0, recusado: 0 };
+    for (const r of list.data ?? []) c[(r as any).aprovacao_status] = (c[(r as any).aprovacao_status] ?? 0) + 1;
+    return c;
+  }, [list.data]);
 
   const openDialog = () => {
     setForm({ colaborador_id: "", tipo: (filterTipo ?? "outros") as Tipo, titulo: "", descricao: "", referencia_data: "" });
