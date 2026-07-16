@@ -93,6 +93,9 @@ export function PendenciasCard() {
                     Resolver <ArrowRight className="h-3 w-3 ml-1" />
                   </Link>
                 </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setDetail(p)}>
+                  <Info className="h-3 w-3 mr-1" /> Detalhes
+                </Button>
                 <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => adiar(p, 1)}>
                   Adiar 1d
                 </Button>
@@ -104,6 +107,45 @@ export function PendenciasCard() {
           </div>
         ))}
       </div>
+
+      <Dialog open={!!detail} onOpenChange={(v) => { if (!v) setDetail(null); }}>
+        <DialogContent className="max-w-md">
+          {detail && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <detail.icon className="h-5 w-5 text-primary" />
+                  {detail.titulo}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2 text-sm">
+                <p className="text-muted-foreground">{detail.subtitulo}</p>
+                {detail.vencimento && (
+                  <p>
+                    <span className="font-medium">Vencimento: </span>
+                    {format(new Date(detail.vencimento), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                  </p>
+                )}
+                {detail.atrasoDias != null && detail.atrasoDias > 0 && (
+                  <Badge variant="outline" className="border-destructive/40 bg-destructive/10 text-destructive">
+                    <Clock className="h-3 w-3 mr-1" /> Atrasado há {detail.atrasoDias} dia(s)
+                  </Badge>
+                )}
+              </div>
+              <DialogFooter className="gap-2">
+                <Button variant="ghost" onClick={() => { if (detail) { adiar(detail, 7); setDetail(null); } }}>
+                  Adiar 7d
+                </Button>
+                <Button asChild onClick={() => setDetail(null)}>
+                  <Link to={detail.url}>
+                    Resolver <ArrowRight className="h-4 w-4 ml-1" />
+                  </Link>
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
