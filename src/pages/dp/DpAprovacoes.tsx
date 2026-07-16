@@ -25,6 +25,7 @@ const TIPO_LABEL: Record<NotifTipo, string> = {
   troca_resposta_colega: "Resposta colega",
   troca_resposta_gestor: "Resposta gestor",
   disciplinar_novo: "Disciplinar",
+  atestado_novo: "Novo atestado",
 };
 
 export default function DpAprovacoes() {

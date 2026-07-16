@@ -2868,6 +2868,7 @@ export type Database = {
       }
       dp_solicitacoes: {
         Row: {
+          arquivo_path: string | null
           colaborador_id: string
           company_id: string
           created_at: string
@@ -2884,6 +2885,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          arquivo_path?: string | null
           colaborador_id: string
           company_id: string
           created_at?: string
@@ -2900,6 +2902,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          arquivo_path?: string | null
           colaborador_id?: string
           company_id?: string
           created_at?: string
@@ -4747,6 +4750,7 @@ export type Database = {
         | "troca_resposta_colega"
         | "troca_resposta_gestor"
         | "disciplinar_novo"
+        | "atestado_novo"
       dp_regime_trabalho: "clt" | "pj" | "estagio" | "temporario" | "mei"
       dp_solicitacao_status: "pendente" | "aprovada" | "recusada" | "cancelada"
       dp_solicitacao_tipo:
@@ -5009,6 +5013,7 @@ export const Constants = {
         "troca_resposta_colega",
         "troca_resposta_gestor",
         "disciplinar_novo",
+        "atestado_novo",
       ],
       dp_regime_trabalho: ["clt", "pj", "estagio", "temporario", "mei"],
       dp_solicitacao_status: ["pendente", "aprovada", "recusada", "cancelada"],
