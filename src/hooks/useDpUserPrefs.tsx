@@ -86,6 +86,7 @@ export function useDpUserPrefs() {
   return {
     prefs: query.data ?? DEFAULT,
     isLoading: query.isLoading,
+    available: !!user?.id && !!selectedCompanyId,
     save: save.mutate,
     saving: save.isPending,
     favoritePages,
@@ -93,4 +94,5 @@ export function useDpUserPrefs() {
     toggleFavoritePage,
   };
 }
+
 
