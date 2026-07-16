@@ -60,6 +60,12 @@ export default function DpDocumentosHub() {
             />
           );
         })}
+        <NavigationCard
+          title="Histórico completo"
+          description="Todos os documentos com filtros por colaborador, tipo e período"
+          to="/dp/documentos/historico"
+          icon={ListChecks}
+        />
       </div>
     </div>
   );
