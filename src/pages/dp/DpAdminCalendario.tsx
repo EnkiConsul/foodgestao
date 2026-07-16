@@ -138,6 +138,18 @@ export default function DpAdminCalendario() {
     onError: (e: any) => toast.error(e.message ?? "Erro"),
   });
 
+  const removerFolga = useMutation({
+    mutationFn: async (folgaId: string) => {
+      const { error } = await supabase.from("dp_folgas").delete().eq("id", folgaId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Folga removida");
+      qc.invalidateQueries({ queryKey: ["dp_folgas_admin"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao remover"),
+  });
+
   const salvarLimite = useMutation({
     mutationFn: async () => {
       if (!dayOpen) return;
