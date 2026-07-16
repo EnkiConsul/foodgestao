@@ -39,3 +39,16 @@ Auditar as telas de entrada do colaborador contra a referência `pakere1996/port
 Finalizo cada fase com relatório em `.lovable/auditoria/` e aguardo aprovação antes de aplicar correções.
 
 Confirma iniciar por **DP-G03 (Portal — Home + Meu Cadastro)**?
+
+## DP-G08 — Concluída (16/07/2026)
+
+Todos os 5 grupos aplicados:
+
+- **G1** — bugs de runtime: rótulo Salvar duplicado, botão PDF sem onClick, race condition em vínculos sindicais, cores hardcoded em badges.
+- **G2** — `AlertDialogDescription` em Unidades, Sindicatos, Cargos e Negociações.
+- **G3** — `useUpsertDpSindicato` retorna id via `.insert().select("id").single()`; fim do fallback por nome+tipo.
+- **G4** — busca em Unidades/Sindicatos/Cargos, filtro Ativa/Inativa em Unidades, filtro Vigente/Expirado em Negociações, contadores (unidades/cargos por sindicato, colaboradores por cargo), badges de patronal/laboral mais distintas, botão Editar no view dialog de Unidades, spinner BrasilAPI, remoção de `ArrowLeft` acima do `DpPageHeader`.
+- **G5** — nova página `/dp/configuracoes` (`DpConfiguracoes.tsx`) com editor de `dp_dia_config` (data + limite + observação) e atalho para bloqueios; card informando que SLAs seguem o padrão do sistema.
+- **Hub de Cadastros** ganhou atalhos para Negociações sindicais e Configurações.
+
+**Próxima fase sugerida:** DP-G09 — Comunicação (Avisos, Mensagens, Modelos, Notificações) + Documentos gerais.
