@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useDpSindicatos, useUpsertDpSindicato, useDeleteDpSindicato, useDpUnidades, useDpCargos, type DpSindicatoWithCounts } from "@/hooks/useDpCadastros";
+import { useDpSindicatos, useUpsertDpSindicato, useDeleteDpSindicato, useDpUnidades, useDpCargos, type DpSindicatoWithCounts as DpSindicato } from "@/hooks/useDpCadastros";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 import { supabase } from "@/integrations/supabase/client";
