@@ -20,16 +20,20 @@ export default function DpUnidades() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<DpUnidade | null>(null);
   const [toDelete, setToDelete] = useState<DpUnidade | null>(null);
-  const [form, setForm] = useState({ nome: "", cnpj: "", endereco: "", cidade: "", uf: "", ativo: true });
+  const [form, setForm] = useState({
+    nome: "", cnpj: "", endereco: "", cidade: "", uf: "", ativo: true,
+    telefone: "", possui_relogio_ponto: false, tem_adiantamento: false, dia_adiantamento: "" as string,
+  });
 
   const openNew = () => {
     setEditing(null);
-    setForm({ nome: "", cnpj: "", endereco: "", cidade: "", uf: "", ativo: true });
+    setForm({ nome: "", cnpj: "", endereco: "", cidade: "", uf: "", ativo: true, telefone: "", possui_relogio_ponto: false, tem_adiantamento: false, dia_adiantamento: "" });
     setOpen(true);
   };
 
   const openEdit = (u: DpUnidade) => {
     setEditing(u);
+    const anyU = u as any;
     setForm({
       nome: u.nome,
       cnpj: u.cnpj ?? "",
@@ -37,6 +41,10 @@ export default function DpUnidades() {
       cidade: u.cidade ?? "",
       uf: u.uf ?? "",
       ativo: u.ativo,
+      telefone: anyU.telefone ?? "",
+      possui_relogio_ponto: anyU.possui_relogio_ponto ?? false,
+      tem_adiantamento: anyU.tem_adiantamento ?? false,
+      dia_adiantamento: anyU.dia_adiantamento != null ? String(anyU.dia_adiantamento) : "",
     });
     setOpen(true);
   };
