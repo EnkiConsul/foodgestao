@@ -1,7 +1,7 @@
 # Auditoria DP — status
 
-Concluídas: DP-G00→G09 (correções aplicadas).
-Em andamento: **DP-G10 — Folha + Importação em massa + Aprovações + Histórico + Home admin** (relatório em `.lovable/auditoria/dp-g10-folha-importacao-historico.md`). 23 divergências em 5 grupos. Nenhuma alteração aplicada — aguardando aprovação.
+Concluídas: DP-G00→G10 (correções aplicadas).
+Próxima: DP-G11 — motor de folha (cálculos CLT: INSS/IRRF/FGTS) + revisão de edge functions.
 
 Sequência sugerida pelo prompt mestre:
 
