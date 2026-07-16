@@ -148,6 +148,14 @@ export default function DpColaboradores() {
         }
       />
 
+      <Tabs value={statusFilter} onValueChange={setStatusFilter}>
+        <TabsList>
+          <TabsTrigger value="all">Todos ({counts.todos})</TabsTrigger>
+          <TabsTrigger value="ativos">Ativos ({counts.ativos})</TabsTrigger>
+          <TabsTrigger value="inativos">Inativos ({counts.inativos})</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       <DpFilterCard>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-1.5">
@@ -175,17 +183,6 @@ export default function DpColaboradores() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold tracking-wider text-muted-foreground">STATUS</label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="ativos">Ativos</SelectItem>
-                  <SelectItem value="inativos">Inativos</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
               <label className="text-xs font-semibold tracking-wider text-muted-foreground">CARGO</label>
               <Select value={cargoFilter} onValueChange={setCargoFilter}>
                 <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
@@ -194,6 +191,18 @@ export default function DpColaboradores() {
                   {(cargos.data ?? []).map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold tracking-wider text-muted-foreground">PERFIL</label>
+              <Select value={perfilFilter} onValueChange={setPerfilFilter}>
+                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="colaborador">Colaborador</SelectItem>
+                  <SelectItem value="gestor">Gestor</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -233,7 +242,7 @@ export default function DpColaboradores() {
                       <TableCell>{c.unidade_nome ?? "—"}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="uppercase border-primary/30 text-primary bg-primary/5">
-                          {c.regime ?? "—"}
+                          {REGIME_LABEL[c.regime ?? ""] ?? c.regime ?? "—"}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -246,9 +255,13 @@ export default function DpColaboradores() {
                       <TableCell>
                         <Badge
                           variant="outline"
-                          className={perfil === "admin" ? "bg-destructive/10 text-destructive border-destructive/30" : ""}
+                          className={
+                            perfil === "admin" ? "bg-destructive/10 text-destructive border-destructive/30"
+                            : perfil === "gestor" ? "bg-primary/10 text-primary border-primary/30"
+                            : ""
+                          }
                         >
-                          {perfil === "admin" ? "Admin" : "Colaborador"}
+                          {PERFIL_LABEL[perfil ?? "colaborador"]}
                         </Badge>
                       </TableCell>
                       <TableCell>
