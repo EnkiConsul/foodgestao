@@ -1,9 +1,10 @@
 import { Helmet } from "react-helmet-async";
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { addDays, endOfMonth, format, isSaturday, isSunday, nextSaturday, startOfMonth } from "date-fns";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { addDays, addMonths, endOfMonth, format, isSaturday, isSunday, nextSaturday, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Shield, Users, CalendarCheck, Calendar, ClipboardList, ArrowLeftRight, Ban, Sparkles } from "lucide-react";
+import { Shield, Users, CalendarCheck, Calendar, ClipboardList, ArrowLeftRight, Ban, Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { DpPage, DpPageHeader, DpContentCard } from "@/components/dp/DpPage";
@@ -21,6 +22,7 @@ type Stat = {
 
 export default function DpFolgasHub() {
   const { selectedCompanyId } = useCompanyContext();
+  const qc = useQueryClient();
   const today = new Date();
   const monthStart = startOfMonth(today);
   const monthEnd = endOfMonth(today);
@@ -138,6 +140,30 @@ export default function DpFolgasHub() {
     });
   }, [proximosDias, solicitacoes, equipeAtiva]);
 
+  const proximoMes = addMonths(today, 1);
+  const sortear = useMutation({
+    mutationFn: async () => {
+      if (!selectedCompanyId) throw new Error("Sem empresa");
+      const { data, error } = await supabase.functions.invoke("dp-sorteio-folgas", {
+        body: {
+          company_id: selectedCompanyId,
+          ano: proximoMes.getFullYear(),
+          mes: proximoMes.getMonth() + 1,
+          regenerar_prioridades: true,
+        },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data: any) => {
+      toast.success(`Sorteio concluído: ${data?.inseridas ?? 0} folgas inseridas`);
+      if (data?.ignoradas?.length) toast.info(`${data.ignoradas.length} ignoradas (limites/bloqueios)`);
+      qc.invalidateQueries({ queryKey: ["dp_folgas_hub_sol"] });
+      qc.invalidateQueries({ queryKey: ["dp_folgas_admin"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro no sorteio"),
+  });
+
   return (
     <DpPage>
       <Helmet><title>Dashboard de Folgas — DP 360°</title></Helmet>
@@ -146,9 +172,9 @@ export default function DpFolgasHub() {
         title="Dashboard de Folgas"
         description="Visão geral das escalas e solicitações."
         actions={
-          <Button className="gap-2">
-            <Sparkles className="h-4 w-4" />
-            Realizar Sorteio Próximo Mês
+          <Button className="gap-2" onClick={() => sortear.mutate()} disabled={sortear.isPending}>
+            {sortear.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            Sortear folgas de {format(proximoMes, "MMMM/yyyy", { locale: ptBR })}
           </Button>
         }
       />
@@ -157,7 +183,7 @@ export default function DpFolgasHub() {
         {stats.map((s) => (
           <div
             key={s.label}
-            className="rounded-xl border border-[hsl(var(--dp-border))] bg-white p-4 flex items-start justify-between gap-3"
+            className="rounded-xl border border-[hsl(var(--dp-border))] bg-card p-4 flex items-start justify-between gap-3"
           >
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground leading-tight">

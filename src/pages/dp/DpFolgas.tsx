@@ -370,7 +370,7 @@ export default function DpFolgas() {
         {statCards.map((s) => (
           <div
             key={s.label}
-            className="rounded-xl border border-[hsl(var(--dp-border))] bg-white p-4"
+            className="rounded-xl border border-[hsl(var(--dp-border))] bg-card p-4"
           >
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               {s.label}
