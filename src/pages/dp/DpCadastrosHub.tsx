@@ -1,6 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { Building2, Briefcase, HandshakeIcon } from "lucide-react";
 import { NavigationCard } from "@/components/dp/NavigationCard";
+import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 const items = [
   { title: "Unidades", desc: "Filiais, lojas e centros de custo", url: "/dp/cadastros/unidades", icon: Building2 },
@@ -10,17 +11,14 @@ const items = [
 
 export default function DpCadastrosHub() {
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Cadastros — DP 360°</title></Helmet>
-      <div>
-        <h2 className="text-xl font-semibold">Cadastros</h2>
-        <p className="text-sm text-muted-foreground">Estrutura organizacional do DP.</p>
-      </div>
+      <DpPageHeader icon={Building2} title="Cadastros" description="Estrutura organizacional do DP." />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((it) => (
           <NavigationCard key={it.url} title={it.title} description={it.desc} to={it.url} icon={it.icon} />
         ))}
       </div>
-    </div>
+    </DpPage>
   );
 }
