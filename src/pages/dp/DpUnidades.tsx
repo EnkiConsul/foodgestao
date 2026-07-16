@@ -63,7 +63,11 @@ export default function DpUnidades() {
         cidade: form.cidade.trim() || null,
         uf: form.uf.trim().toUpperCase() || null,
         ativo: form.ativo,
-      });
+        telefone: form.telefone.trim() || null,
+        possui_relogio_ponto: form.possui_relogio_ponto,
+        tem_adiantamento: form.tem_adiantamento,
+        dia_adiantamento: form.dia_adiantamento ? Number(form.dia_adiantamento) : null,
+      } as any);
       toast.success(editing ? "Unidade atualizada" : "Unidade criada");
       setOpen(false);
     } catch (e) {
