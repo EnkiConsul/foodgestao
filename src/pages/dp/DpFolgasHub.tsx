@@ -150,11 +150,15 @@ export default function DpFolgasHub() {
       const ocupados = solicitacoes.filter(
         (s) => s.tipo === "folga" && s.status === "aprovada" && s.data_alvo === key,
       ).length;
-      const cap = Math.max(1, Math.round(equipeAtiva * 0.1)); // ~10% da equipe
+      // Prioridade: limite configurado em dp_dia_config; fallback ~10% da equipe.
+      const configurado = diaConfig[key];
+      const cap = configurado && configurado > 0
+        ? configurado
+        : Math.max(1, Math.round(equipeAtiva * 0.1));
       const pct = Math.min(100, Math.round((ocupados / cap) * 100));
-      return { dia, ocupados, cap, pct };
+      return { dia, ocupados, cap, pct, configurado: !!(configurado && configurado > 0) };
     });
-  }, [proximosDias, solicitacoes, equipeAtiva]);
+  }, [proximosDias, solicitacoes, equipeAtiva, diaConfig]);
 
   const proximoMes = addMonths(today, 1);
   const sortear = useMutation({
