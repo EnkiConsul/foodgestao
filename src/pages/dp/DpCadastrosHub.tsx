@@ -8,7 +8,7 @@ const items = [
   { title: "Cargos", desc: "Gerencie os cargos da empresa.", url: "/dp/cadastros/cargos", icon: Briefcase },
   { title: "Unidades", desc: "Gerencie as unidades da loja.", url: "/dp/cadastros/unidades", icon: Building2 },
   { title: "Sindicatos", desc: "Gerencie sindicatos patronais e laborais.", url: "/dp/cadastros/sindicatos", icon: FileText },
-  { title: "Negociações sindicais", desc: "Acordos ACT/CCT, reajustes e cláusulas.", url: "/dp/documentos/sindicato-negociacoes", icon: Handshake },
+  { title: "Negociações sindicais", desc: "Acordos ACT/CCT, reajustes e cláusulas.", url: "/dp/documentos/act-cct", icon: Handshake },
   { title: "Configurações do DP", desc: "Limites de folga, bloqueios e regras gerais.", url: "/dp/configuracoes", icon: Settings },
 ];
 
