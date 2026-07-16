@@ -355,7 +355,7 @@ const AppRoutes = () => (
       <Route path="cadastros/unidades" element={<DpUnidades />} />
       <Route path="cadastros/cargos" element={<DpCargos />} />
       <Route path="cadastros/sindicatos" element={<DpSindicatos />} />
-      <Route path="sindicatos/negociacoes" element={<DpSindicatoNegociacoes />} />
+      <Route path="documentos/act-cct" element={<DpSindicatoNegociacoes />} />
       <Route path="folha" element={<DpFolhaHub />} />
       <Route path="folha/aprovacoes" element={<DpFolhaAprovacoes />} />
       <Route path="folha/periodos/:id" element={<DpFolhaPeriodo />} />
@@ -363,8 +363,9 @@ const AppRoutes = () => (
       <Route path="sindicatos" element={<Navigate to="/dp/cadastros/sindicatos" replace />} />
       <Route path="unidades" element={<Navigate to="/dp/cadastros/unidades" replace />} />
       <Route path="cargos" element={<Navigate to="/dp/cadastros/cargos" replace />} />
-      <Route path="cadastros/sindicatos/negociacoes" element={<Navigate to="/dp/sindicatos/negociacoes" replace />} />
-      <Route path="documentos/act-cct" element={<Navigate to="/dp/sindicatos/negociacoes" replace />} />
+      <Route path="sindicatos/negociacoes" element={<Navigate to="/dp/documentos/act-cct" replace />} />
+      <Route path="cadastros/sindicatos/negociacoes" element={<Navigate to="/dp/documentos/act-cct" replace />} />
+      <Route path="documentos/sindicato" element={<Navigate to="/dp/documentos/act-cct" replace />} />
       <Route path="comunicacao/avisos" element={<Navigate to="/dp/avisos" replace />} />
       <Route path="comunicacao/mensagens" element={<Navigate to="/dp/mensagens" replace />} />
     </Route>
