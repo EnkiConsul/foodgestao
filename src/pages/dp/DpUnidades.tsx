@@ -90,6 +90,10 @@ export default function DpUnidades() {
   };
 
   const save = async () => {
+    if (!form.company_id) {
+      toast.error("Selecione a empresa vinculada");
+      return;
+    }
     if (!form.nome.trim()) {
       toast.error("Nome é obrigatório");
       return;
@@ -97,6 +101,7 @@ export default function DpUnidades() {
     try {
       await upsert.mutateAsync({
         id: editing?.id,
+        company_id: form.company_id,
         nome: form.nome.trim(),
         cnpj: onlyNumbers(form.cnpj) || null,
         endereco: form.endereco.trim() || null,
