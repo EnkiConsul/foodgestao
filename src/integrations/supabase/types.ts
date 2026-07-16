@@ -2390,6 +2390,7 @@ export type Database = {
       }
       dp_documentos: {
         Row: {
+          aprovacao_status: Database["public"]["Enums"]["dp_documento_aprovacao_status"]
           colaborador_id: string | null
           company_id: string
           created_at: string
@@ -2399,13 +2400,18 @@ export type Database = {
           file_size: number | null
           id: string
           mime_type: string | null
+          motivo_recusao: string | null
           referencia_data: string | null
+          revisado_em: string | null
+          revisado_por: string | null
+          submetido_por_colaborador: boolean
           tipo: Database["public"]["Enums"]["dp_documento_tipo"]
           titulo: string
           updated_at: string
           uploaded_by: string | null
         }
         Insert: {
+          aprovacao_status?: Database["public"]["Enums"]["dp_documento_aprovacao_status"]
           colaborador_id?: string | null
           company_id: string
           created_at?: string
@@ -2415,13 +2421,18 @@ export type Database = {
           file_size?: number | null
           id?: string
           mime_type?: string | null
+          motivo_recusao?: string | null
           referencia_data?: string | null
+          revisado_em?: string | null
+          revisado_por?: string | null
+          submetido_por_colaborador?: boolean
           tipo?: Database["public"]["Enums"]["dp_documento_tipo"]
           titulo: string
           updated_at?: string
           uploaded_by?: string | null
         }
         Update: {
+          aprovacao_status?: Database["public"]["Enums"]["dp_documento_aprovacao_status"]
           colaborador_id?: string | null
           company_id?: string
           created_at?: string
@@ -2431,7 +2442,11 @@ export type Database = {
           file_size?: number | null
           id?: string
           mime_type?: string | null
+          motivo_recusao?: string | null
           referencia_data?: string | null
+          revisado_em?: string | null
+          revisado_por?: string | null
+          submetido_por_colaborador?: boolean
           tipo?: Database["public"]["Enums"]["dp_documento_tipo"]
           titulo?: string
           updated_at?: string
@@ -5299,6 +5314,7 @@ export type Database = {
         | "suspensao"
         | "elogio"
         | "observacao"
+      dp_documento_aprovacao_status: "pendente" | "aprovado" | "recusado"
       dp_documento_tipo:
         | "contracheque"
         | "contrato"
@@ -5561,6 +5577,7 @@ export const Constants = {
         "elogio",
         "observacao",
       ],
+      dp_documento_aprovacao_status: ["pendente", "aprovado", "recusado"],
       dp_documento_tipo: [
         "contracheque",
         "contrato",
