@@ -193,9 +193,21 @@ export default function DpDisciplinar() {
                     </span>
                     {r.suspensao_dias && <Badge variant="outline">{r.suspensao_dias} dia(s)</Badge>}
                   </div>
-                  <Button size="icon" variant="ghost" onClick={() => del.mutate(r.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex gap-1">
+                    {r.pdf_storage_path ? (
+                      <Button size="icon" variant="ghost" title="Ver PDF" onClick={() => openPdf(r.pdf_storage_path)}>
+                        <FileText className="h-4 w-4" />
+                      </Button>
+                    ) : (
+                      <Button size="icon" variant="ghost" title="Gerar PDF"
+                        disabled={genPdf.isPending} onClick={() => genPdf.mutate(r.id)}>
+                        <FileSignature className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button size="icon" variant="ghost" onClick={() => del.mutate(r.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
