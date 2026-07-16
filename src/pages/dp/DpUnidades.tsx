@@ -69,6 +69,7 @@ export default function DpUnidades() {
     setEditing(u);
     const anyU = u as any;
     setForm({
+      company_id: (u as any).company_id ?? "",
       nome: u.nome,
       cnpj: u.cnpj ?? "",
       endereco: u.endereco ?? "",
