@@ -397,13 +397,24 @@ export default function DpUnidades() {
                 placeholder="Ex: R 9 A, SN"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Cidade</Label>
-              <Input
-                value={form.cidade}
-                onChange={(e) => setForm({ ...form, cidade: e.target.value })}
-                placeholder="Ex: Aparecida de Goiânia"
-              />
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-2 col-span-2">
+                <Label>Cidade</Label>
+                <Input
+                  value={form.cidade}
+                  onChange={(e) => setForm({ ...form, cidade: e.target.value })}
+                  placeholder="Ex: Aparecida de Goiânia"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>UF</Label>
+                <Input
+                  value={form.uf}
+                  onChange={(e) => setForm({ ...form, uf: e.target.value.toUpperCase() })}
+                  placeholder="GO"
+                  maxLength={2}
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Telefone</Label>
