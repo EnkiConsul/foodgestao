@@ -111,7 +111,7 @@ export function useDpPendencias() {
           tipo: "Negociação",
           vencimento: n.vigencia_fim,
           atrasoDias: dias > 0 ? dias : null,
-          url: "/dp/sindicatos/negociacoes",
+          url: "/dp/documentos/act-cct",
         });
       });
 
