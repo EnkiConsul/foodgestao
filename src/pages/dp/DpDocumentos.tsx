@@ -157,7 +157,15 @@ export default function DpDocumentos() {
   const download = async (row: Row) => {
     const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(row.file_path, 60);
     if (error || !data) return toast.error("Erro ao gerar link");
-    window.open(data.signedUrl, "_blank");
+    // Usa <a> clicado programaticamente para evitar bloqueio de pop-up no iOS Safari.
+    const a = document.createElement("a");
+    a.href = data.signedUrl;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.download = row.file_name ?? "";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   };
 
   const del = useMutation({
