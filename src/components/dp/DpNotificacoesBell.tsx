@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Bell } from "lucide-react";
+import { Bell, HeartPulse } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useDpNotificacoes, useMarkNotifRead } from "@/hooks/useDpNotificacoes";
+import { useDpAtestadosPendentes } from "@/hooks/useDpAtestadosPendentes";
 
 const REF_TO_PATH: Record<string, string> = {
   dp_solicitacoes: "/dp/solicitacoes",
@@ -16,10 +17,12 @@ const REF_TO_PATH: Record<string, string> = {
 export function DpNotificacoesBell() {
   const [open, setOpen] = useState(false);
   const { data } = useDpNotificacoes();
+  const { data: atestados = [] } = useDpAtestadosPendentes();
   const markRead = useMarkNotifRead();
 
   const list = data ?? [];
   const unread = list.filter((n) => !n.lida_em);
+  const totalBadge = unread.length + atestados.length;
 
   const markAll = () => markRead.mutate(unread.map((n) => n.id));
 
@@ -28,9 +31,9 @@ export function DpNotificacoesBell() {
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
-          {unread.length > 0 && (
+          {totalBadge > 0 && (
             <Badge className="absolute -top-1 -right-1 h-5 min-w-5 rounded-full px-1 text-[10px] bg-primary">
-              {unread.length > 99 ? "99+" : unread.length}
+              {totalBadge > 99 ? "99+" : totalBadge}
             </Badge>
           )}
         </Button>
@@ -47,6 +50,19 @@ export function DpNotificacoesBell() {
             </Button>
           </div>
         </div>
+        {atestados.length > 0 && (
+          <Link
+            to="/dp/solicitacoes?tipo=atestado"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-3 py-2 bg-amber-50 border-b border-amber-200 hover:bg-amber-100"
+          >
+            <HeartPulse className="h-4 w-4 text-amber-700" />
+            <span className="text-xs font-medium text-amber-900 flex-1">
+              {atestados.length} atestado{atestados.length > 1 ? "s" : ""} aguardando análise
+            </span>
+            <Badge className="bg-amber-600 text-white text-[10px]">{atestados.length}</Badge>
+          </Link>
+        )}
         <ScrollArea className="max-h-96">
           {list.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground">Nenhuma notificação.</div>

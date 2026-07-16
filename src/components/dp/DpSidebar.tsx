@@ -62,8 +62,9 @@ const ADMIN_ITEMS: Item[] = [
   },
   {
     kind: "group", title: "Comunicação", icon: MessageSquare,
-    prefixes: ["/dp/mensagens", "/dp/avisos", "/dp/modelos-mensagem"],
+    prefixes: ["/dp/comunicacao", "/dp/mensagens", "/dp/avisos", "/dp/modelos-mensagem"],
     items: [
+      { title: "Central de Comunicação", url: "/dp/comunicacao", icon: MessageSquare, end: true },
       { title: "Mensagens", url: "/dp/mensagens", icon: MessageSquare },
       { title: "Quadro de Avisos", url: "/dp/avisos", icon: Bell },
       { title: "Modelos de Mensagem", url: "/dp/modelos-mensagem", icon: MessageSquare },
@@ -75,6 +76,7 @@ const PORTAL_ITEMS: Item[] = [
   { kind: "link", title: "Início", url: "/dp/meu", icon: Home, end: true, home: true },
   { kind: "link", title: "Perfil", url: "/dp/meu/perfil", icon: User },
   { kind: "link", title: "Calendário", url: "/dp/meu/calendario", icon: Calendar },
+  { kind: "link", title: "Histórico", url: "/dp/meu/historico", icon: ClipboardList },
   {
     kind: "group", title: "Folgas", icon: Calendar,
     prefixes: ["/dp/meu/solicitacoes", "/dp/meu/trocas", "/dp/meu/atestados"],

@@ -22,6 +22,9 @@
   "dependencies": {
     "@ai-sdk/openai-compatible": "3.0.4",
     "@ai-sdk/react": "2.0.212",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@fontsource/epilogue": "^5.2.8",
     "@fontsource/urbanist": "^5.2.7",
     "@hello-pangea/dnd": "^18.0.1",

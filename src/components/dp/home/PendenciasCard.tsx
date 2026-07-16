@@ -1,28 +1,71 @@
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Bell, ArrowRight, Clock } from "lucide-react";
+import { Bell, ArrowRight, Clock, Clock3, CalendarClock, AlarmClockOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useDpPendencias } from "@/hooks/useDpPendencias";
+import { useDpPendencias, type Pendencia } from "@/hooks/useDpPendencias";
+import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
+import { addDays, isAfter } from "date-fns";
+import { toast } from "sonner";
+
+function isPostponed(id: string, map: Record<string, string>) {
+  const until = map[id];
+  if (!until) return false;
+  return isAfter(new Date(until), new Date());
+}
 
 export function PendenciasCard() {
   const { data = [], isLoading } = useDpPendencias();
+  const { prefs, save } = useDpUserPrefs();
+
+  const visible = useMemo(
+    () => data.filter((p) => !isPostponed(p.id, prefs.pendencias_adiadas)),
+    [data, prefs.pendencias_adiadas],
+  );
+
+  const counters = useMemo(() => {
+    let atrasado = 0, hoje = 0, proximo = 0;
+    for (const p of visible) {
+      if ((p.atrasoDias ?? 0) > 0) atrasado++;
+      else if (p.vencimento) {
+        const v = new Date(p.vencimento);
+        const today = new Date();
+        const sameDay = v.toDateString() === today.toDateString();
+        if (sameDay) hoje++;
+        else proximo++;
+      } else proximo++;
+    }
+    return { atrasado, hoje, proximo };
+  }, [visible]);
+
+  const adiar = (p: Pendencia, dias: number) => {
+    const until = addDays(new Date(), dias).toISOString();
+    save({ pendencias_adiadas: { ...prefs.pendencias_adiadas, [p.id]: until } });
+    toast.success(`Adiada por ${dias} ${dias === 1 ? "dia" : "dias"}`);
+  };
 
   return (
     <div className="rounded-2xl border-2 border-[hsl(var(--dp-pending-border))] bg-[hsl(var(--dp-pending-bg))] p-5">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-3">
         <Bell className="h-5 w-5 text-primary" />
         <h2 className="text-lg font-semibold">Pendências do Sistema</h2>
         <Badge className="ml-1 bg-primary text-primary-foreground rounded-full h-6 min-w-6 px-2">
-          {data.length}
+          {visible.length}
         </Badge>
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-4">
+        <UrgencyChip icon={AlarmClockOff} label="Atrasado" count={counters.atrasado} tone="destructive" />
+        <UrgencyChip icon={Clock3} label="Hoje" count={counters.hoje} tone="warning" />
+        <UrgencyChip icon={CalendarClock} label="Próximo" count={counters.proximo} tone="info" />
       </div>
 
       <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
         {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
-        {!isLoading && data.length === 0 && (
+        {!isLoading && visible.length === 0 && (
           <p className="text-sm text-muted-foreground py-8 text-center">Sem pendências. 🎉</p>
         )}
-        {data.map((p) => (
+        {visible.map((p) => (
           <div
             key={p.id}
             className="flex items-start gap-3 rounded-xl bg-white border border-[hsl(var(--dp-border))] p-3 hover:shadow-sm transition-shadow"
@@ -41,17 +84,38 @@ export function PendenciasCard() {
                 )}
               </div>
               <p className="text-xs text-muted-foreground">{p.subtitulo}</p>
-              <div className="mt-2 flex gap-2">
+              <div className="mt-2 flex flex-wrap gap-2">
                 <Button asChild size="sm" variant="default" className="h-7 text-xs">
                   <Link to={p.url}>
                     Resolver <ArrowRight className="h-3 w-3 ml-1" />
                   </Link>
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => adiar(p, 1)}>
+                  Adiar 1d
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => adiar(p, 7)}>
+                  Adiar 7d
                 </Button>
               </div>
             </div>
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function UrgencyChip({
+  icon: Icon, label, count, tone,
+}: { icon: any; label: string; count: number; tone: "destructive" | "warning" | "info" }) {
+  const cls =
+    tone === "destructive" ? "bg-destructive/10 text-destructive border-destructive/30"
+    : tone === "warning" ? "bg-amber-100 text-amber-900 border-amber-300"
+    : "bg-blue-50 text-blue-900 border-blue-200";
+  return (
+    <div className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${cls}`}>
+      <Icon className="h-3 w-3" />
+      {label}: {count}
     </div>
   );
 }

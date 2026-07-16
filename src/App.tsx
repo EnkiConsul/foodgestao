@@ -47,6 +47,8 @@ import DpMeuSindicato from "./pages/dp/portal/DpMeuSindicato";
 import DpAdminCalendario from "./pages/dp/DpAdminCalendario";
 import DpModelosMensagem from "./pages/dp/DpModelosMensagem";
 import DpDocImportBulk from "./pages/dp/DpDocImportBulk";
+import DpComunicacaoHub from "./pages/dp/DpComunicacaoHub";
+import DpMeuHistorico from "./pages/dp/portal/DpMeuHistorico";
 import AdminModulos from "./pages/admin/Modulos";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
@@ -276,6 +278,7 @@ const AppRoutes = () => (
       <Route path="atestados" element={<DpMeuAtestados />} />
       <Route path="disciplinar" element={<DpMeuDisciplinar />} />
       <Route path="sindicato" element={<DpMeuSindicato />} />
+      <Route path="historico" element={<DpMeuHistorico />} />
     </Route>
     <Route
       path="/onboarding"
@@ -338,6 +341,7 @@ const AppRoutes = () => (
       <Route path="avisos" element={<DpAvisos />} />
       <Route path="mensagens" element={<DpMensagens />} />
       <Route path="modelos-mensagem" element={<DpModelosMensagem />} />
+      <Route path="comunicacao" element={<DpComunicacaoHub />} />
       <Route path="disciplinar" element={<DpDisciplinar />} />
       <Route path="bloqueios" element={<DpBloqueios />} />
       <Route path="trocas" element={<DpTrocas />} />

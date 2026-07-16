@@ -3510,6 +3510,42 @@ export type Database = {
           },
         ]
       }
+      dp_user_prefs: {
+        Row: {
+          avisos_confirmados: Json
+          company_id: string
+          created_at: string
+          extras: Json
+          favoritos: Json
+          id: string
+          pendencias_adiadas: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avisos_confirmados?: Json
+          company_id: string
+          created_at?: string
+          extras?: Json
+          favoritos?: Json
+          id?: string
+          pendencias_adiadas?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avisos_confirmados?: Json
+          company_id?: string
+          created_at?: string
+          extras?: Json
+          favoritos?: Json
+          id?: string
+          pendencias_adiadas?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
