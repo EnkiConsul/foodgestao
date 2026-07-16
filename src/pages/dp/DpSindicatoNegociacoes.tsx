@@ -49,6 +49,7 @@ export default function DpSindicatoNegociacoes() {
   const qc = useQueryClient();
   const sindicatos = useDpSindicatos();
   const [sindicatoFilter, setSindicatoFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "vigente" | "expirado">("all");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [toDelete, setToDelete] = useState<Negociacao | null>(null);
