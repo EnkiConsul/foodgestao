@@ -26,13 +26,12 @@ const ADMIN_ITEMS: Item[] = [
   { kind: "link", title: "Início", url: "/dp", icon: Home, end: true, home: true },
   {
     kind: "group", title: "Cadastro", icon: Users,
-    prefixes: ["/dp/colaboradores", "/dp/cadastros", "/dp/sindicatos"],
+    prefixes: ["/dp/colaboradores", "/dp/cadastros"],
     items: [
       { title: "Colaboradores", url: "/dp/colaboradores", icon: Users },
       { title: "Cargos", url: "/dp/cadastros/cargos", icon: Briefcase },
       { title: "Unidades", url: "/dp/cadastros/unidades", icon: Building2 },
       { title: "Sindicatos", url: "/dp/cadastros/sindicatos", icon: Scale },
-      { title: "Negociações Coletivas", url: "/dp/sindicatos/negociacoes", icon: FileSignature },
     ],
   },
   {
@@ -56,7 +55,7 @@ const ADMIN_ITEMS: Item[] = [
       { title: "Folhas de Ponto", url: "/dp/documentos/ponto", icon: Clock },
       { title: "Atestados", url: "/dp/documentos/atestado", icon: HeartPulse },
       { title: "Registros Disciplinares", url: "/dp/disciplinar", icon: ShieldAlert },
-      { title: "ACT-CCT / Sindicato", url: "/dp/documentos/sindicato", icon: Scale },
+      { title: "Negociações Coletivas (ACT/CCT)", url: "/dp/documentos/act-cct", icon: FileSignature },
       { title: "Histórico Completo", url: "/dp/documentos/historico", icon: ListChecks },
       { title: "Importar em massa", url: "/dp/documentos/importar", icon: FileText },
     ],

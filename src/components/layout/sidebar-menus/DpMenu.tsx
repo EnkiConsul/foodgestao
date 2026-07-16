@@ -35,6 +35,7 @@ export function DpMenu() {
           { title: "Disciplinar", url: "/dp/disciplinar" },
           { title: "Bloqueios", url: "/dp/bloqueios" },
           { title: "Documentos", url: "/dp/documentos" },
+          { title: "Negociações Coletivas (ACT/CCT)", url: "/dp/documentos/act-cct" },
         ]}
       />
       <SidebarCollapsibleGroup
@@ -55,7 +56,6 @@ export function DpMenu() {
           { title: "Unidades", url: "/dp/cadastros/unidades" },
           { title: "Cargos", url: "/dp/cadastros/cargos" },
           { title: "Sindicatos", url: "/dp/cadastros/sindicatos" },
-          { title: "Negociações", url: "/dp/sindicatos/negociacoes" },
         ]}
       />
     </SidebarSection>
