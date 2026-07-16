@@ -157,6 +157,18 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       return;
     }
 
+    // Duplicidade de CPF na empresa
+    try {
+      const { data: dup } = await (await import("@/integrations/supabase/client")).supabase
+        .from("dp_colaboradores")
+        .select("id")
+        .eq("cpf", cpfDigits)
+        .maybeSingle();
+      if (dup && dup.id !== colaborador?.id) {
+        toast.error("Já existe um colaborador com este CPF nesta empresa");
+        return;
+      }
+    } catch { /* silencioso — o banco tem constraint de reserva */ }
 
     const cargoNome = (cargos.data ?? []).find((c) => c.id === form.cargo_id)?.nome ?? null;
 
