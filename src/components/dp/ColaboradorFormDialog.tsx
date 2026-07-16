@@ -7,10 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { useUpsertDpColaborador, type DpColaborador } from "@/hooks/useDpColaboradores";
 import { useDpUnidades, useDpCargos, useDpSindicatos } from "@/hooks/useDpCadastros";
 import { supabase } from "@/integrations/supabase/client";
+import { maskCpf } from "@/lib/cpf";
 import type { Database } from "@/integrations/supabase/types";
 
 type Regime = Database["public"]["Enums"]["dp_regime_trabalho"];
@@ -23,90 +23,127 @@ const REGIMES: { value: Regime; label: string }[] = [
   { value: "mei", label: "MEI" },
 ];
 
+const DIAS_SEMANA = [
+  { value: "none", label: "Nenhuma" },
+  { value: "0", label: "Domingo" },
+  { value: "1", label: "Segunda-feira" },
+  { value: "2", label: "Terça-feira" },
+  { value: "3", label: "Quarta-feira" },
+  { value: "4", label: "Quinta-feira" },
+  { value: "5", label: "Sexta-feira" },
+  { value: "6", label: "Sábado" },
+];
+
 interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   colaborador?: DpColaborador | null;
 }
 
+const blank = {
+  nome: "",
+  cpf: "",
+  matricula: "",
+  email: "",
+  whatsapp: "",
+  telefone: "",
+  cargo_id: "",
+  unidade_id: "",
+  sindicato_id: "",
+  data_admissao: "",
+  data_nascimento: "",
+  data_desligamento: "",
+  regime: "clt" as Regime,
+  folga_fixa_semana: "none",
+  perfil_acesso: "colaborador" as "colaborador" | "gestor" | "admin",
+  ativo: true,
+  possui_folha_ponto: false,
+  optante_adiantamento: false,
+  email_portal: "",
+  observacoes: "",
+};
+
 export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props) {
   const upsert = useUpsertDpColaborador();
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
   const sindicatos = useDpSindicatos();
-  const [form, setForm] = useState({
-    nome: "", cpf: "", matricula: "", cargo: "",
-    regime: "clt" as Regime, data_admissao: "", data_desligamento: "",
-    email: "", telefone: "", whatsapp: "",
-    ativo: true, observacoes: "",
-    unidade_id: "" as string, cargo_id: "" as string, sindicato_id: "" as string,
-    email_portal: "", email_contato: "",
-    data_nascimento: "",
-    perfil_acesso: "colaborador" as "colaborador" | "gestor" | "admin",
-    folga_fixa_semana: "" as string,
-    possui_folha_ponto: false,
-    optante_adiantamento: false,
-  });
+  const [form, setForm] = useState(blank);
+
+  const isEdit = !!colaborador?.id;
 
   useEffect(() => {
-    if (open) {
-      const c = (colaborador ?? {}) as any;
-      setForm({
-        nome: c.nome ?? "",
-        cpf: c.cpf ?? "",
-        matricula: c.matricula ?? "",
-        cargo: c.cargo ?? "",
-        regime: (c.regime as Regime) ?? "clt",
-        data_admissao: c.data_admissao ?? "",
-        data_desligamento: c.data_desligamento ?? "",
-        email: c.email ?? "",
-        telefone: c.telefone ?? "",
-        whatsapp: c.whatsapp ?? "",
-        ativo: c.ativo ?? true,
-        observacoes: c.observacoes ?? "",
-        unidade_id: c.unidade_id ?? "",
-        cargo_id: c.cargo_id ?? "",
-        sindicato_id: c.sindicato_id ?? "",
-        email_portal: c.email_portal ?? "",
-        email_contato: c.email_contato ?? "",
-        data_nascimento: c.data_nascimento ?? "",
-        perfil_acesso: c.perfil_acesso ?? "colaborador",
-        folga_fixa_semana: c.folga_fixa_semana != null ? String(c.folga_fixa_semana) : "",
-        possui_folha_ponto: c.possui_folha_ponto ?? false,
-        optante_adiantamento: c.optante_adiantamento ?? false,
-      });
-    }
+    if (!open) return;
+    const c = (colaborador ?? {}) as any;
+    setForm({
+      nome: c.nome ?? "",
+      cpf: c.cpf ? maskCpf(c.cpf) : "",
+      matricula: c.matricula ?? "",
+      email: c.email ?? "",
+      whatsapp: c.whatsapp ?? "",
+      telefone: c.telefone ?? "",
+      cargo_id: c.cargo_id ?? "",
+      unidade_id: c.unidade_id ?? "",
+      sindicato_id: c.sindicato_id ?? "",
+      data_admissao: c.data_admissao ?? "",
+      data_nascimento: c.data_nascimento ?? "",
+      data_desligamento: c.data_desligamento ?? "",
+      regime: (c.regime as Regime) ?? "clt",
+      folga_fixa_semana: c.folga_fixa_semana != null ? String(c.folga_fixa_semana) : "none",
+      perfil_acesso: c.perfil_acesso ?? "colaborador",
+      ativo: c.ativo ?? true,
+      possui_folha_ponto: c.possui_folha_ponto ?? false,
+      optante_adiantamento: c.optante_adiantamento ?? false,
+      email_portal: c.email_portal ?? "",
+      observacoes: c.observacoes ?? "",
+    });
   }, [open, colaborador]);
+
+  const unidadeSelecionada = (unidades.data ?? []).find((u) => u.id === form.unidade_id) as any;
+
+  // Ao selecionar unidade com adiantamento, sugerir optante = true
+  useEffect(() => {
+    if (unidadeSelecionada?.tem_adiantamento && !isEdit) {
+      setForm((f) => (f.optante_adiantamento ? f : { ...f, optante_adiantamento: true }));
+    }
+  }, [unidadeSelecionada?.tem_adiantamento, isEdit]);
 
   const submit = async () => {
     if (!form.nome.trim()) { toast.error("Nome é obrigatório"); return; }
+    if (!form.cpf.trim()) { toast.error("CPF é obrigatório"); return; }
+    if (!form.cargo_id) { toast.error("Cargo é obrigatório"); return; }
+    if (!form.unidade_id) { toast.error("Unidade é obrigatória"); return; }
+    if (!form.data_admissao) { toast.error("Data de admissão é obrigatória"); return; }
+    if (!form.data_nascimento) { toast.error("Data de nascimento é obrigatória"); return; }
+
+    const cargoNome = (cargos.data ?? []).find((c) => c.id === form.cargo_id)?.nome ?? null;
+
     try {
       await upsert.mutateAsync({
         id: colaborador?.id,
         nome: form.nome.trim(),
-        cpf: form.cpf.trim() || null,
+        cpf: form.cpf.replace(/\D/g, "") || null,
         matricula: form.matricula.trim() || null,
-        cargo: form.cargo.trim() || null,
+        cargo: cargoNome,
+        cargo_id: form.cargo_id,
+        unidade_id: form.unidade_id,
+        sindicato_id: form.sindicato_id || null,
         regime: form.regime,
         data_admissao: form.data_admissao || null,
-        data_desligamento: form.data_desligamento || null,
+        data_nascimento: form.data_nascimento || null,
+        data_desligamento: !form.ativo && form.data_desligamento ? form.data_desligamento : null,
         email: form.email.trim() || null,
-        telefone: form.telefone.trim() || null,
         whatsapp: form.whatsapp.trim() || null,
+        telefone: form.telefone.trim() || null,
         ativo: form.ativo,
         observacoes: form.observacoes.trim() || null,
-        unidade_id: form.unidade_id || null,
-        cargo_id: form.cargo_id || null,
-        sindicato_id: form.sindicato_id || null,
         email_portal: form.email_portal.trim() || null,
-        email_contato: form.email_contato.trim() || null,
-        data_nascimento: form.data_nascimento || null,
         perfil_acesso: form.perfil_acesso,
-        folga_fixa_semana: form.folga_fixa_semana ? Number(form.folga_fixa_semana) : null,
+        folga_fixa_semana: form.folga_fixa_semana !== "none" ? Number(form.folga_fixa_semana) : null,
         possui_folha_ponto: form.possui_folha_ponto,
         optante_adiantamento: form.optante_adiantamento,
       } as any);
-      toast.success(colaborador ? "Colaborador atualizado" : "Colaborador cadastrado");
+      toast.success(isEdit ? "Colaborador atualizado" : "Colaborador cadastrado");
       onOpenChange(false);
     } catch (e) {
       toast.error("Erro ao salvar", { description: e instanceof Error ? e.message : String(e) });
@@ -115,144 +152,221 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{colaborador ? "Editar colaborador" : "Novo colaborador"}</DialogTitle>
+          <DialogTitle>{isEdit ? "Editar Colaborador" : "Novo Colaborador"}</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-3 py-2">
-          <div className="grid gap-1.5">
-            <Label>Nome *</Label>
-            <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label>CPF</Label>
-              <Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Matrícula</Label>
-              <Input value={form.matricula} onChange={(e) => setForm({ ...form, matricula: e.target.value })} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label>Cargo</Label>
-              <Input value={form.cargo} onChange={(e) => setForm({ ...form, cargo: e.target.value })} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Regime</Label>
-              <Select value={form.regime} onValueChange={(v) => setForm({ ...form, regime: v as Regime })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {REGIMES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="grid gap-1.5">
-              <Label>Data de admissão</Label>
-              <Input type="date" value={form.data_admissao} onChange={(e) => setForm({ ...form, data_admissao: e.target.value })} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Nascimento</Label>
-              <Input type="date" value={form.data_nascimento} onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Data de demissão</Label>
-              <Input type="date" value={form.data_desligamento} onChange={(e) => setForm({ ...form, data_desligamento: e.target.value })} />
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="grid gap-1.5">
-              <Label>Telefone</Label>
-              <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>WhatsApp</Label>
-              <Input value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} placeholder="(62) 9..." />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>E-mail (corporativo)</Label>
-              <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label>E-mail de contato pessoal</Label>
-              <Input type="email" value={form.email_contato} onChange={(e) => setForm({ ...form, email_contato: e.target.value })} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Folga fixa (dia da semana)</Label>
-              <Select value={form.folga_fixa_semana || "__none"} onValueChange={(v) => setForm({ ...form, folga_fixa_semana: v === "__none" ? "" : v })}>
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none">— Nenhum —</SelectItem>
-                  {["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"].map((d, i) => (
-                    <SelectItem key={i} value={String(i)}>{d}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label>Perfil de acesso</Label>
-              <Select value={form.perfil_acesso} onValueChange={(v: any) => setForm({ ...form, perfil_acesso: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="colaborador">Colaborador</SelectItem>
-                  <SelectItem value="gestor">Gestor</SelectItem>
-                  <SelectItem value="admin">Admin DP</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-2 pt-6">
-              <div className="flex items-center gap-2">
-                <Switch id="ponto" checked={form.possui_folha_ponto} onCheckedChange={(v) => setForm({ ...form, possui_folha_ponto: v })} />
-                <Label htmlFor="ponto" className="text-sm">Possui folha de ponto</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch id="adto" checked={form.optante_adiantamento} onCheckedChange={(v) => setForm({ ...form, optante_adiantamento: v })} />
-                <Label htmlFor="adto" className="text-sm">Optante por adiantamento</Label>
-              </div>
-            </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+          {/* Nome (full) */}
+          <div className="col-span-2 space-y-2">
+            <Label>Nome Completo *</Label>
+            <Input
+              value={form.nome}
+              onChange={(e) => setForm({ ...form, nome: e.target.value })}
+              placeholder="Ex: João da Silva"
+            />
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div className="grid gap-1.5">
-              <Label>Unidade</Label>
-              <Select value={form.unidade_id || "__none"} onValueChange={(v) => setForm({ ...form, unidade_id: v === "__none" ? "" : v })}>
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none">— Nenhuma —</SelectItem>
-                  {(unidades.data ?? []).map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Cargo (catálogo)</Label>
-              <Select value={form.cargo_id || "__none"} onValueChange={(v) => setForm({ ...form, cargo_id: v === "__none" ? "" : v })}>
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none">— Nenhum —</SelectItem>
-                  {(cargos.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Sindicato</Label>
-              <Select value={form.sindicato_id || "__none"} onValueChange={(v) => setForm({ ...form, sindicato_id: v === "__none" ? "" : v })}>
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none">— Nenhum —</SelectItem>
-                  {(sindicatos.data ?? []).map((s) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* CPF / Matrícula */}
+          <div className="space-y-2">
+            <Label>CPF *</Label>
+            <Input
+              value={form.cpf}
+              onChange={(e) => setForm({ ...form, cpf: maskCpf(e.target.value) })}
+              placeholder="000.000.000-00"
+              maxLength={14}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Matrícula</Label>
+            <Input
+              value={form.matricula}
+              onChange={(e) => setForm({ ...form, matricula: e.target.value })}
+              placeholder="Ex: 1234"
+            />
           </div>
 
-          <div className="rounded-md border p-3 space-y-2 bg-muted/30">
+          {/* Email / WhatsApp */}
+          <div className="space-y-2">
+            <Label>E-mail</Label>
+            <Input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              placeholder="email@exemplo.com"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>WhatsApp</Label>
+            <Input
+              value={form.whatsapp}
+              onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
+              placeholder="(62) 99999-9999"
+            />
+          </div>
+
+          {/* Cargo / Unidade */}
+          <div className="space-y-2">
+            <Label>Cargo *</Label>
+            <Select
+              value={form.cargo_id}
+              onValueChange={(v) => setForm({ ...form, cargo_id: v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o cargo" />
+              </SelectTrigger>
+              <SelectContent>
+                {(cargos.data ?? []).map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Unidade *</Label>
+            <Select
+              value={form.unidade_id}
+              onValueChange={(v) => setForm({ ...form, unidade_id: v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a unidade" />
+              </SelectTrigger>
+              <SelectContent>
+                {(unidades.data ?? []).map((u) => (
+                  <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Datas */}
+          <div className="space-y-2">
+            <Label>Data de Admissão *</Label>
+            <Input
+              type="date"
+              value={form.data_admissao}
+              onChange={(e) => setForm({ ...form, data_admissao: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Data de Nascimento *</Label>
+            <Input
+              type="date"
+              value={form.data_nascimento}
+              onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })}
+            />
+          </div>
+
+          {/* Regime / Folga fixa */}
+          <div className="space-y-2">
+            <Label>Regime de Trabalho</Label>
+            <Select value={form.regime} onValueChange={(v) => setForm({ ...form, regime: v as Regime })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {REGIMES.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Folga Fixa Semanal</Label>
+            <Select
+              value={form.folga_fixa_semana}
+              onValueChange={(v) => setForm({ ...form, folga_fixa_semana: v })}
+            >
+              <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
+              <SelectContent>
+                {DIAS_SEMANA.map((d) => (
+                  <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Sindicato */}
+          <div className="col-span-2 space-y-2">
+            <Label>Sindicato</Label>
+            <Select
+              value={form.sindicato_id || "none"}
+              onValueChange={(v) => setForm({ ...form, sindicato_id: v === "none" ? "" : v })}
+            >
+              <SelectTrigger><SelectValue placeholder="— Nenhum —" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">— Nenhum —</SelectItem>
+                {(sindicatos.data ?? []).map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Perfil / Ativo */}
+          <div className="space-y-2">
+            <Label>Perfil de Acesso</Label>
+            <Select
+              value={form.perfil_acesso}
+              onValueChange={(v: any) => setForm({ ...form, perfil_acesso: v })}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="colaborador">Colaborador</SelectItem>
+                <SelectItem value="gestor">Gestor</SelectItem>
+                <SelectItem value="admin">Administrador</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center space-x-2 rounded-xl border border-border p-3 self-end">
+            <Switch
+              id="ativo"
+              checked={form.ativo}
+              onCheckedChange={(v) => setForm({ ...form, ativo: v })}
+            />
+            <Label htmlFor="ativo">Ativo</Label>
+          </div>
+
+          {/* Folha de ponto (condicional) */}
+          {unidadeSelecionada?.possui_relogio_ponto && (
+            <div className="col-span-2 flex items-center space-x-2 rounded-xl border border-border p-3">
+              <Switch
+                id="possui_folha_ponto"
+                checked={form.possui_folha_ponto}
+                onCheckedChange={(v) => setForm({ ...form, possui_folha_ponto: v })}
+              />
+              <Label htmlFor="possui_folha_ponto">Possui Folha de Ponto</Label>
+            </div>
+          )}
+
+          {/* Adiantamento */}
+          <div className="col-span-2 flex items-center space-x-2 rounded-xl border border-border p-3">
+            <Switch
+              id="optante_adiantamento"
+              checked={form.optante_adiantamento}
+              onCheckedChange={(v) => setForm({ ...form, optante_adiantamento: v })}
+            />
+            <Label htmlFor="optante_adiantamento">Opta por Adiantamento Salarial</Label>
+            {unidadeSelecionada?.tem_adiantamento && unidadeSelecionada?.dia_adiantamento && (
+              <span className="text-xs text-muted-foreground ml-auto">
+                Dia do adiantamento: {unidadeSelecionada.dia_adiantamento}
+              </span>
+            )}
+          </div>
+
+          {/* Data de demissão (se inativo) */}
+          {!form.ativo && (
+            <div className="col-span-2 space-y-2">
+              <Label>Data de Demissão</Label>
+              <Input
+                type="date"
+                value={form.data_desligamento}
+                onChange={(e) => setForm({ ...form, data_desligamento: e.target.value })}
+              />
+            </div>
+          )}
+
+          {/* Acesso ao Portal (Lovable extra) */}
+          <div className="col-span-2 rounded-xl border border-border bg-muted/30 p-3 space-y-2">
             <div>
               <Label>Acesso ao Portal do Colaborador</Label>
               <p className="text-xs text-muted-foreground">
@@ -288,23 +402,14 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
               </Button>
             </div>
           </div>
-
-          <div className="grid gap-1.5">
-            <Label>Observações</Label>
-            <Textarea rows={3} value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} />
-          </div>
-          <div className="flex items-center justify-between rounded-md border p-3">
-            <div>
-              <Label>Ativo</Label>
-              <p className="text-xs text-muted-foreground">Colaboradores inativos não recebem novas solicitações.</p>
-            </div>
-            <Switch checked={form.ativo} onCheckedChange={(v) => setForm({ ...form, ativo: v })} />
-          </div>
         </div>
+
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={upsert.isPending}>
+            Cancelar
+          </Button>
           <Button onClick={submit} disabled={upsert.isPending}>
-            {upsert.isPending ? "Salvando..." : "Salvar"}
+            {upsert.isPending ? "Salvando..." : isEdit ? "Atualizar" : "Criar"}
           </Button>
         </DialogFooter>
       </DialogContent>
