@@ -53,6 +53,7 @@ import DpComunicacaoHub from "./pages/dp/DpComunicacaoHub";
 import DpMeuHistorico from "./pages/dp/portal/DpMeuHistorico";
 import DpAtestados from "./pages/dp/DpAtestados";
 import DpHistoricoCompleto from "./pages/dp/DpHistoricoCompleto";
+import DpNotificacoes from "./pages/dp/DpNotificacoes";
 import AdminModulos from "./pages/admin/Modulos";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
