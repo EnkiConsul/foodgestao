@@ -236,14 +236,22 @@ export default function DpDocumentos() {
         actions={<Button onClick={openDialog}><Upload className="h-4 w-4 mr-2" /> Enviar</Button>}
       />
 
-      <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
-        <TabsList>
-          <TabsTrigger value="todos">Todos ({counts.todos})</TabsTrigger>
-          <TabsTrigger value="pendente"><Clock className="h-3.5 w-3.5 mr-1" />Pendentes ({counts.pendente})</TabsTrigger>
-          <TabsTrigger value="aprovado"><CheckCircle2 className="h-3.5 w-3.5 mr-1" />Aprovados ({counts.aprovado})</TabsTrigger>
-          <TabsTrigger value="recusado"><XCircle className="h-3.5 w-3.5 mr-1" />Recusados ({counts.recusado})</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+          <TabsList>
+            <TabsTrigger value="todos">Todos ({counts.todos})</TabsTrigger>
+            <TabsTrigger value="pendente"><Clock className="h-3.5 w-3.5 mr-1" />Pendentes ({counts.pendente})</TabsTrigger>
+            <TabsTrigger value="aprovado"><CheckCircle2 className="h-3.5 w-3.5 mr-1" />Aprovados ({counts.aprovado})</TabsTrigger>
+            <TabsTrigger value="recusado"><XCircle className="h-3.5 w-3.5 mr-1" />Recusados ({counts.recusado})</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <div className="flex flex-wrap gap-2 items-center">
+          <Input placeholder="Buscar por título/colaborador..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-64" />
+          <Input type="date" value={periodoInicio} onChange={(e) => setPeriodoInicio(e.target.value)} className="w-40" title="Referência a partir de" />
+          <Input type="date" value={periodoFim} onChange={(e) => setPeriodoFim(e.target.value)} className="w-40" title="Referência até" />
+        </div>
+      </div>
+
 
       <DpContentCard contentClassName="overflow-x-auto">
           {list.isLoading ? (
