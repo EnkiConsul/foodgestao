@@ -41,6 +41,7 @@ import DpMeuDocumentos from "./pages/dp/portal/DpMeuDocumentos";
 import DpMeuSolicitacoes from "./pages/dp/portal/DpMeuSolicitacoes";
 import DpMeuTrocas from "./pages/dp/portal/DpMeuTrocas";
 import DpMeuCalendario from "./pages/dp/portal/DpMeuCalendario";
+import DpMeuAtestados from "./pages/dp/portal/DpMeuAtestados";
 import DpAdminCalendario from "./pages/dp/DpAdminCalendario";
 import AdminModulos from "./pages/admin/Modulos";
 import Onboarding from "./pages/Onboarding";
@@ -268,6 +269,7 @@ const AppRoutes = () => (
       <Route path="solicitacoes" element={<DpMeuSolicitacoes />} />
       <Route path="trocas" element={<DpMeuTrocas />} />
       <Route path="calendario" element={<DpMeuCalendario />} />
+      <Route path="atestados" element={<DpMeuAtestados />} />
     </Route>
     <Route
       path="/onboarding"
