@@ -52,6 +52,8 @@ export default function DpSindicatoNegociacoes() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [toDelete, setToDelete] = useState<Negociacao | null>(null);
+  const uploadRef = useRef<HTMLInputElement>(null);
+  const [uploadTargetId, setUploadTargetId] = useState<string | null>(null);
 
   const list = useQuery({
     queryKey: ["dp_sindicato_negociacoes", selectedCompanyId, sindicatoFilter],
