@@ -51,7 +51,7 @@ export default function DpSolicitacoes() {
   const [tipoFiltro, setTipoFiltro] = useState<Tipo | "todos">("todos");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [recusaId, setRecusaId] = useState<string | null>(null);
-  const [confirmAdiantamento, setConfirmAdiantamento] = useState<Row | null>(null);
+  const [confirmAdiantamento, setConfirmAdiantamento] = useState<RowWithColab | null>(null);
 
   const [form, setForm] = useState({ colaborador_id: "", tipo: "folga" as Tipo, data_alvo: "", data_fim: "", motivo: "" });
 
