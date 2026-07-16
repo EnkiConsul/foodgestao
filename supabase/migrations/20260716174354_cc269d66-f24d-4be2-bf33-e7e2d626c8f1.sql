@@ -1,0 +1,1 @@
+ALTER TABLE public.dp_cargos ADD COLUMN IF NOT EXISTS descricao text;
