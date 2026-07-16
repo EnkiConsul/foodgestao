@@ -17,7 +17,19 @@ import {
   subMonths,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Loader2, CalendarDays, Plus } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays,
+  Plus,
+  CheckCircle2,
+  Users,
+  AlertTriangle,
+  Calendar as CalendarIcon,
+  Building2,
+  User as UserIcon,
+  Filter,
+} from "lucide-react";
 import { CalendarSkeleton } from "@/components/dp/DpSkeletons";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -32,10 +44,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 import type { Database } from "@/integrations/supabase/types";
 
 type Row = Database["public"]["Tables"]["dp_solicitacoes"]["Row"] & {
-  dp_colaboradores: { nome: string } | null;
+  dp_colaboradores: { nome: string; unidade_id: string | null } | null;
 };
 type Tipo = Database["public"]["Enums"]["dp_solicitacao_tipo"];
 type Status = Database["public"]["Enums"]["dp_solicitacao_status"];
@@ -48,14 +61,6 @@ const TIPO_LABEL: Record<Tipo, string> = {
   outros: "Outros",
 };
 
-const TIPO_COLOR: Record<Tipo, string> = {
-  folga: "bg-primary/15 text-primary border-primary/30",
-  ferias: "bg-sky-500/15 text-sky-600 border-sky-500/30 dark:text-sky-300",
-  atestado: "bg-amber-500/15 text-amber-600 border-amber-500/30 dark:text-amber-300",
-  adiantamento: "bg-violet-500/15 text-violet-600 border-violet-500/30 dark:text-violet-300",
-  outros: "bg-muted text-foreground border-border",
-};
-
 const STATUS_LABEL: Record<Status, string> = {
   pendente: "Pendente",
   aprovada: "Aprovada",
@@ -63,13 +68,22 @@ const STATUS_LABEL: Record<Status, string> = {
   cancelada: "Cancelada",
 };
 
+const LEGEND = [
+  { label: "Disponível", color: "bg-emerald-500" },
+  { label: "Folga Semanal", color: "bg-blue-500" },
+  { label: "Folga Mensal", color: "bg-amber-500" },
+  { label: "Pendente", color: "bg-violet-500" },
+  { label: "Bloqueado", color: "bg-red-500" },
+];
+
 export default function DpFolgas() {
   const { selectedCompanyId } = useCompanyContext();
   const { user } = useAuth();
   const qc = useQueryClient();
   const colabs = useDpColaboradores();
   const [cursor, setCursor] = useState(startOfMonth(new Date()));
-  const [statusFilter, setStatusFilter] = useState<Status | "todas">("aprovada");
+  const [unidadeFilter, setUnidadeFilter] = useState<string>("todas");
+  const [colabFilter, setColabFilter] = useState<string>("todos");
   const [tipoFilter, setTipoFilter] = useState<Tipo | "todos">("todos");
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -126,28 +140,62 @@ export default function DpFolgas() {
     onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
   });
 
-
   const rangeStart = startOfWeek(startOfMonth(cursor), { weekStartsOn: 0 });
   const rangeEnd = endOfWeek(endOfMonth(cursor), { weekStartsOn: 0 });
+  const monthStart = startOfMonth(cursor);
+  const monthEnd = endOfMonth(cursor);
+
+  const unidadesQuery = useQuery({
+    queryKey: ["dp_unidades", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_unidades")
+        .select("id, nome")
+        .eq("company_id", selectedCompanyId!)
+        .order("nome");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const diaConfigQuery = useQuery({
+    queryKey: ["dp_dia_config", selectedCompanyId, format(cursor, "yyyy-MM")],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_dia_config")
+        .select("data, limite_folgas, unidade_id")
+        .eq("company_id", selectedCompanyId!)
+        .gte("data", format(rangeStart, "yyyy-MM-dd"))
+        .lte("data", format(rangeEnd, "yyyy-MM-dd"));
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   const query = useQuery({
-    queryKey: ["dp_folgas", selectedCompanyId, format(cursor, "yyyy-MM"), statusFilter, tipoFilter],
+    queryKey: ["dp_folgas", selectedCompanyId, format(cursor, "yyyy-MM"), unidadeFilter, colabFilter, tipoFilter],
     enabled: !!selectedCompanyId,
     queryFn: async () => {
       let q = supabase
         .from("dp_solicitacoes")
-        .select("*, dp_colaboradores(nome)")
+        .select("*, dp_colaboradores(nome, unidade_id)")
         .eq("company_id", selectedCompanyId!)
         .not("data_alvo", "is", null)
         .lte("data_alvo", format(rangeEnd, "yyyy-MM-dd"))
         .or(
           `data_fim.gte.${format(rangeStart, "yyyy-MM-dd")},and(data_fim.is.null,data_alvo.gte.${format(rangeStart, "yyyy-MM-dd")})`,
         );
-      if (statusFilter !== "todas") q = q.eq("status", statusFilter);
       if (tipoFilter !== "todos") q = q.eq("tipo", tipoFilter);
+      if (colabFilter !== "todos") q = q.eq("colaborador_id", colabFilter);
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as Row[];
+      let rows = (data ?? []) as Row[];
+      if (unidadeFilter !== "todas") {
+        rows = rows.filter((r) => r.dp_colaboradores?.unidade_id === unidadeFilter);
+      }
+      return rows;
     },
   });
 
@@ -173,183 +221,316 @@ export default function DpFolgas() {
     return map;
   }, [query.data, rangeStart, rangeEnd]);
 
+  const capacityByDay = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const c of diaConfigQuery.data ?? []) {
+      const cur = map.get(c.data) ?? 0;
+      map.set(c.data, cur + (c.limite_folgas ?? 0));
+    }
+    return map;
+  }, [diaConfigQuery.data]);
+
+  const defaultDailyCap = 1;
+
+  // Stats do mês corrente (dias dentro do mês)
+  const stats = useMemo(() => {
+    let marcadas = 0;
+    let capacidade = 0;
+    let lotados = 0;
+    for (const d of eachDayOfInterval({ start: monthStart, end: monthEnd })) {
+      const key = format(d, "yyyy-MM-dd");
+      const evs = eventsByDay.get(key) ?? [];
+      const aprov = evs.filter((e) => e.status === "aprovada" && e.tipo === "folga").length;
+      const cap = capacityByDay.get(key) ?? defaultDailyCap;
+      marcadas += aprov;
+      capacidade += cap;
+      if (aprov >= cap && cap > 0) lotados += 1;
+    }
+    return {
+      marcadas,
+      capacidade,
+      lotados,
+      restantes: Math.max(0, capacidade - marcadas),
+    };
+  }, [eventsByDay, capacityByDay, monthStart, monthEnd]);
+
   const selectedEvents = selectedDay
     ? eventsByDay.get(format(selectedDay, "yyyy-MM-dd")) ?? []
     : [];
 
+  const clearFilters = () => {
+    setUnidadeFilter("todas");
+    setColabFilter("todos");
+    setTipoFilter("todos");
+  };
+  const hasFilters =
+    unidadeFilter !== "todas" || colabFilter !== "todos" || tipoFilter !== "todos";
+
+  const statCards = [
+    { label: "FOLGAS MARCADAS", value: stats.marcadas, icon: CheckCircle2, tone: "text-emerald-600" },
+    { label: "VAGAS RESTANTES", value: stats.restantes, icon: Users, tone: "text-blue-600" },
+    { label: "DIAS LOTADOS", value: stats.lotados, icon: AlertTriangle, tone: "text-red-600" },
+    { label: "CAPACIDADE TOTAL", value: stats.capacidade, icon: CalendarIcon, tone: "text-primary" },
+  ];
+
   return (
     <DpPage>
       <Helmet>
-        <title>Folgas — DP 360°</title>
+        <title>Calendário Geral — DP 360°</title>
       </Helmet>
 
       <DpPageHeader
         icon={CalendarDays}
-        title="Folgas & Ausências"
-        description="Calendário mensal de folgas, férias, atestados e outras ausências."
-        actions={<Button onClick={() => openNew()}><Plus className="h-4 w-4 mr-2" /> Nova solicitação</Button>}
+        title="Calendário Geral"
+        description="Gestão centralizada de escalas e folgas da equipe."
+        actions={
+          <div className="flex items-center gap-2">
+            <FavoriteToggle />
+            <Button onClick={() => openNew()} className="gap-2">
+              <Plus className="h-4 w-4" /> Nova solicitação
+            </Button>
+          </div>
+        }
       />
 
+      {/* Stat cards */}
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        {statCards.map((s) => (
+          <div
+            key={s.label}
+            className="rounded-xl border border-[hsl(var(--dp-border))] bg-white p-4"
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              {s.label}
+            </p>
+            <div className="mt-2 flex items-center gap-2">
+              <s.icon className={cn("h-5 w-5", s.tone)} />
+              <span className="text-3xl font-bold text-foreground">{s.value}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filters */}
       <DpFilterCard>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-end">
           <div className="space-y-1.5">
-            <label className="text-xs">STATUS</label>
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as Status | "todas")}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="aprovada">Aprovadas</SelectItem>
-              <SelectItem value="pendente">Pendentes</SelectItem>
-              <SelectItem value="todas">Todos status</SelectItem>
-            </SelectContent>
-          </Select>
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+              <Building2 className="h-3.5 w-3.5" /> Unidade
+            </label>
+            <Select value={unidadeFilter} onValueChange={setUnidadeFilter}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas as Unidades</SelectItem>
+                {(unidadesQuery.data ?? []).map((u) => (
+                  <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs">TIPO</label>
-          <Select value={tipoFilter} onValueChange={(v) => setTipoFilter(v as Tipo | "todos")}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos tipos</SelectItem>
-              {(Object.keys(TIPO_LABEL) as Tipo[]).map((t) => (
-                <SelectItem key={t} value={t}>{TIPO_LABEL[t]}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+              <UserIcon className="h-3.5 w-3.5" /> Colaborador
+            </label>
+            <Select value={colabFilter} onValueChange={setColabFilter}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os colaboradores</SelectItem>
+                {(colabs.data ?? []).filter((c) => c.ativo).map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+              <Filter className="h-3.5 w-3.5" /> Tipo de Folga
+            </label>
+            <Select value={tipoFilter} onValueChange={(v) => setTipoFilter(v as Tipo | "todos")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os tipos</SelectItem>
+                {(Object.keys(TIPO_LABEL) as Tipo[]).map((t) => (
+                  <SelectItem key={t} value={t}>{TIPO_LABEL[t]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Button
+              variant="ghost"
+              onClick={clearFilters}
+              disabled={!hasFilters}
+              className="text-primary font-semibold uppercase text-xs tracking-wide"
+            >
+              Limpar filtros
+            </Button>
           </div>
         </div>
       </DpFilterCard>
 
-      <DpContentCard contentClassName="p-4">
-          <div className="flex items-center justify-between mb-4">
+      {/* Calendar */}
+      <DpContentCard contentClassName="p-4 md:p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="text-3xl font-bold text-foreground">
+            <span className="capitalize">{format(cursor, "MMMM", { locale: ptBR })}</span>{" "}
+            <span className="text-muted-foreground/50 font-semibold">
+              {format(cursor, "yyyy")}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="sm" onClick={() => setCursor(startOfMonth(new Date()))}>
+              Hoje
+            </Button>
             <Button variant="ghost" size="icon" onClick={() => setCursor(subMonths(cursor, 1))}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <div className="text-lg font-semibold capitalize">
-              {format(cursor, "MMMM 'de' yyyy", { locale: ptBR })}
-            </div>
-            <div className="flex gap-1">
-              <Button variant="outline" size="sm" onClick={() => setCursor(startOfMonth(new Date()))}>
-                Hoje
-              </Button>
-              <Button variant="ghost" size="icon" onClick={() => setCursor(addMonths(cursor, 1))}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+            <Button variant="ghost" size="icon" onClick={() => setCursor(addMonths(cursor, 1))}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
+        </div>
 
-          {query.isLoading ? (
-            <CalendarSkeleton />
-          ) : (
-            <div className="grid grid-cols-7 gap-px bg-border rounded-md overflow-hidden border">
-              {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((d) => (
-                <div key={d} className="bg-muted/50 py-2 text-center text-xs font-medium text-muted-foreground">
-                  {d}
-                </div>
-              ))}
-              {days.map((day) => {
-                const key = format(day, "yyyy-MM-dd");
-                const events = eventsByDay.get(key) ?? [];
-                const inMonth = isSameMonth(day, cursor);
-                const isToday = isSameDay(day, new Date());
-                const isSelected = selectedDay && isSameDay(day, selectedDay);
-                return (
-                  <button
-                    key={key}
-                    onClick={() => setSelectedDay(day)}
-                    className={cn(
-                      "min-h-[92px] bg-background p-1.5 text-left flex flex-col gap-1 transition-colors hover:bg-muted/40",
-                      !inMonth && "bg-muted/20 text-muted-foreground",
-                      isSelected && "ring-2 ring-primary ring-inset",
-                    )}
-                  >
-                    <div className="flex items-center justify-between">
+        {query.isLoading ? (
+          <CalendarSkeleton />
+        ) : (
+          <div className="grid grid-cols-7 gap-px bg-[hsl(var(--dp-border))] rounded-lg overflow-hidden border border-[hsl(var(--dp-border))]">
+            {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((d) => (
+              <div
+                key={d}
+                className="bg-muted/40 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+              >
+                {d}
+              </div>
+            ))}
+            {days.map((day) => {
+              const key = format(day, "yyyy-MM-dd");
+              const events = eventsByDay.get(key) ?? [];
+              const inMonth = isSameMonth(day, cursor);
+              const isToday = isSameDay(day, new Date());
+              const cap = capacityByDay.get(key) ?? defaultDailyCap;
+              const aprov = events.filter((e) => e.status === "aprovada" && e.tipo === "folga").length;
+              const lotado = cap > 0 && aprov >= cap;
+              const parcial = aprov > 0 && !lotado;
+
+              return (
+                <button
+                  key={key}
+                  onClick={() => setSelectedDay(day)}
+                  className={cn(
+                    "min-h-[112px] bg-white p-2 text-left flex flex-col gap-1.5 transition-colors hover:bg-muted/30",
+                    !inMonth && "bg-muted/10 text-muted-foreground",
+                    lotado && inMonth && "bg-red-50/60",
+                    parcial && inMonth && "bg-emerald-50/40",
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={cn(
+                        "text-sm font-semibold",
+                        isToday && "text-primary",
+                        lotado && inMonth && "text-red-700",
+                        parcial && inMonth && "text-emerald-700",
+                      )}
+                    >
+                      {format(day, "d")}
+                    </span>
+                    {inMonth && (
                       <span
                         className={cn(
-                          "text-xs font-medium h-6 w-6 flex items-center justify-center rounded-full",
-                          isToday && "bg-primary text-primary-foreground",
+                          "text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
+                          lotado
+                            ? "bg-red-100 text-red-700"
+                            : "bg-emerald-100 text-emerald-700",
                         )}
                       >
-                        {format(day, "d")}
+                        {aprov}/{cap}
                       </span>
-                      {events.length > 0 && (
-                        <span className="text-[10px] text-muted-foreground">{events.length}</span>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-0.5 overflow-hidden">
-                      {events.slice(0, 3).map((ev) => (
-                        <div
-                          key={ev.id + key}
-                          className={cn(
-                            "truncate rounded px-1 py-0.5 text-[10px] border",
-                            TIPO_COLOR[ev.tipo],
-                            ev.status === "pendente" && "opacity-60",
-                          )}
-                          title={`${ev.dp_colaboradores?.nome ?? ""} — ${TIPO_LABEL[ev.tipo]}`}
-                        >
-                          {ev.dp_colaboradores?.nome ?? "—"}
-                        </div>
-                      ))}
-                      {events.length > 3 && (
-                        <div className="text-[10px] text-muted-foreground">+{events.length - 3}</div>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          <div className="flex flex-wrap gap-2 pt-4">
-            {(Object.keys(TIPO_LABEL) as Tipo[]).map((t) => (
-              <span key={t} className={cn("text-[10px] px-2 py-0.5 rounded border", TIPO_COLOR[t])}>
-                {TIPO_LABEL[t]}
-              </span>
-            ))}
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1 overflow-hidden">
+                    {events.slice(0, 3).map((ev) => (
+                      <div
+                        key={ev.id + key}
+                        className={cn(
+                          "truncate rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase text-center",
+                          ev.status === "pendente"
+                            ? "bg-violet-100 text-violet-700"
+                            : ev.tipo === "folga"
+                              ? "bg-blue-100 text-blue-700"
+                              : ev.tipo === "ferias"
+                                ? "bg-amber-100 text-amber-700"
+                                : "bg-slate-100 text-slate-700",
+                        )}
+                        title={`${ev.dp_colaboradores?.nome ?? ""} — ${TIPO_LABEL[ev.tipo]}`}
+                      >
+                        {(ev.dp_colaboradores?.nome ?? "—").split(" ")[0]}
+                      </div>
+                    ))}
+                    {events.length > 3 && (
+                      <div className="text-[10px] text-muted-foreground pl-1">
+                        +{events.length - 3}
+                      </div>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
+        )}
+
+        {/* Legend */}
+        <div className="flex flex-wrap gap-x-6 gap-y-2 pt-5 mt-2 border-t border-[hsl(var(--dp-border))]">
+          {LEGEND.map((l) => (
+            <div key={l.label} className="flex items-center gap-2">
+              <span className={cn("h-2.5 w-2.5 rounded-full", l.color)} />
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {l.label}
+              </span>
+            </div>
+          ))}
+        </div>
       </DpContentCard>
 
       {selectedDay && (
         <DpContentCard contentClassName="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold">
-                {format(selectedDay, "PPP", { locale: ptBR })}
-              </h3>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={() =>
-                    openNew({ data_alvo: format(selectedDay, "yyyy-MM-dd") })
-                  }
-                >
-                  <Plus className="h-4 w-4 mr-1" /> Solicitar nesta data
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => setSelectedDay(null)}>
-                  Fechar
-                </Button>
-              </div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold">
+              {format(selectedDay, "PPP", { locale: ptBR })}
+            </h3>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => openNew({ data_alvo: format(selectedDay, "yyyy-MM-dd") })}
+              >
+                <Plus className="h-4 w-4 mr-1" /> Solicitar nesta data
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setSelectedDay(null)}>
+                Fechar
+              </Button>
             </div>
-            {selectedEvents.length === 0 ? (
-              <div className="text-sm text-muted-foreground py-4 text-center">
-                Nenhuma ausência registrada nesta data.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {selectedEvents.map((ev) => (
-                  <div key={ev.id} className="flex items-center justify-between border rounded-md p-3">
-                    <div className="min-w-0">
-                      <div className="font-medium truncate">{ev.dp_colaboradores?.nome ?? "—"}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {TIPO_LABEL[ev.tipo]} · {ev.data_alvo}
-                        {ev.data_fim ? ` → ${ev.data_fim}` : ""}
-                        {ev.motivo ? ` · ${ev.motivo}` : ""}
-                      </div>
+          </div>
+          {selectedEvents.length === 0 ? (
+            <div className="text-sm text-muted-foreground py-4 text-center">
+              Nenhuma ausência registrada nesta data.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {selectedEvents.map((ev) => (
+                <div key={ev.id} className="flex items-center justify-between border rounded-md p-3">
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">{ev.dp_colaboradores?.nome ?? "—"}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {TIPO_LABEL[ev.tipo]} · {ev.data_alvo}
+                      {ev.data_fim ? ` → ${ev.data_fim}` : ""}
+                      {ev.motivo ? ` · ${ev.motivo}` : ""}
                     </div>
-                    <Badge className={cn("border", TIPO_COLOR[ev.tipo])} variant="outline">
-                      {STATUS_LABEL[ev.status]}
-                    </Badge>
                   </div>
-                ))}
-              </div>
-            )}
+                  <Badge variant="outline">{STATUS_LABEL[ev.status]}</Badge>
+                </div>
+              ))}
+            </div>
+          )}
         </DpContentCard>
       )}
 
@@ -430,8 +611,7 @@ export default function DpFolgas() {
               Cancelar
             </Button>
             <Button onClick={() => create.mutate()} disabled={create.isPending}>
-              {create.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Enviar solicitação
+              {create.isPending ? "Salvando..." : "Criar solicitação"}
             </Button>
           </DialogFooter>
         </DialogContent>
