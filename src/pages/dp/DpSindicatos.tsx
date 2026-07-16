@@ -91,7 +91,7 @@ export default function DpSindicatos() {
         actions={
           <>
           <Button variant="outline" asChild>
-            <Link to="/dp/sindicatos/negociacoes"><FileText className="h-4 w-4 mr-2" /> Negociações</Link>
+            <Link to="/dp/documentos/act-cct"><FileText className="h-4 w-4 mr-2" /> Negociações</Link>
           </Button>
           <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> Novo sindicato</Button>
           </>
