@@ -282,8 +282,9 @@ export default function DpColaboradores() {
                           <Button
                             size="icon"
                             variant="ghost"
-                            title="Resetar acesso"
-                            onClick={() => toast.info("Redefinição de acesso em breve")}
+                            title={c.user_id ? "Resetar senha para 6 últimos do CPF" : "Sem usuário vinculado"}
+                            disabled={!c.user_id || resetting === c.id}
+                            onClick={() => handleReset(c)}
                           >
                             <KeyRound className="h-4 w-4" />
                           </Button>
