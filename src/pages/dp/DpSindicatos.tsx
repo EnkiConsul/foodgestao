@@ -383,6 +383,9 @@ export default function DpSindicatos() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remover sindicato "{toDelete?.nome}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação também removerá os vínculos com unidades ou cargos. Negociações e acordos vinculados serão mantidos, mas ficarão órfãos.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
