@@ -170,6 +170,29 @@ export default function DpUnidades() {
                 <Input value={form.uf} onChange={(e) => setForm({ ...form, uf: e.target.value.toUpperCase() })} maxLength={2} />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Telefone</Label>
+                <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
+              </div>
+              <div>
+                <Label>Dia adto. quinzenal</Label>
+                <Input type="number" min="1" max="31" value={form.dia_adiantamento}
+                  onChange={(e) => setForm({ ...form, dia_adiantamento: e.target.value })} />
+              </div>
+            </div>
+            <div className="flex items-center gap-4 pt-1">
+              <div className="flex items-center gap-2">
+                <Switch id="ponto" checked={form.possui_relogio_ponto}
+                  onCheckedChange={(v) => setForm({ ...form, possui_relogio_ponto: v })} />
+                <Label htmlFor="ponto" className="text-sm">Relógio de ponto</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch id="adto" checked={form.tem_adiantamento}
+                  onCheckedChange={(v) => setForm({ ...form, tem_adiantamento: v })} />
+                <Label htmlFor="adto" className="text-sm">Adiantamento quinzenal</Label>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
