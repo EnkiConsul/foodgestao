@@ -98,6 +98,7 @@ export default function DpUnidades() {
       // Fallback: se a empresa não tem cidade/UF estruturados, consulta CNPJ na BrasilAPI
       const cnpjDigits = onlyNumbers(data.cnpj || "");
       if ((!cidade || !uf) && cnpjDigits.length === 14) {
+        setLoadingBrasilApi(true);
         try {
           const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjDigits}`);
           if (res.ok) {
@@ -115,6 +116,7 @@ export default function DpUnidades() {
             if (!telefone) telefone = info.ddd_telefone_1 || "";
           }
         } catch { /* ignore */ }
+        finally { setLoadingBrasilApi(false); }
       }
 
       setForm((prev) => ({
