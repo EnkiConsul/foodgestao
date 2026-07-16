@@ -1197,7 +1197,13 @@ export default function Lancamentos() {
                             <Popover>
                               <PopoverTrigger asChild>
                                 <button type="button" className="cursor-pointer">
-                                  <Badge variant={displayStatusConfig[r.billStatus].variant} className="text-[10px] h-5 px-1.5 whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity">
+                                  <Badge
+                                    variant={displayStatusConfig[r.billStatus].variant}
+                                    className={cn(
+                                      "text-[10px] h-5 px-1.5 whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity",
+                                      r.billStatus === "pago" && "bg-success text-success-foreground hover:bg-success/90"
+                                    )}
+                                  >
                                     {displayStatusConfig[r.billStatus].label}
                                   </Badge>
                                 </button>
