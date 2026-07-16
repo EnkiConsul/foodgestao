@@ -448,7 +448,14 @@ export default function DpUnidades() {
               />
             </div>
             <div className="space-y-2">
-              <Label>CNPJ</Label>
+              <Label className="flex items-center gap-2">
+                CNPJ
+                {loadingBrasilApi && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-normal text-muted-foreground">
+                    <Loader2 className="size-3 animate-spin" /> Buscando dados na BrasilAPI...
+                  </span>
+                )}
+              </Label>
               <Input
                 value={formatCNPJ(form.cnpj)}
                 onChange={(e) => setForm({ ...form, cnpj: onlyNumbers(e.target.value) })}
