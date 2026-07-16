@@ -90,7 +90,12 @@ export default function DpCargos() {
     } catch { return v; }
   };
 
-  const rows = list.data ?? [];
+  const rows = useMemo(() => {
+    const all = list.data ?? [];
+    const q = busca.trim().toLowerCase();
+    if (!q) return all;
+    return all.filter((c) => c.nome.toLowerCase().includes(q));
+  }, [list.data, busca]);
 
   return (
     <DpPage narrow>
@@ -110,6 +115,11 @@ export default function DpCargos() {
         }
       />
 
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+        <Input className="pl-9" placeholder="Buscar cargo por nome..." value={busca} onChange={(e) => setBusca(e.target.value)} />
+      </div>
+
       <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -117,15 +127,18 @@ export default function DpCargos() {
               <tr>
                 <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px]">Nome</th>
                 <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden md:table-cell">Descrição</th>
+                <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px]">Colaboradores</th>
                 <th className="text-right p-4 font-bold uppercase tracking-wider text-[10px]">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {list.isLoading && (
-                <tr><td colSpan={3} className="p-12 text-center text-muted-foreground">Carregando...</td></tr>
+                <tr><td colSpan={4} className="p-12 text-center text-muted-foreground">Carregando...</td></tr>
               )}
               {!list.isLoading && rows.length === 0 && (
-                <tr><td colSpan={3} className="p-12 text-center text-muted-foreground">Nenhum cargo cadastrado.</td></tr>
+                <tr><td colSpan={4} className="p-12 text-center text-muted-foreground">
+                  {(list.data ?? []).length === 0 ? "Nenhum cargo cadastrado." : "Nenhum cargo encontrado."}
+                </td></tr>
               )}
               {rows.map((c) => {
                 const descricao = (c as DpCargo & { descricao?: string | null }).descricao ?? null;
