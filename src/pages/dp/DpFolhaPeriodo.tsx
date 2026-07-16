@@ -143,7 +143,7 @@ export default function DpFolhaPeriodo() {
           icon={Wallet}
           title={`${p.tipo.replace(/_/g, " ")} — ${new Date(p.competencia).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}`}
           description={`Total: R$ ${total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · Status: ${STATUS_PERIODO_LABEL[p.status] ?? p.status}`}
-          backTo="/dp/folha"
+          
           actions={
             <>
               <Button variant="outline" size="sm" onClick={() => gerar.mutate()} disabled={gerar.isPending || p.status !== "aberto"}>
