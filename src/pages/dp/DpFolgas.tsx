@@ -76,15 +76,55 @@ const LEGEND = [
   { label: "Bloqueado", color: "bg-red-500" },
 ];
 
+const PREFS_KEY = (companyId: string | null) => `dp:folgas:filters:${companyId ?? "none"}`;
+
+type SavedPrefs = {
+  unidade?: string;
+  colaborador?: string;
+  tipo?: Tipo | "todos";
+};
+
+function loadPrefs(companyId: string | null): SavedPrefs {
+  try {
+    const raw = localStorage.getItem(PREFS_KEY(companyId));
+    return raw ? (JSON.parse(raw) as SavedPrefs) : {};
+  } catch {
+    return {};
+  }
+}
+
 export default function DpFolgas() {
   const { selectedCompanyId } = useCompanyContext();
   const { user } = useAuth();
   const qc = useQueryClient();
   const colabs = useDpColaboradores();
   const [cursor, setCursor] = useState(startOfMonth(new Date()));
-  const [unidadeFilter, setUnidadeFilter] = useState<string>("todas");
-  const [colabFilter, setColabFilter] = useState<string>("todos");
-  const [tipoFilter, setTipoFilter] = useState<Tipo | "todos">("todos");
+  const initialPrefs = loadPrefs(selectedCompanyId);
+  const [unidadeFilter, setUnidadeFilter] = useState<string>(initialPrefs.unidade ?? "todas");
+  const [colabFilter, setColabFilter] = useState<string>(initialPrefs.colaborador ?? "todos");
+  const [tipoFilter, setTipoFilter] = useState<Tipo | "todos">(initialPrefs.tipo ?? "todos");
+
+  // Reaplica preferências ao trocar de empresa
+  useEffect(() => {
+    const p = loadPrefs(selectedCompanyId);
+    setUnidadeFilter(p.unidade ?? "todas");
+    setColabFilter(p.colaborador ?? "todos");
+    setTipoFilter(p.tipo ?? "todos");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCompanyId]);
+
+  // Persiste alterações
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        PREFS_KEY(selectedCompanyId),
+        JSON.stringify({ unidade: unidadeFilter, colaborador: colabFilter, tipo: tipoFilter }),
+      );
+    } catch {
+      /* ignore */
+    }
+  }, [selectedCompanyId, unidadeFilter, colabFilter, tipoFilter]);
+
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({
