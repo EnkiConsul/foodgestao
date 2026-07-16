@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useUpsertDpColaborador, type DpColaborador } from "@/hooks/useDpColaboradores";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
-import { maskCpf } from "@/lib/cpf";
+import { maskCpf, isValidCpf } from "@/lib/cpf";
 import type { Database } from "@/integrations/supabase/types";
 
 type Regime = Database["public"]["Enums"]["dp_regime_trabalho"];
