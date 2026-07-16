@@ -73,7 +73,7 @@ const blank = {
   regime_trabalho: "nao_informado",
   tipo_vinculo: "CLT",
   folga_fixa_semana: "none",
-  perfil_acesso: "colaborador" as "colaborador" | "gestor" | "admin",
+  perfil_acesso: "colaborador" as "colaborador" | "admin",
   ativo: true,
   possui_folha_ponto: false,
   optante_adiantamento: false,
