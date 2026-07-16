@@ -169,7 +169,7 @@ export default function DpHistoricoCompleto() {
                       <Button size="icon" variant="ghost" title="Pré-visualizar" onClick={() => setPreview(d)}>
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" title="Baixar" onClick={() => download(d.file_path)}>
+                      <Button size="icon" variant="ghost" title="Baixar" onClick={() => download(d.file_path, d.titulo)}>
                         <Download className="h-4 w-4" />
                       </Button>
                     </TableCell>
