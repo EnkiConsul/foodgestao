@@ -61,8 +61,8 @@ function AvisoDialog({
   const [arquivoMime, setArquivoMime] = useState((aviso as any)?.arquivo_mime ?? "");
   const [uploading, setUploading] = useState(false);
 
-  const unidades = useDpUnidades({ ativo: true });
-  const cargos = useDpCargos({ ativo: true });
+  const unidades = useDpUnidades();
+  const cargos = useDpCargos();
 
   const uploadFile = async (file: File) => {
     if (!companyId) return toast.error("Selecione uma empresa");
