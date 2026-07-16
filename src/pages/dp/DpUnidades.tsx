@@ -283,66 +283,90 @@ export default function DpUnidades() {
           <DialogHeader>
             <DialogTitle>{editing ? "Editar unidade" : "Nova unidade"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 py-2">
+          <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Nome *</Label>
-              <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} maxLength={120} />
+              <Label>Nome da Unidade *</Label>
+              <Input
+                value={form.nome}
+                onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                placeholder="Ex: Pakerê Garavelo"
+              />
             </div>
             <div className="space-y-2">
               <Label>CNPJ</Label>
               <Input
                 value={formatCNPJ(form.cnpj)}
                 onChange={(e) => setForm({ ...form, cnpj: onlyNumbers(e.target.value) })}
+                placeholder="00.000.000/0000-00"
                 maxLength={18}
               />
             </div>
             <div className="space-y-2">
               <Label>Endereço</Label>
-              <Input value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} maxLength={200} />
+              <Input
+                value={form.endereco}
+                onChange={(e) => setForm({ ...form, endereco: e.target.value })}
+                placeholder="Ex: R 9 A, SN"
+              />
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2 space-y-2">
-                <Label>Cidade</Label>
-                <Input value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} maxLength={80} />
-              </div>
+            <div className="space-y-2">
+              <Label>Cidade</Label>
+              <Input
+                value={form.cidade}
+                onChange={(e) => setForm({ ...form, cidade: e.target.value })}
+                placeholder="Ex: Aparecida de Goiânia"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Telefone</Label>
+              <Input
+                value={form.telefone}
+                onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+                placeholder="Ex: (62) 99999-9999"
+              />
+            </div>
+            <div className="flex items-center space-x-2 rounded-xl border border-border p-3">
+              <Switch
+                id="possui_relogio_ponto"
+                checked={form.possui_relogio_ponto}
+                onCheckedChange={(v) => setForm({ ...form, possui_relogio_ponto: v })}
+              />
+              <Label htmlFor="possui_relogio_ponto">Possui relógio de ponto</Label>
+            </div>
+            <div className="flex items-center space-x-2 rounded-xl border border-border p-3">
+              <Switch
+                id="tem_adiantamento"
+                checked={form.tem_adiantamento}
+                onCheckedChange={(v) =>
+                  setForm({ ...form, tem_adiantamento: v, dia_adiantamento: v ? form.dia_adiantamento : "" })
+                }
+              />
+              <Label htmlFor="tem_adiantamento">Tem adiantamento salarial</Label>
+            </div>
+            {form.tem_adiantamento && (
               <div className="space-y-2">
-                <Label>UF</Label>
-                <Input value={form.uf} onChange={(e) => setForm({ ...form, uf: e.target.value.toUpperCase() })} maxLength={2} />
+                <Label>Dia do Adiantamento</Label>
+                <Select
+                  value={form.dia_adiantamento || ""}
+                  onValueChange={(v) => setForm({ ...form, dia_adiantamento: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o dia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 28 }, (_, i) => i + 1).map((dia) => (
+                      <SelectItem key={dia} value={dia.toString()}>{dia}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Telefone</Label>
-                <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Dia adto.</Label>
-                <Input
-                  type="number" min={1} max={31}
-                  value={form.dia_adiantamento}
-                  onChange={(e) => setForm({ ...form, dia_adiantamento: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-2 rounded-xl border border-border p-3">
-              <Switch id="ponto" checked={form.possui_relogio_ponto}
-                onCheckedChange={(v) => setForm({ ...form, possui_relogio_ponto: v })} />
-              <Label htmlFor="ponto" className="text-sm">Possui relógio de ponto</Label>
-            </div>
-            <div className="flex items-center gap-2 rounded-xl border border-border p-3">
-              <Switch id="adto" checked={form.tem_adiantamento}
-                onCheckedChange={(v) => setForm({ ...form, tem_adiantamento: v })} />
-              <Label htmlFor="adto" className="text-sm">Tem adiantamento quinzenal</Label>
-            </div>
-            <div className="flex items-center gap-2 rounded-xl border border-border p-3">
-              <Switch id="ativa" checked={form.ativo}
-                onCheckedChange={(v) => setForm({ ...form, ativo: v })} />
-              <Label htmlFor="ativa" className="text-sm">Unidade ativa</Label>
-            </div>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={save} disabled={upsert.isPending} className="rounded-full px-6">
+            <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={save} disabled={upsert.isPending}>
+              {upsert.isPending ? "Salvando..." : editing ? "Salvar" : "Cadastrar"}
+
               {upsert.isPending ? "Salvando..." : "Salvar"}
             </Button>
           </DialogFooter>
