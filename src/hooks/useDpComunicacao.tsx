@@ -16,6 +16,8 @@ export type DpAviso = {
   expira_em: string | null;
   fixado: boolean;
   autor_id: string | null;
+  arquivo_path: string | null;
+  arquivo_mime: string | null;
   created_at: string;
   updated_at: string;
 };
