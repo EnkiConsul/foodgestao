@@ -56,7 +56,10 @@ export default function DpColaboradores() {
       <Card>
         <CardContent className="p-0 overflow-x-auto">
           {list.isLoading ? (
-            <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
+            <TableSkeleton
+              columns={7}
+              headers={["Nome", "Matrícula", "Cargo", "Regime", "Admissão", "Status", ""]}
+            />
           ) : (
             <Table>
               <TableHeader>
