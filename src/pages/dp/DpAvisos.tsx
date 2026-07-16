@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { useDpAvisos, type DpAviso } from "@/hooks/useDpComunicacao";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
+import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 const prioridadeColor: Record<string, string> = {
   baixa: "bg-muted text-muted-foreground",
@@ -148,15 +149,13 @@ export default function DpAvisos() {
   };
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Avisos — DP 360°</title></Helmet>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Megaphone className="h-6 w-6" /> Quadro de avisos
-          </h1>
-          <p className="text-muted-foreground">Comunicados internos para colaboradores.</p>
-        </div>
+      <DpPageHeader
+        icon={Megaphone}
+        title="Quadro de avisos"
+        description="Comunicados internos para colaboradores."
+        actions={
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
           <DialogTrigger asChild>
             <Button onClick={() => setEditing(null)}>
@@ -172,18 +171,17 @@ export default function DpAvisos() {
             onSave={(v) => upsert.mutate(v)}
           />
         </Dialog>
-      </div>
+        }
+      />
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Carregando…</p>
+        <DpContentCard contentClassName="p-6"><p className="text-sm text-muted-foreground">Carregando…</p></DpContentCard>
       ) : avisos.length === 0 ? (
-        <Card><CardContent className="py-10 text-center text-muted-foreground">
-          Nenhum aviso publicado ainda.
-        </CardContent></Card>
+        <DpContentCard><DpEmptyState icon={Megaphone}>Nenhum aviso publicado ainda.</DpEmptyState></DpContentCard>
       ) : (
         <div className="grid gap-3">
           {avisos.map((a) => (
-            <Card key={a.id} className={a.fixado ? "border-primary/40" : ""}>
+            <Card key={a.id} className={a.fixado ? "dp-content-card border-primary/40" : "dp-content-card"}>
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -217,6 +215,6 @@ export default function DpAvisos() {
           ))}
         </div>
       )}
-    </div>
+    </DpPage>
   );
 }

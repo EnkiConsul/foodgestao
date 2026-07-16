@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { MessageSquare, Megaphone, FileText, ArrowRight } from "lucide-react";
+import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 const CARDS = [
   { icon: MessageSquare, label: "Mensagens", desc: "Envie mensagens diretas e broadcasts para colaboradores.", to: "/dp/mensagens" },
@@ -10,22 +11,16 @@ const CARDS = [
 
 export default function DpComunicacaoHub() {
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <DpPage narrow>
       <Helmet><title>Comunicação — DP 360°</title></Helmet>
-      <header>
-        <div className="flex items-center gap-2">
-          <MessageSquare className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">Comunicação</h1>
-        </div>
-        <p className="text-muted-foreground text-sm ml-8">Centralize avisos, mensagens e modelos.</p>
-      </header>
+      <DpPageHeader icon={MessageSquare} title="Comunicação" description="Centralize avisos, mensagens e modelos." />
 
       <div className="grid gap-4 md:grid-cols-3">
         {CARDS.map((c) => (
           <Link
             key={c.to}
             to={c.to}
-            className="rounded-2xl border-2 border-[hsl(var(--dp-border))] bg-white p-5 hover:border-primary transition-colors group"
+            className="dp-content-card rounded-2xl border-2 border-[hsl(var(--dp-border))] bg-card p-5 hover:border-primary transition-colors group"
           >
             <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
               <c.icon className="h-5 w-5 text-primary" />
@@ -38,6 +33,6 @@ export default function DpComunicacaoHub() {
           </Link>
         ))}
       </div>
-    </div>
+    </DpPage>
   );
 }
