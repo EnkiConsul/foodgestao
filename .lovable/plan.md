@@ -1,7 +1,7 @@
 # Auditoria DP — status
 
-Concluídas: DP-G00, DP-G01, DP-G02 (correções aplicadas), DP-G03 (relatório em `.lovable/auditoria/dp-g03-portal-cadastro.md`).
-Em andamento: aguardando aprovação das correções DP-G03 ou avanço para DP-G04.
+Concluídas: DP-G00→G05 (correções aplicadas). Fluxo de submissão/aprovação de documentos implementado.
+Em andamento: **DP-G06 — Área admin: Dashboard + Colaboradores** (relatório em `.lovable/auditoria/dp-g06-admin-dashboard-colaboradores.md`), aguardando aprovação para aplicar correções.
 
 Sequência sugerida pelo prompt mestre:
 
