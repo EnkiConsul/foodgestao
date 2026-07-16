@@ -82,6 +82,22 @@ export default function DpFolgasHub() {
     },
   });
 
+  const { data: diaConfig = {} } = useQuery({
+    queryKey: ["dp_dia_config_hub", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_dia_config")
+        .select("data, limite_folgas")
+        .eq("company_id", selectedCompanyId!)
+        .is("unidade_id", null);
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      for (const r of data ?? []) map[r.data as string] = r.limite_folgas as number;
+      return map;
+    },
+  });
+
   const equipeAtiva = colaboradores.length;
   const todayStr = format(today, "yyyy-MM-dd");
   const folgasHoje = solicitacoes.filter(
