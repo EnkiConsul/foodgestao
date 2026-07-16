@@ -60,7 +60,7 @@ export default function DpFolgasHub() {
         .from("dp_trocas")
         .select("id, status")
         .eq("company_id", selectedCompanyId!)
-        .eq("status", "pendente");
+        .in("status", ["pendente_colega", "pendente_gestor"]);
       if (error) throw error;
       return data ?? [];
     },
