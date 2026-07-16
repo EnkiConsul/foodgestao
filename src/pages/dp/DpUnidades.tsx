@@ -20,6 +20,7 @@ import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const onlyNumbers = (v: string) => v.replace(/\D/g, "");
 const formatCNPJ = (value: string) => {
