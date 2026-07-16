@@ -352,8 +352,12 @@ export default function DpSindicatos() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={salvar} disabled={upsert.isPending}>
-              {upsert.isPending ? "Salvando..." : editing ? "Atualizar" : "Cadastrar"}
+            <Button onClick={salvar} disabled={upsert.isPending || (!!editing && vinculos.isFetching)}>
+              {editing && vinculos.isFetching
+                ? "Carregando vínculos..."
+                : upsert.isPending
+                  ? "Salvando..."
+                  : editing ? "Atualizar" : "Cadastrar"}
             </Button>
           </DialogFooter>
         </DialogContent>
