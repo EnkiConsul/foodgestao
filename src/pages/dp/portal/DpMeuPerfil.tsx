@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Pencil, Save, X } from "lucide-react";
+import { Pencil, Save, X, User } from "lucide-react";
+import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 export default function DpMeuPerfil() {
   const { user } = useAuth();
@@ -74,21 +75,22 @@ export default function DpMeuPerfil() {
   const p = perfil.data as any;
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Meus dados — Portal</title></Helmet>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Meus dados</h1>
-        {p && !editing && (
+      <DpPageHeader
+        icon={User}
+        title="Meus dados"
+        actions={p && !editing ? (
           <Button variant="outline" onClick={() => setEditing(true)}>
             <Pencil className="h-4 w-4 mr-1" /> Editar contato/endereço
           </Button>
-        )}
-      </div>
+        ) : undefined}
+      />
       {!p ? (
-        <p className="text-muted-foreground">Perfil não encontrado.</p>
+        <DpContentCard contentClassName="p-6"><p className="text-muted-foreground">Perfil não encontrado.</p></DpContentCard>
       ) : (
         <>
-          <Card>
+          <Card className="dp-content-card">
             <CardHeader><CardTitle>{p.nome}</CardTitle></CardHeader>
             <CardContent className="grid gap-3 sm:grid-cols-2 text-sm">
               <Field label="Matrícula" value={p.matricula} />
@@ -103,7 +105,7 @@ export default function DpMeuPerfil() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="dp-content-card">
             <CardHeader><CardTitle className="text-base">Contato & Endereço</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {editing ? (
@@ -144,7 +146,7 @@ export default function DpMeuPerfil() {
           </Card>
         </>
       )}
-    </div>
+    </DpPage>
   );
 }
 

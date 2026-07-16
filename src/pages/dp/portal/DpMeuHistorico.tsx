@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { History, ClipboardList, Repeat, HeartPulse, FileText, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 type Evento = {
   id: string;
@@ -70,24 +71,18 @@ export default function DpMeuHistorico() {
   });
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <DpPage narrow>
       <Helmet><title>Meu Histórico — Portal do Colaborador</title></Helmet>
-      <header>
-        <div className="flex items-center gap-2">
-          <History className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">Meu Histórico</h1>
-        </div>
-        <p className="text-muted-foreground text-sm ml-8">Todos os eventos vinculados à sua conta.</p>
-      </header>
+      <DpPageHeader icon={History} title="Meu Histórico" description="Todos os eventos vinculados à sua conta." />
 
-      <div className="rounded-2xl border-2 border-[hsl(var(--dp-border))] bg-white p-2">
+      <DpContentCard contentClassName="p-2">
         {(eventos.data?.length ?? 0) === 0 ? (
           <p className="text-sm text-muted-foreground py-10 text-center">Sem eventos.</p>
         ) : (
           <ol className="relative border-l-2 border-[hsl(var(--dp-border))] ml-4 space-y-4 p-4">
             {eventos.data!.map((e) => (
               <li key={e.id} className="ml-4">
-                <span className="absolute -left-[13px] mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 ring-4 ring-white">
+                <span className="absolute -left-[13px] mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 ring-4 ring-card">
                   <e.icon className="h-3.5 w-3.5 text-primary" />
                 </span>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -102,7 +97,7 @@ export default function DpMeuHistorico() {
             ))}
           </ol>
         )}
-      </div>
-    </div>
+      </DpContentCard>
+    </DpPage>
   );
 }
