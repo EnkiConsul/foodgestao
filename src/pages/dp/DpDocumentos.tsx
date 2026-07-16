@@ -88,9 +88,18 @@ export default function DpDocumentos() {
 
   const filteredRows = useMemo(() => {
     const all = list.data ?? [];
-    if (statusFilter === "todos") return all;
-    return all.filter((r) => (r as any).aprovacao_status === statusFilter);
-  }, [list.data, statusFilter]);
+    const s = search.toLowerCase();
+    return all.filter((r) => {
+      if (statusFilter !== "todos" && (r as any).aprovacao_status !== statusFilter) return false;
+      if (s) {
+        const hay = `${r.titulo ?? ""} ${r.descricao ?? ""} ${r.dp_colaboradores?.nome ?? ""}`.toLowerCase();
+        if (!hay.includes(s)) return false;
+      }
+      if (periodoInicio && r.referencia_data && r.referencia_data < periodoInicio) return false;
+      if (periodoFim && r.referencia_data && r.referencia_data > periodoFim) return false;
+      return true;
+    });
+  }, [list.data, statusFilter, search, periodoInicio, periodoFim]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { todos: list.data?.length ?? 0, pendente: 0, aprovado: 0, recusado: 0 };
