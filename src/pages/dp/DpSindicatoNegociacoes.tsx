@@ -257,8 +257,24 @@ export default function DpSindicatoNegociacoes() {
                     <TableCell>
                       <div className="flex gap-1 justify-end">
                         {n.pdf_path && (
-                          <Button size="icon" variant="ghost" title="PDF anexado"><FileText className="h-4 w-4" /></Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            title="Abrir PDF anexado"
+                            onClick={() => openPdf(n.pdf_path!)}
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Button>
                         )}
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title={n.pdf_path ? "Substituir PDF" : "Anexar PDF"}
+                          onClick={() => triggerUpload(n.id)}
+                          disabled={uploadPdf.isPending}
+                        >
+                          <Upload className="h-4 w-4" />
+                        </Button>
                         <Button size="icon" variant="ghost" onClick={() => openEdit(n)}><Pencil className="h-4 w-4" /></Button>
                         <Button size="icon" variant="ghost" onClick={() => setToDelete(n)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </div>
