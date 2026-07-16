@@ -20,7 +20,7 @@ export default function DpMeuPerfil() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_colaboradores")
-        .select("*, dp_unidades(nome), dp_cargos(nome)")
+        .select("*, dp_unidades(nome), dp_cargos(nome), dp_sindicatos(nome)")
         .eq("user_id", user!.id)
         .maybeSingle();
       if (error) throw error;
@@ -31,7 +31,7 @@ export default function DpMeuPerfil() {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     telefone: "", whatsapp: "", email_contato: "",
-    endereco: { logradouro: "", numero: "", bairro: "", cidade: "", uf: "", cep: "" },
+    endereco: { logradouro: "", numero: "", complemento: "", bairro: "", cidade: "", uf: "", cep: "" },
   });
 
   useEffect(() => {
@@ -44,6 +44,7 @@ export default function DpMeuPerfil() {
       endereco: {
         logradouro: p.endereco?.logradouro ?? "",
         numero: p.endereco?.numero ?? "",
+        complemento: p.endereco?.complemento ?? "",
         bairro: p.endereco?.bairro ?? "",
         cidade: p.endereco?.cidade ?? "",
         uf: p.endereco?.uf ?? "",
@@ -76,10 +77,10 @@ export default function DpMeuPerfil() {
 
   return (
     <DpPage>
-      <Helmet><title>Meus dados — Portal</title></Helmet>
+      <Helmet><title>Meu Cadastro — Portal</title></Helmet>
       <DpPageHeader
         icon={User}
-        title="Meus dados"
+        title="Meu Cadastro"
         actions={p && !editing ? (
           <Button variant="outline" onClick={() => setEditing(true)}>
             <Pencil className="h-4 w-4 mr-1" /> Editar contato/endereço
@@ -99,9 +100,11 @@ export default function DpMeuPerfil() {
               <Field label="Unidade" value={p.dp_unidades?.nome} />
               <Field label="Regime" value={p.regime} />
               <Field label="Perfil de acesso" value={p.perfil_acesso} />
+              <Field label="Sindicato" value={p.dp_sindicatos?.nome} />
               <Field label="Admissão" value={p.data_admissao} />
               <Field label="Nascimento" value={p.data_nascimento} />
-              <Field label="E-mail corporativo" value={p.email ?? p.email_portal} />
+              <Field label="E-mail corporativo" value={p.email} />
+              <Field label="E-mail do portal" value={p.email_portal} />
             </CardContent>
           </Card>
 
@@ -119,6 +122,7 @@ export default function DpMeuPerfil() {
                     <div className="col-span-2"><Label>Logradouro</Label><Input value={form.endereco.logradouro} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, logradouro: e.target.value } })} /></div>
                     <div><Label>Nº</Label><Input value={form.endereco.numero} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, numero: e.target.value } })} /></div>
                   </div>
+                  <div><Label>Complemento</Label><Input value={form.endereco.complemento} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, complemento: e.target.value } })} /></div>
                   <div className="grid grid-cols-3 gap-3">
                     <div><Label>Bairro</Label><Input value={form.endereco.bairro} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, bairro: e.target.value } })} /></div>
                     <div><Label>Cidade</Label><Input value={form.endereco.cidade} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, cidade: e.target.value } })} /></div>
@@ -138,7 +142,7 @@ export default function DpMeuPerfil() {
                   <Field label="WhatsApp" value={p.whatsapp} />
                   <Field label="E-mail pessoal" value={p.email_contato} />
                   <Field label="Endereço" value={
-                    p.endereco ? [p.endereco.logradouro, p.endereco.numero, p.endereco.bairro, p.endereco.cidade, p.endereco.uf, p.endereco.cep].filter(Boolean).join(", ") : null
+                    p.endereco ? [p.endereco.logradouro, p.endereco.numero, p.endereco.complemento, p.endereco.bairro, p.endereco.cidade, p.endereco.uf, p.endereco.cep].filter(Boolean).join(", ") : null
                   } />
                 </div>
               )}
