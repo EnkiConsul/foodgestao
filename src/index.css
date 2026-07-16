@@ -61,6 +61,11 @@
     --dp-birthday-border: 30 55% 85%;
     --dp-birthday-nasc: 340 80% 92%;
     --dp-birthday-contrat: 200 75% 90%;
+  }
+
+  /* DP 360° — override de radius mais arredondado (0.75rem) só dentro do módulo DP */
+  .dp-shell {
+    --radius: 0.75rem;
 
     /* Onboarding wizard tokens */
     --onboarding-canvas: 224 60% 12%;
