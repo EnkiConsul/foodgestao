@@ -4261,11 +4261,25 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      dp_calc_data_regra: {
+        Args: { _ano: number; _regra_id: string }
+        Returns: string
+      }
       dp_colaborador_of: { Args: { _user_id: string }; Returns: string }
       dp_folha_gerar_lancamentos: {
         Args: { _periodo_id: string }
         Returns: number
       }
+      dp_gerar_bloqueios_ano: {
+        Args: { _ano: number; _company_id: string }
+        Returns: number
+      }
+      dp_gerar_prioridades_aniversario: {
+        Args: { _ano: number; _company_id: string; _mes: number }
+        Returns: number
+      }
+      dp_pascoa: { Args: { _ano: number }; Returns: string }
+      dp_processar_troca: { Args: { _troca_id: string }; Returns: Json }
       dre_apply_default_mapping: {
         Args: { _company_id: string }
         Returns: number
