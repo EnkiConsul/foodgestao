@@ -210,9 +210,18 @@ export default function DpDocumentos() {
         actions={<Button onClick={openDialog}><Upload className="h-4 w-4 mr-2" /> Enviar</Button>}
       />
 
+      <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+        <TabsList>
+          <TabsTrigger value="todos">Todos ({counts.todos})</TabsTrigger>
+          <TabsTrigger value="pendente"><Clock className="h-3.5 w-3.5 mr-1" />Pendentes ({counts.pendente})</TabsTrigger>
+          <TabsTrigger value="aprovado"><CheckCircle2 className="h-3.5 w-3.5 mr-1" />Aprovados ({counts.aprovado})</TabsTrigger>
+          <TabsTrigger value="recusado"><XCircle className="h-3.5 w-3.5 mr-1" />Recusados ({counts.recusado})</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       <DpContentCard contentClassName="overflow-x-auto">
           {list.isLoading ? (
-            <TableSkeleton columns={filterTipo ? 5 : 6} headers={filterTipo ? ["Título", "Colaborador", "Referência", "Arquivo", ""] : ["Título", "Tipo", "Colaborador", "Referência", "Arquivo", ""]} />
+            <TableSkeleton columns={filterTipo ? 6 : 7} headers={filterTipo ? ["Título", "Colaborador", "Status", "Referência", "Arquivo", ""] : ["Título", "Tipo", "Colaborador", "Status", "Referência", "Arquivo", ""]} />
           ) : (
             <Table>
               <TableHeader>
@@ -220,42 +229,102 @@ export default function DpDocumentos() {
                   <TableHead>Título</TableHead>
                   {!filterTipo && <TableHead>Tipo</TableHead>}
                   <TableHead>Colaborador</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Referência</TableHead>
                   <TableHead>Arquivo</TableHead>
-                  <TableHead className="w-24"></TableHead>
+                  <TableHead className="w-[180px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(list.data ?? []).map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="font-medium">
-                      {r.titulo}
-                      {r.descricao && <div className="text-xs text-muted-foreground">{r.descricao}</div>}
-                    </TableCell>
-                    {!filterTipo && <TableCell><Badge variant="outline" className="capitalize">{r.tipo}</Badge></TableCell>}
-                    <TableCell>{r.dp_colaboradores?.nome ?? "—"}</TableCell>
-                    <TableCell>{r.referencia_data ?? "—"}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <FileText className="h-3 w-3" />
-                        <span className="truncate max-w-[150px]">{r.file_name ?? r.file_path}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1 justify-end">
-                        <Button size="icon" variant="ghost" onClick={() => download(r)}><Download className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" onClick={() => del.mutate(r)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {(list.data?.length ?? 0) === 0 && (
-                  <TableRow><TableCell colSpan={filterTipo ? 5 : 6} className="text-center text-muted-foreground py-8">Nenhum documento.</TableCell></TableRow>
+                {filteredRows.map((r) => {
+                  const status = (r as any).aprovacao_status as Aprov;
+                  const submetido = (r as any).submetido_por_colaborador as boolean;
+                  const motivo = (r as any).motivo_recusao as string | null;
+                  return (
+                    <TableRow key={r.id}>
+                      <TableCell className="font-medium">
+                        {r.titulo}
+                        {r.descricao && <div className="text-xs text-muted-foreground">{r.descricao}</div>}
+                        {submetido && <div className="text-[11px] text-primary mt-0.5">↑ Enviado pelo colaborador</div>}
+                        {status === "recusado" && motivo && (
+                          <div className="text-xs text-destructive mt-0.5">Motivo: {motivo}</div>
+                        )}
+                      </TableCell>
+                      {!filterTipo && <TableCell><Badge variant="outline" className="capitalize">{r.tipo}</Badge></TableCell>}
+                      <TableCell>{r.dp_colaboradores?.nome ?? "—"}</TableCell>
+                      <TableCell><StatusBadge status={status} /></TableCell>
+                      <TableCell>{r.referencia_data ?? "—"}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <FileText className="h-3 w-3" />
+                          <span className="truncate max-w-[150px]">{r.file_name ?? r.file_path}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 justify-end">
+                          {status === "pendente" && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 border-green-300 text-green-700 hover:bg-green-50"
+                                onClick={() => aprovar.mutate(r)}
+                                disabled={aprovar.isPending}
+                              >
+                                <Check className="h-3.5 w-3.5 mr-1" /> Aprovar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 border-red-300 text-red-700 hover:bg-red-50"
+                                onClick={() => { setRejectRow(r); setRejectMotivo(""); }}
+                              >
+                                <X className="h-3.5 w-3.5 mr-1" /> Recusar
+                              </Button>
+                            </>
+                          )}
+                          <Button size="icon" variant="ghost" onClick={() => download(r)}><Download className="h-4 w-4" /></Button>
+                          <Button size="icon" variant="ghost" onClick={() => del.mutate(r)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {filteredRows.length === 0 && (
+                  <TableRow><TableCell colSpan={filterTipo ? 6 : 7} className="text-center text-muted-foreground py-8">Nenhum documento.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
           )}
       </DpContentCard>
+
+      {/* Dialog de recusa */}
+      <Dialog open={!!rejectRow} onOpenChange={(v) => { if (!v) { setRejectRow(null); setRejectMotivo(""); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Recusar documento</DialogTitle></DialogHeader>
+          <div className="grid gap-2 py-2">
+            <p className="text-sm text-muted-foreground">
+              Informe o motivo da recusa. O colaborador verá esta mensagem.
+            </p>
+            <Textarea
+              rows={3}
+              value={rejectMotivo}
+              onChange={(e) => setRejectMotivo(e.target.value)}
+              placeholder="Ex.: Arquivo ilegível, favor reenviar."
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectRow(null)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              disabled={recusar.isPending || !rejectMotivo.trim()}
+              onClick={() => rejectRow && recusar.mutate({ row: rejectRow, motivo: rejectMotivo.trim() })}
+            >
+              Recusar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
