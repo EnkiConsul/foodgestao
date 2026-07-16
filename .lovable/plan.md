@@ -1,7 +1,7 @@
 # Auditoria DP — status
 
-Concluídas: DP-G00→G05 (correções aplicadas). Fluxo de submissão/aprovação de documentos implementado.
-Em andamento: **DP-G06 — Área admin: Dashboard + Colaboradores** (relatório em `.lovable/auditoria/dp-g06-admin-dashboard-colaboradores.md`), aguardando aprovação para aplicar correções.
+Concluídas: DP-G00→G06 (correções aplicadas).
+Em andamento: **DP-G07 — Área admin: Folgas, Escalas, Atestados, Disciplinar** (relatório em `.lovable/auditoria/dp-g07-admin-folgas-atestados.md`), aguardando aprovação para aplicar Grupos 2-5 (Grupo 1 já aplicado: wiring do sorteio + tokens).
 
 Sequência sugerida pelo prompt mestre:
 
