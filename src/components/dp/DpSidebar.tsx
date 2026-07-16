@@ -32,9 +32,9 @@ const ADMIN_ITEMS: Item[] = [
       { title: "Cargos", url: "/dp/cadastros/cargos", icon: Briefcase },
       { title: "Unidades", url: "/dp/cadastros/unidades", icon: Building2 },
       { title: "Sindicatos", url: "/dp/cadastros/sindicatos", icon: Scale },
+      { title: "Negociações Coletivas", url: "/dp/sindicatos/negociacoes", icon: FileSignature },
     ],
   },
-  { kind: "link", title: "Negociações Coletivas", url: "/dp/sindicatos/negociacoes", icon: FileSignature },
   {
     kind: "group", title: "Folgas", icon: Calendar,
     prefixes: ["/dp/folgas", "/dp/solicitacoes", "/dp/aprovacoes", "/dp/trocas", "/dp/bloqueios", "/dp/atestados"],

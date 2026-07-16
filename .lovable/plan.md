@@ -1,17 +1,43 @@
-## Correção
+## Objetivo
+Corrigir todas as telas do módulo DP para seguirem a estrutura visual e de navegação da documentação anexada do GitHub, mantendo as cores atuais do projeto.
 
-Conforme a documentação do repositório `portalcolaborador`, "Negociações Coletivas" **não** pertence ao grupo Cadastros. Atualmente está listada em `src/components/dp/DpSidebar.tsx` dentro do grupo "Cadastro" junto com Colaboradores/Cargos/Unidades/Sindicatos.
+## Escopo
+Serão alinhadas as páginas administrativas e do portal do colaborador dentro de `/dp` e `/dp/meu`, sem alterar regras de negócio, banco de dados, permissões ou paleta global.
 
-### Alterações
+## Direção visual a aplicar
+- Manter o layout com sidebar DP, fundo claro/padronizado e conteúdo central com largura consistente, como nos anexos.
+- Usar cabeçalhos padronizados: ícone + título, subtítulo abaixo, ação principal à direita e favorito/notificação quando aplicável.
+- Usar cards e tabelas com a mesma hierarquia da documentação: borda sutil, cantos moderados, filtros em faixa/card antes da listagem e ações por ícones.
+- Manter as cores já existentes do app/DP; a correção será de estrutura, espaçamento, componentes, hierarquia e organização.
 
-1. **`src/components/dp/DpSidebar.tsx`** — Remover o item `Negociações Coletivas` do grupo `Cadastro`. O grupo passa a conter apenas: Colaboradores, Cargos, Unidades, Sindicatos.
+## Implementação proposta
+1. **Criar base reutilizável de layout DP**
+   - Componentes comuns para `DpPage`, `DpPageHeader`, `DpFilterBar`, `DpSectionCard`, `DpMetricCard` e estados vazios/loading.
+   - Isso evita corrigir tela por tela com estilos divergentes.
 
-2. **`src/components/dp/DpSidebar.tsx`** — Adicionar "Negociações Coletivas" como item de nível superior (link direto no menu principal), fora de qualquer grupo, acompanhando a estrutura da documentação. Rota mantida: `/dp/sindicatos/negociacoes`, ícone `FileSignature`.
+2. **Padronizar páginas administrativas principais**
+   - `DpHome`: alinhar com o painel administrativo da documentação, com pendências, aniversariantes e atalhos favoritos no mesmo padrão.
+   - `DpColaboradores`: manter a estrutura da documentação e corrigir inconsistências visuais restantes, incluindo filtros, tabela, badges, switches e ações.
+   - `DpSolicitacoes`, `DpFolgas`, `DpAprovacoes`, `DpAtestados`, `DpTrocas`, `DpBloqueios`: aplicar cabeçalho, filtros/tabs e listas/calendário no mesmo padrão.
+   - `DpDocumentosHub`, `DpDocumentos`, `DpHistoricoCompleto`, `DpDocImportBulk`, `DpDisciplinar`: unificar estrutura de documentos, cards de categoria, histórico, importação e registros.
+   - `DpCadastrosHub`, `DpUnidades`, `DpCargos`, `DpSindicatos`, `DpSindicatoNegociacoes`: alinhar cadastros ao padrão de listagem/formulário da documentação.
+   - `DpComunicacaoHub`, `DpAvisos`, `DpMensagens`, `DpModelosMensagem`: alinhar comunicação ao padrão de cards/listas e ações.
+   - `DpFolhaHub`, `DpFolhaAprovacoes`, `DpFolhaPeriodo`: aplicar a mesma estrutura visual para folha e aprovações.
 
-3. **`src/pages/dp/DpCadastrosHub.tsx`** — Verificar/garantir que o hub de Cadastros não liste "Negociações Coletivas" (hoje já lista apenas Unidades, Cargos, Sindicatos — nenhuma alteração necessária).
+3. **Padronizar portal do colaborador**
+   - Ajustar `DpMeuHome`, `DpMeuPerfil`, `DpMeuDocumentos`, `DpMeuSolicitacoes`, `DpMeuTrocas`, `DpMeuCalendario`, `DpMeuAtestados`, `DpMeuDisciplinar`, `DpMeuSindicato` e `DpMeuHistorico` para seguirem a mesma linguagem visual da documentação, com foco em experiência simplificada para colaborador.
 
-4. **`src/components/layout/sidebar-menus/DpMenu.tsx`** — Remover `Negociações` do grupo `Cadastros` deste menu alternativo e mantê-la fora (ou como link independente), para manter consistência entre os dois componentes de sidebar do módulo.
+4. **Ajustar navegação e consistência**
+   - Garantir sidebar com grupos, estados ativos e espaçamentos compatíveis com os anexos.
+   - Garantir que hubs, atalhos e rotas internas tenham o mesmo padrão de cards e botões.
 
-### Fora do escopo
-- Rotas, permissões, backend, cores/tokens ou qualquer outra reorganização de menus.
-- Alterações no portal do colaborador.
+5. **Validação**
+   - Conferir visualmente as telas principais em desktop.
+   - Rodar typecheck/teste aplicável.
+   - Não alterar cores globais nem adicionar migrations/backend.
+
+## Fora do escopo
+- Alterar paleta, marca ou tokens de cor.
+- Criar novas funcionalidades de backend.
+- Reestruturar permissões, tabelas ou regras de negócio.
+- Publicar/deployar automaticamente.
