@@ -82,19 +82,36 @@ export default function DpTrocas() {
     mutationFn: async ({ id, etapa, aceito, obs }: { id: string; etapa: "colega" | "gestor"; aceito: boolean; obs?: string }) => {
       const now = new Date().toISOString();
       const { data: userRes } = await supabase.auth.getUser();
-      const patch: any = {};
       if (etapa === "colega") {
-        patch.colega_resposta = obs ?? (aceito ? "aceito" : "recusado");
-        patch.colega_respondido_em = now;
-        patch.status = aceito ? "pendente_gestor" : "recusada";
-      } else {
-        patch.gestor_resposta = obs ?? (aceito ? "aprovada" : "recusada");
-        patch.gestor_respondido_em = now;
-        patch.gestor_id = userRes.user?.id ?? null;
-        patch.status = aceito ? "aprovada" : "recusada";
+        const { error } = await supabase.from("dp_trocas").update({
+          colega_resposta: obs ?? (aceito ? "aprovada" : "recusada"),
+          colega_respondido_em: now,
+          status: aceito ? "pendente_gestor" : "recusada",
+        }).eq("id", id);
+        if (error) throw error;
+        return;
       }
-      const { error } = await supabase.from("dp_trocas").update(patch).eq("id", id);
-      if (error) throw error;
+      // etapa = gestor
+      if (!aceito) {
+        const { error } = await supabase.from("dp_trocas").update({
+          gestor_resposta: obs ?? "recusada",
+          gestor_respondido_em: now,
+          gestor_id: userRes.user?.id ?? null,
+          status: "recusada",
+        }).eq("id", id);
+        if (error) throw error;
+        return;
+      }
+      // gestor aprova: registrar aprovação (SEM mudar status) e chamar RPC atômica
+      const { error: upErr } = await supabase.from("dp_trocas").update({
+        gestor_resposta: "aprovada",
+        gestor_respondido_em: now,
+        gestor_id: userRes.user?.id ?? null,
+      }).eq("id", id);
+      if (upErr) throw upErr;
+      const { data, error: rpcErr } = await supabase.rpc("dp_processar_troca", { _troca_id: id });
+      if (rpcErr) throw rpcErr;
+      return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["dp_trocas"] }); toast.success("Resposta registrada"); },
     onError: (e: any) => toast.error(e.message ?? "Erro"),
