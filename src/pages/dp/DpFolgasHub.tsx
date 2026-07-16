@@ -224,7 +224,7 @@ export default function DpFolgasHub() {
           <h2 className="font-semibold text-foreground">Ocupação dos Próximos Fins de Semana</h2>
         </div>
         <div className="space-y-4">
-          {ocupacaoPorDia.map(({ dia, ocupados, cap, pct }) => {
+          {ocupacaoPorDia.map(({ dia, ocupados, cap, pct, configurado }) => {
             const lotado = pct >= 100;
             return (
               <div key={dia.toISOString()} className="space-y-1.5">
@@ -248,9 +248,12 @@ export default function DpFolgasHub() {
                   </Badge>
                 </div>
                 <Progress value={pct} className="h-2" />
-                <div className="flex justify-end gap-4 text-xs text-muted-foreground">
-                  <span>{ocupados}/{cap}</span>
-                  <span>{pct}%</span>
+                <div className="flex justify-between gap-4 text-xs text-muted-foreground">
+                  <span>{configurado ? "Limite configurado" : "Capacidade estimada (10% da equipe)"}</span>
+                  <div className="flex gap-3">
+                    <span>{ocupados}/{cap}</span>
+                    <span>{pct}%</span>
+                  </div>
                 </div>
               </div>
             );
