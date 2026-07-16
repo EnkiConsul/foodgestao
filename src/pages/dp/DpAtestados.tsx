@@ -217,6 +217,20 @@ export default function DpAtestados() {
         title={preview?.title}
         bucket="dp-documentos"
         path={preview?.path}
+      <DocumentPreview
+        open={!!preview}
+        onOpenChange={(v) => { if (!v) setPreview(null); }}
+        title={preview?.title}
+        bucket="dp-documentos"
+        path={preview?.path}
+      />
+
+      <RecusaDialog
+        open={!!recusaId}
+        onOpenChange={(v) => !v && setRecusaId(null)}
+        title="Recusar atestado"
+        loading={respond.isPending}
+        onConfirm={(motivo) => recusaId && respond.mutate({ id: recusaId, status: "recusada", resposta: motivo || undefined })}
       />
     </DpPage>
   );
