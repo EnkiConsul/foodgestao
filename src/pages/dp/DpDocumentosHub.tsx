@@ -29,12 +29,16 @@ export default function DpDocumentosHub() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_documentos")
-        .select("tipo")
+        .select("tipo, aprovacao_status")
         .eq("company_id", selectedCompanyId!);
       if (error) throw error;
-      const map: Record<string, number> = {};
-      for (const row of data ?? []) map[row.tipo] = (map[row.tipo] ?? 0) + 1;
-      return map;
+      const total: Record<string, number> = {};
+      const pend: Record<string, number> = {};
+      for (const row of (data ?? []) as any[]) {
+        total[row.tipo] = (total[row.tipo] ?? 0) + 1;
+        if (row.aprovacao_status === "pendente") pend[row.tipo] = (pend[row.tipo] ?? 0) + 1;
+      }
+      return { total, pend };
     },
   });
 
@@ -49,7 +53,8 @@ export default function DpDocumentosHub() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {TIPOS.map((t) => {
           const Icon = ICONS[t.value] ?? FolderOpen;
-          const count = counts.data?.[t.value] ?? 0;
+          const count = counts.data?.total?.[t.value] ?? 0;
+          const pend = counts.data?.pend?.[t.value] ?? 0;
           return (
             <NavigationCard
               key={t.value}
@@ -57,6 +62,7 @@ export default function DpDocumentosHub() {
               to={`/dp/documentos/${t.value}`}
               icon={Icon}
               count={count}
+              description={pend > 0 ? `⚠ ${pend} aguardando aprovação` : undefined}
             />
           );
         })}
