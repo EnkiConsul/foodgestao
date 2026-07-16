@@ -14,24 +14,27 @@ export type DpSindicatoInsert = Database["public"]["Tables"]["dp_sindicatos"]["I
 export type DpUnidadeWithCounts = DpUnidade & {
   cargos_count: number;
   sindicatos_patronais_count: number;
+  company_name?: string | null;
 };
 
 export function useDpUnidades() {
-  const { selectedCompanyId } = useCompanyContext();
+  const { companies } = useCompanyContext();
+  const companyIds = companies.map((c) => c.id);
+  const key = companyIds.join(",");
   return useQuery({
-    queryKey: ["dp_unidades", selectedCompanyId],
-    enabled: !!selectedCompanyId,
+    queryKey: ["dp_unidades", key],
+    enabled: companyIds.length > 0,
     queryFn: async (): Promise<DpUnidadeWithCounts[]> => {
       const { data, error } = await supabase
         .from("dp_unidades")
-        .select("*")
-        .eq("company_id", selectedCompanyId!)
+        .select("*, companies(id, name, trade_name)")
+        .in("company_id", companyIds)
         .order("nome");
       if (error) throw error;
-      const unidades = (data ?? []) as DpUnidade[];
+      const unidades = (data ?? []) as any[];
       const ids = unidades.map((u) => u.id);
       if (ids.length === 0) {
-        return unidades.map((u) => ({ ...u, cargos_count: 0, sindicatos_patronais_count: 0 }));
+        return [];
       }
 
       const [{ data: uc, error: ucErr }, { data: su, error: suErr }] = await Promise.all([
@@ -51,9 +54,10 @@ export function useDpUnidades() {
       (su ?? []).forEach((r: any) => sindMap.set(r.unidade_id, (sindMap.get(r.unidade_id) ?? 0) + 1));
 
       return unidades.map((u) => ({
-        ...u,
+        ...(u as DpUnidade),
         cargos_count: cargosMap.get(u.id) ?? 0,
         sindicatos_patronais_count: sindMap.get(u.id) ?? 0,
+        company_name: u.companies?.trade_name || u.companies?.name || null,
       }));
     },
   });
@@ -72,11 +76,10 @@ export function useToggleDpUnidadeAtivo() {
 
 export function useUpsertDpUnidade() {
   const qc = useQueryClient();
-  const { selectedCompanyId } = useCompanyContext();
   return useMutation({
-    mutationFn: async (input: Partial<DpUnidadeInsert> & { id?: string; nome: string }) => {
-      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      const payload = { ...input, company_id: selectedCompanyId } as DpUnidadeInsert;
+    mutationFn: async (input: Partial<DpUnidadeInsert> & { id?: string; nome: string; company_id: string }) => {
+      if (!input.company_id) throw new Error("Empresa é obrigatória");
+      const payload = { ...input } as DpUnidadeInsert;
       if (input.id) {
         const { error } = await supabase.from("dp_unidades").update(payload).eq("id", input.id);
         if (error) throw error;
@@ -88,6 +91,7 @@ export function useUpsertDpUnidade() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_unidades"] }),
   });
 }
+
 
 export function useDeleteDpUnidade() {
   const qc = useQueryClient();

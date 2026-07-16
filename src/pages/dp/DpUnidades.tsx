@@ -18,6 +18,8 @@ import {
 } from "@/hooks/useDpCadastros";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { Link } from "react-router-dom";
 
 const onlyNumbers = (v: string) => v.replace(/\D/g, "");
 const formatCNPJ = (value: string) => {
@@ -30,6 +32,7 @@ const formatCNPJ = (value: string) => {
 };
 
 const blank = {
+  company_id: "",
   nome: "",
   cnpj: "",
   endereco: "",
@@ -43,6 +46,7 @@ const blank = {
 };
 
 export default function DpUnidades() {
+  const { companies } = useCompanyContext();
   const list = useDpUnidades();
   const upsert = useUpsertDpUnidade();
   const del = useDeleteDpUnidade();
@@ -58,7 +62,7 @@ export default function DpUnidades() {
 
   const openNew = () => {
     setEditing(null);
-    setForm(blank);
+    setForm({ ...blank, company_id: companies.length === 1 ? companies[0].id : "" });
     setOpen(true);
   };
 
@@ -66,6 +70,7 @@ export default function DpUnidades() {
     setEditing(u);
     const anyU = u as any;
     setForm({
+      company_id: (u as any).company_id ?? "",
       nome: u.nome,
       cnpj: u.cnpj ?? "",
       endereco: u.endereco ?? "",
@@ -86,6 +91,10 @@ export default function DpUnidades() {
   };
 
   const save = async () => {
+    if (!form.company_id) {
+      toast.error("Selecione a empresa vinculada");
+      return;
+    }
     if (!form.nome.trim()) {
       toast.error("Nome é obrigatório");
       return;
@@ -93,6 +102,7 @@ export default function DpUnidades() {
     try {
       await upsert.mutateAsync({
         id: editing?.id,
+        company_id: form.company_id,
         nome: form.nome.trim(),
         cnpj: onlyNumbers(form.cnpj) || null,
         endereco: form.endereco.trim() || null,
@@ -159,6 +169,7 @@ export default function DpUnidades() {
             <thead className="bg-muted/50 text-muted-foreground border-b border-border">
               <tr>
                 <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px]">Unidade</th>
+                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden lg:table-cell">Empresa</th>
                 <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden md:table-cell">CNPJ</th>
                 <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px]">Cargos</th>
                 <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px]">Sind. Patronais</th>
@@ -168,10 +179,10 @@ export default function DpUnidades() {
             </thead>
             <tbody className="divide-y divide-border">
               {list.isLoading && (
-                <tr><td colSpan={6} className="p-12 text-center text-muted-foreground">Carregando...</td></tr>
+                <tr><td colSpan={7} className="p-12 text-center text-muted-foreground">Carregando...</td></tr>
               )}
               {!list.isLoading && rows.length === 0 && (
-                <tr><td colSpan={6} className="p-12 text-center text-muted-foreground">Nenhuma unidade cadastrada.</td></tr>
+                <tr><td colSpan={7} className="p-12 text-center text-muted-foreground">Nenhuma unidade cadastrada.</td></tr>
               )}
               {rows.map((u) => (
                 <tr
@@ -182,6 +193,9 @@ export default function DpUnidades() {
                   <td className="p-4">
                     <div className="font-bold">{u.nome}</div>
                     {u.endereco && <div className="text-xs text-muted-foreground">{u.endereco}</div>}
+                  </td>
+                  <td className="p-4 hidden lg:table-cell text-xs">
+                    {u.company_name ?? "—"}
                   </td>
                   <td className="p-4 hidden md:table-cell font-mono text-xs">
                     {u.cnpj ? formatCNPJ(u.cnpj) : "—"}
@@ -237,6 +251,10 @@ export default function DpUnidades() {
           </DialogHeader>
           {viewing && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+              <div className="md:col-span-2">
+                <Label className="text-xs text-muted-foreground uppercase">Empresa vinculada</Label>
+                <p className="font-semibold">{viewing.company_name ?? "—"}</p>
+              </div>
               <div>
                 <Label className="text-xs text-muted-foreground uppercase">Nome</Label>
                 <p className="font-semibold">{viewing.nome}</p>
@@ -285,6 +303,37 @@ export default function DpUnidades() {
             <DialogTitle>{editing ? "Editar unidade" : "Nova unidade"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Empresa vinculada *</Label>
+              {companies.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border p-3 text-sm text-muted-foreground">
+                  Nenhuma empresa cadastrada.{" "}
+                  <Link to="/empresas" className="text-primary underline">
+                    Cadastre em Minhas Empresas
+                  </Link>{" "}
+                  antes de criar unidades.
+                </div>
+              ) : (
+                <Select
+                  value={form.company_id}
+                  onValueChange={(v) => setForm({ ...form, company_id: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a empresa" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companies.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.trade_name || c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                A cobrança do plano é por empresa. Uma empresa pode ter várias unidades sem custo extra.
+              </p>
+            </div>
             <div className="space-y-2">
               <Label>Nome da Unidade *</Label>
               <Input
