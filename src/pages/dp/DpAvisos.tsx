@@ -2,7 +2,8 @@ import { Helmet } from "react-helmet-async";
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Pin, Trash2, Pencil, Megaphone } from "lucide-react";
+import { Plus, Pin, Trash2, Pencil, Megaphone, Upload, FileText } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +16,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useDpAvisos, type DpAviso } from "@/hooks/useDpComunicacao";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const prioridadeColor: Record<string, string> = {
   baixa: "bg-muted text-muted-foreground",
