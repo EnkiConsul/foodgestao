@@ -138,7 +138,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         cargo: cargoNome,
         cargo_id: form.cargo_id,
         unidade_id: form.unidade_id,
-        regime: form.tipo_vinculo,
+        regime: VINCULO_TO_REGIME[form.tipo_vinculo] ?? "clt",
         data_admissao: form.data_admissao || null,
         data_nascimento: form.data_nascimento || null,
         data_desligamento: !form.ativo && form.data_desligamento ? form.data_desligamento : null,
