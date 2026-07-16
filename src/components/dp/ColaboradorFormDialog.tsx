@@ -122,10 +122,49 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const submit = async () => {
     if (!form.nome.trim()) { toast.error("Nome é obrigatório"); return; }
     if (!form.cpf.trim()) { toast.error("CPF é obrigatório"); return; }
+
+    const cpfDigits = form.cpf.replace(/\D/g, "");
+    if (cpfDigits.length !== 11) { toast.error("CPF deve ter 11 dígitos"); return; }
+    if (!isValidCpf(cpfDigits)) { toast.error("CPF inválido"); return; }
+
     if (!form.cargo_id) { toast.error("Cargo é obrigatório"); return; }
     if (!form.unidade_id) { toast.error("Unidade é obrigatória"); return; }
     if (!form.data_admissao) { toast.error("Data de admissão é obrigatória"); return; }
     if (!form.data_nascimento) { toast.error("Data de nascimento é obrigatória"); return; }
+
+    // Regras de datas
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const nascimento = new Date(form.data_nascimento + "T00:00:00");
+    const admissao = new Date(form.data_admissao + "T00:00:00");
+
+    if (nascimento >= hoje) { toast.error("Data de nascimento deve ser no passado"); return; }
+
+    const idade = (admissao.getTime() - nascimento.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+    if (idade < 14) { toast.error("Colaborador deve ter no mínimo 14 anos na admissão"); return; }
+    if (idade > 100) { toast.error("Data de nascimento inconsistente com a admissão"); return; }
+
+    if (admissao > hoje) {
+      // permite admissão futura até 90 dias
+      const diffDias = (admissao.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24);
+      if (diffDias > 90) { toast.error("Data de admissão muito distante no futuro (máx. 90 dias)"); return; }
+    }
+
+    if (!form.ativo && form.data_desligamento) {
+      const desligamento = new Date(form.data_desligamento + "T00:00:00");
+      if (desligamento < admissao) {
+        toast.error("Data de demissão não pode ser anterior à admissão");
+        return;
+      }
+      if (desligamento > hoje) {
+        toast.error("Data de demissão não pode ser futura");
+        return;
+      }
+    }
+    if (!form.ativo && !form.data_desligamento) {
+      toast.error("Informe a data de demissão para colaboradores inativos");
+      return;
+    }
+
 
     const cargoNome = (cargos.data ?? []).find((c) => c.id === form.cargo_id)?.nome ?? null;
 
