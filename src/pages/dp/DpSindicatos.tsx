@@ -223,40 +223,50 @@ export default function DpSindicatos() {
       />
 
       <DpContentCard>
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Buscar por nome ou CNPJ..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-primary">Patronais</h2>
+              <h2 className="text-xl font-semibold text-primary">Patronais <span className="text-sm font-normal text-muted-foreground">({patronais.length})</span></h2>
               <Button onClick={() => abrirNovo("patronal")}>
                 <Plus className="size-4 mr-2" /> Novo Patronal
               </Button>
             </div>
             {patronais.length === 0 ? (
               <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">
-                Nenhum sindicato patronal cadastrado.
+                Nenhum sindicato patronal {busca ? "encontrado" : "cadastrado"}.
               </div>
             ) : (
-              <div className="space-y-3">{patronais.map((s) => renderCard(s, "Patronal", "secondary"))}</div>
+              <div className="space-y-3">{patronais.map((s) => renderCard(s, "Patronal"))}</div>
             )}
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-primary">Laborais</h2>
+              <h2 className="text-xl font-semibold text-primary">Laborais <span className="text-sm font-normal text-muted-foreground">({laborais.length})</span></h2>
               <Button onClick={() => abrirNovo("laboral")}>
                 <Plus className="size-4 mr-2" /> Novo Laboral
               </Button>
             </div>
             {laborais.length === 0 ? (
               <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">
-                Nenhum sindicato laboral cadastrado.
+                Nenhum sindicato laboral {busca ? "encontrado" : "cadastrado"}.
               </div>
             ) : (
-              <div className="space-y-3">{laborais.map((s) => renderCard(s, "Laboral", "default"))}</div>
+              <div className="space-y-3">{laborais.map((s) => renderCard(s, "Laboral"))}</div>
             )}
           </div>
         </div>
       </DpContentCard>
+
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
