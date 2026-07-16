@@ -262,7 +262,7 @@ export default function DpSindicatoNegociacoes() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(list.data ?? []).map((n) => (
+                {filtered.map((n) => (
                   <TableRow key={n.id}>
                     <TableCell className="font-medium">{sindicatoMap.get(n.sindicato_id) ?? "—"}</TableCell>
                     <TableCell>{new Date(n.data_base).toLocaleDateString("pt-BR")}</TableCell>
@@ -304,10 +304,10 @@ export default function DpSindicatoNegociacoes() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {(list.data ?? []).length === 0 && (
+                {filtered.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                      Nenhuma negociação registrada.
+                      {(list.data ?? []).length === 0 ? "Nenhuma negociação registrada." : "Nenhuma negociação para os filtros atuais."}
                     </TableCell>
                   </TableRow>
                 )}
