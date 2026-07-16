@@ -387,6 +387,14 @@ export default function DpUnidades() {
               </div>
             </div>
           )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setViewOpen(false)}>Fechar</Button>
+            {viewing && (
+              <Button onClick={() => { const u = viewing; setViewOpen(false); openEdit(u); }}>
+                <Pencil className="size-4 mr-2" /> Editar
+              </Button>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
