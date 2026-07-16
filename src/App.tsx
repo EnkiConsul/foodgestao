@@ -362,6 +362,7 @@ const AppRoutes = () => (
       <Route path="documentos/act-cct" element={<DpSindicatoNegociacoes />} />
       <Route path="folha" element={<DpFolhaHub />} />
       <Route path="folha/aprovacoes" element={<DpFolhaAprovacoes />} />
+      <Route path="configuracoes" element={<DpConfiguracoes />} />
       <Route path="folha/periodos/:id" element={<DpFolhaPeriodo />} />
       {/* Redirects de rotas legadas */}
       <Route path="sindicatos" element={<Navigate to="/dp/cadastros/sindicatos" replace />} />
