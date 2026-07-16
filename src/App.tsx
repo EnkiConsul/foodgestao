@@ -35,6 +35,7 @@ import DpTrocas from "./pages/dp/DpTrocas";
 import DpFolhaHub from "./pages/dp/DpFolhaHub";
 import DpFolhaPeriodo from "./pages/dp/DpFolhaPeriodo";
 import DpFolhaAprovacoes from "./pages/dp/DpFolhaAprovacoes";
+import DpConfiguracoes from "./pages/dp/DpConfiguracoes";
 import { ColaboradorShell } from "./components/dp/ColaboradorShell";
 import DpMeuHome from "./pages/dp/portal/DpMeuHome";
 import DpMeuPerfil from "./pages/dp/portal/DpMeuPerfil";
