@@ -61,6 +61,12 @@ export default function DpDocumentosHub() {
           );
         })}
         <NavigationCard
+          title="Negociações Coletivas (ACT/CCT)"
+          description="Acordos e convenções coletivas por sindicato"
+          to="/dp/documentos/act-cct"
+          icon={FileSignature}
+        />
+        <NavigationCard
           title="Histórico completo"
           description="Todos os documentos com filtros por colaborador, tipo e período"
           to="/dp/documentos/historico"
