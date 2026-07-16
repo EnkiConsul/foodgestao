@@ -169,6 +169,7 @@ export default function DpUnidades() {
             <thead className="bg-muted/50 text-muted-foreground border-b border-border">
               <tr>
                 <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px]">Unidade</th>
+                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden lg:table-cell">Empresa</th>
                 <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden md:table-cell">CNPJ</th>
                 <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px]">Cargos</th>
                 <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px]">Sind. Patronais</th>
