@@ -49,10 +49,21 @@ export default function DpColaboradores() {
   const [unidadeFilter, setUnidadeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [cargoFilter, setCargoFilter] = useState<string>("all");
+  const [perfilFilter, setPerfilFilter] = useState<string>("all");
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<DpColaborador | null>(null);
   const [toDelete, setToDelete] = useState<DpColaborador | null>(null);
+  const [resetting, setResetting] = useState<string | null>(null);
+
+  const counts = useMemo(() => {
+    const all = list.data ?? [];
+    return {
+      todos: all.length,
+      ativos: all.filter((c) => c.ativo).length,
+      inativos: all.filter((c) => !c.ativo).length,
+    };
+  }, [list.data]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -66,11 +77,12 @@ export default function DpColaboradores() {
       }
       if (unidadeFilter !== "all" && c.unidade_id !== unidadeFilter) return false;
       if (cargoFilter !== "all" && c.cargo_id !== cargoFilter) return false;
+      if (perfilFilter !== "all" && (c as any).perfil_acesso !== perfilFilter) return false;
       if (statusFilter === "ativos" && !c.ativo) return false;
       if (statusFilter === "inativos" && c.ativo) return false;
       return true;
     });
-  }, [list.data, search, unidadeFilter, cargoFilter, statusFilter]);
+  }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, statusFilter]);
 
   const handleDelete = async () => {
     if (!toDelete) return;
@@ -89,6 +101,28 @@ export default function DpColaboradores() {
       toast.success(ativo ? "Colaborador ativado" : "Colaborador inativado");
     } catch (e) {
       toast.error("Erro ao atualizar status", { description: e instanceof Error ? e.message : String(e) });
+    }
+  };
+
+  const handleReset = async (c: DpColaborador) => {
+    if (!c.user_id) {
+      toast.error("Colaborador não possui usuário vinculado ao portal");
+      return;
+    }
+    setResetting(c.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("dp-reset-password", {
+        body: { colaborador_id: c.id },
+      });
+      if (error) throw error;
+      const pwd = (data as any)?.password;
+      toast.success("Senha redefinida", {
+        description: pwd ? `Nova senha: ${pwd} (6 últimos do CPF)` : undefined,
+      });
+    } catch (e) {
+      toast.error("Erro ao redefinir senha", { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setResetting(null);
     }
   };
 
