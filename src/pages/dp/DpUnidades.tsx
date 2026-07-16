@@ -46,6 +46,7 @@ const blank = {
 };
 
 export default function DpUnidades() {
+  const { companies } = useCompanyContext();
   const list = useDpUnidades();
   const upsert = useUpsertDpUnidade();
   const del = useDeleteDpUnidade();
