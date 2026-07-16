@@ -7,13 +7,13 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { HistoricoDisciplinar, type RegistroDisciplinar } from "@/components/dp/HistoricoDisciplinar";
+import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 const TIPOS = [
   { value: "advertencia_verbal", label: "Advertência verbal" },
@@ -130,7 +130,7 @@ export default function DpDisciplinar() {
   };
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Disciplinar — DP 360°</title></Helmet>
       <input
         ref={uploadRef}
@@ -139,13 +139,11 @@ export default function DpDisciplinar() {
         className="hidden"
         onChange={handleFileChange}
       />
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <AlertOctagon className="h-6 w-6" /> Registros disciplinares
-          </h1>
-          <p className="text-muted-foreground">Advertências, suspensões, elogios e observações.</p>
-        </div>
+      <DpPageHeader
+        icon={AlertOctagon}
+        title="Registros disciplinares"
+        description="Advertências, suspensões, elogios e observações."
+        actions={
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" /> Novo registro</Button></DialogTrigger>
           <DialogContent className="max-w-lg">
@@ -202,10 +200,11 @@ export default function DpDisciplinar() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
+        }
+      />
 
       {list.isLoading ? (
-        <p className="text-sm text-muted-foreground">Carregando…</p>
+        <DpContentCard contentClassName="p-6"><p className="text-sm text-muted-foreground">Carregando…</p></DpContentCard>
       ) : (
         <HistoricoDisciplinar
           registros={list.data ?? []}
@@ -239,6 +238,6 @@ export default function DpDisciplinar() {
           )}
         />
       )}
-    </div>
+    </DpPage>
   );
 }

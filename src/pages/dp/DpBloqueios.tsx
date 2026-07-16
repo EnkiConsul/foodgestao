@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 const TIPOS = [
   { value: "folga", label: "Folgas" },
@@ -87,15 +88,13 @@ export default function DpBloqueios() {
   });
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Bloqueios — DP 360°</title></Helmet>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Ban className="h-6 w-6" /> Bloqueios de colaboradores
-          </h1>
-          <p className="text-muted-foreground">Impeça temporariamente folgas, trocas ou solicitações.</p>
-        </div>
+      <DpPageHeader
+        icon={Ban}
+        title="Bloqueios de colaboradores"
+        description="Impeça temporariamente folgas, trocas ou solicitações."
+        actions={
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" /> Novo bloqueio</Button></DialogTrigger>
           <DialogContent className="max-w-lg">
@@ -140,16 +139,17 @@ export default function DpBloqueios() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
+        }
+      />
 
       {list.isLoading ? (
-        <p className="text-sm text-muted-foreground">Carregando…</p>
+        <DpContentCard contentClassName="p-6"><p className="text-sm text-muted-foreground">Carregando…</p></DpContentCard>
       ) : list.data?.length === 0 ? (
-        <Card><CardContent className="py-10 text-center text-muted-foreground">Nenhum bloqueio.</CardContent></Card>
+        <DpContentCard><DpEmptyState icon={Ban}>Nenhum bloqueio.</DpEmptyState></DpContentCard>
       ) : (
         <div className="grid gap-3">
           {list.data?.map((b: any) => (
-            <Card key={b.id} className={!b.ativo ? "opacity-60" : ""}>
+            <Card key={b.id} className={!b.ativo ? "dp-content-card opacity-60" : "dp-content-card"}>
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -179,6 +179,6 @@ export default function DpBloqueios() {
           ))}
         </div>
       )}
-    </div>
+    </DpPage>
   );
 }

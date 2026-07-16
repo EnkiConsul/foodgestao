@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AtalhosFavoritos } from "@/components/dp/home/AtalhosFavoritos";
+import { DpPage } from "@/components/dp/DpPage";
 
 export default function DpMeuHome() {
   const { user } = useAuth();
@@ -54,10 +55,10 @@ export default function DpMeuHome() {
   const firstName = user?.email?.split("@")[0]?.split(".")[0] ?? "";
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <DpPage>
       <Helmet><title>Portal do Colaborador — 360°FOOD</title></Helmet>
 
-      <header className="rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-[hsl(var(--dp-border))] p-5 md:p-6">
+      <header className="dp-content-card rounded-2xl bg-card border border-[hsl(var(--dp-border))] p-5 md:p-6">
         <div className="flex items-center gap-3">
           <div className="h-11 w-11 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
             <Bell className="h-5 w-5 text-primary" />
@@ -90,7 +91,7 @@ export default function DpMeuHome() {
                 <p className="text-sm">Nenhuma solicitação em aberto.</p>
               </div>
             ) : pend.data!.map((s: any) => (
-              <div key={s.id} className="flex items-center gap-3 rounded-xl bg-white border border-[hsl(var(--dp-border))] p-3">
+                <div key={s.id} className="flex items-center gap-3 rounded-xl bg-card border border-[hsl(var(--dp-border))] p-3">
                 <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                   <ClipboardList className="h-4 w-4 text-primary" />
                 </div>
@@ -121,7 +122,7 @@ export default function DpMeuHome() {
                 <p className="text-sm">Sem avisos no momento.</p>
               </div>
             ) : avisos.data!.map((a: any) => (
-              <div key={a.id} className="rounded-xl bg-white border border-[hsl(var(--dp-border))] p-3">
+                <div key={a.id} className="rounded-xl bg-card border border-[hsl(var(--dp-border))] p-3">
                 <div className="flex items-center justify-between mb-1 gap-2">
                   <p className="text-sm font-medium truncate">{a.titulo}</p>
                   <Badge variant="outline" className="text-[10px] capitalize shrink-0">{a.prioridade}</Badge>
@@ -135,6 +136,6 @@ export default function DpMeuHome() {
 
       <AtalhosFavoritos />
 
-    </div>
+    </DpPage>
   );
 }

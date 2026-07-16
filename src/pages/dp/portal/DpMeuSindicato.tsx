@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 export default function DpMeuSindicato() {
   const { user } = useAuth();
@@ -38,16 +39,14 @@ export default function DpMeuSindicato() {
   const s = data.data?.sindicato as any;
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Meu sindicato — Portal</title></Helmet>
-      <h1 className="text-2xl font-bold flex items-center gap-2">
-        <Users2 className="h-6 w-6" /> Meu sindicato
-      </h1>
+      <DpPageHeader icon={Users2} title="Meu sindicato" />
       {!s ? (
-        <Card><CardContent className="py-10 text-center text-muted-foreground">Nenhum sindicato vinculado.</CardContent></Card>
+        <DpContentCard><DpEmptyState icon={Users2}>Nenhum sindicato vinculado.</DpEmptyState></DpContentCard>
       ) : (
         <>
-          <Card>
+          <Card className="dp-content-card">
             <CardHeader>
               <CardTitle>{s.nome}</CardTitle>
               <p className="text-xs text-muted-foreground">
@@ -68,7 +67,7 @@ export default function DpMeuSindicato() {
           ) : (
             <div className="grid gap-3">
               {data.data!.negociacoes.map((n: any) => (
-                <Card key={n.id}>
+                <Card key={n.id} className="dp-content-card">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <CardTitle className="text-base flex items-center gap-2">
@@ -98,6 +97,6 @@ export default function DpMeuSindicato() {
           )}
         </>
       )}
-    </div>
+    </DpPage>
   );
 }

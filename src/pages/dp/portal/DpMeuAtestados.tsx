@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 const BUCKET = "dp-documentos";
 
@@ -103,12 +104,12 @@ export default function DpMeuAtestados() {
   };
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Meus atestados — Portal</title></Helmet>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <HeartPulse className="h-6 w-6" /> Meus atestados
-        </h1>
+      <DpPageHeader
+        icon={HeartPulse}
+        title="Meus atestados"
+        actions={
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button><Upload className="h-4 w-4 mr-1" /> Enviar atestado</Button></DialogTrigger>
           <DialogContent className="max-w-md">
@@ -149,16 +150,17 @@ export default function DpMeuAtestados() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
+        }
+      />
 
       {list.isLoading ? (
-        <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin" /></div>
+        <DpContentCard contentClassName="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin" /></DpContentCard>
       ) : (list.data?.length ?? 0) === 0 ? (
-        <Card><CardContent className="py-10 text-center text-muted-foreground">Nenhum atestado enviado.</CardContent></Card>
+        <DpContentCard><DpEmptyState icon={HeartPulse}>Nenhum atestado enviado.</DpEmptyState></DpContentCard>
       ) : (
         <div className="grid gap-3">
           {list.data?.map((s: any) => (
-            <Card key={s.id}>
+            <Card key={s.id} className="dp-content-card">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between gap-2">
                   <CardTitle className="text-base">
@@ -182,6 +184,6 @@ export default function DpMeuAtestados() {
           ))}
         </div>
       )}
-    </div>
+    </DpPage>
   );
 }

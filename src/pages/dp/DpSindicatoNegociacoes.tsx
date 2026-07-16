@@ -6,7 +6,6 @@ import { Plus, Pencil, Trash2, Loader2, ArrowLeft, FileText } from "lucide-react
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +16,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useDpSindicatos } from "@/hooks/useDpCadastros";
+import { TableSkeleton } from "@/components/dp/DpSkeletons";
+import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import type { Database } from "@/integrations/supabase/types";
 
 type Negociacao = Database["public"]["Tables"]["dp_sindicato_negociacoes"]["Row"];
@@ -150,24 +151,27 @@ export default function DpSindicatoNegociacoes() {
   };
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Negociações sindicais — DP 360°</title></Helmet>
 
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="ghost" asChild>
+      <Button size="sm" variant="ghost" asChild className="w-fit">
             <Link to="/dp/cadastros/sindicatos"><ArrowLeft className="h-4 w-4 mr-1" /> Sindicatos</Link>
-          </Button>
-          <div>
-            <h2 className="text-xl font-semibold">Negociações sindicais</h2>
-            <p className="text-sm text-muted-foreground">
-              {list.data?.length ?? 0} acordo(s) registrados
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
+      </Button>
+      <DpPageHeader
+        icon={FileText}
+        title="Negociações sindicais"
+        description={`${list.data?.length ?? 0} acordo(s) registrados`}
+        actions={<Button onClick={openNew} disabled={(sindicatos.data ?? []).length === 0}>
+            <Plus className="h-4 w-4 mr-2" /> Nova negociação
+          </Button>}
+      />
+
+      <DpFilterCard>
+        <div className="grid gap-2 md:grid-cols-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs">SINDICATO</Label>
           <Select value={sindicatoFilter} onValueChange={setSindicatoFilter}>
-            <SelectTrigger className="w-56"><SelectValue placeholder="Todos os sindicatos" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Todos os sindicatos" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os sindicatos</SelectItem>
               {(sindicatos.data ?? []).map((s) => (
@@ -175,16 +179,13 @@ export default function DpSindicatoNegociacoes() {
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={openNew} disabled={(sindicatos.data ?? []).length === 0}>
-            <Plus className="h-4 w-4 mr-2" /> Nova negociação
-          </Button>
+          </div>
         </div>
-      </div>
+      </DpFilterCard>
 
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
+      <DpContentCard contentClassName="overflow-x-auto">
           {list.isLoading ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
+            <TableSkeleton columns={6} headers={["Sindicato", "Data-base", "Reajuste", "Vigência", "Status", ""]} />
           ) : (
             <Table>
               <TableHeader>
@@ -234,8 +235,7 @@ export default function DpSindicatoNegociacoes() {
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
+      </DpContentCard>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
@@ -307,6 +307,6 @@ export default function DpSindicatoNegociacoes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </DpPage>
   );
 }

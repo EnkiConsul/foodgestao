@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 const statusLabel: Record<string, string> = {
   pendente_colega: "Aguardando colega",
@@ -72,13 +73,11 @@ export default function DpMeuTrocas() {
   });
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Minhas trocas — Portal</title></Helmet>
-      <h1 className="text-2xl font-bold flex items-center gap-2">
-        <Repeat className="h-6 w-6" /> Minhas trocas
-      </h1>
+      <DpPageHeader icon={Repeat} title="Minhas trocas" />
       {(list.data?.length ?? 0) === 0 ? (
-        <Card><CardContent className="py-10 text-center text-muted-foreground">Sem trocas.</CardContent></Card>
+        <DpContentCard><DpEmptyState icon={Repeat}>Sem trocas.</DpEmptyState></DpContentCard>
       ) : (
         <div className="grid gap-3">
           {list.data?.map((t: any) => {
@@ -88,7 +87,7 @@ export default function DpMeuTrocas() {
             const podeResponderColega = souDestino && t.status === "pendente_colega";
             const podeCancelar = souSolicitante && ["pendente_colega", "pendente_gestor"].includes(t.status);
             return (
-              <Card key={t.id}>
+              <Card key={t.id} className="dp-content-card">
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base">
@@ -131,6 +130,6 @@ export default function DpMeuTrocas() {
           })}
         </div>
       )}
-    </div>
+    </DpPage>
   );
 }

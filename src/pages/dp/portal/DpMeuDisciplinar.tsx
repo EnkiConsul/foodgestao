@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { HistoricoDisciplinar, type RegistroDisciplinar } from "@/components/dp/HistoricoDisciplinar";
+import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 export default function DpMeuDisciplinar() {
   const { user } = useAuth();
@@ -24,12 +25,10 @@ export default function DpMeuDisciplinar() {
   });
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Meus registros disciplinares — Portal</title></Helmet>
-      <h1 className="text-2xl font-bold flex items-center gap-2">
-        <AlertOctagon className="h-6 w-6" /> Registros disciplinares
-      </h1>
+      <DpPageHeader icon={AlertOctagon} title="Registros disciplinares" />
       <HistoricoDisciplinar registros={list.data ?? []} />
-    </div>
+    </DpPage>
   );
 }

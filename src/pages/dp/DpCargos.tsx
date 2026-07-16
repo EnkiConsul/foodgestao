@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Plus, Pencil, Trash2, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +11,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useDpCargos, useUpsertDpCargo, useDeleteDpCargo, type DpCargo } from "@/hooks/useDpCadastros";
+import { TableSkeleton } from "@/components/dp/DpSkeletons";
+import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 export default function DpCargos() {
   const list = useDpCargos();
@@ -73,20 +74,18 @@ export default function DpCargos() {
   const fmtBRL = (v: number | null) => v == null ? "—" : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Cargos — DP 360°</title></Helmet>
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-xl font-semibold">Cargos</h2>
-          <p className="text-sm text-muted-foreground">{list.data?.length ?? 0} cadastrados</p>
-        </div>
-        <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> Novo</Button>
-      </div>
+      <DpPageHeader
+        icon={Briefcase}
+        title="Cargos"
+        description={`${list.data?.length ?? 0} cadastrados`}
+        actions={<Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> Novo cargo</Button>}
+      />
 
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
+      <DpContentCard contentClassName="overflow-x-auto">
           {list.isLoading ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
+            <TableSkeleton columns={5} headers={["Nome", "CBO", "Salário base", "Status", ""]} />
           ) : (
             <Table>
               <TableHeader>
@@ -119,8 +118,7 @@ export default function DpCargos() {
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
+      </DpContentCard>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
@@ -165,6 +163,6 @@ export default function DpCargos() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </DpPage>
   );
 }

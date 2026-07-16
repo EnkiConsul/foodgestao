@@ -4,8 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, Loader2, Download, Trash2, FileText, ArrowLeft } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Upload, Download, Trash2, FileText, ArrowLeft, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -16,6 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useAuth } from "@/hooks/useAuth";
+import { TableSkeleton } from "@/components/dp/DpSkeletons";
+import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import type { Database } from "@/integrations/supabase/types";
 
 type Tipo = Database["public"]["Enums"]["dp_documento_tipo"];
@@ -138,27 +139,23 @@ export default function DpDocumentos() {
   const title = currentLabel ? `${currentLabel} — Documentos` : "Documentos";
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>{title} — DP 360°</title></Helmet>
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <div>
-          {filterTipo && (
+      {filterTipo && (
             <Button asChild variant="ghost" size="sm" className="mb-1 -ml-2">
               <Link to="/dp/documentos"><ArrowLeft className="h-4 w-4 mr-1" /> Categorias</Link>
             </Button>
-          )}
-          <h2 className="text-xl font-semibold">{currentLabel ?? "Todos os documentos"}</h2>
-          <p className="text-sm text-muted-foreground">
-            {filterTipo ? `Documentos da categoria ${currentLabel}.` : "Contracheques, contratos, atestados e demais documentos."}
-          </p>
-        </div>
-        <Button onClick={openDialog}><Upload className="h-4 w-4 mr-2" /> Enviar</Button>
-      </div>
+      )}
+      <DpPageHeader
+        icon={FolderOpen}
+        title={currentLabel ?? "Todos os documentos"}
+        description={filterTipo ? `Documentos da categoria ${currentLabel}.` : "Contracheques, contratos, atestados e demais documentos."}
+        actions={<Button onClick={openDialog}><Upload className="h-4 w-4 mr-2" /> Enviar</Button>}
+      />
 
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
+      <DpContentCard contentClassName="overflow-x-auto">
           {list.isLoading ? (
-            <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
+            <TableSkeleton columns={filterTipo ? 5 : 6} headers={filterTipo ? ["Título", "Colaborador", "Referência", "Arquivo", ""] : ["Título", "Tipo", "Colaborador", "Referência", "Arquivo", ""]} />
           ) : (
             <Table>
               <TableHeader>
@@ -201,8 +198,7 @@ export default function DpDocumentos() {
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
+      </DpContentCard>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
@@ -249,6 +245,6 @@ export default function DpDocumentos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </DpPage>
   );
 }

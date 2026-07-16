@@ -1,11 +1,10 @@
 import { Helmet } from "react-helmet-async";
 import { useState } from "react";
-import { MessageSquare, Plus, Trash2, Pencil, Loader2 } from "lucide-react";
+import { MessageSquare, Plus, Trash2, Pencil } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { toast } from "sonner";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -14,6 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableSkeleton } from "@/components/dp/DpSkeletons";
+import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 type Modelo = {
   id: string; titulo: string; corpo: string; canal: "whatsapp" | "email" | "sms";
@@ -84,21 +85,17 @@ export default function DpModelosMensagem() {
   });
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Modelos de mensagem — DP 360°</title></Helmet>
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" /> Modelos de mensagem
-          </h2>
-          <p className="text-sm text-muted-foreground">Templates de WhatsApp/e-mail com variáveis (ex.: <code>{"{nome}"}</code>, <code>{"{data}"}</code>).</p>
-        </div>
-        <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo modelo</Button>
-      </div>
+      <DpPageHeader
+        icon={MessageSquare}
+        title="Modelos de mensagem"
+        description="Templates de WhatsApp/e-mail com variáveis."
+        actions={<Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo modelo</Button>}
+      />
 
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
-          {list.isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div> : (
+      <DpContentCard contentClassName="overflow-x-auto">
+          {list.isLoading ? <TableSkeleton columns={4} headers={["Título", "Canal", "Variáveis", ""]} /> : (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -128,8 +125,7 @@ export default function DpModelosMensagem() {
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
+      </DpContentCard>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-lg">
@@ -163,6 +159,6 @@ export default function DpModelosMensagem() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </DpPage>
   );
 }

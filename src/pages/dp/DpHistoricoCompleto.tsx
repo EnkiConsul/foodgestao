@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { toast } from "sonner";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -16,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { TIPOS } from "./DpDocumentos";
+import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 type Doc = {
   id: string;
@@ -75,21 +75,18 @@ export default function DpHistoricoCompleto() {
   };
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Histórico Completo — DP 360°</title></Helmet>
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <ListChecks className="h-6 w-6" /> Histórico completo de documentos
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Visão unificada de todos os documentos por colaborador, tipo e período.
-        </p>
-      </div>
+      <DpPageHeader
+        icon={ListChecks}
+        title="Histórico completo de documentos"
+        description="Visão unificada de todos os documentos por colaborador, tipo e período."
+      />
 
-      <Card>
-        <CardContent className="p-4 grid gap-3 md:grid-cols-5">
-          <div className="space-y-1">
-            <Label>Tipo</Label>
+      <DpFilterCard>
+        <div className="grid gap-3 md:grid-cols-5">
+          <div className="space-y-1.5">
+            <Label className="text-xs">TIPO</Label>
             <Select value={tipo} onValueChange={setTipo}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -100,8 +97,8 @@ export default function DpHistoricoCompleto() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1">
-            <Label>Colaborador</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs">COLABORADOR</Label>
             <Select value={colabId} onValueChange={setColabId}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -112,27 +109,26 @@ export default function DpHistoricoCompleto() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1">
-            <Label>De</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs">DE</Label>
             <Input type="date" value={de} onChange={(e) => setDe(e.target.value)} />
           </div>
-          <div className="space-y-1">
-            <Label>Até</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs">ATÉ</Label>
             <Input type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
           </div>
-          <div className="space-y-1">
-            <Label>Buscar</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs">BUSCAR</Label>
             <Input
               placeholder="Título ou colaborador"
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </DpFilterCard>
 
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
+      <DpContentCard contentClassName="overflow-x-auto">
           {list.isLoading ? (
             <TableSkeleton
               columns={6}
@@ -182,8 +178,7 @@ export default function DpHistoricoCompleto() {
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
+      </DpContentCard>
 
       <p className="text-xs text-muted-foreground">
         {filtered.length} de {list.data?.length ?? 0} documento(s) exibido(s).
@@ -197,6 +192,6 @@ export default function DpHistoricoCompleto() {
         path={preview?.file_path}
         mime={preview?.mime_type}
       />
-    </div>
+    </DpPage>
   );
 }

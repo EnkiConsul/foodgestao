@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Users, Search, KeyRound } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +20,7 @@ import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
+import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 export default function DpColaboradores() {
   const list = useDpColaboradores();
@@ -77,19 +77,15 @@ export default function DpColaboradores() {
   };
 
   return (
-    <div className="space-y-6">
+    <DpPage>
       <Helmet><title>Colaboradores — DP 360°</title></Helmet>
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <Users className="h-8 w-8 text-primary shrink-0 mt-1" />
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Colaboradores</h1>
-            <p className="text-sm text-muted-foreground">Gerencie a equipe, cargos e acessos ao sistema.</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
+      <DpPageHeader
+        icon={Users}
+        title="Colaboradores"
+        description="Gerencie a equipe, cargos e acessos ao sistema."
+        actions={
+          <>
           <FavoriteToggle />
           <Button
             size="lg"
@@ -98,12 +94,11 @@ export default function DpColaboradores() {
           >
             <Plus className="h-5 w-5 mr-2" /> Novo Colaborador
           </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
-      {/* Filtros */}
-      <Card>
-        <CardContent className="p-4">
+      <DpFilterCard>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-1.5">
               <label className="text-xs font-semibold tracking-wider text-muted-foreground">BUSCAR</label>
@@ -153,12 +148,9 @@ export default function DpColaboradores() {
               </Select>
             </div>
           </div>
-        </CardContent>
-      </Card>
+      </DpFilterCard>
 
-      {/* Tabela */}
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
+      <DpContentCard contentClassName="overflow-x-auto">
           {list.isLoading ? (
             <TableSkeleton
               columns={9}
@@ -250,8 +242,7 @@ export default function DpColaboradores() {
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
+      </DpContentCard>
 
       <ColaboradorFormDialog open={dialogOpen} onOpenChange={setDialogOpen} colaborador={editing} />
 
@@ -271,6 +262,6 @@ export default function DpColaboradores() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </DpPage>
   );
 }

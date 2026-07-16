@@ -23,7 +23,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -32,6 +31,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import type { Database } from "@/integrations/supabase/types";
 
 type Row = Database["public"]["Tables"]["dp_solicitacoes"]["Row"] & {
@@ -178,31 +178,35 @@ export default function DpFolgas() {
     : [];
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet>
         <title>Folgas — DP 360°</title>
       </Helmet>
 
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            <CalendarDays className="h-5 w-5" /> Folgas & Ausências
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Calendário mensal de folgas, férias, atestados e outras ausências.
-          </p>
-        </div>
-        <div className="flex gap-2">
+      <DpPageHeader
+        icon={CalendarDays}
+        title="Folgas & Ausências"
+        description="Calendário mensal de folgas, férias, atestados e outras ausências."
+        actions={<Button onClick={() => openNew()}><Plus className="h-4 w-4 mr-2" /> Nova solicitação</Button>}
+      />
+
+      <DpFilterCard>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-1.5">
+            <label className="text-xs">STATUS</label>
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as Status | "todas")}>
-            <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="aprovada">Aprovadas</SelectItem>
               <SelectItem value="pendente">Pendentes</SelectItem>
               <SelectItem value="todas">Todos status</SelectItem>
             </SelectContent>
           </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs">TIPO</label>
           <Select value={tipoFilter} onValueChange={(v) => setTipoFilter(v as Tipo | "todos")}>
-            <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos tipos</SelectItem>
               {(Object.keys(TIPO_LABEL) as Tipo[]).map((t) => (
@@ -210,12 +214,11 @@ export default function DpFolgas() {
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={() => openNew()}><Plus className="h-4 w-4 mr-2" /> Nova solicitação</Button>
+          </div>
         </div>
-      </div>
+      </DpFilterCard>
 
-      <Card>
-        <CardContent className="p-4">
+      <DpContentCard contentClassName="p-4">
           <div className="flex items-center justify-between mb-4">
             <Button variant="ghost" size="icon" onClick={() => setCursor(subMonths(cursor, 1))}>
               <ChevronLeft className="h-4 w-4" />
@@ -302,12 +305,10 @@ export default function DpFolgas() {
               </span>
             ))}
           </div>
-        </CardContent>
-      </Card>
+      </DpContentCard>
 
       {selectedDay && (
-        <Card>
-          <CardContent className="p-4">
+        <DpContentCard contentClassName="p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold">
                 {format(selectedDay, "PPP", { locale: ptBR })}
@@ -349,8 +350,7 @@ export default function DpFolgas() {
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+        </DpContentCard>
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -436,6 +436,6 @@ export default function DpFolgas() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </DpPage>
   );
 }

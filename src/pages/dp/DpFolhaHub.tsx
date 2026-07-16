@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, ArrowRight } from "lucide-react";
+import { Plus, ArrowRight, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
+import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import type { Database } from "@/integrations/supabase/types";
 
 type Tipo = Database["public"]["Enums"]["dp_folha_tipo"];
@@ -101,7 +102,7 @@ function PeriodosLista({ tipo, companyId }: { tipo: Tipo; companyId: string }) {
     <div className="space-y-2">
       {q.data?.length === 0 && <p className="text-sm text-muted-foreground">Nenhum período criado.</p>}
       {q.data?.map((p) => (
-        <Card key={p.id} className="cursor-pointer hover:bg-muted/50" onClick={() => nav(`/dp/folha/periodos/${p.id}`)}>
+        <Card key={p.id} className="dp-content-card cursor-pointer hover:bg-muted/50" onClick={() => nav(`/dp/folha/periodos/${p.id}`)}>
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <div className="font-medium">{new Date(p.competencia).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</div>
@@ -123,26 +124,29 @@ function PeriodosLista({ tipo, companyId }: { tipo: Tipo; companyId: string }) {
 export default function DpFolhaHub() {
   const { selectedCompanyId } = useCompanyContext();
   const [tab, setTab] = useState<Tipo>("adiantamento");
-  if (!selectedCompanyId) return <p className="text-muted-foreground">Selecione uma empresa.</p>;
+  if (!selectedCompanyId) return <DpPage><DpContentCard contentClassName="p-6"><p className="text-muted-foreground">Selecione uma empresa.</p></DpContentCard></DpPage>;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Folha de Pagamento</h1>
-          <p className="text-muted-foreground text-sm">Gerencie períodos de adiantamento, mensal, quinzenal e 13º.</p>
-        </div>
+    <DpPage>
+      <DpPageHeader
+        icon={Wallet}
+        title="Folha de Pagamento"
+        description="Gerencie períodos de adiantamento, mensal, quinzenal e 13º."
+        actions={
         <Button variant="outline" size="sm" onClick={() => window.location.assign("/dp/folha/aprovacoes")}>
           Aprovações
         </Button>
-      </div>
+        }
+      />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as Tipo)}>
+        <DpFilterCard>
         <TabsList>
           {TIPOS.map((t) => (
             <TabsTrigger key={t.key} value={t.key}>{t.label}</TabsTrigger>
           ))}
         </TabsList>
+        </DpFilterCard>
         {TIPOS.map((t) => (
           <TabsContent key={t.key} value={t.key} className="space-y-3">
             <div className="flex justify-end">
@@ -152,6 +156,6 @@ export default function DpFolhaHub() {
           </TabsContent>
         ))}
       </Tabs>
-    </div>
+    </DpPage>
   );
 }

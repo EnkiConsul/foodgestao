@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, RefreshCw, Send, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, RefreshCw, Send, CheckCircle2, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
+import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import type { Database } from "@/integrations/supabase/types";
 
 type Lancamento = Database["public"]["Tables"]["dp_folha_lancamentos"]["Row"] & {
@@ -100,33 +101,30 @@ export default function DpFolhaPeriodo() {
   const total = (lancsQ.data ?? []).reduce((s, l) => s + Number(l.valor_liquido), 0);
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Button asChild variant="ghost" size="sm">
         <Link to="/dp/folha"><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Link>
       </Button>
 
       {p && (
-        <div className="flex items-center justify-between border-b pb-3">
-          <div>
-            <h1 className="text-xl font-bold">
-              {p.tipo.replace(/_/g, " ")} — {new Date(p.competencia).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              Total: <strong>R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
-              {" · "}Status: <Badge variant="outline">{p.status}</Badge>
-            </p>
-          </div>
-          <div className="flex gap-2">
+        <DpPageHeader
+          icon={Wallet}
+          title={`${p.tipo.replace(/_/g, " ")} — ${new Date(p.competencia).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}`}
+          description={`Total: R$ ${total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · Status: ${p.status}`}
+          actions={
+            <>
             <Button variant="outline" size="sm" onClick={() => gerar.mutate()} disabled={gerar.isPending}>
               <RefreshCw className="h-4 w-4 mr-1" /> Gerar lançamentos
             </Button>
             <Button size="sm" onClick={() => enviarFinanceiro.mutate()} disabled={enviarFinanceiro.isPending || p.status !== "aberto"}>
               <Send className="h-4 w-4 mr-1" /> Enviar p/ Financeiro
             </Button>
-          </div>
-        </div>
+            </>
+          }
+        />
       )}
 
+      <DpContentCard contentClassName="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
@@ -169,6 +167,7 @@ export default function DpFolhaPeriodo() {
           ))}
         </TableBody>
       </Table>
-    </div>
+      </DpContentCard>
+    </DpPage>
   );
 }

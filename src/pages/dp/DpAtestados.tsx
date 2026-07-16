@@ -6,13 +6,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
+import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import type { Database } from "@/integrations/supabase/types";
 
 type Status = Database["public"]["Enums"]["dp_solicitacao_status"];
@@ -78,24 +78,20 @@ export default function DpAtestados() {
   const pendentesCount = rows.filter((r) => r.status === "pendente").length;
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Atestados — DP 360°</title></Helmet>
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <HeartPulse className="h-6 w-6" /> Atestados
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Aprovação centralizada de atestados médicos enviados pelos colaboradores.
-          </p>
-        </div>
-        {tab !== "pendente" && pendentesCount > 0 && (
+      <DpPageHeader
+        icon={HeartPulse}
+        title="Atestados"
+        description="Aprovação centralizada de atestados médicos enviados pelos colaboradores."
+        actions={tab !== "pendente" && pendentesCount > 0 ? (
           <Badge className="bg-amber-500 text-white">
             {pendentesCount} pendente(s)
           </Badge>
-        )}
-      </div>
+        ) : undefined}
+      />
 
+      <DpFilterCard>
       <Tabs value={tab} onValueChange={(v) => setTab(v as Status | "todas")}>
         <TabsList>
           <TabsTrigger value="pendente">Pendentes</TabsTrigger>
@@ -104,9 +100,9 @@ export default function DpAtestados() {
           <TabsTrigger value="todas">Todos</TabsTrigger>
         </TabsList>
       </Tabs>
+      </DpFilterCard>
 
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
+      <DpContentCard contentClassName="overflow-x-auto">
           {list.isLoading ? (
             <TableSkeleton
               columns={5}
@@ -190,8 +186,7 @@ export default function DpAtestados() {
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
+      </DpContentCard>
 
       <DocumentPreview
         open={!!preview}
@@ -200,6 +195,6 @@ export default function DpAtestados() {
         bucket="dp-documentos"
         path={preview?.path}
       />
-    </div>
+    </DpPage>
   );
 }

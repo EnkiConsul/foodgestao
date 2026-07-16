@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDpMensagens } from "@/hooks/useDpComunicacao";
+import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 export default function DpMensagens() {
   const { selectedCompanyId } = useCompanyContext();
@@ -43,15 +44,13 @@ export default function DpMensagens() {
   const reset = () => { setDestinatario(""); setAssunto(""); setCorpo(""); };
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Mensagens — DP 360°</title></Helmet>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Mail className="h-6 w-6" /> Mensagens diretas
-          </h1>
-          <p className="text-muted-foreground">Converse com colaboradores individualmente.</p>
-        </div>
+      <DpPageHeader
+        icon={Mail}
+        title="Mensagens diretas"
+        description="Converse com colaboradores individualmente."
+        actions={
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-1" /> Nova mensagem</Button>
@@ -95,18 +94,17 @@ export default function DpMensagens() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
+        }
+      />
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Carregando…</p>
+        <DpContentCard contentClassName="p-6"><p className="text-sm text-muted-foreground">Carregando…</p></DpContentCard>
       ) : mensagens.length === 0 ? (
-        <Card><CardContent className="py-10 text-center text-muted-foreground">
-          Nenhuma mensagem enviada ainda.
-        </CardContent></Card>
+        <DpContentCard><DpEmptyState icon={Mail}>Nenhuma mensagem enviada ainda.</DpEmptyState></DpContentCard>
       ) : (
         <div className="grid gap-3">
           {mensagens.map((m: any) => (
-            <Card key={m.id}>
+            <Card key={m.id} className="dp-content-card">
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <div>
@@ -128,6 +126,6 @@ export default function DpMensagens() {
           ))}
         </div>
       )}
-    </div>
+    </DpPage>
   );
 }

@@ -3,8 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Loader2, Check, X, FileText } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Plus, Check, X, FileText, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -17,6 +16,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useAuth } from "@/hooks/useAuth";
+import { TableSkeleton } from "@/components/dp/DpSkeletons";
+import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import type { Database } from "@/integrations/supabase/types";
 
 type Tipo = Database["public"]["Enums"]["dp_solicitacao_tipo"];
@@ -109,16 +110,16 @@ export default function DpSolicitacoes() {
   };
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Solicitações — DP 360°</title></Helmet>
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold">Solicitações</h2>
-          <p className="text-sm text-muted-foreground">Folgas, atestados, adiantamentos e outros pedidos.</p>
-        </div>
-        <Button onClick={() => setDialogOpen(true)}><Plus className="h-4 w-4 mr-2" /> Nova</Button>
-      </div>
+      <DpPageHeader
+        icon={ClipboardList}
+        title="Solicitações"
+        description="Folgas, atestados, adiantamentos e outros pedidos."
+        actions={<Button onClick={() => setDialogOpen(true)}><Plus className="h-4 w-4 mr-2" /> Nova solicitação</Button>}
+      />
 
+      <DpFilterCard>
       <Tabs value={tab} onValueChange={(v) => setTab(v as Status | "todas")}>
         <TabsList>
           <TabsTrigger value="pendente">Pendentes</TabsTrigger>
@@ -127,11 +128,11 @@ export default function DpSolicitacoes() {
           <TabsTrigger value="todas">Todas</TabsTrigger>
         </TabsList>
       </Tabs>
+      </DpFilterCard>
 
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
+      <DpContentCard contentClassName="overflow-x-auto">
           {list.isLoading ? (
-            <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
+            <TableSkeleton columns={6} headers={["Colaborador", "Tipo", "Data alvo", "Motivo", "Status", ""]} />
           ) : (
             <Table>
               <TableHeader>
@@ -178,8 +179,7 @@ export default function DpSolicitacoes() {
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
+      </DpContentCard>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
@@ -226,6 +226,6 @@ export default function DpSolicitacoes() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </DpPage>
   );
 }

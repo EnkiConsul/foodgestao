@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2 } from "lucide-react";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +12,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useDpUnidades, useUpsertDpUnidade, useDeleteDpUnidade, type DpUnidade } from "@/hooks/useDpCadastros";
+import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 export default function DpUnidades() {
   const list = useDpUnidades();
@@ -88,18 +88,16 @@ export default function DpUnidades() {
   };
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Unidades — DP 360°</title></Helmet>
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-xl font-semibold">Unidades</h2>
-          <p className="text-sm text-muted-foreground">{list.data?.length ?? 0} cadastradas</p>
-        </div>
-        <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> Nova</Button>
-      </div>
+      <DpPageHeader
+        icon={Building2}
+        title="Unidades"
+        description={`${list.data?.length ?? 0} cadastradas`}
+        actions={<Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> Nova unidade</Button>}
+      />
 
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
+      <DpContentCard contentClassName="overflow-x-auto">
           {list.isLoading ? (
             <TableSkeleton
               columns={5}
@@ -137,8 +135,7 @@ export default function DpUnidades() {
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
+      </DpContentCard>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
@@ -216,6 +213,6 @@ export default function DpUnidades() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </DpPage>
   );
 }

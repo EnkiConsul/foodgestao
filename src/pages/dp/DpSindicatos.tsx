@@ -2,8 +2,7 @@ import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, FileText } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Plus, Pencil, Trash2, FileText, HandshakeIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +12,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useDpSindicatos, useUpsertDpSindicato, useDeleteDpSindicato, type DpSindicato } from "@/hooks/useDpCadastros";
+import { TableSkeleton } from "@/components/dp/DpSkeletons";
+import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 export default function DpSindicatos() {
   const list = useDpSindicatos();
@@ -81,25 +82,25 @@ export default function DpSindicatos() {
   };
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Sindicatos — DP 360°</title></Helmet>
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-xl font-semibold">Sindicatos</h2>
-          <p className="text-sm text-muted-foreground">{list.data?.length ?? 0} cadastrados</p>
-        </div>
-        <div className="flex gap-2">
+      <DpPageHeader
+        icon={HandshakeIcon}
+        title="Sindicatos"
+        description={`${list.data?.length ?? 0} cadastrados`}
+        actions={
+          <>
           <Button variant="outline" asChild>
             <Link to="/dp/sindicatos/negociacoes"><FileText className="h-4 w-4 mr-2" /> Negociações</Link>
           </Button>
-          <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> Novo</Button>
-        </div>
-      </div>
+          <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> Novo sindicato</Button>
+          </>
+        }
+      />
 
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
+      <DpContentCard contentClassName="overflow-x-auto">
           {list.isLoading ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
+            <TableSkeleton columns={6} headers={["Nome", "CNPJ", "Data-base", "Contato", "Status", ""]} />
           ) : (
             <Table>
               <TableHeader>
@@ -134,8 +135,7 @@ export default function DpSindicatos() {
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
+      </DpContentCard>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
@@ -194,6 +194,6 @@ export default function DpSindicatos() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </DpPage>
   );
 }
