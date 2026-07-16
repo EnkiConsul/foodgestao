@@ -62,7 +62,7 @@ export default function DpUnidades() {
 
   const openNew = () => {
     setEditing(null);
-    setForm(blank);
+    setForm({ ...blank, company_id: companies.length === 1 ? companies[0].id : "" });
     setOpen(true);
   };
 
