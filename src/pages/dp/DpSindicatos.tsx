@@ -2,15 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, HandshakeIcon, Check, MessageCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, HandshakeIcon, Check, MessageCircle, Search, Users, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useDpSindicatos, useUpsertDpSindicato, useDeleteDpSindicato, useDpUnidades, useDpCargos, type DpSindicato } from "@/hooks/useDpCadastros";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useDpSindicatos, useUpsertDpSindicato, useDeleteDpSindicato, useDpUnidades, useDpCargos, type DpSindicatoWithCounts } from "@/hooks/useDpCadastros";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 import { supabase } from "@/integrations/supabase/client";
