@@ -36,12 +36,11 @@ const ADMIN_ITEMS: Item[] = [
   },
   {
     kind: "group", title: "Folgas", icon: Calendar,
-    prefixes: ["/dp/folgas", "/dp/solicitacoes", "/dp/aprovacoes", "/dp/trocas", "/dp/bloqueios", "/dp/atestados"],
+    prefixes: ["/dp/folgas", "/dp/solicitacoes", "/dp/aprovacoes", "/dp/trocas", "/dp/bloqueios"],
     items: [
       { title: "Calendário Geral", url: "/dp/folgas", icon: Calendar },
       { title: "Solicitações", url: "/dp/solicitacoes", icon: ClipboardList },
       { title: "Aprovações", url: "/dp/aprovacoes", icon: UserCheck },
-      { title: "Atestados", url: "/dp/atestados", icon: HeartPulse },
       { title: "Trocas", url: "/dp/trocas", icon: ArrowLeftRight },
       { title: "Datas Bloqueadas", url: "/dp/bloqueios", icon: Ban },
     ],
