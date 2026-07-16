@@ -1698,6 +1698,8 @@ export type Database = {
       }
       dp_avisos: {
         Row: {
+          arquivo_mime: string | null
+          arquivo_path: string | null
           autor_id: string | null
           cargo_id: string | null
           company_id: string
@@ -1714,6 +1716,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          arquivo_mime?: string | null
+          arquivo_path?: string | null
           autor_id?: string | null
           cargo_id?: string | null
           company_id: string
@@ -1730,6 +1734,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          arquivo_mime?: string | null
+          arquivo_path?: string | null
           autor_id?: string | null
           cargo_id?: string | null
           company_id?: string
@@ -1924,6 +1930,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "dp_bloqueios_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "dp_bloqueios_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -1986,17 +1999,24 @@ export type Database = {
           data_nascimento: string | null
           dp_permissions: Json
           email: string | null
+          email_contato: string | null
           email_portal: string | null
+          endereco: Json | null
+          folga_fixa_semana: number | null
           id: string
           matricula: string | null
           nome: string
           observacoes: string | null
+          optante_adiantamento: boolean
+          perfil_acesso: Database["public"]["Enums"]["dp_perfil_acesso"]
+          possui_folha_ponto: boolean
           regime: Database["public"]["Enums"]["dp_regime_trabalho"]
           sindicato_id: string | null
           telefone: string | null
           unidade_id: string | null
           updated_at: string
           user_id: string | null
+          whatsapp: string | null
         }
         Insert: {
           ativo?: boolean
@@ -2010,17 +2030,24 @@ export type Database = {
           data_nascimento?: string | null
           dp_permissions?: Json
           email?: string | null
+          email_contato?: string | null
           email_portal?: string | null
+          endereco?: Json | null
+          folga_fixa_semana?: number | null
           id?: string
           matricula?: string | null
           nome: string
           observacoes?: string | null
+          optante_adiantamento?: boolean
+          perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"]
+          possui_folha_ponto?: boolean
           regime?: Database["public"]["Enums"]["dp_regime_trabalho"]
           sindicato_id?: string | null
           telefone?: string | null
           unidade_id?: string | null
           updated_at?: string
           user_id?: string | null
+          whatsapp?: string | null
         }
         Update: {
           ativo?: boolean
@@ -2034,17 +2061,24 @@ export type Database = {
           data_nascimento?: string | null
           dp_permissions?: Json
           email?: string | null
+          email_contato?: string | null
           email_portal?: string | null
+          endereco?: Json | null
+          folga_fixa_semana?: number | null
           id?: string
           matricula?: string | null
           nome?: string
           observacoes?: string | null
+          optante_adiantamento?: boolean
+          perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"]
+          possui_folha_ponto?: boolean
           regime?: Database["public"]["Enums"]["dp_regime_trabalho"]
           sindicato_id?: string | null
           telefone?: string | null
           unidade_id?: string | null
           updated_at?: string
           user_id?: string | null
+          whatsapp?: string | null
         }
         Relationships: [
           {
@@ -2254,6 +2288,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "dp_documentos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "dp_documentos_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -2314,6 +2355,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "dp_folgas_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "dp_folgas_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -2362,6 +2410,13 @@ export type Database = {
             columns: ["colaborador_id"]
             isOneToOne: false
             referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_folgas_canceladas_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
             referencedColumns: ["id"]
           },
           {
@@ -2441,6 +2496,13 @@ export type Database = {
             columns: ["colaborador_id"]
             isOneToOne: false
             referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_folha_lancamentos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
             referencedColumns: ["id"]
           },
           {
@@ -2586,6 +2648,60 @@ export type Database = {
             referencedRelation: "dp_colaboradores"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "dp_mensagens_destinatario_colaborador_id_fkey"
+            columns: ["destinatario_colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_modelos_mensagem: {
+        Row: {
+          ativo: boolean
+          canal: Database["public"]["Enums"]["dp_mensagem_canal"]
+          company_id: string
+          corpo: string
+          created_at: string
+          criado_por: string | null
+          id: string
+          titulo: string
+          updated_at: string
+          variaveis: string[]
+        }
+        Insert: {
+          ativo?: boolean
+          canal?: Database["public"]["Enums"]["dp_mensagem_canal"]
+          company_id: string
+          corpo: string
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          titulo: string
+          updated_at?: string
+          variaveis?: string[]
+        }
+        Update: {
+          ativo?: boolean
+          canal?: Database["public"]["Enums"]["dp_mensagem_canal"]
+          company_id?: string
+          corpo?: string
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          titulo?: string
+          updated_at?: string
+          variaveis?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_modelos_mensagem_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
         ]
       }
       dp_notificacoes: {
@@ -2640,6 +2756,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "dp_notificacoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "dp_notificacoes_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -2688,6 +2811,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "dp_prioridade_aniversario_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "dp_prioridade_aniversario_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -2706,6 +2836,7 @@ export type Database = {
           descricao: string | null
           id: string
           motivo: string
+          pdf_storage_path: string | null
           suspensao_dias: number | null
           tipo: Database["public"]["Enums"]["dp_disciplinar_tipo"]
           updated_at: string
@@ -2719,6 +2850,7 @@ export type Database = {
           descricao?: string | null
           id?: string
           motivo: string
+          pdf_storage_path?: string | null
           suspensao_dias?: number | null
           tipo: Database["public"]["Enums"]["dp_disciplinar_tipo"]
           updated_at?: string
@@ -2732,6 +2864,7 @@ export type Database = {
           descricao?: string | null
           id?: string
           motivo?: string
+          pdf_storage_path?: string | null
           suspensao_dias?: number | null
           tipo?: Database["public"]["Enums"]["dp_disciplinar_tipo"]
           updated_at?: string
@@ -2745,6 +2878,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "dp_registros_disciplinares_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "dp_registros_disciplinares_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -2753,48 +2893,93 @@ export type Database = {
           },
         ]
       }
+      dp_sindicato_cargos: {
+        Row: {
+          cargo_id: string
+          created_at: string
+          sindicato_id: string
+        }
+        Insert: {
+          cargo_id: string
+          created_at?: string
+          sindicato_id: string
+        }
+        Update: {
+          cargo_id?: string
+          created_at?: string
+          sindicato_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_sindicato_cargos_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_sindicato_cargos_sindicato_id_fkey"
+            columns: ["sindicato_id"]
+            isOneToOne: false
+            referencedRelation: "dp_sindicatos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_sindicato_negociacoes: {
         Row: {
+          ano: number | null
           clausulas: Json
           company_id: string
           created_at: string
           created_by: string | null
           data_base: string
           id: string
+          mes: number | null
           observacoes: string | null
           pdf_path: string | null
           reajuste_pct: number | null
           sindicato_id: string
+          tipo_documento: Database["public"]["Enums"]["dp_negociacao_tipo_doc"]
+          unidade_id: string | null
           updated_at: string
           vigencia_fim: string | null
           vigencia_inicio: string
         }
         Insert: {
+          ano?: number | null
           clausulas?: Json
           company_id: string
           created_at?: string
           created_by?: string | null
           data_base: string
           id?: string
+          mes?: number | null
           observacoes?: string | null
           pdf_path?: string | null
           reajuste_pct?: number | null
           sindicato_id: string
+          tipo_documento?: Database["public"]["Enums"]["dp_negociacao_tipo_doc"]
+          unidade_id?: string | null
           updated_at?: string
           vigencia_fim?: string | null
           vigencia_inicio: string
         }
         Update: {
+          ano?: number | null
           clausulas?: Json
           company_id?: string
           created_at?: string
           created_by?: string | null
           data_base?: string
           id?: string
+          mes?: number | null
           observacoes?: string | null
           pdf_path?: string | null
           reajuste_pct?: number | null
           sindicato_id?: string
+          tipo_documento?: Database["public"]["Enums"]["dp_negociacao_tipo_doc"]
+          unidade_id?: string | null
           updated_at?: string
           vigencia_fim?: string | null
           vigencia_inicio?: string
@@ -2814,6 +2999,46 @@ export type Database = {
             referencedRelation: "dp_sindicatos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "dp_sindicato_negociacoes_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_sindicato_unidades: {
+        Row: {
+          created_at: string
+          sindicato_id: string
+          unidade_id: string
+        }
+        Insert: {
+          created_at?: string
+          sindicato_id: string
+          unidade_id: string
+        }
+        Update: {
+          created_at?: string
+          sindicato_id?: string
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_sindicato_unidades_sindicato_id_fkey"
+            columns: ["sindicato_id"]
+            isOneToOne: false
+            referencedRelation: "dp_sindicatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_sindicato_unidades_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
         ]
       }
       dp_sindicatos: {
@@ -2828,6 +3053,7 @@ export type Database = {
           data_base: string | null
           id: string
           nome: string
+          tipo: Database["public"]["Enums"]["dp_sindicato_tipo"]
           updated_at: string
         }
         Insert: {
@@ -2841,6 +3067,7 @@ export type Database = {
           data_base?: string | null
           id?: string
           nome: string
+          tipo?: Database["public"]["Enums"]["dp_sindicato_tipo"]
           updated_at?: string
         }
         Update: {
@@ -2854,6 +3081,7 @@ export type Database = {
           data_base?: string | null
           id?: string
           nome?: string
+          tipo?: Database["public"]["Enums"]["dp_sindicato_tipo"]
           updated_at?: string
         }
         Relationships: [
@@ -2924,6 +3152,13 @@ export type Database = {
             columns: ["colaborador_id"]
             isOneToOne: false
             referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_solicitacoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
             referencedColumns: ["id"]
           },
           {
@@ -3006,10 +3241,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "dp_trocas_destino_id_fkey"
+            columns: ["destino_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "dp_trocas_solicitante_id_fkey"
             columns: ["solicitante_id"]
             isOneToOne: false
             referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_trocas_solicitante_id_fkey"
+            columns: ["solicitante_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_unidade_cargos: {
+        Row: {
+          cargo_id: string
+          created_at: string
+          unidade_id: string
+        }
+        Insert: {
+          cargo_id: string
+          created_at?: string
+          unidade_id: string
+        }
+        Update: {
+          cargo_id?: string
+          created_at?: string
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_unidade_cargos_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_unidade_cargos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -3021,9 +3303,13 @@ export type Database = {
           cnpj: string | null
           company_id: string
           created_at: string
+          dia_adiantamento: number | null
           endereco: string | null
           id: string
           nome: string
+          possui_relogio_ponto: boolean
+          telefone: string | null
+          tem_adiantamento: boolean
           uf: string | null
           updated_at: string
         }
@@ -3033,9 +3319,13 @@ export type Database = {
           cnpj?: string | null
           company_id: string
           created_at?: string
+          dia_adiantamento?: number | null
           endereco?: string | null
           id?: string
           nome: string
+          possui_relogio_ponto?: boolean
+          telefone?: string | null
+          tem_adiantamento?: boolean
           uf?: string | null
           updated_at?: string
         }
@@ -3045,9 +3335,13 @@ export type Database = {
           cnpj?: string | null
           company_id?: string
           created_at?: string
+          dia_adiantamento?: number | null
           endereco?: string | null
           id?: string
           nome?: string
+          possui_relogio_ponto?: boolean
+          telefone?: string | null
+          tem_adiantamento?: boolean
           uf?: string | null
           updated_at?: string
         }
@@ -4155,6 +4449,113 @@ export type Database = {
         }
         Relationships: []
       }
+      dp_colaboradores_public: {
+        Row: {
+          ativo: boolean | null
+          cargo: string | null
+          cargo_id: string | null
+          company_id: string | null
+          created_at: string | null
+          data_admissao: string | null
+          data_desligamento: string | null
+          data_nascimento: string | null
+          email_portal: string | null
+          folga_fixa_semana: number | null
+          id: string | null
+          matricula: string | null
+          nome: string | null
+          optante_adiantamento: boolean | null
+          perfil_acesso: Database["public"]["Enums"]["dp_perfil_acesso"] | null
+          possui_folha_ponto: boolean | null
+          regime: Database["public"]["Enums"]["dp_regime_trabalho"] | null
+          sindicato_id: string | null
+          telefone: string | null
+          unidade_id: string | null
+          updated_at: string | null
+          user_id: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          cargo?: string | null
+          cargo_id?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          data_admissao?: string | null
+          data_desligamento?: string | null
+          data_nascimento?: string | null
+          email_portal?: string | null
+          folga_fixa_semana?: number | null
+          id?: string | null
+          matricula?: string | null
+          nome?: string | null
+          optante_adiantamento?: boolean | null
+          perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"] | null
+          possui_folha_ponto?: boolean | null
+          regime?: Database["public"]["Enums"]["dp_regime_trabalho"] | null
+          sindicato_id?: string | null
+          telefone?: string | null
+          unidade_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          cargo?: string | null
+          cargo_id?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          data_admissao?: string | null
+          data_desligamento?: string | null
+          data_nascimento?: string | null
+          email_portal?: string | null
+          folga_fixa_semana?: number | null
+          id?: string | null
+          matricula?: string | null
+          nome?: string | null
+          optante_adiantamento?: boolean | null
+          perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"] | null
+          possui_folha_ponto?: boolean | null
+          regime?: Database["public"]["Enums"]["dp_regime_trabalho"] | null
+          sindicato_id?: string | null
+          telefone?: string | null
+          unidade_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_colaboradores_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaboradores_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaboradores_sindicato_id_fkey"
+            columns: ["sindicato_id"]
+            isOneToOne: false
+            referencedRelation: "dp_sindicatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaboradores_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       apply_tx_balance: {
@@ -4743,6 +5144,8 @@ export type Database = {
         | "ferias"
         | "vale_alimentacao"
         | "vale_transporte"
+      dp_mensagem_canal: "whatsapp" | "email" | "sms"
+      dp_negociacao_tipo_doc: "act" | "cct" | "aditivo" | "outro"
       dp_notificacao_tipo:
         | "solicitacao_nova"
         | "solicitacao_respondida"
@@ -4751,7 +5154,9 @@ export type Database = {
         | "troca_resposta_gestor"
         | "disciplinar_novo"
         | "atestado_novo"
+      dp_perfil_acesso: "colaborador" | "gestor" | "admin"
       dp_regime_trabalho: "clt" | "pj" | "estagio" | "temporario" | "mei"
+      dp_sindicato_tipo: "patronal" | "laboral"
       dp_solicitacao_status: "pendente" | "aprovada" | "recusada" | "cancelada"
       dp_solicitacao_tipo:
         | "folga"
@@ -5006,6 +5411,8 @@ export const Constants = {
         "vale_alimentacao",
         "vale_transporte",
       ],
+      dp_mensagem_canal: ["whatsapp", "email", "sms"],
+      dp_negociacao_tipo_doc: ["act", "cct", "aditivo", "outro"],
       dp_notificacao_tipo: [
         "solicitacao_nova",
         "solicitacao_respondida",
@@ -5015,7 +5422,9 @@ export const Constants = {
         "disciplinar_novo",
         "atestado_novo",
       ],
+      dp_perfil_acesso: ["colaborador", "gestor", "admin"],
       dp_regime_trabalho: ["clt", "pj", "estagio", "temporario", "mei"],
+      dp_sindicato_tipo: ["patronal", "laboral"],
       dp_solicitacao_status: ["pendente", "aprovada", "recusada", "cancelada"],
       dp_solicitacao_tipo: [
         "folga",

@@ -1,4 +1,4 @@
-import { Home, User, FileText, ClipboardList, Repeat, CalendarDays, HeartPulse } from "lucide-react";
+import { Home, User, FileText, ClipboardList, Repeat, CalendarDays, HeartPulse, AlertOctagon, Users2 } from "lucide-react";
 import { SidebarSection, SidebarNavItem, type MenuItem } from "./shared";
 
 const items: MenuItem[] = [
@@ -8,6 +8,8 @@ const items: MenuItem[] = [
   { title: "Documentos", url: "/dp/meu/documentos", icon: FileText },
   { title: "Solicitações", url: "/dp/meu/solicitacoes", icon: ClipboardList },
   { title: "Atestados", url: "/dp/meu/atestados", icon: HeartPulse },
+  { title: "Disciplinar", url: "/dp/meu/disciplinar", icon: AlertOctagon },
+  { title: "Sindicato", url: "/dp/meu/sindicato", icon: Users2 },
   { title: "Trocas", url: "/dp/meu/trocas", icon: Repeat },
 ];
 

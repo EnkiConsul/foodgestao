@@ -57,14 +57,16 @@ const ADMIN_ITEMS: Item[] = [
       { title: "Registros Disciplinares", url: "/dp/disciplinar", icon: ShieldAlert },
       { title: "ACT-CCT / Sindicato", url: "/dp/documentos/sindicato", icon: Scale },
       { title: "Histórico Completo", url: "/dp/documentos", icon: ListChecks, end: true },
+      { title: "Importar em massa", url: "/dp/documentos/importar", icon: FileText },
     ],
   },
   {
     kind: "group", title: "Comunicação", icon: MessageSquare,
-    prefixes: ["/dp/mensagens", "/dp/avisos"],
+    prefixes: ["/dp/mensagens", "/dp/avisos", "/dp/modelos-mensagem"],
     items: [
       { title: "Mensagens", url: "/dp/mensagens", icon: MessageSquare },
       { title: "Quadro de Avisos", url: "/dp/avisos", icon: Bell },
+      { title: "Modelos de Mensagem", url: "/dp/modelos-mensagem", icon: MessageSquare },
     ],
   },
 ];
@@ -72,19 +74,23 @@ const ADMIN_ITEMS: Item[] = [
 const PORTAL_ITEMS: Item[] = [
   { kind: "link", title: "Início", url: "/dp/meu", icon: Home, end: true, home: true },
   { kind: "link", title: "Perfil", url: "/dp/meu/perfil", icon: User },
+  { kind: "link", title: "Calendário", url: "/dp/meu/calendario", icon: Calendar },
   {
     kind: "group", title: "Folgas", icon: Calendar,
-    prefixes: ["/dp/meu/solicitacoes", "/dp/meu/trocas"],
+    prefixes: ["/dp/meu/solicitacoes", "/dp/meu/trocas", "/dp/meu/atestados"],
     items: [
       { title: "Solicitações", url: "/dp/meu/solicitacoes", icon: ClipboardList },
+      { title: "Atestados", url: "/dp/meu/atestados", icon: HeartPulse },
       { title: "Trocas", url: "/dp/meu/trocas", icon: Repeat },
     ],
   },
   {
     kind: "group", title: "Documentos", icon: FileText,
-    prefixes: ["/dp/meu/documentos"],
+    prefixes: ["/dp/meu/documentos", "/dp/meu/disciplinar", "/dp/meu/sindicato"],
     items: [
       { title: "Meus Documentos", url: "/dp/meu/documentos", icon: FileText },
+      { title: "Disciplinar", url: "/dp/meu/disciplinar", icon: ShieldAlert },
+      { title: "Meu Sindicato", url: "/dp/meu/sindicato", icon: Scale },
     ],
   },
 ];

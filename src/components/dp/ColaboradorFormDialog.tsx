@@ -36,31 +36,44 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const sindicatos = useDpSindicatos();
   const [form, setForm] = useState({
     nome: "", cpf: "", matricula: "", cargo: "",
-    regime: "clt" as Regime, data_admissao: "", email: "", telefone: "",
+    regime: "clt" as Regime, data_admissao: "", data_desligamento: "",
+    email: "", telefone: "", whatsapp: "",
     ativo: true, observacoes: "",
     unidade_id: "" as string, cargo_id: "" as string, sindicato_id: "" as string,
-    email_portal: "",
+    email_portal: "", email_contato: "",
     data_nascimento: "",
+    perfil_acesso: "colaborador" as "colaborador" | "gestor" | "admin",
+    folga_fixa_semana: "" as string,
+    possui_folha_ponto: false,
+    optante_adiantamento: false,
   });
 
   useEffect(() => {
     if (open) {
+      const c = (colaborador ?? {}) as any;
       setForm({
-        nome: colaborador?.nome ?? "",
-        cpf: colaborador?.cpf ?? "",
-        matricula: colaborador?.matricula ?? "",
-        cargo: colaborador?.cargo ?? "",
-        regime: (colaborador?.regime as Regime) ?? "clt",
-        data_admissao: colaborador?.data_admissao ?? "",
-        email: colaborador?.email ?? "",
-        telefone: colaborador?.telefone ?? "",
-        ativo: colaborador?.ativo ?? true,
-        observacoes: colaborador?.observacoes ?? "",
-        unidade_id: colaborador?.unidade_id ?? "",
-        cargo_id: colaborador?.cargo_id ?? "",
-        sindicato_id: colaborador?.sindicato_id ?? "",
-        email_portal: colaborador?.email_portal ?? "",
-        data_nascimento: (colaborador as any)?.data_nascimento ?? "",
+        nome: c.nome ?? "",
+        cpf: c.cpf ?? "",
+        matricula: c.matricula ?? "",
+        cargo: c.cargo ?? "",
+        regime: (c.regime as Regime) ?? "clt",
+        data_admissao: c.data_admissao ?? "",
+        data_desligamento: c.data_desligamento ?? "",
+        email: c.email ?? "",
+        telefone: c.telefone ?? "",
+        whatsapp: c.whatsapp ?? "",
+        ativo: c.ativo ?? true,
+        observacoes: c.observacoes ?? "",
+        unidade_id: c.unidade_id ?? "",
+        cargo_id: c.cargo_id ?? "",
+        sindicato_id: c.sindicato_id ?? "",
+        email_portal: c.email_portal ?? "",
+        email_contato: c.email_contato ?? "",
+        data_nascimento: c.data_nascimento ?? "",
+        perfil_acesso: c.perfil_acesso ?? "colaborador",
+        folga_fixa_semana: c.folga_fixa_semana != null ? String(c.folga_fixa_semana) : "",
+        possui_folha_ponto: c.possui_folha_ponto ?? false,
+        optante_adiantamento: c.optante_adiantamento ?? false,
       });
     }
   }, [open, colaborador]);
@@ -76,15 +89,22 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         cargo: form.cargo.trim() || null,
         regime: form.regime,
         data_admissao: form.data_admissao || null,
+        data_desligamento: form.data_desligamento || null,
         email: form.email.trim() || null,
         telefone: form.telefone.trim() || null,
+        whatsapp: form.whatsapp.trim() || null,
         ativo: form.ativo,
         observacoes: form.observacoes.trim() || null,
         unidade_id: form.unidade_id || null,
         cargo_id: form.cargo_id || null,
         sindicato_id: form.sindicato_id || null,
         email_portal: form.email_portal.trim() || null,
+        email_contato: form.email_contato.trim() || null,
         data_nascimento: form.data_nascimento || null,
+        perfil_acesso: form.perfil_acesso,
+        folga_fixa_semana: form.folga_fixa_semana ? Number(form.folga_fixa_semana) : null,
+        possui_folha_ponto: form.possui_folha_ponto,
+        optante_adiantamento: form.optante_adiantamento,
       } as any);
       toast.success(colaborador ? "Colaborador atualizado" : "Colaborador cadastrado");
       onOpenChange(false);
@@ -129,23 +149,74 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="grid gap-1.5">
               <Label>Data de admissão</Label>
               <Input type="date" value={form.data_admissao} onChange={(e) => setForm({ ...form, data_admissao: e.target.value })} />
             </div>
             <div className="grid gap-1.5">
-              <Label>Data de nascimento</Label>
+              <Label>Nascimento</Label>
               <Input type="date" value={form.data_nascimento} onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })} />
             </div>
+            <div className="grid gap-1.5">
+              <Label>Data de demissão</Label>
+              <Input type="date" value={form.data_desligamento} onChange={(e) => setForm({ ...form, data_desligamento: e.target.value })} />
+            </div>
           </div>
-          <div className="grid gap-1.5">
-            <Label>Telefone</Label>
-            <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
+          <div className="grid grid-cols-3 gap-3">
+            <div className="grid gap-1.5">
+              <Label>Telefone</Label>
+              <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>WhatsApp</Label>
+              <Input value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} placeholder="(62) 9..." />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>E-mail (corporativo)</Label>
+              <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            </div>
           </div>
-          <div className="grid gap-1.5">
-            <Label>E-mail</Label>
-            <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <Label>E-mail de contato pessoal</Label>
+              <Input type="email" value={form.email_contato} onChange={(e) => setForm({ ...form, email_contato: e.target.value })} />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Folga fixa (dia da semana)</Label>
+              <Select value={form.folga_fixa_semana || "__none"} onValueChange={(v) => setForm({ ...form, folga_fixa_semana: v === "__none" ? "" : v })}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">— Nenhum —</SelectItem>
+                  {["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"].map((d, i) => (
+                    <SelectItem key={i} value={String(i)}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <Label>Perfil de acesso</Label>
+              <Select value={form.perfil_acesso} onValueChange={(v: any) => setForm({ ...form, perfil_acesso: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="colaborador">Colaborador</SelectItem>
+                  <SelectItem value="gestor">Gestor</SelectItem>
+                  <SelectItem value="admin">Admin DP</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-2 pt-6">
+              <div className="flex items-center gap-2">
+                <Switch id="ponto" checked={form.possui_folha_ponto} onCheckedChange={(v) => setForm({ ...form, possui_folha_ponto: v })} />
+                <Label htmlFor="ponto" className="text-sm">Possui folha de ponto</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch id="adto" checked={form.optante_adiantamento} onCheckedChange={(v) => setForm({ ...form, optante_adiantamento: v })} />
+                <Label htmlFor="adto" className="text-sm">Optante por adiantamento</Label>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">

@@ -2,7 +2,8 @@ import { Helmet } from "react-helmet-async";
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Pin, Trash2, Pencil, Megaphone } from "lucide-react";
+import { Plus, Pin, Trash2, Pencil, Megaphone, Upload, FileText } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +16,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useDpAvisos, type DpAviso } from "@/hooks/useDpComunicacao";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const prioridadeColor: Record<string, string> = {
   baixa: "bg-muted text-muted-foreground",
@@ -24,18 +27,38 @@ const prioridadeColor: Record<string, string> = {
 };
 
 function AvisoDialog({
-  aviso, open, onOpenChange, onSave,
+  aviso, open, onOpenChange, onSave, companyId,
 }: {
   aviso?: DpAviso | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSave: (v: Partial<DpAviso> & { titulo: string; conteudo: string }) => void;
+  companyId: string | null;
 }) {
   const [titulo, setTitulo] = useState(aviso?.titulo ?? "");
   const [conteudo, setConteudo] = useState(aviso?.conteudo ?? "");
   const [prioridade, setPrioridade] = useState(aviso?.prioridade ?? "normal");
   const [fixado, setFixado] = useState(aviso?.fixado ?? false);
   const [expiraEm, setExpiraEm] = useState(aviso?.expira_em?.slice(0, 10) ?? "");
+  const [arquivoPath, setArquivoPath] = useState((aviso as any)?.arquivo_path ?? "");
+  const [arquivoMime, setArquivoMime] = useState((aviso as any)?.arquivo_mime ?? "");
+  const [uploading, setUploading] = useState(false);
+
+  const uploadFile = async (file: File) => {
+    if (!companyId) return toast.error("Selecione uma empresa");
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() ?? "bin";
+      const path = `${companyId}/avisos/${Date.now()}.${ext}`;
+      const up = await supabase.storage.from("dp-documentos").upload(path, file, { contentType: file.type });
+      if (up.error) throw up.error;
+      setArquivoPath(path);
+      setArquivoMime(file.type);
+      toast.success("Arquivo enviado");
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro no upload");
+    } finally { setUploading(false); }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -74,6 +97,18 @@ function AvisoDialog({
             <Switch checked={fixado} onCheckedChange={setFixado} id="fixado" />
             <Label htmlFor="fixado">Fixar no topo</Label>
           </div>
+          <div>
+            <Label>Anexo (opcional)</Label>
+            <div className="flex items-center gap-2">
+              <Input type="file" onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0])} disabled={uploading} />
+              {arquivoPath && (
+                <Button size="sm" variant="ghost" onClick={() => { setArquivoPath(""); setArquivoMime(""); }}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            {arquivoPath && <p className="text-xs text-muted-foreground mt-1"><FileText className="inline h-3 w-3 mr-1" />{arquivoPath.split("/").pop()}</p>}
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
@@ -87,7 +122,8 @@ function AvisoDialog({
                 prioridade: prioridade as any,
                 fixado,
                 expira_em: expiraEm ? new Date(expiraEm).toISOString() : null,
-              });
+                ...(arquivoPath ? { arquivo_path: arquivoPath, arquivo_mime: arquivoMime } as any : {}),
+              } as any);
               onOpenChange(false);
             }}
           >
@@ -101,8 +137,15 @@ function AvisoDialog({
 
 export default function DpAvisos() {
   const { data: avisos = [], isLoading, upsert, remove } = useDpAvisos();
+  const { selectedCompanyId } = useCompanyContext();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<DpAviso | null>(null);
+
+  const openAnexo = async (path: string) => {
+    const { data, error } = await supabase.storage.from("dp-documentos").createSignedUrl(path, 60);
+    if (error) return toast.error(error.message);
+    window.open(data.signedUrl, "_blank");
+  };
 
   return (
     <div className="space-y-4">
@@ -121,9 +164,11 @@ export default function DpAvisos() {
             </Button>
           </DialogTrigger>
           <AvisoDialog
+            key={editing?.id ?? "new"}
             aviso={editing}
             open={open}
             onOpenChange={setOpen}
+            companyId={selectedCompanyId}
             onSave={(v) => upsert.mutate(v)}
           />
         </Dialog>
@@ -160,8 +205,13 @@ export default function DpAvisos() {
                   {a.expira_em && ` · expira em ${format(new Date(a.expira_em), "dd/MM/yyyy")}`}
                 </p>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-2">
                 <p className="whitespace-pre-wrap text-sm">{a.conteudo}</p>
+                {(a as any).arquivo_path && (
+                  <Button size="sm" variant="outline" onClick={() => openAnexo((a as any).arquivo_path)}>
+                    <FileText className="h-4 w-4 mr-1" /> Ver anexo
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))}

@@ -20,16 +20,20 @@ export default function DpUnidades() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<DpUnidade | null>(null);
   const [toDelete, setToDelete] = useState<DpUnidade | null>(null);
-  const [form, setForm] = useState({ nome: "", cnpj: "", endereco: "", cidade: "", uf: "", ativo: true });
+  const [form, setForm] = useState({
+    nome: "", cnpj: "", endereco: "", cidade: "", uf: "", ativo: true,
+    telefone: "", possui_relogio_ponto: false, tem_adiantamento: false, dia_adiantamento: "" as string,
+  });
 
   const openNew = () => {
     setEditing(null);
-    setForm({ nome: "", cnpj: "", endereco: "", cidade: "", uf: "", ativo: true });
+    setForm({ nome: "", cnpj: "", endereco: "", cidade: "", uf: "", ativo: true, telefone: "", possui_relogio_ponto: false, tem_adiantamento: false, dia_adiantamento: "" });
     setOpen(true);
   };
 
   const openEdit = (u: DpUnidade) => {
     setEditing(u);
+    const anyU = u as any;
     setForm({
       nome: u.nome,
       cnpj: u.cnpj ?? "",
@@ -37,6 +41,10 @@ export default function DpUnidades() {
       cidade: u.cidade ?? "",
       uf: u.uf ?? "",
       ativo: u.ativo,
+      telefone: anyU.telefone ?? "",
+      possui_relogio_ponto: anyU.possui_relogio_ponto ?? false,
+      tem_adiantamento: anyU.tem_adiantamento ?? false,
+      dia_adiantamento: anyU.dia_adiantamento != null ? String(anyU.dia_adiantamento) : "",
     });
     setOpen(true);
   };
@@ -55,7 +63,11 @@ export default function DpUnidades() {
         cidade: form.cidade.trim() || null,
         uf: form.uf.trim().toUpperCase() || null,
         ativo: form.ativo,
-      });
+        telefone: form.telefone.trim() || null,
+        possui_relogio_ponto: form.possui_relogio_ponto,
+        tem_adiantamento: form.tem_adiantamento,
+        dia_adiantamento: form.dia_adiantamento ? Number(form.dia_adiantamento) : null,
+      } as any);
       toast.success(editing ? "Unidade atualizada" : "Unidade criada");
       setOpen(false);
     } catch (e) {
@@ -156,6 +168,29 @@ export default function DpUnidades() {
               <div>
                 <Label>UF</Label>
                 <Input value={form.uf} onChange={(e) => setForm({ ...form, uf: e.target.value.toUpperCase() })} maxLength={2} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Telefone</Label>
+                <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
+              </div>
+              <div>
+                <Label>Dia adto. quinzenal</Label>
+                <Input type="number" min="1" max="31" value={form.dia_adiantamento}
+                  onChange={(e) => setForm({ ...form, dia_adiantamento: e.target.value })} />
+              </div>
+            </div>
+            <div className="flex items-center gap-4 pt-1">
+              <div className="flex items-center gap-2">
+                <Switch id="ponto" checked={form.possui_relogio_ponto}
+                  onCheckedChange={(v) => setForm({ ...form, possui_relogio_ponto: v })} />
+                <Label htmlFor="ponto" className="text-sm">Relógio de ponto</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch id="adto" checked={form.tem_adiantamento}
+                  onCheckedChange={(v) => setForm({ ...form, tem_adiantamento: v })} />
+                <Label htmlFor="adto" className="text-sm">Adiantamento quinzenal</Label>
               </div>
             </div>
           </div>
