@@ -1,7 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { FileText, Wallet, FileSignature, Clock, HeartPulse, Palmtree, AlertOctagon, Users2, FolderOpen } from "lucide-react";
+import { FileText, Wallet, FileSignature, Clock, HeartPulse, Palmtree, AlertOctagon, Users2, FolderOpen, ListChecks } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { TIPOS } from "./DpDocumentos";
