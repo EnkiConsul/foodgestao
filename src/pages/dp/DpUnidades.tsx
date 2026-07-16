@@ -210,7 +210,16 @@ export default function DpUnidades() {
     }
   };
 
-  const rows = list.data ?? [];
+  const rows = useMemo(() => {
+    const all = list.data ?? [];
+    const q = busca.trim().toLowerCase();
+    return all.filter((u) => {
+      if (statusFilter === "ativa" && !u.ativo) return false;
+      if (statusFilter === "inativa" && u.ativo) return false;
+      if (!q) return true;
+      return u.nome.toLowerCase().includes(q) || (u.cnpj ?? "").includes(onlyNumbers(q));
+    });
+  }, [list.data, busca, statusFilter]);
 
   return (
     <DpPage narrow>
@@ -229,6 +238,22 @@ export default function DpUnidades() {
           </>
         }
       />
+
+      <div className="flex flex-col sm:flex-row gap-2 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input className="pl-9" placeholder="Buscar por nome ou CNPJ..." value={busca} onChange={(e) => setBusca(e.target.value)} />
+        </div>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+          <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas</SelectItem>
+            <SelectItem value="ativa">Ativas</SelectItem>
+            <SelectItem value="inativa">Inativas</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
 
       <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
