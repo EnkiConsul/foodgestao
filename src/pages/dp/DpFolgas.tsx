@@ -126,6 +126,7 @@ export default function DpFolgas() {
   }, [selectedCompanyId, unidadeFilter, colabFilter, tipoFilter]);
 
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [quickColabId, setQuickColabId] = useState<string>("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({
     colaborador_id: "",
