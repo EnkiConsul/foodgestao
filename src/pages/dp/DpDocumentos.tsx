@@ -65,6 +65,10 @@ export default function DpDocumentos() {
   const [statusFilter, setStatusFilter] = useState<Aprov | "todos">("todos");
   const [rejectRow, setRejectRow] = useState<Row | null>(null);
   const [rejectMotivo, setRejectMotivo] = useState("");
+  const [toDelete, setToDelete] = useState<Row | null>(null);
+  const [search, setSearch] = useState("");
+  const [periodoInicio, setPeriodoInicio] = useState("");
+  const [periodoFim, setPeriodoFim] = useState("");
 
   const list = useQuery({
     queryKey: ["dp_documentos", selectedCompanyId, filterTipo ?? "all"],
