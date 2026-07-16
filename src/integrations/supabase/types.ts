@@ -1795,6 +1795,86 @@ export type Database = {
           },
         ]
       }
+      dp_bloqueio_regra_unidades: {
+        Row: {
+          regra_id: string
+          unidade_id: string
+        }
+        Insert: {
+          regra_id: string
+          unidade_id: string
+        }
+        Update: {
+          regra_id?: string
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_bloqueio_regra_unidades_regra_id_fkey"
+            columns: ["regra_id"]
+            isOneToOne: false
+            referencedRelation: "dp_bloqueio_regras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_bloqueio_regra_unidades_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_bloqueio_regras: {
+        Row: {
+          ativo: boolean
+          company_id: string
+          created_at: string
+          criado_por: string | null
+          dia: number | null
+          id: string
+          mes: number | null
+          nome: string
+          regra_json: Json | null
+          tipo: Database["public"]["Enums"]["dp_bloqueio_regra_tipo"]
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          company_id: string
+          created_at?: string
+          criado_por?: string | null
+          dia?: number | null
+          id?: string
+          mes?: number | null
+          nome: string
+          regra_json?: Json | null
+          tipo: Database["public"]["Enums"]["dp_bloqueio_regra_tipo"]
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          company_id?: string
+          created_at?: string
+          criado_por?: string | null
+          dia?: number | null
+          id?: string
+          mes?: number | null
+          nome?: string
+          regra_json?: Json | null
+          tipo?: Database["public"]["Enums"]["dp_bloqueio_regra_tipo"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_bloqueio_regras_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_bloqueios: {
         Row: {
           ativo: boolean
@@ -1997,6 +2077,125 @@ export type Database = {
           },
         ]
       }
+      dp_datas_bloqueadas: {
+        Row: {
+          company_id: string
+          created_at: string
+          criado_por: string | null
+          data: string
+          id: string
+          liberada_por_solicitacao: string | null
+          motivo: string
+          regra_id: string | null
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          criado_por?: string | null
+          data: string
+          id?: string
+          liberada_por_solicitacao?: string | null
+          motivo: string
+          regra_id?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          criado_por?: string | null
+          data?: string
+          id?: string
+          liberada_por_solicitacao?: string | null
+          motivo?: string
+          regra_id?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_datas_bloqueadas_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_datas_bloqueadas_liberada_por_solicitacao_fkey"
+            columns: ["liberada_por_solicitacao"]
+            isOneToOne: false
+            referencedRelation: "dp_solicitacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_datas_bloqueadas_regra_id_fkey"
+            columns: ["regra_id"]
+            isOneToOne: false
+            referencedRelation: "dp_bloqueio_regras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_datas_bloqueadas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_dia_config: {
+        Row: {
+          company_id: string
+          created_at: string
+          criado_por: string | null
+          data: string
+          id: string
+          limite_folgas: number
+          observacao: string | null
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          criado_por?: string | null
+          data: string
+          id?: string
+          limite_folgas?: number
+          observacao?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          criado_por?: string | null
+          data?: string
+          id?: string
+          limite_folgas?: number
+          observacao?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_dia_config_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_dia_config_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_documentos: {
         Row: {
           colaborador_id: string | null
@@ -2059,6 +2258,124 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_folgas: {
+        Row: {
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          criado_por: string | null
+          data: string
+          extra: boolean
+          id: string
+          observacao: string | null
+          origem: Database["public"]["Enums"]["dp_folga_origem"]
+          status: Database["public"]["Enums"]["dp_folga_status"]
+          tipo: Database["public"]["Enums"]["dp_folga_tipo"]
+          updated_at: string
+        }
+        Insert: {
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          criado_por?: string | null
+          data: string
+          extra?: boolean
+          id?: string
+          observacao?: string | null
+          origem?: Database["public"]["Enums"]["dp_folga_origem"]
+          status?: Database["public"]["Enums"]["dp_folga_status"]
+          tipo?: Database["public"]["Enums"]["dp_folga_tipo"]
+          updated_at?: string
+        }
+        Update: {
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          criado_por?: string | null
+          data?: string
+          extra?: boolean
+          id?: string
+          observacao?: string | null
+          origem?: Database["public"]["Enums"]["dp_folga_origem"]
+          status?: Database["public"]["Enums"]["dp_folga_status"]
+          tipo?: Database["public"]["Enums"]["dp_folga_tipo"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_folgas_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_folgas_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_folgas_canceladas: {
+        Row: {
+          cancelado_em: string
+          cancelado_por: string | null
+          colaborador_id: string
+          company_id: string
+          data: string
+          folga_id: string | null
+          id: string
+          motivo: string | null
+          origem_cancelamento: string
+        }
+        Insert: {
+          cancelado_em?: string
+          cancelado_por?: string | null
+          colaborador_id: string
+          company_id: string
+          data: string
+          folga_id?: string | null
+          id?: string
+          motivo?: string | null
+          origem_cancelamento?: string
+        }
+        Update: {
+          cancelado_em?: string
+          cancelado_por?: string | null
+          colaborador_id?: string
+          company_id?: string
+          data?: string
+          folga_id?: string | null
+          id?: string
+          motivo?: string | null
+          origem_cancelamento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_folgas_canceladas_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_folgas_canceladas_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_folgas_canceladas_folga_id_fkey"
+            columns: ["folga_id"]
+            isOneToOne: false
+            referencedRelation: "dp_folgas"
             referencedColumns: ["id"]
           },
         ]
@@ -2324,6 +2641,54 @@ export type Database = {
           },
           {
             foreignKeyName: "dp_notificacoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_prioridade_aniversario: {
+        Row: {
+          aniversariante: boolean
+          ano: number
+          colaborador_id: string
+          company_id: string
+          gerado_em: string
+          id: string
+          mes: number
+          prioridade: number
+        }
+        Insert: {
+          aniversariante?: boolean
+          ano: number
+          colaborador_id: string
+          company_id: string
+          gerado_em?: string
+          id?: string
+          mes: number
+          prioridade: number
+        }
+        Update: {
+          aniversariante?: boolean
+          ano?: number
+          colaborador_id?: string
+          company_id?: string
+          gerado_em?: string
+          id?: string
+          mes?: number
+          prioridade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_prioridade_aniversario_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_prioridade_aniversario_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
@@ -4314,6 +4679,7 @@ export type Database = {
       contact_type: "cliente" | "fornecedor" | "ambos"
       context_type: "pf" | "pj"
       discount_type: "percent" | "fixed"
+      dp_bloqueio_regra_tipo: "fixa_anual" | "dinamica"
       dp_bloqueio_tipo: "folga" | "troca" | "solicitacoes" | "todos"
       dp_disciplinar_tipo:
         | "advertencia_verbal"
@@ -4331,6 +4697,15 @@ export type Database = {
         | "outros"
         | "sindicato"
         | "ferias"
+      dp_folga_origem:
+        | "fixa_semana"
+        | "sorteio"
+        | "troca"
+        | "solicitacao"
+        | "admin_manual"
+        | "ferias"
+      dp_folga_status: "agendada" | "cancelada" | "realizada"
+      dp_folga_tipo: "normal" | "extra" | "ferias" | "abono" | "licenca"
       dp_folha_lancamento_status:
         | "rascunho"
         | "aprovado_dp"
@@ -4560,6 +4935,7 @@ export const Constants = {
       contact_type: ["cliente", "fornecedor", "ambos"],
       context_type: ["pf", "pj"],
       discount_type: ["percent", "fixed"],
+      dp_bloqueio_regra_tipo: ["fixa_anual", "dinamica"],
       dp_bloqueio_tipo: ["folga", "troca", "solicitacoes", "todos"],
       dp_disciplinar_tipo: [
         "advertencia_verbal",
@@ -4579,6 +4955,16 @@ export const Constants = {
         "sindicato",
         "ferias",
       ],
+      dp_folga_origem: [
+        "fixa_semana",
+        "sorteio",
+        "troca",
+        "solicitacao",
+        "admin_manual",
+        "ferias",
+      ],
+      dp_folga_status: ["agendada", "cancelada", "realizada"],
+      dp_folga_tipo: ["normal", "extra", "ferias", "abono", "licenca"],
       dp_folha_lancamento_status: [
         "rascunho",
         "aprovado_dp",
