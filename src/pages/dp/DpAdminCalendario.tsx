@@ -220,9 +220,21 @@ export default function DpAdminCalendario() {
                 {dayFolgas.length === 0 ? (
                   <p className="text-muted-foreground">Nenhuma folga marcada.</p>
                 ) : dayFolgas.map((f) => (
-                  <div key={f.id} className="flex items-center justify-between">
-                    <span>{f.colaborador_nome} <span className="text-xs text-muted-foreground">({f.origem})</span></span>
-                    {f.extra && <span className="text-[10px] rounded bg-accent px-1">extra</span>}
+                  <div key={f.id} className="flex items-center justify-between gap-2">
+                    <span className="truncate">{f.colaborador_nome} <span className="text-xs text-muted-foreground">({f.origem})</span></span>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {f.extra && <span className="text-[10px] rounded bg-accent px-1">extra</span>}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        title="Remover folga"
+                        disabled={removerFolga.isPending}
+                        onClick={() => removerFolga.mutate(f.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </CardContent>
