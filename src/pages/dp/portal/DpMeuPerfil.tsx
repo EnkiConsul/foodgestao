@@ -142,7 +142,7 @@ export default function DpMeuPerfil() {
                   <Field label="WhatsApp" value={p.whatsapp} />
                   <Field label="E-mail pessoal" value={p.email_contato} />
                   <Field label="Endereço" value={
-                    p.endereco ? [p.endereco.logradouro, p.endereco.numero, p.endereco.bairro, p.endereco.cidade, p.endereco.uf, p.endereco.cep].filter(Boolean).join(", ") : null
+                    p.endereco ? [p.endereco.logradouro, p.endereco.numero, p.endereco.complemento, p.endereco.bairro, p.endereco.cidade, p.endereco.uf, p.endereco.cep].filter(Boolean).join(", ") : null
                   } />
                 </div>
               )}
