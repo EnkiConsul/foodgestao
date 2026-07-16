@@ -71,7 +71,7 @@ const blank = {
   data_nascimento: "",
   data_desligamento: "",
   regime_trabalho: "nao_informado",
-  tipo_vinculo: "clt" as Regime,
+  tipo_vinculo: "CLT",
   folga_fixa_semana: "none",
   perfil_acesso: "colaborador" as "colaborador" | "gestor" | "admin",
   ativo: true,
