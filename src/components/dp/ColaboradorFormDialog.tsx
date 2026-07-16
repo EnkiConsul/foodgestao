@@ -102,7 +102,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       data_nascimento: c.data_nascimento ?? "",
       data_desligamento: c.data_desligamento ?? "",
       regime_trabalho: c.regime_trabalho ?? "nao_informado",
-      tipo_vinculo: (c.regime as Regime) ?? "clt",
+      tipo_vinculo: c.tipo_vinculo ?? (c.regime ? String(c.regime).toUpperCase() : "CLT"),
       folga_fixa_semana: c.folga_fixa_semana != null ? String(c.folga_fixa_semana) : "none",
       perfil_acesso: c.perfil_acesso ?? "colaborador",
       ativo: c.ativo ?? true,
