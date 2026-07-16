@@ -351,7 +351,10 @@ export default function DpUnidades() {
               ) : (
                 <Select
                   value={form.company_id}
-                  onValueChange={(v) => setForm({ ...form, company_id: v })}
+                  onValueChange={(v) => {
+                    setForm((prev) => ({ ...prev, company_id: v }));
+                    if (!editing) void applyCompanyData(v, true);
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a empresa" />
