@@ -112,7 +112,7 @@ Legenda: 🔴 crítica · 🟠 alta · 🟡 média · 🟢 baixa.
 
 ## 5. Bugs corrigidos imediatamente
 
-Grupo 1 será aplicado nesta rodada (2 correções: onClick faltante + tokens).
+Todos os 5 grupos aplicados: bugs, confirmações, RecusaDialog, filtros/contadores, capacidade real e remoção de folga individual.
 
 ---
 

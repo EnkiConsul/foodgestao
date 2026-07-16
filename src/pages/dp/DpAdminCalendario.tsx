@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { endOfMonth, format, startOfMonth } from "date-fns";
-import { CalendarDays, Loader2, Shuffle, ShieldAlert } from "lucide-react";
+import { CalendarDays, Loader2, Shuffle, ShieldAlert, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
@@ -138,6 +138,18 @@ export default function DpAdminCalendario() {
     onError: (e: any) => toast.error(e.message ?? "Erro"),
   });
 
+  const removerFolga = useMutation({
+    mutationFn: async (folgaId: string) => {
+      const { error } = await supabase.from("dp_folgas").delete().eq("id", folgaId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Folga removida");
+      qc.invalidateQueries({ queryKey: ["dp_folgas_admin"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao remover"),
+  });
+
   const salvarLimite = useMutation({
     mutationFn: async () => {
       if (!dayOpen) return;
@@ -208,9 +220,21 @@ export default function DpAdminCalendario() {
                 {dayFolgas.length === 0 ? (
                   <p className="text-muted-foreground">Nenhuma folga marcada.</p>
                 ) : dayFolgas.map((f) => (
-                  <div key={f.id} className="flex items-center justify-between">
-                    <span>{f.colaborador_nome} <span className="text-xs text-muted-foreground">({f.origem})</span></span>
-                    {f.extra && <span className="text-[10px] rounded bg-accent px-1">extra</span>}
+                  <div key={f.id} className="flex items-center justify-between gap-2">
+                    <span className="truncate">{f.colaborador_nome} <span className="text-xs text-muted-foreground">({f.origem})</span></span>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {f.extra && <span className="text-[10px] rounded bg-accent px-1">extra</span>}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        title="Remover folga"
+                        disabled={removerFolga.isPending}
+                        onClick={() => removerFolga.mutate(f.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </CardContent>

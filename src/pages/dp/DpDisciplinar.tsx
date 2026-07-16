@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Plus, Trash2, AlertOctagon, FileSignature, Upload } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,12 +8,14 @@ import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { HistoricoDisciplinar, type RegistroDisciplinar } from "@/components/dp/HistoricoDisciplinar";
-import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 const TIPOS = [
   { value: "advertencia_verbal", label: "Advertência verbal" },
@@ -22,6 +24,17 @@ const TIPOS = [
   { value: "elogio", label: "Elogio" },
   { value: "observacao", label: "Observação" },
 ] as const;
+
+/**
+ * Convenção de storage:
+ * - PDFs gerados automaticamente: `<company>/<id>.pdf`
+ * - PDFs anexados manualmente: `<company>/<id>/<timestamp>-<nome>`
+ * Distinguimos pelo segmento `/${id}/` no path.
+ */
+function pdfOrigem(r: RegistroDisciplinar): "gerado" | "anexado" | null {
+  if (!r.pdf_storage_path) return null;
+  return r.pdf_storage_path.includes(`/${r.id}/`) ? "anexado" : "gerado";
+}
 
 export default function DpDisciplinar() {
   const { selectedCompanyId } = useCompanyContext();
@@ -32,6 +45,11 @@ export default function DpDisciplinar() {
     colaborador_id: "", tipo: "advertencia_verbal", data: new Date().toISOString().slice(0, 10),
     motivo: "", descricao: "", suspensao_dias: "",
   });
+  const [confirmDel, setConfirmDel] = useState<string | null>(null);
+  const [filterColab, setFilterColab] = useState<string>("todos");
+  const [filterTipo, setFilterTipo] = useState<string>("todos");
+  const [dataDe, setDataDe] = useState("");
+  const [dataAte, setDataAte] = useState("");
   const uploadRef = useRef<HTMLInputElement>(null);
   const [uploadTargetId, setUploadTargetId] = useState<string | null>(null);
 
@@ -49,8 +67,25 @@ export default function DpDisciplinar() {
     },
   });
 
+  const filtered = useMemo(() => {
+    const rows = list.data ?? [];
+    return rows.filter((r: any) => {
+      if (filterColab !== "todos" && r.colaborador_id !== filterColab) return false;
+      if (filterTipo !== "todos" && r.tipo !== filterTipo) return false;
+      if (dataDe && r.data < dataDe) return false;
+      if (dataAte && r.data > dataAte) return false;
+      return true;
+    });
+  }, [list.data, filterColab, filterTipo, dataDe, dataAte]);
+
   const create = useMutation({
     mutationFn: async () => {
+      if (form.tipo === "suspensao") {
+        const dias = Number(form.suspensao_dias);
+        if (!Number.isFinite(dias) || dias <= 0) {
+          throw new Error("Informe o número de dias de suspensão (maior que zero).");
+        }
+      }
       const { data: userRes } = await supabase.auth.getUser();
       const { error } = await supabase.from("dp_registros_disciplinares").insert({
         company_id: selectedCompanyId!,
@@ -78,7 +113,11 @@ export default function DpDisciplinar() {
       const { error } = await supabase.from("dp_registros_disciplinares").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["dp_disciplinar"] }); toast.success("Removido"); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
+      toast.success("Removido");
+      setConfirmDel(null);
+    },
   });
 
   const genPdf = useMutation({
@@ -175,7 +214,7 @@ export default function DpDisciplinar() {
               </div>
               {form.tipo === "suspensao" && (
                 <div>
-                  <Label>Dias de suspensão</Label>
+                  <Label>Dias de suspensão *</Label>
                   <Input type="number" min="1" value={form.suspensao_dias} onChange={(e) => setForm({ ...form, suspensao_dias: e.target.value })} />
                 </div>
               )}
@@ -194,7 +233,10 @@ export default function DpDisciplinar() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
               <Button
-                disabled={!form.colaborador_id || !form.motivo || create.isPending}
+                disabled={
+                  !form.colaborador_id || !form.motivo || create.isPending ||
+                  (form.tipo === "suspensao" && (!form.suspensao_dias || Number(form.suspensao_dias) <= 0))
+                }
                 onClick={() => create.mutate()}
               >Salvar</Button>
             </DialogFooter>
@@ -203,41 +245,101 @@ export default function DpDisciplinar() {
         }
       />
 
+      <DpFilterCard>
+        <div className="grid gap-3 md:grid-cols-4">
+          <div>
+            <Label className="text-xs">Colaborador</Label>
+            <Select value={filterColab} onValueChange={setFilterColab}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {(colabs.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Tipo</Label>
+            <Select value={filterTipo} onValueChange={setFilterTipo}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">De</Label>
+            <Input type="date" className="h-9" value={dataDe} onChange={(e) => setDataDe(e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs">Até</Label>
+            <Input type="date" className="h-9" value={dataAte} onChange={(e) => setDataAte(e.target.value)} />
+          </div>
+        </div>
+      </DpFilterCard>
+
       {list.isLoading ? (
         <DpContentCard contentClassName="p-6"><p className="text-sm text-muted-foreground">Carregando…</p></DpContentCard>
       ) : (
         <HistoricoDisciplinar
-          registros={list.data ?? []}
+          registros={filtered}
           showColaborador
-          renderActions={(r) => (
-            <>
-              {!r.pdf_storage_path && (
+          renderActions={(r) => {
+            const origem = pdfOrigem(r);
+            return (
+              <>
+                {origem && (
+                  <Badge variant="outline" className={origem === "gerado"
+                    ? "text-[10px] border-blue-300 text-blue-700 dark:text-blue-300"
+                    : "text-[10px] border-emerald-300 text-emerald-700 dark:text-emerald-300"}>
+                    PDF {origem === "gerado" ? "gerado" : "anexado"}
+                  </Badge>
+                )}
+                {!r.pdf_storage_path && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    title="Gerar PDF automaticamente"
+                    disabled={genPdf.isPending}
+                    onClick={() => genPdf.mutate(r.id)}
+                  >
+                    <FileSignature className="h-4 w-4" />
+                  </Button>
+                )}
                 <Button
                   size="icon"
                   variant="ghost"
-                  title="Gerar PDF automaticamente"
-                  disabled={genPdf.isPending}
-                  onClick={() => genPdf.mutate(r.id)}
+                  title={r.pdf_storage_path ? "Substituir PDF assinado" : "Anexar PDF assinado"}
+                  disabled={uploadPdf.isPending}
+                  onClick={() => triggerUpload(r.id)}
                 >
-                  <FileSignature className="h-4 w-4" />
+                  <Upload className="h-4 w-4" />
                 </Button>
-              )}
-              <Button
-                size="icon"
-                variant="ghost"
-                title={r.pdf_storage_path ? "Substituir PDF assinado" : "Anexar PDF assinado"}
-                disabled={uploadPdf.isPending}
-                onClick={() => triggerUpload(r.id)}
-              >
-                <Upload className="h-4 w-4" />
-              </Button>
-              <Button size="icon" variant="ghost" title="Excluir" onClick={() => del.mutate(r.id)}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </>
-          )}
+                <Button size="icon" variant="ghost" title="Excluir" onClick={() => setConfirmDel(r.id)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
+            );
+          }}
         />
       )}
+
+      <AlertDialog open={!!confirmDel} onOpenChange={(v) => !v && setConfirmDel(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir registro disciplinar?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O registro e o PDF anexado (se houver) serão removidos. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => confirmDel && del.mutate(confirmDel)}>
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DpPage>
   );
 }

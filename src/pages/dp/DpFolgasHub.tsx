@@ -82,6 +82,22 @@ export default function DpFolgasHub() {
     },
   });
 
+  const { data: diaConfig = {} } = useQuery({
+    queryKey: ["dp_dia_config_hub", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_dia_config")
+        .select("data, limite_folgas")
+        .eq("company_id", selectedCompanyId!)
+        .is("unidade_id", null);
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      for (const r of data ?? []) map[r.data as string] = r.limite_folgas as number;
+      return map;
+    },
+  });
+
   const equipeAtiva = colaboradores.length;
   const todayStr = format(today, "yyyy-MM-dd");
   const folgasHoje = solicitacoes.filter(
@@ -109,7 +125,7 @@ export default function DpFolgasHub() {
 
   const stats: Stat[] = [
     { label: "EQUIPE ATIVA", value: String(equipeAtiva), icon: Users, tone: "bg-blue-100 text-blue-600" },
-    { label: "OCUPAÇÃO HOJE", value: `${folgasHoje}/${equipeAtiva || 0}`, icon: CalendarCheck, tone: "bg-violet-100 text-violet-600" },
+    { label: "FOLGAS HOJE", value: `${folgasHoje} / ${equipeAtiva || 0}`, icon: CalendarCheck, tone: "bg-violet-100 text-violet-600" },
     { label: "FOLGAS NO MÊS", value: String(folgasMes), icon: Calendar, tone: "bg-emerald-100 text-emerald-600" },
     { label: "PEDIDOS ESPECIAIS", value: String(pedidosEspeciais), icon: ClipboardList, tone: "bg-orange-100 text-orange-600" },
     { label: "TROCAS PENDENTES", value: String(trocas.length), icon: ArrowLeftRight, tone: "bg-purple-100 text-purple-600" },
@@ -134,11 +150,15 @@ export default function DpFolgasHub() {
       const ocupados = solicitacoes.filter(
         (s) => s.tipo === "folga" && s.status === "aprovada" && s.data_alvo === key,
       ).length;
-      const cap = Math.max(1, Math.round(equipeAtiva * 0.1)); // ~10% da equipe
+      // Prioridade: limite configurado em dp_dia_config; fallback ~10% da equipe.
+      const configurado = diaConfig[key];
+      const cap = configurado && configurado > 0
+        ? configurado
+        : Math.max(1, Math.round(equipeAtiva * 0.1));
       const pct = Math.min(100, Math.round((ocupados / cap) * 100));
-      return { dia, ocupados, cap, pct };
+      return { dia, ocupados, cap, pct, configurado: !!(configurado && configurado > 0) };
     });
-  }, [proximosDias, solicitacoes, equipeAtiva]);
+  }, [proximosDias, solicitacoes, equipeAtiva, diaConfig]);
 
   const proximoMes = addMonths(today, 1);
   const sortear = useMutation({
@@ -204,7 +224,7 @@ export default function DpFolgasHub() {
           <h2 className="font-semibold text-foreground">Ocupação dos Próximos Fins de Semana</h2>
         </div>
         <div className="space-y-4">
-          {ocupacaoPorDia.map(({ dia, ocupados, cap, pct }) => {
+          {ocupacaoPorDia.map(({ dia, ocupados, cap, pct, configurado }) => {
             const lotado = pct >= 100;
             return (
               <div key={dia.toISOString()} className="space-y-1.5">
@@ -228,9 +248,12 @@ export default function DpFolgasHub() {
                   </Badge>
                 </div>
                 <Progress value={pct} className="h-2" />
-                <div className="flex justify-end gap-4 text-xs text-muted-foreground">
-                  <span>{ocupados}/{cap}</span>
-                  <span>{pct}%</span>
+                <div className="flex justify-between gap-4 text-xs text-muted-foreground">
+                  <span>{configurado ? "Limite configurado" : "Capacidade estimada (10% da equipe)"}</span>
+                  <div className="flex gap-3">
+                    <span>{ocupados}/{cap}</span>
+                    <span>{pct}%</span>
+                  </div>
                 </div>
               </div>
             );

@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Check, X, FileText, ClipboardList } from "lucide-react";
+import { Plus, Check, X, FileText, ClipboardList, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,11 +19,13 @@ import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useAuth } from "@/hooks/useAuth";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { RecusaDialog } from "@/components/dp/RecusaDialog";
 import type { Database } from "@/integrations/supabase/types";
 
 type Tipo = Database["public"]["Enums"]["dp_solicitacao_tipo"];
 type Status = Database["public"]["Enums"]["dp_solicitacao_status"];
 type Row = Database["public"]["Tables"]["dp_solicitacoes"]["Row"];
+type RowWithColab = Row & { dp_colaboradores: { nome: string } | null };
 
 const TIPOS: { value: Tipo; label: string }[] = [
   { value: "folga", label: "Folga" },
@@ -45,9 +48,27 @@ export default function DpSolicitacoes() {
   const qc = useQueryClient();
   const colabs = useDpColaboradores();
   const [tab, setTab] = useState<Status | "todas">("pendente");
+  const [tipoFiltro, setTipoFiltro] = useState<Tipo | "todos">("todos");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [recusaId, setRecusaId] = useState<string | null>(null);
+  const [confirmAdiantamento, setConfirmAdiantamento] = useState<RowWithColab | null>(null);
 
   const [form, setForm] = useState({ colaborador_id: "", tipo: "folga" as Tipo, data_alvo: "", data_fim: "", motivo: "" });
+
+  const counts = useQuery({
+    queryKey: ["dp_solicitacoes_counts", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("dp_solicitacoes").select("status").eq("company_id", selectedCompanyId!);
+      if (error) throw error;
+      const acc: Record<string, number> = { pendente: 0, aprovada: 0, recusada: 0, cancelada: 0, todas: 0 };
+      for (const r of data ?? []) {
+        acc[r.status as string] = (acc[r.status as string] ?? 0) + 1;
+        acc.todas += 1;
+      }
+      return acc;
+    },
+  });
 
   const list = useQuery({
     queryKey: ["dp_solicitacoes", selectedCompanyId, tab],
@@ -60,6 +81,12 @@ export default function DpSolicitacoes() {
       return (data ?? []) as (Row & { dp_colaboradores: { nome: string } | null })[];
     },
   });
+
+  const filteredRows = useMemo(() => {
+    const rows = list.data ?? [];
+    if (tipoFiltro === "todos") return rows;
+    return rows.filter((r) => r.tipo === tipoFiltro);
+  }, [list.data, tipoFiltro]);
 
   const create = useMutation({
     mutationFn: async () => {
@@ -80,6 +107,7 @@ export default function DpSolicitacoes() {
     onSuccess: () => {
       toast.success("Solicitação criada");
       qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
+      qc.invalidateQueries({ queryKey: ["dp_solicitacoes_counts"] });
       qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
       setDialogOpen(false);
       setForm({ colaborador_id: "", tipo: "folga", data_alvo: "", data_fim: "", motivo: "" });
@@ -98,7 +126,10 @@ export default function DpSolicitacoes() {
     onSuccess: (_data, vars) => {
       toast.success(vars.status === "aprovada" ? "Aprovada" : "Recusada");
       qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
+      qc.invalidateQueries({ queryKey: ["dp_solicitacoes_counts"] });
       qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
+      setRecusaId(null);
+      setConfirmAdiantamento(null);
     },
     onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
   });
@@ -107,6 +138,24 @@ export default function DpSolicitacoes() {
     const { data, error } = await supabase.storage.from("dp-documentos").createSignedUrl(path, 60);
     if (error) return toast.error(error.message);
     window.open(data.signedUrl, "_blank");
+  };
+
+  const c = counts.data ?? {};
+  const tabLabel = (label: string, key: string) => (
+    <span className="flex items-center gap-1.5">
+      {label}
+      {typeof c[key] === "number" && (
+        <span className="text-[10px] rounded-full bg-muted px-1.5 py-0.5 font-semibold">{c[key]}</span>
+      )}
+    </span>
+  );
+
+  const handleAprovar = (r: Row & { dp_colaboradores: { nome: string } | null }) => {
+    if (r.tipo === "adiantamento") {
+      setConfirmAdiantamento(r);
+      return;
+    }
+    respond.mutate({ id: r.id, status: "aprovada" });
   };
 
   return (
@@ -120,14 +169,26 @@ export default function DpSolicitacoes() {
       />
 
       <DpFilterCard>
-      <Tabs value={tab} onValueChange={(v) => setTab(v as Status | "todas")}>
-        <TabsList>
-          <TabsTrigger value="pendente">Pendentes</TabsTrigger>
-          <TabsTrigger value="aprovada">Aprovadas</TabsTrigger>
-          <TabsTrigger value="recusada">Recusadas</TabsTrigger>
-          <TabsTrigger value="todas">Todas</TabsTrigger>
-        </TabsList>
-      </Tabs>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Tabs value={tab} onValueChange={(v) => setTab(v as Status | "todas")}>
+            <TabsList>
+              <TabsTrigger value="pendente">{tabLabel("Pendentes", "pendente")}</TabsTrigger>
+              <TabsTrigger value="aprovada">{tabLabel("Aprovadas", "aprovada")}</TabsTrigger>
+              <TabsTrigger value="recusada">{tabLabel("Recusadas", "recusada")}</TabsTrigger>
+              <TabsTrigger value="todas">{tabLabel("Todas", "todas")}</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground">Tipo:</Label>
+            <Select value={tipoFiltro} onValueChange={(v) => setTipoFiltro(v as Tipo | "todos")}>
+              <SelectTrigger className="h-8 w-40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </DpFilterCard>
 
       <DpContentCard contentClassName="overflow-x-auto">
@@ -146,7 +207,7 @@ export default function DpSolicitacoes() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(list.data ?? []).map((r) => (
+                {filteredRows.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell className="font-medium">{r.dp_colaboradores?.nome ?? "—"}</TableCell>
                     <TableCell className="capitalize">{r.tipo}</TableCell>
@@ -162,18 +223,19 @@ export default function DpSolicitacoes() {
                         )}
                         {r.status === "pendente" && (
                           <>
-                            <Button size="icon" variant="ghost" onClick={() => respond.mutate({ id: r.id, status: "aprovada" })}><Check className="h-4 w-4 text-primary" /></Button>
-                            <Button size="icon" variant="ghost" onClick={() => {
-                              const resposta = window.prompt("Motivo da recusa (opcional):") ?? undefined;
-                              respond.mutate({ id: r.id, status: "recusada", resposta });
-                            }}><X className="h-4 w-4 text-destructive" /></Button>
+                            <Button size="icon" variant="ghost" title="Aprovar" onClick={() => handleAprovar(r)}>
+                              <Check className="h-4 w-4 text-primary" />
+                            </Button>
+                            <Button size="icon" variant="ghost" title="Recusar" onClick={() => setRecusaId(r.id)}>
+                              <X className="h-4 w-4 text-destructive" />
+                            </Button>
                           </>
                         )}
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
-                {(list.data?.length ?? 0) === 0 && (
+                {filteredRows.length === 0 && (
                   <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma solicitação.</TableCell></TableRow>
                 )}
               </TableBody>
@@ -226,6 +288,36 @@ export default function DpSolicitacoes() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <RecusaDialog
+        open={!!recusaId}
+        onOpenChange={(v) => !v && setRecusaId(null)}
+        title="Recusar solicitação"
+        loading={respond.isPending}
+        onConfirm={(motivo) => recusaId && respond.mutate({ id: recusaId, status: "recusada", resposta: motivo || undefined })}
+      />
+
+      <AlertDialog open={!!confirmAdiantamento} onOpenChange={(v) => !v && setConfirmAdiantamento(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" /> Aprovar adiantamento?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está aprovando um pedido de adiantamento para <b>{confirmAdiantamento?.dp_colaboradores?.nome}</b>.
+              Esta ação pode gerar um lançamento financeiro. Confirma?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmAdiantamento && respond.mutate({ id: confirmAdiantamento.id, status: "aprovada" })}
+            >
+              Sim, aprovar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DpPage>
   );
 }

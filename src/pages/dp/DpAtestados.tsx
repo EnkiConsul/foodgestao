@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { HeartPulse, Check, X, FileText, Eye } from "lucide-react";
+import { HeartPulse, Check, X, FileText, Eye, Paperclip } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { RecusaDialog } from "@/components/dp/RecusaDialog";
 import type { Database } from "@/integrations/supabase/types";
 
 type Status = Database["public"]["Enums"]["dp_solicitacao_status"];
@@ -33,6 +34,20 @@ export default function DpAtestados() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<Status | "todas">("pendente");
   const [preview, setPreview] = useState<{ title: string; path: string } | null>(null);
+  const [recusaId, setRecusaId] = useState<string | null>(null);
+
+  const counts = useQuery({
+    queryKey: ["dp_atestados_counts", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("dp_solicitacoes")
+        .select("status").eq("company_id", selectedCompanyId!).eq("tipo", "atestado");
+      if (error) throw error;
+      const acc: Record<string, number> = { pendente: 0, aprovada: 0, recusada: 0, cancelada: 0, todas: 0 };
+      for (const r of data ?? []) { acc[r.status as string] = (acc[r.status as string] ?? 0) + 1; acc.todas += 1; }
+      return acc;
+    },
+  });
 
   const list = useQuery({
     queryKey: ["dp_atestados_admin", selectedCompanyId, tab],
@@ -65,7 +80,9 @@ export default function DpAtestados() {
       toast.success(vars.status === "aprovada" ? "Atestado aprovado" : "Atestado recusado");
       qc.invalidateQueries({ queryKey: ["dp_atestados_admin"] });
       qc.invalidateQueries({ queryKey: ["dp_atestados_pendentes"] });
+      qc.invalidateQueries({ queryKey: ["dp_atestados_counts"] });
       qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
+      setRecusaId(null);
     },
     onError: (e: any) => toast.error(e.message ?? "Erro"),
   });
@@ -94,10 +111,10 @@ export default function DpAtestados() {
       <DpFilterCard>
       <Tabs value={tab} onValueChange={(v) => setTab(v as Status | "todas")}>
         <TabsList>
-          <TabsTrigger value="pendente">Pendentes</TabsTrigger>
-          <TabsTrigger value="aprovada">Aprovados</TabsTrigger>
-          <TabsTrigger value="recusada">Recusados</TabsTrigger>
-          <TabsTrigger value="todas">Todos</TabsTrigger>
+          <TabsTrigger value="pendente">Pendentes {typeof counts.data?.pendente === "number" && <span className="ml-1.5 text-[10px] rounded-full bg-muted px-1.5 py-0.5 font-semibold">{counts.data.pendente}</span>}</TabsTrigger>
+          <TabsTrigger value="aprovada">Aprovados {typeof counts.data?.aprovada === "number" && <span className="ml-1.5 text-[10px] rounded-full bg-muted px-1.5 py-0.5 font-semibold">{counts.data.aprovada}</span>}</TabsTrigger>
+          <TabsTrigger value="recusada">Recusados {typeof counts.data?.recusada === "number" && <span className="ml-1.5 text-[10px] rounded-full bg-muted px-1.5 py-0.5 font-semibold">{counts.data.recusada}</span>}</TabsTrigger>
+          <TabsTrigger value="todas">Todos {typeof counts.data?.todas === "number" && <span className="ml-1.5 text-[10px] rounded-full bg-muted px-1.5 py-0.5 font-semibold">{counts.data.todas}</span>}</TabsTrigger>
         </TabsList>
       </Tabs>
       </DpFilterCard>
@@ -124,7 +141,16 @@ export default function DpAtestados() {
                   const arquivo = (r as any).arquivo_path as string | null;
                   return (
                     <TableRow key={r.id}>
-                      <TableCell className="font-medium">{r.dp_colaboradores?.nome ?? "—"}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {r.dp_colaboradores?.nome ?? "—"}
+                          {arquivo && (
+                            <Badge variant="outline" className="text-[10px] gap-1">
+                              <Paperclip className="h-3 w-3" /> Anexo
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         {r.data_alvo ?? "—"}
                         {r.data_fim ? ` → ${r.data_fim}` : ""}
@@ -161,10 +187,7 @@ export default function DpAtestados() {
                                 size="icon"
                                 variant="ghost"
                                 title="Recusar"
-                                onClick={() => {
-                                  const resposta = window.prompt("Motivo da recusa (opcional):") ?? undefined;
-                                  respond.mutate({ id: r.id, status: "recusada", resposta });
-                                }}
+                                onClick={() => setRecusaId(r.id)}
                               >
                                 <X className="h-4 w-4 text-destructive" />
                               </Button>
@@ -194,6 +217,14 @@ export default function DpAtestados() {
         title={preview?.title}
         bucket="dp-documentos"
         path={preview?.path}
+      />
+
+      <RecusaDialog
+        open={!!recusaId}
+        onOpenChange={(v) => !v && setRecusaId(null)}
+        title="Recusar atestado"
+        loading={respond.isPending}
+        onConfirm={(motivo) => recusaId && respond.mutate({ id: recusaId, status: "recusada", resposta: motivo || undefined })}
       />
     </DpPage>
   );

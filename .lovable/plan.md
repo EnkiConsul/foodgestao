@@ -1,7 +1,7 @@
 # Auditoria DP — status
 
-Concluídas: DP-G00→G06 (correções aplicadas).
-Em andamento: **DP-G07 — Área admin: Folgas, Escalas, Atestados, Disciplinar** (relatório em `.lovable/auditoria/dp-g07-admin-folgas-atestados.md`), aguardando aprovação para aplicar Grupos 2-5 (Grupo 1 já aplicado: wiring do sorteio + tokens).
+Concluídas: DP-G00→G07 (correções aplicadas).
+Próxima: **DP-G08 — Cargos, Departamentos, Unidades, Sindicatos, Configurações** (a auditar).
 
 Sequência sugerida pelo prompt mestre:
 
