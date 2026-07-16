@@ -34,6 +34,20 @@ export default function DpAtestados() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<Status | "todas">("pendente");
   const [preview, setPreview] = useState<{ title: string; path: string } | null>(null);
+  const [recusaId, setRecusaId] = useState<string | null>(null);
+
+  const counts = useQuery({
+    queryKey: ["dp_atestados_counts", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("dp_solicitacoes")
+        .select("status").eq("company_id", selectedCompanyId!).eq("tipo", "atestado");
+      if (error) throw error;
+      const acc: Record<string, number> = { pendente: 0, aprovada: 0, recusada: 0, cancelada: 0, todas: 0 };
+      for (const r of data ?? []) { acc[r.status as string] = (acc[r.status as string] ?? 0) + 1; acc.todas += 1; }
+      return acc;
+    },
+  });
 
   const list = useQuery({
     queryKey: ["dp_atestados_admin", selectedCompanyId, tab],
