@@ -71,11 +71,34 @@ interface DpEmptyStateProps {
   icon?: LucideIcon;
   children: ReactNode;
   className?: string;
+  /** Adiciona borda tracejada arredondada — padrão da doc de referência. */
+  dashed?: boolean;
+  /** Raio da borda quando `dashed` (default: '2xl'). */
+  radius?: "xl" | "2xl" | "3xl";
 }
 
-export function DpEmptyState({ icon: Icon, children, className }: DpEmptyStateProps) {
+const RADIUS_CLASS = {
+  xl: "rounded-xl",
+  "2xl": "rounded-2xl",
+  "3xl": "rounded-3xl",
+} as const;
+
+export function DpEmptyState({
+  icon: Icon,
+  children,
+  className,
+  dashed = false,
+  radius = "2xl",
+}: DpEmptyStateProps) {
   return (
-    <div className={cn("flex flex-col items-center justify-center gap-2 py-10 text-center text-sm text-muted-foreground", className)}>
+    <div
+      className={cn(
+        "flex flex-col items-center justify-center gap-2 py-10 text-center text-sm text-muted-foreground",
+        dashed && "border-2 border-dashed border-border/70 bg-muted/30 px-6",
+        dashed && RADIUS_CLASS[radius],
+        className,
+      )}
+    >
       {Icon && <Icon className="h-8 w-8 opacity-40" />}
       <div>{children}</div>
     </div>
