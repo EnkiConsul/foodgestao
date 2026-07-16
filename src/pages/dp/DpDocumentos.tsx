@@ -335,7 +335,7 @@ export default function DpDocumentos() {
       {/* Dialog de recusa */}
       <Dialog open={!!rejectRow} onOpenChange={(v) => { if (!v) { setRejectRow(null); setRejectMotivo(""); } }}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Recusar documento</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Recusar documento</DialogTitle><DialogDescription>Informe o motivo — será visível ao colaborador.</DialogDescription></DialogHeader>
           <div className="grid gap-2 py-2">
             <p className="text-sm text-muted-foreground">
               Informe o motivo da recusa. O colaborador verá esta mensagem.
