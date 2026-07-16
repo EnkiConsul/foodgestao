@@ -11,20 +11,62 @@ export type DpSindicato = Database["public"]["Tables"]["dp_sindicatos"]["Row"];
 export type DpSindicatoInsert = Database["public"]["Tables"]["dp_sindicatos"]["Insert"];
 
 // ---------------- Unidades ----------------
+export type DpUnidadeWithCounts = DpUnidade & {
+  cargos_count: number;
+  sindicatos_patronais_count: number;
+};
+
 export function useDpUnidades() {
   const { selectedCompanyId } = useCompanyContext();
   return useQuery({
     queryKey: ["dp_unidades", selectedCompanyId],
     enabled: !!selectedCompanyId,
-    queryFn: async () => {
+    queryFn: async (): Promise<DpUnidadeWithCounts[]> => {
       const { data, error } = await supabase
         .from("dp_unidades")
         .select("*")
         .eq("company_id", selectedCompanyId!)
         .order("nome");
       if (error) throw error;
-      return (data ?? []) as DpUnidade[];
+      const unidades = (data ?? []) as DpUnidade[];
+      const ids = unidades.map((u) => u.id);
+      if (ids.length === 0) {
+        return unidades.map((u) => ({ ...u, cargos_count: 0, sindicatos_patronais_count: 0 }));
+      }
+
+      const [{ data: uc, error: ucErr }, { data: su, error: suErr }] = await Promise.all([
+        supabase.from("dp_unidade_cargos").select("unidade_id").in("unidade_id", ids),
+        supabase
+          .from("dp_sindicato_unidades")
+          .select("unidade_id, dp_sindicatos!inner(tipo)")
+          .in("unidade_id", ids)
+          .eq("dp_sindicatos.tipo", "patronal"),
+      ]);
+      if (ucErr) throw ucErr;
+      if (suErr) throw suErr;
+
+      const cargosMap = new Map<string, number>();
+      (uc ?? []).forEach((r: any) => cargosMap.set(r.unidade_id, (cargosMap.get(r.unidade_id) ?? 0) + 1));
+      const sindMap = new Map<string, number>();
+      (su ?? []).forEach((r: any) => sindMap.set(r.unidade_id, (sindMap.get(r.unidade_id) ?? 0) + 1));
+
+      return unidades.map((u) => ({
+        ...u,
+        cargos_count: cargosMap.get(u.id) ?? 0,
+        sindicatos_patronais_count: sindMap.get(u.id) ?? 0,
+      }));
     },
+  });
+}
+
+export function useToggleDpUnidadeAtivo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
+      const { error } = await supabase.from("dp_unidades").update({ ativo }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_unidades"] }),
   });
 }
 

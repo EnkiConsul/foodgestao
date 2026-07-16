@@ -1,38 +1,67 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Building2 } from "lucide-react";
-import { TableSkeleton } from "@/components/dp/DpSkeletons";
+import { Plus, Pencil, Trash2, Building2, ListChecks, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useDpUnidades, useUpsertDpUnidade, useDeleteDpUnidade, type DpUnidade } from "@/hooks/useDpCadastros";
-import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import {
+  useDpUnidades,
+  useUpsertDpUnidade,
+  useDeleteDpUnidade,
+  useToggleDpUnidadeAtivo,
+  type DpUnidadeWithCounts,
+} from "@/hooks/useDpCadastros";
+import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
+
+const onlyNumbers = (v: string) => v.replace(/\D/g, "");
+const formatCNPJ = (value: string) => {
+  const c = onlyNumbers(value);
+  if (c.length <= 2) return c;
+  if (c.length <= 5) return c.replace(/^(\d{2})(\d{0,3})/, "$1.$2");
+  if (c.length <= 8) return c.replace(/^(\d{2})(\d{3})(\d{0,3})/, "$1.$2.$3");
+  if (c.length <= 12) return c.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4})/, "$1.$2.$3/$4");
+  return c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/, "$1.$2.$3/$4-$5");
+};
+
+const blank = {
+  nome: "",
+  cnpj: "",
+  endereco: "",
+  cidade: "",
+  uf: "",
+  ativo: true,
+  telefone: "",
+  possui_relogio_ponto: false,
+  tem_adiantamento: false,
+  dia_adiantamento: "" as string,
+};
 
 export default function DpUnidades() {
   const list = useDpUnidades();
   const upsert = useUpsertDpUnidade();
   const del = useDeleteDpUnidade();
+  const toggle = useToggleDpUnidadeAtivo();
+
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<DpUnidade | null>(null);
-  const [toDelete, setToDelete] = useState<DpUnidade | null>(null);
-  const [form, setForm] = useState({
-    nome: "", cnpj: "", endereco: "", cidade: "", uf: "", ativo: true,
-    telefone: "", possui_relogio_ponto: false, tem_adiantamento: false, dia_adiantamento: "" as string,
-  });
+  const [editing, setEditing] = useState<DpUnidadeWithCounts | null>(null);
+  const [toDelete, setToDelete] = useState<DpUnidadeWithCounts | null>(null);
+  const [form, setForm] = useState(blank);
+
+  const [viewOpen, setViewOpen] = useState(false);
+  const [viewing, setViewing] = useState<DpUnidadeWithCounts | null>(null);
 
   const openNew = () => {
     setEditing(null);
-    setForm({ nome: "", cnpj: "", endereco: "", cidade: "", uf: "", ativo: true, telefone: "", possui_relogio_ponto: false, tem_adiantamento: false, dia_adiantamento: "" });
+    setForm(blank);
     setOpen(true);
   };
 
-  const openEdit = (u: DpUnidade) => {
+  const openEdit = (u: DpUnidadeWithCounts) => {
     setEditing(u);
     const anyU = u as any;
     setForm({
@@ -50,6 +79,11 @@ export default function DpUnidades() {
     setOpen(true);
   };
 
+  const openView = (u: DpUnidadeWithCounts) => {
+    setViewing(u);
+    setViewOpen(true);
+  };
+
   const save = async () => {
     if (!form.nome.trim()) {
       toast.error("Nome é obrigatório");
@@ -59,7 +93,7 @@ export default function DpUnidades() {
       await upsert.mutateAsync({
         id: editing?.id,
         nome: form.nome.trim(),
-        cnpj: form.cnpj.trim() || null,
+        cnpj: onlyNumbers(form.cnpj) || null,
         endereco: form.endereco.trim() || null,
         cidade: form.cidade.trim() || null,
         uf: form.uf.trim().toUpperCase() || null,
@@ -81,123 +115,236 @@ export default function DpUnidades() {
     try {
       await del.mutateAsync(toDelete.id);
       toast.success("Unidade removida");
-    } catch (e) {
-      toast.error("Erro ao remover", { description: e instanceof Error ? e.message : String(e) });
+    } catch (e: any) {
+      const msg = e?.code === "23503"
+        ? "Existem registros vinculados a esta unidade."
+        : (e instanceof Error ? e.message : String(e));
+      toast.error("Erro ao remover", { description: msg });
     }
     setToDelete(null);
   };
 
+  const handleToggle = async (u: DpUnidadeWithCounts) => {
+    try {
+      await toggle.mutateAsync({ id: u.id, ativo: !u.ativo });
+    } catch (e) {
+      toast.error("Erro ao atualizar status", { description: e instanceof Error ? e.message : String(e) });
+    }
+  };
+
+  const rows = list.data ?? [];
+
   return (
-    <DpPage>
+    <DpPage narrow>
       <Helmet><title>Unidades — DP 360°</title></Helmet>
+
       <DpPageHeader
         icon={Building2}
         title="Unidades"
-        description={`${list.data?.length ?? 0} cadastradas`}
-        actions={<Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> Nova unidade</Button>}
+        description="Cadastre e gerencie as unidades, seus cargos e sindicatos patronais."
+        actions={
+          <>
+            <FavoriteToggle />
+            <Button onClick={openNew} className="rounded-full px-6">
+              <Plus className="size-4 mr-2" /> Nova Unidade
+            </Button>
+          </>
+        }
       />
 
-      <DpContentCard contentClassName="overflow-x-auto">
-          {list.isLoading ? (
-            <TableSkeleton
-              columns={5}
-              headers={["Nome", "CNPJ", "Cidade / UF", "Status", ""]}
-            />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>CNPJ</TableHead>
-                  <TableHead>Cidade / UF</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-24"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(list.data ?? []).map((u) => (
-                  <TableRow key={u.id}>
-                    <TableCell className="font-medium">{u.nome}</TableCell>
-                    <TableCell>{u.cnpj ?? "—"}</TableCell>
-                    <TableCell>{[u.cidade, u.uf].filter(Boolean).join(" / ") || "—"}</TableCell>
-                    <TableCell>{u.ativo ? <Badge className="bg-primary">Ativa</Badge> : <Badge variant="outline">Inativa</Badge>}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1 justify-end">
-                        <Button size="icon" variant="ghost" onClick={() => openEdit(u)}><Pencil className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" onClick={() => setToDelete(u)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {(list.data ?? []).length === 0 && (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nenhuma unidade cadastrada.</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
-      </DpContentCard>
+      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50 text-muted-foreground border-b border-border">
+              <tr>
+                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px]">Unidade</th>
+                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden md:table-cell">CNPJ</th>
+                <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px]">Cargos</th>
+                <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px]">Sind. Patronais</th>
+                <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px]">Status</th>
+                <th className="text-right p-4 font-bold uppercase tracking-wider text-[10px]">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {list.isLoading && (
+                <tr><td colSpan={6} className="p-12 text-center text-muted-foreground">Carregando...</td></tr>
+              )}
+              {!list.isLoading && rows.length === 0 && (
+                <tr><td colSpan={6} className="p-12 text-center text-muted-foreground">Nenhuma unidade cadastrada.</td></tr>
+              )}
+              {rows.map((u) => (
+                <tr
+                  key={u.id}
+                  className="hover:bg-muted/20 transition-colors cursor-pointer"
+                  onClick={() => openView(u)}
+                >
+                  <td className="p-4">
+                    <div className="font-bold">{u.nome}</div>
+                    {u.endereco && <div className="text-xs text-muted-foreground">{u.endereco}</div>}
+                  </td>
+                  <td className="p-4 hidden md:table-cell font-mono text-xs">
+                    {u.cnpj ? formatCNPJ(u.cnpj) : "—"}
+                  </td>
+                  <td className="p-4 text-center">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <ListChecks className="size-3" /> {u.cargos_count}
+                    </span>
+                  </td>
+                  <td className="p-4 text-center">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                      <Users className="size-3" /> {u.sindicatos_patronais_count}
+                    </span>
+                  </td>
+                  <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
+                    <Switch checked={u.ativo} onCheckedChange={() => handleToggle(u)} />
+                  </td>
+                  <td className="p-4 text-right whitespace-nowrap">
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8"
+                        onClick={(e) => { e.stopPropagation(); openEdit(u); }}
+                      >
+                        <Pencil className="size-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8"
+                        onClick={(e) => { e.stopPropagation(); setToDelete(u); }}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
+      {/* View dialog */}
+      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="size-5 text-primary" />
+              {viewing?.nome || "Unidade"}
+            </DialogTitle>
+          </DialogHeader>
+          {viewing && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+              <div>
+                <Label className="text-xs text-muted-foreground uppercase">Nome</Label>
+                <p className="font-semibold">{viewing.nome}</p>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground uppercase">CNPJ</Label>
+                <p className="font-mono">{viewing.cnpj ? formatCNPJ(viewing.cnpj) : "—"}</p>
+              </div>
+              <div className="md:col-span-2">
+                <Label className="text-xs text-muted-foreground uppercase">Endereço</Label>
+                <p>{viewing.endereco || "—"}</p>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground uppercase">Cidade / UF</Label>
+                <p>{[viewing.cidade, viewing.uf].filter(Boolean).join(" / ") || "—"}</p>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground uppercase">Telefone</Label>
+                <p>{(viewing as any).telefone || "—"}</p>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground uppercase">Status</Label>
+                <p>{viewing.ativo ? "Ativa" : "Inativa"}</p>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground uppercase">Relógio de Ponto</Label>
+                <p>{(viewing as any).possui_relogio_ponto ? "Sim" : "Não"}</p>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground uppercase">Adiantamento</Label>
+                <p>
+                  {(viewing as any).tem_adiantamento
+                    ? `Sim (Dia ${(viewing as any).dia_adiantamento || "—"})`
+                    : "Não"}
+                </p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Create/Edit dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{editing ? "Editar unidade" : "Nova unidade"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <div>
+          <div className="space-y-3 py-2">
+            <div className="space-y-2">
               <Label>Nome *</Label>
               <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} maxLength={120} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>CNPJ</Label>
-                <Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} maxLength={18} />
-              </div>
-              <div className="flex items-end gap-2 pb-1">
-                <Switch checked={form.ativo} onCheckedChange={(v) => setForm({ ...form, ativo: v })} />
-                <Label>Ativa</Label>
-              </div>
+            <div className="space-y-2">
+              <Label>CNPJ</Label>
+              <Input
+                value={formatCNPJ(form.cnpj)}
+                onChange={(e) => setForm({ ...form, cnpj: onlyNumbers(e.target.value) })}
+                maxLength={18}
+              />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label>Endereço</Label>
               <Input value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} maxLength={200} />
             </div>
             <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2">
+              <div className="col-span-2 space-y-2">
                 <Label>Cidade</Label>
                 <Input value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} maxLength={80} />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label>UF</Label>
                 <Input value={form.uf} onChange={(e) => setForm({ ...form, uf: e.target.value.toUpperCase() })} maxLength={2} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div>
+              <div className="space-y-2">
                 <Label>Telefone</Label>
                 <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
               </div>
-              <div>
-                <Label>Dia adto. quinzenal</Label>
-                <Input type="number" min="1" max="31" value={form.dia_adiantamento}
-                  onChange={(e) => setForm({ ...form, dia_adiantamento: e.target.value })} />
+              <div className="space-y-2">
+                <Label>Dia adto.</Label>
+                <Input
+                  type="number" min={1} max={31}
+                  value={form.dia_adiantamento}
+                  onChange={(e) => setForm({ ...form, dia_adiantamento: e.target.value })}
+                />
               </div>
             </div>
-            <div className="flex items-center gap-4 pt-1">
-              <div className="flex items-center gap-2">
-                <Switch id="ponto" checked={form.possui_relogio_ponto}
-                  onCheckedChange={(v) => setForm({ ...form, possui_relogio_ponto: v })} />
-                <Label htmlFor="ponto" className="text-sm">Relógio de ponto</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch id="adto" checked={form.tem_adiantamento}
-                  onCheckedChange={(v) => setForm({ ...form, tem_adiantamento: v })} />
-                <Label htmlFor="adto" className="text-sm">Adiantamento quinzenal</Label>
-              </div>
+            <div className="flex items-center gap-2 rounded-xl border border-border p-3">
+              <Switch id="ponto" checked={form.possui_relogio_ponto}
+                onCheckedChange={(v) => setForm({ ...form, possui_relogio_ponto: v })} />
+              <Label htmlFor="ponto" className="text-sm">Possui relógio de ponto</Label>
+            </div>
+            <div className="flex items-center gap-2 rounded-xl border border-border p-3">
+              <Switch id="adto" checked={form.tem_adiantamento}
+                onCheckedChange={(v) => setForm({ ...form, tem_adiantamento: v })} />
+              <Label htmlFor="adto" className="text-sm">Tem adiantamento quinzenal</Label>
+            </div>
+            <div className="flex items-center gap-2 rounded-xl border border-border p-3">
+              <Switch id="ativa" checked={form.ativo}
+                onCheckedChange={(v) => setForm({ ...form, ativo: v })} />
+              <Label htmlFor="ativa" className="text-sm">Unidade ativa</Label>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={save} disabled={upsert.isPending}>{upsert.isPending ? "Salvando..." : "Salvar"}</Button>
+            <Button onClick={save} disabled={upsert.isPending} className="rounded-full px-6">
+              {upsert.isPending ? "Salvando..." : "Salvar"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
