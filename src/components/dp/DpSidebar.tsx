@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { NavLink, useLocation, Link } from "react-router-dom";
+import { NavLink, useLocation, Link, useNavigate } from "react-router-dom";
 import {
   Home, Users, Briefcase, Building2, Scale, FileSignature,
   Calendar, ClipboardList, UserCheck, ArrowLeftRight, Ban,
@@ -20,13 +20,14 @@ import { cn } from "@/lib/utils";
 type Sub = { title: string; url: string; icon: LucideIcon; end?: boolean };
 type Item =
   | { kind: "link"; title: string; url: string; icon: LucideIcon; end?: boolean; home?: boolean }
-  | { kind: "group"; title: string; icon: LucideIcon; prefixes: string[]; items: Sub[] };
+  | { kind: "group"; title: string; icon: LucideIcon; prefixes: string[]; items: Sub[]; hubUrl?: string };
 
 const ADMIN_ITEMS: Item[] = [
   { kind: "link", title: "Início", url: "/dp", icon: Home, end: true, home: true },
   {
     kind: "group", title: "Cadastro", icon: Users,
     prefixes: ["/dp/colaboradores", "/dp/cadastros"],
+    hubUrl: "/dp/cadastros",
     items: [
       { title: "Colaboradores", url: "/dp/colaboradores", icon: Users },
       { title: "Cargos", url: "/dp/cadastros/cargos", icon: Briefcase },
@@ -193,6 +194,7 @@ function DpLink({ item, collapsed }: { item: Extract<Item, { kind: "link" }>; co
 
 function DpGroup({ item, collapsed }: { item: Extract<Item, { kind: "group" }>; collapsed: boolean }) {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const active = item.prefixes.some((p) => pathname.startsWith(p));
   const [open, setOpen] = useState(active);
 
@@ -204,7 +206,7 @@ function DpGroup({ item, collapsed }: { item: Extract<Item, { kind: "group" }>; 
     return (
       <SidebarMenuItem>
         <NavLink
-          to={item.items[0].url}
+          to={item.hubUrl ?? item.items[0].url}
           className={cn(
             "flex items-center justify-center px-3 py-2.5 rounded-lg transition-colors",
             active ? "bg-primary/10 text-primary" : "text-foreground/70 hover:bg-accent",
@@ -220,7 +222,10 @@ function DpGroup({ item, collapsed }: { item: Extract<Item, { kind: "group" }>; 
     <SidebarMenuItem>
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          if (item.hubUrl) navigate(item.hubUrl);
+          setOpen((v) => !v);
+        }}
         className={cn(
           "flex items-center gap-3 w-full px-3 py-2.5 text-sm rounded-lg transition-colors",
           active
