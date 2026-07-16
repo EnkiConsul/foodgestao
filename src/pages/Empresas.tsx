@@ -11,7 +11,7 @@ import { CompanyFormDialog } from "@/components/companies/CompanyFormDialog";
 import { Plus, Search, Building2, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCompanyQuota } from "@/hooks/useCompanyQuota";
 import { formatCents } from "@/lib/billing";
 import { FreshnessIndicator } from "@/components/billing/FreshnessIndicator";
