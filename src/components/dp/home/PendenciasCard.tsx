@@ -71,7 +71,7 @@ export function PendenciasCard() {
         {visible.map((p) => (
           <div
             key={p.id}
-            className="flex items-start gap-3 rounded-xl bg-white border border-[hsl(var(--dp-border))] p-3 hover:shadow-sm transition-shadow"
+            className="flex items-start gap-3 rounded-xl bg-card border border-[hsl(var(--dp-border))] p-3 hover:shadow-sm transition-shadow"
           >
             <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <p.icon className="h-4 w-4 text-primary" />
