@@ -73,7 +73,7 @@ const blank = {
   regime_trabalho: "nao_informado",
   tipo_vinculo: "CLT",
   folga_fixa_semana: "none",
-  perfil_acesso: "colaborador" as "colaborador" | "gestor" | "admin",
+  perfil_acesso: "colaborador" as "colaborador" | "admin",
   ativo: true,
   possui_folha_ponto: false,
   optante_adiantamento: false,
@@ -309,7 +309,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="colaborador">Colaborador</SelectItem>
-                <SelectItem value="gestor">Gestor</SelectItem>
+                
                 <SelectItem value="admin">Administrador</SelectItem>
               </SelectContent>
             </Select>
