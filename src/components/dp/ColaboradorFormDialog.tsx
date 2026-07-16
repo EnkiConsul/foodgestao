@@ -274,7 +274,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             <Label>Tipo de Vínculo</Label>
             <Select
               value={form.tipo_vinculo}
-              onValueChange={(v) => setForm({ ...form, tipo_vinculo: v as Regime })}
+              onValueChange={(v) => setForm({ ...form, tipo_vinculo: v })}
             >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
