@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { endOfMonth, format, startOfMonth } from "date-fns";
-import { CalendarDays, Loader2, Shuffle, ShieldAlert } from "lucide-react";
+import { CalendarDays, Loader2, Shuffle, ShieldAlert, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
