@@ -301,7 +301,7 @@ export default function DpDocumentos() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-8 border-green-300 text-green-700 hover:bg-green-50"
+                                className="h-8 border-primary/40 text-primary hover:bg-primary/10"
                                 onClick={() => aprovar.mutate(r)}
                                 disabled={aprovar.isPending}
                               >
@@ -310,7 +310,7 @@ export default function DpDocumentos() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-8 border-red-300 text-red-700 hover:bg-red-50"
+                                className="h-8 border-destructive/40 text-destructive hover:bg-destructive/10"
                                 onClick={() => { setRejectRow(r); setRejectMotivo(""); }}
                               >
                                 <X className="h-3.5 w-3.5 mr-1" /> Recusar
@@ -318,7 +318,7 @@ export default function DpDocumentos() {
                             </>
                           )}
                           <Button size="icon" variant="ghost" onClick={() => download(r)}><Download className="h-4 w-4" /></Button>
-                          <Button size="icon" variant="ghost" onClick={() => del.mutate(r)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                          <Button size="icon" variant="ghost" onClick={() => setToDelete(r)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
