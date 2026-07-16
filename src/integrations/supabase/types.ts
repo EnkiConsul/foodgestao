@@ -1945,6 +1945,161 @@ export type Database = {
           },
         ]
       }
+      dp_bulk_import_batches: {
+        Row: {
+          company_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          matched_count: number
+          referencia_data: string | null
+          source_file_name: string | null
+          source_file_path: string
+          status: string
+          tipo: Database["public"]["Enums"]["dp_documento_tipo"]
+          total_pages: number
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          matched_count?: number
+          referencia_data?: string | null
+          source_file_name?: string | null
+          source_file_path: string
+          status?: string
+          tipo?: Database["public"]["Enums"]["dp_documento_tipo"]
+          total_pages?: number
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          matched_count?: number
+          referencia_data?: string | null
+          source_file_name?: string | null
+          source_file_path?: string
+          status?: string
+          tipo?: Database["public"]["Enums"]["dp_documento_tipo"]
+          total_pages?: number
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_bulk_import_batches_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_bulk_import_items: {
+        Row: {
+          batch_id: string
+          company_id: string
+          confidence: number
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          error_message: string | null
+          id: string
+          imported_documento_id: string | null
+          manual_override: boolean
+          matched_colaborador_id: string | null
+          matched_cpf: string | null
+          matched_nome: string | null
+          ocr_text: string | null
+          page_file_path: string
+          page_index: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          batch_id: string
+          company_id: string
+          confidence?: number
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          error_message?: string | null
+          id?: string
+          imported_documento_id?: string | null
+          manual_override?: boolean
+          matched_colaborador_id?: string | null
+          matched_cpf?: string | null
+          matched_nome?: string | null
+          ocr_text?: string | null
+          page_file_path: string
+          page_index: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          batch_id?: string
+          company_id?: string
+          confidence?: number
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          error_message?: string | null
+          id?: string
+          imported_documento_id?: string | null
+          manual_override?: boolean
+          matched_colaborador_id?: string | null
+          matched_cpf?: string | null
+          matched_nome?: string | null
+          ocr_text?: string | null
+          page_file_path?: string
+          page_index?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_bulk_import_items_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "dp_bulk_import_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_bulk_import_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_bulk_import_items_imported_documento_id_fkey"
+            columns: ["imported_documento_id"]
+            isOneToOne: false
+            referencedRelation: "dp_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_bulk_import_items_matched_colaborador_id_fkey"
+            columns: ["matched_colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_bulk_import_items_matched_colaborador_id_fkey"
+            columns: ["matched_colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_cargos: {
         Row: {
           ativo: boolean
