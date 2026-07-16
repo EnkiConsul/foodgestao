@@ -38,10 +38,10 @@ export default function DpMeuHistorico() {
           .select("id, tipo, status, created_at")
           .eq("colaborador_id", colabId!).order("created_at", { ascending: false }).limit(50),
         supabase.from("dp_trocas")
-          .select("id, status, created_at").or(`solicitante_id.eq.${colabId},parceiro_id.eq.${colabId}`)
+          .select("id, status, created_at").or(`solicitante_id.eq.${colabId},destino_id.eq.${colabId}`)
           .order("created_at", { ascending: false }).limit(30),
         supabase.from("dp_documentos")
-          .select("id, categoria, titulo, created_at")
+          .select("id, tipo, titulo, created_at")
           .eq("colaborador_id", colabId!).order("created_at", { ascending: false }).limit(50),
         supabase.from("dp_registros_disciplinares")
           .select("id, tipo, motivo, created_at")
@@ -60,7 +60,7 @@ export default function DpMeuHistorico() {
       }));
       (docs.data ?? []).forEach((d: any) => out.push({
         id: `d-${d.id}`, data: d.created_at, tipo: "Documento",
-        titulo: d.titulo ?? d.categoria, icon: FileText,
+        titulo: d.titulo ?? d.tipo, icon: FileText,
       }));
       (disc.data ?? []).forEach((r: any) => out.push({
         id: `r-${r.id}`, data: r.created_at, tipo: "Disciplinar",
