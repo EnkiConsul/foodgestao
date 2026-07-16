@@ -274,7 +274,9 @@ export default function DpUnidades() {
                 <tr><td colSpan={7} className="p-12 text-center text-muted-foreground">Carregando...</td></tr>
               )}
               {!list.isLoading && rows.length === 0 && (
-                <tr><td colSpan={7} className="p-12 text-center text-muted-foreground">Nenhuma unidade cadastrada.</td></tr>
+                <tr><td colSpan={7} className="p-12 text-center text-muted-foreground">
+                  {(list.data ?? []).length === 0 ? "Nenhuma unidade cadastrada." : "Nenhuma unidade encontrada com os filtros atuais."}
+                </td></tr>
               )}
               {rows.map((u) => (
                 <tr
