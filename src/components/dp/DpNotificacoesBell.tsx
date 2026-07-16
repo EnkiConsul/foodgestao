@@ -50,6 +50,19 @@ export function DpNotificacoesBell() {
             </Button>
           </div>
         </div>
+        {atestados.length > 0 && (
+          <Link
+            to="/dp/solicitacoes?tipo=atestado"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-3 py-2 bg-amber-50 border-b border-amber-200 hover:bg-amber-100"
+          >
+            <HeartPulse className="h-4 w-4 text-amber-700" />
+            <span className="text-xs font-medium text-amber-900 flex-1">
+              {atestados.length} atestado{atestados.length > 1 ? "s" : ""} aguardando análise
+            </span>
+            <Badge className="bg-amber-600 text-white text-[10px]">{atestados.length}</Badge>
+          </Link>
+        )}
         <ScrollArea className="max-h-96">
           {list.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground">Nenhuma notificação.</div>
