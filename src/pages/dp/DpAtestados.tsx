@@ -217,12 +217,6 @@ export default function DpAtestados() {
         title={preview?.title}
         bucket="dp-documentos"
         path={preview?.path}
-      <DocumentPreview
-        open={!!preview}
-        onOpenChange={(v) => { if (!v) setPreview(null); }}
-        title={preview?.title}
-        bucket="dp-documentos"
-        path={preview?.path}
       />
 
       <RecusaDialog
