@@ -20,7 +20,7 @@ export default function DpMeuPerfil() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_colaboradores")
-        .select("*, dp_unidades(nome), dp_cargos(nome)")
+        .select("*, dp_unidades(nome), dp_cargos(nome), dp_sindicatos(nome)")
         .eq("user_id", user!.id)
         .maybeSingle();
       if (error) throw error;
@@ -31,7 +31,7 @@ export default function DpMeuPerfil() {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     telefone: "", whatsapp: "", email_contato: "",
-    endereco: { logradouro: "", numero: "", bairro: "", cidade: "", uf: "", cep: "" },
+    endereco: { logradouro: "", numero: "", complemento: "", bairro: "", cidade: "", uf: "", cep: "" },
   });
 
   useEffect(() => {
@@ -44,6 +44,7 @@ export default function DpMeuPerfil() {
       endereco: {
         logradouro: p.endereco?.logradouro ?? "",
         numero: p.endereco?.numero ?? "",
+        complemento: p.endereco?.complemento ?? "",
         bairro: p.endereco?.bairro ?? "",
         cidade: p.endereco?.cidade ?? "",
         uf: p.endereco?.uf ?? "",
