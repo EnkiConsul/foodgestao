@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useDpColaboradores, useDeleteDpColaborador, type DpColaborador } from "@/hooks/useDpColaboradores";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
+import { TableSkeleton } from "@/components/dp/DpSkeletons";
 
 export default function DpColaboradores() {
   const list = useDpColaboradores();
@@ -55,7 +56,10 @@ export default function DpColaboradores() {
       <Card>
         <CardContent className="p-0 overflow-x-auto">
           {list.isLoading ? (
-            <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
+            <TableSkeleton
+              columns={7}
+              headers={["Nome", "Matrícula", "Cargo", "Regime", "Admissão", "Status", ""]}
+            />
           ) : (
             <Table>
               <TableHeader>

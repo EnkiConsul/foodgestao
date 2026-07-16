@@ -37,11 +37,12 @@ const ADMIN_ITEMS: Item[] = [
   },
   {
     kind: "group", title: "Folgas", icon: Calendar,
-    prefixes: ["/dp/folgas", "/dp/solicitacoes", "/dp/aprovacoes", "/dp/trocas", "/dp/bloqueios"],
+    prefixes: ["/dp/folgas", "/dp/solicitacoes", "/dp/aprovacoes", "/dp/trocas", "/dp/bloqueios", "/dp/atestados"],
     items: [
       { title: "Calendário Geral", url: "/dp/folgas", icon: Calendar },
       { title: "Solicitações", url: "/dp/solicitacoes", icon: ClipboardList },
       { title: "Aprovações", url: "/dp/aprovacoes", icon: UserCheck },
+      { title: "Atestados", url: "/dp/atestados", icon: HeartPulse },
       { title: "Trocas", url: "/dp/trocas", icon: ArrowLeftRight },
       { title: "Datas Bloqueadas", url: "/dp/bloqueios", icon: Ban },
     ],
@@ -56,7 +57,7 @@ const ADMIN_ITEMS: Item[] = [
       { title: "Atestados", url: "/dp/documentos/atestado", icon: HeartPulse },
       { title: "Registros Disciplinares", url: "/dp/disciplinar", icon: ShieldAlert },
       { title: "ACT-CCT / Sindicato", url: "/dp/documentos/sindicato", icon: Scale },
-      { title: "Histórico Completo", url: "/dp/documentos", icon: ListChecks, end: true },
+      { title: "Histórico Completo", url: "/dp/documentos/historico", icon: ListChecks },
       { title: "Importar em massa", url: "/dp/documentos/importar", icon: FileText },
     ],
   },

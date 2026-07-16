@@ -18,6 +18,7 @@ import {
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Loader2, CalendarDays, Plus } from "lucide-react";
+import { CalendarSkeleton } from "@/components/dp/DpSkeletons";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -233,9 +234,7 @@ export default function DpFolgas() {
           </div>
 
           {query.isLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-6 w-6 animate-spin" />
-            </div>
+            <CalendarSkeleton />
           ) : (
             <div className="grid grid-cols-7 gap-px bg-border rounded-md overflow-hidden border">
               {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((d) => (
