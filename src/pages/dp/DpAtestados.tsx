@@ -111,10 +111,10 @@ export default function DpAtestados() {
       <DpFilterCard>
       <Tabs value={tab} onValueChange={(v) => setTab(v as Status | "todas")}>
         <TabsList>
-          <TabsTrigger value="pendente">Pendentes</TabsTrigger>
-          <TabsTrigger value="aprovada">Aprovados</TabsTrigger>
-          <TabsTrigger value="recusada">Recusados</TabsTrigger>
-          <TabsTrigger value="todas">Todos</TabsTrigger>
+          <TabsTrigger value="pendente">Pendentes {typeof counts.data?.pendente === "number" && <span className="ml-1.5 text-[10px] rounded-full bg-muted px-1.5 py-0.5 font-semibold">{counts.data.pendente}</span>}</TabsTrigger>
+          <TabsTrigger value="aprovada">Aprovados {typeof counts.data?.aprovada === "number" && <span className="ml-1.5 text-[10px] rounded-full bg-muted px-1.5 py-0.5 font-semibold">{counts.data.aprovada}</span>}</TabsTrigger>
+          <TabsTrigger value="recusada">Recusados {typeof counts.data?.recusada === "number" && <span className="ml-1.5 text-[10px] rounded-full bg-muted px-1.5 py-0.5 font-semibold">{counts.data.recusada}</span>}</TabsTrigger>
+          <TabsTrigger value="todas">Todos {typeof counts.data?.todas === "number" && <span className="ml-1.5 text-[10px] rounded-full bg-muted px-1.5 py-0.5 font-semibold">{counts.data.todas}</span>}</TabsTrigger>
         </TabsList>
       </Tabs>
       </DpFilterCard>
