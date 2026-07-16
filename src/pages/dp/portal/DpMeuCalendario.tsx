@@ -1,18 +1,30 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { endOfMonth, format, startOfMonth } from "date-fns";
 import { CalendarDays } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { FolgaCalendar, type FolgaCell } from "@/components/dp/FolgaCalendar";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+
+const TIPO_FILTROS: { value: string; label: string }[] = [
+  { value: "folga", label: "Folga" },
+  { value: "ferias", label: "Férias" },
+  { value: "atestado", label: "Atestado" },
+  { value: "outro", label: "Outro" },
+];
 
 export default function DpMeuCalendario() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const today = new Date();
   const [ano, setAno] = useState(today.getFullYear());
   const [mes, setMes] = useState(today.getMonth() + 1);
+  const [tipos, setTipos] = useState<string[]>([]);
 
   const meRef = useQuery({
     queryKey: ["dp_colaborador_of", user?.id],
@@ -50,6 +62,12 @@ export default function DpMeuCalendario() {
     },
   });
 
+  const folgasFiltradas = useMemo(() => {
+    const list = folgasQuery.data ?? [];
+    if (!tipos.length) return list;
+    return list.filter((f) => tipos.includes(f.tipo as any));
+  }, [folgasQuery.data, tipos]);
+
   const bloqueiosQuery = useQuery({
     queryKey: ["dp_datas_bloqueadas_meu", meRef.data?.company_id, ano, mes],
     enabled: !!meRef.data?.company_id,
@@ -77,22 +95,54 @@ export default function DpMeuCalendario() {
     },
   });
 
+  const toggleTipo = (v: string) =>
+    setTipos((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
+
   return (
     <DpPage>
       <Helmet><title>Calendário — Portal</title></Helmet>
       <DpPageHeader icon={CalendarDays} title="Calendário de folgas" />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs text-muted-foreground mr-1">Filtrar por tipo:</span>
+        {TIPO_FILTROS.map((t) => {
+          const active = tipos.includes(t.value);
+          return (
+            <button
+              key={t.value}
+              type="button"
+              onClick={() => toggleTipo(t.value)}
+              className={cn(
+                "text-xs rounded-full border px-2.5 py-1 transition-colors",
+                active
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-foreground/70 border-[hsl(var(--dp-border))] hover:bg-accent",
+              )}
+            >
+              {t.label}
+            </button>
+          );
+        })}
+        {tipos.length > 0 && (
+          <Badge variant="outline" className="text-[10px]">
+            {folgasFiltradas.length} de {folgasQuery.data?.length ?? 0}
+          </Badge>
+        )}
+      </div>
+
       <DpContentCard contentClassName="p-4 md:p-6">
-          <FolgaCalendar
-            ano={ano} mes={mes}
-            folgas={folgasQuery.data ?? []}
-            datasBloqueadas={bloqueiosQuery.data ?? []}
-            diaConfigLimite={diaConfigQuery.data ?? {}}
-            onChangeMonth={(a, m) => { setAno(a); setMes(m); }}
-            highlightColaboradorId={meRef.data?.id}
-          />
+        <FolgaCalendar
+          ano={ano} mes={mes}
+          folgas={folgasFiltradas}
+          datasBloqueadas={bloqueiosQuery.data ?? []}
+          diaConfigLimite={diaConfigQuery.data ?? {}}
+          onChangeMonth={(a, m) => { setAno(a); setMes(m); }}
+          onDayClick={(iso) => navigate(`/dp/meu/solicitacoes?data=${iso}`)}
+          highlightColaboradorId={meRef.data?.id}
+        />
       </DpContentCard>
       <p className="text-xs text-muted-foreground">
-        Suas folgas aparecem destacadas com borda. Datas bloqueadas mostram cadeado.
+        Clique em um dia para abrir uma nova solicitação já com a data preenchida. Suas folgas aparecem destacadas com borda.
       </p>
     </DpPage>
   );

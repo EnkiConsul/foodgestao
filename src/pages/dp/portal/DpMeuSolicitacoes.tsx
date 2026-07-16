@@ -1,7 +1,9 @@
 import { Helmet } from "react-helmet-async";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
-import { Plus, ClipboardList } from "lucide-react";
+import { ptBR } from "date-fns/locale";
+import { Plus, ClipboardList, CalendarIcon, Ban, AlertTriangle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,11 +12,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { cn } from "@/lib/utils";
 
 const TIPOS = [
   { value: "folga", label: "Folga" },
@@ -31,38 +36,102 @@ const statusColor: Record<string, string> = {
   cancelada: "bg-muted text-muted-foreground",
 };
 
+const STATUS_TABS = ["todas", "pendente", "aprovada", "recusada", "cancelada"] as const;
+type StatusTab = (typeof STATUS_TABS)[number];
+
+function toIso(d: Date | undefined): string {
+  return d ? format(d, "yyyy-MM-dd") : "";
+}
+
 export default function DpMeuSolicitacoes() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const [params, setParams] = useSearchParams();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ tipo: "folga", data_alvo: "", data_fim: "", motivo: "" });
+  const [tab, setTab] = useState<StatusTab>("todas");
+  const [form, setForm] = useState<{
+    tipo: string;
+    data_alvo: Date | undefined;
+    data_fim: Date | undefined;
+    motivo: string;
+  }>({ tipo: "folga", data_alvo: undefined, data_fim: undefined, motivo: "" });
 
-  const list = useQuery({
-    queryKey: ["dp_meu_sol", user?.id],
+  // Pré-preenche a data quando chega via ?data=YYYY-MM-DD (vindo do calendário).
+  useEffect(() => {
+    const iso = params.get("data");
+    if (!iso) return;
+    const [y, m, d] = iso.split("-").map(Number);
+    if (!y || !m || !d) return;
+    setForm((f) => ({ ...f, data_alvo: new Date(y, m - 1, d) }));
+    setOpen(true);
+    params.delete("data");
+    setParams(params, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const meRef = useQuery({
+    queryKey: ["colab_of_sol", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { data: cid } = await supabase.rpc("dp_colaborador_of", { _user_id: user!.id });
-      if (!cid) return [];
+      const { data } = await supabase.rpc("dp_colaborador_of", { _user_id: user!.id });
+      if (!data) return null;
+      const { data: c } = await supabase
+        .from("dp_colaboradores").select("id, company_id").eq("id", data).single();
+      return c;
+    },
+  });
+
+  const list = useQuery({
+    queryKey: ["dp_meu_sol", meRef.data?.id],
+    enabled: !!meRef.data?.id,
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_solicitacoes").select("*")
-        .eq("colaborador_id", cid as string)
+        .eq("colaborador_id", meRef.data!.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
   });
 
+  // Datas bloqueadas para alertar antes do envio.
+  const bloqueios = useQuery({
+    queryKey: ["dp_bloqueios_meu_sol", meRef.data?.company_id],
+    enabled: !!meRef.data?.company_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("dp_datas_bloqueadas").select("data, motivo")
+        .eq("company_id", meRef.data!.company_id!);
+      const map: Record<string, string> = {};
+      for (const r of data ?? []) map[r.data as string] = (r.motivo as string) ?? "";
+      return map;
+    },
+  });
+
+  const dataAlvoIso = toIso(form.data_alvo);
+  const bloqueioAtivo = bloqueios.data?.[dataAlvoIso];
+
+  // Validação
+  const validation = useMemo(() => {
+    const errors: string[] = [];
+    if (!form.data_alvo) errors.push("Informe a data.");
+    if (form.data_fim && form.data_alvo && form.data_fim < form.data_alvo)
+      errors.push("A data fim não pode ser anterior à data inicial.");
+    if (form.tipo !== "folga" && !form.motivo.trim())
+      errors.push("Motivo obrigatório para este tipo de solicitação.");
+    return errors;
+  }, [form]);
+
   const create = useMutation({
     mutationFn: async () => {
-      const { data: cid } = await supabase.rpc("dp_colaborador_of", { _user_id: user!.id });
-      if (!cid) throw new Error("Colaborador não encontrado");
-      const { data: colab } = await supabase.from("dp_colaboradores").select("company_id").eq("id", cid as string).single();
+      if (!meRef.data) throw new Error("Colaborador não encontrado");
+      if (validation.length) throw new Error(validation[0]);
       const { error } = await supabase.from("dp_solicitacoes").insert({
-        company_id: colab!.company_id,
-        colaborador_id: cid as string,
+        company_id: meRef.data.company_id,
+        colaborador_id: meRef.data.id,
         tipo: form.tipo as any,
-        data_alvo: form.data_alvo || null,
-        data_fim: form.data_fim || null,
+        data_alvo: toIso(form.data_alvo) || null,
+        data_fim: toIso(form.data_fim) || null,
         motivo: form.motivo || null,
         criado_por: user!.id,
       });
@@ -72,10 +141,36 @@ export default function DpMeuSolicitacoes() {
       toast.success("Solicitação enviada");
       qc.invalidateQueries({ queryKey: ["dp_meu_sol"] });
       setOpen(false);
-      setForm({ tipo: "folga", data_alvo: "", data_fim: "", motivo: "" });
+      setForm({ tipo: "folga", data_alvo: undefined, data_fim: undefined, motivo: "" });
     },
     onError: (e: any) => toast.error(e.message ?? "Erro"),
   });
+
+  const cancelar = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("dp_solicitacoes")
+        .update({ status: "cancelada" as any })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Solicitação cancelada");
+      qc.invalidateQueries({ queryKey: ["dp_meu_sol"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro"),
+  });
+
+  const filtered = useMemo(() => {
+    if (tab === "todas") return list.data ?? [];
+    return (list.data ?? []).filter((s: any) => s.status === tab);
+  }, [list.data, tab]);
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { todas: list.data?.length ?? 0 };
+    for (const s of list.data ?? []) c[s.status] = (c[s.status] ?? 0) + 1;
+    return c;
+  }, [list.data]);
 
   return (
     <DpPage>
@@ -84,47 +179,67 @@ export default function DpMeuSolicitacoes() {
         icon={ClipboardList}
         title="Minhas solicitações"
         actions={
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" /> Nova</Button></DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader><DialogTitle>Nova solicitação</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div>
-                <Label>Tipo</Label>
-                <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" /> Nova</Button></DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader><DialogTitle>Nova solicitação</DialogTitle></DialogHeader>
+              <div className="space-y-3">
                 <div>
-                  <Label>Data</Label>
-                  <Input type="date" value={form.data_alvo} onChange={(e) => setForm({ ...form, data_alvo: e.target.value })} />
+                  <Label>Tipo</Label>
+                  <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
+                  </Select>
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <DateField label="Data" value={form.data_alvo} onChange={(d) => setForm({ ...form, data_alvo: d })} />
+                  <DateField label="Data fim" value={form.data_fim} onChange={(d) => setForm({ ...form, data_fim: d })} />
+                </div>
+                {bloqueioAtivo != null && (
+                  <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <p>
+                      Esta data está bloqueada pelo DP{bloqueioAtivo ? `: ${bloqueioAtivo}` : ""}. A aprovação pode ser negada.
+                    </p>
+                  </div>
+                )}
                 <div>
-                  <Label>Data fim</Label>
-                  <Input type="date" value={form.data_fim} onChange={(e) => setForm({ ...form, data_fim: e.target.value })} />
+                  <Label>Motivo{form.tipo !== "folga" && <span className="text-destructive ml-0.5">*</span>}</Label>
+                  <Textarea rows={3} value={form.motivo} onChange={(e) => setForm({ ...form, motivo: e.target.value })} />
                 </div>
+                {validation.length > 0 && (
+                  <p className="text-xs text-destructive">{validation[0]}</p>
+                )}
               </div>
-              <div>
-                <Label>Motivo</Label>
-                <Textarea rows={3} value={form.motivo} onChange={(e) => setForm({ ...form, motivo: e.target.value })} />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button disabled={create.isPending} onClick={() => create.mutate()}>Enviar</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+                <Button
+                  disabled={create.isPending || validation.length > 0}
+                  onClick={() => create.mutate()}
+                >
+                  Enviar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         }
       />
 
-      {(list.data?.length ?? 0) === 0 ? (
+      <Tabs value={tab} onValueChange={(v) => setTab(v as StatusTab)}>
+        <TabsList>
+          {STATUS_TABS.map((s) => (
+            <TabsTrigger key={s} value={s} className="capitalize">
+              {s} <span className="ml-1 text-[10px] opacity-70">({counts[s] ?? 0})</span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
+      {filtered.length === 0 ? (
         <DpContentCard><DpEmptyState icon={ClipboardList}>Sem solicitações.</DpEmptyState></DpContentCard>
       ) : (
         <div className="grid gap-3">
-          {list.data?.map((s: any) => (
+          {filtered.map((s: any) => (
             <Card key={s.id} className="dp-content-card">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between gap-2">
@@ -132,14 +247,26 @@ export default function DpMeuSolicitacoes() {
                   <Badge className={statusColor[s.status]}>{s.status}</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {s.data_alvo && format(new Date(s.data_alvo), "dd/MM/yyyy")}
-                  {s.data_fim && ` – ${format(new Date(s.data_fim), "dd/MM/yyyy")}`}
+                  {s.data_alvo && format(new Date(s.data_alvo + "T00:00:00"), "dd/MM/yyyy")}
+                  {s.data_fim && ` – ${format(new Date(s.data_fim + "T00:00:00"), "dd/MM/yyyy")}`}
                 </p>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-2">
                 {s.motivo && <p className="text-sm">{s.motivo}</p>}
                 {s.resposta_admin && (
-                  <p className="text-xs text-muted-foreground mt-2">Resposta: {s.resposta_admin}</p>
+                  <p className="text-xs text-muted-foreground">Resposta: {s.resposta_admin}</p>
+                )}
+                {s.status === "pendente" && (
+                  <div className="pt-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => cancelar.mutate(s.id)}
+                      disabled={cancelar.isPending}
+                    >
+                      <Ban className="h-4 w-4 mr-1" /> Cancelar
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -147,5 +274,36 @@ export default function DpMeuSolicitacoes() {
         </div>
       )}
     </DpPage>
+  );
+}
+
+function DateField({
+  label, value, onChange,
+}: { label: string; value: Date | undefined; onChange: (d: Date | undefined) => void }) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn("w-full justify-start text-left font-normal", !value && "text-muted-foreground")}
+          >
+            <CalendarIcon className="h-4 w-4 mr-2" />
+            {value ? format(value, "dd/MM/yyyy", { locale: ptBR }) : <span>Selecionar</span>}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={value}
+            onSelect={onChange}
+            initialFocus
+            className={cn("p-3 pointer-events-auto")}
+            locale={ptBR}
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
   );
 }
