@@ -49,6 +49,8 @@ import DpModelosMensagem from "./pages/dp/DpModelosMensagem";
 import DpDocImportBulk from "./pages/dp/DpDocImportBulk";
 import DpComunicacaoHub from "./pages/dp/DpComunicacaoHub";
 import DpMeuHistorico from "./pages/dp/portal/DpMeuHistorico";
+import DpAtestados from "./pages/dp/DpAtestados";
+import DpHistoricoCompleto from "./pages/dp/DpHistoricoCompleto";
 import AdminModulos from "./pages/admin/Modulos";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
