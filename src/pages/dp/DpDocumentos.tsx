@@ -4,14 +4,19 @@ import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, Download, Trash2, FileText, ArrowLeft, FolderOpen } from "lucide-react";
+import {
+  Upload, Download, Trash2, FileText, ArrowLeft, FolderOpen,
+  Check, X, Clock, CheckCircle2, XCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,6 +25,7 @@ import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import type { Database } from "@/integrations/supabase/types";
 
 type Tipo = Database["public"]["Enums"]["dp_documento_tipo"];
+type Aprov = "pendente" | "aprovado" | "recusado";
 type Row = Database["public"]["Tables"]["dp_documentos"]["Row"];
 
 export const TIPOS: { value: Tipo; label: string }[] = [
