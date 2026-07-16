@@ -2,11 +2,12 @@ import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FileText, Wallet, FileSignature, Clock, HeartPulse, Palmtree, AlertOctagon, Users2, FolderOpen } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { TIPOS } from "./DpDocumentos";
 import { NavigationCard } from "@/components/dp/NavigationCard";
 
-const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+const ICONS: Record<string, LucideIcon> = {
   contracheque: FileText,
   adiantamento: Wallet,
   contrato: FileSignature,
