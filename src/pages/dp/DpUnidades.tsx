@@ -251,6 +251,10 @@ export default function DpUnidades() {
           </DialogHeader>
           {viewing && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+              <div className="md:col-span-2">
+                <Label className="text-xs text-muted-foreground uppercase">Empresa vinculada</Label>
+                <p className="font-semibold">{viewing.company_name ?? "—"}</p>
+              </div>
               <div>
                 <Label className="text-xs text-muted-foreground uppercase">Nome</Label>
                 <p className="font-semibold">{viewing.nome}</p>
