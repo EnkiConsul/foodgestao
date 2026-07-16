@@ -24,8 +24,9 @@ export default function DpCargos() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<DpCargo | null>(null);
   const [form, setForm] = useState<FormState>(blankForm);
-  const [toDelete, setToDelete] = useState<DpCargo | null>(null);
-  const [viewCargo, setViewCargo] = useState<DpCargo | null>(null);
+  const [toDelete, setToDelete] = useState<DpCargoWithCount | null>(null);
+  const [viewCargo, setViewCargo] = useState<DpCargoWithCount | null>(null);
+  const [busca, setBusca] = useState("");
 
   const openNew = () => {
     setEditing(null);
