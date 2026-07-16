@@ -10,7 +10,6 @@ export default function DpHome() {
     <div className="space-y-6 max-w-7xl mx-auto">
       <Helmet><title>Painel Administrativo — DP 360°</title></Helmet>
 
-      <AtestadosPendentesPopout />
 
       <header>
         <div className="flex items-center gap-2">
