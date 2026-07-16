@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Loader2, Check, X } from "lucide-react";
+import { Plus, Loader2, Check, X, FileText } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -87,9 +87,10 @@ export default function DpSolicitacoes() {
   });
 
   const respond = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: Status }) => {
+    mutationFn: async ({ id, status, resposta }: { id: string; status: Status; resposta?: string }) => {
       const { error } = await supabase.from("dp_solicitacoes").update({
         status, respondido_por: user?.id, respondido_em: new Date().toISOString(),
+        resposta_admin: resposta ?? null,
       }).eq("id", id);
       if (error) throw error;
     },
@@ -100,6 +101,12 @@ export default function DpSolicitacoes() {
     },
     onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
   });
+
+  const openArquivo = async (path: string) => {
+    const { data, error } = await supabase.storage.from("dp-documentos").createSignedUrl(path, 60);
+    if (error) return toast.error(error.message);
+    window.open(data.signedUrl, "_blank");
+  };
 
   return (
     <div className="space-y-4">
@@ -146,12 +153,22 @@ export default function DpSolicitacoes() {
                     <TableCell className="max-w-xs truncate">{r.motivo ?? "—"}</TableCell>
                     <TableCell><Badge className={STATUS_BADGE[r.status].className}>{STATUS_BADGE[r.status].label}</Badge></TableCell>
                     <TableCell>
-                      {r.status === "pendente" && (
-                        <div className="flex gap-1 justify-end">
-                          <Button size="icon" variant="ghost" onClick={() => respond.mutate({ id: r.id, status: "aprovada" })}><Check className="h-4 w-4 text-primary" /></Button>
-                          <Button size="icon" variant="ghost" onClick={() => respond.mutate({ id: r.id, status: "recusada" })}><X className="h-4 w-4 text-destructive" /></Button>
-                        </div>
-                      )}
+                      <div className="flex gap-1 justify-end">
+                        {(r as any).arquivo_path && (
+                          <Button size="icon" variant="ghost" onClick={() => openArquivo((r as any).arquivo_path)} title="Ver arquivo">
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {r.status === "pendente" && (
+                          <>
+                            <Button size="icon" variant="ghost" onClick={() => respond.mutate({ id: r.id, status: "aprovada" })}><Check className="h-4 w-4 text-primary" /></Button>
+                            <Button size="icon" variant="ghost" onClick={() => {
+                              const resposta = window.prompt("Motivo da recusa (opcional):") ?? undefined;
+                              respond.mutate({ id: r.id, status: "recusada", resposta });
+                            }}><X className="h-4 w-4 text-destructive" /></Button>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
