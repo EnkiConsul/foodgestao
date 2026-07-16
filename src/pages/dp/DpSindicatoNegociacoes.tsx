@@ -129,6 +129,43 @@ export default function DpSindicatoNegociacoes() {
     onError: (e) => toast.error("Erro ao remover", { description: e instanceof Error ? e.message : String(e) }),
   });
 
+  const uploadPdf = useMutation({
+    mutationFn: async ({ id, file }: { id: string; file: File }) => {
+      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
+      const path = `${selectedCompanyId}/sindicato-negociacoes/${id}/${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
+      const { error: upErr } = await supabase.storage
+        .from("dp-documentos")
+        .upload(path, file, { upsert: true, contentType: file.type || "application/pdf" });
+      if (upErr) throw upErr;
+      const { error: updErr } = await supabase.from("dp_sindicato_negociacoes").update({ pdf_path: path }).eq("id", id);
+      if (updErr) throw updErr;
+    },
+    onSuccess: () => {
+      toast.success("PDF anexado");
+      qc.invalidateQueries({ queryKey: ["dp_sindicato_negociacoes"] });
+    },
+    onError: (e) => toast.error("Erro ao anexar PDF", { description: e instanceof Error ? e.message : String(e) }),
+  });
+
+  const openPdf = async (path: string) => {
+    const { data, error } = await supabase.storage.from("dp-documentos").createSignedUrl(path, 60);
+    if (error) return toast.error(error.message);
+    window.open(data.signedUrl, "_blank");
+  };
+
+  const triggerUpload = (id: string) => {
+    setUploadTargetId(id);
+    uploadRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !uploadTargetId) return;
+    uploadPdf.mutate({ id: uploadTargetId, file });
+    e.target.value = "";
+    setUploadTargetId(null);
+  };
+
   const openNew = () => {
     setForm({ ...emptyForm, sindicato_id: sindicatoFilter !== "all" ? sindicatoFilter : "" });
     setOpen(true);
