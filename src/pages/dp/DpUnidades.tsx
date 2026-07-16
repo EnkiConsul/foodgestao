@@ -1,14 +1,14 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Building2, ListChecks, Users } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, ListChecks, Users, Search, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import {
   useDpUnidades,
   useUpsertDpUnidade,
@@ -57,6 +57,9 @@ export default function DpUnidades() {
   const [editing, setEditing] = useState<DpUnidadeWithCounts | null>(null);
   const [toDelete, setToDelete] = useState<DpUnidadeWithCounts | null>(null);
   const [form, setForm] = useState(blank);
+  const [busca, setBusca] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "ativa" | "inativa">("all");
+  const [loadingBrasilApi, setLoadingBrasilApi] = useState(false);
 
   const [viewOpen, setViewOpen] = useState(false);
   const [viewing, setViewing] = useState<DpUnidadeWithCounts | null>(null);
@@ -95,6 +98,7 @@ export default function DpUnidades() {
       // Fallback: se a empresa não tem cidade/UF estruturados, consulta CNPJ na BrasilAPI
       const cnpjDigits = onlyNumbers(data.cnpj || "");
       if ((!cidade || !uf) && cnpjDigits.length === 14) {
+        setLoadingBrasilApi(true);
         try {
           const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjDigits}`);
           if (res.ok) {
@@ -112,6 +116,7 @@ export default function DpUnidades() {
             if (!telefone) telefone = info.ddd_telefone_1 || "";
           }
         } catch { /* ignore */ }
+        finally { setLoadingBrasilApi(false); }
       }
 
       setForm((prev) => ({
@@ -205,7 +210,16 @@ export default function DpUnidades() {
     }
   };
 
-  const rows = list.data ?? [];
+  const rows = useMemo(() => {
+    const all = list.data ?? [];
+    const q = busca.trim().toLowerCase();
+    return all.filter((u) => {
+      if (statusFilter === "ativa" && !u.ativo) return false;
+      if (statusFilter === "inativa" && u.ativo) return false;
+      if (!q) return true;
+      return u.nome.toLowerCase().includes(q) || (u.cnpj ?? "").includes(onlyNumbers(q));
+    });
+  }, [list.data, busca, statusFilter]);
 
   return (
     <DpPage narrow>
@@ -224,6 +238,22 @@ export default function DpUnidades() {
           </>
         }
       />
+
+      <div className="flex flex-col sm:flex-row gap-2 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input className="pl-9" placeholder="Buscar por nome ou CNPJ..." value={busca} onChange={(e) => setBusca(e.target.value)} />
+        </div>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+          <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas</SelectItem>
+            <SelectItem value="ativa">Ativas</SelectItem>
+            <SelectItem value="inativa">Inativas</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
 
       <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
@@ -244,7 +274,9 @@ export default function DpUnidades() {
                 <tr><td colSpan={7} className="p-12 text-center text-muted-foreground">Carregando...</td></tr>
               )}
               {!list.isLoading && rows.length === 0 && (
-                <tr><td colSpan={7} className="p-12 text-center text-muted-foreground">Nenhuma unidade cadastrada.</td></tr>
+                <tr><td colSpan={7} className="p-12 text-center text-muted-foreground">
+                  {(list.data ?? []).length === 0 ? "Nenhuma unidade cadastrada." : "Nenhuma unidade encontrada com os filtros atuais."}
+                </td></tr>
               )}
               {rows.map((u) => (
                 <tr
@@ -355,6 +387,14 @@ export default function DpUnidades() {
               </div>
             </div>
           )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setViewOpen(false)}>Fechar</Button>
+            {viewing && (
+              <Button onClick={() => { const u = viewing; setViewOpen(false); openEdit(u); }}>
+                <Pencil className="size-4 mr-2" /> Editar
+              </Button>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -408,7 +448,14 @@ export default function DpUnidades() {
               />
             </div>
             <div className="space-y-2">
-              <Label>CNPJ</Label>
+              <Label className="flex items-center gap-2">
+                CNPJ
+                {loadingBrasilApi && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-normal text-muted-foreground">
+                    <Loader2 className="size-3 animate-spin" /> Buscando dados na BrasilAPI...
+                  </span>
+                )}
+              </Label>
               <Input
                 value={formatCNPJ(form.cnpj)}
                 onChange={(e) => setForm({ ...form, cnpj: onlyNumbers(e.target.value) })}
@@ -501,6 +548,10 @@ export default function DpUnidades() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remover unidade "{toDelete?.nome}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Colaboradores, folgas, escalas e vínculos sindicais associados a esta unidade ficarão sem referência.
+              Se houver registros vinculados, a exclusão será bloqueada pelo banco de dados.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>

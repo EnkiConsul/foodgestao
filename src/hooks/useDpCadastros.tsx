@@ -105,19 +105,33 @@ export function useDeleteDpUnidade() {
 }
 
 // ---------------- Cargos ----------------
+export type DpCargoWithCount = DpCargo & { colaboradores_count: number };
+
 export function useDpCargos() {
   const { selectedCompanyId } = useCompanyContext();
   return useQuery({
     queryKey: ["dp_cargos", selectedCompanyId],
     enabled: !!selectedCompanyId,
-    queryFn: async () => {
+    queryFn: async (): Promise<DpCargoWithCount[]> => {
       const { data, error } = await supabase
         .from("dp_cargos")
         .select("*")
         .eq("company_id", selectedCompanyId!)
         .order("nome");
       if (error) throw error;
-      return (data ?? []) as DpCargo[];
+      const cargos = (data ?? []) as DpCargo[];
+      if (cargos.length === 0) return [];
+      const { data: cols, error: colErr } = await supabase
+        .from("dp_colaboradores")
+        .select("cargo_id")
+        .eq("company_id", selectedCompanyId!)
+        .not("cargo_id", "is", null);
+      if (colErr) throw colErr;
+      const map = new Map<string, number>();
+      (cols ?? []).forEach((c: any) => {
+        if (c.cargo_id) map.set(c.cargo_id, (map.get(c.cargo_id) ?? 0) + 1);
+      });
+      return cargos.map((c) => ({ ...c, colaboradores_count: map.get(c.id) ?? 0 }));
     },
   });
 }
@@ -153,19 +167,39 @@ export function useDeleteDpCargo() {
 }
 
 // ---------------- Sindicatos ----------------
+export type DpSindicatoWithCounts = DpSindicato & {
+  unidades_count: number;
+  cargos_count: number;
+};
+
 export function useDpSindicatos() {
   const { selectedCompanyId } = useCompanyContext();
   return useQuery({
     queryKey: ["dp_sindicatos", selectedCompanyId],
     enabled: !!selectedCompanyId,
-    queryFn: async () => {
+    queryFn: async (): Promise<DpSindicatoWithCounts[]> => {
       const { data, error } = await supabase
         .from("dp_sindicatos")
         .select("*")
         .eq("company_id", selectedCompanyId!)
         .order("nome");
       if (error) throw error;
-      return (data ?? []) as DpSindicato[];
+      const sinds = (data ?? []) as DpSindicato[];
+      if (sinds.length === 0) return [];
+      const ids = sinds.map((s) => s.id);
+      const [{ data: uni }, { data: cgs }] = await Promise.all([
+        supabase.from("dp_sindicato_unidades").select("sindicato_id").in("sindicato_id", ids),
+        supabase.from("dp_sindicato_cargos").select("sindicato_id").in("sindicato_id", ids),
+      ]);
+      const uniMap = new Map<string, number>();
+      (uni ?? []).forEach((r: any) => uniMap.set(r.sindicato_id, (uniMap.get(r.sindicato_id) ?? 0) + 1));
+      const cgMap = new Map<string, number>();
+      (cgs ?? []).forEach((r: any) => cgMap.set(r.sindicato_id, (cgMap.get(r.sindicato_id) ?? 0) + 1));
+      return sinds.map((s) => ({
+        ...s,
+        unidades_count: uniMap.get(s.id) ?? 0,
+        cargos_count: cgMap.get(s.id) ?? 0,
+      }));
     },
   });
 }
@@ -174,15 +208,17 @@ export function useUpsertDpSindicato() {
   const qc = useQueryClient();
   const { selectedCompanyId } = useCompanyContext();
   return useMutation({
-    mutationFn: async (input: Partial<DpSindicatoInsert> & { id?: string; nome: string }) => {
+    mutationFn: async (input: Partial<DpSindicatoInsert> & { id?: string; nome: string }): Promise<string> => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
       const payload = { ...input, company_id: selectedCompanyId } as DpSindicatoInsert;
       if (input.id) {
         const { error } = await supabase.from("dp_sindicatos").update(payload).eq("id", input.id);
         if (error) throw error;
+        return input.id;
       } else {
-        const { error } = await supabase.from("dp_sindicatos").insert(payload);
+        const { data, error } = await supabase.from("dp_sindicatos").insert(payload).select("id").single();
         if (error) throw error;
+        return data.id;
       }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_sindicatos"] }),

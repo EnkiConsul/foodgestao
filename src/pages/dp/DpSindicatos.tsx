@@ -2,15 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, HandshakeIcon, Check, MessageCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, HandshakeIcon, Check, MessageCircle, Search, Users, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useDpSindicatos, useUpsertDpSindicato, useDeleteDpSindicato, useDpUnidades, useDpCargos, type DpSindicato } from "@/hooks/useDpCadastros";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useDpSindicatos, useUpsertDpSindicato, useDeleteDpSindicato, useDpUnidades, useDpCargos, type DpSindicatoWithCounts as DpSindicato } from "@/hooks/useDpCadastros";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 import { supabase } from "@/integrations/supabase/client";
@@ -67,8 +67,16 @@ export default function DpSindicatos() {
     setCargosSel(vinculos.data.cargos);
   }, [vinculos.data]);
 
-  const patronais = useMemo(() => (list.data ?? []).filter((s) => (s as any).tipo === "patronal"), [list.data]);
-  const laborais = useMemo(() => (list.data ?? []).filter((s) => (s as any).tipo === "laboral"), [list.data]);
+  const [busca, setBusca] = useState("");
+  const filtrado = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return (list.data ?? []).filter((s) => {
+      if (!q) return true;
+      return s.nome.toLowerCase().includes(q) || (s.cnpj ?? "").includes(onlyDigits(q));
+    });
+  }, [list.data, busca]);
+  const patronais = useMemo(() => filtrado.filter((s) => (s as any).tipo === "patronal"), [filtrado]);
+  const laborais = useMemo(() => filtrado.filter((s) => (s as any).tipo === "laboral"), [filtrado]);
 
   const abrirNovo = (t: Tipo) => {
     setTipo(t);
@@ -103,51 +111,28 @@ export default function DpSindicatos() {
     if (tipo === "laboral" && cargosSel.length === 0) { toast.error("Selecione pelo menos um cargo"); return; }
 
     try {
-      // Upsert do sindicato e obter id
-      let sindicatoId = editing?.id;
-      if (sindicatoId) {
-        const { error } = await supabase.from("dp_sindicatos").update({
-          nome: form.nome.trim(),
-          cnpj: form.cnpj ? onlyDigits(form.cnpj) : null,
-          contato_telefone: form.contato_whatsapp ? onlyDigits(form.contato_whatsapp) : null,
-          tipo,
-        } as any).eq("id", sindicatoId);
-        if (error) throw error;
-      } else {
-        // usa hook para pegar company_id
-        await upsert.mutateAsync({
-          nome: form.nome.trim(),
-          cnpj: form.cnpj ? onlyDigits(form.cnpj) : null,
-          contato_telefone: form.contato_whatsapp ? onlyDigits(form.contato_whatsapp) : null,
-          tipo,
-        } as any);
-        // buscar o mais recente criado (fallback)
-        const { data } = await supabase
-          .from("dp_sindicatos")
-          .select("id")
-          .eq("nome", form.nome.trim())
-          .eq("tipo", tipo)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        sindicatoId = data?.id;
-      }
+      const sindicatoId = await upsert.mutateAsync({
+        id: editing?.id,
+        nome: form.nome.trim(),
+        cnpj: form.cnpj ? onlyDigits(form.cnpj) : null,
+        contato_telefone: form.contato_whatsapp ? onlyDigits(form.contato_whatsapp) : null,
+        tipo,
+      } as any);
 
       if (!sindicatoId) throw new Error("Não foi possível identificar o sindicato salvo.");
 
-      // Sincronizar vínculos
       if (tipo === "patronal") {
         await supabase.from("dp_sindicato_unidades").delete().eq("sindicato_id", sindicatoId);
         if (unidadesSel.length) {
           await supabase.from("dp_sindicato_unidades").insert(
-            unidadesSel.map((unidade_id) => ({ sindicato_id: sindicatoId!, unidade_id }))
+            unidadesSel.map((unidade_id) => ({ sindicato_id: sindicatoId, unidade_id }))
           );
         }
       } else {
         await supabase.from("dp_sindicato_cargos").delete().eq("sindicato_id", sindicatoId);
         if (cargosSel.length) {
           await supabase.from("dp_sindicato_cargos").insert(
-            cargosSel.map((cargo_id) => ({ sindicato_id: sindicatoId!, cargo_id }))
+            cargosSel.map((cargo_id) => ({ sindicato_id: sindicatoId, cargo_id }))
           );
         }
       }
@@ -172,12 +157,33 @@ export default function DpSindicatos() {
     setToDelete(null);
   };
 
-  const renderCard = (s: DpSindicato, badgeLabel: string, badgeVariant: "secondary" | "default") => (
+  const renderCard = (s: DpSindicato, badgeLabel: "Patronal" | "Laboral") => (
     <Card key={s.id} className="border-border shadow-sm">
       <CardHeader className="pb-2">
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base">{s.nome}</CardTitle>
-          <Badge variant={badgeVariant}>{badgeLabel}</Badge>
+          <Badge
+            className={
+              badgeLabel === "Patronal"
+                ? "bg-primary/15 text-primary border-primary/30 hover:bg-primary/20"
+                : "bg-accent text-accent-foreground border-accent hover:bg-accent/80"
+            }
+            variant="outline"
+          >
+            {badgeLabel}
+          </Badge>
+        </div>
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {badgeLabel === "Patronal" && (
+            <Badge variant="secondary" className="text-[10px] gap-1">
+              <Users className="size-3" /> {s.unidades_count} unidade{s.unidades_count === 1 ? "" : "s"}
+            </Badge>
+          )}
+          {badgeLabel === "Laboral" && (
+            <Badge variant="secondary" className="text-[10px] gap-1">
+              <Briefcase className="size-3" /> {s.cargos_count} cargo{s.cargos_count === 1 ? "" : "s"}
+            </Badge>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-2 text-sm">
@@ -217,40 +223,50 @@ export default function DpSindicatos() {
       />
 
       <DpContentCard>
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Buscar por nome ou CNPJ..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-primary">Patronais</h2>
+              <h2 className="text-xl font-semibold text-primary">Patronais <span className="text-sm font-normal text-muted-foreground">({patronais.length})</span></h2>
               <Button onClick={() => abrirNovo("patronal")}>
                 <Plus className="size-4 mr-2" /> Novo Patronal
               </Button>
             </div>
             {patronais.length === 0 ? (
               <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">
-                Nenhum sindicato patronal cadastrado.
+                Nenhum sindicato patronal {busca ? "encontrado" : "cadastrado"}.
               </div>
             ) : (
-              <div className="space-y-3">{patronais.map((s) => renderCard(s, "Patronal", "secondary"))}</div>
+              <div className="space-y-3">{patronais.map((s) => renderCard(s, "Patronal"))}</div>
             )}
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-primary">Laborais</h2>
+              <h2 className="text-xl font-semibold text-primary">Laborais <span className="text-sm font-normal text-muted-foreground">({laborais.length})</span></h2>
               <Button onClick={() => abrirNovo("laboral")}>
                 <Plus className="size-4 mr-2" /> Novo Laboral
               </Button>
             </div>
             {laborais.length === 0 ? (
               <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">
-                Nenhum sindicato laboral cadastrado.
+                Nenhum sindicato laboral {busca ? "encontrado" : "cadastrado"}.
               </div>
             ) : (
-              <div className="space-y-3">{laborais.map((s) => renderCard(s, "Laboral", "default"))}</div>
+              <div className="space-y-3">{laborais.map((s) => renderCard(s, "Laboral"))}</div>
             )}
           </div>
         </div>
       </DpContentCard>
+
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
@@ -367,6 +383,9 @@ export default function DpSindicatos() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remover sindicato "{toDelete?.nome}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação também removerá os vínculos com unidades ou cargos. Negociações e acordos vinculados serão mantidos, mas ficarão órfãos.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>

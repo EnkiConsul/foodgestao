@@ -1,9 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, ArrowLeft, FileText, Upload } from "lucide-react";
-import { useRef } from "react";
+import { Plus, Pencil, Trash2, FileText, Upload } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -15,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useDpSindicatos } from "@/hooks/useDpCadastros";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
@@ -49,6 +47,7 @@ export default function DpSindicatoNegociacoes() {
   const qc = useQueryClient();
   const sindicatos = useDpSindicatos();
   const [sindicatoFilter, setSindicatoFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "vigente" | "expirado">("all");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [toDelete, setToDelete] = useState<Negociacao | null>(null);
@@ -190,6 +189,12 @@ export default function DpSindicatoNegociacoes() {
     return n.vigencia_inicio <= hoje && (!n.vigencia_fim || n.vigencia_fim >= hoje);
   };
 
+  const filtered = useMemo(() => {
+    const all = list.data ?? [];
+    if (statusFilter === "all") return all;
+    return all.filter((n) => (statusFilter === "vigente") === isVigente(n));
+  }, [list.data, statusFilter]);
+
   return (
     <DpPage>
       <Helmet><title>Negociações sindicais — DP 360°</title></Helmet>
@@ -201,13 +206,10 @@ export default function DpSindicatoNegociacoes() {
         onChange={handleFileChange}
       />
 
-      <Button size="sm" variant="ghost" asChild className="w-fit">
-            <Link to="/dp/documentos"><ArrowLeft className="h-4 w-4 mr-1" /> Documentos</Link>
-      </Button>
       <DpPageHeader
         icon={FileText}
         title="Negociações sindicais"
-        description={`${list.data?.length ?? 0} acordo(s) registrados`}
+        description={`${filtered.length} de ${list.data?.length ?? 0} acordo(s)`}
         actions={<Button onClick={openNew} disabled={(sindicatos.data ?? []).length === 0}>
             <Plus className="h-4 w-4 mr-2" /> Nova negociação
           </Button>}
@@ -227,8 +229,20 @@ export default function DpSindicatoNegociacoes() {
             </SelectContent>
           </Select>
           </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">STATUS</Label>
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="vigente">Vigentes</SelectItem>
+                <SelectItem value="expirado">Expirados</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </DpFilterCard>
+
 
       <DpContentCard contentClassName="overflow-x-auto">
           {list.isLoading ? (
@@ -246,7 +260,7 @@ export default function DpSindicatoNegociacoes() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(list.data ?? []).map((n) => (
+                {filtered.map((n) => (
                   <TableRow key={n.id}>
                     <TableCell className="font-medium">{sindicatoMap.get(n.sindicato_id) ?? "—"}</TableCell>
                     <TableCell>{new Date(n.data_base).toLocaleDateString("pt-BR")}</TableCell>
@@ -288,10 +302,10 @@ export default function DpSindicatoNegociacoes() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {(list.data ?? []).length === 0 && (
+                {filtered.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                      Nenhuma negociação registrada.
+                      {(list.data ?? []).length === 0 ? "Nenhuma negociação registrada." : "Nenhuma negociação para os filtros atuais."}
                     </TableCell>
                   </TableRow>
                 )}
@@ -360,6 +374,9 @@ export default function DpSindicatoNegociacoes() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remover esta negociação?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O PDF anexado no armazenamento não é excluído automaticamente. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>

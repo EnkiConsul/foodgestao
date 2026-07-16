@@ -35,6 +35,7 @@ import DpTrocas from "./pages/dp/DpTrocas";
 import DpFolhaHub from "./pages/dp/DpFolhaHub";
 import DpFolhaPeriodo from "./pages/dp/DpFolhaPeriodo";
 import DpFolhaAprovacoes from "./pages/dp/DpFolhaAprovacoes";
+import DpConfiguracoes from "./pages/dp/DpConfiguracoes";
 import { ColaboradorShell } from "./components/dp/ColaboradorShell";
 import DpMeuHome from "./pages/dp/portal/DpMeuHome";
 import DpMeuPerfil from "./pages/dp/portal/DpMeuPerfil";
@@ -361,6 +362,7 @@ const AppRoutes = () => (
       <Route path="documentos/act-cct" element={<DpSindicatoNegociacoes />} />
       <Route path="folha" element={<DpFolhaHub />} />
       <Route path="folha/aprovacoes" element={<DpFolhaAprovacoes />} />
+      <Route path="configuracoes" element={<DpConfiguracoes />} />
       <Route path="folha/periodos/:id" element={<DpFolhaPeriodo />} />
       {/* Redirects de rotas legadas */}
       <Route path="sindicatos" element={<Navigate to="/dp/cadastros/sindicatos" replace />} />

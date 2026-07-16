@@ -1,14 +1,14 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Briefcase } from "lucide-react";
+import { Plus, Pencil, Trash2, Briefcase, Search, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useDpCargos, useUpsertDpCargo, useDeleteDpCargo, type DpCargo } from "@/hooks/useDpCadastros";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useDpCargos, useUpsertDpCargo, useDeleteDpCargo, type DpCargo, type DpCargoWithCount } from "@/hooks/useDpCadastros";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 import { cn } from "@/lib/utils";
@@ -24,8 +24,9 @@ export default function DpCargos() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<DpCargo | null>(null);
   const [form, setForm] = useState<FormState>(blankForm);
-  const [toDelete, setToDelete] = useState<DpCargo | null>(null);
-  const [viewCargo, setViewCargo] = useState<DpCargo | null>(null);
+  const [toDelete, setToDelete] = useState<DpCargoWithCount | null>(null);
+  const [viewCargo, setViewCargo] = useState<DpCargoWithCount | null>(null);
+  const [busca, setBusca] = useState("");
 
   const openNew = () => {
     setEditing(null);
@@ -89,7 +90,12 @@ export default function DpCargos() {
     } catch { return v; }
   };
 
-  const rows = list.data ?? [];
+  const rows = useMemo(() => {
+    const all = list.data ?? [];
+    const q = busca.trim().toLowerCase();
+    if (!q) return all;
+    return all.filter((c) => c.nome.toLowerCase().includes(q));
+  }, [list.data, busca]);
 
   return (
     <DpPage narrow>
@@ -109,6 +115,11 @@ export default function DpCargos() {
         }
       />
 
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+        <Input className="pl-9" placeholder="Buscar cargo por nome..." value={busca} onChange={(e) => setBusca(e.target.value)} />
+      </div>
+
       <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -116,15 +127,18 @@ export default function DpCargos() {
               <tr>
                 <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px]">Nome</th>
                 <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden md:table-cell">Descrição</th>
+                <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px]">Colaboradores</th>
                 <th className="text-right p-4 font-bold uppercase tracking-wider text-[10px]">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {list.isLoading && (
-                <tr><td colSpan={3} className="p-12 text-center text-muted-foreground">Carregando...</td></tr>
+                <tr><td colSpan={4} className="p-12 text-center text-muted-foreground">Carregando...</td></tr>
               )}
               {!list.isLoading && rows.length === 0 && (
-                <tr><td colSpan={3} className="p-12 text-center text-muted-foreground">Nenhum cargo cadastrado.</td></tr>
+                <tr><td colSpan={4} className="p-12 text-center text-muted-foreground">
+                  {(list.data ?? []).length === 0 ? "Nenhum cargo cadastrado." : "Nenhum cargo encontrado."}
+                </td></tr>
               )}
               {rows.map((c) => {
                 const descricao = (c as DpCargo & { descricao?: string | null }).descricao ?? null;
@@ -136,6 +150,11 @@ export default function DpCargos() {
                   >
                     <td className="p-4 font-bold uppercase">{c.nome}</td>
                     <td className="p-4 hidden md:table-cell text-muted-foreground">{descricao || "—"}</td>
+                    <td className="p-4 text-center">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                        <Users className="size-3" /> {c.colaboradores_count}
+                      </span>
+                    </td>
                     <td className="p-4 text-right whitespace-nowrap">
                       <div className="flex justify-end gap-1">
                         <Button
@@ -250,6 +269,11 @@ export default function DpCargos() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir cargo "{toDelete?.nome}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {toDelete && toDelete.colaboradores_count > 0
+                ? `Este cargo está sendo usado por ${toDelete.colaboradores_count} colaborador(es). A exclusão será bloqueada.`
+                : "Vínculos com sindicatos laborais também serão removidos. Esta ação não pode ser desfeita."}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
