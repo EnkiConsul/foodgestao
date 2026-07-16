@@ -67,10 +67,30 @@ export function useDpUserPrefs() {
     },
   });
 
+  const favoritePages: string[] = Array.isArray((query.data?.extras as any)?.favoritos_paginas)
+    ? ((query.data!.extras as any).favoritos_paginas as string[])
+    : [];
+
+  const isFavoritePage = (route: string) => favoritePages.includes(route);
+
+  const toggleFavoritePage = (route: string) => {
+    const current = favoritePages;
+    const next = current.includes(route)
+      ? current.filter((r) => r !== route)
+      : [...current, route];
+    save.mutate({
+      extras: { ...(query.data?.extras ?? {}), favoritos_paginas: next },
+    });
+  };
+
   return {
     prefs: query.data ?? DEFAULT,
     isLoading: query.isLoading,
     save: save.mutate,
     saving: save.isPending,
+    favoritePages,
+    isFavoritePage,
+    toggleFavoritePage,
   };
 }
+
