@@ -77,10 +77,10 @@ export default function DpMeuPerfil() {
 
   return (
     <DpPage>
-      <Helmet><title>Meus dados — Portal</title></Helmet>
+      <Helmet><title>Meu Cadastro — Portal</title></Helmet>
       <DpPageHeader
         icon={User}
-        title="Meus dados"
+        title="Meu Cadastro"
         actions={p && !editing ? (
           <Button variant="outline" onClick={() => setEditing(true)}>
             <Pencil className="h-4 w-4 mr-1" /> Editar contato/endereço
