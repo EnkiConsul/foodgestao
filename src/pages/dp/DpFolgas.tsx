@@ -32,6 +32,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import type { Database } from "@/integrations/supabase/types";
 
 type Row = Database["public"]["Tables"]["dp_solicitacoes"]["Row"] & {
@@ -178,21 +179,19 @@ export default function DpFolgas() {
     : [];
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet>
         <title>Folgas — DP 360°</title>
       </Helmet>
 
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            <CalendarDays className="h-5 w-5" /> Folgas & Ausências
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Calendário mensal de folgas, férias, atestados e outras ausências.
-          </p>
-        </div>
-        <div className="flex gap-2">
+      <DpPageHeader
+        icon={CalendarDays}
+        title="Folgas & Ausências"
+        description="Calendário mensal de folgas, férias, atestados e outras ausências."
+        actions={
+          <>
+          <DpFilterCard className="border-0 shadow-none">
+            <div className="flex flex-wrap gap-2">
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as Status | "todas")}>
             <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -211,11 +210,13 @@ export default function DpFolgas() {
             </SelectContent>
           </Select>
           <Button onClick={() => openNew()}><Plus className="h-4 w-4 mr-2" /> Nova solicitação</Button>
-        </div>
-      </div>
+            </div>
+          </DpFilterCard>
+          </>
+        }
+      />
 
-      <Card>
-        <CardContent className="p-4">
+      <DpContentCard contentClassName="p-4">
           <div className="flex items-center justify-between mb-4">
             <Button variant="ghost" size="icon" onClick={() => setCursor(subMonths(cursor, 1))}>
               <ChevronLeft className="h-4 w-4" />
@@ -302,12 +303,10 @@ export default function DpFolgas() {
               </span>
             ))}
           </div>
-        </CardContent>
-      </Card>
+      </DpContentCard>
 
       {selectedDay && (
-        <Card>
-          <CardContent className="p-4">
+        <DpContentCard contentClassName="p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold">
                 {format(selectedDay, "PPP", { locale: ptBR })}
@@ -349,8 +348,7 @@ export default function DpFolgas() {
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+        </DpContentCard>
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -436,6 +434,6 @@ export default function DpFolgas() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </DpPage>
   );
 }
