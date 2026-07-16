@@ -5,58 +5,62 @@ import { Plus, Pencil, Trash2, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useDpCargos, useUpsertDpCargo, useDeleteDpCargo, type DpCargo } from "@/hooks/useDpCadastros";
-import { TableSkeleton } from "@/components/dp/DpSkeletons";
-import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
+import { cn } from "@/lib/utils";
+
+type FormState = { nome: string; descricao: string };
+const blankForm: FormState = { nome: "", descricao: "" };
 
 export default function DpCargos() {
   const list = useDpCargos();
   const upsert = useUpsertDpCargo();
   const del = useDeleteDpCargo();
+
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<DpCargo | null>(null);
+  const [form, setForm] = useState<FormState>(blankForm);
   const [toDelete, setToDelete] = useState<DpCargo | null>(null);
-  const [form, setForm] = useState({ nome: "", cbo: "", salario_base: "", ativo: true });
+  const [viewCargo, setViewCargo] = useState<DpCargo | null>(null);
 
   const openNew = () => {
     setEditing(null);
-    setForm({ nome: "", cbo: "", salario_base: "", ativo: true });
+    setForm(blankForm);
     setOpen(true);
   };
 
   const openEdit = (c: DpCargo) => {
     setEditing(c);
-    setForm({
-      nome: c.nome,
-      cbo: c.cbo ?? "",
-      salario_base: c.salario_base != null ? String(c.salario_base) : "",
-      ativo: c.ativo,
-    });
+    setForm({ nome: c.nome, descricao: (c as DpCargo & { descricao?: string | null }).descricao ?? "" });
     setOpen(true);
   };
 
   const save = async () => {
     if (!form.nome.trim()) {
-      toast.error("Nome é obrigatório");
+      toast.error("O nome do cargo é obrigatório.");
       return;
     }
     try {
       await upsert.mutateAsync({
         id: editing?.id,
         nome: form.nome.trim(),
-        cbo: form.cbo.trim() || null,
-        salario_base: form.salario_base ? Number(form.salario_base.replace(",", ".")) : null,
-        ativo: form.ativo,
-      });
-      toast.success(editing ? "Cargo atualizado" : "Cargo criado");
+        descricao: form.descricao.trim() || null,
+      } as Parameters<typeof upsert.mutateAsync>[0]);
+      toast.success(editing ? "Cargo atualizado com sucesso." : "Cargo cadastrado com sucesso.");
       setOpen(false);
+      setForm(blankForm);
+      setEditing(null);
     } catch (e) {
-      toast.error("Erro ao salvar", { description: e instanceof Error ? e.message : String(e) });
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes("23505")) {
+        toast.error("Erro", { description: "Já existe um cargo com este nome." });
+      } else {
+        toast.error("Erro ao salvar", { description: msg });
+      }
     }
   };
 
@@ -64,102 +68,194 @@ export default function DpCargos() {
     if (!toDelete) return;
     try {
       await del.mutateAsync(toDelete.id);
-      toast.success("Cargo removido");
+      toast.success("Cargo excluído.");
     } catch (e) {
-      toast.error("Erro ao remover", { description: e instanceof Error ? e.message : String(e) });
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes("23503")) {
+        toast.error("Erro de exclusão", { description: "Este cargo está sendo usado por colaboradores e não pode ser excluído." });
+      } else {
+        toast.error("Erro ao excluir", { description: msg });
+      }
     }
     setToDelete(null);
   };
 
-  const fmtBRL = (v: number | null) => v == null ? "—" : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+  const formatDate = (v: string | null | undefined) => {
+    if (!v) return "—";
+    try {
+      return new Date(v).toLocaleDateString("pt-BR", {
+        day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+      });
+    } catch { return v; }
+  };
+
+  const rows = list.data ?? [];
 
   return (
-    <DpPage>
+    <DpPage narrow>
       <Helmet><title>Cargos — DP 360°</title></Helmet>
+
       <DpPageHeader
         icon={Briefcase}
         title="Cargos"
-        description={`${list.data?.length ?? 0} cadastrados`}
-        actions={<Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> Novo cargo</Button>}
+        description="Gerencie os cargos disponíveis na empresa."
+        actions={
+          <>
+            <FavoriteToggle />
+            <Button onClick={openNew} className="rounded-full px-6">
+              <Plus className="size-4 mr-2" /> Novo Cargo
+            </Button>
+          </>
+        }
       />
 
-      <DpContentCard contentClassName="overflow-x-auto">
-          {list.isLoading ? (
-            <TableSkeleton columns={5} headers={["Nome", "CBO", "Salário base", "Status", ""]} />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>CBO</TableHead>
-                  <TableHead>Salário base</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-24"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(list.data ?? []).map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="font-medium">{c.nome}</TableCell>
-                    <TableCell>{c.cbo ?? "—"}</TableCell>
-                    <TableCell>{fmtBRL(c.salario_base)}</TableCell>
-                    <TableCell>{c.ativo ? <Badge className="bg-primary">Ativo</Badge> : <Badge variant="outline">Inativo</Badge>}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1 justify-end">
-                        <Button size="icon" variant="ghost" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" onClick={() => setToDelete(c)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50 text-muted-foreground border-b border-border">
+              <tr>
+                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px]">Nome</th>
+                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden md:table-cell">Descrição</th>
+                <th className="text-right p-4 font-bold uppercase tracking-wider text-[10px]">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {list.isLoading && (
+                <tr><td colSpan={3} className="p-12 text-center text-muted-foreground">Carregando...</td></tr>
+              )}
+              {!list.isLoading && rows.length === 0 && (
+                <tr><td colSpan={3} className="p-12 text-center text-muted-foreground">Nenhum cargo cadastrado.</td></tr>
+              )}
+              {rows.map((c) => {
+                const descricao = (c as DpCargo & { descricao?: string | null }).descricao ?? null;
+                return (
+                  <tr
+                    key={c.id}
+                    onClick={() => setViewCargo(c)}
+                    className={cn("hover:bg-muted/20 transition-colors cursor-pointer")}
+                  >
+                    <td className="p-4 font-bold uppercase">{c.nome}</td>
+                    <td className="p-4 hidden md:table-cell text-muted-foreground">{descricao || "—"}</td>
+                    <td className="p-4 text-right whitespace-nowrap">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8"
+                          title="Editar"
+                          onClick={(e) => { e.stopPropagation(); openEdit(c); }}
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 text-destructive hover:bg-destructive/10"
+                          title="Excluir"
+                          onClick={(e) => { e.stopPropagation(); setToDelete(c); }}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {(list.data ?? []).length === 0 && (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nenhum cargo cadastrado.</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
-      </DpContentCard>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+      {/* Criar / Editar */}
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditing(null); setForm(blankForm); } }}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editing ? "Editar cargo" : "Novo cargo"}</DialogTitle>
+            <DialogTitle>{editing ? "Editar Cargo" : "Novo Cargo"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>Nome *</Label>
-              <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} maxLength={120} />
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="cargo-nome">Nome do Cargo *</Label>
+              <Input
+                id="cargo-nome"
+                value={form.nome}
+                onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                placeholder="Ex: Pizzaiolo Sênior"
+                maxLength={120}
+              />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>CBO</Label>
-                <Input value={form.cbo} onChange={(e) => setForm({ ...form, cbo: e.target.value })} maxLength={10} />
-              </div>
-              <div>
-                <Label>Salário base (R$)</Label>
-                <Input value={form.salario_base} onChange={(e) => setForm({ ...form, salario_base: e.target.value })} inputMode="decimal" />
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch checked={form.ativo} onCheckedChange={(v) => setForm({ ...form, ativo: v })} />
-              <Label>Ativo</Label>
+            <div className="space-y-2">
+              <Label htmlFor="cargo-descricao">Descrição (Opcional)</Label>
+              <Textarea
+                id="cargo-descricao"
+                value={form.descricao}
+                onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                rows={3}
+                placeholder="Breve descrição das responsabilidades."
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={save} disabled={upsert.isPending}>{upsert.isPending ? "Salvando..." : "Salvar"}</Button>
+            <Button variant="ghost" onClick={() => { setOpen(false); setEditing(null); setForm(blankForm); }}>
+              Cancelar
+            </Button>
+            <Button onClick={save} disabled={upsert.isPending}>
+              {upsert.isPending ? "Salvando..." : editing ? "Salvar" : "Cadastrar"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* Visualização */}
+      <Dialog open={!!viewCargo} onOpenChange={(o) => !o && setViewCargo(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Briefcase className="size-5 text-primary" />
+              {viewCargo?.nome}
+            </DialogTitle>
+          </DialogHeader>
+          {viewCargo && (
+            <div className="space-y-4 py-2 text-sm">
+              <div>
+                <Label className="text-xs text-muted-foreground">Descrição</Label>
+                <p className="mt-1 whitespace-pre-wrap">
+                  {(viewCargo as DpCargo & { descricao?: string | null }).descricao || "—"}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Criado em</Label>
+                  <p className="mt-1">{formatDate(viewCargo.created_at)}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Atualizado em</Label>
+                  <p className="mt-1">{formatDate(viewCargo.updated_at)}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setViewCargo(null)}>Fechar</Button>
+            {viewCargo && (
+              <Button onClick={() => { const c = viewCargo; setViewCargo(null); openEdit(c); }}>
+                <Pencil className="size-4 mr-2" /> Editar
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Excluir */}
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remover cargo "{toDelete?.nome}"?</AlertDialogTitle>
+            <AlertDialogTitle>Excluir cargo "{toDelete?.nome}"?</AlertDialogTitle>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remover</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
