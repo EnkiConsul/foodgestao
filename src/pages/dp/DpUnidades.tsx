@@ -179,10 +179,10 @@ export default function DpUnidades() {
             </thead>
             <tbody className="divide-y divide-border">
               {list.isLoading && (
-                <tr><td colSpan={6} className="p-12 text-center text-muted-foreground">Carregando...</td></tr>
+                <tr><td colSpan={7} className="p-12 text-center text-muted-foreground">Carregando...</td></tr>
               )}
               {!list.isLoading && rows.length === 0 && (
-                <tr><td colSpan={6} className="p-12 text-center text-muted-foreground">Nenhuma unidade cadastrada.</td></tr>
+                <tr><td colSpan={7} className="p-12 text-center text-muted-foreground">Nenhuma unidade cadastrada.</td></tr>
               )}
               {rows.map((u) => (
                 <tr
@@ -193,6 +193,9 @@ export default function DpUnidades() {
                   <td className="p-4">
                     <div className="font-bold">{u.nome}</div>
                     {u.endereco && <div className="text-xs text-muted-foreground">{u.endereco}</div>}
+                  </td>
+                  <td className="p-4 hidden lg:table-cell text-xs">
+                    {u.company_name ?? "—"}
                   </td>
                   <td className="p-4 hidden md:table-cell font-mono text-xs">
                     {u.cnpj ? formatCNPJ(u.cnpj) : "—"}
