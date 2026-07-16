@@ -1,6 +1,7 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ContextSelector } from "@/components/layout/ContextSelector";
 import { DpNotificacoesBell } from "@/components/dp/DpNotificacoesBell";
+import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 
 export function DpHeader({ variant = "admin" }: { variant?: "admin" | "portal" }) {
   return (
@@ -8,7 +9,9 @@ export function DpHeader({ variant = "admin" }: { variant?: "admin" | "portal" }
       <SidebarTrigger />
       {variant === "admin" && <ContextSelector />}
       <div className="flex-1" />
+      <FavoriteToggle />
       <DpNotificacoesBell />
     </header>
   );
 }
+

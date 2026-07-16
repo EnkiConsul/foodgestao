@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { Bell, Users, Wallet, ClipboardList, FileText, Megaphone, MessageSquare, ShieldAlert } from "lucide-react";
+import { Bell } from "lucide-react";
 import { PendenciasCard } from "@/components/dp/home/PendenciasCard";
 import { AniversariantesCard } from "@/components/dp/home/AniversariantesCard";
 import { AtalhosFavoritos } from "@/components/dp/home/AtalhosFavoritos";
@@ -28,17 +28,8 @@ export default function DpHome() {
         <AniversariantesCard />
       </div>
 
-      <AtalhosFavoritos
-        items={[
-          { icon: Users, label: "Colaboradores", to: "/dp/colaboradores" },
-          { icon: Wallet, label: "Folha", to: "/dp/folha" },
-          { icon: ClipboardList, label: "Solicitações", to: "/dp/solicitacoes" },
-          { icon: FileText, label: "Documentos", to: "/dp/documentos" },
-          { icon: Megaphone, label: "Avisos", to: "/dp/avisos" },
-          { icon: MessageSquare, label: "Comunicação", to: "/dp/comunicacao" },
-          { icon: ShieldAlert, label: "Disciplinar", to: "/dp/disciplinar" },
-        ]}
-      />
+      <AtalhosFavoritos />
     </div>
   );
 }
+

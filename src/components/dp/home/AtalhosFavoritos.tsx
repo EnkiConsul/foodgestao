@@ -11,20 +11,38 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
+import { resolveFavorites } from "@/components/dp/favoritablePages";
 import { cn } from "@/lib/utils";
 
 export type Atalho = { icon: LucideIcon; label: string; to: string };
 
-export function AtalhosFavoritos({ items }: { items: Atalho[] }) {
-  const { prefs, save } = useDpUserPrefs();
+/**
+ * Grid de atalhos favoritos.
+ *
+ * Sem `items`: monta-se dinamicamente a partir de `prefs.extras.favoritos_paginas`
+ * (rotas escolhidas via ⭐ no header). A ordem é persistida em `prefs.favoritos`.
+ *
+ * Com `items` (legado): usa a lista passada como fixa.
+ */
+export function AtalhosFavoritos({ items }: { items?: Atalho[] } = {}) {
+  const { prefs, favoritePages, save } = useDpUserPrefs();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
+  const source: Atalho[] = useMemo(() => {
+    if (items && items.length > 0) return items;
+    return resolveFavorites(favoritePages).map((p) => ({
+      icon: p.icon,
+      label: p.label,
+      to: p.route,
+    }));
+  }, [items, favoritePages]);
+
   const ordered = useMemo(() => {
-    const map = new Map(items.map((i) => [i.label, i]));
+    const map = new Map(source.map((i) => [i.label, i]));
     const chosen = prefs.favoritos.map((l) => map.get(l)).filter(Boolean) as Atalho[];
-    const rest = items.filter((i) => !prefs.favoritos.includes(i.label));
+    const rest = source.filter((i) => !prefs.favoritos.includes(i.label));
     return [...chosen, ...rest];
-  }, [items, prefs.favoritos]);
+  }, [source, prefs.favoritos]);
 
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
@@ -38,19 +56,31 @@ export function AtalhosFavoritos({ items }: { items: Atalho[] }) {
   return (
     <div className="rounded-2xl border-2 border-[hsl(var(--dp-border))] bg-white p-5">
       <div className="flex items-center gap-2 mb-4">
-        <Star className="h-5 w-5 text-primary" />
+        <Star className="h-5 w-5 text-primary fill-primary" />
         <h2 className="text-lg font-semibold">Atalhos Favoritos</h2>
-        <span className="text-xs text-muted-foreground">(arraste para reordenar)</span>
+        {ordered.length > 0 && (
+          <span className="text-xs text-muted-foreground">(arraste para reordenar)</span>
+        )}
       </div>
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-        <SortableContext items={ordered.map((i) => i.label)} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-            {ordered.map((it) => (
-              <SortableAtalho key={it.label} item={it} />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+      {ordered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-2 py-10 text-center text-muted-foreground">
+          <Star className="h-8 w-8 opacity-40" />
+          <p className="text-sm max-w-sm">
+            Clique na <Star className="inline h-4 w-4 -mt-0.5 text-primary" /> no topo de qualquer
+            página do DP para adicioná-la aqui como atalho.
+          </p>
+        </div>
+      ) : (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+          <SortableContext items={ordered.map((i) => i.label)} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+              {ordered.map((it) => (
+                <SortableAtalho key={it.label} item={it} />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
     </div>
   );
 }

@@ -133,15 +133,8 @@ export default function DpMeuHome() {
         </section>
       </div>
 
-      <AtalhosFavoritos
-        items={[
-          { icon: FileText, label: "Documentos", to: "/dp/meu/documentos" },
-          { icon: ClipboardList, label: "Solicitações", to: "/dp/meu/solicitacoes" },
-          { icon: Repeat, label: "Trocas", to: "/dp/meu/trocas" },
-          { icon: Calendar, label: "Calendário", to: "/dp/meu/calendario" },
-          { icon: User, label: "Meus Dados", to: "/dp/meu/perfil" },
-        ]}
-      />
+      <AtalhosFavoritos />
+
     </div>
   );
 }
