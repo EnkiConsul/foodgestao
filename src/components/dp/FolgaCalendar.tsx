@@ -7,6 +7,7 @@ import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 export type FolgaCell = {
@@ -128,19 +129,28 @@ export function FolgaCalendar({
                   <span className="text-[10px] text-destructive truncate">{bloqueio}</span>
                 )}
                 <div className="flex flex-col gap-0.5 overflow-hidden">
-                  {fs.slice(0, 4).map((f) => (
-                    <span
-                      key={f.id}
-                      className={cn(
-                        "text-[10px] truncate px-1 rounded",
-                        f.extra ? "bg-accent text-accent-foreground" : "bg-primary/10 text-primary",
-                        f.colaborador_id === highlightColaboradorId && "font-semibold",
-                      )}
-                      title={`${f.colaborador_nome ?? ""} — ${f.origem ?? ""}`}
-                    >
-                      {f.colaborador_nome ?? "—"}
-                    </span>
-                  ))}
+                  <TooltipProvider delayDuration={200}>
+                    {fs.slice(0, 4).map((f) => (
+                      <Tooltip key={f.id}>
+                        <TooltipTrigger asChild>
+                          <span
+                            className={cn(
+                              "text-[10px] truncate px-1 rounded",
+                              f.extra ? "bg-accent text-accent-foreground" : "bg-primary/10 text-primary",
+                              f.colaborador_id === highlightColaboradorId && "font-semibold",
+                            )}
+                          >
+                            {f.colaborador_nome ?? "—"}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-xs">
+                          <p className="font-medium">{f.colaborador_nome ?? "—"}</p>
+                          <p className="capitalize">{f.tipo} · {f.status}</p>
+                          {f.origem && <p className="text-muted-foreground">{f.origem}</p>}
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </TooltipProvider>
                   {fs.length > 4 && (
                     <span className="text-[10px] text-muted-foreground">+{fs.length - 4}</span>
                   )}

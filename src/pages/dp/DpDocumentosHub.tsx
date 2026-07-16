@@ -1,13 +1,13 @@
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { FileText, Wallet, FileSignature, Clock, HeartPulse, Palmtree, AlertOctagon, Users2, FolderOpen, ArrowRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { FileText, Wallet, FileSignature, Clock, HeartPulse, Palmtree, AlertOctagon, Users2, FolderOpen } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { TIPOS } from "./DpDocumentos";
+import { NavigationCard } from "@/components/dp/NavigationCard";
 
-const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+const ICONS: Record<string, LucideIcon> = {
   contracheque: FileText,
   adiantamento: Wallet,
   contrato: FileSignature,
@@ -51,22 +51,13 @@ export default function DpDocumentosHub() {
           const Icon = ICONS[t.value] ?? FolderOpen;
           const count = counts.data?.[t.value] ?? 0;
           return (
-            <Link key={t.value} to={`/dp/documentos/${t.value}`}>
-              <Card className="hover:border-primary/50 transition-colors">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Icon className="h-5 w-5 text-primary" />
-                    </div>
-                    <span className="text-2xl font-bold">{count}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium">{t.label}</p>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+            <NavigationCard
+              key={t.value}
+              title={t.label}
+              to={`/dp/documentos/${t.value}`}
+              icon={Icon}
+              count={count}
+            />
           );
         })}
       </div>

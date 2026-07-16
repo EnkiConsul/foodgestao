@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DpSidebar } from "./DpSidebar";
 import { DpHeader } from "./DpHeader";
+import { AvisosPopout } from "./home/AvisosPopout";
 
 export function DpShell({ variant = "admin" }: { variant?: "admin" | "portal" }) {
   return (
@@ -14,6 +15,8 @@ export function DpShell({ variant = "admin" }: { variant?: "admin" | "portal" })
             <Outlet />
           </main>
         </div>
+        {/* Popout global de avisos não lidos — visível em qualquer rota autenticada do DP */}
+        <AvisosPopout />
       </div>
     </SidebarProvider>
   );

@@ -1,21 +1,19 @@
 import { Helmet } from "react-helmet-async";
-import { useState } from "react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Plus, Trash2, AlertOctagon, FileText, FileSignature } from "lucide-react";
+import { useRef, useState } from "react";
+import { Plus, Trash2, AlertOctagon, FileSignature, Upload } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { HistoricoDisciplinar, type RegistroDisciplinar } from "@/components/dp/HistoricoDisciplinar";
 
 const TIPOS = [
   { value: "advertencia_verbal", label: "Advertência verbal" },
@@ -24,14 +22,6 @@ const TIPOS = [
   { value: "elogio", label: "Elogio" },
   { value: "observacao", label: "Observação" },
 ] as const;
-
-const cor: Record<string, string> = {
-  advertencia_verbal: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300",
-  advertencia_escrita: "bg-orange-500/10 text-orange-700 dark:text-orange-300",
-  suspensao: "bg-red-500/10 text-red-700 dark:text-red-300",
-  elogio: "bg-green-500/10 text-green-700 dark:text-green-300",
-  observacao: "bg-muted text-muted-foreground",
-};
 
 export default function DpDisciplinar() {
   const { selectedCompanyId } = useCompanyContext();
@@ -42,6 +32,8 @@ export default function DpDisciplinar() {
     colaborador_id: "", tipo: "advertencia_verbal", data: new Date().toISOString().slice(0, 10),
     motivo: "", descricao: "", suspensao_dias: "",
   });
+  const uploadRef = useRef<HTMLInputElement>(null);
+  const [uploadTargetId, setUploadTargetId] = useState<string | null>(null);
 
   const list = useQuery({
     queryKey: ["dp_disciplinar", selectedCompanyId],
@@ -53,7 +45,7 @@ export default function DpDisciplinar() {
         .eq("company_id", selectedCompanyId!)
         .order("data", { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as RegistroDisciplinar[];
     },
   });
 
@@ -104,15 +96,49 @@ export default function DpDisciplinar() {
     onError: (e: any) => toast.error(e.message ?? "Erro ao gerar PDF"),
   });
 
-  const openPdf = async (path: string) => {
-    const { data, error } = await supabase.storage.from("dp-disciplinar").createSignedUrl(path, 60);
-    if (error) return toast.error(error.message);
-    window.open(data.signedUrl, "_blank");
+  const uploadPdf = useMutation({
+    mutationFn: async ({ id, file }: { id: string; file: File }) => {
+      const path = `${selectedCompanyId}/${id}/${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
+      const { error: upErr } = await supabase.storage
+        .from("dp-disciplinar")
+        .upload(path, file, { upsert: true, contentType: file.type || "application/pdf" });
+      if (upErr) throw upErr;
+      const { error: updErr } = await supabase
+        .from("dp_registros_disciplinares")
+        .update({ pdf_storage_path: path })
+        .eq("id", id);
+      if (updErr) throw updErr;
+    },
+    onSuccess: () => {
+      toast.success("PDF anexado");
+      qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao anexar PDF"),
+  });
+
+  const triggerUpload = (id: string) => {
+    setUploadTargetId(id);
+    uploadRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !uploadTargetId) return;
+    uploadPdf.mutate({ id: uploadTargetId, file });
+    e.target.value = "";
+    setUploadTargetId(null);
   };
 
   return (
     <div className="space-y-4">
       <Helmet><title>Disciplinar — DP 360°</title></Helmet>
+      <input
+        ref={uploadRef}
+        type="file"
+        accept="application/pdf,image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -163,6 +189,9 @@ export default function DpDisciplinar() {
                 <Label>Descrição</Label>
                 <Textarea rows={3} value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} />
               </div>
+              <p className="text-xs text-muted-foreground">
+                Após salvar, você poderá gerar o PDF automaticamente ou anexar um PDF já assinado usando os ícones em cada registro.
+              </p>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
@@ -177,46 +206,38 @@ export default function DpDisciplinar() {
 
       {list.isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando…</p>
-      ) : list.data?.length === 0 ? (
-        <Card><CardContent className="py-10 text-center text-muted-foreground">Nenhum registro.</CardContent></Card>
       ) : (
-        <div className="grid gap-3">
-          {list.data?.map((r: any) => (
-            <Card key={r.id}>
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge className={cor[r.tipo]}>{TIPOS.find((t) => t.value === r.tipo)?.label ?? r.tipo}</Badge>
-                    <CardTitle className="text-base">{r.dp_colaboradores?.nome ?? "—"}</CardTitle>
-                    <span className="text-xs text-muted-foreground">
-                      {format(new Date(r.data), "dd 'de' MMM yyyy", { locale: ptBR })}
-                    </span>
-                    {r.suspensao_dias && <Badge variant="outline">{r.suspensao_dias} dia(s)</Badge>}
-                  </div>
-                  <div className="flex gap-1">
-                    {r.pdf_storage_path ? (
-                      <Button size="icon" variant="ghost" title="Ver PDF" onClick={() => openPdf(r.pdf_storage_path)}>
-                        <FileText className="h-4 w-4" />
-                      </Button>
-                    ) : (
-                      <Button size="icon" variant="ghost" title="Gerar PDF"
-                        disabled={genPdf.isPending} onClick={() => genPdf.mutate(r.id)}>
-                        <FileSignature className="h-4 w-4" />
-                      </Button>
-                    )}
-                    <Button size="icon" variant="ghost" onClick={() => del.mutate(r.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm font-medium">{r.motivo}</p>
-                {r.descricao && <p className="text-sm text-muted-foreground whitespace-pre-wrap mt-1">{r.descricao}</p>}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <HistoricoDisciplinar
+          registros={list.data ?? []}
+          showColaborador
+          renderActions={(r) => (
+            <>
+              {!r.pdf_storage_path && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  title="Gerar PDF automaticamente"
+                  disabled={genPdf.isPending}
+                  onClick={() => genPdf.mutate(r.id)}
+                >
+                  <FileSignature className="h-4 w-4" />
+                </Button>
+              )}
+              <Button
+                size="icon"
+                variant="ghost"
+                title={r.pdf_storage_path ? "Substituir PDF assinado" : "Anexar PDF assinado"}
+                disabled={uploadPdf.isPending}
+                onClick={() => triggerUpload(r.id)}
+              >
+                <Upload className="h-4 w-4" />
+              </Button>
+              <Button size="icon" variant="ghost" title="Excluir" onClick={() => del.mutate(r.id)}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+        />
       )}
     </div>
   );

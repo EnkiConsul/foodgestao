@@ -1,11 +1,13 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bell, ArrowRight, Clock, Clock3, CalendarClock, AlarmClockOff } from "lucide-react";
+import { Bell, ArrowRight, Clock, Clock3, CalendarClock, AlarmClockOff, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useDpPendencias, type Pendencia } from "@/hooks/useDpPendencias";
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
-import { addDays, isAfter } from "date-fns";
+import { addDays, isAfter, format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
 function isPostponed(id: string, map: Record<string, string>) {
@@ -17,6 +19,7 @@ function isPostponed(id: string, map: Record<string, string>) {
 export function PendenciasCard() {
   const { data = [], isLoading } = useDpPendencias();
   const { prefs, save } = useDpUserPrefs();
+  const [detail, setDetail] = useState<Pendencia | null>(null);
 
   const visible = useMemo(
     () => data.filter((p) => !isPostponed(p.id, prefs.pendencias_adiadas)),
@@ -90,6 +93,9 @@ export function PendenciasCard() {
                     Resolver <ArrowRight className="h-3 w-3 ml-1" />
                   </Link>
                 </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setDetail(p)}>
+                  <Info className="h-3 w-3 mr-1" /> Detalhes
+                </Button>
                 <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => adiar(p, 1)}>
                   Adiar 1d
                 </Button>
@@ -101,6 +107,45 @@ export function PendenciasCard() {
           </div>
         ))}
       </div>
+
+      <Dialog open={!!detail} onOpenChange={(v) => { if (!v) setDetail(null); }}>
+        <DialogContent className="max-w-md">
+          {detail && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <detail.icon className="h-5 w-5 text-primary" />
+                  {detail.titulo}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2 text-sm">
+                <p className="text-muted-foreground">{detail.subtitulo}</p>
+                {detail.vencimento && (
+                  <p>
+                    <span className="font-medium">Vencimento: </span>
+                    {format(new Date(detail.vencimento), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                  </p>
+                )}
+                {detail.atrasoDias != null && detail.atrasoDias > 0 && (
+                  <Badge variant="outline" className="border-destructive/40 bg-destructive/10 text-destructive">
+                    <Clock className="h-3 w-3 mr-1" /> Atrasado há {detail.atrasoDias} dia(s)
+                  </Badge>
+                )}
+              </div>
+              <DialogFooter className="gap-2">
+                <Button variant="ghost" onClick={() => { if (detail) { adiar(detail, 7); setDetail(null); } }}>
+                  Adiar 7d
+                </Button>
+                <Button asChild onClick={() => setDetail(null)}>
+                  <Link to={detail.url}>
+                    Resolver <ArrowRight className="h-4 w-4 ml-1" />
+                  </Link>
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
