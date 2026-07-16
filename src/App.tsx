@@ -42,7 +42,11 @@ import DpMeuSolicitacoes from "./pages/dp/portal/DpMeuSolicitacoes";
 import DpMeuTrocas from "./pages/dp/portal/DpMeuTrocas";
 import DpMeuCalendario from "./pages/dp/portal/DpMeuCalendario";
 import DpMeuAtestados from "./pages/dp/portal/DpMeuAtestados";
+import DpMeuDisciplinar from "./pages/dp/portal/DpMeuDisciplinar";
+import DpMeuSindicato from "./pages/dp/portal/DpMeuSindicato";
 import DpAdminCalendario from "./pages/dp/DpAdminCalendario";
+import DpModelosMensagem from "./pages/dp/DpModelosMensagem";
+import DpDocImportBulk from "./pages/dp/DpDocImportBulk";
 import AdminModulos from "./pages/admin/Modulos";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
@@ -270,6 +274,8 @@ const AppRoutes = () => (
       <Route path="trocas" element={<DpMeuTrocas />} />
       <Route path="calendario" element={<DpMeuCalendario />} />
       <Route path="atestados" element={<DpMeuAtestados />} />
+      <Route path="disciplinar" element={<DpMeuDisciplinar />} />
+      <Route path="sindicato" element={<DpMeuSindicato />} />
     </Route>
     <Route
       path="/onboarding"
@@ -331,10 +337,12 @@ const AppRoutes = () => (
       <Route path="documentos/:categoria" element={<DpDocumentos />} />
       <Route path="avisos" element={<DpAvisos />} />
       <Route path="mensagens" element={<DpMensagens />} />
+      <Route path="modelos-mensagem" element={<DpModelosMensagem />} />
       <Route path="disciplinar" element={<DpDisciplinar />} />
       <Route path="bloqueios" element={<DpBloqueios />} />
       <Route path="trocas" element={<DpTrocas />} />
       <Route path="aprovacoes" element={<DpAprovacoes />} />
+      <Route path="documentos/importar" element={<DpDocImportBulk />} />
       <Route path="cadastros" element={<DpCadastrosHub />} />
       <Route path="cadastros/unidades" element={<DpUnidades />} />
       <Route path="cadastros/cargos" element={<DpCargos />} />
