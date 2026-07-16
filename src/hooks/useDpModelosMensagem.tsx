@@ -6,9 +6,8 @@ import { toast } from "sonner";
 export type DpModeloMensagem = {
   id: string;
   company_id: string;
-  nome: string;
+  titulo: string;
   canal: "whatsapp" | "email" | "sms";
-  assunto: string | null;
   corpo: string;
   variaveis: string[] | null;
   ativo: boolean;
@@ -29,22 +28,22 @@ export function useDpModelosMensagem(canal?: DpModeloMensagem["canal"]) {
         .select("*")
         .eq("company_id", selectedCompanyId!)
         .eq("ativo", true)
-        .order("nome", { ascending: true });
+        .order("titulo", { ascending: true });
       if (canal) q = q.eq("canal", canal);
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as DpModeloMensagem[];
+      return ((data ?? []) as unknown) as DpModeloMensagem[];
     },
   });
 
   const upsert = useMutation({
-    mutationFn: async (input: Partial<DpModeloMensagem> & { nome: string; corpo: string; canal: DpModeloMensagem["canal"] }) => {
-      const payload = { ...input, company_id: selectedCompanyId! };
+    mutationFn: async (input: Partial<DpModeloMensagem> & { titulo: string; corpo: string; canal: DpModeloMensagem["canal"] }) => {
+      const payload: any = { ...input, company_id: selectedCompanyId! };
       if (input.id) {
         const { error } = await supabase.from("dp_modelos_mensagem").update(payload).eq("id", input.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("dp_modelos_mensagem").insert(payload as any);
+        const { error } = await supabase.from("dp_modelos_mensagem").insert(payload);
         if (error) throw error;
       }
     },
@@ -56,6 +55,11 @@ export function useDpModelosMensagem(canal?: DpModeloMensagem["canal"]) {
   });
 
   return { ...query, upsert };
+}
+
+/** Convenience alias: exposes `.nome` reading `titulo` for UIs that use "nome". */
+export function modeloDisplayName(m: DpModeloMensagem): string {
+  return m.titulo;
 }
 
 export function applyModeloVars(corpo: string, ctx: Record<string, string | number | null | undefined>): string {

@@ -52,10 +52,10 @@ export function useDpUserPrefs() {
           {
             user_id: user!.id,
             company_id: selectedCompanyId!,
-            favoritos: merged.favoritos,
-            pendencias_adiadas: merged.pendencias_adiadas,
-            avisos_confirmados: merged.avisos_confirmados,
-            extras: merged.extras,
+            favoritos: merged.favoritos as any,
+            pendencias_adiadas: merged.pendencias_adiadas as any,
+            avisos_confirmados: merged.avisos_confirmados as any,
+            extras: merged.extras as any,
           },
           { onConflict: "user_id,company_id" },
         );
