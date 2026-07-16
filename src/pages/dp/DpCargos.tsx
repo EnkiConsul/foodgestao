@@ -269,6 +269,11 @@ export default function DpCargos() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir cargo "{toDelete?.nome}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {toDelete && toDelete.colaboradores_count > 0
+                ? `Este cargo está sendo usado por ${toDelete.colaboradores_count} colaborador(es). A exclusão será bloqueada.`
+                : "Vínculos com sindicatos laborais também serão removidos. Esta ação não pode ser desfeita."}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
