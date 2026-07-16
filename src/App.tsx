@@ -40,6 +40,8 @@ import DpMeuPerfil from "./pages/dp/portal/DpMeuPerfil";
 import DpMeuDocumentos from "./pages/dp/portal/DpMeuDocumentos";
 import DpMeuSolicitacoes from "./pages/dp/portal/DpMeuSolicitacoes";
 import DpMeuTrocas from "./pages/dp/portal/DpMeuTrocas";
+import DpMeuCalendario from "./pages/dp/portal/DpMeuCalendario";
+import DpAdminCalendario from "./pages/dp/DpAdminCalendario";
 import AdminModulos from "./pages/admin/Modulos";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
@@ -265,6 +267,7 @@ const AppRoutes = () => (
       <Route path="documentos" element={<DpMeuDocumentos />} />
       <Route path="solicitacoes" element={<DpMeuSolicitacoes />} />
       <Route path="trocas" element={<DpMeuTrocas />} />
+      <Route path="calendario" element={<DpMeuCalendario />} />
     </Route>
     <Route
       path="/onboarding"
@@ -320,6 +323,7 @@ const AppRoutes = () => (
       <Route path="colaboradores" element={<DpColaboradores />} />
       <Route path="solicitacoes" element={<DpSolicitacoes />} />
       <Route path="folgas" element={<DpFolgas />} />
+      <Route path="calendario" element={<DpAdminCalendario />} />
       <Route path="documentos" element={<DpDocumentosHub />} />
       <Route path="documentos/todos" element={<DpDocumentos />} />
       <Route path="documentos/:categoria" element={<DpDocumentos />} />
