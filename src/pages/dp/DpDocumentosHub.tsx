@@ -6,6 +6,7 @@ import type { LucideIcon } from "lucide-react";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { TIPOS } from "./DpDocumentos";
 import { NavigationCard } from "@/components/dp/NavigationCard";
+import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 const ICONS: Record<string, LucideIcon> = {
   contracheque: FileText,
@@ -38,14 +39,13 @@ export default function DpDocumentosHub() {
   });
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Documentos — DP 360°</title></Helmet>
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <FolderOpen className="h-6 w-6" /> Documentos por categoria
-        </h1>
-        <p className="text-muted-foreground">Organize contracheques, contratos, atestados e demais arquivos.</p>
-      </div>
+      <DpPageHeader
+        icon={FolderOpen}
+        title="Documentos por categoria"
+        description="Organize contracheques, contratos, atestados e demais arquivos."
+      />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {TIPOS.map((t) => {
           const Icon = ICONS[t.value] ?? FolderOpen;
@@ -67,6 +67,6 @@ export default function DpDocumentosHub() {
           icon={ListChecks}
         />
       </div>
-    </div>
+    </DpPage>
   );
 }

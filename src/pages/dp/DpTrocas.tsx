@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 const statusColor: Record<string, string> = {
   pendente_colega: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
@@ -126,15 +127,13 @@ export default function DpTrocas() {
   });
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Trocas — DP 360°</title></Helmet>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Repeat className="h-6 w-6" /> Trocas de plantão
-          </h1>
-          <p className="text-muted-foreground">Fluxo de aprovação: colega → gestor.</p>
-        </div>
+      <DpPageHeader
+        icon={Repeat}
+        title="Trocas de plantão"
+        description="Fluxo de aprovação: colega → gestor."
+        actions={
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" /> Nova troca</Button></DialogTrigger>
           <DialogContent className="max-w-lg">
@@ -184,16 +183,17 @@ export default function DpTrocas() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
+        }
+      />
 
       {list.isLoading ? (
-        <p className="text-sm text-muted-foreground">Carregando…</p>
+        <DpContentCard contentClassName="p-6"><p className="text-sm text-muted-foreground">Carregando…</p></DpContentCard>
       ) : list.data?.length === 0 ? (
-        <Card><CardContent className="py-10 text-center text-muted-foreground">Nenhuma troca solicitada.</CardContent></Card>
+        <DpContentCard><DpEmptyState icon={Repeat}>Nenhuma troca solicitada.</DpEmptyState></DpContentCard>
       ) : (
         <div className="grid gap-3">
           {list.data?.map((t: any) => (
-            <Card key={t.id}>
+            <Card key={t.id} className="dp-content-card">
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -243,6 +243,6 @@ export default function DpTrocas() {
           ))}
         </div>
       )}
-    </div>
+    </DpPage>
   );
 }
