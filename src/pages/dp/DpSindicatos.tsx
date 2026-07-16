@@ -1,69 +1,159 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, FileText, HandshakeIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, FileText, HandshakeIcon, Check, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useDpSindicatos, useUpsertDpSindicato, useDeleteDpSindicato, type DpSindicato } from "@/hooks/useDpCadastros";
-import { TableSkeleton } from "@/components/dp/DpSkeletons";
+import { useDpSindicatos, useUpsertDpSindicato, useDeleteDpSindicato, useDpUnidades, useDpCargos, type DpSindicato } from "@/hooks/useDpCadastros";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { maskCnpj } from "@/lib/cnpj";
+import { maskPhone } from "@/lib/phone";
+import { cn } from "@/lib/utils";
+
+type Tipo = "patronal" | "laboral";
+
+const onlyDigits = (v: string) => v.replace(/\D/g, "");
 
 export default function DpSindicatos() {
+  const qc = useQueryClient();
   const list = useDpSindicatos();
   const upsert = useUpsertDpSindicato();
   const del = useDeleteDpSindicato();
+  const unidades = useDpUnidades();
+  const cargos = useDpCargos();
+
   const [open, setOpen] = useState(false);
+  const [tipo, setTipo] = useState<Tipo>("patronal");
   const [editing, setEditing] = useState<DpSindicato | null>(null);
   const [toDelete, setToDelete] = useState<DpSindicato | null>(null);
-  const [form, setForm] = useState({
-    nome: "", cnpj: "", data_base: "",
-    contato_nome: "", contato_email: "", contato_telefone: "", ativo: true,
+  const [form, setForm] = useState({ nome: "", cnpj: "", contato_whatsapp: "" });
+  const [unidadesSel, setUnidadesSel] = useState<string[]>([]);
+  const [cargosSel, setCargosSel] = useState<string[]>([]);
+
+  // Vínculos existentes para edição
+  const vinculos = useQuery({
+    queryKey: ["dp_sindicato_vinculos", editing?.id, tipo],
+    enabled: !!editing?.id,
+    queryFn: async () => {
+      if (tipo === "patronal") {
+        const { data, error } = await supabase
+          .from("dp_sindicato_unidades")
+          .select("unidade_id")
+          .eq("sindicato_id", editing!.id);
+        if (error) throw error;
+        return { unidades: (data ?? []).map((r) => r.unidade_id), cargos: [] as string[] };
+      }
+      const { data, error } = await supabase
+        .from("dp_sindicato_cargos")
+        .select("cargo_id")
+        .eq("sindicato_id", editing!.id);
+      if (error) throw error;
+      return { cargos: (data ?? []).map((r) => r.cargo_id), unidades: [] as string[] };
+    },
   });
 
-  const openNew = () => {
+  useEffect(() => {
+    if (!vinculos.data) return;
+    setUnidadesSel(vinculos.data.unidades);
+    setCargosSel(vinculos.data.cargos);
+  }, [vinculos.data]);
+
+  const patronais = useMemo(() => (list.data ?? []).filter((s) => (s as any).tipo === "patronal"), [list.data]);
+  const laborais = useMemo(() => (list.data ?? []).filter((s) => (s as any).tipo === "laboral"), [list.data]);
+
+  const abrirNovo = (t: Tipo) => {
+    setTipo(t);
     setEditing(null);
-    setForm({ nome: "", cnpj: "", data_base: "", contato_nome: "", contato_email: "", contato_telefone: "", ativo: true });
+    setForm({ nome: "", cnpj: "", contato_whatsapp: "" });
+    setUnidadesSel([]);
+    setCargosSel([]);
     setOpen(true);
   };
 
-  const openEdit = (s: DpSindicato) => {
+  const abrirEdicao = (s: DpSindicato) => {
+    setTipo(((s as any).tipo as Tipo) ?? "patronal");
     setEditing(s);
     setForm({
       nome: s.nome,
-      cnpj: s.cnpj ?? "",
-      data_base: s.data_base ?? "",
-      contato_nome: s.contato_nome ?? "",
-      contato_email: s.contato_email ?? "",
-      contato_telefone: s.contato_telefone ?? "",
-      ativo: s.ativo,
+      cnpj: s.cnpj ? maskCnpj(s.cnpj) : "",
+      contato_whatsapp: s.contato_telefone ? maskPhone(s.contato_telefone) : "",
     });
+    setUnidadesSel([]);
+    setCargosSel([]);
     setOpen(true);
   };
 
-  const save = async () => {
-    if (!form.nome.trim()) {
-      toast.error("Nome é obrigatório");
-      return;
-    }
+  const toggleUnidade = (id: string) =>
+    setUnidadesSel((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+  const toggleCargo = (id: string) =>
+    setCargosSel((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+
+  const salvar = async () => {
+    if (!form.nome.trim()) { toast.error("Nome do sindicato é obrigatório"); return; }
+    if (tipo === "patronal" && unidadesSel.length === 0) { toast.error("Selecione pelo menos uma unidade"); return; }
+    if (tipo === "laboral" && cargosSel.length === 0) { toast.error("Selecione pelo menos um cargo"); return; }
+
     try {
-      await upsert.mutateAsync({
-        id: editing?.id,
-        nome: form.nome.trim(),
-        cnpj: form.cnpj.trim() || null,
-        data_base: form.data_base || null,
-        contato_nome: form.contato_nome.trim() || null,
-        contato_email: form.contato_email.trim() || null,
-        contato_telefone: form.contato_telefone.trim() || null,
-        ativo: form.ativo,
-      });
-      toast.success(editing ? "Sindicato atualizado" : "Sindicato criado");
+      // Upsert do sindicato e obter id
+      let sindicatoId = editing?.id;
+      if (sindicatoId) {
+        const { error } = await supabase.from("dp_sindicatos").update({
+          nome: form.nome.trim(),
+          cnpj: form.cnpj ? onlyDigits(form.cnpj) : null,
+          contato_telefone: form.contato_whatsapp ? onlyDigits(form.contato_whatsapp) : null,
+          tipo,
+        } as any).eq("id", sindicatoId);
+        if (error) throw error;
+      } else {
+        // usa hook para pegar company_id
+        await upsert.mutateAsync({
+          nome: form.nome.trim(),
+          cnpj: form.cnpj ? onlyDigits(form.cnpj) : null,
+          contato_telefone: form.contato_whatsapp ? onlyDigits(form.contato_whatsapp) : null,
+          tipo,
+        } as any);
+        // buscar o mais recente criado (fallback)
+        const { data } = await supabase
+          .from("dp_sindicatos")
+          .select("id")
+          .eq("nome", form.nome.trim())
+          .eq("tipo", tipo)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        sindicatoId = data?.id;
+      }
+
+      if (!sindicatoId) throw new Error("Não foi possível identificar o sindicato salvo.");
+
+      // Sincronizar vínculos
+      if (tipo === "patronal") {
+        await supabase.from("dp_sindicato_unidades").delete().eq("sindicato_id", sindicatoId);
+        if (unidadesSel.length) {
+          await supabase.from("dp_sindicato_unidades").insert(
+            unidadesSel.map((unidade_id) => ({ sindicato_id: sindicatoId!, unidade_id }))
+          );
+        }
+      } else {
+        await supabase.from("dp_sindicato_cargos").delete().eq("sindicato_id", sindicatoId);
+        if (cargosSel.length) {
+          await supabase.from("dp_sindicato_cargos").insert(
+            cargosSel.map((cargo_id) => ({ sindicato_id: sindicatoId!, cargo_id }))
+          );
+        }
+      }
+
+      qc.invalidateQueries({ queryKey: ["dp_sindicatos"] });
+      qc.invalidateQueries({ queryKey: ["dp_sindicato_vinculos"] });
+      toast.success(editing ? "Sindicato atualizado" : "Sindicato cadastrado");
       setOpen(false);
     } catch (e) {
       toast.error("Erro ao salvar", { description: e instanceof Error ? e.message : String(e) });
@@ -81,104 +171,193 @@ export default function DpSindicatos() {
     setToDelete(null);
   };
 
+  const renderCard = (s: DpSindicato, badgeLabel: string, badgeVariant: "secondary" | "default") => (
+    <Card key={s.id} className="border-border shadow-sm">
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between">
+          <CardTitle className="text-base">{s.nome}</CardTitle>
+          <Badge variant={badgeVariant}>{badgeLabel}</Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2 text-sm">
+        {s.cnpj && <div><span className="font-medium">CNPJ:</span> {maskCnpj(s.cnpj)}</div>}
+        {s.contato_telefone && (
+          <div><span className="font-medium">WhatsApp:</span> {maskPhone(s.contato_telefone)}</div>
+        )}
+        <div className="flex flex-wrap gap-2 mt-2">
+          <Button variant="ghost" size="sm" onClick={() => abrirEdicao(s)}>
+            <Pencil className="size-4 mr-1" /> Editar
+          </Button>
+          <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setToDelete(s)}>
+            <Trash2 className="size-4 mr-1" /> Excluir
+          </Button>
+          {s.contato_telefone && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open(`https://wa.me/55${onlyDigits(s.contato_telefone!)}`, "_blank")}
+            >
+              <MessageCircle className="size-4 mr-1" /> WhatsApp
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <DpPage>
       <Helmet><title>Sindicatos — DP 360°</title></Helmet>
       <DpPageHeader
         icon={HandshakeIcon}
         title="Sindicatos"
-        description={`${list.data?.length ?? 0} cadastrados`}
+        description="Gerencie sindicatos patronais e laborais separadamente."
         actions={
-          <>
           <Button variant="outline" asChild>
             <Link to="/dp/documentos/act-cct"><FileText className="h-4 w-4 mr-2" /> Negociações</Link>
           </Button>
-          <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> Novo sindicato</Button>
-          </>
         }
       />
 
-      <DpContentCard contentClassName="overflow-x-auto">
-          {list.isLoading ? (
-            <TableSkeleton columns={6} headers={["Nome", "CNPJ", "Data-base", "Contato", "Status", ""]} />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>CNPJ</TableHead>
-                  <TableHead>Data-base</TableHead>
-                  <TableHead>Contato</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-24"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(list.data ?? []).map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell className="font-medium">{s.nome}</TableCell>
-                    <TableCell>{s.cnpj ?? "—"}</TableCell>
-                    <TableCell>{s.data_base ?? "—"}</TableCell>
-                    <TableCell>{s.contato_nome ?? "—"}</TableCell>
-                    <TableCell>{s.ativo ? <Badge className="bg-primary">Ativo</Badge> : <Badge variant="outline">Inativo</Badge>}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1 justify-end">
-                        <Button size="icon" variant="ghost" onClick={() => openEdit(s)}><Pencil className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" onClick={() => setToDelete(s)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {(list.data ?? []).length === 0 && (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum sindicato cadastrado.</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
+      <DpContentCard>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-primary">Patronais</h2>
+              <Button onClick={() => abrirNovo("patronal")}>
+                <Plus className="size-4 mr-2" /> Novo Patronal
+              </Button>
+            </div>
+            {patronais.length === 0 ? (
+              <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">
+                Nenhum sindicato patronal cadastrado.
+              </div>
+            ) : (
+              <div className="space-y-3">{patronais.map((s) => renderCard(s, "Patronal", "secondary"))}</div>
+            )}
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-primary">Laborais</h2>
+              <Button onClick={() => abrirNovo("laboral")}>
+                <Plus className="size-4 mr-2" /> Novo Laboral
+              </Button>
+            </div>
+            {laborais.length === 0 ? (
+              <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">
+                Nenhum sindicato laboral cadastrado.
+              </div>
+            ) : (
+              <div className="space-y-3">{laborais.map((s) => renderCard(s, "Laboral", "default"))}</div>
+            )}
+          </div>
+        </div>
       </DpContentCard>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editing ? "Editar sindicato" : "Novo sindicato"}</DialogTitle>
+            <DialogTitle>
+              {editing ? "Editar" : "Novo"} Sindicato {tipo === "patronal" ? "Patronal" : "Laboral"}
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <div>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
               <Label>Nome *</Label>
-              <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} maxLength={150} />
+              <Input
+                value={form.nome}
+                onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                placeholder="Nome do sindicato"
+                maxLength={150}
+              />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>CNPJ</Label>
-                <Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} maxLength={18} />
+            <div className="space-y-2">
+              <Label>CNPJ</Label>
+              <Input
+                value={form.cnpj}
+                onChange={(e) => setForm({ ...form, cnpj: maskCnpj(e.target.value) })}
+                placeholder="00.000.000/0000-00"
+                maxLength={18}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>WhatsApp</Label>
+              <Input
+                value={form.contato_whatsapp}
+                onChange={(e) => setForm({ ...form, contato_whatsapp: maskPhone(e.target.value) })}
+                placeholder="(62) 99999-9999"
+                maxLength={15}
+              />
+            </div>
+
+            {tipo === "patronal" && (
+              <div className="space-y-3">
+                <Label className="text-base font-semibold">Unidades Representadas *</Label>
+                <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border border-border rounded-lg p-3">
+                  {(unidades.data ?? []).map((un) => (
+                    <div key={un.id} className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleUnidade(un.id)}
+                        className={cn(
+                          "size-5 rounded border-2 flex items-center justify-center transition-all",
+                          unidadesSel.includes(un.id)
+                            ? "bg-primary border-primary text-primary-foreground"
+                            : "border-muted-foreground/30 hover:border-primary/50"
+                        )}
+                      >
+                        {unidadesSel.includes(un.id) && <Check className="size-3" />}
+                      </button>
+                      <Label className="text-sm cursor-pointer" onClick={() => toggleUnidade(un.id)}>{un.nome}</Label>
+                    </div>
+                  ))}
+                  {(unidades.data ?? []).length === 0 && (
+                    <p className="col-span-2 text-xs text-muted-foreground">Cadastre unidades primeiro.</p>
+                  )}
+                </div>
+                {unidadesSel.length === 0 && (
+                  <p className="text-xs text-destructive">* Selecione pelo menos uma unidade</p>
+                )}
               </div>
-              <div>
-                <Label>Data-base</Label>
-                <Input type="date" value={form.data_base} onChange={(e) => setForm({ ...form, data_base: e.target.value })} />
+            )}
+
+            {tipo === "laboral" && (
+              <div className="space-y-3">
+                <Label className="text-base font-semibold">Cargos Representados *</Label>
+                <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border border-border rounded-lg p-3">
+                  {(cargos.data ?? []).map((cg) => (
+                    <div key={cg.id} className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleCargo(cg.id)}
+                        className={cn(
+                          "size-5 rounded border-2 flex items-center justify-center transition-all",
+                          cargosSel.includes(cg.id)
+                            ? "bg-primary border-primary text-primary-foreground"
+                            : "border-muted-foreground/30 hover:border-primary/50"
+                        )}
+                      >
+                        {cargosSel.includes(cg.id) && <Check className="size-3" />}
+                      </button>
+                      <Label className="text-sm cursor-pointer" onClick={() => toggleCargo(cg.id)}>{cg.nome}</Label>
+                    </div>
+                  ))}
+                  {(cargos.data ?? []).length === 0 && (
+                    <p className="col-span-2 text-xs text-muted-foreground">Cadastre cargos primeiro.</p>
+                  )}
+                </div>
+                {cargosSel.length === 0 && (
+                  <p className="text-xs text-destructive">* Selecione pelo menos um cargo</p>
+                )}
               </div>
-            </div>
-            <div>
-              <Label>Contato — nome</Label>
-              <Input value={form.contato_nome} onChange={(e) => setForm({ ...form, contato_nome: e.target.value })} maxLength={120} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>E-mail</Label>
-                <Input type="email" value={form.contato_email} onChange={(e) => setForm({ ...form, contato_email: e.target.value })} maxLength={200} />
-              </div>
-              <div>
-                <Label>Telefone</Label>
-                <Input value={form.contato_telefone} onChange={(e) => setForm({ ...form, contato_telefone: e.target.value })} maxLength={30} />
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch checked={form.ativo} onCheckedChange={(v) => setForm({ ...form, ativo: v })} />
-              <Label>Ativo</Label>
-            </div>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={save} disabled={upsert.isPending}>{upsert.isPending ? "Salvando..." : "Salvar"}</Button>
+            <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={salvar} disabled={upsert.isPending}>
+              {upsert.isPending ? "Salvando..." : editing ? "Atualizar" : "Cadastrar"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
