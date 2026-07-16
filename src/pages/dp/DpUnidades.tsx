@@ -304,6 +304,37 @@ export default function DpUnidades() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
+              <Label>Empresa vinculada *</Label>
+              {companies.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border p-3 text-sm text-muted-foreground">
+                  Nenhuma empresa cadastrada.{" "}
+                  <Link to="/empresas" className="text-primary underline">
+                    Cadastre em Minhas Empresas
+                  </Link>{" "}
+                  antes de criar unidades.
+                </div>
+              ) : (
+                <Select
+                  value={form.company_id}
+                  onValueChange={(v) => setForm({ ...form, company_id: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a empresa" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companies.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.trade_name || c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                A cobrança do plano é por empresa. Uma empresa pode ter várias unidades sem custo extra.
+              </p>
+            </div>
+            <div className="space-y-2">
               <Label>Nome da Unidade *</Label>
               <Input
                 value={form.nome}
