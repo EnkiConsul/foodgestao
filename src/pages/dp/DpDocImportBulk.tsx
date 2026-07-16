@@ -76,8 +76,7 @@ export default function DpDocImportBulk() {
 
       // Cria batch primeiro (com path provisório) para ter id
       const provisional = `${selectedCompanyId}/pending_${Date.now()}.pdf`;
-      const { data: batch, error: bErr } = await supabase
-        .from("dp_bulk_import_batches" as any)
+      const insertRes = await (supabase.from("dp_bulk_import_batches" as any) as any)
         .insert({
           company_id: selectedCompanyId,
           tipo,
@@ -89,7 +88,8 @@ export default function DpDocImportBulk() {
         })
         .select("id")
         .single();
-      if (bErr) throw bErr;
+      if (insertRes.error) throw insertRes.error;
+      const batch = insertRes.data as { id: string };
 
       const finalPath = `${selectedCompanyId}/${batch.id}/source.pdf`;
       const up = await supabase.storage.from("dp-bulk-import").upload(finalPath, file, {
@@ -97,7 +97,7 @@ export default function DpDocImportBulk() {
       });
       if (up.error) throw up.error;
 
-      await supabase.from("dp_bulk_import_batches" as any)
+      await (supabase.from("dp_bulk_import_batches" as any) as any)
         .update({ source_file_path: finalPath }).eq("id", batch.id);
 
       const { data: ing, error: iErr } = await supabase.functions.invoke("dp-doc-bulk-ingest", {
