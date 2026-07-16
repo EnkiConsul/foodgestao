@@ -309,7 +309,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="colaborador">Colaborador</SelectItem>
-                <SelectItem value="gestor">Gestor</SelectItem>
+                
                 <SelectItem value="admin">Administrador</SelectItem>
               </SelectContent>
             </Select>
