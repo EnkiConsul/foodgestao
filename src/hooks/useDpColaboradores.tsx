@@ -59,3 +59,14 @@ export function useDeleteDpColaborador() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_colaboradores"] }),
   });
 }
+
+export function useToggleDpColaboradorAtivo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
+      const { error } = await supabase.from("dp_colaboradores").update({ ativo }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_colaboradores"] }),
+  });
+}

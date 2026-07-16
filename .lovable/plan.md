@@ -1,62 +1,51 @@
-## Escopo confirmado
+## Objetivo
 
-Auditoria **somente do front-end** do módulo DP contra `pakere1996/portalcolaborador@main`.
-Ficam **fora**: schema Supabase, RLS, RPCs, edge functions, migrations e políticas — cobertos pela auditoria anterior em `/mnt/documents/auditoria-dp-360food.md`.
+Reescrever `src/pages/dp/DpColaboradores.tsx` para replicar a estrutura/design da documentação (imagem de referência): header rico, card de filtros e tabela com colunas Colaborador, CPF, Cargo, Unidade, Vínculo, Status (switch), Perfil, Folha Ponto e Ações. Sem alterar cores da identidade (paleta 360°FOOD já em uso no `.dp-shell`).
 
-## Eixos auditados (versão front-only)
+## Mudanças
 
-1. **Estrutura de telas e navegação** — rotas, hierarquia, menus/sidebars, breadcrumbs, redirects.
-2. **Layout e componentes de UI** — grids, cards, tabelas, formulários, modais, drawers, tabs; componentes shadcn usados; estados (loading/empty/erro/sucesso); responsividade.
-3. **Identidade visual** — paleta, tipografia, espaçamentos, bordas/sombras, tokens, logomarca.
-4. **Regras de negócio *visíveis no front*** — validações de formulário, máquinas de estado renderizadas (badges, transições, botões condicionais), fluxos de UI (wizards, popouts, confirmações).
-5. **Integrações client-side** — uso de TanStack Query (keys, invalidations), Supabase Realtime no cliente, toasts/alerts, tratamento de erro na UI.
+### 1. Header da página
+- Título grande "Colaboradores" com ícone `Users` à esquerda (cor `primary`).
+- Subtítulo: "Gerencie a equipe, cargos e acessos ao sistema."
+- Do lado direito: `<FavoriteToggle />` (já existente) + botão vermelho `+ Novo Colaborador` (variant default herda tema DP).
 
-## Metodologia (100% read-only)
+### 2. Card de Filtros (novo)
+Card único com 4 controles alinhados horizontalmente (labels em uppercase pequenas, como na imagem):
+- **BUSCAR**: input com ícone lupa — filtra por nome/CPF/matrícula (mantém lógica atual).
+- **UNIDADE**: `Select` populado via `useDpUnidades` (se existir; senão via `dp_unidades`), com opção "Todas".
+- **STATUS**: `Select` com Todos / Ativos / Inativos.
+- **CARGO**: `Select` populado via `useDpCargos` (ou `dp_cargos`), com opção "Todos".
+Filtro combinado aplicado antes de renderizar a tabela.
 
-### Fase 1 — Extração do front do repositório referência
-- Baixar árvore de `src/` do repo via API do GitHub (`git/trees?recursive=1`).
-- Priorizar: `src/pages/**`, `src/components/**`, `src/routes/**`, `src/hooks/**`, `src/lib/**`, `src/App.tsx`, `src/main.tsx`, `tailwind.config*`, `src/index.css`, `src/globals.css`, `AI_RULES.md`.
-- Paralelizar leitura via `acp_subagent--explore` (1 subagente para páginas, 1 para componentes, 1 para tokens/design). Cada subagente devolve um resumo estruturado (rotas, props, estados, tokens) — não código bruto — para não estourar contexto.
+### 3. Tabela
+Substituir colunas atuais por:
+| COLABORADOR | CPF | CARGO | UNIDADE | VÍNCULO | STATUS | PERFIL | FOLHA PONTO | AÇÕES |
 
-### Fase 2 — Inventário do front local
-- Ler em paralelo `src/pages/dp/**`, `src/components/dp/**`, `src/hooks/useDp*.tsx`, `src/App.tsx` (rotas DP), `src/index.css` (tokens `--dp-*`), `tailwind.config.ts`, `src/components/layout/sidebar-menus/DpMenu.tsx` e `PortalMenu.tsx`.
-- Extrair: mapa de rotas DP, árvore de componentes por página, tokens de cor, estados renderizados.
+- **Colaborador**: nome em negrito (uppercase como na doc).
+- **CPF**: `c.cpf` formatado (usar util existente se houver; senão exibir cru).
+- **Cargo**: `c.cargo_nome ?? c.cargo ?? "—"`.
+- **Unidade**: `c.unidade_nome ?? "—"`.
+- **Vínculo**: `Badge` com `c.regime` em maiúsculas (CLT/PJ/…), estilo outline azul-claro.
+- **Status**: componente `Switch` (shadcn) ligado a `c.ativo`; on-change chama nova mutation `useToggleDpColaboradorAtivo` (adicionada em `useDpColaboradores.tsx`) que faz `update({ ativo }).eq('id', id)` e invalida a query.
+- **Perfil**: `Badge` mostrando `c.perfil_acesso` (Colaborador/Admin). Cor sutil (secondary/outline).
+- **Folha Ponto**: `Badge` "Sim" (verde suave) / "Não" (cinza), lendo `c.possui_folha_ponto`.
+- **Ações**: 3 botões ghost com ícones — `Pencil` (editar), `KeyRound` (resetar/definir acesso — abre toast "em breve" por ora, pois não faz parte do escopo funcional atual), `Trash2` (remover, mantém AlertDialog atual).
 
-### Fase 3 — Matriz por eixo
-Para cada tela do referência, uma linha por item verificável:
-`# | Eixo | Item da doc | Status | Arquivo(s) local | Arquivo(s) ref | Evidência`
-Status = ✅ / ⚠️ / ❌ / ➕ / ❓.
-Meta: **80–120 linhas** cobrindo os 5 eixos (front-only).
+### 4. Hook
+Adicionar em `src/hooks/useDpColaboradores.tsx`:
+```ts
+export function useToggleDpColaboradorAtivo() { ... update ativo ... }
+```
+Nenhuma mudança nos demais hooks.
 
-### Fase 4 — Detalhamento e severidade
-Para cada ⚠️/❌: seção "doc diz X → implementamos Y → impacto Z → severidade S".
-Severidade calibrada por: quebra funcional > desvio visual grave > desvio visual leve > cosmético.
+## Fora de escopo
+- Não alterar cores/tokens globais (identidade 360°FOOD preservada).
+- Não implementar de fato o fluxo "resetar acesso" (ícone chave) — apenas placeholder com toast, para preservar paridade visual sem introduzir back-end novo.
+- Sem alterações em migrations, RLS ou outras páginas.
 
-### Fase 5 — Plano de correção
-Lista ordenada por severidade, com arquivo afetado e risco de regressão. **Sem executar nada.**
+## Arquivos afetados
+- `src/pages/dp/DpColaboradores.tsx` (reescrita)
+- `src/hooks/useDpColaboradores.tsx` (novo hook de toggle)
 
-## Entrega
-
-- Arquivo `/mnt/documents/auditoria-dp-frontend.md` com o relatório completo (A/B/C/D exatamente no formato pedido).
-- Resposta no chat com: sumário executivo (A), matriz consolidada por eixo (contagens ✅/⚠️/❌), top 10 desvios detalhados, plano de correção priorizado. Matriz completa fica no arquivo pela dimensão.
-
-## Ferramentas usadas (read-only)
-
-- `acp_subagent--explore` — extrair páginas/componentes/tokens do repo referência em paralelo.
-- `code--fetch_website` + `curl raw.githubusercontent.com` — baixar árvore e arquivos individuais.
-- `code--view` + `rg` — inspeção do código local.
-- **Nada de** `code--write`, `code--line_replace`, `mv`, `rm`, `supabase--migration`.
-
-## Restrições
-
-- Rotas/componentes existentes localmente que **não constam** na referência viram ➕ FORA DE ESCOPO (não são erro).
-- Onde a "documentação" do referência é ambígua (por ser código, não texto), interpreto o **código-fonte** como spec e registro a ambiguidade em nota.
-- Se as Ondas 5–8 fecharam um gap identificado na auditoria anterior, o novo status reflete o estado atual — não o histórico.
-
-## Aceite
-
-- [ ] Todos os 5 eixos auditados
-- [ ] Cada tela do referência com uma linha na matriz
-- [ ] Nenhum arquivo alterado
-- [ ] Desvios com severidade + evidência (arquivo:linha dos dois lados)
-- [ ] Plano de correção aguardando aprovação
+## Risco de regressão
+Baixo — mudança isolada a uma única página + adição aditiva de hook. Filtros e switch operam sobre campos já existentes na tabela `dp_colaboradores`.
