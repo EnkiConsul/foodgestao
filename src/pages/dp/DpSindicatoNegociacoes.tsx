@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, ArrowLeft, FileText } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, ArrowLeft, FileText, Upload } from "lucide-react";
+import { useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -51,6 +52,8 @@ export default function DpSindicatoNegociacoes() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [toDelete, setToDelete] = useState<Negociacao | null>(null);
+  const uploadRef = useRef<HTMLInputElement>(null);
+  const [uploadTargetId, setUploadTargetId] = useState<string | null>(null);
 
   const list = useQuery({
     queryKey: ["dp_sindicato_negociacoes", selectedCompanyId, sindicatoFilter],
@@ -126,6 +129,43 @@ export default function DpSindicatoNegociacoes() {
     onError: (e) => toast.error("Erro ao remover", { description: e instanceof Error ? e.message : String(e) }),
   });
 
+  const uploadPdf = useMutation({
+    mutationFn: async ({ id, file }: { id: string; file: File }) => {
+      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
+      const path = `${selectedCompanyId}/sindicato-negociacoes/${id}/${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
+      const { error: upErr } = await supabase.storage
+        .from("dp-documentos")
+        .upload(path, file, { upsert: true, contentType: file.type || "application/pdf" });
+      if (upErr) throw upErr;
+      const { error: updErr } = await supabase.from("dp_sindicato_negociacoes").update({ pdf_path: path }).eq("id", id);
+      if (updErr) throw updErr;
+    },
+    onSuccess: () => {
+      toast.success("PDF anexado");
+      qc.invalidateQueries({ queryKey: ["dp_sindicato_negociacoes"] });
+    },
+    onError: (e) => toast.error("Erro ao anexar PDF", { description: e instanceof Error ? e.message : String(e) }),
+  });
+
+  const openPdf = async (path: string) => {
+    const { data, error } = await supabase.storage.from("dp-documentos").createSignedUrl(path, 60);
+    if (error) return toast.error(error.message);
+    window.open(data.signedUrl, "_blank");
+  };
+
+  const triggerUpload = (id: string) => {
+    setUploadTargetId(id);
+    uploadRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !uploadTargetId) return;
+    uploadPdf.mutate({ id: uploadTargetId, file });
+    e.target.value = "";
+    setUploadTargetId(null);
+  };
+
   const openNew = () => {
     setForm({ ...emptyForm, sindicato_id: sindicatoFilter !== "all" ? sindicatoFilter : "" });
     setOpen(true);
@@ -153,6 +193,13 @@ export default function DpSindicatoNegociacoes() {
   return (
     <DpPage>
       <Helmet><title>Negociações sindicais — DP 360°</title></Helmet>
+      <input
+        ref={uploadRef}
+        type="file"
+        accept="application/pdf,image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
 
       <Button size="sm" variant="ghost" asChild className="w-fit">
             <Link to="/dp/documentos"><ArrowLeft className="h-4 w-4 mr-1" /> Documentos</Link>
@@ -217,8 +264,24 @@ export default function DpSindicatoNegociacoes() {
                     <TableCell>
                       <div className="flex gap-1 justify-end">
                         {n.pdf_path && (
-                          <Button size="icon" variant="ghost" title="PDF anexado"><FileText className="h-4 w-4" /></Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            title="Abrir PDF anexado"
+                            onClick={() => openPdf(n.pdf_path!)}
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Button>
                         )}
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title={n.pdf_path ? "Substituir PDF" : "Anexar PDF"}
+                          onClick={() => triggerUpload(n.id)}
+                          disabled={uploadPdf.isPending}
+                        >
+                          <Upload className="h-4 w-4" />
+                        </Button>
                         <Button size="icon" variant="ghost" onClick={() => openEdit(n)}><Pencil className="h-4 w-4" /></Button>
                         <Button size="icon" variant="ghost" onClick={() => setToDelete(n)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </div>
