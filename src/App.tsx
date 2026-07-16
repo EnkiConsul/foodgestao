@@ -20,6 +20,7 @@ import DpSolicitacoes from "./pages/dp/DpSolicitacoes";
 import DpDocumentos from "./pages/dp/DpDocumentos";
 import DpDocumentosHub from "./pages/dp/DpDocumentosHub";
 import DpFolgas from "./pages/dp/DpFolgas";
+import DpFolgasHub from "./pages/dp/DpFolgasHub";
 import DpCadastrosHub from "./pages/dp/DpCadastrosHub";
 import DpUnidades from "./pages/dp/DpUnidades";
 import DpCargos from "./pages/dp/DpCargos";
