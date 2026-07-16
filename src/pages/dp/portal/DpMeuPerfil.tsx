@@ -100,9 +100,11 @@ export default function DpMeuPerfil() {
               <Field label="Unidade" value={p.dp_unidades?.nome} />
               <Field label="Regime" value={p.regime} />
               <Field label="Perfil de acesso" value={p.perfil_acesso} />
+              <Field label="Sindicato" value={p.dp_sindicatos?.nome} />
               <Field label="Admissão" value={p.data_admissao} />
               <Field label="Nascimento" value={p.data_nascimento} />
-              <Field label="E-mail corporativo" value={p.email ?? p.email_portal} />
+              <Field label="E-mail corporativo" value={p.email} />
+              <Field label="E-mail do portal" value={p.email_portal} />
             </CardContent>
           </Card>
 
