@@ -115,10 +115,15 @@ export default function DpConfiguracoes() {
         description="Consolide regras de folga, bloqueios e prazos gerais do departamento pessoal."
       />
 
-      <DpContentCard
-        title={<span className="inline-flex items-center gap-2"><CalendarClock className="size-5 text-primary" /> Limites de folga por dia</span>}
-        description="Defina, por data, quantas folgas simultâneas são permitidas. Sem configuração, o sistema usa o fallback padrão."
-      >
+      <DpContentCard>
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold inline-flex items-center gap-2">
+            <CalendarClock className="size-5 text-primary" /> Limites de folga por dia
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Defina, por data, quantas folgas simultâneas são permitidas. Sem configuração, o sistema usa o fallback padrão.
+          </p>
+        </div>
         <div className="grid gap-2 md:grid-cols-[160px_120px_1fr_auto] items-end mb-4">
           <div className="space-y-1.5">
             <Label className="text-xs">Data</Label>
