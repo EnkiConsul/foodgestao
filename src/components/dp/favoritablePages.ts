@@ -1,62 +1,128 @@
 import type { LucideIcon } from "lucide-react";
+import { matchPath } from "react-router-dom";
 import {
   Users, Wallet, ClipboardList, FileText, Megaphone, MessageSquare, ShieldAlert,
   Calendar, Repeat, CheckSquare, Building2, Briefcase, HandshakeIcon, Ban,
-  User, Cake, ScrollText, FileSignature, History, Upload, Mail,
+  User, ScrollText, FileSignature, History, Upload, Mail,
 } from "lucide-react";
 
-export type FavoritablePage = { route: string; label: string; icon: LucideIcon };
-
 /**
- * Registro central de páginas do DP que podem ser favoritadas.
- * Rotas exatas — comparação usa startsWith apenas quando indicado.
+ * Uma página do DP que pode ser favoritada.
+ * - `pattern`: caminho react-router (pode ter `:param`); usado para reconhecer a rota.
+ * - `label` / `labelFor`: nome exibido no atalho — `labelFor` recebe os `params` da rota
+ *   e o pathname, permitindo rótulos dinâmicos (ex.: "Folha 03/2026").
  */
+export type FavoritablePage = {
+  pattern: string;
+  icon: LucideIcon;
+  label: string;
+  labelFor?: (params: Record<string, string | undefined>, pathname: string) => string;
+};
+
+/** O que fica resolvido em runtime a partir do pathname atual. */
+export type ResolvedFavorite = {
+  /** URL exata a persistir e a usar como link do atalho. */
+  route: string;
+  /** Rótulo já resolvido para exibição. */
+  label: string;
+  icon: LucideIcon;
+  /** Pattern que gerou o match (para lookup reverso). */
+  pattern: string;
+};
+
 export const FAVORITABLE_PAGES: FavoritablePage[] = [
   // ----- Admin DP -----
-  { route: "/dp/colaboradores", label: "Colaboradores", icon: Users },
-  { route: "/dp/folgas", label: "Folgas", icon: Calendar },
-  { route: "/dp/calendario", label: "Calendário", icon: Calendar },
-  { route: "/dp/trocas", label: "Trocas", icon: Repeat },
-  { route: "/dp/solicitacoes", label: "Solicitações", icon: ClipboardList },
-  { route: "/dp/aprovacoes", label: "Aprovações", icon: CheckSquare },
-  { route: "/dp/avisos", label: "Avisos", icon: Megaphone },
-  { route: "/dp/mensagens", label: "Mensagens", icon: MessageSquare },
-  { route: "/dp/modelos-mensagem", label: "Modelos", icon: Mail },
-  { route: "/dp/comunicacao", label: "Comunicação", icon: MessageSquare },
-  { route: "/dp/disciplinar", label: "Disciplinar", icon: ShieldAlert },
-  { route: "/dp/bloqueios", label: "Bloqueios", icon: Ban },
-  { route: "/dp/documentos", label: "Documentos", icon: FileText },
-  { route: "/dp/documentos/importar", label: "Importar docs", icon: Upload },
-  { route: "/dp/folha", label: "Folha", icon: Wallet },
-  { route: "/dp/folha/aprovacoes", label: "Folha - Aprovações", icon: CheckSquare },
-  { route: "/dp/cadastros", label: "Cadastros", icon: Building2 },
-  { route: "/dp/cadastros/unidades", label: "Unidades", icon: Building2 },
-  { route: "/dp/cadastros/cargos", label: "Cargos", icon: Briefcase },
-  { route: "/dp/cadastros/sindicatos", label: "Sindicatos", icon: HandshakeIcon },
-  { route: "/dp/sindicatos/negociacoes", label: "Negociações", icon: FileSignature },
+  { pattern: "/dp/colaboradores", label: "Colaboradores", icon: Users },
+  { pattern: "/dp/folgas", label: "Folgas", icon: Calendar },
+  { pattern: "/dp/calendario", label: "Calendário", icon: Calendar },
+  { pattern: "/dp/trocas", label: "Trocas", icon: Repeat },
+  { pattern: "/dp/solicitacoes", label: "Solicitações", icon: ClipboardList },
+  { pattern: "/dp/aprovacoes", label: "Aprovações", icon: CheckSquare },
+  { pattern: "/dp/avisos", label: "Avisos", icon: Megaphone },
+  { pattern: "/dp/mensagens", label: "Mensagens", icon: MessageSquare },
+  { pattern: "/dp/modelos-mensagem", label: "Modelos", icon: Mail },
+  { pattern: "/dp/comunicacao", label: "Comunicação", icon: MessageSquare },
+  {
+    pattern: "/dp/comunicacao/:id",
+    label: "Comunicação",
+    icon: MessageSquare,
+    labelFor: (p) => `Comunicação #${(p.id ?? "").slice(0, 6)}`,
+  },
+  { pattern: "/dp/disciplinar", label: "Disciplinar", icon: ShieldAlert },
+  { pattern: "/dp/bloqueios", label: "Bloqueios", icon: Ban },
+  { pattern: "/dp/documentos", label: "Documentos", icon: FileText },
+  { pattern: "/dp/documentos/importar", label: "Importar docs", icon: Upload },
+  {
+    pattern: "/dp/documentos/:categoria",
+    label: "Documentos",
+    icon: FileText,
+    labelFor: (p) => `Docs — ${capitalize(p.categoria ?? "")}`,
+  },
+  { pattern: "/dp/folha", label: "Folha", icon: Wallet },
+  { pattern: "/dp/folha/aprovacoes", label: "Folha — Aprovações", icon: CheckSquare },
+  {
+    pattern: "/dp/folha/periodos/:id",
+    label: "Folha — Período",
+    icon: Wallet,
+    labelFor: (p) => `Folha #${(p.id ?? "").slice(0, 6)}`,
+  },
+  { pattern: "/dp/cadastros", label: "Cadastros", icon: Building2 },
+  { pattern: "/dp/cadastros/unidades", label: "Unidades", icon: Building2 },
+  { pattern: "/dp/cadastros/cargos", label: "Cargos", icon: Briefcase },
+  { pattern: "/dp/cadastros/sindicatos", label: "Sindicatos", icon: HandshakeIcon },
+  { pattern: "/dp/sindicatos/negociacoes", label: "Negociações", icon: FileSignature },
 
   // ----- Portal do Colaborador -----
-  { route: "/dp/meu/perfil", label: "Meu Perfil", icon: User },
-  { route: "/dp/meu/documentos", label: "Meus Documentos", icon: FileText },
-  { route: "/dp/meu/solicitacoes", label: "Minhas Solicitações", icon: ClipboardList },
-  { route: "/dp/meu/trocas", label: "Minhas Trocas", icon: Repeat },
-  { route: "/dp/meu/calendario", label: "Meu Calendário", icon: Calendar },
-  { route: "/dp/meu/atestados", label: "Meus Atestados", icon: FileSignature },
-  { route: "/dp/meu/disciplinar", label: "Meu Disciplinar", icon: ShieldAlert },
-  { route: "/dp/meu/sindicato", label: "Meu Sindicato", icon: HandshakeIcon },
-  { route: "/dp/meu/historico", label: "Meu Histórico", icon: History },
+  { pattern: "/dp/meu/perfil", label: "Meu Perfil", icon: User },
+  { pattern: "/dp/meu/documentos", label: "Meus Documentos", icon: FileText },
+  { pattern: "/dp/meu/solicitacoes", label: "Minhas Solicitações", icon: ClipboardList },
+  { pattern: "/dp/meu/trocas", label: "Minhas Trocas", icon: Repeat },
+  { pattern: "/dp/meu/calendario", label: "Meu Calendário", icon: Calendar },
+  { pattern: "/dp/meu/atestados", label: "Meus Atestados", icon: FileSignature },
+  { pattern: "/dp/meu/disciplinar", label: "Meu Disciplinar", icon: ShieldAlert },
+  { pattern: "/dp/meu/sindicato", label: "Meu Sindicato", icon: HandshakeIcon },
+  { pattern: "/dp/meu/historico", label: "Meu Histórico", icon: History },
 ];
 
-const BY_ROUTE = new Map(FAVORITABLE_PAGES.map((p) => [p.route, p]));
-
-export function getFavoritablePage(route: string): FavoritablePage | undefined {
-  // match exato primeiro
-  if (BY_ROUTE.has(route)) return BY_ROUTE.get(route);
-  // fallback: match do prefixo mais longo (ex.: /dp/documentos/:categoria → /dp/documentos)
-  const sorted = [...FAVORITABLE_PAGES].sort((a, b) => b.route.length - a.route.length);
-  return sorted.find((p) => route === p.route || route.startsWith(p.route + "/"));
+function capitalize(s: string) {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
-export function resolveFavorites(routes: string[]): FavoritablePage[] {
-  return routes.map((r) => BY_ROUTE.get(r)).filter(Boolean) as FavoritablePage[];
+/**
+ * Prioriza patterns mais específicos (mais segmentos e menos placeholders).
+ * `/dp/documentos/importar` deve ganhar de `/dp/documentos/:categoria`.
+ */
+function specificity(pattern: string) {
+  const segs = pattern.split("/").filter(Boolean);
+  const params = segs.filter((s) => s.startsWith(":")).length;
+  // mais segmentos + menos params = mais específico
+  return segs.length * 10 - params * 5;
+}
+
+const SORTED = [...FAVORITABLE_PAGES].sort((a, b) => specificity(b.pattern) - specificity(a.pattern));
+
+/**
+ * Dado um pathname atual, retorna a página favoritável correspondente
+ * (com label e route já resolvidos). Retorna undefined se a rota não é favoritável.
+ */
+export function getFavoritablePage(pathname: string): ResolvedFavorite | undefined {
+  for (const page of SORTED) {
+    const m = matchPath({ path: page.pattern, end: true }, pathname);
+    if (m) {
+      const params = (m.params ?? {}) as Record<string, string | undefined>;
+      const label = page.labelFor ? page.labelFor(params, pathname) : page.label;
+      return { route: pathname, label, icon: page.icon, pattern: page.pattern };
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Resolve uma lista de rotas favoritadas (URLs concretas, potencialmente dinâmicas)
+ * de volta a atalhos exibíveis. Rotas que não batem em nenhum pattern são descartadas.
+ */
+export function resolveFavorites(routes: string[]): ResolvedFavorite[] {
+  return routes
+    .map((r) => getFavoritablePage(r))
+    .filter((x): x is ResolvedFavorite => !!x);
 }
