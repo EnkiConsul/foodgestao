@@ -1,12 +1,15 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Cake, MessageCircle } from "lucide-react";
+import { Cake, MessageCircle, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useDpAniversariantes30d } from "@/hooks/useDpAniversariantes30d";
+import { useDpAniversariantes30d, type AnivItem } from "@/hooks/useDpAniversariantes30d";
+import { WhatsappComposerDialog } from "@/components/dp/WhatsappComposerDialog";
 import { cn } from "@/lib/utils";
 
 export function AniversariantesCard() {
   const { data = [] } = useDpAniversariantes30d();
+  const [target, setTarget] = useState<AnivItem | null>(null);
 
   return (
     <div className="rounded-2xl border-2 border-[hsl(var(--dp-birthday-border))] bg-[hsl(var(--dp-birthday-bg))] p-5">
@@ -66,15 +69,33 @@ export function AniversariantesCard() {
                 <p className="text-[11px] text-muted-foreground mt-0.5">🏢 {a.unidade}</p>
               )}
             </div>
-            <Button asChild size="sm" variant="outline" className="h-8 text-xs shrink-0">
-              <Link to={`/dp/mensagens?to=${a.colaboradorId}`}>
-                <MessageCircle className="h-3 w-3 mr-1" />
-                Mensagem
-              </Link>
-            </Button>
+            <div className="flex flex-col gap-1 shrink-0">
+              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setTarget(a)}>
+                <MessageSquare className="h-3 w-3 mr-1" />
+                WhatsApp
+              </Button>
+              <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
+                <Link to={`/dp/mensagens?to=${a.colaboradorId}`}>
+                  <MessageCircle className="h-3 w-3 mr-1" />
+                  Mensagem
+                </Link>
+              </Button>
+            </div>
           </div>
         ))}
       </div>
+
+      <WhatsappComposerDialog
+        open={!!target}
+        onClose={() => setTarget(null)}
+        colaboradorId={target?.colaboradorId ?? null}
+        nome={target?.nome ?? ""}
+        contexto={{
+          tipo: target?.tipo === "nascimento" ? "aniversário" : "contratação",
+          anos: String(target?.anosCompletos ?? ""),
+          nome: target?.nome ?? "",
+        }}
+      />
     </div>
   );
 }
