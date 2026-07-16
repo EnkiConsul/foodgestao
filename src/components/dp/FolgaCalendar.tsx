@@ -7,6 +7,7 @@ import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 export type FolgaCell = {
