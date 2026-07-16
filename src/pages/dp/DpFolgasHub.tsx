@@ -125,7 +125,7 @@ export default function DpFolgasHub() {
 
   const stats: Stat[] = [
     { label: "EQUIPE ATIVA", value: String(equipeAtiva), icon: Users, tone: "bg-blue-100 text-blue-600" },
-    { label: "OCUPAÇÃO HOJE", value: `${folgasHoje}/${equipeAtiva || 0}`, icon: CalendarCheck, tone: "bg-violet-100 text-violet-600" },
+    { label: "FOLGAS HOJE", value: `${folgasHoje} / ${equipeAtiva || 0}`, icon: CalendarCheck, tone: "bg-violet-100 text-violet-600" },
     { label: "FOLGAS NO MÊS", value: String(folgasMes), icon: Calendar, tone: "bg-emerald-100 text-emerald-600" },
     { label: "PEDIDOS ESPECIAIS", value: String(pedidosEspeciais), icon: ClipboardList, tone: "bg-orange-100 text-orange-600" },
     { label: "TROCAS PENDENTES", value: String(trocas.length), icon: ArrowLeftRight, tone: "bg-purple-100 text-purple-600" },
