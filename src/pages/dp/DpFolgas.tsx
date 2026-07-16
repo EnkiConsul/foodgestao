@@ -126,6 +126,7 @@ export default function DpFolgas() {
   }, [selectedCompanyId, unidadeFilter, colabFilter, tipoFilter]);
 
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [quickColabId, setQuickColabId] = useState<string>("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({
     colaborador_id: "",
@@ -179,6 +180,35 @@ export default function DpFolgas() {
     },
     onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
   });
+
+  const quickAssign = useMutation({
+    mutationFn: async () => {
+      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
+      if (!selectedDay) throw new Error("Selecione um dia");
+      if (!quickColabId) throw new Error("Escolha um colaborador");
+      const { error } = await supabase.from("dp_solicitacoes").insert({
+        company_id: selectedCompanyId,
+        colaborador_id: quickColabId,
+        tipo: "folga",
+        data_alvo: format(selectedDay, "yyyy-MM-dd"),
+        data_fim: null,
+        motivo: null,
+        criado_por: user?.id,
+        status: "aprovada",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Folga atribuída");
+      qc.invalidateQueries({ queryKey: ["dp_folgas"] });
+      qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
+      qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
+      setQuickColabId("");
+    },
+    onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
+  });
+
+
 
   const rangeStart = startOfWeek(startOfMonth(cursor), { weekStartsOn: 0 });
   const rangeEnd = endOfWeek(endOfMonth(cursor), { weekStartsOn: 0 });
@@ -532,47 +562,125 @@ export default function DpFolgas() {
         </div>
       </DpContentCard>
 
-      {selectedDay && (
-        <DpContentCard contentClassName="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold">
-              {format(selectedDay, "PPP", { locale: ptBR })}
-            </h3>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={() => openNew({ data_alvo: format(selectedDay, "yyyy-MM-dd") })}
-              >
-                <Plus className="h-4 w-4 mr-1" /> Solicitar nesta data
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => setSelectedDay(null)}>
-                Fechar
-              </Button>
-            </div>
-          </div>
-          {selectedEvents.length === 0 ? (
-            <div className="text-sm text-muted-foreground py-4 text-center">
-              Nenhuma ausência registrada nesta data.
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {selectedEvents.map((ev) => (
-                <div key={ev.id} className="flex items-center justify-between border rounded-md p-3">
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">{ev.dp_colaboradores?.nome ?? "—"}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {TIPO_LABEL[ev.tipo]} · {ev.data_alvo}
-                      {ev.data_fim ? ` → ${ev.data_fim}` : ""}
-                      {ev.motivo ? ` · ${ev.motivo}` : ""}
-                    </div>
+      <Dialog
+        open={!!selectedDay}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedDay(null);
+            setQuickColabId("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          {selectedDay && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <CalendarIcon className="h-6 w-6" />
                   </div>
-                  <Badge variant="outline">{STATUS_LABEL[ev.status]}</Badge>
+                  <DialogTitle className="text-3xl font-bold tracking-tight">
+                    {format(selectedDay, "dd/MM/yyyy")}
+                  </DialogTitle>
                 </div>
-              ))}
-            </div>
+                <DialogDescription className="sr-only">
+                  Detalhes da escala do dia selecionado
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-2">
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Escala do dia
+                </div>
+                {selectedEvents.length === 0 ? (
+                  <div className="rounded-xl border-2 border-dashed border-border/70 bg-muted/30 py-10 text-center text-sm text-muted-foreground">
+                    Ninguém escalado para este dia.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {selectedEvents.map((ev) => (
+                      <div
+                        key={ev.id}
+                        className="flex items-center justify-between rounded-xl border bg-card p-3"
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate font-medium">
+                            {ev.dp_colaboradores?.nome ?? "—"}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {TIPO_LABEL[ev.tipo]}
+                            {ev.data_fim ? ` · até ${ev.data_fim}` : ""}
+                            {ev.motivo ? ` · ${ev.motivo}` : ""}
+                          </div>
+                        </div>
+                        <Badge variant="outline">{STATUS_LABEL[ev.status]}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2 border-t pt-4">
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Atribuir folga manual
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Select value={quickColabId} onValueChange={setQuickColabId}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Escolher colaborador..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(colabs.data ?? [])
+                        .filter((c) => c.ativo !== false)
+                        .filter((c) =>
+                          unidadeFilter === "todas" ? true : c.unidade_id === unidadeFilter,
+                        )
+                        .map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.nome}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    onClick={() => quickAssign.mutate()}
+                    disabled={!quickColabId || quickAssign.isPending}
+                    className="sm:min-w-[140px]"
+                  >
+                    <Plus className="mr-1 h-4 w-4" />
+                    {quickAssign.isPending ? "Atribuindo..." : "Atribuir"}
+                  </Button>
+                </div>
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      openNew({ data_alvo: format(selectedDay, "yyyy-MM-dd") })
+                    }
+                    className="text-xs font-medium text-primary hover:underline"
+                  >
+                    Solicitar ausência avançada (férias, atestado, período)
+                  </button>
+                </div>
+              </div>
+
+              <DialogFooter className="sm:justify-center">
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setSelectedDay(null);
+                    setQuickColabId("");
+                  }}
+                  className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                >
+                  Fechar detalhes
+                </Button>
+              </DialogFooter>
+            </>
           )}
-        </DpContentCard>
-      )}
+        </DialogContent>
+      </Dialog>
+
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
