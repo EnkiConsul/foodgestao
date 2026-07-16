@@ -19,7 +19,8 @@ import {
 } from "@/components/ui/sidebar";
 
 import { FinanceiroMenu } from "./sidebar-menus/FinanceiroMenu";
-import { DpMenu } from "./sidebar-menus/DpMenu";
+// DpMenu removido: o módulo DP possui shell próprio (DpShell/DpSidebar).
+// Quando o módulo DP está ativo o AppSidebar não renderiza menu de módulo.
 import { PortalMenu } from "./sidebar-menus/PortalMenu";
 import { AccountMenu } from "./sidebar-menus/AccountMenu";
 import { ComingSoonMenu } from "./sidebar-menus/ComingSoonMenu";
@@ -33,7 +34,7 @@ export function AppSidebar() {
   const renderModuleMenu = () => {
     switch (activeModule) {
       case "financeiro": return <FinanceiroMenu />;
-      case "dp": return <DpMenu />;
+      case "dp": return null;
       case "portal_colaborador": return <PortalMenu />;
       case "crm": return <ComingSoonMenu label="CRM 360°" />;
       case "rh": return <ComingSoonMenu label="RH 360°" />;
