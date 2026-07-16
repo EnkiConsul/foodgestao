@@ -1,30 +1,60 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Search, KeyRound } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useDpColaboradores, useDeleteDpColaborador, type DpColaborador } from "@/hooks/useDpColaboradores";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  useDpColaboradores, useDeleteDpColaborador, useToggleDpColaboradorAtivo,
+  type DpColaborador,
+} from "@/hooks/useDpColaboradores";
+import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
+import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 
 export default function DpColaboradores() {
   const list = useDpColaboradores();
+  const unidades = useDpUnidades();
+  const cargos = useDpCargos();
   const del = useDeleteDpColaborador();
+  const toggle = useToggleDpColaboradorAtivo();
+
   const [search, setSearch] = useState("");
+  const [unidadeFilter, setUnidadeFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [cargoFilter, setCargoFilter] = useState<string>("all");
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<DpColaborador | null>(null);
   const [toDelete, setToDelete] = useState<DpColaborador | null>(null);
 
-  const filtered = (list.data ?? []).filter((c) => {
+  const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return true;
-    return c.nome.toLowerCase().includes(q) || (c.cpf ?? "").includes(q) || (c.matricula ?? "").toLowerCase().includes(q);
-  });
+    return (list.data ?? []).filter((c) => {
+      if (q) {
+        const hit =
+          c.nome.toLowerCase().includes(q) ||
+          (c.cpf ?? "").toLowerCase().includes(q) ||
+          (c.matricula ?? "").toLowerCase().includes(q);
+        if (!hit) return false;
+      }
+      if (unidadeFilter !== "all" && c.unidade_id !== unidadeFilter) return false;
+      if (cargoFilter !== "all" && c.cargo_id !== cargoFilter) return false;
+      if (statusFilter === "ativos" && !c.ativo) return false;
+      if (statusFilter === "inativos" && c.ativo) return false;
+      return true;
+    });
+  }, [list.data, search, unidadeFilter, cargoFilter, statusFilter]);
 
   const handleDelete = async () => {
     if (!toDelete) return;
@@ -37,66 +67,185 @@ export default function DpColaboradores() {
     setToDelete(null);
   };
 
+  const handleToggle = async (c: DpColaborador, ativo: boolean) => {
+    try {
+      await toggle.mutateAsync({ id: c.id, ativo });
+      toast.success(ativo ? "Colaborador ativado" : "Colaborador inativado");
+    } catch (e) {
+      toast.error("Erro ao atualizar status", { description: e instanceof Error ? e.message : String(e) });
+    }
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <Helmet><title>Colaboradores — DP 360°</title></Helmet>
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold">Colaboradores</h2>
-          <p className="text-sm text-muted-foreground">{list.data?.length ?? 0} cadastrados</p>
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <Users className="h-8 w-8 text-primary shrink-0 mt-1" />
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Colaboradores</h1>
+            <p className="text-sm text-muted-foreground">Gerencie a equipe, cargos e acessos ao sistema.</p>
+          </div>
         </div>
-        <div className="flex gap-2 w-full sm:w-auto">
-          <Input placeholder="Buscar por nome, CPF ou matrícula" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full sm:w-72" />
-          <Button onClick={() => { setEditing(null); setDialogOpen(true); }}>
-            <Plus className="h-4 w-4 mr-2" /> Novo
+        <div className="flex items-center gap-2">
+          <FavoriteToggle />
+          <Button
+            size="lg"
+            className="rounded-full font-semibold"
+            onClick={() => { setEditing(null); setDialogOpen(true); }}
+          >
+            <Plus className="h-5 w-5 mr-2" /> Novo Colaborador
           </Button>
         </div>
       </div>
 
+      {/* Filtros */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold tracking-wider text-muted-foreground">BUSCAR</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Nome ou CPF..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold tracking-wider text-muted-foreground">UNIDADE</label>
+              <Select value={unidadeFilter} onValueChange={setUnidadeFilter}>
+                <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  {(unidades.data ?? []).map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold tracking-wider text-muted-foreground">STATUS</label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="ativos">Ativos</SelectItem>
+                  <SelectItem value="inativos">Inativos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold tracking-wider text-muted-foreground">CARGO</label>
+              <Select value={cargoFilter} onValueChange={setCargoFilter}>
+                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {(cargos.data ?? []).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tabela */}
       <Card>
         <CardContent className="p-0 overflow-x-auto">
           {list.isLoading ? (
             <TableSkeleton
-              columns={7}
-              headers={["Nome", "Matrícula", "Cargo", "Regime", "Admissão", "Status", ""]}
+              columns={9}
+              headers={["Colaborador", "CPF", "Cargo", "Unidade", "Vínculo", "Status", "Perfil", "Folha Ponto", ""]}
             />
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Matrícula</TableHead>
-                  <TableHead>Cargo</TableHead>
-                  <TableHead>Regime</TableHead>
-                  <TableHead>Admissão</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-24"></TableHead>
+                  <TableHead className="uppercase text-xs tracking-wider">Colaborador</TableHead>
+                  <TableHead className="uppercase text-xs tracking-wider">CPF</TableHead>
+                  <TableHead className="uppercase text-xs tracking-wider">Cargo</TableHead>
+                  <TableHead className="uppercase text-xs tracking-wider">Unidade</TableHead>
+                  <TableHead className="uppercase text-xs tracking-wider">Vínculo</TableHead>
+                  <TableHead className="uppercase text-xs tracking-wider">Status</TableHead>
+                  <TableHead className="uppercase text-xs tracking-wider">Perfil</TableHead>
+                  <TableHead className="uppercase text-xs tracking-wider">Folha Ponto</TableHead>
+                  <TableHead className="uppercase text-xs tracking-wider text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell>
-                      <div className="font-medium">{c.nome}</div>
-                      {c.cpf && <div className="text-xs text-muted-foreground">{c.cpf}</div>}
-                    </TableCell>
-                    <TableCell>{c.matricula ?? "—"}</TableCell>
-                    <TableCell>{c.cargo_nome ?? c.cargo ?? "—"}</TableCell>
-                    <TableCell className="uppercase text-xs">{c.regime}</TableCell>
-                    <TableCell>{c.data_admissao ?? "—"}</TableCell>
-                    <TableCell>
-                      {c.ativo ? <Badge className="bg-primary">Ativo</Badge> : <Badge variant="outline">Inativo</Badge>}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1 justify-end">
-                        <Button size="icon" variant="ghost" onClick={() => { setEditing(c); setDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" onClick={() => setToDelete(c)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                      </div>
+                {filtered.map((c) => {
+                  const perfil = (c as any).perfil_acesso as string | null;
+                  const folha = (c as any).possui_folha_ponto as boolean | null;
+                  return (
+                    <TableRow key={c.id}>
+                      <TableCell className="font-semibold uppercase">{c.nome}</TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">{c.cpf ?? "—"}</TableCell>
+                      <TableCell>{c.cargo_nome ?? c.cargo ?? "—"}</TableCell>
+                      <TableCell>{c.unidade_nome ?? "—"}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="uppercase border-primary/30 text-primary bg-primary/5">
+                          {c.regime ?? "—"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={!!c.ativo}
+                          onCheckedChange={(v) => handleToggle(c, v)}
+                          disabled={toggle.isPending}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={perfil === "admin" ? "bg-destructive/10 text-destructive border-destructive/30" : ""}
+                        >
+                          {perfil === "admin" ? "Admin" : "Colaborador"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={folha
+                            ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400"
+                            : "text-muted-foreground"}
+                        >
+                          {folha ? "Sim" : "Não"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 justify-end">
+                          <Button size="icon" variant="ghost" onClick={() => { setEditing(c); setDialogOpen(true); }} title="Editar">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            title="Resetar acesso"
+                            onClick={() => toast.info("Redefinição de acesso em breve")}
+                          >
+                            <KeyRound className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" onClick={() => setToDelete(c)} title="Remover">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {filtered.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                      Nenhum colaborador encontrado.
                     </TableCell>
                   </TableRow>
-                ))}
-                {filtered.length === 0 && (
-                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhum colaborador cadastrado.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -116,7 +265,9 @@ export default function DpColaboradores() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remover</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Remover
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
