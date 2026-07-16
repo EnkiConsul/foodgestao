@@ -155,7 +155,7 @@ export default function DpSindicatoNegociacoes() {
       <Helmet><title>Negociações sindicais — DP 360°</title></Helmet>
 
       <Button size="sm" variant="ghost" asChild className="w-fit">
-            <Link to="/dp/cadastros/sindicatos"><ArrowLeft className="h-4 w-4 mr-1" /> Sindicatos</Link>
+            <Link to="/dp/documentos"><ArrowLeft className="h-4 w-4 mr-1" /> Documentos</Link>
       </Button>
       <DpPageHeader
         icon={FileText}
