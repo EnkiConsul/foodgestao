@@ -27,18 +27,38 @@ const prioridadeColor: Record<string, string> = {
 };
 
 function AvisoDialog({
-  aviso, open, onOpenChange, onSave,
+  aviso, open, onOpenChange, onSave, companyId,
 }: {
   aviso?: DpAviso | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSave: (v: Partial<DpAviso> & { titulo: string; conteudo: string }) => void;
+  companyId: string | null;
 }) {
   const [titulo, setTitulo] = useState(aviso?.titulo ?? "");
   const [conteudo, setConteudo] = useState(aviso?.conteudo ?? "");
   const [prioridade, setPrioridade] = useState(aviso?.prioridade ?? "normal");
   const [fixado, setFixado] = useState(aviso?.fixado ?? false);
   const [expiraEm, setExpiraEm] = useState(aviso?.expira_em?.slice(0, 10) ?? "");
+  const [arquivoPath, setArquivoPath] = useState((aviso as any)?.arquivo_path ?? "");
+  const [arquivoMime, setArquivoMime] = useState((aviso as any)?.arquivo_mime ?? "");
+  const [uploading, setUploading] = useState(false);
+
+  const uploadFile = async (file: File) => {
+    if (!companyId) return toast.error("Selecione uma empresa");
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() ?? "bin";
+      const path = `${companyId}/avisos/${Date.now()}.${ext}`;
+      const up = await supabase.storage.from("dp-documentos").upload(path, file, { contentType: file.type });
+      if (up.error) throw up.error;
+      setArquivoPath(path);
+      setArquivoMime(file.type);
+      toast.success("Arquivo enviado");
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro no upload");
+    } finally { setUploading(false); }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
