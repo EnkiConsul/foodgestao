@@ -9,10 +9,11 @@ import { cn } from "@/lib/utils";
 
 export function FavoriteToggle() {
   const { pathname } = useLocation();
-  const { isFavoritePage, toggleFavoritePage, saving } = useDpUserPrefs();
+  const { isFavoritePage, toggleFavoritePage, saving, available } = useDpUserPrefs();
 
   const page = getFavoritablePage(pathname);
-  if (!page) return null;
+  if (!page || !available) return null;
+
 
   const active = isFavoritePage(page.route);
 
