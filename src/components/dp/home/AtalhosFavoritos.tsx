@@ -20,7 +20,9 @@ export type Atalho = { icon: LucideIcon; label: string; to: string };
  * Grid de atalhos favoritos.
  *
  * Sem `items`: monta-se dinamicamente a partir de `prefs.extras.favoritos_paginas`
- * (rotas escolhidas via ⭐ no header). A ordem é persistida em `prefs.favoritos`.
+ * (URLs escolhidas via ⭐ no header, inclusive rotas dinâmicas). A ordem é persistida
+ * em `prefs.favoritos` — agora armazenando as URLs, não os labels, para suportar
+ * rotas dinâmicas com labels iguais.
  *
  * Com `items` (legado): usa a lista passada como fixa.
  */
@@ -38,19 +40,20 @@ export function AtalhosFavoritos({ items }: { items?: Atalho[] } = {}) {
   }, [items, favoritePages]);
 
   const ordered = useMemo(() => {
-    const map = new Map(source.map((i) => [i.label, i]));
-    const chosen = prefs.favoritos.map((l) => map.get(l)).filter(Boolean) as Atalho[];
-    const rest = source.filter((i) => !prefs.favoritos.includes(i.label));
+    const map = new Map(source.map((i) => [i.to, i]));
+    const chosen = prefs.favoritos.map((key) => map.get(key)).filter(Boolean) as Atalho[];
+    const rest = source.filter((i) => !prefs.favoritos.includes(i.to));
     return [...chosen, ...rest];
   }, [source, prefs.favoritos]);
 
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
-    const oldIdx = ordered.findIndex((i) => i.label === active.id);
-    const newIdx = ordered.findIndex((i) => i.label === over.id);
+    const oldIdx = ordered.findIndex((i) => i.to === active.id);
+    const newIdx = ordered.findIndex((i) => i.to === over.id);
+    if (oldIdx < 0 || newIdx < 0) return;
     const next = arrayMove(ordered, oldIdx, newIdx);
-    save({ favoritos: next.map((i) => i.label) });
+    save({ favoritos: next.map((i) => i.to) });
   };
 
   return (
@@ -72,10 +75,10 @@ export function AtalhosFavoritos({ items }: { items?: Atalho[] } = {}) {
         </div>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-          <SortableContext items={ordered.map((i) => i.label)} strategy={rectSortingStrategy}>
+          <SortableContext items={ordered.map((i) => i.to)} strategy={rectSortingStrategy}>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
               {ordered.map((it) => (
-                <SortableAtalho key={it.label} item={it} />
+                <SortableAtalho key={it.to} item={it} />
               ))}
             </div>
           </SortableContext>
@@ -86,7 +89,7 @@ export function AtalhosFavoritos({ items }: { items?: Atalho[] } = {}) {
 }
 
 function SortableAtalho({ item }: { item: Atalho }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.label });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.to });
   const style = { transform: CSS.Transform.toString(transform), transition };
   return (
     <div
@@ -105,10 +108,15 @@ function SortableAtalho({ item }: { item: Atalho }) {
       >
         <GripVertical className="h-3.5 w-3.5" />
       </button>
-      <Link to={item.to} className="flex flex-col items-center justify-center gap-2 h-full w-full">
+      <Link
+        to={item.to}
+        title={item.to}
+        className="flex flex-col items-center justify-center gap-2 h-full w-full"
+      >
         <item.icon className="h-6 w-6 text-primary" />
-        <span className="text-sm font-medium text-center">{item.label}</span>
+        <span className="text-sm font-medium text-center line-clamp-2">{item.label}</span>
       </Link>
     </div>
   );
 }
+
