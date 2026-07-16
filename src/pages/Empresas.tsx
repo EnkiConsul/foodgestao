@@ -129,6 +129,30 @@ export default function Empresas() {
     return { total: companies.length, active: active.length };
   }, [companies]);
 
+  const companyIds = useMemo(() => companies.map((c) => c.id), [companies]);
+  const dpUnidadesQuery = useQuery({
+    queryKey: ["dp_unidades_by_company", companyIds.join(",")],
+    enabled: companyIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_unidades")
+        .select("id, nome, cidade, company_id")
+        .in("company_id", companyIds);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const unidadesByCompany = useMemo(() => {
+    const map = new Map<string, { id: string; nome: string; cidade: string | null }[]>();
+    (dpUnidadesQuery.data ?? []).forEach((u) => {
+      const arr = map.get(u.company_id) ?? [];
+      arr.push({ id: u.id, nome: u.nome, cidade: u.cidade });
+      map.set(u.company_id, arr);
+    });
+    return map;
+  }, [dpUnidadesQuery.data]);
+
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
