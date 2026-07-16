@@ -20,6 +20,7 @@ import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const onlyNumbers = (v: string) => v.replace(/\D/g, "");
 const formatCNPJ = (value: string) => {
@@ -62,8 +63,42 @@ export default function DpUnidades() {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ ...blank, company_id: companies.length === 1 ? companies[0].id : "" });
+    const only = companies.length === 1 ? companies[0].id : "";
+    setForm({ ...blank, company_id: only });
     setOpen(true);
+    if (only) void applyCompanyData(only, true);
+  };
+
+  const applyCompanyData = async (companyId: string, force = false) => {
+    if (!companyId) return;
+    try {
+      const { data, error } = await supabase
+        .from("companies")
+        .select("name, trade_name, cnpj, phone, whatsapp, cep, logradouro, numero, complemento, bairro, cidade, uf, address")
+        .eq("id", companyId)
+        .maybeSingle();
+      if (error || !data) return;
+      const enderecoMontado =
+        [
+          [data.logradouro, data.numero].filter(Boolean).join(", "),
+          data.complemento,
+          data.bairro,
+          data.cep,
+        ]
+          .filter(Boolean)
+          .join(" - ") || data.address || "";
+      setForm((prev) => ({
+        ...prev,
+        nome: force || !prev.nome ? (data.trade_name || data.name || prev.nome) : prev.nome,
+        cnpj: force || !prev.cnpj ? onlyNumbers(data.cnpj || "") : prev.cnpj,
+        endereco: force || !prev.endereco ? enderecoMontado : prev.endereco,
+        cidade: force || !prev.cidade ? (data.cidade || "") : prev.cidade,
+        uf: force || !prev.uf ? (data.uf || "") : prev.uf,
+        telefone: force || !prev.telefone ? (data.phone || data.whatsapp || "") : prev.telefone,
+      }));
+    } catch {
+      /* ignore */
+    }
   };
 
   const openEdit = (u: DpUnidadeWithCounts) => {
@@ -316,7 +351,10 @@ export default function DpUnidades() {
               ) : (
                 <Select
                   value={form.company_id}
-                  onValueChange={(v) => setForm({ ...form, company_id: v })}
+                  onValueChange={(v) => {
+                    setForm((prev) => ({ ...prev, company_id: v }));
+                    if (!editing) void applyCompanyData(v, true);
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a empresa" />
@@ -359,13 +397,24 @@ export default function DpUnidades() {
                 placeholder="Ex: R 9 A, SN"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Cidade</Label>
-              <Input
-                value={form.cidade}
-                onChange={(e) => setForm({ ...form, cidade: e.target.value })}
-                placeholder="Ex: Aparecida de Goiânia"
-              />
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-2 col-span-2">
+                <Label>Cidade</Label>
+                <Input
+                  value={form.cidade}
+                  onChange={(e) => setForm({ ...form, cidade: e.target.value })}
+                  placeholder="Ex: Aparecida de Goiânia"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>UF</Label>
+                <Input
+                  value={form.uf}
+                  onChange={(e) => setForm({ ...form, uf: e.target.value.toUpperCase() })}
+                  placeholder="GO"
+                  maxLength={2}
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Telefone</Label>
