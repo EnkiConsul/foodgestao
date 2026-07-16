@@ -1,6 +1,7 @@
-# Próxima fase — DP-G03: Portal do Colaborador
+# Auditoria DP — status
 
-Concluídas: DP-G00 (Inventário), DP-G01 (Login), DP-G02 (Shell/Navegação — correções aplicadas).
+Concluídas: DP-G00, DP-G01, DP-G02 (correções aplicadas), DP-G03 (relatório em `.lovable/auditoria/dp-g03-portal-cadastro.md`).
+Em andamento: aguardando aprovação das correções DP-G03 ou avanço para DP-G04.
 
 Sequência sugerida pelo prompt mestre:
 
