@@ -19,6 +19,7 @@ function isPostponed(id: string, map: Record<string, string>) {
 export function PendenciasCard() {
   const { data = [], isLoading } = useDpPendencias();
   const { prefs, save } = useDpUserPrefs();
+  const [detail, setDetail] = useState<Pendencia | null>(null);
 
   const visible = useMemo(
     () => data.filter((p) => !isPostponed(p.id, prefs.pendencias_adiadas)),
