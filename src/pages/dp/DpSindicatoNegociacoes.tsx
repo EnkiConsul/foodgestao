@@ -374,6 +374,9 @@ export default function DpSindicatoNegociacoes() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remover esta negociação?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O PDF anexado no armazenamento não é excluído automaticamente. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
