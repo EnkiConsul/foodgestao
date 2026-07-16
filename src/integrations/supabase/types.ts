@@ -2106,6 +2106,7 @@ export type Database = {
           cbo: string | null
           company_id: string
           created_at: string
+          descricao: string | null
           id: string
           nome: string
           salario_base: number | null
@@ -2116,6 +2117,7 @@ export type Database = {
           cbo?: string | null
           company_id: string
           created_at?: string
+          descricao?: string | null
           id?: string
           nome: string
           salario_base?: number | null
@@ -2126,6 +2128,7 @@ export type Database = {
           cbo?: string | null
           company_id?: string
           created_at?: string
+          descricao?: string | null
           id?: string
           nome?: string
           salario_base?: number | null

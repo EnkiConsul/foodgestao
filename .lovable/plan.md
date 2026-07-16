@@ -1,43 +1,75 @@
 ## Objetivo
-Corrigir todas as telas do módulo DP para seguirem a estrutura visual e de navegação da documentação anexada do GitHub, mantendo as cores atuais do projeto.
 
-## Escopo
-Serão alinhadas as páginas administrativas e do portal do colaborador dentro de `/dp` e `/dp/meu`, sem alterar regras de negócio, banco de dados, permissões ou paleta global.
+Reestruturar `src/pages/dp/DpCargos.tsx` para seguir exatamente o padrão da documentação do repositório `pakere1996/portalcolaborador` (arquivo `src/pages/admin/Cargos.tsx`) e da imagem em anexo, mantendo cores e tokens de design do 360°FOOD.
 
-## Direção visual a aplicar
-- Manter o layout com sidebar DP, fundo claro/padronizado e conteúdo central com largura consistente, como nos anexos.
-- Usar cabeçalhos padronizados: ícone + título, subtítulo abaixo, ação principal à direita e favorito/notificação quando aplicável.
-- Usar cards e tabelas com a mesma hierarquia da documentação: borda sutil, cantos moderados, filtros em faixa/card antes da listagem e ações por ícones.
-- Manter as cores já existentes do app/DP; a correção será de estrutura, espaçamento, componentes, hierarquia e organização.
+## Referência (documentação GitHub)
 
-## Implementação proposta
-1. **Criar base reutilizável de layout DP**
-   - Componentes comuns para `DpPage`, `DpPageHeader`, `DpFilterBar`, `DpSectionCard`, `DpMetricCard` e estados vazios/loading.
-   - Isso evita corrigir tela por tela com estilos divergentes.
+- Layout centralizado (`max-w-4xl mx-auto`), sem hero pesado.
+- Cabeçalho: ícone `Briefcase` + título "Cargos" + subtítulo "Gerencie os cargos disponíveis na empresa.", com `FavoriteToggle` + botão pill **"+ Novo Cargo"** à direita.
+- Tabela em card arredondado (`rounded-2xl`, `overflow-hidden`, borda + shadow-sm) com apenas 3 colunas: **NOME** (uppercase, negrito), **DESCRIÇÃO** (oculta em mobile), **AÇÕES** (Editar / Excluir como ícones ghost).
+- Nome do cargo exibido em **UPPERCASE** e negrito na linha.
+- Linha inteira clicável → abre Dialog de visualização com detalhes (nome, descrição, datas).
+- Formulário (criar/editar): apenas **Nome do Cargo** (obrigatório) + **Descrição** (textarea opcional). Sem CBO, salário base e status.
+- Diálogo de exclusão com AlertDialog e mensagem específica para FK (colaborador vinculado).
 
-2. **Padronizar páginas administrativas principais**
-   - `DpHome`: alinhar com o painel administrativo da documentação, com pendências, aniversariantes e atalhos favoritos no mesmo padrão.
-   - `DpColaboradores`: manter a estrutura da documentação e corrigir inconsistências visuais restantes, incluindo filtros, tabela, badges, switches e ações.
-   - `DpSolicitacoes`, `DpFolgas`, `DpAprovacoes`, `DpAtestados`, `DpTrocas`, `DpBloqueios`: aplicar cabeçalho, filtros/tabs e listas/calendário no mesmo padrão.
-   - `DpDocumentosHub`, `DpDocumentos`, `DpHistoricoCompleto`, `DpDocImportBulk`, `DpDisciplinar`: unificar estrutura de documentos, cards de categoria, histórico, importação e registros.
-   - `DpCadastrosHub`, `DpUnidades`, `DpCargos`, `DpSindicatos`, `DpSindicatoNegociacoes`: alinhar cadastros ao padrão de listagem/formulário da documentação.
-   - `DpComunicacaoHub`, `DpAvisos`, `DpMensagens`, `DpModelosMensagem`: alinhar comunicação ao padrão de cards/listas e ações.
-   - `DpFolhaHub`, `DpFolhaAprovacoes`, `DpFolhaPeriodo`: aplicar a mesma estrutura visual para folha e aprovações.
+## Mudanças
 
-3. **Padronizar portal do colaborador**
-   - Ajustar `DpMeuHome`, `DpMeuPerfil`, `DpMeuDocumentos`, `DpMeuSolicitacoes`, `DpMeuTrocas`, `DpMeuCalendario`, `DpMeuAtestados`, `DpMeuDisciplinar`, `DpMeuSindicato` e `DpMeuHistorico` para seguirem a mesma linguagem visual da documentação, com foco em experiência simplificada para colaborador.
+### 1. Backend — adicionar coluna `descricao`
 
-4. **Ajustar navegação e consistência**
-   - Garantir sidebar com grupos, estados ativos e espaçamentos compatíveis com os anexos.
-   - Garantir que hubs, atalhos e rotas internas tenham o mesmo padrão de cards e botões.
+Migration em `dp_cargos` (a doc usa apenas nome + descricao; a nossa tabela ainda não tem `descricao`):
 
-5. **Validação**
-   - Conferir visualmente as telas principais em desktop.
-   - Rodar typecheck/teste aplicável.
-   - Não alterar cores globais nem adicionar migrations/backend.
+```sql
+ALTER TABLE public.dp_cargos ADD COLUMN IF NOT EXISTS descricao text;
+```
 
-## Fora do escopo
-- Alterar paleta, marca ou tokens de cor.
-- Criar novas funcionalidades de backend.
-- Reestruturar permissões, tabelas ou regras de negócio.
-- Publicar/deployar automaticamente.
+Sem alterações em RLS, grants ou índices — já existentes cobrem a nova coluna.
+
+Campos `cbo`, `salario_base`, `ativo` permanecem na tabela (não removidos) para não quebrar dados existentes / relações, apenas deixam de ser expostos nesta tela.
+
+### 2. Hook `useDpCadastros.tsx`
+
+- Adicionar `descricao?: string | null` ao payload aceito por `useUpsertDpCargo` (o tipo já sai automaticamente do regenerador Supabase após a migration).
+
+### 3. `src/pages/dp/DpCargos.tsx` — reescrever no padrão da referência
+
+Estrutura:
+
+```text
+DpPage (max-w-4xl)
+├── Helmet
+├── Header
+│   ├── Briefcase + h1 "Cargos" + subtítulo
+│   └── [FavoriteToggle] [Button pill "+ Novo Cargo"]
+├── Card arredondado (bg-card, border, rounded-2xl, shadow-sm)
+│   └── <table> — colunas: NOME | DESCRIÇÃO (md+) | AÇÕES
+│       ├── Cabeçalho uppercase text-[10px] tracking-wider
+│       ├── Linhas: hover:bg-muted/20 + cursor-pointer
+│       │   ├── Nome: font-bold uppercase
+│       │   ├── Descrição: text-muted-foreground ou "—"
+│       │   └── Ações: ícones Pencil / Trash2 (ghost, size-8)
+│       └── Empty state: "Nenhum cargo cadastrado."
+├── Dialog Criar/Editar (nome + descrição)
+├── Dialog Visualização (nome, descrição, criado em, atualizado em)
+└── AlertDialog Excluir (com mensagem FK 23503)
+```
+
+Notas:
+- Usar componentes existentes `DpPage`, `DpPageHeader`, `FavoriteToggle`.
+- Botão "Novo Cargo" com classe `rounded-full px-6` para bater com a pill vermelha do print.
+- Sem mudanças em `src/index.css` — reaproveita tokens semânticos (`bg-card`, `border-border`, `text-muted-foreground`, `text-primary`, `text-destructive`).
+
+### 4. Consumidores da tabela em outras páginas
+
+Nenhuma alteração — `DpColaboradores` e demais lugares continuam usando `useDpCargos()` retornando `nome`, então continuam funcionando.
+
+## Fora de escopo
+
+- Não alterar paleta, tokens de cor, gradientes ou tipografia.
+- Não mexer em Colaboradores, Unidades, Sindicatos ou hub Cadastros.
+- Não remover colunas do banco (`cbo`, `salario_base`, `ativo` ficam preservadas).
+- Não alterar rotas nem sidebar.
+
+## Validação
+
+- `tsgo` typecheck.
+- Abrir `/dp/cadastros/cargos` no preview e conferir com o print anexado: header, botão pill, tabela com nome em uppercase, linha clicável abrindo visualização, dialog de criação com apenas nome + descrição.
