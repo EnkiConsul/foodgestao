@@ -36,31 +36,44 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const sindicatos = useDpSindicatos();
   const [form, setForm] = useState({
     nome: "", cpf: "", matricula: "", cargo: "",
-    regime: "clt" as Regime, data_admissao: "", email: "", telefone: "",
+    regime: "clt" as Regime, data_admissao: "", data_desligamento: "",
+    email: "", telefone: "", whatsapp: "",
     ativo: true, observacoes: "",
     unidade_id: "" as string, cargo_id: "" as string, sindicato_id: "" as string,
-    email_portal: "",
+    email_portal: "", email_contato: "",
     data_nascimento: "",
+    perfil_acesso: "colaborador" as "colaborador" | "gestor" | "admin",
+    folga_fixa_semana: "" as string,
+    possui_folha_ponto: false,
+    optante_adiantamento: false,
   });
 
   useEffect(() => {
     if (open) {
+      const c = (colaborador ?? {}) as any;
       setForm({
-        nome: colaborador?.nome ?? "",
-        cpf: colaborador?.cpf ?? "",
-        matricula: colaborador?.matricula ?? "",
-        cargo: colaborador?.cargo ?? "",
-        regime: (colaborador?.regime as Regime) ?? "clt",
-        data_admissao: colaborador?.data_admissao ?? "",
-        email: colaborador?.email ?? "",
-        telefone: colaborador?.telefone ?? "",
-        ativo: colaborador?.ativo ?? true,
-        observacoes: colaborador?.observacoes ?? "",
-        unidade_id: colaborador?.unidade_id ?? "",
-        cargo_id: colaborador?.cargo_id ?? "",
-        sindicato_id: colaborador?.sindicato_id ?? "",
-        email_portal: colaborador?.email_portal ?? "",
-        data_nascimento: (colaborador as any)?.data_nascimento ?? "",
+        nome: c.nome ?? "",
+        cpf: c.cpf ?? "",
+        matricula: c.matricula ?? "",
+        cargo: c.cargo ?? "",
+        regime: (c.regime as Regime) ?? "clt",
+        data_admissao: c.data_admissao ?? "",
+        data_desligamento: c.data_desligamento ?? "",
+        email: c.email ?? "",
+        telefone: c.telefone ?? "",
+        whatsapp: c.whatsapp ?? "",
+        ativo: c.ativo ?? true,
+        observacoes: c.observacoes ?? "",
+        unidade_id: c.unidade_id ?? "",
+        cargo_id: c.cargo_id ?? "",
+        sindicato_id: c.sindicato_id ?? "",
+        email_portal: c.email_portal ?? "",
+        email_contato: c.email_contato ?? "",
+        data_nascimento: c.data_nascimento ?? "",
+        perfil_acesso: c.perfil_acesso ?? "colaborador",
+        folga_fixa_semana: c.folga_fixa_semana != null ? String(c.folga_fixa_semana) : "",
+        possui_folha_ponto: c.possui_folha_ponto ?? false,
+        optante_adiantamento: c.optante_adiantamento ?? false,
       });
     }
   }, [open, colaborador]);
