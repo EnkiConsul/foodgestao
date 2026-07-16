@@ -157,6 +157,42 @@ export default function DpDocumentos() {
     onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
   });
 
+  const aprovar = useMutation({
+    mutationFn: async (row: Row) => {
+      const { error } = await supabase.from("dp_documentos").update({
+        aprovacao_status: "aprovado",
+        revisado_por: user?.id,
+        revisado_em: new Date().toISOString(),
+        motivo_recusao: null,
+      } as any).eq("id", row.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Documento aprovado");
+      qc.invalidateQueries({ queryKey: ["dp_documentos"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro"),
+  });
+
+  const recusar = useMutation({
+    mutationFn: async ({ row, motivo }: { row: Row; motivo: string }) => {
+      const { error } = await supabase.from("dp_documentos").update({
+        aprovacao_status: "recusado",
+        revisado_por: user?.id,
+        revisado_em: new Date().toISOString(),
+        motivo_recusao: motivo,
+      } as any).eq("id", row.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Documento recusado");
+      qc.invalidateQueries({ queryKey: ["dp_documentos"] });
+      setRejectRow(null);
+      setRejectMotivo("");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro"),
+  });
+
   const title = currentLabel ? `${currentLabel} — Documentos` : "Documentos";
 
   return (
