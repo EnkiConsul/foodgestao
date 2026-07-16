@@ -149,12 +149,33 @@ export default function DpSindicatos() {
     setToDelete(null);
   };
 
-  const renderCard = (s: DpSindicato, badgeLabel: string, badgeVariant: "secondary" | "default") => (
+  const renderCard = (s: DpSindicato, badgeLabel: "Patronal" | "Laboral") => (
     <Card key={s.id} className="border-border shadow-sm">
       <CardHeader className="pb-2">
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base">{s.nome}</CardTitle>
-          <Badge variant={badgeVariant}>{badgeLabel}</Badge>
+          <Badge
+            className={
+              badgeLabel === "Patronal"
+                ? "bg-primary/15 text-primary border-primary/30 hover:bg-primary/20"
+                : "bg-accent text-accent-foreground border-accent hover:bg-accent/80"
+            }
+            variant="outline"
+          >
+            {badgeLabel}
+          </Badge>
+        </div>
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {badgeLabel === "Patronal" && (
+            <Badge variant="secondary" className="text-[10px] gap-1">
+              <Users className="size-3" /> {s.unidades_count} unidade{s.unidades_count === 1 ? "" : "s"}
+            </Badge>
+          )}
+          {badgeLabel === "Laboral" && (
+            <Badge variant="secondary" className="text-[10px] gap-1">
+              <Briefcase className="size-3" /> {s.cargos_count} cargo{s.cargos_count === 1 ? "" : "s"}
+            </Badge>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-2 text-sm">
