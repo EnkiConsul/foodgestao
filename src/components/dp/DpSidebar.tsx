@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { NavLink, useLocation, Link } from "react-router-dom";
+import { NavLink, useLocation, Link, useNavigate } from "react-router-dom";
 import {
   Home, Users, Briefcase, Building2, Scale, FileSignature,
   Calendar, ClipboardList, UserCheck, ArrowLeftRight, Ban,
