@@ -1,13 +1,14 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { Loader2, CheckCheck, ExternalLink } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { CheckCheck, ExternalLink, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useDpNotificacoes, useMarkNotifRead } from "@/hooks/useDpNotificacoes";
+import { TableSkeleton } from "@/components/dp/DpSkeletons";
+import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import type { Database } from "@/integrations/supabase/types";
 
 type NotifTipo = Database["public"]["Enums"]["dp_notificacao_tipo"];
@@ -45,19 +46,19 @@ export default function DpAprovacoes() {
   const markAll = () => mark.mutate(rows.filter((n) => !n.lida_em).map((n) => n.id));
 
   return (
-    <div className="space-y-4">
+    <DpPage>
       <Helmet><title>Aprovações & Notificações — DP 360°</title></Helmet>
 
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div>
-          <h2 className="text-xl font-semibold">Aprovações & Notificações</h2>
-          <p className="text-sm text-muted-foreground">{pendentesCount} pendente(s)</p>
-        </div>
-        <Button variant="outline" onClick={markAll} disabled={mark.isPending || rows.every((n) => n.lida_em)}>
+      <DpPageHeader
+        icon={UserCheck}
+        title="Aprovações & Notificações"
+        description={`${pendentesCount} pendente(s)`}
+        actions={<Button variant="outline" onClick={markAll} disabled={mark.isPending || rows.every((n) => n.lida_em)}>
           <CheckCheck className="h-4 w-4 mr-2" /> Marcar tudo como lido
-        </Button>
-      </div>
+        </Button>}
+      />
 
+      <DpFilterCard>
       <div className="flex items-center gap-3 flex-wrap">
         <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
           <TabsList>
@@ -81,11 +82,11 @@ export default function DpAprovacoes() {
           ))}
         </div>
       </div>
+      </DpFilterCard>
 
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
+      <DpContentCard contentClassName="overflow-x-auto">
           {list.isLoading ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
+            <TableSkeleton columns={6} headers={["Tipo", "Título", "Descrição", "Quando", "Status", ""]} />
           ) : (
             <Table>
               <TableHeader>
@@ -141,8 +142,7 @@ export default function DpAprovacoes() {
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
-    </div>
+      </DpContentCard>
+    </DpPage>
   );
 }

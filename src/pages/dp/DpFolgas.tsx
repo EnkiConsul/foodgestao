@@ -23,7 +23,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -188,20 +187,26 @@ export default function DpFolgas() {
         icon={CalendarDays}
         title="Folgas & Ausências"
         description="Calendário mensal de folgas, férias, atestados e outras ausências."
-        actions={
-          <>
-          <DpFilterCard className="border-0 shadow-none">
-            <div className="flex flex-wrap gap-2">
+        actions={<Button onClick={() => openNew()}><Plus className="h-4 w-4 mr-2" /> Nova solicitação</Button>}
+      />
+
+      <DpFilterCard>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-1.5">
+            <label className="text-xs">STATUS</label>
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as Status | "todas")}>
-            <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="aprovada">Aprovadas</SelectItem>
               <SelectItem value="pendente">Pendentes</SelectItem>
               <SelectItem value="todas">Todos status</SelectItem>
             </SelectContent>
           </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs">TIPO</label>
           <Select value={tipoFilter} onValueChange={(v) => setTipoFilter(v as Tipo | "todos")}>
-            <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos tipos</SelectItem>
               {(Object.keys(TIPO_LABEL) as Tipo[]).map((t) => (
@@ -209,12 +214,9 @@ export default function DpFolgas() {
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={() => openNew()}><Plus className="h-4 w-4 mr-2" /> Nova solicitação</Button>
-            </div>
-          </DpFilterCard>
-          </>
-        }
-      />
+          </div>
+        </div>
+      </DpFilterCard>
 
       <DpContentCard contentClassName="p-4">
           <div className="flex items-center justify-between mb-4">
