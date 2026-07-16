@@ -217,56 +217,85 @@ export default function Empresas() {
             </CardContent>
           </Card>
         ) : (
-          filtered.map((c) => (
+          filtered.map((c) => {
+            const unidades = unidadesByCompany.get(c.id) ?? [];
+            return (
             <Card key={c.id} className={`shadow-sm hover:shadow transition-shadow ${!c.is_active ? "opacity-60" : ""}`}>
-              <CardContent className="flex items-center gap-3 p-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                  <Building2 className="h-4 w-4 text-primary" />
+              <CardContent className="p-3 space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                    <Building2 className="h-4 w-4 text-primary" />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-medium truncate">{c.name}</p>
+                      {!c.is_active && (
+                        <Badge variant="outline" className="text-[10px] h-4 px-1.5 shrink-0">Inativa</Badge>
+                      )}
+                      <Badge variant="secondary" className="text-[10px] h-4 px-1.5 shrink-0">
+                        {unidades.length} unidade{unidades.length === 1 ? "" : "s"} DP
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {c.trade_name && (
+                        <p className="text-xs text-muted-foreground truncate">{c.trade_name}</p>
+                      )}
+                      {c.cnpj && (
+                        <Badge variant="secondary" className="text-[10px] h-4 px-1.5 shrink-0">{c.cnpj}</Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  <Switch
+                    checked={c.is_active}
+                    onCheckedChange={() => handleToggleActive(c)}
+                    className="shrink-0"
+                  />
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0"
+                    onClick={() => { setEditCompany(c); setDialogOpen(true); }}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                    onClick={() => setDeleteCompany(c)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium truncate">{c.name}</p>
-                    {!c.is_active && (
-                      <Badge variant="outline" className="text-[10px] h-4 px-1.5 shrink-0">Inativa</Badge>
+                {unidades.length > 0 && (
+                  <div className="pl-12 flex flex-wrap items-center gap-1.5">
+                    {unidades.slice(0, 5).map((u) => (
+                      <Badge key={u.id} variant="outline" className="text-[10px] h-5 px-2 font-normal">
+                        {u.nome}{u.cidade ? ` · ${u.cidade}` : ""}
+                      </Badge>
+                    ))}
+                    {unidades.length > 5 && (
+                      <span className="text-[10px] text-muted-foreground">+{unidades.length - 5}</span>
                     )}
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-5 px-1 text-[11px]"
+                      onClick={() => navigate("/dp/cadastros/unidades")}
+                    >
+                      Gerenciar unidades →
+                    </Button>
                   </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    {c.trade_name && (
-                      <p className="text-xs text-muted-foreground truncate">{c.trade_name}</p>
-                    )}
-                    {c.cnpj && (
-                      <Badge variant="secondary" className="text-[10px] h-4 px-1.5 shrink-0">{c.cnpj}</Badge>
-                    )}
-                  </div>
-                </div>
-
-                <Switch
-                  checked={c.is_active}
-                  onCheckedChange={() => handleToggleActive(c)}
-                  className="shrink-0"
-                />
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0"
-                  onClick={() => { setEditCompany(c); setDialogOpen(true); }}
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
-                  onClick={() => setDeleteCompany(c)}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                )}
               </CardContent>
             </Card>
-          ))
+            );
+          })
         )}
       </div>
 
