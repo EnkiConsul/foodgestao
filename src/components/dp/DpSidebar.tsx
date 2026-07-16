@@ -55,7 +55,7 @@ const ADMIN_ITEMS: Item[] = [
       { title: "Folhas de Ponto", url: "/dp/documentos/ponto", icon: Clock },
       { title: "Atestados", url: "/dp/documentos/atestado", icon: HeartPulse },
       { title: "Registros Disciplinares", url: "/dp/disciplinar", icon: ShieldAlert },
-      { title: "ACT-CCT / Sindicato", url: "/dp/documentos/sindicato", icon: Scale },
+      { title: "Negociações Coletivas (ACT/CCT)", url: "/dp/documentos/act-cct", icon: FileSignature },
       { title: "Histórico Completo", url: "/dp/documentos/historico", icon: ListChecks },
       { title: "Importar em massa", url: "/dp/documentos/importar", icon: FileText },
     ],
