@@ -172,10 +172,11 @@ export default function DpFolgasHub() {
         ))}
       </div>
 
-      <DpContentCard
-        title="Ocupação dos Próximos Fins de Semana"
-        icon={Calendar}
-      >
+      <DpContentCard contentClassName="p-4 md:p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Calendar className="h-4 w-4 text-primary" />
+          <h2 className="font-semibold text-foreground">Ocupação dos Próximos Fins de Semana</h2>
+        </div>
         <div className="space-y-4">
           {ocupacaoPorDia.map(({ dia, ocupados, cap, pct }) => {
             const lotado = pct >= 100;
