@@ -13,7 +13,7 @@ import { z } from "npm:zod@3";
 const BodySchema = z.object({
   company_id: z.string().uuid(),
   colaborador_id: z.string().uuid(),
-  data_inicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  data_alvo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   dias: z.number().int().min(1).max(365).optional().default(1),
   arquivo_path: z.string().optional(),
   force: z.boolean().optional().default(false),
@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
 
     const parsed = BodySchema.safeParse(await req.json());
     if (!parsed.success) return json({ error: parsed.error.flatten().fieldErrors }, 400);
-    const { company_id, colaborador_id, data_inicio, dias, arquivo_path, force } = parsed.data;
+    const { company_id, colaborador_id, data_alvo, dias, arquivo_path, force } = parsed.data;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
       .eq("company_id", company_id)
       .eq("colaborador_id", colaborador_id)
       .eq("tipo", "atestado")
-      .eq("data_inicio", data_inicio)
+      .eq("data_alvo", data_alvo)
       .gte("created_at", cutoff)
       .order("created_at", { ascending: false })
       .limit(1);
@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     }
 
     // 2) Registra a solicitação de atestado
-    const data_fim = new Date(new Date(data_inicio + "T00:00:00Z").getTime() + (dias - 1) * 86400000)
+    const data_fim = new Date(new Date(data_alvo + "T00:00:00Z").getTime() + (dias - 1) * 86400000)
       .toISOString().slice(0, 10);
 
     const { data: solic, error: solicErr } = await supabase
@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
       .insert({
         company_id, colaborador_id,
         tipo: "atestado", status: "pendente",
-        data_inicio, data_fim,
+        data_alvo, data_fim,
         arquivo_path: arquivo_path ?? null,
         motivo: "Atestado enviado via portal do colaborador",
       })
@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
       .insert({
         company_id, tipo: "atestado_novo",
         titulo: "Novo atestado para análise",
-        descricao: `Data: ${data_inicio}${dias > 1 ? ` (${dias} dias)` : ""}`,
+        descricao: `Data: ${data_alvo}${dias > 1 ? ` (${dias} dias)` : ""}`,
         ref_table: "dp_solicitacoes", ref_id: solic.id,
         para_admins: true, colaborador_id,
       })
