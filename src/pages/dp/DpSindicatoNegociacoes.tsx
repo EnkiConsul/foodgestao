@@ -193,6 +193,13 @@ export default function DpSindicatoNegociacoes() {
   return (
     <DpPage>
       <Helmet><title>Negociações sindicais — DP 360°</title></Helmet>
+      <input
+        ref={uploadRef}
+        type="file"
+        accept="application/pdf,image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
 
       <Button size="sm" variant="ghost" asChild className="w-fit">
             <Link to="/dp/documentos"><ArrowLeft className="h-4 w-4 mr-1" /> Documentos</Link>
