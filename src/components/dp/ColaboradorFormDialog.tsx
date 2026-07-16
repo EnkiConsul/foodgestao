@@ -286,21 +286,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             />
           </div>
 
-          {/* Regime de Trabalho / Tipo de Vínculo */}
-          <div className="space-y-2">
-            <Label>Regime de Trabalho</Label>
-            <Select
-              value={form.regime_trabalho}
-              onValueChange={(v) => setForm({ ...form, regime_trabalho: v })}
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {REGIMES_TRABALHO.map((r) => (
-                  <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Tipo de Vínculo (o regime do banco é derivado deste campo) */}
           <div className="space-y-2">
             <Label>Tipo de Vínculo</Label>
             <Select
