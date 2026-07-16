@@ -149,23 +149,74 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="grid gap-1.5">
               <Label>Data de admissão</Label>
               <Input type="date" value={form.data_admissao} onChange={(e) => setForm({ ...form, data_admissao: e.target.value })} />
             </div>
             <div className="grid gap-1.5">
-              <Label>Data de nascimento</Label>
+              <Label>Nascimento</Label>
               <Input type="date" value={form.data_nascimento} onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })} />
             </div>
+            <div className="grid gap-1.5">
+              <Label>Data de demissão</Label>
+              <Input type="date" value={form.data_desligamento} onChange={(e) => setForm({ ...form, data_desligamento: e.target.value })} />
+            </div>
           </div>
-          <div className="grid gap-1.5">
-            <Label>Telefone</Label>
-            <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
+          <div className="grid grid-cols-3 gap-3">
+            <div className="grid gap-1.5">
+              <Label>Telefone</Label>
+              <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>WhatsApp</Label>
+              <Input value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} placeholder="(62) 9..." />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>E-mail (corporativo)</Label>
+              <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            </div>
           </div>
-          <div className="grid gap-1.5">
-            <Label>E-mail</Label>
-            <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <Label>E-mail de contato pessoal</Label>
+              <Input type="email" value={form.email_contato} onChange={(e) => setForm({ ...form, email_contato: e.target.value })} />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Folga fixa (dia da semana)</Label>
+              <Select value={form.folga_fixa_semana || "__none"} onValueChange={(v) => setForm({ ...form, folga_fixa_semana: v === "__none" ? "" : v })}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">— Nenhum —</SelectItem>
+                  {["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"].map((d, i) => (
+                    <SelectItem key={i} value={String(i)}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <Label>Perfil de acesso</Label>
+              <Select value={form.perfil_acesso} onValueChange={(v: any) => setForm({ ...form, perfil_acesso: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="colaborador">Colaborador</SelectItem>
+                  <SelectItem value="gestor">Gestor</SelectItem>
+                  <SelectItem value="admin">Admin DP</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-2 pt-6">
+              <div className="flex items-center gap-2">
+                <Switch id="ponto" checked={form.possui_folha_ponto} onCheckedChange={(v) => setForm({ ...form, possui_folha_ponto: v })} />
+                <Label htmlFor="ponto" className="text-sm">Possui folha de ponto</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch id="adto" checked={form.optante_adiantamento} onCheckedChange={(v) => setForm({ ...form, optante_adiantamento: v })} />
+                <Label htmlFor="adto" className="text-sm">Optante por adiantamento</Label>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
