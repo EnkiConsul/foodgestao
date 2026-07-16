@@ -31,9 +31,9 @@ export default function DpFolgasHub() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_colaboradores")
-        .select("id, status")
+        .select("id, ativo")
         .eq("company_id", selectedCompanyId!)
-        .eq("status", "ativo");
+        .eq("ativo", true);
       if (error) throw error;
       return data ?? [];
     },
