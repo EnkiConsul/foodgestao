@@ -112,4 +112,4 @@ Legenda: 🔴 crítica · 🟠 alta · 🟡 média · 🟢 baixa
 
 Nenhuma migration necessária: todas as tabelas envolvidas (`dp_avisos`, `dp_avisos_leituras`, `dp_mensagens`, `dp_modelos_mensagem`, `dp_notificacoes`, `dp_documentos`) já existem.
 
-Auditoria DP-G09 concluída. Aguardando aprovação para aplicar Grupos 1-5.
+Auditoria DP-G09 concluída. Auditoria DP-G09 concluída — todos os 5 grupos aplicados em 16/07/2026.

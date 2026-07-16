@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet-async";
-import { useState } from "react";
-import { MessageSquare, Plus, Trash2, Pencil } from "lucide-react";
+import { useMemo, useState } from "react";
+import { MessageSquare, Plus, Trash2, Pencil, Search, Eye } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -10,11 +10,17 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { applyModeloVars } from "@/hooks/useDpModelosMensagem";
 
 type Modelo = {
   id: string; titulo: string; corpo: string; canal: "whatsapp" | "email" | "sms";
@@ -26,7 +32,14 @@ export default function DpModelosMensagem() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Modelo | null>(null);
-  const [form, setForm] = useState({ titulo: "", corpo: "", canal: "whatsapp" as Modelo["canal"], variaveis: "" });
+  const [form, setForm] = useState({ titulo: "", corpo: "", canal: "whatsapp" as Modelo["canal"], variaveis: "", ativo: true });
+  const [toDelete, setToDelete] = useState<Modelo | null>(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"todos" | "ativo" | "inativo">("todos");
+  const [canalFilter, setCanalFilter] = useState<string>("todos");
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [preview, setPreview] = useState<Modelo | null>(null);
+  const [previewVars, setPreviewVars] = useState<Record<string, string>>({});
 
   const list = useQuery({
     queryKey: ["dp_modelos", selectedCompanyId],
@@ -39,14 +52,25 @@ export default function DpModelosMensagem() {
     },
   });
 
+  const filtered = useMemo(() => {
+    const s = search.toLowerCase();
+    return (list.data ?? []).filter((m) => {
+      if (statusFilter === "ativo" && !m.ativo) return false;
+      if (statusFilter === "inativo" && m.ativo) return false;
+      if (canalFilter !== "todos" && m.canal !== canalFilter) return false;
+      if (s && !`${m.titulo} ${m.corpo}`.toLowerCase().includes(s)) return false;
+      return true;
+    });
+  }, [list.data, search, statusFilter, canalFilter]);
+
   const openNew = () => {
     setEditing(null);
-    setForm({ titulo: "", corpo: "", canal: "whatsapp", variaveis: "" });
+    setForm({ titulo: "", corpo: "", canal: "whatsapp", variaveis: "", ativo: true });
     setOpen(true);
   };
   const openEdit = (m: Modelo) => {
     setEditing(m);
-    setForm({ titulo: m.titulo, corpo: m.corpo, canal: m.canal, variaveis: (m.variaveis ?? []).join(", ") });
+    setForm({ titulo: m.titulo, corpo: m.corpo, canal: m.canal, variaveis: (m.variaveis ?? []).join(", "), ativo: m.ativo });
     setOpen(true);
   };
 
@@ -58,13 +82,14 @@ export default function DpModelosMensagem() {
         titulo: form.titulo.trim(),
         corpo: form.corpo,
         canal: form.canal,
+        ativo: form.ativo,
         variaveis: form.variaveis.split(",").map((s) => s.trim()).filter(Boolean),
       };
       if (editing) {
         const { error } = await supabase.from("dp_modelos_mensagem").update(payload).eq("id", editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("dp_modelos_mensagem").insert(payload);
+        const { error } = await supabase.from("dp_modelos_mensagem").insert(payload).select("id").single();
         if (error) throw error;
       }
     },
@@ -76,6 +101,14 @@ export default function DpModelosMensagem() {
     onError: (e: any) => toast.error(e.message ?? "Erro"),
   });
 
+  const toggleAtivo = useMutation({
+    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
+      const { error } = await supabase.from("dp_modelos_mensagem").update({ ativo }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_modelos"] }),
+  });
+
   const del = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("dp_modelos_mensagem").delete().eq("id", id);
@@ -83,6 +116,14 @@ export default function DpModelosMensagem() {
     },
     onSuccess: () => { toast.success("Removido"); qc.invalidateQueries({ queryKey: ["dp_modelos"] }); },
   });
+
+  const openPreview = (m: Modelo) => {
+    setPreview(m);
+    const vars: Record<string, string> = {};
+    (m.variaveis ?? []).forEach((v) => { vars[v] = ""; });
+    setPreviewVars(vars);
+    setPreviewOpen(true);
+  };
 
   return (
     <DpPage>
@@ -94,33 +135,62 @@ export default function DpModelosMensagem() {
         actions={<Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo modelo</Button>}
       />
 
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Buscar por título ou corpo..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" />
+        </div>
+        <Select value={canalFilter} onValueChange={setCanalFilter}>
+          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos canais</SelectItem>
+            <SelectItem value="whatsapp">WhatsApp</SelectItem>
+            <SelectItem value="email">E-mail</SelectItem>
+            <SelectItem value="sms">SMS</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos</SelectItem>
+            <SelectItem value="ativo">Ativos</SelectItem>
+            <SelectItem value="inativo">Inativos</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <DpContentCard contentClassName="overflow-x-auto">
-          {list.isLoading ? <TableSkeleton columns={4} headers={["Título", "Canal", "Variáveis", ""]} /> : (
+          {list.isLoading ? <TableSkeleton columns={5} headers={["Título", "Canal", "Variáveis", "Ativo", ""]} /> : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Título</TableHead>
                   <TableHead>Canal</TableHead>
                   <TableHead>Variáveis</TableHead>
-                  <TableHead className="w-24"></TableHead>
+                  <TableHead className="w-20">Ativo</TableHead>
+                  <TableHead className="w-32"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(list.data ?? []).map((m) => (
-                  <TableRow key={m.id}>
+                {filtered.map((m) => (
+                  <TableRow key={m.id} className={!m.ativo ? "opacity-60" : ""}>
                     <TableCell className="font-medium">{m.titulo}</TableCell>
                     <TableCell><Badge variant="outline" className="uppercase">{m.canal}</Badge></TableCell>
                     <TableCell className="text-xs text-muted-foreground">{(m.variaveis ?? []).join(", ") || "—"}</TableCell>
                     <TableCell>
+                      <Switch checked={m.ativo} onCheckedChange={(v) => toggleAtivo.mutate({ id: m.id, ativo: v })} />
+                    </TableCell>
+                    <TableCell>
                       <div className="flex gap-1 justify-end">
+                        <Button size="icon" variant="ghost" onClick={() => openPreview(m)} title="Preview"><Eye className="h-4 w-4" /></Button>
                         <Button size="icon" variant="ghost" onClick={() => openEdit(m)}><Pencil className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" onClick={() => del.mutate(m.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        <Button size="icon" variant="ghost" onClick={() => setToDelete(m)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
-                {(list.data ?? []).length === 0 && (
-                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhum modelo cadastrado.</TableCell></TableRow>
+                {filtered.length === 0 && (
+                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nenhum modelo encontrado.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -129,7 +199,10 @@ export default function DpModelosMensagem() {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-lg">
-          <DialogHeader><DialogTitle>{editing ? "Editar modelo" : "Novo modelo"}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>{editing ? "Editar modelo" : "Novo modelo"}</DialogTitle>
+            <DialogDescription>Use chaves {"{nome}"}, {"{data}"} para variáveis dinâmicas.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-3">
             <div><Label>Título</Label><Input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} /></div>
             <div>
@@ -152,6 +225,10 @@ export default function DpModelosMensagem() {
               <Label>Variáveis (separadas por vírgula)</Label>
               <Input value={form.variaveis} onChange={(e) => setForm({ ...form, variaveis: e.target.value })} placeholder="nome, data, unidade" />
             </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={form.ativo} onCheckedChange={(v) => setForm({ ...form, ativo: v })} id="ativo" />
+              <Label htmlFor="ativo">Ativo</Label>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
@@ -159,6 +236,55 @@ export default function DpModelosMensagem() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Preview: {preview?.titulo}</DialogTitle>
+            <DialogDescription>Informe valores das variáveis para visualizar a mensagem final.</DialogDescription>
+          </DialogHeader>
+          {preview && (
+            <div className="space-y-3">
+              {(preview.variaveis ?? []).length > 0 && (
+                <div className="grid grid-cols-2 gap-2">
+                  {(preview.variaveis ?? []).map((v) => (
+                    <div key={v}>
+                      <Label className="text-xs">{v}</Label>
+                      <Input value={previewVars[v] ?? ""} onChange={(e) => setPreviewVars({ ...previewVars, [v]: e.target.value })} placeholder={`Ex.: valor de ${v}`} />
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="rounded-lg border bg-muted/40 p-3 text-sm whitespace-pre-wrap">
+                {applyModeloVars(preview.corpo.replace(/\{(\w+)\}/g, "{{$1}}"), previewVars)}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreviewOpen(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir modelo "{toDelete?.titulo}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Mensagens já enviadas não são afetadas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (toDelete) { del.mutate(toDelete.id); setToDelete(null); } }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DpPage>
   );
 }

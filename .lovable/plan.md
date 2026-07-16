@@ -52,3 +52,17 @@ Todos os 5 grupos aplicados:
 - **Hub de Cadastros** ganhou atalhos para Negociações sindicais e Configurações.
 
 **Próxima fase sugerida:** DP-G09 — Comunicação (Avisos, Mensagens, Modelos, Notificações) + Documentos gerais.
+
+## DP-G09 — Concluída (16/07/2026)
+
+Todos os 5 grupos aplicados em Comunicação + Documentos:
+
+- **G1** — cores hardcoded substituídas por tokens (`primary`/`warning`/`destructive`) em `DpAvisos` e nos botões Aprovar/Recusar de `DpDocumentos`; `AlertDialog` de confirmação em delete de Avisos, Mensagens, Modelos e Documentos; validação de upload em Avisos (10 MB + mime allowlist); `DialogDescription` em todos os diálogos.
+- **G2** — `DpAvisos`: tabs Ativos/Expirados/Todos, filtro de prioridade, busca, campos de escopo (Todos/Unidade/Cargo) no formulário. `DpMensagens`: tabs Enviadas/Recebidas com badge de não lidas, busca, indicador visual de não lida. `DpModelosMensagem`: busca, filtro por canal e por Ativo/Inativo, toggle inline, dialog de preview com substituição de variáveis. `DpDocumentos`: busca por título/colaborador + filtro de período (referência início/fim).
+- **G3** — `useDpAvisos.upsert` agora usa `.select("id").single()`; download de documentos por `<a>` clicado programaticamente (evita bloqueio de pop-up no iOS); `DpMensagens` chama edge `dp-send-broadcast` no modo Broadcast (escopo Todos/Unidade/Cargo com seleção de canal).
+- **G4** — 4º card "Central de Notificações" no `DpComunicacaoHub`; badge "⚠ N aguardando aprovação" por categoria em `DpDocumentosHub`.
+- **G5** — nova rota `/dp/notificacoes` (`DpNotificacoes.tsx`) com tabs Todas/Não lidas/Lidas, busca, "Marcar todas como lidas" e link direto para a origem.
+
+**Arquivos:**
+- criado `src/pages/dp/DpNotificacoes.tsx`
+- editado `src/hooks/useDpComunicacao.tsx`, `src/pages/dp/DpAvisos.tsx`, `src/pages/dp/DpMensagens.tsx`, `src/pages/dp/DpModelosMensagem.tsx`, `src/pages/dp/DpDocumentos.tsx`, `src/pages/dp/DpDocumentosHub.tsx`, `src/pages/dp/DpComunicacaoHub.tsx`, `src/App.tsx`

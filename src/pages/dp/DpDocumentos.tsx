@@ -11,7 +11,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -61,6 +65,10 @@ export default function DpDocumentos() {
   const [statusFilter, setStatusFilter] = useState<Aprov | "todos">("todos");
   const [rejectRow, setRejectRow] = useState<Row | null>(null);
   const [rejectMotivo, setRejectMotivo] = useState("");
+  const [toDelete, setToDelete] = useState<Row | null>(null);
+  const [search, setSearch] = useState("");
+  const [periodoInicio, setPeriodoInicio] = useState("");
+  const [periodoFim, setPeriodoFim] = useState("");
 
   const list = useQuery({
     queryKey: ["dp_documentos", selectedCompanyId, filterTipo ?? "all"],
@@ -80,9 +88,18 @@ export default function DpDocumentos() {
 
   const filteredRows = useMemo(() => {
     const all = list.data ?? [];
-    if (statusFilter === "todos") return all;
-    return all.filter((r) => (r as any).aprovacao_status === statusFilter);
-  }, [list.data, statusFilter]);
+    const s = search.toLowerCase();
+    return all.filter((r) => {
+      if (statusFilter !== "todos" && (r as any).aprovacao_status !== statusFilter) return false;
+      if (s) {
+        const hay = `${r.titulo ?? ""} ${r.descricao ?? ""} ${r.dp_colaboradores?.nome ?? ""}`.toLowerCase();
+        if (!hay.includes(s)) return false;
+      }
+      if (periodoInicio && r.referencia_data && r.referencia_data < periodoInicio) return false;
+      if (periodoFim && r.referencia_data && r.referencia_data > periodoFim) return false;
+      return true;
+    });
+  }, [list.data, statusFilter, search, periodoInicio, periodoFim]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { todos: list.data?.length ?? 0, pendente: 0, aprovado: 0, recusado: 0 };
@@ -140,7 +157,15 @@ export default function DpDocumentos() {
   const download = async (row: Row) => {
     const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(row.file_path, 60);
     if (error || !data) return toast.error("Erro ao gerar link");
-    window.open(data.signedUrl, "_blank");
+    // Usa <a> clicado programaticamente para evitar bloqueio de pop-up no iOS Safari.
+    const a = document.createElement("a");
+    a.href = data.signedUrl;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.download = row.file_name ?? "";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   };
 
   const del = useMutation({
@@ -211,14 +236,22 @@ export default function DpDocumentos() {
         actions={<Button onClick={openDialog}><Upload className="h-4 w-4 mr-2" /> Enviar</Button>}
       />
 
-      <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
-        <TabsList>
-          <TabsTrigger value="todos">Todos ({counts.todos})</TabsTrigger>
-          <TabsTrigger value="pendente"><Clock className="h-3.5 w-3.5 mr-1" />Pendentes ({counts.pendente})</TabsTrigger>
-          <TabsTrigger value="aprovado"><CheckCircle2 className="h-3.5 w-3.5 mr-1" />Aprovados ({counts.aprovado})</TabsTrigger>
-          <TabsTrigger value="recusado"><XCircle className="h-3.5 w-3.5 mr-1" />Recusados ({counts.recusado})</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+          <TabsList>
+            <TabsTrigger value="todos">Todos ({counts.todos})</TabsTrigger>
+            <TabsTrigger value="pendente"><Clock className="h-3.5 w-3.5 mr-1" />Pendentes ({counts.pendente})</TabsTrigger>
+            <TabsTrigger value="aprovado"><CheckCircle2 className="h-3.5 w-3.5 mr-1" />Aprovados ({counts.aprovado})</TabsTrigger>
+            <TabsTrigger value="recusado"><XCircle className="h-3.5 w-3.5 mr-1" />Recusados ({counts.recusado})</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <div className="flex flex-wrap gap-2 items-center">
+          <Input placeholder="Buscar por título/colaborador..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-64" />
+          <Input type="date" value={periodoInicio} onChange={(e) => setPeriodoInicio(e.target.value)} className="w-40" title="Referência a partir de" />
+          <Input type="date" value={periodoFim} onChange={(e) => setPeriodoFim(e.target.value)} className="w-40" title="Referência até" />
+        </div>
+      </div>
+
 
       <DpContentCard contentClassName="overflow-x-auto">
           {list.isLoading ? (
@@ -268,7 +301,7 @@ export default function DpDocumentos() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-8 border-green-300 text-green-700 hover:bg-green-50"
+                                className="h-8 border-primary/40 text-primary hover:bg-primary/10"
                                 onClick={() => aprovar.mutate(r)}
                                 disabled={aprovar.isPending}
                               >
@@ -277,7 +310,7 @@ export default function DpDocumentos() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-8 border-red-300 text-red-700 hover:bg-red-50"
+                                className="h-8 border-destructive/40 text-destructive hover:bg-destructive/10"
                                 onClick={() => { setRejectRow(r); setRejectMotivo(""); }}
                               >
                                 <X className="h-3.5 w-3.5 mr-1" /> Recusar
@@ -285,7 +318,7 @@ export default function DpDocumentos() {
                             </>
                           )}
                           <Button size="icon" variant="ghost" onClick={() => download(r)}><Download className="h-4 w-4" /></Button>
-                          <Button size="icon" variant="ghost" onClick={() => del.mutate(r)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                          <Button size="icon" variant="ghost" onClick={() => setToDelete(r)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -302,7 +335,7 @@ export default function DpDocumentos() {
       {/* Dialog de recusa */}
       <Dialog open={!!rejectRow} onOpenChange={(v) => { if (!v) { setRejectRow(null); setRejectMotivo(""); } }}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Recusar documento</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Recusar documento</DialogTitle><DialogDescription>Informe o motivo — será visível ao colaborador.</DialogDescription></DialogHeader>
           <div className="grid gap-2 py-2">
             <p className="text-sm text-muted-foreground">
               Informe o motivo da recusa. O colaborador verá esta mensagem.
@@ -329,7 +362,7 @@ export default function DpDocumentos() {
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Novo documento</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Novo documento</DialogTitle><DialogDescription>Envie um ou mais arquivos vinculados a uma categoria e opcionalmente a um colaborador.</DialogDescription></DialogHeader>
           <div className="grid gap-3 py-2">
             <div className="grid gap-1.5">
               <Label>Título {(fileRef.current?.files?.length ?? 0) > 1 ? "(ignorado em envio em lote)" : "*"}</Label>
@@ -372,6 +405,26 @@ export default function DpDocumentos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir documento "{toDelete?.titulo}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O arquivo será removido do armazenamento e a linha apagada. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (toDelete) { del.mutate(toDelete); setToDelete(null); } }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DpPage>
   );
 }

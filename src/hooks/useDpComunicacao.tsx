@@ -63,13 +63,16 @@ export function useDpAvisos() {
         autor_id: input.autor_id ?? userRes.user?.id ?? null,
       };
       if (input.id) {
-        const { error } = await supabase.from("dp_avisos").update(payload).eq("id", input.id);
+        const { data, error } = await supabase.from("dp_avisos").update(payload).eq("id", input.id).select("id").single();
         if (error) throw error;
+        return data;
       } else {
-        const { error } = await supabase.from("dp_avisos").insert(payload as any);
+        const { data, error } = await supabase.from("dp_avisos").insert(payload as any).select("id").single();
         if (error) throw error;
+        return data;
       }
     },
+
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dp_avisos"] });
       toast.success("Aviso salvo");

@@ -1,12 +1,13 @@
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { MessageSquare, Megaphone, FileText, ArrowRight } from "lucide-react";
+import { MessageSquare, Megaphone, FileText, Bell, ArrowRight } from "lucide-react";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
 const CARDS = [
   { icon: MessageSquare, label: "Mensagens", desc: "Envie mensagens diretas e broadcasts para colaboradores.", to: "/dp/mensagens" },
   { icon: Megaphone, label: "Quadro de Avisos", desc: "Comunicados corporativos com escopo e prioridade.", to: "/dp/avisos" },
   { icon: FileText, label: "Modelos de Mensagem", desc: "Templates para WhatsApp, e-mail e SMS.", to: "/dp/modelos-mensagem" },
+  { icon: Bell, label: "Central de Notificações", desc: "Histórico e reenvio das notificações do sistema.", to: "/dp/notificacoes" },
 ];
 
 export default function DpComunicacaoHub() {
@@ -15,7 +16,7 @@ export default function DpComunicacaoHub() {
       <Helmet><title>Comunicação — DP 360°</title></Helmet>
       <DpPageHeader icon={MessageSquare} title="Comunicação" description="Centralize avisos, mensagens e modelos." />
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {CARDS.map((c) => (
           <Link
             key={c.to}
