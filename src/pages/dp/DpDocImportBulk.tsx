@@ -37,9 +37,11 @@ export default function DpDocImportBulk() {
   const [referencia, setReferencia] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [batchLimit, setBatchLimit] = useState<number>(20);
 
   const batches = useQuery({
-    queryKey: ["dp_bulk_batches", selectedCompanyId],
+    queryKey: ["dp_bulk_batches", selectedCompanyId, batchLimit],
     enabled: !!selectedCompanyId,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -47,11 +49,15 @@ export default function DpDocImportBulk() {
         .select("*")
         .eq("company_id", selectedCompanyId!)
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(batchLimit);
       if (error) throw error;
       return data as any[];
     },
   });
+
+  const filteredBatches = useMemo(() => {
+    return (batches.data ?? []).filter((b) => statusFilter === "all" ? true : b.status === statusFilter);
+  }, [batches.data, statusFilter]);
 
   const items = useQuery({
     queryKey: ["dp_bulk_items", Object.keys(expanded).filter((k) => expanded[k])],
