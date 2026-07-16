@@ -97,6 +97,18 @@ function AvisoDialog({
             <Switch checked={fixado} onCheckedChange={setFixado} id="fixado" />
             <Label htmlFor="fixado">Fixar no topo</Label>
           </div>
+          <div>
+            <Label>Anexo (opcional)</Label>
+            <div className="flex items-center gap-2">
+              <Input type="file" onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0])} disabled={uploading} />
+              {arquivoPath && (
+                <Button size="sm" variant="ghost" onClick={() => { setArquivoPath(""); setArquivoMime(""); }}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            {arquivoPath && <p className="text-xs text-muted-foreground mt-1"><FileText className="inline h-3 w-3 mr-1" />{arquivoPath.split("/").pop()}</p>}
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
@@ -110,7 +122,8 @@ function AvisoDialog({
                 prioridade: prioridade as any,
                 fixado,
                 expira_em: expiraEm ? new Date(expiraEm).toISOString() : null,
-              });
+                ...(arquivoPath ? { arquivo_path: arquivoPath, arquivo_mime: arquivoMime } as any : {}),
+              } as any);
               onOpenChange(false);
             }}
           >
@@ -124,8 +137,15 @@ function AvisoDialog({
 
 export default function DpAvisos() {
   const { data: avisos = [], isLoading, upsert, remove } = useDpAvisos();
+  const { selectedCompanyId } = useCompanyContext();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<DpAviso | null>(null);
+
+  const openAnexo = async (path: string) => {
+    const { data, error } = await supabase.storage.from("dp-documentos").createSignedUrl(path, 60);
+    if (error) return toast.error(error.message);
+    window.open(data.signedUrl, "_blank");
+  };
 
   return (
     <div className="space-y-4">
@@ -144,9 +164,11 @@ export default function DpAvisos() {
             </Button>
           </DialogTrigger>
           <AvisoDialog
+            key={editing?.id ?? "new"}
             aviso={editing}
             open={open}
             onOpenChange={setOpen}
+            companyId={selectedCompanyId}
             onSave={(v) => upsert.mutate(v)}
           />
         </Dialog>
