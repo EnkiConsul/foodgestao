@@ -1,4 +1,4 @@
-import { Home, Users, Megaphone, AlertOctagon, Wallet, Building2 } from "lucide-react";
+import { Home, Users, Megaphone, AlertOctagon, Wallet, Building2, FileSignature } from "lucide-react";
 import { SidebarSection, SidebarNavItem, SidebarCollapsibleGroup } from "./shared";
 
 export function DpMenu() {
