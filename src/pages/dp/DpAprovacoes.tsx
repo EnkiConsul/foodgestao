@@ -113,7 +113,7 @@ export default function DpAprovacoes() {
                       <TableCell>
                         {n.lida_em
                           ? <Badge variant="outline">Lida</Badge>
-                          : <Badge className="bg-primary">Nova</Badge>}
+                          : <Badge variant="default">Nova</Badge>}
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1 justify-end">

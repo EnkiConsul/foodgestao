@@ -68,10 +68,17 @@ export default function DpHistoricoCompleto() {
     );
   }, [list.data, busca]);
 
-  const download = async (path: string) => {
+  const download = async (path: string, titulo: string) => {
     const { data, error } = await supabase.storage.from("dp-documentos").createSignedUrl(path, 60);
     if (error || !data) return toast.error("Erro ao gerar link");
-    window.open(data.signedUrl, "_blank");
+    const a = document.createElement("a");
+    a.href = data.signedUrl;
+    a.download = titulo || "documento";
+    a.rel = "noopener noreferrer";
+    a.target = "_blank";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   return (
