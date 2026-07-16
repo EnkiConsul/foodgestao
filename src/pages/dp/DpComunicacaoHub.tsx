@@ -16,7 +16,7 @@ export default function DpComunicacaoHub() {
       <Helmet><title>Comunicação — DP 360°</title></Helmet>
       <DpPageHeader icon={MessageSquare} title="Comunicação" description="Centralize avisos, mensagens e modelos." />
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {CARDS.map((c) => (
           <Link
             key={c.to}
