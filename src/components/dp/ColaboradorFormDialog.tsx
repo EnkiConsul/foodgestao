@@ -13,21 +13,34 @@ import type { Database } from "@/integrations/supabase/types";
 
 type Regime = Database["public"]["Enums"]["dp_regime_trabalho"];
 
-const TIPOS_VINCULO: { value: Regime; label: string }[] = [
-  { value: "clt", label: "CLT" },
-  { value: "pj", label: "PJ" },
-  { value: "estagio", label: "Estágio" },
-  { value: "temporario", label: "Temporário" },
-  { value: "mei", label: "MEI" },
+const TIPOS_VINCULO: { value: string; label: string }[] = [
+  { value: "CLT", label: "CLT" },
+  { value: "Socio", label: "Sócio" },
+  { value: "Estagiario", label: "Estagiário" },
+  { value: "PJ", label: "PJ" },
+  { value: "Autonomo", label: "Autônomo" },
+  { value: "Temporario", label: "Temporário" },
 ];
 
 const REGIMES_TRABALHO = [
   { value: "nao_informado", label: "Não informado" },
-  { value: "integral", label: "Integral" },
-  { value: "parcial", label: "Parcial" },
-  { value: "meio_periodo", label: "Meio Período" },
-  { value: "externo", label: "Externo" },
+  { value: "CLT", label: "CLT" },
+  { value: "Estatutário", label: "Estatutário" },
+  { value: "PJ", label: "Pessoa Jurídica" },
+  { value: "Autônomo", label: "Autônomo" },
+  { value: "Estagiário", label: "Estagiário" },
+  { value: "Temporário", label: "Temporário" },
 ];
+
+// Map UI "Tipo de Vínculo" (rótulos da documentação) para enum do banco (dp_regime_trabalho)
+const VINCULO_TO_REGIME: Record<string, Regime> = {
+  CLT: "clt",
+  Socio: "pj",
+  Estagiario: "estagio",
+  PJ: "pj",
+  Autonomo: "pj",
+  Temporario: "temporario",
+};
 
 const DIAS_SEMANA = [
   { value: "none", label: "Nenhuma" },
