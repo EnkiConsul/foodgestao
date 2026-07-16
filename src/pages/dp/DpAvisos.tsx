@@ -205,8 +205,13 @@ export default function DpAvisos() {
                   {a.expira_em && ` · expira em ${format(new Date(a.expira_em), "dd/MM/yyyy")}`}
                 </p>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-2">
                 <p className="whitespace-pre-wrap text-sm">{a.conteudo}</p>
+                {(a as any).arquivo_path && (
+                  <Button size="sm" variant="outline" onClick={() => openAnexo((a as any).arquivo_path)}>
+                    <FileText className="h-4 w-4 mr-1" /> Ver anexo
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))}
