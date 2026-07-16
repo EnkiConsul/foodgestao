@@ -351,6 +351,7 @@ const AppRoutes = () => (
       <Route path="mensagens" element={<DpMensagens />} />
       <Route path="modelos-mensagem" element={<DpModelosMensagem />} />
       <Route path="comunicacao" element={<DpComunicacaoHub />} />
+      <Route path="notificacoes" element={<DpNotificacoes />} />
       <Route path="disciplinar" element={<DpDisciplinar />} />
       <Route path="bloqueios" element={<DpBloqueios />} />
       <Route path="trocas" element={<DpTrocas />} />
