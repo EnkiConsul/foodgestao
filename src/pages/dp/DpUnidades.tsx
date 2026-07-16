@@ -63,8 +63,42 @@ export default function DpUnidades() {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ ...blank, company_id: companies.length === 1 ? companies[0].id : "" });
+    const only = companies.length === 1 ? companies[0].id : "";
+    setForm({ ...blank, company_id: only });
     setOpen(true);
+    if (only) void applyCompanyData(only, true);
+  };
+
+  const applyCompanyData = async (companyId: string, force = false) => {
+    if (!companyId) return;
+    try {
+      const { data, error } = await supabase
+        .from("companies")
+        .select("name, trade_name, cnpj, phone, whatsapp, cep, logradouro, numero, complemento, bairro, cidade, uf, address")
+        .eq("id", companyId)
+        .maybeSingle();
+      if (error || !data) return;
+      const enderecoMontado =
+        [
+          [data.logradouro, data.numero].filter(Boolean).join(", "),
+          data.complemento,
+          data.bairro,
+          data.cep,
+        ]
+          .filter(Boolean)
+          .join(" - ") || data.address || "";
+      setForm((prev) => ({
+        ...prev,
+        nome: force || !prev.nome ? (data.trade_name || data.name || prev.nome) : prev.nome,
+        cnpj: force || !prev.cnpj ? onlyNumbers(data.cnpj || "") : prev.cnpj,
+        endereco: force || !prev.endereco ? enderecoMontado : prev.endereco,
+        cidade: force || !prev.cidade ? (data.cidade || "") : prev.cidade,
+        uf: force || !prev.uf ? (data.uf || "") : prev.uf,
+        telefone: force || !prev.telefone ? (data.phone || data.whatsapp || "") : prev.telefone,
+      }));
+    } catch {
+      /* ignore */
+    }
   };
 
   const openEdit = (u: DpUnidadeWithCounts) => {
