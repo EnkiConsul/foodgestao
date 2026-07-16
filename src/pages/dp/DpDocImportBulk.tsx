@@ -161,7 +161,14 @@ export default function DpDocImportBulk() {
 
   const openPage = async (path: string) => {
     const { data } = await supabase.storage.from("dp-bulk-import").createSignedUrl(path, 300);
-    if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+    if (!data?.signedUrl) return;
+    const a = document.createElement("a");
+    a.href = data.signedUrl;
+    a.rel = "noopener noreferrer";
+    a.target = "_blank";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   return (
