@@ -87,14 +87,41 @@ export default function DpUnidades() {
         ]
           .filter(Boolean)
           .join(" - ") || data.address || "";
+      let cidade = data.cidade || "";
+      let uf = data.uf || "";
+      let endereco = enderecoMontado;
+      let telefone = data.phone || data.whatsapp || "";
+
+      // Fallback: se a empresa não tem cidade/UF estruturados, consulta CNPJ na BrasilAPI
+      const cnpjDigits = onlyNumbers(data.cnpj || "");
+      if ((!cidade || !uf) && cnpjDigits.length === 14) {
+        try {
+          const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjDigits}`);
+          if (res.ok) {
+            const info: any = await res.json();
+            if (!cidade) cidade = info.municipio || "";
+            if (!uf) uf = info.uf || "";
+            if (!endereco) {
+              endereco = [
+                [info.logradouro, info.numero].filter(Boolean).join(", "),
+                info.complemento,
+                info.bairro,
+                info.cep,
+              ].filter(Boolean).join(" - ");
+            }
+            if (!telefone) telefone = info.ddd_telefone_1 || "";
+          }
+        } catch { /* ignore */ }
+      }
+
       setForm((prev) => ({
         ...prev,
         nome: force || !prev.nome ? (data.trade_name || data.name || prev.nome) : prev.nome,
-        cnpj: force || !prev.cnpj ? onlyNumbers(data.cnpj || "") : prev.cnpj,
-        endereco: force || !prev.endereco ? enderecoMontado : prev.endereco,
-        cidade: force || !prev.cidade ? (data.cidade || "") : prev.cidade,
-        uf: force || !prev.uf ? (data.uf || "") : prev.uf,
-        telefone: force || !prev.telefone ? (data.phone || data.whatsapp || "") : prev.telefone,
+        cnpj: force || !prev.cnpj ? cnpjDigits : prev.cnpj,
+        endereco: force || !prev.endereco ? endereco : prev.endereco,
+        cidade: force || !prev.cidade ? cidade : prev.cidade,
+        uf: force || !prev.uf ? (uf || "").toUpperCase().slice(0, 2) : prev.uf,
+        telefone: force || !prev.telefone ? telefone : prev.telefone,
       }));
     } catch {
       /* ignore */
