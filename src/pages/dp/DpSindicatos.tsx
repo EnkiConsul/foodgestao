@@ -103,51 +103,28 @@ export default function DpSindicatos() {
     if (tipo === "laboral" && cargosSel.length === 0) { toast.error("Selecione pelo menos um cargo"); return; }
 
     try {
-      // Upsert do sindicato e obter id
-      let sindicatoId = editing?.id;
-      if (sindicatoId) {
-        const { error } = await supabase.from("dp_sindicatos").update({
-          nome: form.nome.trim(),
-          cnpj: form.cnpj ? onlyDigits(form.cnpj) : null,
-          contato_telefone: form.contato_whatsapp ? onlyDigits(form.contato_whatsapp) : null,
-          tipo,
-        } as any).eq("id", sindicatoId);
-        if (error) throw error;
-      } else {
-        // usa hook para pegar company_id
-        await upsert.mutateAsync({
-          nome: form.nome.trim(),
-          cnpj: form.cnpj ? onlyDigits(form.cnpj) : null,
-          contato_telefone: form.contato_whatsapp ? onlyDigits(form.contato_whatsapp) : null,
-          tipo,
-        } as any);
-        // buscar o mais recente criado (fallback)
-        const { data } = await supabase
-          .from("dp_sindicatos")
-          .select("id")
-          .eq("nome", form.nome.trim())
-          .eq("tipo", tipo)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        sindicatoId = data?.id;
-      }
+      const sindicatoId = await upsert.mutateAsync({
+        id: editing?.id,
+        nome: form.nome.trim(),
+        cnpj: form.cnpj ? onlyDigits(form.cnpj) : null,
+        contato_telefone: form.contato_whatsapp ? onlyDigits(form.contato_whatsapp) : null,
+        tipo,
+      } as any);
 
       if (!sindicatoId) throw new Error("Não foi possível identificar o sindicato salvo.");
 
-      // Sincronizar vínculos
       if (tipo === "patronal") {
         await supabase.from("dp_sindicato_unidades").delete().eq("sindicato_id", sindicatoId);
         if (unidadesSel.length) {
           await supabase.from("dp_sindicato_unidades").insert(
-            unidadesSel.map((unidade_id) => ({ sindicato_id: sindicatoId!, unidade_id }))
+            unidadesSel.map((unidade_id) => ({ sindicato_id: sindicatoId, unidade_id }))
           );
         }
       } else {
         await supabase.from("dp_sindicato_cargos").delete().eq("sindicato_id", sindicatoId);
         if (cargosSel.length) {
           await supabase.from("dp_sindicato_cargos").insert(
-            cargosSel.map((cargo_id) => ({ sindicato_id: sindicatoId!, cargo_id }))
+            cargosSel.map((cargo_id) => ({ sindicato_id: sindicatoId, cargo_id }))
           );
         }
       }
