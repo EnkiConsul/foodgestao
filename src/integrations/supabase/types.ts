@@ -5380,7 +5380,7 @@ export type Database = {
       context_type: "pf" | "pj"
       discount_type: "percent" | "fixed"
       dp_aprovacao_status: "pendente" | "aprovado" | "recusado"
-      dp_bloqueio_regra_tipo: "fixa_anual" | "dinamica"
+      dp_bloqueio_regra_tipo: "fixa_anual" | "dinamica" | "pos_pagamento"
       dp_bloqueio_tipo: "folga" | "troca" | "solicitacoes" | "todos"
       dp_disciplinar_tipo:
         | "advertencia_verbal"
@@ -5643,7 +5643,7 @@ export const Constants = {
       context_type: ["pf", "pj"],
       discount_type: ["percent", "fixed"],
       dp_aprovacao_status: ["pendente", "aprovado", "recusado"],
-      dp_bloqueio_regra_tipo: ["fixa_anual", "dinamica"],
+      dp_bloqueio_regra_tipo: ["fixa_anual", "dinamica", "pos_pagamento"],
       dp_bloqueio_tipo: ["folga", "troca", "solicitacoes", "todos"],
       dp_disciplinar_tipo: [
         "advertencia_verbal",
