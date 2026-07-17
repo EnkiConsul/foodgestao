@@ -19,6 +19,7 @@ import DpColaboradores from "./pages/dp/DpColaboradores";
 import DpSolicitacoes from "./pages/dp/DpSolicitacoes";
 import DpDocumentos from "./pages/dp/DpDocumentos";
 import DpDocumentosHub from "./pages/dp/DpDocumentosHub";
+import DpDocumentosPorTipo from "./pages/dp/DpDocumentosPorTipo";
 import DpFolgas from "./pages/dp/DpFolgas";
 import DpFolgasHub from "./pages/dp/DpFolgasHub";
 import DpCadastrosHub from "./pages/dp/DpCadastrosHub";
