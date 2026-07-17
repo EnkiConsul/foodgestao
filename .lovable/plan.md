@@ -1,68 +1,67 @@
-# Auditoria DP — status
+## Problema
 
-Concluídas: DP-G00→G10 (correções aplicadas).
-Próxima: DP-G11 — motor de folha (cálculos CLT: INSS/IRRF/FGTS) + revisão de edge functions.
+Ao editar a **Data de vencimento** de qualquer lançamento **não recorrente / não parcelado**, o valor volta silenciosamente para o dia do `transaction_date` (competência). No caso de Energia: você troca 15/06 → 22/06, salva, e o banco grava 15/06.
 
-Sequência sugerida pelo prompt mestre:
+## Causa raiz
 
-## DP-G03 — Home / Meu Cadastro do Portal (`/dp/meu`)
+A função `public.enforce_monthly_due_date_alignment()` (trigger BEFORE INSERT/UPDATE em `transactions`) tem um bug de tratamento de NULL em PL/pgSQL:
 
-Auditar as telas de entrada do colaborador contra a referência `pakere1996/portalcolaborador`:
+```sql
+IF series_type NOT IN ('mensal','quinzenal') THEN
+  RETURN NEW;  -- deveria dar early return para linhas sem série
+END IF;
+```
 
-1. **`/dp/meu` (DpHome)** — cards de resumo, saudação, atalhos, avisos, atestados pendentes.
-2. **`/dp/meu/cadastro`** — dados pessoais, documentos, endereço, contatos, dependentes, dados bancários, contrato.
-3. **Hooks/queries** — `useDpMeuResumo`, leitura de `dp_colaboradores`, `dp_cargos`, `dp_departamentos`, `dp_dependentes`, `dp_documentos_colaborador`.
+Quando o lançamento não é recorrente nem filho de parcelamento, `series_type` fica NULL. Em SQL, `NULL NOT IN (...)` avalia para **NULL** (não TRUE), então o `RETURN NEW` **não dispara**. A função continua e cai no ramo `ELSE` (lógica quinzenal), que recalcula `due_date` para o candidato mais próximo — sempre o mesmo dia do `transaction_date`.
 
-### Entregáveis (somente leitura)
+Isso atinge todo lançamento único cujo vencimento esteja num dia diferente da competência.
 
-- `.lovable/auditoria/dp-g03-portal-cadastro.md` com:
-  - Inventário de campos/sessions exibidos vs. esperados pela doc.
-  - Divergências classificadas (Conforme / Parcial / Divergente / Ausente / Extra) + gravidade.
-  - Mapa de leitura de tabelas `dp_*` e RLS relevante.
-  - Propostas de correção enumeradas (DIV-G03-XX) sem aplicar.
-- Atualização de `.lovable/plan.md` marcando DP-G02 como concluída e G03 em andamento.
+## Correção (1 migration, sem mudança de código frontend)
 
-### Fora do escopo desta fase
+Reescrever a função `enforce_monthly_due_date_alignment()` com o guarda de NULL explícito:
 
-- Formulários de edição (Folgas, Trocas, Atestados) — ficam para DP-G04+.
-- Área admin (`/dp/*`) — auditada em fase separada após portal completo.
-- Nenhuma migration, alteração de RLS, código ou storage.
+```sql
+CREATE OR REPLACE FUNCTION public.enforce_monthly_due_date_alignment()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+DECLARE
+  series_type text;
+  base_day int; due_day int; due_last int; target_day int;
+  candidate_a date; candidate_b date;
+BEGIN
+  IF NEW.due_date IS NULL OR NEW.transaction_date IS NULL THEN
+    RETURN NEW;
+  END IF;
 
-## Fases posteriores (visão geral)
+  IF NEW.is_recurring IS TRUE AND NEW.recurrence_type IS NOT NULL THEN
+    series_type := NEW.recurrence_type::text;
+  ELSIF NEW.parent_transaction_id IS NOT NULL THEN
+    SELECT recurrence_type::text INTO series_type
+    FROM public.transactions WHERE id = NEW.parent_transaction_id;
+  END IF;
 
-- DP-G04 — Folgas do colaborador (calendário, solicitação, trocas, histórico).
-- DP-G05 — Documentos do colaborador (meus documentos, atestados, disciplinar, sindicato).
-- DP-G06 — Área admin: dashboard + colaboradores.
-- DP-G07 — Área admin: folgas, escalas, atestados, disciplinar.
-- DP-G08 — Área admin: cargos, departamentos, sindicatos, configurações.
+  -- Guarda NULL-safe: sem série ⇒ não alinha
+  IF series_type IS NULL OR series_type NOT IN ('mensal','quinzenal') THEN
+    RETURN NEW;
+  END IF;
 
-Finalizo cada fase com relatório em `.lovable/auditoria/` e aguardo aprovação antes de aplicar correções.
+  -- ... (restante da lógica de alinhamento mensal/quinzenal inalterada)
+END;
+$$;
+```
 
-Confirma iniciar por **DP-G03 (Portal — Home + Meu Cadastro)**?
+Aplicar a mesma proteção `IS NULL OR` também em `enforce_weekly_due_date_alignment()` por prevenção (mesmo padrão de bug potencial).
 
-## DP-G08 — Concluída (16/07/2026)
+## Passo pós-migração
 
-Todos os 5 grupos aplicados:
+Rodar um `UPDATE` corretivo opcional? **Não** — a correção é só para futuros saves. O valor atual de Energia (15/06) permanece; você poderá editar para 22/06 e agora vai persistir.
 
-- **G1** — bugs de runtime: rótulo Salvar duplicado, botão PDF sem onClick, race condition em vínculos sindicais, cores hardcoded em badges.
-- **G2** — `AlertDialogDescription` em Unidades, Sindicatos, Cargos e Negociações.
-- **G3** — `useUpsertDpSindicato` retorna id via `.insert().select("id").single()`; fim do fallback por nome+tipo.
-- **G4** — busca em Unidades/Sindicatos/Cargos, filtro Ativa/Inativa em Unidades, filtro Vigente/Expirado em Negociações, contadores (unidades/cargos por sindicato, colaboradores por cargo), badges de patronal/laboral mais distintas, botão Editar no view dialog de Unidades, spinner BrasilAPI, remoção de `ArrowLeft` acima do `DpPageHeader`.
-- **G5** — nova página `/dp/configuracoes` (`DpConfiguracoes.tsx`) com editor de `dp_dia_config` (data + limite + observação) e atalho para bloqueios; card informando que SLAs seguem o padrão do sistema.
-- **Hub de Cadastros** ganhou atalhos para Negociações sindicais e Configurações.
+## Verificação
 
-**Próxima fase sugerida:** DP-G09 — Comunicação (Avisos, Mensagens, Modelos, Notificações) + Documentos gerais.
+Após a migração eu executo o mesmo teste automatizado (PATCH → SELECT) e confirmo que o `due_date` respeita o valor enviado.
 
-## DP-G09 — Concluída (16/07/2026)
+## Fora de escopo
 
-Todos os 5 grupos aplicados em Comunicação + Documentos:
-
-- **G1** — cores hardcoded substituídas por tokens (`primary`/`warning`/`destructive`) em `DpAvisos` e nos botões Aprovar/Recusar de `DpDocumentos`; `AlertDialog` de confirmação em delete de Avisos, Mensagens, Modelos e Documentos; validação de upload em Avisos (10 MB + mime allowlist); `DialogDescription` em todos os diálogos.
-- **G2** — `DpAvisos`: tabs Ativos/Expirados/Todos, filtro de prioridade, busca, campos de escopo (Todos/Unidade/Cargo) no formulário. `DpMensagens`: tabs Enviadas/Recebidas com badge de não lidas, busca, indicador visual de não lida. `DpModelosMensagem`: busca, filtro por canal e por Ativo/Inativo, toggle inline, dialog de preview com substituição de variáveis. `DpDocumentos`: busca por título/colaborador + filtro de período (referência início/fim).
-- **G3** — `useDpAvisos.upsert` agora usa `.select("id").single()`; download de documentos por `<a>` clicado programaticamente (evita bloqueio de pop-up no iOS); `DpMensagens` chama edge `dp-send-broadcast` no modo Broadcast (escopo Todos/Unidade/Cargo com seleção de canal).
-- **G4** — 4º card "Central de Notificações" no `DpComunicacaoHub`; badge "⚠ N aguardando aprovação" por categoria em `DpDocumentosHub`.
-- **G5** — nova rota `/dp/notificacoes` (`DpNotificacoes.tsx`) com tabs Todas/Não lidas/Lidas, busca, "Marcar todas como lidas" e link direto para a origem.
-
-**Arquivos:**
-- criado `src/pages/dp/DpNotificacoes.tsx`
-- editado `src/hooks/useDpComunicacao.tsx`, `src/pages/dp/DpAvisos.tsx`, `src/pages/dp/DpMensagens.tsx`, `src/pages/dp/DpModelosMensagem.tsx`, `src/pages/dp/DpDocumentos.tsx`, `src/pages/dp/DpDocumentosHub.tsx`, `src/pages/dp/DpComunicacaoHub.tsx`, `src/App.tsx`
+Não mexer em código React, no fluxo de save do `TransactionFormDialog`, nem em outros triggers.
