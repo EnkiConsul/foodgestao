@@ -49,7 +49,7 @@ export const FAVORITABLE_PAGES: FavoritablePage[] = [
     labelFor: (p) => `Comunicação #${(p.id ?? "").slice(0, 6)}`,
   },
   { pattern: "/dp/disciplinar", label: "Disciplinar", icon: ShieldAlert },
-  { pattern: "/dp/bloqueios", label: "Bloqueios", icon: Ban },
+  { pattern: "/dp/bloqueios", label: "Datas Bloqueadas", icon: CalendarX },
   { pattern: "/dp/documentos", label: "Documentos", icon: FileText },
   { pattern: "/dp/documentos/importar", label: "Importar docs", icon: Upload },
   {
