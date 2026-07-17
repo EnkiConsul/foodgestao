@@ -52,6 +52,7 @@ const ADMIN_ITEMS: Item[] = [
   {
     kind: "group", title: "Documentos", icon: FileText,
     prefixes: ["/dp/documentos", "/dp/disciplinar", "/dp/atestados"],
+    hubUrl: "/dp/documentos",
     items: [
       { title: "Contracheques", url: "/dp/documentos/contracheque", icon: FileText },
       { title: "Adiantamentos", url: "/dp/documentos/adiantamento", icon: Coins },
