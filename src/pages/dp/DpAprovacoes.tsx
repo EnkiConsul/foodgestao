@@ -93,6 +93,7 @@ export default function DpAprovacoes() {
         icon={UserCheck}
         title="Aprovações de cadastro"
         description="Novos colaboradores precisam ser aprovados antes de acessar o sistema."
+        actions={<FavoriteToggle />}
       />
 
       <div className="space-y-3">
