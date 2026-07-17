@@ -1,0 +1,710 @@
+import { useMemo, useRef, useState } from "react";
+import { Helmet } from "react-helmet-async";
+import { Link, useParams } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import {
+  Upload, History, Download, Pencil, Loader2, Check, X, Trash2, Eye,
+  FileText, Clock, Coins, ArrowLeft, CheckCircle2, XCircle,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useDpColaboradores } from "@/hooks/useDpColaboradores";
+
+import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
+import type { Database } from "@/integrations/supabase/types";
+
+type Tipo = "contracheque" | "ponto" | "adiantamento";
+type Aprov = Database["public"]["Enums"]["dp_documento_aprovacao_status"];
+type Row = Database["public"]["Tables"]["dp_documentos"]["Row"];
+
+const BUCKET = "dp-documentos";
+const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+const CONFIG: Record<Tipo, {
+  titulo: string; descricao: string; importTitle: string;
+  icon: LucideIcon; cor: string; bg: string;
+}> = {
+  contracheque: {
+    titulo: "Contracheques",
+    descricao: "Importe e gerencie contracheques dos colaboradores.",
+    importTitle: "Importar Contracheques",
+    icon: FileText,
+    cor: "text-blue-600 dark:text-blue-400",
+    bg: "bg-blue-500/10",
+  },
+  ponto: {
+    titulo: "Folhas de Ponto",
+    descricao: "Importe e gerencie folhas de ponto dos colaboradores.",
+    importTitle: "Importar Folhas de Ponto",
+    icon: Clock,
+    cor: "text-emerald-600 dark:text-emerald-400",
+    bg: "bg-emerald-500/10",
+  },
+  adiantamento: {
+    titulo: "Adiantamentos",
+    descricao: "Importe e gerencie adiantamentos salariais dos colaboradores.",
+    importTitle: "Importar Adiantamentos",
+    icon: Coins,
+    cor: "text-cyan-600 dark:text-cyan-400",
+    bg: "bg-cyan-500/10",
+  },
+};
+
+function parseMesAno(row: Row): { mes: number; ano: number } | null {
+  if (!row.referencia_data) return null;
+  const [y, m] = row.referencia_data.split("-");
+  const ano = Number(y), mes = Number(m);
+  if (!ano || !mes) return null;
+  return { mes, ano };
+}
+
+function StatusBadge({ status }: { status: Aprov }) {
+  if (status === "aprovado")
+    return <Badge className="bg-green-500/15 text-green-700 dark:text-green-300 border-green-500/30">Aprovado</Badge>;
+  if (status === "recusado")
+    return <Badge className="bg-destructive/15 text-destructive border-destructive/30">Recusado</Badge>;
+  return <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30">Pendente</Badge>;
+}
+
+export default function DpDocumentosPorTipo() {
+  const { categoria } = useParams<{ categoria: Tipo }>();
+  const tipo = (categoria ?? "contracheque") as Tipo;
+  const cfg = CONFIG[tipo] ?? CONFIG.contracheque;
+  const Icon = cfg.icon;
+
+  const { selectedCompanyId } = useCompanyContext();
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const { data: colaboradores = [] } = useDpColaboradores();
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const [aba, setAba] = useState<"importar" | "historico">("importar");
+
+  // Import form
+  const now = new Date();
+  const [impColab, setImpColab] = useState<string>("");
+  const [impMes, setImpMes] = useState<string>(String(now.getMonth() + 1));
+  const [impAno, setImpAno] = useState<string>(String(now.getFullYear()));
+  const [uploading, setUploading] = useState(false);
+
+  // Filters
+  const [filtroColab, setFiltroColab] = useState("todos");
+  const [filtroMes, setFiltroMes] = useState("todos");
+  const [filtroAno, setFiltroAno] = useState("todos");
+  const [filtroStatusColab, setFiltroStatusColab] = useState("todos");
+  const [filtroUnidade, setFiltroUnidade] = useState("todos");
+  const [filtroAprov, setFiltroAprov] = useState<Aprov | "todos">("todos");
+
+  // Editing / dialogs
+  const [editando, setEditando] = useState<string | null>(null);
+  const [editMes, setEditMes] = useState("");
+  const [editAno, setEditAno] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<Row | null>(null);
+
+  const [toDelete, setToDelete] = useState<Row | null>(null);
+  const [excluindo, setExcluindo] = useState(false);
+
+  const [rejectRow, setRejectRow] = useState<Row | null>(null);
+  const [rejectMotivo, setRejectMotivo] = useState("");
+
+  // Data
+  const list = useQuery({
+    queryKey: ["dp_documentos", tipo, selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_documentos")
+        .select("*")
+        .eq("company_id", selectedCompanyId!)
+        .eq("tipo", tipo)
+        .order("referencia_data", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as Row[];
+    },
+  });
+
+  const unidades = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of colaboradores) {
+      if (c.unidade_id && c.unidade_nome) map.set(c.unidade_id, c.unidade_nome);
+    }
+    return Array.from(map, ([id, nome]) => ({ id, nome }))
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [colaboradores]);
+
+  const colabMap = useMemo(() => new Map(colaboradores.map((c) => [c.id, c])), [colaboradores]);
+
+  const anosDisponiveis = useMemo(() => {
+    const set = new Set<number>();
+    for (const d of list.data ?? []) {
+      const ma = parseMesAno(d);
+      if (ma) set.add(ma.ano);
+    }
+    return Array.from(set).sort((a, b) => b - a);
+  }, [list.data]);
+
+  const filtrados = useMemo(() => {
+    return (list.data ?? []).filter((d) => {
+      const ma = parseMesAno(d);
+      if (filtroColab !== "todos" && d.colaborador_id !== filtroColab) return false;
+      if (filtroMes !== "todos" && ma?.mes !== Number(filtroMes)) return false;
+      if (filtroAno !== "todos" && ma?.ano !== Number(filtroAno)) return false;
+      if (filtroAprov !== "todos" && d.aprovacao_status !== filtroAprov) return false;
+      const colab = d.colaborador_id ? colabMap.get(d.colaborador_id) : null;
+      if (filtroStatusColab === "ativo" && !colab?.ativo) return false;
+      if (filtroStatusColab === "inativo" && colab?.ativo) return false;
+      if (filtroUnidade !== "todos" && colab?.unidade_id !== filtroUnidade) return false;
+      return true;
+    }).sort((a, b) => {
+      const ma = parseMesAno(a); const mb = parseMesAno(b);
+      if (ma && mb) {
+        if (ma.ano !== mb.ano) return mb.ano - ma.ano;
+        if (ma.mes !== mb.mes) return mb.mes - ma.mes;
+      }
+      const na = a.colaborador_id ? colabMap.get(a.colaborador_id)?.nome ?? "" : "";
+      const nb = b.colaborador_id ? colabMap.get(b.colaborador_id)?.nome ?? "" : "";
+      return na.localeCompare(nb);
+    });
+  }, [list.data, filtroColab, filtroMes, filtroAno, filtroAprov, filtroStatusColab, filtroUnidade, colabMap]);
+
+  // Actions
+  const doImport = async () => {
+    if (!selectedCompanyId) return toast.error("Sem empresa selecionada");
+    const files = fileRef.current?.files;
+    if (!files || files.length === 0) return toast.error("Selecione ao menos um arquivo");
+    const mes = Number(impMes), ano = Number(impAno);
+    if (!mes || !ano || ano < 2000) return toast.error("Informe mês e ano válidos");
+    setUploading(true);
+    try {
+      const refDate = `${ano}-${String(mes).padStart(2, "0")}-01`;
+      let ok = 0;
+      for (const file of Array.from(files)) {
+        const path = `${selectedCompanyId}/${tipo}/${impColab || "geral"}/${Date.now()}-${file.name}`;
+        const up = await supabase.storage.from(BUCKET).upload(path, file, {
+          contentType: file.type, upsert: false,
+        });
+        if (up.error) throw up.error;
+        const { error } = await supabase.from("dp_documentos").insert({
+          company_id: selectedCompanyId,
+          colaborador_id: impColab || null,
+          tipo,
+          titulo: `${cfg.titulo.slice(0, -1)} ${String(mes).padStart(2, "0")}/${ano}`,
+          file_path: path,
+          file_name: file.name,
+          file_size: file.size,
+          mime_type: file.type,
+          referencia_data: refDate,
+          uploaded_by: user?.id,
+        });
+        if (error) throw error;
+        ok++;
+      }
+      toast.success(`${ok} documento(s) enviado(s)`);
+      if (fileRef.current) fileRef.current.value = "";
+      qc.invalidateQueries({ queryKey: ["dp_documentos"] });
+      qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
+      setAba("historico");
+    } catch (e) {
+      toast.error("Erro ao importar", { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDownload = async (row: Row) => {
+    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(row.file_path, 60);
+    if (error || !data) return toast.error("Erro ao gerar link");
+    const a = document.createElement("a");
+    a.href = data.signedUrl;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.download = row.file_name ?? "";
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+
+  const handlePreview = async (row: Row) => {
+    setPreviewDoc(row);
+    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(row.file_path, 60);
+    if (error || !data) return toast.error("Erro ao gerar visualização");
+    setPreviewUrl(data.signedUrl);
+    setPreviewOpen(true);
+  };
+
+  const startEditing = (row: Row) => {
+    const ma = parseMesAno(row);
+    setEditando(row.id);
+    setEditMes(ma ? String(ma.mes) : "");
+    setEditAno(ma ? String(ma.ano) : "");
+  };
+
+  const saveEdit = async (id: string) => {
+    const mes = Number(editMes), ano = Number(editAno);
+    if (!mes || !ano) return toast.error("Mês e ano são obrigatórios");
+    setBusy(true);
+    const refDate = `${ano}-${String(mes).padStart(2, "0")}-01`;
+    const { error } = await supabase.from("dp_documentos")
+      .update({ referencia_data: refDate }).eq("id", id);
+    setBusy(false);
+    if (error) return toast.error("Erro ao atualizar", { description: error.message });
+    toast.success("Competência atualizada");
+    setEditando(null);
+    qc.invalidateQueries({ queryKey: ["dp_documentos"] });
+  };
+
+  const confirmDelete = async () => {
+    if (!toDelete) return;
+    setExcluindo(true);
+    try {
+      await supabase.storage.from(BUCKET).remove([toDelete.file_path]);
+      const { error } = await supabase.from("dp_documentos").delete().eq("id", toDelete.id);
+      if (error) throw error;
+      toast.success("Documento excluído");
+      setToDelete(null);
+      qc.invalidateQueries({ queryKey: ["dp_documentos"] });
+      qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
+    } catch (e) {
+      toast.error("Erro ao excluir", { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setExcluindo(false);
+    }
+  };
+
+  const aprovar = useMutation({
+    mutationFn: async (row: Row) => {
+      const { error } = await supabase.from("dp_documentos").update({
+        aprovacao_status: "aprovado",
+        revisado_por: user?.id,
+        revisado_em: new Date().toISOString(),
+        motivo_recusao: null,
+      }).eq("id", row.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Documento aprovado");
+      qc.invalidateQueries({ queryKey: ["dp_documentos"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro"),
+  });
+
+  const recusar = useMutation({
+    mutationFn: async ({ row, motivo }: { row: Row; motivo: string }) => {
+      const { error } = await supabase.from("dp_documentos").update({
+        aprovacao_status: "recusado",
+        revisado_por: user?.id,
+        revisado_em: new Date().toISOString(),
+        motivo_recusao: motivo,
+      }).eq("id", row.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Documento recusado");
+      setRejectRow(null); setRejectMotivo("");
+      qc.invalidateQueries({ queryKey: ["dp_documentos"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro"),
+  });
+
+  return (
+    <DpPage>
+      <Helmet><title>{cfg.titulo} — DP 360°</title></Helmet>
+
+      <Button asChild variant="ghost" size="sm" className="mb-1 -ml-2 w-fit">
+        <Link to="/dp/documentos"><ArrowLeft className="h-4 w-4 mr-1" /> Documentos</Link>
+      </Button>
+
+      <DpPageHeader
+        icon={Icon}
+        title={cfg.titulo}
+        description={cfg.descricao}
+        actions={<FavoriteToggle />}
+      />
+
+      {/* Tabs Importar / Histórico */}
+      <div className="flex gap-2 border-b border-border">
+        <button
+          onClick={() => setAba("importar")}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors",
+            aba === "importar"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Upload className="size-4" /> Importar
+        </button>
+        <button
+          onClick={() => setAba("historico")}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors",
+            aba === "historico"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <History className="size-4" /> Histórico
+        </button>
+      </div>
+
+      {aba === "importar" && (
+        <Card className="border-border shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <div className={cn("size-8 rounded-lg flex items-center justify-center", cfg.bg, cfg.cor)}>
+                <Upload className="size-4" />
+              </div>
+              {cfg.importTitle}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="space-y-1.5 md:col-span-1">
+                <Label>Colaborador</Label>
+                <Select value={impColab} onValueChange={setImpColab}>
+                  <SelectTrigger><SelectValue placeholder="(opcional)" /></SelectTrigger>
+                  <SelectContent>
+                    {colaboradores.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Mês</Label>
+                <Select value={impMes} onValueChange={setImpMes}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {MESES.map((m, i) => (
+                      <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Ano</Label>
+                <Input value={impAno} maxLength={4} onChange={(e) => setImpAno(e.target.value.replace(/\D/g, ""))} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Arquivos PDF</Label>
+              <Input ref={fileRef} type="file" accept="application/pdf" multiple />
+              <p className="text-xs text-muted-foreground">
+                Selecione um ou mais PDFs. A competência informada será aplicada a todos os arquivos deste envio.
+              </p>
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={doImport} disabled={uploading}>
+                {uploading ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Upload className="size-4 mr-2" />}
+                {uploading ? "Enviando..." : "Enviar"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {aba === "historico" && (
+        <div className="space-y-4">
+          {/* Filtros */}
+          <div className="bg-card border border-border rounded-2xl p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="space-y-1 col-span-2 md:col-span-1">
+              <Label className="text-xs uppercase text-muted-foreground font-bold">Colaborador</Label>
+              <Select value={filtroColab} onValueChange={setFiltroColab}>
+                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {colaboradores.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs uppercase text-muted-foreground font-bold">Mês</Label>
+              <Select value={filtroMes} onValueChange={setFiltroMes}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {MESES.map((m, i) => (
+                    <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs uppercase text-muted-foreground font-bold">Ano</Label>
+              <Select value={filtroAno} onValueChange={setFiltroAno}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {anosDisponiveis.map((a) => (
+                    <SelectItem key={a} value={String(a)}>{a}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs uppercase text-muted-foreground font-bold">Status Colab.</Label>
+              <Select value={filtroStatusColab} onValueChange={setFiltroStatusColab}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="ativo">Ativo</SelectItem>
+                  <SelectItem value="inativo">Inativo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs uppercase text-muted-foreground font-bold">Unidade</Label>
+              <Select value={filtroUnidade} onValueChange={setFiltroUnidade}>
+                <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todas</SelectItem>
+                  {unidades.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs uppercase text-muted-foreground font-bold">Aprovação</Label>
+              <Select value={filtroAprov} onValueChange={(v) => setFiltroAprov(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todas</SelectItem>
+                  <SelectItem value="pendente">Pendentes</SelectItem>
+                  <SelectItem value="aprovado">Aprovados</SelectItem>
+                  <SelectItem value="recusado">Recusados</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {list.isLoading ? (
+            <div className="flex items-center justify-center p-12 text-muted-foreground">
+              <Loader2 className="size-6 animate-spin mr-2" /> Carregando...
+            </div>
+          ) : filtrados.length === 0 ? (
+            <div className="rounded-2xl border border-dashed p-12 text-center text-muted-foreground">
+              Nenhum documento encontrado com os filtros selecionados.
+            </div>
+          ) : (
+            <div className="bg-card border border-border rounded-2xl overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 border-b border-border">
+                  <tr>
+                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Colaborador</th>
+                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Competência</th>
+                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground hidden md:table-cell">Arquivo</th>
+                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground hidden lg:table-cell">Unidade</th>
+                    <th className="text-center p-4 font-bold uppercase text-[10px] text-muted-foreground">Status</th>
+                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground hidden md:table-cell">Aprovado em</th>
+                    <th className="text-right p-4 font-bold uppercase text-[10px] text-muted-foreground">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filtrados.map((doc) => {
+                    const colab = doc.colaborador_id ? colabMap.get(doc.colaborador_id) : null;
+                    const ma = parseMesAno(doc);
+                    const isEditing = editando === doc.id;
+                    return (
+                      <tr key={doc.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="p-4 font-medium">
+                          {colab?.nome ?? "—"}
+                          {colab && !colab.ativo && (
+                            <Badge variant="outline" className="ml-2 text-xs bg-destructive/10 text-destructive border-destructive/30">
+                              Inativo
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="p-4">
+                          {isEditing ? (
+                            <div className="flex items-center gap-2">
+                              <Select value={editMes} onValueChange={setEditMes}>
+                                <SelectTrigger className="w-[100px] h-8"><SelectValue placeholder="Mês" /></SelectTrigger>
+                                <SelectContent>
+                                  {MESES.map((m, i) => (
+                                    <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Input className="w-[90px] h-8" placeholder="Ano" value={editAno}
+                                onChange={(e) => setEditAno(e.target.value.replace(/\D/g, ""))} maxLength={4} />
+                              <Button size="icon" className="size-8" onClick={() => saveEdit(doc.id)} disabled={busy}>
+                                {busy ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
+                              </Button>
+                              <Button size="icon" variant="ghost" className="size-8" onClick={() => setEditando(null)}>
+                                <X className="size-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="font-mono">
+                              {ma ? `${String(ma.mes).padStart(2, "0")}/${ma.ano}` : "—"}
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-4 hidden md:table-cell text-muted-foreground text-xs truncate max-w-[200px]">
+                          {doc.file_name ?? "—"}
+                        </td>
+                        <td className="p-4 hidden lg:table-cell text-muted-foreground">
+                          {colab?.unidade_nome ?? "—"}
+                        </td>
+                        <td className="p-4 text-center">
+                          <StatusBadge status={doc.aprovacao_status} />
+                        </td>
+                        <td className="p-4 hidden md:table-cell text-xs text-muted-foreground">
+                          {doc.revisado_em && doc.aprovacao_status === "aprovado"
+                            ? new Date(doc.revisado_em).toLocaleDateString("pt-BR") + " " +
+                              new Date(doc.revisado_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+                            : "—"}
+                        </td>
+                        <td className="p-4 text-right whitespace-nowrap">
+                          <div className="flex justify-end gap-1">
+                            {doc.aprovacao_status === "pendente" && (
+                              <>
+                                <Button variant="ghost" size="icon" className="size-8 text-green-600 hover:text-green-700 hover:bg-green-500/10"
+                                  title="Aprovar" onClick={() => aprovar.mutate(doc)} disabled={aprovar.isPending}>
+                                  <CheckCircle2 className="size-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="size-8 text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
+                                  title="Recusar" onClick={() => { setRejectRow(doc); setRejectMotivo(""); }}>
+                                  <XCircle className="size-4" />
+                                </Button>
+                              </>
+                            )}
+                            <Button variant="ghost" size="icon" className="size-8 text-blue-600 hover:text-blue-700 hover:bg-blue-500/10"
+                              title="Visualizar" onClick={() => handlePreview(doc)}>
+                              <Eye className="size-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="size-8"
+                              title="Editar competência" onClick={() => startEditing(doc)}>
+                              <Pencil className="size-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="size-8"
+                              title="Baixar" onClick={() => handleDownload(doc)}>
+                              <Download className="size-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="size-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              title="Excluir" onClick={() => setToDelete(doc)}>
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Preview */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Visualização do Documento</DialogTitle>
+            <DialogDescription>
+              {previewDoc ? (() => {
+                const ma = parseMesAno(previewDoc);
+                return `${cfg.titulo.slice(0, -1)} — ${ma ? `${String(ma.mes).padStart(2, "0")}/${ma.ano}` : previewDoc.titulo}`;
+              })() : "Documento"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 min-h-[500px] bg-muted/20 rounded-lg overflow-hidden">
+            {previewUrl ? (
+              <iframe src={previewUrl} className="w-full h-[600px] border-0" title="Visualização do documento" />
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">Carregando visualização...</div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreviewOpen(false)}>Fechar</Button>
+            <Button onClick={() => previewDoc && handleDownload(previewDoc)}>
+              <Download className="size-4 mr-1" /> Baixar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Excluir */}
+      <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir documento?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                Tem certeza que deseja excluir este documento?
+                <br /><br />
+                <strong>Colaborador:</strong>{" "}
+                {toDelete?.colaborador_id ? colabMap.get(toDelete.colaborador_id)?.nome ?? "—" : "—"}
+                <br />
+                <strong>Competência:</strong>{" "}
+                {(() => {
+                  if (!toDelete) return "";
+                  const ma = parseMesAno(toDelete);
+                  return ma ? `${String(ma.mes).padStart(2, "0")}/${ma.ano}` : "—";
+                })()}
+                <br /><br />
+                Esta ação <strong>não pode ser desfeita</strong>.
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={excluindo}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} disabled={excluindo}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {excluindo ? <Loader2 className="size-4 mr-2 animate-spin" /> : null}
+              {excluindo ? "Excluindo..." : "Sim, excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Recusar */}
+      <Dialog open={!!rejectRow} onOpenChange={(v) => { if (!v) { setRejectRow(null); setRejectMotivo(""); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Recusar documento</DialogTitle>
+            <DialogDescription>Informe o motivo — será visível ao colaborador.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2 py-2">
+            <Input value={rejectMotivo} onChange={(e) => setRejectMotivo(e.target.value)}
+              placeholder="Ex.: Arquivo ilegível, favor reenviar." />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectRow(null)}>Cancelar</Button>
+            <Button variant="destructive" disabled={recusar.isPending || !rejectMotivo.trim()}
+              onClick={() => rejectRow && recusar.mutate({ row: rejectRow, motivo: rejectMotivo.trim() })}>
+              Recusar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </DpPage>
+  );
+}
