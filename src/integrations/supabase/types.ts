@@ -2100,6 +2100,68 @@ export type Database = {
           },
         ]
       }
+      dp_cadastro_solicitacoes: {
+        Row: {
+          cargo: string | null
+          company_id: string
+          cpf: string
+          created_at: string
+          data_nascimento: string | null
+          email: string | null
+          id: string
+          motivo_recusa: string | null
+          nome: string
+          observacoes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["dp_aprovacao_status"]
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          cargo?: string | null
+          company_id: string
+          cpf: string
+          created_at?: string
+          data_nascimento?: string | null
+          email?: string | null
+          id?: string
+          motivo_recusa?: string | null
+          nome: string
+          observacoes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["dp_aprovacao_status"]
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cargo?: string | null
+          company_id?: string
+          cpf?: string
+          created_at?: string
+          data_nascimento?: string | null
+          email?: string | null
+          id?: string
+          motivo_recusa?: string | null
+          nome?: string
+          observacoes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["dp_aprovacao_status"]
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_cadastro_solicitacoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_cargos: {
         Row: {
           ativo: boolean
@@ -2146,6 +2208,7 @@ export type Database = {
       }
       dp_colaboradores: {
         Row: {
+          aprovacao_status: Database["public"]["Enums"]["dp_aprovacao_status"]
           ativo: boolean
           cargo: string | null
           cargo_id: string | null
@@ -2177,6 +2240,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          aprovacao_status?: Database["public"]["Enums"]["dp_aprovacao_status"]
           ativo?: boolean
           cargo?: string | null
           cargo_id?: string | null
@@ -2208,6 +2272,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          aprovacao_status?: Database["public"]["Enums"]["dp_aprovacao_status"]
           ativo?: boolean
           cargo?: string | null
           cargo_id?: string | null
@@ -5314,6 +5379,7 @@ export type Database = {
       contact_type: "cliente" | "fornecedor" | "ambos"
       context_type: "pf" | "pj"
       discount_type: "percent" | "fixed"
+      dp_aprovacao_status: "pendente" | "aprovado" | "recusado"
       dp_bloqueio_regra_tipo: "fixa_anual" | "dinamica"
       dp_bloqueio_tipo: "folga" | "troca" | "solicitacoes" | "todos"
       dp_disciplinar_tipo:
@@ -5576,6 +5642,7 @@ export const Constants = {
       contact_type: ["cliente", "fornecedor", "ambos"],
       context_type: ["pf", "pj"],
       discount_type: ["percent", "fixed"],
+      dp_aprovacao_status: ["pendente", "aprovado", "recusado"],
       dp_bloqueio_regra_tipo: ["fixa_anual", "dinamica"],
       dp_bloqueio_tipo: ["folga", "troca", "solicitacoes", "todos"],
       dp_disciplinar_tipo: [
