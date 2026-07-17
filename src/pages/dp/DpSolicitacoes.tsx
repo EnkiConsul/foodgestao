@@ -145,7 +145,6 @@ export default function DpSolicitacoes() {
         icon={ClipboardList}
         title="Solicitações"
         description="Aprove ou recuse pedidos especiais."
-        actions={<Button onClick={() => setDialogOpen(true)}><Plus className="h-4 w-4 mr-2" /> Nova solicitação</Button>}
       />
 
       {/* Pendentes */}
