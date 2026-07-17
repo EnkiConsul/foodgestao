@@ -144,6 +144,10 @@ export default function DpDocumentosPorTipo() {
   const [rejectRow, setRejectRow] = useState<Row | null>(null);
   const [rejectMotivo, setRejectMotivo] = useState("");
 
+  const [detailDoc, setDetailDoc] = useState<Row | null>(null);
+  const isMobile = useMediaQuery("(max-width: 768px)");
+
+
   // Data
   const list = useQuery({
     queryKey: ["dp_documentos", tipo, selectedCompanyId],
