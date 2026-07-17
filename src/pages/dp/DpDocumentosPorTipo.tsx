@@ -5,21 +5,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Upload, History, Download, Pencil, Loader2, Check, X, Trash2, Eye,
-  FileText, Clock, Coins, ArrowLeft, CheckCircle2, XCircle,
+  FileText, Clock, Coins, ArrowLeft,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-
-function useMediaQuery(query: string) {
-  const [matches, setMatches] = useState(false);
-  useEffect(() => {
-    const media = window.matchMedia(query);
-    setMatches(media.matches);
-    const listener = (e: MediaQueryListEvent) => setMatches(e.matches);
-    media.addEventListener("change", listener);
-    return () => media.removeEventListener("change", listener);
-  }, [query]);
-  return matches;
-}
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -32,7 +20,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -54,32 +41,25 @@ const BUCKET = "dp-documentos";
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 const CONFIG: Record<Tipo, {
-  titulo: string; descricao: string; importTitle: string;
-  icon: LucideIcon; cor: string; bg: string;
+  titulo: string; descricao: string; importTitle: string; icon: LucideIcon;
 }> = {
   contracheque: {
     titulo: "Contracheques",
     descricao: "Importe e gerencie contracheques dos colaboradores.",
     importTitle: "Importar Contracheques",
     icon: FileText,
-    cor: "text-blue-600 dark:text-blue-400",
-    bg: "bg-blue-500/10",
   },
   ponto: {
     titulo: "Folhas de Ponto",
     descricao: "Importe e gerencie folhas de ponto dos colaboradores.",
     importTitle: "Importar Folhas de Ponto",
     icon: Clock,
-    cor: "text-emerald-600 dark:text-emerald-400",
-    bg: "bg-emerald-500/10",
   },
   adiantamento: {
     titulo: "Adiantamentos",
     descricao: "Importe e gerencie adiantamentos salariais dos colaboradores.",
     importTitle: "Importar Adiantamentos",
     icon: Coins,
-    cor: "text-cyan-600 dark:text-cyan-400",
-    bg: "bg-cyan-500/10",
   },
 };
 
@@ -93,10 +73,10 @@ function parseMesAno(row: Row): { mes: number; ano: number } | null {
 
 function StatusBadge({ status }: { status: Aprov }) {
   if (status === "aprovado")
-    return <Badge className="bg-green-500/15 text-green-700 dark:text-green-300 border-green-500/30">Aprovado</Badge>;
+    return <Badge className="bg-green-500/15 text-green-700 dark:text-green-300 border-green-500/30 font-normal lowercase">disponível</Badge>;
   if (status === "recusado")
-    return <Badge className="bg-destructive/15 text-destructive border-destructive/30">Recusado</Badge>;
-  return <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30">Pendente</Badge>;
+    return <Badge className="bg-destructive/15 text-destructive border-destructive/30 font-normal lowercase">recusado</Badge>;
+  return <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 font-normal lowercase">pendente</Badge>;
 }
 
 export default function DpDocumentosPorTipo() {
@@ -113,22 +93,19 @@ export default function DpDocumentosPorTipo() {
 
   const [aba, setAba] = useState<"importar" | "historico">("importar");
 
-  // Import form
-  const now = new Date();
-  const [impColab, setImpColab] = useState<string>("");
-  const [impMes, setImpMes] = useState<string>(String(now.getMonth() + 1));
-  const [impAno, setImpAno] = useState<string>(String(now.getFullYear()));
+  // Import (drag-drop simples)
+  const [dragOver, setDragOver] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  // Filters
+  // Filtros
   const [filtroColab, setFiltroColab] = useState("todos");
   const [filtroMes, setFiltroMes] = useState("todos");
   const [filtroAno, setFiltroAno] = useState("todos");
-  const [filtroStatusColab, setFiltroStatusColab] = useState("todos");
+  const [filtroStatus, setFiltroStatus] = useState<Aprov | "todos">("todos");
   const [filtroUnidade, setFiltroUnidade] = useState("todos");
-  const [filtroAprov, setFiltroAprov] = useState<Aprov | "todos">("todos");
 
-  // Editing / dialogs
+  // Edição / diálogos
   const [editando, setEditando] = useState<string | null>(null);
   const [editMes, setEditMes] = useState("");
   const [editAno, setEditAno] = useState("");
@@ -141,14 +118,6 @@ export default function DpDocumentosPorTipo() {
   const [toDelete, setToDelete] = useState<Row | null>(null);
   const [excluindo, setExcluindo] = useState(false);
 
-  const [rejectRow, setRejectRow] = useState<Row | null>(null);
-  const [rejectMotivo, setRejectMotivo] = useState("");
-
-  const [detailDoc, setDetailDoc] = useState<Row | null>(null);
-  const isMobile = useMediaQuery("(max-width: 768px)");
-
-
-  // Data
   const list = useQuery({
     queryKey: ["dp_documentos", tipo, selectedCompanyId],
     enabled: !!selectedCompanyId,
@@ -190,10 +159,8 @@ export default function DpDocumentosPorTipo() {
       if (filtroColab !== "todos" && d.colaborador_id !== filtroColab) return false;
       if (filtroMes !== "todos" && ma?.mes !== Number(filtroMes)) return false;
       if (filtroAno !== "todos" && ma?.ano !== Number(filtroAno)) return false;
-      if (filtroAprov !== "todos" && d.aprovacao_status !== filtroAprov) return false;
+      if (filtroStatus !== "todos" && d.aprovacao_status !== filtroStatus) return false;
       const colab = d.colaborador_id ? colabMap.get(d.colaborador_id) : null;
-      if (filtroStatusColab === "ativo" && !colab?.ativo) return false;
-      if (filtroStatusColab === "inativo" && colab?.ativo) return false;
       if (filtroUnidade !== "todos" && colab?.unidade_id !== filtroUnidade) return false;
       return true;
     }).sort((a, b) => {
@@ -206,47 +173,53 @@ export default function DpDocumentosPorTipo() {
       const nb = b.colaborador_id ? colabMap.get(b.colaborador_id)?.nome ?? "" : "";
       return na.localeCompare(nb);
     });
-  }, [list.data, filtroColab, filtroMes, filtroAno, filtroAprov, filtroStatusColab, filtroUnidade, colabMap]);
+  }, [list.data, filtroColab, filtroMes, filtroAno, filtroStatus, filtroUnidade, colabMap]);
 
-  // Actions
-  const doImport = async () => {
+  // ---- Upload
+  const pickFile = (f: File | null) => {
+    if (!f) return;
+    if (f.type !== "application/pdf") {
+      toast.error("Apenas arquivos PDF");
+      return;
+    }
+    setPendingFile(f);
+  };
+
+  const processarPdf = async () => {
     if (!selectedCompanyId) return toast.error("Sem empresa selecionada");
-    const files = fileRef.current?.files;
-    if (!files || files.length === 0) return toast.error("Selecione ao menos um arquivo");
-    const mes = Number(impMes), ano = Number(impAno);
-    if (!mes || !ano || ano < 2000) return toast.error("Informe mês e ano válidos");
+    if (!pendingFile) return toast.error("Selecione um PDF");
+    const now = new Date();
+    const mes = now.getMonth() + 1;
+    const ano = now.getFullYear();
     setUploading(true);
     try {
       const refDate = `${ano}-${String(mes).padStart(2, "0")}-01`;
-      let ok = 0;
-      for (const file of Array.from(files)) {
-        const path = `${selectedCompanyId}/${tipo}/${impColab || "geral"}/${Date.now()}-${file.name}`;
-        const up = await supabase.storage.from(BUCKET).upload(path, file, {
-          contentType: file.type, upsert: false,
-        });
-        if (up.error) throw up.error;
-        const { error } = await supabase.from("dp_documentos").insert({
-          company_id: selectedCompanyId,
-          colaborador_id: impColab || null,
-          tipo,
-          titulo: `${cfg.titulo.slice(0, -1)} ${String(mes).padStart(2, "0")}/${ano}`,
-          file_path: path,
-          file_name: file.name,
-          file_size: file.size,
-          mime_type: file.type,
-          referencia_data: refDate,
-          uploaded_by: user?.id,
-        });
-        if (error) throw error;
-        ok++;
-      }
-      toast.success(`${ok} documento(s) enviado(s)`);
+      const path = `${selectedCompanyId}/${tipo}/geral/${Date.now()}-${pendingFile.name}`;
+      const up = await supabase.storage.from(BUCKET).upload(path, pendingFile, {
+        contentType: pendingFile.type, upsert: false,
+      });
+      if (up.error) throw up.error;
+      const { error } = await supabase.from("dp_documentos").insert({
+        company_id: selectedCompanyId,
+        colaborador_id: null,
+        tipo,
+        titulo: `${cfg.titulo.slice(0, -1)} ${String(mes).padStart(2, "0")}/${ano}`,
+        file_path: path,
+        file_name: pendingFile.name,
+        file_size: pendingFile.size,
+        mime_type: pendingFile.type,
+        referencia_data: refDate,
+        uploaded_by: user?.id,
+      });
+      if (error) throw error;
+      toast.success("PDF processado com sucesso");
+      setPendingFile(null);
       if (fileRef.current) fileRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
       qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
       setAba("historico");
     } catch (e) {
-      toast.error("Erro ao importar", { description: e instanceof Error ? e.message : String(e) });
+      toast.error("Erro ao processar", { description: e instanceof Error ? e.message : String(e) });
     } finally {
       setUploading(false);
     }
@@ -310,41 +283,6 @@ export default function DpDocumentosPorTipo() {
     }
   };
 
-  const aprovar = useMutation({
-    mutationFn: async (row: Row) => {
-      const { error } = await supabase.from("dp_documentos").update({
-        aprovacao_status: "aprovado",
-        revisado_por: user?.id,
-        revisado_em: new Date().toISOString(),
-        motivo_recusao: null,
-      }).eq("id", row.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Documento aprovado");
-      qc.invalidateQueries({ queryKey: ["dp_documentos"] });
-    },
-    onError: (e: any) => toast.error(e.message ?? "Erro"),
-  });
-
-  const recusar = useMutation({
-    mutationFn: async ({ row, motivo }: { row: Row; motivo: string }) => {
-      const { error } = await supabase.from("dp_documentos").update({
-        aprovacao_status: "recusado",
-        revisado_por: user?.id,
-        revisado_em: new Date().toISOString(),
-        motivo_recusao: motivo,
-      }).eq("id", row.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Documento recusado");
-      setRejectRow(null); setRejectMotivo("");
-      qc.invalidateQueries({ queryKey: ["dp_documentos"] });
-    },
-    onError: (e: any) => toast.error(e.message ?? "Erro"),
-  });
-
   return (
     <DpPage>
       <Helmet><title>{cfg.titulo} — DP 360°</title></Helmet>
@@ -360,7 +298,7 @@ export default function DpDocumentosPorTipo() {
         actions={<FavoriteToggle />}
       />
 
-      {/* Tabs Importar / Histórico */}
+      {/* Tabs */}
       <div className="flex gap-2 border-b border-border">
         <button
           onClick={() => setAba("importar")}
@@ -387,66 +325,58 @@ export default function DpDocumentosPorTipo() {
       </div>
 
       {aba === "importar" && (
-        <Card className="border-border shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <div className={cn("size-8 rounded-lg flex items-center justify-center", cfg.bg, cfg.cor)}>
-                <Upload className="size-4" />
-              </div>
-              {cfg.importTitle}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="space-y-1.5 md:col-span-1">
-                <Label>Colaborador</Label>
-                <Select value={impColab} onValueChange={setImpColab}>
-                  <SelectTrigger><SelectValue placeholder="(opcional)" /></SelectTrigger>
-                  <SelectContent>
-                    {colaboradores.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Mês</Label>
-                <Select value={impMes} onValueChange={setImpMes}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {MESES.map((m, i) => (
-                      <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Ano</Label>
-                <Input value={impAno} maxLength={4} onChange={(e) => setImpAno(e.target.value.replace(/\D/g, ""))} />
-              </div>
+        <div className="bg-card border border-border rounded-2xl p-6 space-y-4 shadow-sm">
+          <div className="flex items-center gap-2 font-semibold">
+            <Upload className="size-5 text-primary" />
+            {cfg.importTitle}
+          </div>
+
+          <label
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault(); setDragOver(false);
+              pickFile(e.dataTransfer.files?.[0] ?? null);
+            }}
+            className={cn(
+              "block cursor-pointer rounded-xl border-2 border-dashed transition-colors",
+              "px-6 py-14 text-center",
+              dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
+            )}
+          >
+            <input
+              ref={fileRef}
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+            />
+            <Upload className="size-8 mx-auto text-muted-foreground" />
+            <div className="mt-3 text-sm text-foreground">
+              {pendingFile
+                ? <span className="font-medium">{pendingFile.name}</span>
+                : "Arraste um PDF ou clique para selecionar"}
             </div>
-            <div className="space-y-1.5">
-              <Label>Arquivos PDF</Label>
-              <Input ref={fileRef} type="file" accept="application/pdf" multiple />
-              <p className="text-xs text-muted-foreground">
-                Selecione um ou mais PDFs. A competência informada será aplicada a todos os arquivos deste envio.
-              </p>
-            </div>
-            <div className="flex justify-end">
-              <Button onClick={doImport} disabled={uploading}>
-                {uploading ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Upload className="size-4 mr-2" />}
-                {uploading ? "Enviando..." : "Enviar"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            <div className="text-xs text-muted-foreground mt-1">Apenas arquivos PDF</div>
+          </label>
+
+          <Button
+            className="w-full"
+            size="lg"
+            onClick={processarPdf}
+            disabled={uploading || !pendingFile}
+          >
+            {uploading ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Upload className="size-4 mr-2" />}
+            {uploading ? "Processando..." : "Processar PDF"}
+          </Button>
+        </div>
       )}
 
       {aba === "historico" && (
         <div className="space-y-4">
           {/* Filtros */}
-          <div className="bg-card border border-border rounded-2xl p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            <div className="space-y-1 col-span-2 md:col-span-1">
+          <div className="bg-card border border-border rounded-2xl p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="space-y-1">
               <Label className="text-xs uppercase text-muted-foreground font-bold">Colaborador</Label>
               <Select value={filtroColab} onValueChange={setFiltroColab}>
                 <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
@@ -461,7 +391,7 @@ export default function DpDocumentosPorTipo() {
             <div className="space-y-1">
               <Label className="text-xs uppercase text-muted-foreground font-bold">Mês</Label>
               <Select value={filtroMes} onValueChange={setFiltroMes}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
                   {MESES.map((m, i) => (
@@ -473,7 +403,7 @@ export default function DpDocumentosPorTipo() {
             <div className="space-y-1">
               <Label className="text-xs uppercase text-muted-foreground font-bold">Ano</Label>
               <Select value={filtroAno} onValueChange={setFiltroAno}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
                   {anosDisponiveis.map((a) => (
@@ -483,13 +413,14 @@ export default function DpDocumentosPorTipo() {
               </Select>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs uppercase text-muted-foreground font-bold">Status Colab.</Label>
-              <Select value={filtroStatusColab} onValueChange={setFiltroStatusColab}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Label className="text-xs uppercase text-muted-foreground font-bold">Status</Label>
+              <Select value={filtroStatus} onValueChange={(v) => setFiltroStatus(v as any)}>
+                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="ativo">Ativo</SelectItem>
-                  <SelectItem value="inativo">Inativo</SelectItem>
+                  <SelectItem value="aprovado">Disponível</SelectItem>
+                  <SelectItem value="pendente">Pendente</SelectItem>
+                  <SelectItem value="recusado">Recusado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -505,18 +436,6 @@ export default function DpDocumentosPorTipo() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs uppercase text-muted-foreground font-bold">Aprovação</Label>
-              <Select value={filtroAprov} onValueChange={(v) => setFiltroAprov(v as any)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todas</SelectItem>
-                  <SelectItem value="pendente">Pendentes</SelectItem>
-                  <SelectItem value="aprovado">Aprovados</SelectItem>
-                  <SelectItem value="recusado">Recusados</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
           {list.isLoading ? (
@@ -527,67 +446,17 @@ export default function DpDocumentosPorTipo() {
             <div className="rounded-2xl border border-dashed p-12 text-center text-muted-foreground">
               Nenhum documento encontrado com os filtros selecionados.
             </div>
-          ) : isMobile ? (
-            <div className="grid gap-3">
-              {filtrados.map((doc) => {
-                const colab = doc.colaborador_id ? colabMap.get(doc.colaborador_id) : null;
-                const ma = parseMesAno(doc);
-                return (
-                  <div
-                    key={doc.id}
-                    className="bg-card border border-border rounded-2xl p-4 space-y-2 shadow-sm hover:shadow-md transition-shadow cursor-pointer active:scale-[0.98]"
-                    onClick={() => setDetailDoc(doc)}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-sm truncate">{colab?.nome ?? "—"}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {colab?.unidade_nome && <span>{colab.unidade_nome} • </span>}
-                          {ma ? `${String(ma.mes).padStart(2, "0")}/${ma.ano}` : "—"}
-                        </div>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          <StatusBadge status={doc.aprovacao_status} />
-                          {colab && !colab.ativo && (
-                            <Badge variant="outline" className="text-[10px] bg-destructive/10 text-destructive border-destructive/30">
-                              Inativo
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 pt-2 border-t border-border justify-start flex-wrap">
-                      <Button variant="ghost" size="icon" className="size-8 text-blue-600 hover:text-blue-700 hover:bg-blue-500/10"
-                        title="Visualizar" onClick={(e) => { e.stopPropagation(); handlePreview(doc); }}>
-                        <Eye className="size-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="size-8"
-                        title="Baixar" onClick={(e) => { e.stopPropagation(); handleDownload(doc); }}>
-                        <Download className="size-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="size-8"
-                        title="Editar competência" onClick={(e) => { e.stopPropagation(); startEditing(doc); }}>
-                        <Pencil className="size-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="size-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        title="Excluir" onClick={(e) => { e.stopPropagation(); setToDelete(doc); }}>
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
           ) : (
             <div className="bg-card border border-border rounded-2xl overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-muted/50 border-b border-border">
+                <thead className="border-b border-border">
                   <tr>
                     <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Colaborador</th>
                     <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Competência</th>
-                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground hidden md:table-cell">Arquivo</th>
-                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground hidden lg:table-cell">Unidade</th>
-                    <th className="text-center p-4 font-bold uppercase text-[10px] text-muted-foreground">Status</th>
-                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground hidden md:table-cell">Aprovado em</th>
+                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Arquivo</th>
+                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Unidade</th>
+                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Status</th>
+                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Aprovado em</th>
                     <th className="text-right p-4 font-bold uppercase text-[10px] text-muted-foreground">Ações</th>
                   </tr>
                 </thead>
@@ -597,16 +466,11 @@ export default function DpDocumentosPorTipo() {
                     const ma = parseMesAno(doc);
                     const isEditing = editando === doc.id;
                     return (
-                      <tr key={doc.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => !isEditing && setDetailDoc(doc)}>
-                        <td className="p-4 font-medium">
+                      <tr key={doc.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="p-4 font-semibold">
                           {colab?.nome ?? "—"}
-                          {colab && !colab.ativo && (
-                            <Badge variant="outline" className="ml-2 text-xs bg-destructive/10 text-destructive border-destructive/30">
-                              Inativo
-                            </Badge>
-                          )}
                         </td>
-                        <td className="p-4" onClick={(e) => isEditing && e.stopPropagation()}>
+                        <td className="p-4">
                           {isEditing ? (
                             <div className="flex items-center gap-2">
                               <Select value={editMes} onValueChange={setEditMes}>
@@ -627,40 +491,28 @@ export default function DpDocumentosPorTipo() {
                               </Button>
                             </div>
                           ) : (
-                            <span className="font-mono">
+                            <span>
                               {ma ? `${String(ma.mes).padStart(2, "0")}/${ma.ano}` : "—"}
                             </span>
                           )}
                         </td>
-                        <td className="p-4 hidden md:table-cell text-muted-foreground text-xs truncate max-w-[200px]">
+                        <td className="p-4 text-muted-foreground">
                           {doc.file_name ?? "—"}
                         </td>
-                        <td className="p-4 hidden lg:table-cell text-muted-foreground">
+                        <td className="p-4 text-muted-foreground">
                           {colab?.unidade_nome ?? "—"}
                         </td>
-                        <td className="p-4 text-center">
+                        <td className="p-4">
                           <StatusBadge status={doc.aprovacao_status} />
                         </td>
-                        <td className="p-4 hidden md:table-cell text-xs text-muted-foreground">
+                        <td className="p-4 text-muted-foreground text-xs">
                           {doc.revisado_em && doc.aprovacao_status === "aprovado"
-                            ? new Date(doc.revisado_em).toLocaleDateString("pt-BR") + " " +
+                            ? new Date(doc.revisado_em).toLocaleDateString("pt-BR") + " às " +
                               new Date(doc.revisado_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
                             : "—"}
                         </td>
-                        <td className="p-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                        <td className="p-4 text-right whitespace-nowrap">
                           <div className="flex justify-end gap-1">
-                            {doc.aprovacao_status === "pendente" && (
-                              <>
-                                <Button variant="ghost" size="icon" className="size-8 text-green-600 hover:text-green-700 hover:bg-green-500/10"
-                                  title="Aprovar" onClick={() => aprovar.mutate(doc)} disabled={aprovar.isPending}>
-                                  <CheckCircle2 className="size-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="size-8 text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
-                                  title="Recusar" onClick={() => { setRejectRow(doc); setRejectMotivo(""); }}>
-                                  <XCircle className="size-4" />
-                                </Button>
-                              </>
-                            )}
                             <Button variant="ghost" size="icon" className="size-8 text-blue-600 hover:text-blue-700 hover:bg-blue-500/10"
                               title="Visualizar" onClick={() => handlePreview(doc)}>
                               <Eye className="size-4" />
@@ -688,66 +540,6 @@ export default function DpDocumentosPorTipo() {
           )}
         </div>
       )}
-
-      {/* Detalhes do documento */}
-      <Dialog open={!!detailDoc} onOpenChange={(o) => !o && setDetailDoc(null)}>
-        <DialogContent className="max-w-md rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Detalhes do Documento</DialogTitle>
-          </DialogHeader>
-          {detailDoc && (() => {
-            const colab = detailDoc.colaborador_id ? colabMap.get(detailDoc.colaborador_id) : null;
-            const ma = parseMesAno(detailDoc);
-            return (
-              <div className="space-y-4 py-2">
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="text-muted-foreground">Colaborador</div>
-                  <div className="font-medium">{colab?.nome ?? "—"}</div>
-                  <div className="text-muted-foreground">Competência</div>
-                  <div className="font-medium font-mono">{ma ? `${String(ma.mes).padStart(2, "0")}/${ma.ano}` : "—"}</div>
-                  <div className="text-muted-foreground">Unidade</div>
-                  <div className="font-medium">{colab?.unidade_nome ?? "—"}</div>
-                  <div className="text-muted-foreground">Status</div>
-                  <div><StatusBadge status={detailDoc.aprovacao_status} /></div>
-                  <div className="text-muted-foreground">Arquivo</div>
-                  <div className="font-medium truncate">{detailDoc.file_name ?? "—"}</div>
-                  <div className="text-muted-foreground">Aprovado em</div>
-                  <div className="font-medium">
-                    {detailDoc.revisado_em && detailDoc.aprovacao_status === "aprovado"
-                      ? new Date(detailDoc.revisado_em).toLocaleDateString("pt-BR") + " " +
-                        new Date(detailDoc.revisado_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-                      : "—"}
-                  </div>
-                  {detailDoc.aprovacao_status === "recusado" && detailDoc.motivo_recusao && (
-                    <>
-                      <div className="text-muted-foreground">Motivo</div>
-                      <div className="font-medium text-destructive">{detailDoc.motivo_recusao}</div>
-                    </>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-2 pt-2 border-t">
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => { handlePreview(detailDoc); setDetailDoc(null); }}>
-                    <Eye className="size-4 mr-1" /> Visualizar
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => { handleDownload(detailDoc); setDetailDoc(null); }}>
-                    <Download className="size-4 mr-1" /> Baixar
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => { startEditing(detailDoc); setDetailDoc(null); }}>
-                    <Pencil className="size-4 mr-1" /> Editar
-                  </Button>
-                  <Button variant="destructive" size="sm" className="flex-1" onClick={() => { setToDelete(detailDoc); setDetailDoc(null); }}>
-                    <Trash2 className="size-4 mr-1" /> Excluir
-                  </Button>
-                </div>
-              </div>
-            );
-          })()}
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDetailDoc(null)}>Fechar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
 
       {/* Preview */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
@@ -810,27 +602,6 @@ export default function DpDocumentosPorTipo() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Recusar */}
-      <Dialog open={!!rejectRow} onOpenChange={(v) => { if (!v) { setRejectRow(null); setRejectMotivo(""); } }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Recusar documento</DialogTitle>
-            <DialogDescription>Informe o motivo — será visível ao colaborador.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-2 py-2">
-            <Input value={rejectMotivo} onChange={(e) => setRejectMotivo(e.target.value)}
-              placeholder="Ex.: Arquivo ilegível, favor reenviar." />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectRow(null)}>Cancelar</Button>
-            <Button variant="destructive" disabled={recusar.isPending || !rejectMotivo.trim()}
-              onClick={() => rejectRow && recusar.mutate({ row: rejectRow, motivo: rejectMotivo.trim() })}>
-              Recusar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </DpPage>
   );
 }
