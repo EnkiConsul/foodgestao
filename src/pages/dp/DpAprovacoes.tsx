@@ -1,148 +1,161 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
-import { CheckCheck, ExternalLink, UserCheck } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { UserCheck, Check, X, Inbox } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useDpNotificacoes, useMarkNotifRead } from "@/hooks/useDpNotificacoes";
-import { TableSkeleton } from "@/components/dp/DpSkeletons";
-import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { Card, CardContent } from "@/components/ui/card";
+import { DpPage, DpPageHeader, DpEmptyState } from "@/components/dp/DpPage";
+import { RecusaDialog } from "@/components/dp/RecusaDialog";
+import { maskCpf } from "@/lib/cpf";
 import type { Database } from "@/integrations/supabase/types";
 
-type NotifTipo = Database["public"]["Enums"]["dp_notificacao_tipo"];
-
-const REF_TO_PATH: Record<string, string> = {
-  dp_solicitacoes: "/dp/solicitacoes",
-  dp_trocas: "/dp/trocas",
-  dp_registros_disciplinares: "/dp/disciplinar",
-};
-
-const TIPO_LABEL: Record<NotifTipo, string> = {
-  solicitacao_nova: "Solicitação",
-  solicitacao_respondida: "Solicitação respondida",
-  troca_nova: "Nova troca",
-  troca_resposta_colega: "Resposta colega",
-  troca_resposta_gestor: "Resposta gestor",
-  disciplinar_novo: "Disciplinar",
-  atestado_novo: "Novo atestado",
-};
+type Solicitacao = Database["public"]["Tables"]["dp_cadastro_solicitacoes"]["Row"];
 
 export default function DpAprovacoes() {
-  const [tab, setTab] = useState<"pendentes" | "todas">("pendentes");
-  const [filterTable, setFilterTable] = useState<string>("todas");
-  const list = useDpNotificacoes();
-  const mark = useMarkNotifRead();
+  const { selectedCompanyId } = useCompanyContext();
+  const qc = useQueryClient();
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [recusarId, setRecusarId] = useState<string | null>(null);
 
-  const rows = useMemo(() => {
-    const base = list.data ?? [];
-    return base
-      .filter((n) => (tab === "pendentes" ? !n.lida_em : true))
-      .filter((n) => (filterTable === "todas" ? true : n.ref_table === filterTable));
-  }, [list.data, tab, filterTable]);
+  const listQuery = useQuery({
+    queryKey: ["dp_cadastro_solicitacoes", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_cadastro_solicitacoes")
+        .select("*")
+        .eq("company_id", selectedCompanyId!)
+        .eq("status", "pendente")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as Solicitacao[];
+    },
+  });
 
-  const pendentesCount = (list.data ?? []).filter((n) => !n.lida_em).length;
-  const markAll = () => mark.mutate(rows.filter((n) => !n.lida_em).map((n) => n.id));
+  const decide = useMutation({
+    mutationFn: async ({ id, approve, motivo }: { id: string; approve: boolean; motivo?: string }) => {
+      const sol = listQuery.data?.find((s) => s.id === id);
+      if (!sol) throw new Error("Solicitação não encontrada");
+
+      if (approve) {
+        // Cria colaborador aprovado a partir da solicitação
+        const { error: insErr } = await supabase.from("dp_colaboradores").insert({
+          company_id: sol.company_id,
+          nome: sol.nome,
+          cpf: sol.cpf,
+          cargo: sol.cargo ?? "",
+          email: sol.email,
+          telefone: sol.telefone,
+          data_nascimento: sol.data_nascimento,
+          observacoes: sol.observacoes,
+          ativo: true,
+          aprovacao_status: "aprovado",
+        });
+        if (insErr) throw insErr;
+      }
+
+      const { data: userRes } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("dp_cadastro_solicitacoes")
+        .update({
+          status: approve ? "aprovado" : "recusado",
+          motivo_recusa: approve ? null : motivo ?? null,
+          reviewed_by: userRes.user?.id ?? null,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_data, vars) => {
+      toast({ title: vars.approve ? "Cadastro aprovado" : "Cadastro recusado" });
+      qc.invalidateQueries({ queryKey: ["dp_cadastro_solicitacoes"] });
+      qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
+      setBusyId(null);
+      setRecusarId(null);
+    },
+    onError: (e: Error) => {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+      setBusyId(null);
+    },
+  });
+
+  const items = useMemo(() => listQuery.data ?? [], [listQuery.data]);
 
   return (
-    <DpPage>
-      <Helmet><title>Aprovações & Notificações — DP 360°</title></Helmet>
+    <DpPage narrow>
+      <Helmet><title>Aprovações de cadastro — DP 360°</title></Helmet>
 
       <DpPageHeader
         icon={UserCheck}
-        title="Aprovações & Notificações"
-        description={`${pendentesCount} pendente(s)`}
-        actions={<Button variant="outline" onClick={markAll} disabled={mark.isPending || rows.every((n) => n.lida_em)}>
-          <CheckCheck className="h-4 w-4 mr-2" /> Marcar tudo como lido
-        </Button>}
+        title="Aprovações de cadastro"
+        description="Novos colaboradores precisam ser aprovados antes de acessar o sistema."
       />
 
-      <DpFilterCard>
-      <div className="flex items-center gap-3 flex-wrap">
-        <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
-          <TabsList>
-            <TabsTrigger value="pendentes">Pendentes</TabsTrigger>
-            <TabsTrigger value="todas">Todas</TabsTrigger>
-          </TabsList>
-        </Tabs>
-        <div className="flex gap-1">
-          {[
-            { v: "todas", l: "Tudo" },
-            { v: "dp_solicitacoes", l: "Solicitações" },
-            { v: "dp_trocas", l: "Trocas" },
-            { v: "dp_registros_disciplinares", l: "Disciplinar" },
-          ].map((f) => (
-            <Button
-              key={f.v}
-              size="sm"
-              variant={filterTable === f.v ? "default" : "outline"}
-              onClick={() => setFilterTable(f.v)}
-            >{f.l}</Button>
-          ))}
-        </div>
-      </div>
-      </DpFilterCard>
+      <div className="space-y-3">
+        {listQuery.isLoading && (
+          <DpEmptyState dashed>Carregando…</DpEmptyState>
+        )}
 
-      <DpContentCard contentClassName="overflow-x-auto">
-          {list.isLoading ? (
-            <TableSkeleton columns={6} headers={["Tipo", "Título", "Descrição", "Quando", "Status", ""]} />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Título</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Quando</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-28"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((n) => {
-                  const path = REF_TO_PATH[n.ref_table] ?? "#";
-                  return (
-                    <TableRow key={n.id}>
-                      <TableCell><Badge variant="outline">{TIPO_LABEL[n.tipo]}</Badge></TableCell>
-                      <TableCell className="font-medium">{n.titulo}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{n.descricao ?? "—"}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(n.created_at).toLocaleString("pt-BR")}
-                      </TableCell>
-                      <TableCell>
-                        {n.lida_em
-                          ? <Badge variant="outline">Lida</Badge>
-                          : <Badge variant="default">Nova</Badge>}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1 justify-end">
-                          {!n.lida_em && (
-                            <Button size="sm" variant="ghost" onClick={() => mark.mutate([n.id])}>
-                              <CheckCheck className="h-4 w-4" />
-                            </Button>
-                          )}
-                          <Button size="sm" variant="ghost" asChild>
-                            <Link to={path} onClick={() => { if (!n.lida_em) mark.mutate([n.id]); }}>
-                              <ExternalLink className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-                {rows.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                      Nenhuma notificação nesta visão.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
-      </DpContentCard>
+        {!listQuery.isLoading && items.length === 0 && (
+          <DpEmptyState icon={Inbox} dashed>Nenhum cadastro pendente.</DpEmptyState>
+        )}
+
+        {items.map((p) => (
+          <Card key={p.id} className="dp-content-card">
+            <CardContent className="p-4 md:p-5">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="min-w-0 space-y-1">
+                  <div className="font-semibold text-base">{p.nome}</div>
+                  <div className="text-sm text-muted-foreground">
+                    CPF: {maskCpf(p.cpf)}
+                    {p.cargo ? <> • {p.cargo}</> : null}
+                  </div>
+                  {(p.email || p.telefone) && (
+                    <div className="text-xs text-muted-foreground">
+                      {[p.email, p.telefone].filter(Boolean).join(" • ")}
+                    </div>
+                  )}
+                  <div className="text-xs text-muted-foreground">
+                    Solicitado em {new Date(p.created_at).toLocaleString("pt-BR")}
+                  </div>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <Button
+                    variant="outline"
+                    disabled={busyId === p.id || decide.isPending}
+                    onClick={() => setRecusarId(p.id)}
+                  >
+                    <X className="h-4 w-4 mr-1" /> Recusar
+                  </Button>
+                  <Button
+                    disabled={busyId === p.id || decide.isPending}
+                    onClick={() => { setBusyId(p.id); decide.mutate({ id: p.id, approve: true }); }}
+                  >
+                    <Check className="h-4 w-4 mr-1" /> Aprovar
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <RecusaDialog
+        open={!!recusarId}
+        onOpenChange={(v) => { if (!v) setRecusarId(null); }}
+        title="Recusar cadastro"
+        description="Informe o motivo da recusa. Ele ficará registrado no histórico da solicitação."
+        motivoObrigatorio
+        loading={decide.isPending}
+        onConfirm={(motivo) => {
+          if (!recusarId) return;
+          setBusyId(recusarId);
+          decide.mutate({ id: recusarId, approve: false, motivo });
+        }}
+      />
     </DpPage>
   );
 }
