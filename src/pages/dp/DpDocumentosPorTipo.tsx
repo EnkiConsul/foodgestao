@@ -527,6 +527,56 @@ export default function DpDocumentosPorTipo() {
             <div className="rounded-2xl border border-dashed p-12 text-center text-muted-foreground">
               Nenhum documento encontrado com os filtros selecionados.
             </div>
+          ) : isMobile ? (
+            <div className="grid gap-3">
+              {filtrados.map((doc) => {
+                const colab = doc.colaborador_id ? colabMap.get(doc.colaborador_id) : null;
+                const ma = parseMesAno(doc);
+                return (
+                  <div
+                    key={doc.id}
+                    className="bg-card border border-border rounded-2xl p-4 space-y-2 shadow-sm hover:shadow-md transition-shadow cursor-pointer active:scale-[0.98]"
+                    onClick={() => setDetailDoc(doc)}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-sm truncate">{colab?.nome ?? "—"}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {colab?.unidade_nome && <span>{colab.unidade_nome} • </span>}
+                          {ma ? `${String(ma.mes).padStart(2, "0")}/${ma.ano}` : "—"}
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          <StatusBadge status={doc.aprovacao_status} />
+                          {colab && !colab.ativo && (
+                            <Badge variant="outline" className="text-[10px] bg-destructive/10 text-destructive border-destructive/30">
+                              Inativo
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 pt-2 border-t border-border justify-start flex-wrap">
+                      <Button variant="ghost" size="icon" className="size-8 text-blue-600 hover:text-blue-700 hover:bg-blue-500/10"
+                        title="Visualizar" onClick={(e) => { e.stopPropagation(); handlePreview(doc); }}>
+                        <Eye className="size-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="size-8"
+                        title="Baixar" onClick={(e) => { e.stopPropagation(); handleDownload(doc); }}>
+                        <Download className="size-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="size-8"
+                        title="Editar competência" onClick={(e) => { e.stopPropagation(); startEditing(doc); }}>
+                        <Pencil className="size-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="size-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        title="Excluir" onClick={(e) => { e.stopPropagation(); setToDelete(doc); }}>
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           ) : (
             <div className="bg-card border border-border rounded-2xl overflow-x-auto">
               <table className="w-full text-sm">
@@ -547,7 +597,7 @@ export default function DpDocumentosPorTipo() {
                     const ma = parseMesAno(doc);
                     const isEditing = editando === doc.id;
                     return (
-                      <tr key={doc.id} className="hover:bg-muted/30 transition-colors">
+                      <tr key={doc.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => !isEditing && setDetailDoc(doc)}>
                         <td className="p-4 font-medium">
                           {colab?.nome ?? "—"}
                           {colab && !colab.ativo && (
@@ -556,7 +606,7 @@ export default function DpDocumentosPorTipo() {
                             </Badge>
                           )}
                         </td>
-                        <td className="p-4">
+                        <td className="p-4" onClick={(e) => isEditing && e.stopPropagation()}>
                           {isEditing ? (
                             <div className="flex items-center gap-2">
                               <Select value={editMes} onValueChange={setEditMes}>
@@ -597,7 +647,7 @@ export default function DpDocumentosPorTipo() {
                               new Date(doc.revisado_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
                             : "—"}
                         </td>
-                        <td className="p-4 text-right whitespace-nowrap">
+                        <td className="p-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-end gap-1">
                             {doc.aprovacao_status === "pendente" && (
                               <>
@@ -638,6 +688,66 @@ export default function DpDocumentosPorTipo() {
           )}
         </div>
       )}
+
+      {/* Detalhes do documento */}
+      <Dialog open={!!detailDoc} onOpenChange={(o) => !o && setDetailDoc(null)}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Documento</DialogTitle>
+          </DialogHeader>
+          {detailDoc && (() => {
+            const colab = detailDoc.colaborador_id ? colabMap.get(detailDoc.colaborador_id) : null;
+            const ma = parseMesAno(detailDoc);
+            return (
+              <div className="space-y-4 py-2">
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="text-muted-foreground">Colaborador</div>
+                  <div className="font-medium">{colab?.nome ?? "—"}</div>
+                  <div className="text-muted-foreground">Competência</div>
+                  <div className="font-medium font-mono">{ma ? `${String(ma.mes).padStart(2, "0")}/${ma.ano}` : "—"}</div>
+                  <div className="text-muted-foreground">Unidade</div>
+                  <div className="font-medium">{colab?.unidade_nome ?? "—"}</div>
+                  <div className="text-muted-foreground">Status</div>
+                  <div><StatusBadge status={detailDoc.aprovacao_status} /></div>
+                  <div className="text-muted-foreground">Arquivo</div>
+                  <div className="font-medium truncate">{detailDoc.file_name ?? "—"}</div>
+                  <div className="text-muted-foreground">Aprovado em</div>
+                  <div className="font-medium">
+                    {detailDoc.revisado_em && detailDoc.aprovacao_status === "aprovado"
+                      ? new Date(detailDoc.revisado_em).toLocaleDateString("pt-BR") + " " +
+                        new Date(detailDoc.revisado_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+                      : "—"}
+                  </div>
+                  {detailDoc.aprovacao_status === "recusado" && detailDoc.motivo_recusao && (
+                    <>
+                      <div className="text-muted-foreground">Motivo</div>
+                      <div className="font-medium text-destructive">{detailDoc.motivo_recusao}</div>
+                    </>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2 pt-2 border-t">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => { handlePreview(detailDoc); setDetailDoc(null); }}>
+                    <Eye className="size-4 mr-1" /> Visualizar
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => { handleDownload(detailDoc); setDetailDoc(null); }}>
+                    <Download className="size-4 mr-1" /> Baixar
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => { startEditing(detailDoc); setDetailDoc(null); }}>
+                    <Pencil className="size-4 mr-1" /> Editar
+                  </Button>
+                  <Button variant="destructive" size="sm" className="flex-1" onClick={() => { setToDelete(detailDoc); setDetailDoc(null); }}>
+                    <Trash2 className="size-4 mr-1" /> Excluir
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDetailDoc(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       {/* Preview */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
