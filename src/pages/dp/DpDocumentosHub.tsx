@@ -1,24 +1,88 @@
 import { Helmet } from "react-helmet-async";
+import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { FileText, Wallet, FileSignature, Clock, HeartPulse, Palmtree, AlertOctagon, Users2, FolderOpen, ListChecks } from "lucide-react";
+import {
+  FileText, FileWarning, ShieldAlert, Clock, Coins, ListChecks, Scale,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { TIPOS } from "./DpDocumentos";
-import { NavigationCard } from "@/components/dp/NavigationCard";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
+import { cn } from "@/lib/utils";
 
-const ICONS: Record<string, LucideIcon> = {
-  contracheque: FileText,
-  adiantamento: Wallet,
-  contrato: FileSignature,
-  ponto: Clock,
-  atestado: HeartPulse,
-  ferias: Palmtree,
-  disciplinar: AlertOctagon,
-  sindicato: Users2,
-  outros: FolderOpen,
+type Modulo = {
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  to: string;
+  cor: string;
+  bg: string;
+  /** chave da contagem de pendências opcional (opcional) */
+  pendKey?: string;
 };
+
+const MODULOS: Modulo[] = [
+  {
+    title: "Contracheques",
+    description: "Importe e gerencie contracheques mensais dos colaboradores.",
+    icon: FileText,
+    to: "/dp/documentos/contracheque",
+    cor: "text-blue-600 dark:text-blue-400",
+    bg: "bg-blue-500/10",
+    pendKey: "contracheque",
+  },
+  {
+    title: "Folhas de Ponto",
+    description: "Importe e gerencie folhas de ponto mensais dos colaboradores.",
+    icon: Clock,
+    to: "/dp/documentos/ponto",
+    cor: "text-emerald-600 dark:text-emerald-400",
+    bg: "bg-emerald-500/10",
+    pendKey: "ponto",
+  },
+  {
+    title: "Adiantamentos",
+    description: "Importe e gerencie adiantamentos salariais dos colaboradores.",
+    icon: Coins,
+    to: "/dp/documentos/adiantamento",
+    cor: "text-cyan-600 dark:text-cyan-400",
+    bg: "bg-cyan-500/10",
+    pendKey: "adiantamento",
+  },
+  {
+    title: "Histórico Completo",
+    description: "Visualize todos os documentos de todos os colaboradores em uma única tela.",
+    icon: ListChecks,
+    to: "/dp/documentos/historico",
+    cor: "text-purple-600 dark:text-purple-400",
+    bg: "bg-purple-500/10",
+  },
+  {
+    title: "Atestados",
+    description: "Cadastre, aprove ou rejeite atestados médicos da equipe.",
+    icon: FileWarning,
+    to: "/dp/atestados",
+    cor: "text-amber-600 dark:text-amber-400",
+    bg: "bg-amber-500/10",
+  },
+  {
+    title: "Registros Disciplinares",
+    description: "Advertências e suspensões vinculadas a colaboradores.",
+    icon: ShieldAlert,
+    to: "/dp/disciplinar",
+    cor: "text-rose-600 dark:text-rose-400",
+    bg: "bg-rose-500/10",
+  },
+  {
+    title: "ACT/CCT",
+    description: "Acordos e Convenções Coletivas de Trabalho.",
+    icon: Scale,
+    to: "/dp/documentos/act-cct",
+    cor: "text-indigo-600 dark:text-indigo-400",
+    bg: "bg-indigo-500/10",
+  },
+];
 
 export default function DpDocumentosHub() {
   const { selectedCompanyId } = useCompanyContext();
@@ -32,13 +96,13 @@ export default function DpDocumentosHub() {
         .select("tipo, aprovacao_status")
         .eq("company_id", selectedCompanyId!);
       if (error) throw error;
-      const total: Record<string, number> = {};
       const pend: Record<string, number> = {};
       for (const row of (data ?? []) as any[]) {
-        total[row.tipo] = (total[row.tipo] ?? 0) + 1;
-        if (row.aprovacao_status === "pendente") pend[row.tipo] = (pend[row.tipo] ?? 0) + 1;
+        if (row.aprovacao_status === "pendente") {
+          pend[row.tipo] = (pend[row.tipo] ?? 0) + 1;
+        }
       }
-      return { total, pend };
+      return { pend };
     },
   });
 
@@ -46,38 +110,33 @@ export default function DpDocumentosHub() {
     <DpPage>
       <Helmet><title>Documentos — DP 360°</title></Helmet>
       <DpPageHeader
-        icon={FolderOpen}
-        title="Documentos por categoria"
-        description="Organize contracheques, contratos, atestados e demais arquivos."
+        icon={FileText}
+        title="Documentos"
+        description="Gerencie todos os documentos dos colaboradores."
+        actions={<FavoriteToggle />}
       />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {TIPOS.map((t) => {
-          const Icon = ICONS[t.value] ?? FolderOpen;
-          const count = counts.data?.total?.[t.value] ?? 0;
-          const pend = counts.data?.pend?.[t.value] ?? 0;
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-5xl">
+        {MODULOS.map((m) => {
+          const pend = m.pendKey ? counts.data?.pend?.[m.pendKey] ?? 0 : 0;
+          const Icon = m.icon;
           return (
-            <NavigationCard
-              key={t.value}
-              title={t.label}
-              to={`/dp/documentos/${t.value}`}
-              icon={Icon}
-              count={count}
-              description={pend > 0 ? `⚠ ${pend} aguardando aprovação` : undefined}
-            />
+            <Link key={m.to} to={m.to} className="block group">
+              <div className="relative bg-card border-2 border-border rounded-2xl p-6 shadow-sm hover:shadow-lg hover:border-primary/50 transition-all duration-200 h-full">
+                {pend > 0 && (
+                  <span className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-xs font-semibold px-2 py-0.5 border border-amber-500/40">
+                    ⚠ {pend} pendente{pend > 1 ? "s" : ""}
+                  </span>
+                )}
+                <div className={cn("size-12 rounded-xl flex items-center justify-center mb-4", m.bg, m.cor)}>
+                  <Icon className="size-6" />
+                </div>
+                <div className={cn("text-lg font-semibold mb-1", m.cor)}>{m.title}</div>
+                <p className="text-sm text-muted-foreground">{m.description}</p>
+              </div>
+            </Link>
           );
         })}
-        <NavigationCard
-          title="Negociações Coletivas (ACT/CCT)"
-          description="Acordos e convenções coletivas por sindicato"
-          to="/dp/documentos/act-cct"
-          icon={FileSignature}
-        />
-        <NavigationCard
-          title="Histórico completo"
-          description="Todos os documentos com filtros por colaborador, tipo e período"
-          to="/dp/documentos/historico"
-          icon={ListChecks}
-        />
       </div>
     </DpPage>
   );
