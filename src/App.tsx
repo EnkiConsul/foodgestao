@@ -19,6 +19,7 @@ import DpColaboradores from "./pages/dp/DpColaboradores";
 import DpSolicitacoes from "./pages/dp/DpSolicitacoes";
 import DpDocumentos from "./pages/dp/DpDocumentos";
 import DpDocumentosHub from "./pages/dp/DpDocumentosHub";
+import DpDocumentosPorTipo from "./pages/dp/DpDocumentosPorTipo";
 import DpFolgas from "./pages/dp/DpFolgas";
 import DpFolgasHub from "./pages/dp/DpFolgasHub";
 import DpCadastrosHub from "./pages/dp/DpCadastrosHub";
@@ -345,6 +346,9 @@ const AppRoutes = () => (
       <Route path="documentos" element={<DpDocumentosHub />} />
       <Route path="documentos/todos" element={<DpDocumentos />} />
       <Route path="documentos/historico" element={<DpHistoricoCompleto />} />
+      <Route path="documentos/contracheque" element={<DpDocumentosPorTipo />} />
+      <Route path="documentos/ponto" element={<DpDocumentosPorTipo />} />
+      <Route path="documentos/adiantamento" element={<DpDocumentosPorTipo />} />
       <Route path="documentos/:categoria" element={<DpDocumentos />} />
       <Route path="atestados" element={<DpAtestados />} />
       <Route path="avisos" element={<DpAvisos />} />
