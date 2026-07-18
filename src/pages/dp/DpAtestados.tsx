@@ -1,7 +1,7 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { FileWarning, Check, X, Eye, Download, Upload, History, FileText, Trash2 } from "lucide-react";
+import { FileWarning, Download, Upload, History, FileText, Trash2, Pencil, FileImage, FileUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
@@ -29,13 +30,20 @@ type Row = Database["public"]["Tables"]["dp_solicitacoes"]["Row"] & {
 };
 
 const BUCKET = "dp-documentos";
-const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-
 const STATUS_BADGE: Record<Status, { label: string; className: string }> = {
-  pendente: { label: "Pendente", className: "bg-amber-500 text-white" },
-  aprovada: { label: "Aprovado", className: "bg-primary text-primary-foreground" },
+  pendente: { label: "Pendente", className: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400" },
+  aprovada: { label: "Aprovado", className: "border-success/30 bg-success/10 text-success" },
   recusada: { label: "Recusado", className: "bg-destructive text-destructive-foreground" },
   cancelada: { label: "Cancelado", className: "bg-muted text-muted-foreground" },
+};
+
+const formatDate = (value?: string | null) => value ? new Date(`${value}T00:00:00`).toLocaleDateString("pt-BR") : "—";
+
+const getFileKind = (path?: string | null) => {
+  if (!path) return { label: "—", icon: FileText };
+  const lower = path.toLowerCase();
+  if (lower.endsWith(".pdf")) return { label: "PDF", icon: FileText };
+  return { label: "Imagem", icon: FileImage };
 };
 
 function diffDays(start?: string | null, end?: string | null) {
@@ -60,6 +68,7 @@ export default function DpAtestados() {
   const [preview, setPreview] = useState<{ title: string; path: string } | null>(null);
   const [recusaId, setRecusaId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<Row | null>(null);
+  const [editing, setEditing] = useState<Row | null>(null);
 
   // form
   const fileRef = useRef<HTMLInputElement>(null);
@@ -72,10 +81,17 @@ export default function DpAtestados() {
 
   // filtros histórico
   const [fColab, setFColab] = useState<string>("todos");
-  const [fMes, setFMes] = useState<string>("todos");
-  const [fAno, setFAno] = useState<string>("todos");
   const [fStatus, setFStatus] = useState<string>("todos");
   const [fUnidade, setFUnidade] = useState<string>("todos");
+  const [fDataInicio, setFDataInicio] = useState<string>("");
+  const [fDataFim, setFDataFim] = useState<string>("");
+
+  // edição histórico
+  const [editUnidadeId, setEditUnidadeId] = useState<string>("");
+  const [editColaboradorId, setEditColaboradorId] = useState<string>("");
+  const [editDataDoc, setEditDataDoc] = useState<string>("");
+  const [editDias, setEditDias] = useState<string>("");
+  const [editObservacao, setEditObservacao] = useState<string>("");
 
   const colabs = useDpColaboradores();
   const unidades = useDpUnidades();
@@ -96,29 +112,41 @@ export default function DpAtestados() {
   });
 
   const rows = list.data ?? [];
-  const anos = useMemo(() => {
-    const s = new Set<number>();
-    rows.forEach((r) => r.data_alvo && s.add(Number(r.data_alvo.slice(0, 4))));
-    return Array.from(s).sort((a, b) => b - a);
-  }, [rows]);
 
   const filtered = useMemo(() => {
     return rows.filter((r) => {
       if (fColab !== "todos" && r.colaborador_id !== fColab) return false;
       if (fStatus !== "todos" && r.status !== fStatus) return false;
       if (fUnidade !== "todos" && r.dp_colaboradores?.unidade_id !== fUnidade) return false;
-      if (r.data_alvo) {
-        const [y, m] = r.data_alvo.split("-");
-        if (fAno !== "todos" && y !== fAno) return false;
-        if (fMes !== "todos" && Number(m) !== Number(fMes)) return false;
-      } else if (fAno !== "todos" || fMes !== "todos") {
-        return false;
-      }
+      if (fDataInicio && (!r.data_alvo || r.data_alvo < fDataInicio)) return false;
+      if (fDataFim && (!r.data_alvo || r.data_alvo > fDataFim)) return false;
       return true;
     });
-  }, [rows, fColab, fStatus, fUnidade, fMes, fAno]);
+  }, [rows, fColab, fStatus, fUnidade, fDataInicio, fDataFim]);
 
   const pendentesCount = rows.filter((r) => r.status === "pendente").length;
+  const colabsHistorico = useMemo(() => {
+    return (colabs.data ?? []).filter((c) => fUnidade === "todos" || c.unidade_id === fUnidade);
+  }, [colabs.data, fUnidade]);
+  const editColabs = useMemo(() => {
+    return (colabs.data ?? []).filter((c) => !editUnidadeId || c.unidade_id === editUnidadeId);
+  }, [colabs.data, editUnidadeId]);
+  const unidadeNameById = useMemo(() => {
+    return new Map((unidades.data ?? []).map((u) => [u.id, u.nome]));
+  }, [unidades.data]);
+
+  useEffect(() => {
+    if (fColab !== "todos" && !colabsHistorico.some((c) => c.id === fColab)) setFColab("todos");
+  }, [colabsHistorico, fColab]);
+
+  useEffect(() => {
+    if (!editing) return;
+    setEditUnidadeId(editing.dp_colaboradores?.unidade_id ?? "");
+    setEditColaboradorId(editing.colaborador_id ?? "");
+    setEditDataDoc(editing.data_alvo ?? "");
+    setEditDias(String(diffDays(editing.data_alvo, editing.data_fim) || 1));
+    setEditObservacao(editing.motivo ?? "");
+  }, [editing]);
 
   // upload
   const doUpload = useMutation({
@@ -191,6 +219,29 @@ export default function DpAtestados() {
     onError: (e: any) => toast.error(e.message ?? "Erro ao excluir"),
   });
 
+  const doEdit = useMutation({
+    mutationFn: async () => {
+      if (!editing) throw new Error("Atestado não selecionado");
+      if (!editColaboradorId) throw new Error("Selecione o colaborador");
+      if (!editDataDoc) throw new Error("Informe a data do atestado");
+      const d = parseInt(editDias || "0", 10);
+      if (Number.isNaN(d) || d < 0) throw new Error("Dias de afastamento inválido");
+      const { error } = await supabase.from("dp_solicitacoes").update({
+        colaborador_id: editColaboradorId,
+        data_alvo: editDataDoc,
+        data_fim: d > 0 ? addDays(editDataDoc, d) : editDataDoc,
+        motivo: editObservacao || null,
+      }).eq("id", editing.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Atestado atualizado");
+      qc.invalidateQueries({ queryKey: ["dp_atestados_admin"] });
+      setEditing(null);
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao atualizar"),
+  });
+
   const handleDownload = async (r: Row) => {
     if (!r.arquivo_path) return;
     const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(r.arquivo_path, 60);
@@ -203,6 +254,9 @@ export default function DpAtestados() {
 
   const dataRetorno = dataDoc && dias && parseInt(dias, 10) > 0
     ? new Date(addDays(dataDoc, parseInt(dias, 10)) + "T00:00:00").toLocaleDateString("pt-BR")
+    : null;
+  const editDataRetorno = editDataDoc && editDias && parseInt(editDias, 10) > 0
+    ? new Date(addDays(editDataDoc, parseInt(editDias, 10)) + "T00:00:00").toLocaleDateString("pt-BR")
     : null;
 
   return (
@@ -313,101 +367,111 @@ export default function DpAtestados() {
 
         <TabsContent value="historico" className="mt-4 space-y-4">
           <DpFilterCard>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              <Select value={fColab} onValueChange={setFColab}>
-                <SelectTrigger><SelectValue placeholder="Colaborador" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os colaboradores</SelectItem>
-                  {(colabs.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={fMes} onValueChange={setFMes}>
-                <SelectTrigger><SelectValue placeholder="Mês" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os meses</SelectItem>
-                  {MESES.map((m, i) => <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={fAno} onValueChange={setFAno}>
-                <SelectTrigger><SelectValue placeholder="Ano" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os anos</SelectItem>
-                  {anos.map((a) => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={fStatus} onValueChange={setFStatus}>
-                <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os status</SelectItem>
-                  <SelectItem value="pendente">Pendente</SelectItem>
-                  <SelectItem value="aprovada">Aprovado</SelectItem>
-                  <SelectItem value="recusada">Recusado</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={fUnidade} onValueChange={setFUnidade}>
-                <SelectTrigger><SelectValue placeholder="Unidade" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todas as unidades</SelectItem>
-                  {(unidades.data ?? []).map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            <div className="grid gap-3 md:grid-cols-5">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase text-foreground">Unidade</Label>
+                <Select value={fUnidade} onValueChange={setFUnidade}>
+                  <SelectTrigger><SelectValue placeholder="Unidade" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas</SelectItem>
+                    {(unidades.data ?? []).map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase text-foreground">Colaborador</Label>
+                <Select value={fColab} onValueChange={setFColab}>
+                  <SelectTrigger><SelectValue placeholder="Colaborador" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    {colabsHistorico.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase text-foreground">Data Início</Label>
+                <Input type="date" value={fDataInicio} onChange={(e) => setFDataInicio(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase text-foreground">Data Fim</Label>
+                <Input type="date" value={fDataFim} onChange={(e) => setFDataFim(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase text-foreground">Status</Label>
+                <Select value={fStatus} onValueChange={setFStatus}>
+                  <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="aprovada">Aprovado</SelectItem>
+                    <SelectItem value="recusada">Recusado</SelectItem>
+                    <SelectItem value="cancelada">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </DpFilterCard>
 
           <DpContentCard contentClassName="overflow-x-auto">
             {list.isLoading ? (
-              <TableSkeleton columns={7} headers={["Colaborador", "Data", "Dias", "Retorno", "Arquivo", "Status", "Ações"]} />
+              <TableSkeleton columns={9} headers={["Colaborador", "Unidade", "Data", "Data Retorno", "Observações", "Status", "Detalhes", "Arquivo", "Ações"]} />
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Colaborador</TableHead>
+                    <TableHead>Unidade</TableHead>
                     <TableHead>Data</TableHead>
-                    <TableHead>Dias</TableHead>
-                    <TableHead>Retorno</TableHead>
-                    <TableHead>Arquivo</TableHead>
+                    <TableHead>Data Retorno</TableHead>
+                    <TableHead>Observações</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="w-40 text-right">Ações</TableHead>
+                    <TableHead>Detalhes</TableHead>
+                    <TableHead>Arquivo</TableHead>
+                    <TableHead className="w-32 text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filtered.map((r) => {
                     const d = diffDays(r.data_alvo, r.data_fim);
+                    const unitName = r.dp_colaboradores?.unidade_id ? unidadeNameById.get(r.dp_colaboradores.unidade_id) : null;
+                    const fileKind = getFileKind(r.arquivo_path);
+                    const FileIcon = fileKind.icon;
                     return (
-                      <TableRow key={r.id}>
-                        <TableCell className="font-medium">{r.dp_colaboradores?.nome ?? "—"}</TableCell>
-                        <TableCell>{r.data_alvo ? new Date(r.data_alvo + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</TableCell>
-                        <TableCell>{d}</TableCell>
-                        <TableCell>{r.data_fim ? new Date(r.data_fim + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</TableCell>
-                        <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground">
-                          {r.arquivo_path ? r.arquivo_path.split("/").pop() : "—"}
+                      <TableRow key={r.id} className="align-middle">
+                        <TableCell className="min-w-56 font-bold uppercase text-foreground">{r.dp_colaboradores?.nome ?? "—"}</TableCell>
+                        <TableCell className="min-w-32 text-foreground">{unitName ?? "—"}</TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDate(r.data_alvo)}</TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDate(r.data_fim)}</TableCell>
+                        <TableCell className="max-w-48 truncate">{r.motivo || "—"}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={STATUS_BADGE[r.status].className}>{STATUS_BADGE[r.status].label}</Badge>
+                        </TableCell>
+                        <TableCell className="min-w-32 font-semibold">
+                          <div>Dias: {d}</div>
+                          <div>Retorno:</div>
+                          <div className="font-normal">{formatDate(r.data_fim)}</div>
                         </TableCell>
                         <TableCell>
-                          <Badge className={STATUS_BADGE[r.status].className}>{STATUS_BADGE[r.status].label}</Badge>
+                          {r.arquivo_path ? (
+                            <button
+                              type="button"
+                              className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+                              onClick={() => setPreview({ title: `Atestado — ${r.dp_colaboradores?.nome ?? ""}`, path: r.arquivo_path! })}
+                            >
+                              <FileIcon className="h-4 w-4" />
+                              {fileKind.label}
+                            </button>
+                          ) : "—"}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-1 justify-end">
-                            {r.arquivo_path && (
-                              <Button size="icon" variant="ghost" title="Visualizar"
-                                onClick={() => setPreview({ title: `Atestado — ${r.dp_colaboradores?.nome ?? ""}`, path: r.arquivo_path! })}>
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            )}
+                            <Button size="icon" variant="ghost" title="Editar" onClick={() => setEditing(r)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
                             {r.arquivo_path && (
                               <Button size="icon" variant="ghost" title="Baixar" onClick={() => handleDownload(r)}>
                                 <Download className="h-4 w-4" />
                               </Button>
-                            )}
-                            {r.status === "pendente" && (
-                              <>
-                                <Button size="icon" variant="ghost" title="Aprovar"
-                                  onClick={() => respond.mutate({ id: r.id, status: "aprovada" })}>
-                                  <Check className="h-4 w-4 text-primary" />
-                                </Button>
-                                <Button size="icon" variant="ghost" title="Recusar" onClick={() => setRecusaId(r.id)}>
-                                  <X className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </>
                             )}
                             <Button size="icon" variant="ghost" title="Excluir" onClick={() => setToDelete(r)}>
                               <Trash2 className="h-4 w-4 text-destructive" />
@@ -419,7 +483,7 @@ export default function DpAtestados() {
                   })}
                   {filtered.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
+                      <TableCell colSpan={9} className="text-center text-muted-foreground py-10">
                         <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
                         Nenhum atestado encontrado com os filtros atuais.
                       </TableCell>
@@ -439,6 +503,60 @@ export default function DpAtestados() {
         bucket={BUCKET}
         path={preview?.path}
       />
+
+      <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Editar atestado</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Unidade</Label>
+              <Select value={editUnidadeId} onValueChange={(v) => { setEditUnidadeId(v); setEditColaboradorId(""); }}>
+                <SelectTrigger><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
+                <SelectContent>
+                  {(unidades.data ?? []).map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Colaborador</Label>
+              <Select value={editColaboradorId} onValueChange={setEditColaboradorId}>
+                <SelectTrigger><SelectValue placeholder="Selecione o colaborador" /></SelectTrigger>
+                <SelectContent>
+                  {editColabs.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Data do Documento</Label>
+                <Input type="date" value={editDataDoc} onChange={(e) => setEditDataDoc(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Dias de Afastamento</Label>
+                <Input type="number" min={0} value={editDias} onChange={(e) => setEditDias(e.target.value)} />
+              </div>
+            </div>
+            {editDataRetorno && (
+              <div className="rounded-xl bg-muted/30 p-3 text-sm">
+                <span className="font-semibold">Data de retorno:</span> {editDataRetorno}
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label>Observações</Label>
+              <Textarea rows={3} value={editObservacao} onChange={(e) => setEditObservacao(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
+            <Button onClick={() => doEdit.mutate()} disabled={doEdit.isPending}>
+              <FileUp className="mr-2 h-4 w-4" />
+              {doEdit.isPending ? "Salvando..." : "Salvar alterações"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <RecusaDialog
         open={!!recusaId}
