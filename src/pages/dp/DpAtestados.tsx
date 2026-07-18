@@ -31,7 +31,7 @@ type Row = Database["public"]["Tables"]["dp_solicitacoes"]["Row"] & {
 
 const BUCKET = "dp-documentos";
 const STATUS_BADGE: Record<Status, { label: string; className: string }> = {
-  pendente: { label: "Pendente", className: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400" },
+  pendente: { label: "Pendente", className: "border-border bg-muted text-muted-foreground" },
   aprovada: { label: "Aprovado", className: "border-success/30 bg-success/10 text-success" },
   recusada: { label: "Recusado", className: "bg-destructive text-destructive-foreground" },
   cancelada: { label: "Cancelado", className: "bg-muted text-muted-foreground" },
@@ -267,7 +267,7 @@ export default function DpAtestados() {
         title="Atestados"
         description="Gerencie todos os atestados médicos dos colaboradores."
         actions={pendentesCount > 0 ? (
-          <Badge className="bg-amber-500 text-white">{pendentesCount} pendente(s)</Badge>
+          <Badge variant="outline" className="border-destructive/30 bg-destructive/10 text-destructive">{pendentesCount} pendente(s)</Badge>
         ) : undefined}
       />
 
