@@ -60,7 +60,7 @@ const ADMIN_ITEMS: Item[] = [
       // Corrigido: rota real é /dp/atestados (não /dp/documentos/atestado).
       { title: "Atestados", url: "/dp/atestados", icon: HeartPulse },
       { title: "Registros Disciplinares", url: "/dp/disciplinar", icon: ShieldAlert },
-      { title: "Negociações Coletivas (ACT/CCT)", url: "/dp/documentos/act-cct", icon: FileSignature },
+      { title: "ACT-CCT", url: "/dp/documentos/act-cct", icon: FileSignature },
       { title: "Histórico Completo", url: "/dp/documentos/historico", icon: ListChecks },
       { title: "Importar em massa", url: "/dp/documentos/importar", icon: FileText },
     ],
