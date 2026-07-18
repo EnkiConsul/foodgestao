@@ -78,12 +78,12 @@ function AvisoDialog({
 
   const parseDest = () => {
     if (destinatario.startsWith("unidade:")) {
-      return { escopo: "unidade" as const, unidade_id: destinatario.split(":")[1], cargo_id: null };
+      return { escopo: "unidade" as const, unidade_id: destinatario.split(":")[1], cargo_id: null, colaborador_id: null };
     }
-    if (destinatario.startsWith("cargo:")) {
-      return { escopo: "cargo" as const, unidade_id: null, cargo_id: destinatario.split(":")[1] };
+    if (destinatario.startsWith("colaborador:")) {
+      return { escopo: "colaborador" as any, unidade_id: null, cargo_id: null, colaborador_id: destinatario.split(":")[1] };
     }
-    return { escopo: "todos" as const, unidade_id: null, cargo_id: null };
+    return { escopo: "todos" as const, unidade_id: null, cargo_id: null, colaborador_id: null };
   };
 
   return (
