@@ -39,6 +39,7 @@ export function AppSidebar() {
       case "crm": return <ComingSoonMenu label="CRM 360°" />;
       case "rh": return <ComingSoonMenu label="RH 360°" />;
       case "pedidos": return <ComingSoonMenu label="Pedidos 360°" />;
+      case "conta": return null;
       case "hub":
       case "admin":
       default: return null;
