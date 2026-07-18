@@ -116,12 +116,18 @@ function AvisoDialog({
             <Select value={destinatario} onValueChange={setDestinatario}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="todos">Todos os colaboradores</SelectItem>
+                <SelectItem value="todos">Todos os Colaboradores</SelectItem>
+                {(unidades.data ?? []).length > 0 && (
+                  <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Unidade Específica</div>
+                )}
                 {(unidades.data ?? []).map((u: any) => (
-                  <SelectItem key={`u-${u.id}`} value={`unidade:${u.id}`}>Unidade: {u.nome}</SelectItem>
+                  <SelectItem key={`u-${u.id}`} value={`unidade:${u.id}`}>{u.nome}</SelectItem>
                 ))}
-                {(cargos.data ?? []).map((c: any) => (
-                  <SelectItem key={`c-${c.id}`} value={`cargo:${c.id}`}>Cargo: {c.nome}</SelectItem>
+                {(colaboradores.data ?? []).length > 0 && (
+                  <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Colaborador Específico</div>
+                )}
+                {(colaboradores.data ?? []).map((c: any) => (
+                  <SelectItem key={`c-${c.id}`} value={`colaborador:${c.id}`}>{c.nome}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
