@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, Eye, Download, Search } from "lucide-react";
+import { FileText, Eye, Download, Search, ArrowUp, ArrowDown, ChevronsUpDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
@@ -285,10 +285,45 @@ export default function DpHistoricoCompleto() {
     });
   }, [query.data, tipo, unidadeId, colabId, mes, ano, status, busca]);
 
+  // ---------------- Ordenação ----------------
+  type SortKey = "colaborador_nome" | "tipo_label" | "competencia_sort" | "unidade_nome" | "status_label" | "data";
+  const [sortKey, setSortKey] = useState<SortKey>("data");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      const av = (a as any)[sortKey] ?? "";
+      const bv = (b as any)[sortKey] ?? "";
+      if (av === bv) return 0;
+      const cmp = av > bv ? 1 : -1;
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir(key === "data" || key === "competencia_sort" ? "desc" : "asc"); }
+  };
+
+  // ---------------- Paginação ----------------
+  const [pageSize, setPageSize] = useState(25);
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  useEffect(() => { setPage(1); }, [tipo, unidadeId, colabId, mes, ano, status, busca, pageSize]);
+  useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
+  const paged = useMemo(() => sorted.slice((page - 1) * pageSize, page * pageSize), [sorted, page, pageSize]);
+
   const limpar = () => {
     setTipo("all"); setUnidadeId("all"); setColabId("all");
     setMes("all"); setAno("all"); setStatus("all"); setBusca("");
   };
+
+  const SortIcon = ({ k }: { k: SortKey }) =>
+    sortKey !== k ? <ChevronsUpDown className="ml-1 inline h-3 w-3 opacity-40" />
+    : sortDir === "asc" ? <ArrowUp className="ml-1 inline h-3 w-3" />
+    : <ArrowDown className="ml-1 inline h-3 w-3" />;
 
   const download = async (row: UnifiedDoc) => {
     if (!row.file_path) return toast.error("Arquivo indisponível");
@@ -415,17 +450,17 @@ export default function DpHistoricoCompleto() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="uppercase text-xs">Colaborador</TableHead>
-                <TableHead className="uppercase text-xs">Tipo</TableHead>
-                <TableHead className="uppercase text-xs">Competência</TableHead>
-                <TableHead className="uppercase text-xs">Unidade</TableHead>
-                <TableHead className="uppercase text-xs">Status</TableHead>
-                <TableHead className="uppercase text-xs">Data</TableHead>
+                <TableHead className="uppercase text-xs cursor-pointer select-none" onClick={() => toggleSort("colaborador_nome")}>Colaborador<SortIcon k="colaborador_nome" /></TableHead>
+                <TableHead className="uppercase text-xs cursor-pointer select-none" onClick={() => toggleSort("tipo_label")}>Tipo<SortIcon k="tipo_label" /></TableHead>
+                <TableHead className="uppercase text-xs cursor-pointer select-none" onClick={() => toggleSort("competencia_sort")}>Competência<SortIcon k="competencia_sort" /></TableHead>
+                <TableHead className="uppercase text-xs cursor-pointer select-none" onClick={() => toggleSort("unidade_nome")}>Unidade<SortIcon k="unidade_nome" /></TableHead>
+                <TableHead className="uppercase text-xs cursor-pointer select-none" onClick={() => toggleSort("status_label")}>Status<SortIcon k="status_label" /></TableHead>
+                <TableHead className="uppercase text-xs cursor-pointer select-none" onClick={() => toggleSort("data")}>Data<SortIcon k="data" /></TableHead>
                 <TableHead className="uppercase text-xs text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((r) => (
+              {paged.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell className="font-semibold">{r.colaborador_nome}</TableCell>
                   <TableCell>
@@ -453,7 +488,7 @@ export default function DpHistoricoCompleto() {
                   </TableCell>
                 </TableRow>
               ))}
-              {filtered.length === 0 && (
+              {paged.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
                     Nenhum documento encontrado com esses filtros.
@@ -465,9 +500,42 @@ export default function DpHistoricoCompleto() {
         )}
       </DpContentCard>
 
-      <p className="text-xs text-muted-foreground">
-        {filtered.length} de {query.data?.length ?? 0} documento(s) exibido(s).
-      </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>
+            {sorted.length === 0 ? 0 : (page - 1) * pageSize + 1}
+            –{Math.min(page * pageSize, sorted.length)} de {sorted.length}
+          </span>
+          <span>·</span>
+          <span>Total: {query.data?.length ?? 0}</span>
+          <span>·</span>
+          <span>Por página:</span>
+          <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+            <SelectTrigger className="h-7 w-[70px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {[10, 25, 50, 100].map((n) => (
+                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button size="icon" variant="outline" onClick={() => setPage(1)} disabled={page === 1}>
+            <ChevronsLeft className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="outline" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="px-3 text-sm">Página {page} de {totalPages}</span>
+          <Button size="icon" variant="outline" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="outline" onClick={() => setPage(totalPages)} disabled={page === totalPages}>
+            <ChevronsRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
 
       <DocumentPreview
         open={!!preview}
