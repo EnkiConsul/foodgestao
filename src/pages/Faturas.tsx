@@ -133,11 +133,6 @@ export default function Faturas() {
           </div>
         </div>
 
-        {isSuperAdmin && (
-          <div className="mb-6">
-            <SandboxTestCard />
-          </div>
-        )}
 
         {/* Summary cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
