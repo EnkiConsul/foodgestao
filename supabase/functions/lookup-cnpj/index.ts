@@ -35,6 +35,18 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) return json({ error: 'Unauthorized' }, 401);
 
+    // Validate JWT to prevent anonymous abuse of the external CNPJ API and cache table
+    const authClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsErr } = await authClient.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims?.sub) {
+      return json({ error: 'Unauthorized' }, 401);
+    }
+
     const body = await req.json().catch(() => null);
     const raw = typeof body?.cnpj === 'string' ? body.cnpj : '';
     const force = body?.force === true;
