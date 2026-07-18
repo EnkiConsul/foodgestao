@@ -176,7 +176,7 @@ export default function DpDisciplinar() {
         .single();
       if (insErr) throw insErr;
 
-      const safeName = pendingFile.name.replace(/\s+/g, "_");
+      const safeName = sanitizeStorageFilename(pendingFile.name);
       const path = `${selectedCompanyId}/${inserted.id}/${Date.now()}-${safeName}`;
       const up = await supabase.storage.from(BUCKET).upload(path, pendingFile, {
         upsert: true,
