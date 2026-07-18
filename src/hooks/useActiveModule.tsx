@@ -8,7 +8,10 @@ export type ActiveModule =
   | "crm"
   | "rh"
   | "pedidos"
-  | "admin";
+  | "admin"
+  | "conta";
+
+const CONTA_PREFIXES = ["/empresas", "/gestao-usuarios", "/planos", "/faturas", "/configuracoes"];
 
 export function useActiveModule(): ActiveModule {
   const { pathname } = useLocation();
@@ -19,6 +22,7 @@ export function useActiveModule(): ActiveModule {
   if (pathname.startsWith("/rh")) return "rh";
   if (pathname.startsWith("/pedidos")) return "pedidos";
   if (pathname.startsWith("/hub")) return "hub";
+  if (CONTA_PREFIXES.some((p) => pathname.startsWith(p))) return "conta";
   return "financeiro";
 }
 
