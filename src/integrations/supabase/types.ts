@@ -3167,6 +3167,7 @@ export type Database = {
       dp_sindicato_negociacoes: {
         Row: {
           ano: number | null
+          arquivo_nome: string | null
           clausulas: Json
           company_id: string
           created_at: string
@@ -3178,6 +3179,7 @@ export type Database = {
           pdf_path: string | null
           reajuste_pct: number | null
           sindicato_id: string
+          sindicato_laboral_id: string | null
           tipo_documento: Database["public"]["Enums"]["dp_negociacao_tipo_doc"]
           unidade_id: string | null
           updated_at: string
@@ -3186,6 +3188,7 @@ export type Database = {
         }
         Insert: {
           ano?: number | null
+          arquivo_nome?: string | null
           clausulas?: Json
           company_id: string
           created_at?: string
@@ -3197,6 +3200,7 @@ export type Database = {
           pdf_path?: string | null
           reajuste_pct?: number | null
           sindicato_id: string
+          sindicato_laboral_id?: string | null
           tipo_documento?: Database["public"]["Enums"]["dp_negociacao_tipo_doc"]
           unidade_id?: string | null
           updated_at?: string
@@ -3205,6 +3209,7 @@ export type Database = {
         }
         Update: {
           ano?: number | null
+          arquivo_nome?: string | null
           clausulas?: Json
           company_id?: string
           created_at?: string
@@ -3216,6 +3221,7 @@ export type Database = {
           pdf_path?: string | null
           reajuste_pct?: number | null
           sindicato_id?: string
+          sindicato_laboral_id?: string | null
           tipo_documento?: Database["public"]["Enums"]["dp_negociacao_tipo_doc"]
           unidade_id?: string | null
           updated_at?: string
@@ -3233,6 +3239,13 @@ export type Database = {
           {
             foreignKeyName: "dp_sindicato_negociacoes_sindicato_id_fkey"
             columns: ["sindicato_id"]
+            isOneToOne: false
+            referencedRelation: "dp_sindicatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_sindicato_negociacoes_sindicato_laboral_id_fkey"
+            columns: ["sindicato_laboral_id"]
             isOneToOne: false
             referencedRelation: "dp_sindicatos"
             referencedColumns: ["id"]
