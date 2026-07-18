@@ -45,14 +45,14 @@ function AvisoDialog({
   const [dataFim, setDataFim] = useState(aviso?.expira_em?.slice(0, 10) ?? "");
   const [destinatario, setDestinatario] = useState<string>(
     aviso?.escopo === "unidade" ? `unidade:${aviso.unidade_id}` :
-    aviso?.escopo === "cargo" ? `cargo:${aviso.cargo_id}` : "todos"
+    aviso?.escopo === "colaborador" ? `colaborador:${(aviso as any).colaborador_id}` : "todos"
   );
   const [arquivoPath, setArquivoPath] = useState(aviso?.arquivo_path ?? "");
   const [arquivoMime, setArquivoMime] = useState(aviso?.arquivo_mime ?? "");
   const [uploading, setUploading] = useState(false);
 
   const unidades = useDpUnidades();
-  const cargos = useDpCargos();
+  const colaboradores = useDpColaboradores();
 
   const uploadFile = async (file: File) => {
     if (!companyId) return toast.error("Selecione uma empresa");
