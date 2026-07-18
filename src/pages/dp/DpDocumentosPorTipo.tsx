@@ -51,7 +51,7 @@ const CONFIG: Record<Tipo, {
   },
   ponto: {
     titulo: "Folhas de Ponto",
-    descricao: "Importe e gerencie folhas de ponto dos colaboradores.",
+    descricao: "Importe e gerencie as folhas de ponto dos colaboradores.",
     importTitle: "Importar Folhas de Ponto",
     icon: Clock,
   },
