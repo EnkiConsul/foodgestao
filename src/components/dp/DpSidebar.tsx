@@ -68,6 +68,7 @@ const ADMIN_ITEMS: Item[] = [
   {
     kind: "group", title: "Comunicação", icon: MessageSquare,
     prefixes: ["/dp/comunicacao", "/dp/mensagens", "/dp/avisos", "/dp/modelos-mensagem"],
+    hubUrl: "/dp/comunicacao",
     items: [
       { title: "Central de Comunicação", url: "/dp/comunicacao", icon: MessageSquare, end: true },
       { title: "Mensagens", url: "/dp/mensagens", icon: MessageSquare },
