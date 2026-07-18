@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { FileText, Plus, Pencil, Trash2, Eye, Download, Building2, Users, Calendar } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeStorageFilename } from "@/lib/storage";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
