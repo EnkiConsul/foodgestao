@@ -193,9 +193,9 @@ export default function DpAvisos() {
   };
 
   const destinoLabel = (a: DpAviso) => {
-    if (a.escopo === "unidade") return "Unidade específica";
-    if (a.escopo === "cargo") return "Cargo específico";
-    return "Todos os colaboradores";
+    if (a.escopo === "unidade") return "Unidade Específica";
+    if ((a as any).escopo === "colaborador") return "Colaborador Específico";
+    return "Todos os Colaboradores";
   };
 
   return (
