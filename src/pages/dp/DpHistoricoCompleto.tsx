@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
-import { ListChecks, Eye, Download } from "lucide-react";
+import { FileText, Eye, Download, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
+import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,66 +15,288 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
-import { TIPOS } from "./DpDocumentos";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
-type Doc = {
+type UnifiedDoc = {
   id: string;
-  titulo: string;
-  tipo: string;
-  referencia_data: string | null;
-  file_path: string;
-  mime_type?: string | null;
-  created_at: string;
+  colaborador_nome: string;
   colaborador_id: string | null;
-  dp_colaboradores?: { nome: string } | null;
+  tipo_key: string;
+  tipo_label: string;
+  competencia: string; // MM/YYYY or "—"
+  competencia_sort: string; // YYYY-MM
+  unidade_nome: string;
+  unidade_id: string | null;
+  status_key: string;
+  status_label: string;
+  data: string; // ISO
+  bucket: string;
+  file_path: string | null;
+  mime_type?: string | null;
+  titulo: string;
 };
+
+const TIPO_OPTIONS = [
+  { value: "contracheque", label: "Contracheque" },
+  { value: "adiantamento", label: "Adiantamento" },
+  { value: "ponto", label: "Folha de Ponto" },
+  { value: "atestado", label: "Atestado" },
+  { value: "disciplinar", label: "Disciplinar" },
+  { value: "act_cct", label: "ACT/CCT" },
+  { value: "contrato", label: "Contrato" },
+  { value: "ferias", label: "Férias" },
+  { value: "outros", label: "Outros" },
+];
+
+const STATUS_OPTIONS = [
+  { value: "aprovado", label: "Aprovado" },
+  { value: "pendente", label: "Pendente" },
+  { value: "recusado", label: "Recusado" },
+  { value: "disponivel", label: "Disponível" },
+];
+
+const MESES = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
+function fmtCompetencia(iso?: string | null): { label: string; sort: string } {
+  if (!iso) return { label: "—", sort: "" };
+  const d = new Date(iso.length <= 10 ? `${iso}T00:00:00` : iso);
+  if (isNaN(d.getTime())) return { label: "—", sort: "" };
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return { label: `${mm}/${yyyy}`, sort: `${yyyy}-${mm}` };
+}
+
+function statusBadgeClass(key: string) {
+  switch (key) {
+    case "aprovado":
+    case "disponivel":
+      return "bg-emerald-100 text-emerald-700 border-emerald-200";
+    case "pendente":
+      return "bg-amber-100 text-amber-700 border-amber-200";
+    case "recusado":
+      return "bg-rose-100 text-rose-700 border-rose-200";
+    default:
+      return "bg-muted text-muted-foreground";
+  }
+}
+
+function tipoBadgeClass(key: string) {
+  switch (key) {
+    case "act_cct":
+      return "border-rose-300 text-rose-700";
+    case "atestado":
+      return "border-blue-300 text-blue-700";
+    case "adiantamento":
+      return "border-violet-300 text-violet-700";
+    case "contracheque":
+      return "border-emerald-300 text-emerald-700";
+    case "ponto":
+      return "border-amber-300 text-amber-700";
+    case "disciplinar":
+      return "border-orange-300 text-orange-700";
+    default:
+      return "border-muted-foreground/40 text-muted-foreground";
+  }
+}
 
 export default function DpHistoricoCompleto() {
   const { selectedCompanyId } = useCompanyContext();
   const colabs = useDpColaboradores();
-  const [tipo, setTipo] = useState<string>("all");
-  const [colabId, setColabId] = useState<string>("all");
-  const [de, setDe] = useState<string>("");
-  const [ate, setAte] = useState<string>("");
-  const [busca, setBusca] = useState("");
-  const [preview, setPreview] = useState<Doc | null>(null);
+  const unidades = useDpUnidades();
 
-  const list = useQuery({
-    queryKey: ["dp_historico_completo", selectedCompanyId, tipo, colabId, de, ate],
-    enabled: !!selectedCompanyId,
-    queryFn: async () => {
-      let q = supabase
-        .from("dp_documentos")
-        .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, dp_colaboradores(nome)")
-        .eq("company_id", selectedCompanyId!)
-        .order("created_at", { ascending: false });
-      if (tipo !== "all") q = q.eq("tipo", tipo as any);
-      if (colabId !== "all") q = q.eq("colaborador_id", colabId);
-      if (de) q = q.gte("created_at", de);
-      if (ate) q = q.lte("created_at", ate + "T23:59:59");
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data ?? []) as Doc[];
+  const [tipo, setTipo] = useState("all");
+  const [unidadeId, setUnidadeId] = useState("all");
+  const [colabId, setColabId] = useState("all");
+  const [mes, setMes] = useState("all");
+  const [ano, setAno] = useState("all");
+  const [status, setStatus] = useState("all");
+  const [busca, setBusca] = useState("");
+  const [preview, setPreview] = useState<UnifiedDoc | null>(null);
+
+  const colabMap = useMemo(() => {
+    const m = new Map<string, { nome: string; unidade_id: string | null; unidade_nome: string | null }>();
+    (colabs.data ?? []).forEach((c) => {
+      m.set(c.id, { nome: c.nome, unidade_id: (c as any).unidade_id ?? null, unidade_nome: c.unidade_nome ?? null });
+    });
+    return m;
+  }, [colabs.data]);
+
+  const unidadeMap = useMemo(() => {
+    const m = new Map<string, string>();
+    (unidades.data ?? []).forEach((u) => m.set(u.id, u.nome));
+    return m;
+  }, [unidades.data]);
+
+  const query = useQuery({
+    queryKey: ["dp_historico_unified", selectedCompanyId],
+    enabled: !!selectedCompanyId && !!colabs.data,
+    queryFn: async (): Promise<UnifiedDoc[]> => {
+      const cId = selectedCompanyId!;
+      const [docsRes, solRes, sindRes, discRes] = await Promise.all([
+        supabase
+          .from("dp_documentos")
+          .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status")
+          .eq("company_id", cId),
+        supabase
+          .from("dp_solicitacoes")
+          .select("id, tipo, status, data_alvo, arquivo_path, created_at, colaborador_id")
+          .eq("company_id", cId)
+          .eq("tipo", "atestado" as any),
+        supabase
+          .from("dp_sindicato_negociacoes")
+          .select("id, arquivo_nome, pdf_path, ano, mes, data_base, tipo_documento, unidade_id, created_at, dp_unidades(nome)")
+          .eq("company_id", cId),
+        supabase
+          .from("dp_registros_disciplinares")
+          .select("id, motivo, tipo, data, pdf_storage_path, created_at, colaborador_id")
+          .eq("company_id", cId),
+      ]);
+
+      const rows: UnifiedDoc[] = [];
+
+      (docsRes.data ?? []).forEach((d: any) => {
+        const c = d.colaborador_id ? colabMap.get(d.colaborador_id) : null;
+        const comp = fmtCompetencia(d.referencia_data);
+        const statusKey = d.aprovacao_status ?? "aprovado";
+        rows.push({
+          id: `doc:${d.id}`,
+          colaborador_nome: c?.nome ?? "—",
+          colaborador_id: d.colaborador_id,
+          tipo_key: d.tipo,
+          tipo_label: TIPO_OPTIONS.find((t) => t.value === d.tipo)?.label ?? d.tipo,
+          competencia: comp.label,
+          competencia_sort: comp.sort,
+          unidade_nome: c?.unidade_nome ?? "—",
+          unidade_id: c?.unidade_id ?? null,
+          status_key: statusKey,
+          status_label: statusKey === "aprovado" ? "Disponível" : statusKey.charAt(0).toUpperCase() + statusKey.slice(1),
+          data: d.created_at,
+          bucket: "dp-documentos",
+          file_path: d.file_path,
+          mime_type: d.mime_type,
+          titulo: d.titulo,
+        });
+      });
+
+      (solRes.data ?? []).forEach((s: any) => {
+        if (!s.arquivo_path) return;
+        const c = s.colaborador_id ? colabMap.get(s.colaborador_id) : null;
+        const comp = fmtCompetencia(s.data_alvo ?? s.created_at);
+        const statusKey =
+          s.status === "aprovada" ? "aprovado" :
+          s.status === "recusada" ? "recusado" : "pendente";
+        rows.push({
+          id: `sol:${s.id}`,
+          colaborador_nome: c?.nome ?? "—",
+          colaborador_id: s.colaborador_id,
+          tipo_key: "atestado",
+          tipo_label: "Atestado",
+          competencia: comp.label,
+          competencia_sort: comp.sort,
+          unidade_nome: c?.unidade_nome ?? "—",
+          unidade_id: c?.unidade_id ?? null,
+          status_key: statusKey,
+          status_label: statusKey === "aprovado" ? "Aprovado" : statusKey === "recusado" ? "Recusado" : "Pendente",
+          data: s.created_at,
+          bucket: "dp-atestados",
+          file_path: s.arquivo_path,
+          titulo: `Atestado — ${c?.nome ?? ""}`.trim(),
+        });
+      });
+
+      (sindRes.data ?? []).forEach((n: any) => {
+        if (!n.pdf_path) return;
+        const unidadeNome = n.dp_unidades?.nome ?? (n.unidade_id ? unidadeMap.get(n.unidade_id) ?? "—" : "—");
+        const mm = n.mes ? String(n.mes).padStart(2, "0") : (n.data_base ? String(new Date(n.data_base).getMonth() + 1).padStart(2, "0") : "");
+        const yyyy = n.ano ?? (n.data_base ? new Date(n.data_base).getFullYear() : "");
+        const compLabel = mm && yyyy ? `${mm}/${yyyy}` : "—";
+        const compSort = mm && yyyy ? `${yyyy}-${mm}` : "";
+        rows.push({
+          id: `sind:${n.id}`,
+          colaborador_nome: `ACT/CCT - ${unidadeNome}`,
+          colaborador_id: null,
+          tipo_key: "act_cct",
+          tipo_label: "ACT/CCT",
+          competencia: compLabel,
+          competencia_sort: compSort,
+          unidade_nome: unidadeNome,
+          unidade_id: n.unidade_id,
+          status_key: "disponivel",
+          status_label: "Disponível",
+          data: n.created_at,
+          bucket: "dp-sindicato",
+          file_path: n.pdf_path,
+          titulo: n.arquivo_nome ?? `ACT/CCT ${unidadeNome}`,
+        });
+      });
+
+      (discRes.data ?? []).forEach((r: any) => {
+        const c = r.colaborador_id ? colabMap.get(r.colaborador_id) : null;
+        const comp = fmtCompetencia(r.data ?? r.created_at);
+        rows.push({
+          id: `disc:${r.id}`,
+          colaborador_nome: c?.nome ?? "—",
+          colaborador_id: r.colaborador_id,
+          tipo_key: "disciplinar",
+          tipo_label: "Disciplinar",
+          competencia: comp.label,
+          competencia_sort: comp.sort,
+          unidade_nome: c?.unidade_nome ?? "—",
+          unidade_id: c?.unidade_id ?? null,
+          status_key: "disponivel",
+          status_label: "Disponível",
+          data: r.created_at,
+          bucket: "dp-disciplinar",
+          file_path: r.pdf_storage_path,
+          titulo: r.motivo ?? "Registro Disciplinar",
+        });
+      });
+
+      rows.sort((a, b) => (a.data < b.data ? 1 : -1));
+      return rows;
     },
   });
 
+  const anosDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    (query.data ?? []).forEach((r) => {
+      if (r.competencia_sort) set.add(r.competencia_sort.slice(0, 4));
+    });
+    return Array.from(set).sort((a, b) => (a < b ? 1 : -1));
+  }, [query.data]);
+
   const filtered = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    if (!q) return list.data ?? [];
-    return (list.data ?? []).filter(
-      (d) =>
-        d.titulo?.toLowerCase().includes(q) ||
-        d.dp_colaboradores?.nome?.toLowerCase().includes(q),
-    );
-  }, [list.data, busca]);
+    return (query.data ?? []).filter((r) => {
+      if (tipo !== "all" && r.tipo_key !== tipo) return false;
+      if (unidadeId !== "all" && r.unidade_id !== unidadeId) return false;
+      if (colabId !== "all" && r.colaborador_id !== colabId) return false;
+      if (status !== "all" && r.status_key !== status) return false;
+      if (ano !== "all" && !r.competencia_sort.startsWith(ano)) return false;
+      if (mes !== "all" && r.competencia_sort.slice(5, 7) !== mes) return false;
+      if (q) {
+        const hay = `${r.colaborador_nome} ${r.tipo_label} ${r.status_label} ${r.unidade_nome} ${r.titulo}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [query.data, tipo, unidadeId, colabId, mes, ano, status, busca]);
 
-  const download = async (path: string, titulo: string) => {
-    const { data, error } = await supabase.storage.from("dp-documentos").createSignedUrl(path, 60);
+  const limpar = () => {
+    setTipo("all"); setUnidadeId("all"); setColabId("all");
+    setMes("all"); setAno("all"); setStatus("all"); setBusca("");
+  };
+
+  const download = async (row: UnifiedDoc) => {
+    if (!row.file_path) return toast.error("Arquivo indisponível");
+    const { data, error } = await supabase.storage.from(row.bucket).createSignedUrl(row.file_path, 60);
     if (error || !data) return toast.error("Erro ao gerar link");
     const a = document.createElement("a");
     a.href = data.signedUrl;
-    a.download = titulo || "documento";
+    a.download = row.titulo || "documento";
     a.rel = "noopener noreferrer";
     a.target = "_blank";
     document.body.appendChild(a);
@@ -85,29 +308,42 @@ export default function DpHistoricoCompleto() {
     <DpPage>
       <Helmet><title>Histórico Completo — DP 360°</title></Helmet>
       <DpPageHeader
-        icon={ListChecks}
-        title="Histórico completo de documentos"
-        description="Visão unificada de todos os documentos por colaborador, tipo e período."
+        icon={FileText}
+        iconClassName="text-rose-500"
+        title="Histórico Completo de Documentos"
+        description="Visualize todos os documentos de todos os colaboradores em um único lugar."
       />
 
-      <DpFilterCard>
-        <div className="grid gap-3 md:grid-cols-5">
+      <DpFilterCard title="Filtros">
+        <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
           <div className="space-y-1.5">
-            <Label className="text-xs">TIPO</Label>
+            <Label className="text-xs font-semibold uppercase text-muted-foreground">Tipo</Label>
             <Select value={tipo} onValueChange={setTipo}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                {TIPOS.map((t) => (
+                {TIPO_OPTIONS.map((t) => (
                   <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">COLABORADOR</Label>
+            <Label className="text-xs font-semibold uppercase text-muted-foreground">Unidade</Label>
+            <Select value={unidadeId} onValueChange={setUnidadeId}>
+              <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                {(unidades.data ?? []).map((u) => (
+                  <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold uppercase text-muted-foreground">Colaborador</Label>
             <Select value={colabId} onValueChange={setColabId}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 {(colabs.data ?? []).map((c) => (
@@ -117,86 +353,128 @@ export default function DpHistoricoCompleto() {
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">DE</Label>
-            <Input type="date" value={de} onChange={(e) => setDe(e.target.value)} />
+            <Label className="text-xs font-semibold uppercase text-muted-foreground">Mês</Label>
+            <Select value={mes} onValueChange={setMes}>
+              <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {MESES.map((m, i) => (
+                  <SelectItem key={i} value={String(i + 1).padStart(2, "0")}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">ATÉ</Label>
-            <Input type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
+            <Label className="text-xs font-semibold uppercase text-muted-foreground">Ano</Label>
+            <Select value={ano} onValueChange={setAno}>
+              <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {anosDisponiveis.map((a) => (
+                  <SelectItem key={a} value={a}>{a}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">BUSCAR</Label>
+            <Label className="text-xs font-semibold uppercase text-muted-foreground">Status</Label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {STATUS_OPTIONS.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative flex-1 max-w-md">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Título ou colaborador"
+              className="pl-9"
+              placeholder="Buscar por nome, tipo ou status..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
             />
           </div>
+          <Button variant="ghost" onClick={limpar}>Limpar</Button>
         </div>
       </DpFilterCard>
 
-      <DpContentCard contentClassName="overflow-x-auto">
-          {list.isLoading ? (
+      <DpContentCard contentClassName="overflow-x-auto p-0">
+        {query.isLoading ? (
+          <div className="p-4">
             <TableSkeleton
-              columns={6}
-              headers={["Data", "Colaborador", "Tipo", "Título", "Referência", "Ações"]}
+              columns={7}
+              headers={["Colaborador", "Tipo", "Competência", "Unidade", "Status", "Data", "Ações"]}
             />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Colaborador</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Título</TableHead>
-                  <TableHead>Referência</TableHead>
-                  <TableHead className="w-28 text-right">Ações</TableHead>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="uppercase text-xs">Colaborador</TableHead>
+                <TableHead className="uppercase text-xs">Tipo</TableHead>
+                <TableHead className="uppercase text-xs">Competência</TableHead>
+                <TableHead className="uppercase text-xs">Unidade</TableHead>
+                <TableHead className="uppercase text-xs">Status</TableHead>
+                <TableHead className="uppercase text-xs">Data</TableHead>
+                <TableHead className="uppercase text-xs text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="font-semibold">{r.colaborador_nome}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={tipoBadgeClass(r.tipo_key)}>
+                      {r.tipo_label}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap font-mono text-sm">{r.competencia}</TableCell>
+                  <TableCell>{r.unidade_nome}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={statusBadgeClass(r.status_key)}>
+                      {r.status_label}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap font-mono text-sm text-muted-foreground">
+                    {new Date(r.data).toLocaleDateString("pt-BR")}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button size="icon" variant="ghost" title="Pré-visualizar" onClick={() => setPreview(r)} disabled={!r.file_path}>
+                      <Eye className="h-4 w-4 text-primary" />
+                    </Button>
+                    <Button size="icon" variant="ghost" title="Baixar" onClick={() => download(r)} disabled={!r.file_path}>
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((d) => (
-                  <TableRow key={d.id}>
-                    <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                      {new Date(d.created_at).toLocaleDateString("pt-BR")}
-                    </TableCell>
-                    <TableCell className="font-medium">{d.dp_colaboradores?.nome ?? "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="capitalize">{d.tipo}</Badge>
-                    </TableCell>
-                    <TableCell className="max-w-xs truncate">{d.titulo}</TableCell>
-                    <TableCell>{d.referencia_data ?? "—"}</TableCell>
-                    <TableCell className="text-right">
-                      <Button size="icon" variant="ghost" title="Pré-visualizar" onClick={() => setPreview(d)}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" title="Baixar" onClick={() => download(d.file_path, d.titulo)}>
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filtered.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
-                      Nenhum documento encontrado com esses filtros.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
+              ))}
+              {filtered.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
+                    Nenhum documento encontrado com esses filtros.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        )}
       </DpContentCard>
 
       <p className="text-xs text-muted-foreground">
-        {filtered.length} de {list.data?.length ?? 0} documento(s) exibido(s).
+        {filtered.length} de {query.data?.length ?? 0} documento(s) exibido(s).
       </p>
 
       <DocumentPreview
         open={!!preview}
         onOpenChange={(v) => { if (!v) setPreview(null); }}
         title={preview?.titulo}
-        bucket="dp-documentos"
-        path={preview?.file_path}
+        bucket={preview?.bucket}
+        path={preview?.file_path ?? undefined}
         mime={preview?.mime_type}
       />
     </DpPage>
