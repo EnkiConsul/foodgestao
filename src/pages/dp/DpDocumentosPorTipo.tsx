@@ -79,9 +79,9 @@ function StatusBadge({ status }: { status: Aprov }) {
   return <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 font-normal lowercase">pendente</Badge>;
 }
 
-export default function DpDocumentosPorTipo() {
+export default function DpDocumentosPorTipo({ tipo: tipoProp }: { tipo?: Tipo } = {}) {
   const { categoria } = useParams<{ categoria: Tipo }>();
-  const tipo = (categoria ?? "contracheque") as Tipo;
+  const tipo = (tipoProp ?? categoria ?? "contracheque") as Tipo;
   const cfg = CONFIG[tipo] ?? CONFIG.contracheque;
   const Icon = cfg.icon;
 
