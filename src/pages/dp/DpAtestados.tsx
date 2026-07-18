@@ -150,7 +150,7 @@ export default function DpAtestados() {
     },
     onSuccess: () => {
       toast.success("Atestado importado com sucesso");
-      setColaboradorId(""); setDataDoc(""); setDias(""); setObservacao(""); setPendingFile(null);
+      setUnidadeId(""); setColaboradorId(""); setDataDoc(""); setDias(""); setObservacao(""); setPendingFile(null);
       if (fileRef.current) fileRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["dp_atestados_admin"] });
       setTab("historico");
