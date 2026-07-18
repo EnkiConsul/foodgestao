@@ -21,7 +21,7 @@ export default function Faturas() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [onlyPix, setOnlyPix] = useState(false);
-  const { isSuperAdmin } = useSuperAdmin();
+  
 
   const { data: invoices, isLoading } = useQuery({
     queryKey: ["my-invoices"],
