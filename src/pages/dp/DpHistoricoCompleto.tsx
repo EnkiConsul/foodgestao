@@ -285,10 +285,45 @@ export default function DpHistoricoCompleto() {
     });
   }, [query.data, tipo, unidadeId, colabId, mes, ano, status, busca]);
 
+  // ---------------- Ordenação ----------------
+  type SortKey = "colaborador_nome" | "tipo_label" | "competencia_sort" | "unidade_nome" | "status_label" | "data";
+  const [sortKey, setSortKey] = useState<SortKey>("data");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      const av = (a as any)[sortKey] ?? "";
+      const bv = (b as any)[sortKey] ?? "";
+      if (av === bv) return 0;
+      const cmp = av > bv ? 1 : -1;
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir(key === "data" || key === "competencia_sort" ? "desc" : "asc"); }
+  };
+
+  // ---------------- Paginação ----------------
+  const [pageSize, setPageSize] = useState(25);
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  useEffect(() => { setPage(1); }, [tipo, unidadeId, colabId, mes, ano, status, busca, pageSize]);
+  useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
+  const paged = useMemo(() => sorted.slice((page - 1) * pageSize, page * pageSize), [sorted, page, pageSize]);
+
   const limpar = () => {
     setTipo("all"); setUnidadeId("all"); setColabId("all");
     setMes("all"); setAno("all"); setStatus("all"); setBusca("");
   };
+
+  const SortIcon = ({ k }: { k: SortKey }) =>
+    sortKey !== k ? <ChevronsUpDown className="ml-1 inline h-3 w-3 opacity-40" />
+    : sortDir === "asc" ? <ArrowUp className="ml-1 inline h-3 w-3" />
+    : <ArrowDown className="ml-1 inline h-3 w-3" />;
 
   const download = async (row: UnifiedDoc) => {
     if (!row.file_path) return toast.error("Arquivo indisponível");
