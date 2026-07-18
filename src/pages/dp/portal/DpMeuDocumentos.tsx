@@ -125,7 +125,7 @@ export default function DpMeuDocumentos() {
     setUploading(true);
     try {
       const file = files[0];
-      const path = `${meRef.data.company_id}/${meRef.data.id}/${Date.now()}-${file.name}`;
+      const path = `${meRef.data.company_id}/${meRef.data.id}/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
       const up = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
       if (up.error) throw up.error;
       const { error } = await supabase.from("dp_documentos").insert({
