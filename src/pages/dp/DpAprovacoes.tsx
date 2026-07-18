@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DpPage, DpPageHeader, DpEmptyState } from "@/components/dp/DpPage";
 import { RecusaDialog } from "@/components/dp/RecusaDialog";
-import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 import { maskCpf } from "@/lib/cpf";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -93,7 +92,6 @@ export default function DpAprovacoes() {
         icon={UserCheck}
         title="Aprovações de cadastro"
         description="Novos colaboradores precisam ser aprovados antes de acessar o sistema."
-        actions={<FavoriteToggle />}
       />
 
       <div className="space-y-3">

@@ -8,7 +8,6 @@ import type { LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
-import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 import { cn } from "@/lib/utils";
 
 type Modulo = {
@@ -113,7 +112,6 @@ export default function DpDocumentosHub() {
         icon={FileText}
         title="Documentos"
         description="Gerencie todos os documentos dos colaboradores."
-        actions={<FavoriteToggle />}
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-5xl">

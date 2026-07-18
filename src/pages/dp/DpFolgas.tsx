@@ -44,7 +44,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
-import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 import { DpCalendarDayDialog, type DpDayScheduleEntry } from "@/components/dp/DpCalendarDayDialog";
 import { DpStatusBadge, statusToneFor } from "@/components/dp/DpStatusBadge";
 import type { Database } from "@/integrations/supabase/types";
@@ -357,7 +356,6 @@ export default function DpFolgas() {
         description="Gestão centralizada de escalas e folgas da equipe."
         actions={
           <div className="flex items-center gap-2">
-            <FavoriteToggle />
             <Button onClick={() => openNew()} className="gap-2">
               <Plus className="h-4 w-4" /> Nova solicitação
             </Button>
