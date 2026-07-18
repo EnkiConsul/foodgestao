@@ -111,10 +111,14 @@ export default function DpSindicatoNegociacoes() {
 
   const sindicatosPorUnidade = (unidadeId: string, tipo: "patronal" | "laboral") => {
     if (!unidadeId) return [];
+    const todosDoTipo = (sindicatos.data ?? []).filter((s) => s.tipo === tipo);
     const idsVinculados = new Set(
       (vinculos.data ?? []).filter((v) => v.unidade_id === unidadeId).map((v) => v.sindicato_id),
     );
-    return (sindicatos.data ?? []).filter((s) => s.tipo === tipo && idsVinculados.has(s.id));
+    const vinculados = todosDoTipo.filter((s) => idsVinculados.has(s.id));
+    // Fallback: se nenhum sindicato deste tipo estiver vinculado à unidade,
+    // mostra todos os sindicatos do tipo cadastrados na empresa.
+    return vinculados.length > 0 ? vinculados : todosDoTipo;
   };
 
   const upsert = useMutation({
