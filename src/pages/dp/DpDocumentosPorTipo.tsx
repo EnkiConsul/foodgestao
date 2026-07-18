@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Upload, History, Download, Pencil, Loader2, Check, X, Trash2, Eye,
-  FileText, Clock, Coins, ArrowLeft,
+  FileText, Clock, Coins,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -287,9 +287,6 @@ export default function DpDocumentosPorTipo() {
     <DpPage>
       <Helmet><title>{cfg.titulo} — DP 360°</title></Helmet>
 
-      <Button asChild variant="ghost" size="sm" className="mb-1 -ml-2 w-fit">
-        <Link to="/dp/documentos"><ArrowLeft className="h-4 w-4 mr-1" /> Documentos</Link>
-      </Button>
 
       <DpPageHeader
         icon={Icon}
