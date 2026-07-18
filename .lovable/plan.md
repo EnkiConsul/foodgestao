@@ -1,67 +1,46 @@
-## Problema
+# Corrigir erro "Invalid key" ao anexar PDF em Nova Negociação
 
-Ao editar a **Data de vencimento** de qualquer lançamento **não recorrente / não parcelado**, o valor volta silenciosamente para o dia do `transaction_date` (competência). No caso de Energia: você troca 15/06 → 22/06, salva, e o banco grava 15/06.
+## O que aconteceu
 
-## Causa raiz
+O Storage do backend rejeita chaves (caminhos de arquivo) que contenham caracteres não-ASCII ou pontuação como `Ç`, `Ã`, `(`, `)` e espaços. O arquivo enviado se chamava `CNPJ_ALTERAÇÃO_(1).pdf`, então o caminho gerado ficou:
 
-A função `public.enforce_monthly_due_date_alignment()` (trigger BEFORE INSERT/UPDATE em `transactions`) tem um bug de tratamento de NULL em PL/pgSQL:
-
-```sql
-IF series_type NOT IN ('mensal','quinzenal') THEN
-  RETURN NEW;  -- deveria dar early return para linhas sem série
-END IF;
+```
+9293.../sindicato-negociacoes/ba21.../1784356619394-CNPJ_ALTERAÇÃO_(1).pdf
 ```
 
-Quando o lançamento não é recorrente nem filho de parcelamento, `series_type` fica NULL. Em SQL, `NULL NOT IN (...)` avalia para **NULL** (não TRUE), então o `RETURN NEW` **não dispara**. A função continua e cai no ramo `ELSE` (lógica quinzenal), que recalcula `due_date` para o candidato mais próximo — sempre o mesmo dia do `transaction_date`.
+Os caracteres `Ç`, `Ã`, `(` e `)` são inválidos como chave de storage → erro `Invalid key`.
 
-Isso atinge todo lançamento único cujo vencimento esteja num dia diferente da competência.
+Hoje o código em `src/pages/dp/DpSindicatoNegociacoes.tsx` (linha 141) só substitui espaços por `_`, e mantém acentos e parênteses no path enviado ao Storage.
 
-## Correção (1 migration, sem mudança de código frontend)
+## Correção proposta
 
-Reescrever a função `enforce_monthly_due_date_alignment()` com o guarda de NULL explícito:
+Sanitizar apenas o **nome usado como chave do Storage**, preservando o nome original que já é salvo separadamente em `arquivo_nome` (usado no display e download).
 
-```sql
-CREATE OR REPLACE FUNCTION public.enforce_monthly_due_date_alignment()
-RETURNS trigger
-LANGUAGE plpgsql
-SET search_path = public
-AS $$
-DECLARE
-  series_type text;
-  base_day int; due_day int; due_last int; target_day int;
-  candidate_a date; candidate_b date;
-BEGIN
-  IF NEW.due_date IS NULL OR NEW.transaction_date IS NULL THEN
-    RETURN NEW;
-  END IF;
+Em `src/pages/dp/DpSindicatoNegociacoes.tsx`, no bloco de upload:
 
-  IF NEW.is_recurring IS TRUE AND NEW.recurrence_type IS NOT NULL THEN
-    series_type := NEW.recurrence_type::text;
-  ELSIF NEW.parent_transaction_id IS NOT NULL THEN
-    SELECT recurrence_type::text INTO series_type
-    FROM public.transactions WHERE id = NEW.parent_transaction_id;
-  END IF;
+1. Normalizar o nome removendo acentos: `file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "")`.
+2. Substituir qualquer caractere fora de `[A-Za-z0-9._-]` por `_`.
+3. Colapsar múltiplos `_` consecutivos.
+4. Usar esse nome saneado apenas no `path` do `storage.upload`. O `arquivo_nome` gravado na tabela continua sendo o `file.name` original, então o usuário continua vendo/baixando com o nome bonito.
 
-  -- Guarda NULL-safe: sem série ⇒ não alinha
-  IF series_type IS NULL OR series_type NOT IN ('mensal','quinzenal') THEN
-    RETURN NEW;
-  END IF;
+Nada muda no banco, nas policies, nem em outros fluxos.
 
-  -- ... (restante da lógica de alinhamento mensal/quinzenal inalterada)
-END;
-$$;
+## Detalhes técnicos
+
+Trecho equivalente após a correção (arquivo `src/pages/dp/DpSindicatoNegociacoes.tsx`, ~linha 141):
+
+```ts
+const safeName = file.name
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")     // remove acentos
+  .replace(/[^A-Za-z0-9._-]+/g, "_")   // troca caracteres inválidos por _
+  .replace(/_+/g, "_");                // colapsa _
+
+const path = `${selectedCompanyId}/sindicato-negociacoes/${form.unidade_id}/${Date.now()}-${safeName}`;
 ```
 
-Aplicar a mesma proteção `IS NULL OR` também em `enforce_weekly_due_date_alignment()` por prevenção (mesmo padrão de bug potencial).
+## Validação
 
-## Passo pós-migração
-
-Rodar um `UPDATE` corretivo opcional? **Não** — a correção é só para futuros saves. O valor atual de Energia (15/06) permanece; você poderá editar para 22/06 e agora vai persistir.
-
-## Verificação
-
-Após a migração eu executo o mesmo teste automatizado (PATCH → SELECT) e confirmo que o `due_date` respeita o valor enviado.
-
-## Fora de escopo
-
-Não mexer em código React, no fluxo de save do `TransactionFormDialog`, nem em outros triggers.
+- Reenviar `CNPJ_ALTERAÇÃO_(1).pdf` → upload deve concluir sem erro.
+- Card da negociação deve continuar exibindo `CNPJ_ALTERAÇÃO_(1).pdf` como nome do arquivo (via `arquivo_nome`).
+- Botão "Baixar" deve funcionar normalmente.

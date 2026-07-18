@@ -138,7 +138,12 @@ export default function DpSindicatoNegociacoes() {
       let arquivo_nome: string | null = form.arquivo_nome ?? null;
       if (form.arquivo) {
         const file = form.arquivo;
-        const path = `${selectedCompanyId}/sindicato-negociacoes/${form.unidade_id}/${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
+        const safeName = file.name
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^A-Za-z0-9._-]+/g, "_")
+          .replace(/_+/g, "_");
+        const path = `${selectedCompanyId}/sindicato-negociacoes/${form.unidade_id}/${Date.now()}-${safeName}`;
         const { error: upErr } = await supabase.storage
           .from("dp-documentos")
           .upload(path, file, { upsert: true, contentType: file.type || "application/pdf" });
