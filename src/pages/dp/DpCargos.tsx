@@ -10,7 +10,6 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useDpCargos, useUpsertDpCargo, useDeleteDpCargo, type DpCargo, type DpCargoWithCount } from "@/hooks/useDpCadastros";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
-import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 import { cn } from "@/lib/utils";
 
 type FormState = { nome: string; descricao: string };
@@ -107,7 +106,6 @@ export default function DpCargos() {
         description="Gerencie os cargos disponíveis na empresa."
         actions={
           <>
-            <FavoriteToggle />
             <Button onClick={openNew} className="rounded-full px-6">
               <Plus className="size-4 mr-2" /> Novo Cargo
             </Button>

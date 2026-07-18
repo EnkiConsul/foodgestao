@@ -17,7 +17,6 @@ import {
   type DpUnidadeWithCounts,
 } from "@/hooks/useDpCadastros";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
-import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -231,7 +230,6 @@ export default function DpUnidades() {
         description="Cadastre e gerencie as unidades, seus cargos e sindicatos patronais."
         actions={
           <>
-            <FavoriteToggle />
             <Button onClick={openNew} className="rounded-full px-6">
               <Plus className="size-4 mr-2" /> Nova Unidade
             </Button>

@@ -19,7 +19,6 @@ import {
 } from "@/hooks/useDpColaboradores";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
-import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { supabase } from "@/integrations/supabase/client";
@@ -136,7 +135,6 @@ export default function DpColaboradores() {
         description="Gerencie a equipe, cargos e acessos ao sistema."
         actions={
           <>
-          <FavoriteToggle />
           <Button
             size="lg"
             className="rounded-full font-semibold"

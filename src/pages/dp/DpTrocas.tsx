@@ -13,7 +13,6 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
-import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 import { RecusaDialog } from "@/components/dp/RecusaDialog";
 import { cn } from "@/lib/utils";
 
@@ -140,7 +139,6 @@ export default function DpTrocas() {
               <option value="recusada">Recusadas</option>
               <option value="cancelada">Canceladas</option>
             </select>
-            <FavoriteToggle />
           </div>
         }
       />

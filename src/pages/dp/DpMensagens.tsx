@@ -17,7 +17,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
-import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 import { useDpMensagens } from "@/hooks/useDpComunicacao";
 import {
   useDpModelosMensagem, type DpModeloMensagem, type DpModeloTipo,
@@ -172,7 +171,6 @@ export default function DpMensagens() {
         icon={MessageSquare}
         title="Mensagens"
         description="Envie mensagens para colaboradores via WhatsApp e/ou E-mail usando modelos pré-definidos."
-        actions={<FavoriteToggle />}
       />
 
       {/* Modelos Rápidos */}

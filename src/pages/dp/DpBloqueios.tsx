@@ -21,7 +21,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
-import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 import { cn } from "@/lib/utils";
 
 // ------------------------------------------------------------------
@@ -501,7 +500,6 @@ export default function DpBloqueios() {
               <Calendar className="size-4 mr-2" />
               {reprocessando ? "Regenerando…" : "Regenerar 12 meses"}
             </Button>
-            <FavoriteToggle />
           </div>
         }
       />
