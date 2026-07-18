@@ -59,7 +59,7 @@ const CONFIG: Record<Tipo, {
     titulo: "Adiantamentos",
     descricao: "Importe e gerencie adiantamentos salariais dos colaboradores.",
     importTitle: "Importar Adiantamentos",
-    icon: Coins,
+    icon: FileText,
   },
 };
 
