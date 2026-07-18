@@ -416,18 +416,18 @@ export default function DpAtestados() {
             {list.isLoading ? (
               <TableSkeleton columns={9} headers={["Colaborador", "Unidade", "Data", "Data Retorno", "Observações", "Status", "Detalhes", "Arquivo", "Ações"]} />
             ) : (
-              <Table>
+              <Table className="text-xs">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Colaborador</TableHead>
-                    <TableHead>Unidade</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Data Retorno</TableHead>
-                    <TableHead>Observações</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Detalhes</TableHead>
-                    <TableHead>Arquivo</TableHead>
-                    <TableHead className="w-32 text-right">Ações</TableHead>
+                    <TableHead className="px-3">Colaborador</TableHead>
+                    <TableHead className="px-3">Unidade</TableHead>
+                    <TableHead className="px-3">Data</TableHead>
+                    <TableHead className="px-3">Data Retorno</TableHead>
+                    <TableHead className="px-3">Observações</TableHead>
+                    <TableHead className="px-3">Status</TableHead>
+                    <TableHead className="px-3">Detalhes</TableHead>
+                    <TableHead className="px-3">Arquivo</TableHead>
+                    <TableHead className="w-28 px-3 text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -438,20 +438,20 @@ export default function DpAtestados() {
                     const FileIcon = fileKind.icon;
                     return (
                       <TableRow key={r.id} className="align-middle">
-                        <TableCell className="min-w-56 font-bold uppercase text-foreground">{r.dp_colaboradores?.nome ?? "—"}</TableCell>
-                        <TableCell className="min-w-32 text-foreground">{unitName ?? "—"}</TableCell>
-                        <TableCell className="whitespace-nowrap">{formatDate(r.data_alvo)}</TableCell>
-                        <TableCell className="whitespace-nowrap">{formatDate(r.data_fim)}</TableCell>
-                        <TableCell className="max-w-48 truncate">{r.motivo || "—"}</TableCell>
-                        <TableCell>
+                        <TableCell className="max-w-44 px-3 font-bold uppercase text-foreground">{r.dp_colaboradores?.nome ?? "—"}</TableCell>
+                        <TableCell className="max-w-28 px-3 text-foreground">{unitName ?? "—"}</TableCell>
+                        <TableCell className="whitespace-nowrap px-3">{formatDate(r.data_alvo)}</TableCell>
+                        <TableCell className="whitespace-nowrap px-3">{formatDate(r.data_fim)}</TableCell>
+                        <TableCell className="max-w-36 truncate px-3">{r.motivo || "—"}</TableCell>
+                        <TableCell className="px-3">
                           <Badge variant="outline" className={STATUS_BADGE[r.status].className}>{STATUS_BADGE[r.status].label}</Badge>
                         </TableCell>
-                        <TableCell className="min-w-32 font-semibold">
+                        <TableCell className="px-3 font-semibold">
                           <div>Dias: {d}</div>
                           <div>Retorno:</div>
                           <div className="font-normal">{formatDate(r.data_fim)}</div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="px-3">
                           {r.arquivo_path ? (
                             <button
                               type="button"
@@ -463,7 +463,7 @@ export default function DpAtestados() {
                             </button>
                           ) : "—"}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="px-3 text-right">
                           <div className="flex gap-1 justify-end">
                             <Button size="icon" variant="ghost" title="Editar" onClick={() => setEditing(r)}>
                               <Pencil className="h-4 w-4" />
