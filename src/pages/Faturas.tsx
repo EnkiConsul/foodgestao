@@ -20,7 +20,7 @@ type StatusFilter = "all" | "pending" | "paid" | "overdue";
 export default function Faturas() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<StatusFilter>("all");
-  const [onlyPix, setOnlyPix] = useState(false);
+  const onlyPix = false;
   
 
   const { data: invoices, isLoading } = useQuery({
@@ -117,14 +117,6 @@ export default function Faturas() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant={onlyPix ? "default" : "outline"}
-              size="sm"
-              onClick={() => setOnlyPix((v) => !v)}
-            >
-              <QrCode className="h-4 w-4 mr-2" />
-              {onlyPix ? "Mostrando só Pix" : "Filtrar só Pix"}
-            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate("/planos")}>
               Ver planos
             </Button>
