@@ -309,12 +309,12 @@ export default function DpHistoricoCompleto() {
       <Helmet><title>Histórico Completo — DP 360°</title></Helmet>
       <DpPageHeader
         icon={FileText}
-        iconClassName="text-rose-500"
         title="Histórico Completo de Documentos"
         description="Visualize todos os documentos de todos os colaboradores em um único lugar."
       />
 
-      <DpFilterCard title="Filtros">
+      <DpFilterCard>
+        <div className="mb-3 text-sm font-semibold">Filtros</div>
         <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold uppercase text-muted-foreground">Tipo</Label>
