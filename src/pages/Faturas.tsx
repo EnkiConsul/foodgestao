@@ -20,7 +20,7 @@ type StatusFilter = "all" | "pending" | "paid" | "overdue";
 export default function Faturas() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<StatusFilter>("all");
-  const [onlyPix, setOnlyPix] = useState(false);
+  const onlyPix = false;
   
 
   const { data: invoices, isLoading } = useQuery({
