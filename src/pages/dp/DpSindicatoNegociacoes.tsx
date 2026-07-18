@@ -1,104 +1,161 @@
 import { useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, FileText, Upload } from "lucide-react";
+import { FileText, Plus, Pencil, Trash2, Eye, Download, Building2, Users, Calendar } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useDpSindicatos } from "@/hooks/useDpCadastros";
-import { TableSkeleton } from "@/components/dp/DpSkeletons";
-import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { useDpSindicatos, useDpUnidades } from "@/hooks/useDpCadastros";
+import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import type { Database } from "@/integrations/supabase/types";
 
-type Negociacao = Database["public"]["Tables"]["dp_sindicato_negociacoes"]["Row"];
+type Negociacao = Database["public"]["Tables"]["dp_sindicato_negociacoes"]["Row"] & {
+  sindicato_laboral_id?: string | null;
+  arquivo_nome?: string | null;
+};
+
+type TipoDoc = Database["public"]["Enums"]["dp_negociacao_tipo_doc"];
+
+const MESES = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
+const TIPO_LABEL: Record<TipoDoc, string> = {
+  act: "ACT (Acordo Coletivo de Trabalho)",
+  cct: "CCT (Convenção Coletiva de Trabalho)",
+  aditivo: "Aditivo",
+  outro: "Outro",
+};
 
 type FormState = {
   id?: string;
-  sindicato_id: string;
-  data_base: string;
-  reajuste_pct: string;
-  vigencia_inicio: string;
-  vigencia_fim: string;
-  clausulas: string;
-  observacoes: string;
+  unidade_id: string;
+  sindicato_patronal_id: string;
+  sindicato_laboral_id: string;
+  ano: string;
+  mes: string;
+  tipo: TipoDoc;
+  arquivo?: File | null;
+  arquivo_nome?: string | null;
 };
 
+const currentYear = new Date().getFullYear();
 const emptyForm: FormState = {
-  sindicato_id: "",
-  data_base: "",
-  reajuste_pct: "",
-  vigencia_inicio: "",
-  vigencia_fim: "",
-  clausulas: "",
-  observacoes: "",
+  unidade_id: "",
+  sindicato_patronal_id: "",
+  sindicato_laboral_id: "",
+  ano: String(currentYear),
+  mes: String(new Date().getMonth() + 1),
+  tipo: "act",
+  arquivo: null,
+  arquivo_nome: null,
 };
 
 export default function DpSindicatoNegociacoes() {
   const { selectedCompanyId } = useCompanyContext();
   const qc = useQueryClient();
   const sindicatos = useDpSindicatos();
-  const [sindicatoFilter, setSindicatoFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "vigente" | "expirado">("all");
+  const unidades = useDpUnidades();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [toDelete, setToDelete] = useState<Negociacao | null>(null);
-  const uploadRef = useRef<HTMLInputElement>(null);
-  const [uploadTargetId, setUploadTargetId] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const list = useQuery({
-    queryKey: ["dp_sindicato_negociacoes", selectedCompanyId, sindicatoFilter],
+    queryKey: ["dp_sindicato_negociacoes", selectedCompanyId],
     enabled: !!selectedCompanyId,
     queryFn: async () => {
-      let q = supabase
+      const { data, error } = await supabase
         .from("dp_sindicato_negociacoes")
         .select("*")
         .eq("company_id", selectedCompanyId!)
-        .order("data_base", { ascending: false });
-      if (sindicatoFilter !== "all") q = q.eq("sindicato_id", sindicatoFilter);
-      const { data, error } = await q;
+        .order("ano", { ascending: false })
+        .order("mes", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Negociacao[];
     },
   });
 
+  // Vínculos sindicato ↔ unidade (para filtrar dropdowns por unidade selecionada)
+  const vinculos = useQuery({
+    queryKey: ["dp_sindicato_unidades_all", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_sindicato_unidades")
+        .select("sindicato_id, unidade_id");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const sindicatoMap = useMemo(() => {
-    const m = new Map<string, string>();
-    (sindicatos.data ?? []).forEach((s) => m.set(s.id, s.nome));
+    const m = new Map<string, { nome: string; tipo: string }>();
+    (sindicatos.data ?? []).forEach((s) => m.set(s.id, { nome: s.nome, tipo: s.tipo }));
     return m;
   }, [sindicatos.data]);
+
+  const unidadeMap = useMemo(() => {
+    const m = new Map<string, string>();
+    (unidades.data ?? []).forEach((u) => m.set(u.id, u.nome));
+    return m;
+  }, [unidades.data]);
+
+  const sindicatosPorUnidade = (unidadeId: string, tipo: "patronal" | "laboral") => {
+    if (!unidadeId) return [];
+    const idsVinculados = new Set(
+      (vinculos.data ?? []).filter((v) => v.unidade_id === unidadeId).map((v) => v.sindicato_id),
+    );
+    return (sindicatos.data ?? []).filter((s) => s.tipo === tipo && idsVinculados.has(s.id));
+  };
 
   const upsert = useMutation({
     mutationFn: async () => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      if (!form.sindicato_id) throw new Error("Selecione um sindicato");
-      if (!form.data_base) throw new Error("Data-base é obrigatória");
-      if (!form.vigencia_inicio) throw new Error("Início da vigência é obrigatório");
+      if (!form.unidade_id) throw new Error("Selecione a unidade");
+      if (!form.sindicato_patronal_id) throw new Error("Selecione o sindicato patronal");
+      if (!form.sindicato_laboral_id) throw new Error("Selecione o sindicato laboral");
+      if (!form.ano || !form.mes) throw new Error("Informe ano e mês base");
+      if (!form.id && !form.arquivo) throw new Error("Anexe o arquivo PDF");
 
-      let clausulasJson: unknown = [];
-      if (form.clausulas.trim()) {
-        try { clausulasJson = JSON.parse(form.clausulas); }
-        catch { clausulasJson = form.clausulas.split("\n").filter(Boolean).map((t) => ({ texto: t })); }
+      const ano = Number(form.ano);
+      const mes = Number(form.mes);
+      const dataBase = `${ano}-${String(mes).padStart(2, "0")}-01`;
+
+      let pdf_path: string | null = null;
+      let arquivo_nome: string | null = form.arquivo_nome ?? null;
+      if (form.arquivo) {
+        const file = form.arquivo;
+        const path = `${selectedCompanyId}/sindicato-negociacoes/${form.unidade_id}/${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
+        const { error: upErr } = await supabase.storage
+          .from("dp-documentos")
+          .upload(path, file, { upsert: true, contentType: file.type || "application/pdf" });
+        if (upErr) throw upErr;
+        pdf_path = path;
+        arquivo_nome = file.name;
       }
 
-      const payload = {
+      const payload: any = {
         company_id: selectedCompanyId,
-        sindicato_id: form.sindicato_id,
-        data_base: form.data_base,
-        reajuste_pct: form.reajuste_pct ? Number(form.reajuste_pct) : null,
-        vigencia_inicio: form.vigencia_inicio,
-        vigencia_fim: form.vigencia_fim || null,
-        clausulas: clausulasJson as never,
-        observacoes: form.observacoes.trim() || null,
+        unidade_id: form.unidade_id,
+        sindicato_id: form.sindicato_patronal_id,
+        sindicato_laboral_id: form.sindicato_laboral_id,
+        ano,
+        mes,
+        data_base: dataBase,
+        vigencia_inicio: dataBase,
+        tipo_documento: form.tipo,
+        arquivo_nome,
       };
+      if (pdf_path) payload.pdf_path = pdf_path;
 
       if (form.id) {
         const { error } = await supabase.from("dp_sindicato_negociacoes").update(payload).eq("id", form.id);
@@ -109,7 +166,7 @@ export default function DpSindicatoNegociacoes() {
       }
     },
     onSuccess: () => {
-      toast.success(form.id ? "Negociação atualizada" : "Negociação criada");
+      toast.success(form.id ? "Negociação atualizada" : "Negociação cadastrada");
       qc.invalidateQueries({ queryKey: ["dp_sindicato_negociacoes"] });
       setOpen(false);
     },
@@ -128,243 +185,256 @@ export default function DpSindicatoNegociacoes() {
     onError: (e) => toast.error("Erro ao remover", { description: e instanceof Error ? e.message : String(e) }),
   });
 
-  const uploadPdf = useMutation({
-    mutationFn: async ({ id, file }: { id: string; file: File }) => {
-      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      const path = `${selectedCompanyId}/sindicato-negociacoes/${id}/${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
-      const { error: upErr } = await supabase.storage
-        .from("dp-documentos")
-        .upload(path, file, { upsert: true, contentType: file.type || "application/pdf" });
-      if (upErr) throw upErr;
-      const { error: updErr } = await supabase.from("dp_sindicato_negociacoes").update({ pdf_path: path }).eq("id", id);
-      if (updErr) throw updErr;
-    },
-    onSuccess: () => {
-      toast.success("PDF anexado");
-      qc.invalidateQueries({ queryKey: ["dp_sindicato_negociacoes"] });
-    },
-    onError: (e) => toast.error("Erro ao anexar PDF", { description: e instanceof Error ? e.message : String(e) }),
-  });
-
-  const openPdf = async (path: string) => {
-    const { data, error } = await supabase.storage.from("dp-documentos").createSignedUrl(path, 60);
+  const openPdf = async (path: string, download = false) => {
+    const { data, error } = await supabase.storage.from("dp-documentos").createSignedUrl(path, 60, {
+      download: download || false,
+    });
     if (error) return toast.error(error.message);
-    window.open(data.signedUrl, "_blank");
-  };
-
-  const triggerUpload = (id: string) => {
-    setUploadTargetId(id);
-    uploadRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !uploadTargetId) return;
-    uploadPdf.mutate({ id: uploadTargetId, file });
-    e.target.value = "";
-    setUploadTargetId(null);
+    if (download) {
+      const a = document.createElement("a");
+      a.href = data.signedUrl;
+      a.download = "";
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } else {
+      window.open(data.signedUrl, "_blank");
+    }
   };
 
   const openNew = () => {
-    setForm({ ...emptyForm, sindicato_id: sindicatoFilter !== "all" ? sindicatoFilter : "" });
+    setForm({ ...emptyForm });
     setOpen(true);
   };
 
   const openEdit = (n: Negociacao) => {
     setForm({
       id: n.id,
-      sindicato_id: n.sindicato_id,
-      data_base: n.data_base,
-      reajuste_pct: n.reajuste_pct != null ? String(n.reajuste_pct) : "",
-      vigencia_inicio: n.vigencia_inicio,
-      vigencia_fim: n.vigencia_fim ?? "",
-      clausulas: n.clausulas ? JSON.stringify(n.clausulas, null, 2) : "",
-      observacoes: n.observacoes ?? "",
+      unidade_id: n.unidade_id ?? "",
+      sindicato_patronal_id: n.sindicato_id,
+      sindicato_laboral_id: n.sindicato_laboral_id ?? "",
+      ano: String(n.ano ?? new Date(n.data_base).getFullYear()),
+      mes: String(n.mes ?? new Date(n.data_base).getMonth() + 1),
+      tipo: n.tipo_documento,
+      arquivo: null,
+      arquivo_nome: n.arquivo_nome ?? (n.pdf_path ? n.pdf_path.split("/").pop() ?? null : null),
     });
     setOpen(true);
   };
 
-  const isVigente = (n: Negociacao) => {
-    const hoje = new Date().toISOString().slice(0, 10);
-    return n.vigencia_inicio <= hoje && (!n.vigencia_fim || n.vigencia_fim >= hoje);
+  const tipoBadgeClass = (tipo: TipoDoc) => {
+    switch (tipo) {
+      case "act":
+        return "bg-destructive text-destructive-foreground hover:bg-destructive/90";
+      case "cct":
+        return "bg-primary text-primary-foreground hover:bg-primary/90";
+      case "aditivo":
+        return "bg-amber-500 text-white hover:bg-amber-500/90";
+      default:
+        return "bg-muted text-muted-foreground";
+    }
   };
 
-  const filtered = useMemo(() => {
-    const all = list.data ?? [];
-    if (statusFilter === "all") return all;
-    return all.filter((n) => (statusFilter === "vigente") === isVigente(n));
-  }, [list.data, statusFilter]);
+  const patronalOptions = sindicatosPorUnidade(form.unidade_id, "patronal");
+  const laboralOptions = sindicatosPorUnidade(form.unidade_id, "laboral");
 
   return (
     <DpPage>
-      <Helmet><title>Negociações sindicais — DP 360°</title></Helmet>
-      <input
-        ref={uploadRef}
-        type="file"
-        accept="application/pdf,image/*"
-        className="hidden"
-        onChange={handleFileChange}
-      />
+      <Helmet><title>Negociações Coletivas — DP 360°</title></Helmet>
 
       <DpPageHeader
         icon={FileText}
-        title="Negociações sindicais"
-        description={`${filtered.length} de ${list.data?.length ?? 0} acordo(s)`}
-        actions={<Button onClick={openNew} disabled={(sindicatos.data ?? []).length === 0}>
-            <Plus className="h-4 w-4 mr-2" /> Nova negociação
-          </Button>}
+        title="Negociações Coletivas"
+        description="Registre acordos entre sindicatos patronais e laborais, vinculados a uma unidade."
+        actions={
+          <Button onClick={openNew} disabled={(unidades.data ?? []).length === 0}>
+            <Plus className="h-4 w-4 mr-2" /> Nova Negociação
+          </Button>
+        }
       />
 
-      <DpFilterCard>
-        <div className="grid gap-2 md:grid-cols-3">
-          <div className="space-y-1.5">
-            <Label className="text-xs">SINDICATO</Label>
-          <Select value={sindicatoFilter} onValueChange={setSindicatoFilter}>
-            <SelectTrigger><SelectValue placeholder="Todos os sindicatos" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os sindicatos</SelectItem>
-              {(sindicatos.data ?? []).map((s) => (
-                <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">STATUS</Label>
-            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os status</SelectItem>
-                <SelectItem value="vigente">Vigentes</SelectItem>
-                <SelectItem value="expirado">Expirados</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </DpFilterCard>
+      {list.isLoading ? (
+        <DpContentCard><div className="p-6 text-sm text-muted-foreground">Carregando...</div></DpContentCard>
+      ) : (list.data ?? []).length === 0 ? (
+        <DpEmptyState icon={FileText} dashed>
+          Nenhuma negociação cadastrada ainda.
+        </DpEmptyState>
+      ) : (
+        <div className="space-y-3">
+          {(list.data ?? []).map((n) => {
+            const patronal = sindicatoMap.get(n.sindicato_id);
+            const laboral = n.sindicato_laboral_id ? sindicatoMap.get(n.sindicato_laboral_id) : null;
+            const unidadeNome = n.unidade_id ? unidadeMap.get(n.unidade_id) : null;
+            const mesLabel = n.mes ? MESES[n.mes - 1] : null;
+            const arquivoNome = n.arquivo_nome ?? (n.pdf_path ? n.pdf_path.split("/").pop() : null);
+            return (
+              <DpContentCard key={n.id} contentClassName="p-4 md:p-5">
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex items-center gap-2 text-base font-semibold">
+                      <Building2 className="h-4 w-4 text-primary" />
+                      <span className="truncate">{unidadeNome ?? "—"}</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                      {patronal && (
+                        <span className="inline-flex items-center gap-1">
+                          <Users className="h-3.5 w-3.5" /> {patronal.nome}
+                        </span>
+                      )}
+                      {laboral && (
+                        <span className="inline-flex items-center gap-1">
+                          <Users className="h-3.5 w-3.5" /> {laboral.nome}
+                        </span>
+                      )}
+                      {mesLabel && n.ano && (
+                        <span className="inline-flex items-center gap-1">
+                          <Calendar className="h-3.5 w-3.5" /> {mesLabel}/{n.ano}
+                        </span>
+                      )}
+                      <Badge className={tipoBadgeClass(n.tipo_documento)}>{n.tipo_documento.toUpperCase()}</Badge>
+                    </div>
+                  </div>
+                  <div className="flex gap-1 md:justify-end">
+                    <Button size="icon" variant="ghost" onClick={() => openEdit(n)} aria-label="Editar">
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" onClick={() => setToDelete(n)} aria-label="Excluir">
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
 
-
-      <DpContentCard contentClassName="overflow-x-auto">
-          {list.isLoading ? (
-            <TableSkeleton columns={6} headers={["Sindicato", "Data-base", "Reajuste", "Vigência", "Status", ""]} />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Sindicato</TableHead>
-                  <TableHead>Data-base</TableHead>
-                  <TableHead>Reajuste</TableHead>
-                  <TableHead>Vigência</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-28"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((n) => (
-                  <TableRow key={n.id}>
-                    <TableCell className="font-medium">{sindicatoMap.get(n.sindicato_id) ?? "—"}</TableCell>
-                    <TableCell>{new Date(n.data_base).toLocaleDateString("pt-BR")}</TableCell>
-                    <TableCell>{n.reajuste_pct != null ? `${n.reajuste_pct}%` : "—"}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {new Date(n.vigencia_inicio).toLocaleDateString("pt-BR")}
-                      {" → "}
-                      {n.vigencia_fim ? new Date(n.vigencia_fim).toLocaleDateString("pt-BR") : "indeterminado"}
-                    </TableCell>
-                    <TableCell>
-                      {isVigente(n)
-                        ? <Badge className="bg-primary">Vigente</Badge>
-                        : <Badge variant="outline">Expirado</Badge>}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1 justify-end">
-                        {n.pdf_path && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            title="Abrir PDF anexado"
-                            onClick={() => openPdf(n.pdf_path!)}
-                          >
-                            <FileText className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          title={n.pdf_path ? "Substituir PDF" : "Anexar PDF"}
-                          onClick={() => triggerUpload(n.id)}
-                          disabled={uploadPdf.isPending}
-                        >
-                          <Upload className="h-4 w-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" onClick={() => openEdit(n)}><Pencil className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" onClick={() => setToDelete(n)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filtered.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                      {(list.data ?? []).length === 0 ? "Nenhuma negociação registrada." : "Nenhuma negociação para os filtros atuais."}
-                    </TableCell>
-                  </TableRow>
+                {n.pdf_path && (
+                  <div className="mt-3 flex flex-col gap-2 rounded-md border bg-muted/40 px-3 py-2 md:flex-row md:items-center md:justify-between">
+                    <div className="flex min-w-0 items-center gap-2 text-sm">
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="truncate">{arquivoNome ?? "arquivo.pdf"}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => openPdf(n.pdf_path!, false)}>
+                        <Eye className="h-4 w-4 mr-1.5" /> Visualizar
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => openPdf(n.pdf_path!, true)}>
+                        <Download className="h-4 w-4 mr-1.5" /> Baixar
+                      </Button>
+                    </div>
+                  </div>
                 )}
-              </TableBody>
-            </Table>
-          )}
-      </DpContentCard>
+              </DpContentCard>
+            );
+          })}
+        </div>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{form.id ? "Editar negociação" : "Nova negociação"}</DialogTitle>
+            <DialogTitle>{form.id ? "Editar Negociação" : "Nova Negociação"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div>
-              <Label>Sindicato *</Label>
-              <Select value={form.sindicato_id} onValueChange={(v) => setForm({ ...form, sindicato_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+            <div className="space-y-1.5">
+              <Label>Unidade *</Label>
+              <Select
+                value={form.unidade_id}
+                onValueChange={(v) => setForm({ ...form, unidade_id: v, sindicato_patronal_id: "", sindicato_laboral_id: "" })}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
                 <SelectContent>
-                  {(sindicatos.data ?? []).map((s) => (
+                  {(unidades.data ?? []).map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Sindicato Patronal *</Label>
+              <Select
+                value={form.sindicato_patronal_id}
+                onValueChange={(v) => setForm({ ...form, sindicato_patronal_id: v })}
+                disabled={!form.unidade_id}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={form.unidade_id ? "Selecione o patronal" : "Selecione uma unidade primeiro"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {patronalOptions.length === 0 ? (
+                    <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhum sindicato patronal vinculado a esta unidade.</div>
+                  ) : patronalOptions.map((s) => (
                     <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <Label>Data-base *</Label>
-                <Input type="date" value={form.data_base} onChange={(e) => setForm({ ...form, data_base: e.target.value })} />
-              </div>
-              <div>
-                <Label>Reajuste (%)</Label>
-                <Input type="number" step="0.001" value={form.reajuste_pct} onChange={(e) => setForm({ ...form, reajuste_pct: e.target.value })} />
-              </div>
-              <div />
+
+            <div className="space-y-1.5">
+              <Label>Sindicato Laboral *</Label>
+              <Select
+                value={form.sindicato_laboral_id}
+                onValueChange={(v) => setForm({ ...form, sindicato_laboral_id: v })}
+                disabled={!form.unidade_id}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={form.unidade_id ? "Selecione o laboral" : "Selecione uma unidade primeiro"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {laboralOptions.length === 0 ? (
+                    <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhum sindicato laboral vinculado a esta unidade.</div>
+                  ) : laboralOptions.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Vigência início *</Label>
-                <Input type="date" value={form.vigencia_inicio} onChange={(e) => setForm({ ...form, vigencia_inicio: e.target.value })} />
+              <div className="space-y-1.5">
+                <Label>Ano Base *</Label>
+                <Input type="number" min={2000} max={2100} value={form.ano} onChange={(e) => setForm({ ...form, ano: e.target.value })} />
               </div>
-              <div>
-                <Label>Vigência fim</Label>
-                <Input type="date" value={form.vigencia_fim} onChange={(e) => setForm({ ...form, vigencia_fim: e.target.value })} />
+              <div className="space-y-1.5">
+                <Label>Mês Base *</Label>
+                <Select value={form.mes} onValueChange={(v) => setForm({ ...form, mes: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {MESES.map((m, i) => (
+                      <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            <div>
-              <Label>Cláusulas <span className="text-xs text-muted-foreground">(uma por linha, ou JSON)</span></Label>
-              <Textarea rows={5} value={form.clausulas} onChange={(e) => setForm({ ...form, clausulas: e.target.value })} placeholder={"Piso salarial R$ 1.800\nVale-refeição R$ 25/dia"} />
+
+            <div className="space-y-1.5">
+              <Label>Tipo *</Label>
+              <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as TipoDoc })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(TIPO_LABEL) as TipoDoc[]).map((k) => (
+                    <SelectItem key={k} value={k}>{TIPO_LABEL[k]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div>
-              <Label>Observações</Label>
-              <Textarea rows={3} value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} />
+
+            <div className="space-y-1.5">
+              <Label>Arquivo (PDF) {form.id ? "" : "*"}</Label>
+              <Input
+                ref={fileRef}
+                type="file"
+                accept="application/pdf"
+                onChange={(e) => setForm({ ...form, arquivo: e.target.files?.[0] ?? null })}
+              />
+              {form.id && form.arquivo_nome && !form.arquivo && (
+                <p className="text-xs text-muted-foreground">Atual: {form.arquivo_nome}</p>
+              )}
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
             <Button onClick={() => upsert.mutate()} disabled={upsert.isPending}>
-              {upsert.isPending ? "Salvando..." : "Salvar"}
+              {upsert.isPending ? "Salvando..." : form.id ? "Salvar" : "Cadastrar"}
             </Button>
           </DialogFooter>
         </DialogContent>
