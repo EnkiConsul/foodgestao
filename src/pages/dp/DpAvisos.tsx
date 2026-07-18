@@ -18,7 +18,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDpAvisos, type DpAviso } from "@/hooks/useDpComunicacao";
-import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
+import { useDpUnidades } from "@/hooks/useDpCadastros";
+import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeStorageFilename } from "@/lib/storage";
@@ -44,14 +45,14 @@ function AvisoDialog({
   const [dataFim, setDataFim] = useState(aviso?.expira_em?.slice(0, 10) ?? "");
   const [destinatario, setDestinatario] = useState<string>(
     aviso?.escopo === "unidade" ? `unidade:${aviso.unidade_id}` :
-    aviso?.escopo === "cargo" ? `cargo:${aviso.cargo_id}` : "todos"
+    (aviso as any)?.escopo === "colaborador" ? `colaborador:${(aviso as any).colaborador_id}` : "todos"
   );
   const [arquivoPath, setArquivoPath] = useState(aviso?.arquivo_path ?? "");
   const [arquivoMime, setArquivoMime] = useState(aviso?.arquivo_mime ?? "");
   const [uploading, setUploading] = useState(false);
 
   const unidades = useDpUnidades();
-  const cargos = useDpCargos();
+  const colaboradores = useDpColaboradores();
 
   const uploadFile = async (file: File) => {
     if (!companyId) return toast.error("Selecione uma empresa");
@@ -77,12 +78,12 @@ function AvisoDialog({
 
   const parseDest = () => {
     if (destinatario.startsWith("unidade:")) {
-      return { escopo: "unidade" as const, unidade_id: destinatario.split(":")[1], cargo_id: null };
+      return { escopo: "unidade" as const, unidade_id: destinatario.split(":")[1], cargo_id: null, colaborador_id: null };
     }
-    if (destinatario.startsWith("cargo:")) {
-      return { escopo: "cargo" as const, unidade_id: null, cargo_id: destinatario.split(":")[1] };
+    if (destinatario.startsWith("colaborador:")) {
+      return { escopo: "colaborador" as any, unidade_id: null, cargo_id: null, colaborador_id: destinatario.split(":")[1] };
     }
-    return { escopo: "todos" as const, unidade_id: null, cargo_id: null };
+    return { escopo: "todos" as const, unidade_id: null, cargo_id: null, colaborador_id: null };
   };
 
   return (
@@ -115,12 +116,18 @@ function AvisoDialog({
             <Select value={destinatario} onValueChange={setDestinatario}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="todos">Todos os colaboradores</SelectItem>
+                <SelectItem value="todos">Todos os Colaboradores</SelectItem>
+                {(unidades.data ?? []).length > 0 && (
+                  <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Unidade Específica</div>
+                )}
                 {(unidades.data ?? []).map((u: any) => (
-                  <SelectItem key={`u-${u.id}`} value={`unidade:${u.id}`}>Unidade: {u.nome}</SelectItem>
+                  <SelectItem key={`u-${u.id}`} value={`unidade:${u.id}`}>{u.nome}</SelectItem>
                 ))}
-                {(cargos.data ?? []).map((c: any) => (
-                  <SelectItem key={`c-${c.id}`} value={`cargo:${c.id}`}>Cargo: {c.nome}</SelectItem>
+                {(colaboradores.data ?? []).length > 0 && (
+                  <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Colaborador Específico</div>
+                )}
+                {(colaboradores.data ?? []).map((c: any) => (
+                  <SelectItem key={`c-${c.id}`} value={`colaborador:${c.id}`}>{c.nome}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -186,9 +193,9 @@ export default function DpAvisos() {
   };
 
   const destinoLabel = (a: DpAviso) => {
-    if (a.escopo === "unidade") return "Unidade específica";
-    if (a.escopo === "cargo") return "Cargo específico";
-    return "Todos os colaboradores";
+    if (a.escopo === "unidade") return "Unidade Específica";
+    if ((a as any).escopo === "colaborador") return "Colaborador Específico";
+    return "Todos os Colaboradores";
   };
 
   return (

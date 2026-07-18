@@ -1702,6 +1702,7 @@ export type Database = {
           arquivo_path: string | null
           autor_id: string | null
           cargo_id: string | null
+          colaborador_id: string | null
           company_id: string
           conteudo: string
           created_at: string
@@ -1720,6 +1721,7 @@ export type Database = {
           arquivo_path?: string | null
           autor_id?: string | null
           cargo_id?: string | null
+          colaborador_id?: string | null
           company_id: string
           conteudo: string
           created_at?: string
@@ -1738,6 +1740,7 @@ export type Database = {
           arquivo_path?: string | null
           autor_id?: string | null
           cargo_id?: string | null
+          colaborador_id?: string | null
           company_id?: string
           conteudo?: string
           created_at?: string
@@ -1757,6 +1760,20 @@ export type Database = {
             columns: ["cargo_id"]
             isOneToOne: false
             referencedRelation: "dp_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_avisos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_avisos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
             referencedColumns: ["id"]
           },
           {
