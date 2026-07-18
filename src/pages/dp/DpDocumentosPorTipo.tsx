@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Upload, History, Download, Pencil, Loader2, Check, X, Trash2, Eye,
-  FileText, Clock, Coins, ArrowLeft,
+  FileText, Clock, Coins,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
