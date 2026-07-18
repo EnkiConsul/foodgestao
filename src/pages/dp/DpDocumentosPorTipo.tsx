@@ -287,9 +287,6 @@ export default function DpDocumentosPorTipo() {
     <DpPage>
       <Helmet><title>{cfg.titulo} — DP 360°</title></Helmet>
 
-      <Button asChild variant="ghost" size="sm" className="mb-1 -ml-2 w-fit">
-        <Link to="/dp/documentos"><ArrowLeft className="h-4 w-4 mr-1" /> Documentos</Link>
-      </Button>
 
       <DpPageHeader
         icon={Icon}
