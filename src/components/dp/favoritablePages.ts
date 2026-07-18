@@ -70,7 +70,7 @@ export const FAVORITABLE_PAGES: FavoritablePage[] = [
   { pattern: "/dp/cadastros/unidades", label: "Unidades", icon: Building2 },
   { pattern: "/dp/cadastros/cargos", label: "Cargos", icon: Briefcase },
   { pattern: "/dp/cadastros/sindicatos", label: "Sindicatos", icon: HandshakeIcon },
-  { pattern: "/dp/documentos/act-cct", label: "Negociações Coletivas (ACT/CCT)", icon: FileSignature },
+  { pattern: "/dp/documentos/act-cct", label: "ACT-CCT", icon: FileSignature },
 
   // ----- Portal do Colaborador -----
   { pattern: "/dp/meu/perfil", label: "Meu Perfil", icon: User },
