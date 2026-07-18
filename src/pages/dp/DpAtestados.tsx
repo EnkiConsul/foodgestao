@@ -159,7 +159,7 @@ export default function DpAtestados() {
       if (Number.isNaN(d) || d < 0) throw new Error("Dias de afastamento inválido");
       if (!pendingFile) throw new Error("Anexe o arquivo do atestado");
 
-      const path = `${selectedCompanyId}/atestado/${colaboradorId}/${Date.now()}-${pendingFile.name}`;
+      const path = `${selectedCompanyId}/atestado/${colaboradorId}/${Date.now()}-${sanitizeStorageFilename(pendingFile.name)}`;
       const up = await supabase.storage.from(BUCKET).upload(path, pendingFile, { upsert: false });
       if (up.error) throw up.error;
 
