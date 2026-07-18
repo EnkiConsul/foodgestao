@@ -1,16 +1,12 @@
 import { Helmet } from "react-helmet-async";
 import { useMemo, useState } from "react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Plus, Trash2, Mail, Send, Search, Users } from "lucide-react";
+import { MessageSquare, Plus, Copy, Pencil, Trash2, Send } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -20,34 +16,50 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
+import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 import { useDpMensagens } from "@/hooks/useDpComunicacao";
-import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
-import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import {
+  useDpModelosMensagem, type DpModeloMensagem, type DpModeloTipo,
+} from "@/hooks/useDpModelosMensagem";
 import { toast } from "sonner";
 
-type Modo = "direta" | "broadcast";
+const TIPO_LABELS: Record<DpModeloTipo, string> = {
+  aniversario: "Aniversário",
+  tempo_de_casa: "Tempo de Casa",
+  outro: "Outro",
+};
+
+const TIPO_DETALHES: Partial<Record<DpModeloTipo, string>> = {
+  aniversario: "Aniversário de Nascimento",
+  tempo_de_casa: "Aniversário de Contratação",
+};
+
+type ModeloForm = {
+  id?: string;
+  titulo: string;
+  tipo: DpModeloTipo;
+  assunto: string;
+  corpo: string;
+};
+
+const EMPTY_FORM: ModeloForm = { titulo: "", tipo: "outro", assunto: "", corpo: "" };
 
 export default function DpMensagens() {
   const { selectedCompanyId } = useCompanyContext();
-  const { user } = useAuth();
-  const { data: mensagens = [], isLoading, send, remove } = useDpMensagens();
-  const [open, setOpen] = useState(false);
-  const [toDelete, setToDelete] = useState<any | null>(null);
-  const [tab, setTab] = useState<"enviadas" | "recebidas">("enviadas");
-  const [search, setSearch] = useState("");
-  const [modo, setModo] = useState<Modo>("direta");
-  const [destinatario, setDestinatario] = useState<string>("");
+  const { send } = useDpMensagens();
+  const modelos = useDpModelosMensagem();
+
+  const [modeloOpen, setModeloOpen] = useState(false);
+  const [modeloForm, setModeloForm] = useState<ModeloForm>(EMPTY_FORM);
+  const [toDelete, setToDelete] = useState<DpModeloMensagem | null>(null);
+
+  const [destinatario, setDestinatario] = useState<string>("todos");
+  const [modeloSel, setModeloSel] = useState<string>("nenhum");
+  const [canal, setCanal] = useState<"whatsapp" | "email" | "sms">("whatsapp");
   const [assunto, setAssunto] = useState("");
   const [corpo, setCorpo] = useState("");
-  const [canal, setCanal] = useState<"whatsapp" | "email" | "sms">("email");
-  const [escopo, setEscopo] = useState<"todos" | "unidade" | "cargo">("todos");
-  const [alvoId, setAlvoId] = useState("");
-  const [sending, setSending] = useState(false);
-
-  const unidades = useDpUnidades();
-  const cargos = useDpCargos();
+  const [enviando, setEnviando] = useState(false);
 
   const { data: colaboradores = [] } = useQuery({
     queryKey: ["dp_colab_min", selectedCompanyId],
@@ -55,7 +67,7 @@ export default function DpMensagens() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_colaboradores")
-        .select("id, nome, unidade_id, cargo_id")
+        .select("id, nome")
         .eq("company_id", selectedCompanyId!)
         .eq("ativo", true)
         .order("nome");
@@ -64,237 +76,277 @@ export default function DpMensagens() {
     },
   });
 
-  const filtered = useMemo(() => {
-    const s = search.toLowerCase();
-    return (mensagens as any[]).filter((m) => {
-      const mine = m.remetente_id === user?.id;
-      if (tab === "enviadas" && !mine) return false;
-      if (tab === "recebidas" && mine) return false;
-      if (s && !`${m.assunto} ${m.corpo} ${m.dp_colaboradores?.nome ?? ""}`.toLowerCase().includes(s)) return false;
-      return true;
+  const modelosList = useMemo(
+    () => (modelos.data ?? []) as DpModeloMensagem[],
+    [modelos.data],
+  );
+
+  const openNovoModelo = () => { setModeloForm(EMPTY_FORM); setModeloOpen(true); };
+  const editarModelo = (m: DpModeloMensagem) => {
+    setModeloForm({
+      id: m.id,
+      titulo: m.titulo,
+      tipo: (m.tipo ?? "outro") as DpModeloTipo,
+      assunto: m.assunto ?? "",
+      corpo: m.corpo,
     });
-  }, [mensagens, tab, search, user?.id]);
+    setModeloOpen(true);
+  };
 
-  const counts = useMemo(() => {
-    let enviadas = 0, recebidas = 0, naoLidas = 0;
-    for (const m of mensagens as any[]) {
-      if (m.remetente_id === user?.id) enviadas++;
-      else { recebidas++; if (!m.lida_em) naoLidas++; }
+  const duplicarModelo = (m: DpModeloMensagem) => {
+    modelos.upsert.mutate({
+      titulo: `${m.titulo} (cópia)`,
+      tipo: (m.tipo ?? "outro") as DpModeloTipo,
+      assunto: m.assunto ?? "",
+      corpo: m.corpo,
+      canal: m.canal,
+    } as any);
+  };
+
+  const salvarModelo = () => {
+    if (!modeloForm.titulo || !modeloForm.assunto || !modeloForm.corpo) {
+      toast.error("Preencha nome, assunto e corpo");
+      return;
     }
-    return { enviadas, recebidas, naoLidas };
-  }, [mensagens, user?.id]);
+    modelos.upsert.mutate(
+      {
+        id: modeloForm.id,
+        titulo: modeloForm.titulo,
+        tipo: modeloForm.tipo,
+        assunto: modeloForm.assunto,
+        corpo: modeloForm.corpo,
+        canal: "whatsapp",
+      } as any,
+      { onSuccess: () => { setModeloOpen(false); setModeloForm(EMPTY_FORM); } },
+    );
+  };
 
-  const reset = () => {
-    setDestinatario(""); setAssunto(""); setCorpo("");
-    setModo("direta"); setEscopo("todos"); setAlvoId(""); setCanal("email");
+  const aplicarModelo = (id: string) => {
+    setModeloSel(id);
+    if (id === "nenhum") return;
+    const m = modelosList.find((x) => x.id === id);
+    if (m) {
+      setAssunto(m.assunto ?? m.titulo);
+      setCorpo(m.corpo);
+    }
   };
 
   const enviar = async () => {
-    if (!assunto || !corpo) return;
-    if (modo === "direta") {
-      if (!destinatario) return;
-      send.mutate(
-        { destinatario_colaborador_id: destinatario, assunto, corpo },
-        { onSuccess: () => { setOpen(false); reset(); } },
-      );
-      return;
-    }
-    // broadcast
-    let ids: string[] = [];
-    if (escopo === "todos") ids = colaboradores.map((c: any) => c.id);
-    else if (escopo === "unidade") ids = colaboradores.filter((c: any) => c.unidade_id === alvoId).map((c: any) => c.id);
-    else if (escopo === "cargo") ids = colaboradores.filter((c: any) => c.cargo_id === alvoId).map((c: any) => c.id);
-    if (ids.length === 0) return toast.error("Nenhum destinatário para este escopo");
-    setSending(true);
+    if (!assunto || !corpo) return toast.error("Preencha assunto e mensagem");
+    setEnviando(true);
     try {
-      const { error } = await supabase.functions.invoke("dp-send-broadcast", {
-        body: { company_id: selectedCompanyId, canal, assunto, corpo, colaborador_ids: ids },
-      });
-      if (error) throw error;
-      toast.success(`Broadcast enviado para ${ids.length} destinatário(s)`);
-      setOpen(false); reset();
+      const ids =
+        destinatario === "todos"
+          ? (colaboradores as any[]).map((c) => c.id)
+          : [destinatario];
+      if (ids.length === 0) {
+        toast.error("Nenhum destinatário disponível");
+        return;
+      }
+      if (destinatario !== "todos") {
+        await new Promise<void>((resolve, reject) =>
+          send.mutate(
+            { destinatario_colaborador_id: destinatario, assunto, corpo },
+            { onSuccess: () => resolve(), onError: (e) => reject(e) },
+          ),
+        );
+      } else {
+        const { error } = await supabase.functions.invoke("dp-send-broadcast", {
+          body: { company_id: selectedCompanyId, canal, assunto, corpo, colaborador_ids: ids },
+        });
+        if (error) throw error;
+        toast.success(`Mensagem enviada para ${ids.length} colaborador(es)`);
+      }
+      setAssunto(""); setCorpo(""); setModeloSel("nenhum");
     } catch (e: any) {
-      toast.error(e.message ?? "Erro no broadcast");
-    } finally { setSending(false); }
+      toast.error(e.message ?? "Erro ao enviar");
+    } finally {
+      setEnviando(false);
+    }
   };
 
   return (
     <DpPage>
       <Helmet><title>Mensagens — DP 360°</title></Helmet>
       <DpPageHeader
-        icon={Mail}
+        icon={MessageSquare}
         title="Mensagens"
-        description="Converse com colaboradores individualmente ou em grupo."
-        actions={
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
-          <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-1" /> Nova mensagem</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Nova mensagem</DialogTitle>
-              <DialogDescription>Envie uma mensagem direta ou faça um broadcast para um grupo.</DialogDescription>
-            </DialogHeader>
-            <Tabs value={modo} onValueChange={(v) => setModo(v as Modo)} className="mb-2">
-              <TabsList>
-                <TabsTrigger value="direta"><Mail className="h-3.5 w-3.5 mr-1" />Direta</TabsTrigger>
-                <TabsTrigger value="broadcast"><Users className="h-3.5 w-3.5 mr-1" />Broadcast</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <div className="space-y-3">
-              {modo === "direta" ? (
-                <div>
-                  <Label>Destinatário</Label>
-                  <Select value={destinatario} onValueChange={setDestinatario}>
-                    <SelectTrigger><SelectValue placeholder="Selecione um colaborador" /></SelectTrigger>
-                    <SelectContent>
-                      {colaboradores.map((c: any) => (
-                        <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label>Canal</Label>
-                      <Select value={canal} onValueChange={(v: any) => setCanal(v)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="email">E-mail</SelectItem>
-                          <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                          <SelectItem value="sms">SMS</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Escopo</Label>
-                      <Select value={escopo} onValueChange={(v: any) => { setEscopo(v); setAlvoId(""); }}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="todos">Todos ativos</SelectItem>
-                          <SelectItem value="unidade">Por unidade</SelectItem>
-                          <SelectItem value="cargo">Por cargo</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  {escopo === "unidade" && (
-                    <div>
-                      <Label>Unidade</Label>
-                      <Select value={alvoId} onValueChange={setAlvoId}>
-                        <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                        <SelectContent>
-                          {(unidades.data ?? []).map((u: any) => (
-                            <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                  {escopo === "cargo" && (
-                    <div>
-                      <Label>Cargo</Label>
-                      <Select value={alvoId} onValueChange={setAlvoId}>
-                        <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                        <SelectContent>
-                          {(cargos.data ?? []).map((c: any) => (
-                            <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                </>
-              )}
-              <div>
-                <Label>Assunto</Label>
-                <Input value={assunto} onChange={(e) => setAssunto(e.target.value)} />
-              </div>
-              <div>
-                <Label>Mensagem <span className="text-xs text-muted-foreground">— use {"{nome}"} para personalizar</span></Label>
-                <Textarea rows={6} value={corpo} onChange={(e) => setCorpo(e.target.value)} />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button
-                disabled={sending || !assunto || !corpo || (modo === "direta" ? !destinatario : (escopo !== "todos" && !alvoId))}
-                onClick={enviar}
-              >
-                <Send className="h-4 w-4 mr-1" /> {sending ? "Enviando..." : "Enviar"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        }
+        description="Envie mensagens para colaboradores via WhatsApp e/ou E-mail usando modelos pré-definidos."
+        actions={<FavoriteToggle />}
       />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-          <TabsList>
-            <TabsTrigger value="enviadas">Enviadas ({counts.enviadas})</TabsTrigger>
-            <TabsTrigger value="recebidas">
-              Recebidas ({counts.recebidas})
-              {counts.naoLidas > 0 && <Badge className="ml-1 h-4 px-1 text-[10px]">{counts.naoLidas}</Badge>}
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-        <div className="relative">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 w-64" />
+      {/* Modelos Rápidos */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Modelos Rápidos</h2>
+          <Button onClick={openNovoModelo}>
+            <Plus className="h-4 w-4 mr-1" /> Novo Modelo
+          </Button>
         </div>
-      </div>
-
-      {isLoading ? (
-        <DpContentCard contentClassName="p-6"><p className="text-sm text-muted-foreground">Carregando…</p></DpContentCard>
-      ) : filtered.length === 0 ? (
-        <DpContentCard><DpEmptyState icon={Mail}>Nenhuma mensagem.</DpEmptyState></DpContentCard>
-      ) : (
-        <div className="grid gap-3">
-          {filtered.map((m: any) => {
-            const mine = m.remetente_id === user?.id;
-            return (
-              <Card key={m.id} className={`dp-content-card ${!mine && !m.lida_em ? "border-primary/40" : ""}`}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-base flex items-center gap-2">
-                        {m.assunto}
-                        {!mine && !m.lida_em && <Badge className="text-[10px]">Não lida</Badge>}
-                      </CardTitle>
-                      <p className="text-xs text-muted-foreground">
-                        {mine ? "Para" : "De"} {m.dp_colaboradores?.nome ?? "—"} ·{" "}
-                        {format(new Date(m.created_at), "dd 'de' MMM yyyy HH:mm", { locale: ptBR })}
-                      </p>
+        {modelosList.length === 0 ? (
+          <div className="rounded-2xl border-2 border-dashed border-[hsl(var(--dp-border))] p-8 text-center text-sm text-muted-foreground">
+            Nenhum modelo cadastrado. Clique em "Novo Modelo" para criar o primeiro.
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {modelosList.map((m) => {
+              const tipo = (m.tipo ?? "outro") as DpModeloTipo;
+              return (
+                <div key={m.id} className="rounded-xl border-2 border-[hsl(var(--dp-border))] bg-card p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-semibold truncate">{m.titulo}</p>
+                      <p className="text-xs text-muted-foreground">{TIPO_LABELS[tipo]}</p>
+                      {TIPO_DETALHES[tipo] && (
+                        <p className="text-xs text-muted-foreground">{TIPO_DETALHES[tipo]}</p>
+                      )}
                     </div>
-                    <Button size="icon" variant="ghost" onClick={() => setToDelete(m)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => duplicarModelo(m)} title="Duplicar">
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => editarModelo(m)} title="Editar">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setToDelete(m)} title="Excluir">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="whitespace-pre-wrap text-sm">{m.corpo}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* Enviar Mensagem */}
+      <section className="rounded-2xl border-2 border-[hsl(var(--dp-border))] bg-card p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <Send className="h-5 w-5 text-primary" />
+          <h2 className="text-lg font-semibold">Enviar Mensagem</h2>
         </div>
-      )}
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label>Destinatário</Label>
+            <Select value={destinatario} onValueChange={setDestinatario}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os colaboradores</SelectItem>
+                {(colaboradores as any[]).map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Modelo (opcional)</Label>
+            <Select value={modeloSel} onValueChange={aplicarModelo}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="nenhum">Nenhum</SelectItem>
+                {modelosList.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>{m.titulo}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Canal de Envio</Label>
+          <Select value={canal} onValueChange={(v: any) => setCanal(v)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="whatsapp">📱 WhatsApp</SelectItem>
+              <SelectItem value="email">✉️ E-mail</SelectItem>
+              <SelectItem value="sms">💬 SMS</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Assunto *</Label>
+          <Input placeholder="Assunto da mensagem" value={assunto} onChange={(e) => setAssunto(e.target.value)} />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Mensagem *</Label>
+          <Textarea rows={6} placeholder="Digite a mensagem..." value={corpo} onChange={(e) => setCorpo(e.target.value)} />
+        </div>
+
+        <Button onClick={enviar} disabled={enviando || !assunto || !corpo}>
+          <Send className="h-4 w-4 mr-1" /> {enviando ? "Enviando..." : "Enviar Mensagem"}
+        </Button>
+      </section>
+
+      {/* Dialog Modelo */}
+      <Dialog open={modeloOpen} onOpenChange={setModeloOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{modeloForm.id ? "Editar Modelo" : "Novo Modelo"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>Nome do Modelo *</Label>
+              <Input
+                placeholder="Ex: Aniversário"
+                value={modeloForm.titulo}
+                onChange={(e) => setModeloForm((f) => ({ ...f, titulo: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Tipo</Label>
+              <Select
+                value={modeloForm.tipo}
+                onValueChange={(v: DpModeloTipo) => setModeloForm((f) => ({ ...f, tipo: v }))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="outro">Outro</SelectItem>
+                  <SelectItem value="aniversario">Aniversário</SelectItem>
+                  <SelectItem value="tempo_de_casa">Tempo de Casa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Assunto *</Label>
+              <Input
+                placeholder="Assunto do modelo"
+                value={modeloForm.assunto}
+                onChange={(e) => setModeloForm((f) => ({ ...f, assunto: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Corpo da Mensagem *</Label>
+              <Textarea
+                rows={5}
+                placeholder="Conteúdo do modelo"
+                value={modeloForm.corpo}
+                onChange={(e) => setModeloForm((f) => ({ ...f, corpo: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setModeloOpen(false)}>Cancelar</Button>
+            <Button onClick={salvarModelo}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir mensagem?</AlertDialogTitle>
+            <AlertDialogTitle>Excluir modelo?</AlertDialogTitle>
             <AlertDialogDescription>
-              A mensagem "{toDelete?.assunto}" será removida permanentemente.
+              O modelo "{toDelete?.titulo}" será removido.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => { if (toDelete) { remove.mutate(toDelete.id); setToDelete(null); } }}
+              onClick={() => { if (toDelete) { modelos.remove.mutate(toDelete.id); setToDelete(null); } }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Excluir

@@ -2897,6 +2897,7 @@ export type Database = {
       }
       dp_modelos_mensagem: {
         Row: {
+          assunto: string | null
           ativo: boolean
           canal: Database["public"]["Enums"]["dp_mensagem_canal"]
           company_id: string
@@ -2904,11 +2905,13 @@ export type Database = {
           created_at: string
           criado_por: string | null
           id: string
+          tipo: string
           titulo: string
           updated_at: string
           variaveis: string[]
         }
         Insert: {
+          assunto?: string | null
           ativo?: boolean
           canal?: Database["public"]["Enums"]["dp_mensagem_canal"]
           company_id: string
@@ -2916,11 +2919,13 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           id?: string
+          tipo?: string
           titulo: string
           updated_at?: string
           variaveis?: string[]
         }
         Update: {
+          assunto?: string | null
           ativo?: boolean
           canal?: Database["public"]["Enums"]["dp_mensagem_canal"]
           company_id?: string
@@ -2928,6 +2933,7 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           id?: string
+          tipo?: string
           titulo?: string
           updated_at?: string
           variaveis?: string[]

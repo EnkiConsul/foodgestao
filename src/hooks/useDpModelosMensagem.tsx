@@ -3,11 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { toast } from "sonner";
 
+export type DpModeloTipo = "aniversario" | "tempo_de_casa" | "outro";
+
 export type DpModeloMensagem = {
   id: string;
   company_id: string;
   titulo: string;
   canal: "whatsapp" | "email" | "sms";
+  tipo: DpModeloTipo;
+  assunto: string | null;
   corpo: string;
   variaveis: string[] | null;
   ativo: boolean;
@@ -37,7 +41,9 @@ export function useDpModelosMensagem(canal?: DpModeloMensagem["canal"]) {
   });
 
   const upsert = useMutation({
-    mutationFn: async (input: Partial<DpModeloMensagem> & { titulo: string; corpo: string; canal: DpModeloMensagem["canal"] }) => {
+    mutationFn: async (
+      input: Partial<DpModeloMensagem> & { titulo: string; corpo: string; canal: DpModeloMensagem["canal"] },
+    ) => {
       const payload: any = { ...input, company_id: selectedCompanyId! };
       if (input.id) {
         const { error } = await supabase.from("dp_modelos_mensagem").update(payload).eq("id", input.id);
@@ -54,10 +60,24 @@ export function useDpModelosMensagem(canal?: DpModeloMensagem["canal"]) {
     onError: (e: any) => toast.error(e.message ?? "Erro"),
   });
 
-  return { ...query, upsert };
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("dp_modelos_mensagem")
+        .update({ ativo: false })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_modelos_mensagem"] });
+      toast.success("Modelo removido");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao remover"),
+  });
+
+  return { ...query, upsert, remove };
 }
 
-/** Convenience alias: exposes `.nome` reading `titulo` for UIs that use "nome". */
 export function modeloDisplayName(m: DpModeloMensagem): string {
   return m.titulo;
 }
