@@ -1,21 +1,28 @@
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { useMemo, useRef, useState } from "react";
-import { Plus, Trash2, AlertOctagon, FileSignature, Upload } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ShieldAlert, Upload, History, FileText, FileImage, Download, Trash2, Pencil, FileSignature } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useAuth } from "@/hooks/useAuth";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
+import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { HistoricoDisciplinar, type RegistroDisciplinar } from "@/components/dp/HistoricoDisciplinar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { TableSkeleton } from "@/components/dp/DpSkeletons";
+import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+
+const BUCKET = "dp-disciplinar";
 
 const TIPOS = [
   { value: "advertencia_verbal", label: "Advertência verbal" },
@@ -25,33 +32,66 @@ const TIPOS = [
   { value: "observacao", label: "Observação" },
 ] as const;
 
-/**
- * Convenção de storage:
- * - PDFs gerados automaticamente: `<company>/<id>.pdf`
- * - PDFs anexados manualmente: `<company>/<id>/<timestamp>-<nome>`
- * Distinguimos pelo segmento `/${id}/` no path.
- */
-function pdfOrigem(r: RegistroDisciplinar): "gerado" | "anexado" | null {
-  if (!r.pdf_storage_path) return null;
-  return r.pdf_storage_path.includes(`/${r.id}/`) ? "anexado" : "gerado";
-}
+const TIPO_LABEL: Record<string, string> = Object.fromEntries(TIPOS.map((t) => [t.value, t.label]));
+
+type Registro = {
+  id: string;
+  company_id: string;
+  colaborador_id: string;
+  tipo: string;
+  data: string;
+  motivo: string;
+  descricao: string | null;
+  suspensao_dias: number | null;
+  pdf_storage_path: string | null;
+  created_at: string;
+  dp_colaboradores: { nome: string; unidade_id: string | null } | null;
+};
+
+const formatDate = (v?: string | null) => v ? new Date(`${v}T00:00:00`).toLocaleDateString("pt-BR") : "—";
+
+const getFileKind = (path?: string | null) => {
+  if (!path) return { label: "—", icon: FileText };
+  return path.toLowerCase().endsWith(".pdf") ? { label: "PDF", icon: FileText } : { label: "Imagem", icon: FileImage };
+};
 
 export default function DpDisciplinar() {
   const { selectedCompanyId } = useCompanyContext();
+  const { user } = useAuth();
   const qc = useQueryClient();
+
   const colabs = useDpColaboradores();
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    colaborador_id: "", tipo: "advertencia_verbal", data: new Date().toISOString().slice(0, 10),
-    motivo: "", descricao: "", suspensao_dias: "",
-  });
-  const [confirmDel, setConfirmDel] = useState<string | null>(null);
-  const [filterColab, setFilterColab] = useState<string>("todos");
-  const [filterTipo, setFilterTipo] = useState<string>("todos");
-  const [dataDe, setDataDe] = useState("");
-  const [dataAte, setDataAte] = useState("");
-  const uploadRef = useRef<HTMLInputElement>(null);
-  const [uploadTargetId, setUploadTargetId] = useState<string | null>(null);
+  const unidades = useDpUnidades();
+
+  const [tab, setTab] = useState<"importar" | "historico">("importar");
+  const [preview, setPreview] = useState<{ title: string; path: string } | null>(null);
+  const [toDelete, setToDelete] = useState<Registro | null>(null);
+  const [editing, setEditing] = useState<Registro | null>(null);
+
+  // form importar
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [unidadeId, setUnidadeId] = useState("");
+  const [colaboradorId, setColaboradorId] = useState("");
+  const [dataDoc, setDataDoc] = useState("");
+  const [tipo, setTipo] = useState<string>("");
+  const [dias, setDias] = useState<string>("0");
+  const [observacao, setObservacao] = useState("");
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+
+  // filtros histórico
+  const [fUnidade, setFUnidade] = useState("todos");
+  const [fColab, setFColab] = useState("todos");
+  const [fDataInicio, setFDataInicio] = useState("");
+  const [fDataFim, setFDataFim] = useState("");
+  const [fTipo, setFTipo] = useState("todos");
+
+  // edição
+  const [editUnidadeId, setEditUnidadeId] = useState("");
+  const [editColaboradorId, setEditColaboradorId] = useState("");
+  const [editData, setEditData] = useState("");
+  const [editTipo, setEditTipo] = useState<string>("");
+  const [editDias, setEditDias] = useState("0");
+  const [editObs, setEditObs] = useState("");
 
   const list = useQuery({
     queryKey: ["dp_disciplinar", selectedCompanyId],
@@ -59,65 +99,143 @@ export default function DpDisciplinar() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_registros_disciplinares")
-        .select("*, dp_colaboradores(nome)")
+        .select("*, dp_colaboradores(nome, unidade_id)")
         .eq("company_id", selectedCompanyId!)
         .order("data", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as RegistroDisciplinar[];
+      return (data ?? []) as Registro[];
     },
   });
+
+  const rows = list.data ?? [];
 
   const filtered = useMemo(() => {
-    const rows = list.data ?? [];
-    return rows.filter((r: any) => {
-      if (filterColab !== "todos" && r.colaborador_id !== filterColab) return false;
-      if (filterTipo !== "todos" && r.tipo !== filterTipo) return false;
-      if (dataDe && r.data < dataDe) return false;
-      if (dataAte && r.data > dataAte) return false;
+    return rows.filter((r) => {
+      if (fUnidade !== "todos" && r.dp_colaboradores?.unidade_id !== fUnidade) return false;
+      if (fColab !== "todos" && r.colaborador_id !== fColab) return false;
+      if (fTipo !== "todos" && r.tipo !== fTipo) return false;
+      if (fDataInicio && r.data < fDataInicio) return false;
+      if (fDataFim && r.data > fDataFim) return false;
       return true;
     });
-  }, [list.data, filterColab, filterTipo, dataDe, dataAte]);
+  }, [rows, fUnidade, fColab, fTipo, fDataInicio, fDataFim]);
 
-  const create = useMutation({
+  const colabsHistorico = useMemo(
+    () => (colabs.data ?? []).filter((c) => fUnidade === "todos" || c.unidade_id === fUnidade),
+    [colabs.data, fUnidade],
+  );
+  const editColabs = useMemo(
+    () => (colabs.data ?? []).filter((c) => !editUnidadeId || c.unidade_id === editUnidadeId),
+    [colabs.data, editUnidadeId],
+  );
+  const unidadeNameById = useMemo(
+    () => new Map((unidades.data ?? []).map((u) => [u.id, u.nome])),
+    [unidades.data],
+  );
+
+  useEffect(() => {
+    if (fColab !== "todos" && !colabsHistorico.some((c) => c.id === fColab)) setFColab("todos");
+  }, [colabsHistorico, fColab]);
+
+  useEffect(() => {
+    if (!editing) return;
+    setEditUnidadeId(editing.dp_colaboradores?.unidade_id ?? "");
+    setEditColaboradorId(editing.colaborador_id);
+    setEditData(editing.data);
+    setEditTipo(editing.tipo);
+    setEditDias(String(editing.suspensao_dias ?? 0));
+    setEditObs(editing.descricao ?? editing.motivo ?? "");
+  }, [editing]);
+
+  const doImport = useMutation({
     mutationFn: async () => {
-      if (form.tipo === "suspensao") {
-        const dias = Number(form.suspensao_dias);
-        if (!Number.isFinite(dias) || dias <= 0) {
-          throw new Error("Informe o número de dias de suspensão (maior que zero).");
-        }
+      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
+      if (!unidadeId) throw new Error("Selecione a unidade");
+      if (!colaboradorId) throw new Error("Selecione o colaborador");
+      if (!dataDoc) throw new Error("Informe a data do documento");
+      if (!tipo) throw new Error("Selecione o tipo de registro");
+      if (!pendingFile) throw new Error("Anexe o arquivo do registro");
+      const diasN = parseInt(dias || "0", 10);
+      if (tipo === "suspensao" && (!Number.isFinite(diasN) || diasN <= 0)) {
+        throw new Error("Informe os dias de afastamento para suspensão");
       }
-      const { data: userRes } = await supabase.auth.getUser();
-      const { error } = await supabase.from("dp_registros_disciplinares").insert({
-        company_id: selectedCompanyId!,
-        colaborador_id: form.colaborador_id,
-        tipo: form.tipo as any,
-        data: form.data,
-        motivo: form.motivo,
-        descricao: form.descricao || null,
-        suspensao_dias: form.tipo === "suspensao" && form.suspensao_dias ? Number(form.suspensao_dias) : null,
-        aplicado_por: userRes.user?.id ?? null,
+
+      const { data: inserted, error: insErr } = await supabase
+        .from("dp_registros_disciplinares")
+        .insert({
+          company_id: selectedCompanyId,
+          colaborador_id: colaboradorId,
+          tipo: tipo as any,
+          data: dataDoc,
+          motivo: observacao || TIPO_LABEL[tipo] || tipo,
+          descricao: observacao || null,
+          suspensao_dias: diasN > 0 ? diasN : null,
+          aplicado_por: user?.id ?? null,
+        })
+        .select("id")
+        .single();
+      if (insErr) throw insErr;
+
+      const safeName = pendingFile.name.replace(/\s+/g, "_");
+      const path = `${selectedCompanyId}/${inserted.id}/${Date.now()}-${safeName}`;
+      const up = await supabase.storage.from(BUCKET).upload(path, pendingFile, {
+        upsert: true,
+        contentType: pendingFile.type || "application/pdf",
       });
-      if (error) throw error;
+      if (up.error) throw up.error;
+      const { error: updErr } = await supabase
+        .from("dp_registros_disciplinares")
+        .update({ pdf_storage_path: path })
+        .eq("id", inserted.id);
+      if (updErr) throw updErr;
     },
     onSuccess: () => {
-      toast.success("Registro criado");
+      toast.success("Registro importado com sucesso");
+      setUnidadeId(""); setColaboradorId(""); setDataDoc(""); setTipo(""); setDias("0"); setObservacao(""); setPendingFile(null);
+      if (fileRef.current) fileRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
-      setOpen(false);
-      setForm({ colaborador_id: "", tipo: "advertencia_verbal", data: new Date().toISOString().slice(0, 10), motivo: "", descricao: "", suspensao_dias: "" });
+      setTab("historico");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro"),
+    onError: (e: any) => toast.error(e.message ?? "Erro ao importar"),
   });
 
-  const del = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_registros_disciplinares").delete().eq("id", id);
+  const doDelete = useMutation({
+    mutationFn: async (r: Registro) => {
+      if (r.pdf_storage_path) await supabase.storage.from(BUCKET).remove([r.pdf_storage_path]);
+      const { error } = await supabase.from("dp_registros_disciplinares").delete().eq("id", r.id);
       if (error) throw error;
     },
     onSuccess: () => {
+      toast.success("Registro excluído");
       qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
-      toast.success("Removido");
-      setConfirmDel(null);
+      setToDelete(null);
     },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao excluir"),
+  });
+
+  const doEdit = useMutation({
+    mutationFn: async () => {
+      if (!editing) throw new Error("Registro não selecionado");
+      if (!editColaboradorId) throw new Error("Selecione o colaborador");
+      if (!editData) throw new Error("Informe a data");
+      if (!editTipo) throw new Error("Selecione o tipo");
+      const diasN = parseInt(editDias || "0", 10);
+      const { error } = await supabase.from("dp_registros_disciplinares").update({
+        colaborador_id: editColaboradorId,
+        data: editData,
+        tipo: editTipo as any,
+        suspensao_dias: diasN > 0 ? diasN : null,
+        descricao: editObs || null,
+        motivo: editObs || TIPO_LABEL[editTipo] || editTipo,
+      }).eq("id", editing.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Registro atualizado");
+      qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
+      setEditing(null);
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao atualizar"),
   });
 
   const genPdf = useMutation({
@@ -135,206 +253,317 @@ export default function DpDisciplinar() {
     onError: (e: any) => toast.error(e.message ?? "Erro ao gerar PDF"),
   });
 
-  const uploadPdf = useMutation({
-    mutationFn: async ({ id, file }: { id: string; file: File }) => {
-      const path = `${selectedCompanyId}/${id}/${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
-      const { error: upErr } = await supabase.storage
-        .from("dp-disciplinar")
-        .upload(path, file, { upsert: true, contentType: file.type || "application/pdf" });
-      if (upErr) throw upErr;
-      const { error: updErr } = await supabase
-        .from("dp_registros_disciplinares")
-        .update({ pdf_storage_path: path })
-        .eq("id", id);
-      if (updErr) throw updErr;
-    },
-    onSuccess: () => {
-      toast.success("PDF anexado");
-      qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
-    },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao anexar PDF"),
-  });
-
-  const triggerUpload = (id: string) => {
-    setUploadTargetId(id);
-    uploadRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !uploadTargetId) return;
-    uploadPdf.mutate({ id: uploadTargetId, file });
-    e.target.value = "";
-    setUploadTargetId(null);
+  const handleDownload = async (r: Registro) => {
+    if (!r.pdf_storage_path) return;
+    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(r.pdf_storage_path, 60);
+    if (error || !data?.signedUrl) return toast.error("Não foi possível gerar o link");
+    const a = document.createElement("a");
+    a.href = data.signedUrl; a.rel = "noopener"; a.target = "_blank";
+    a.download = r.pdf_storage_path.split("/").pop() || "registro.pdf";
+    document.body.appendChild(a); a.click(); a.remove();
   };
 
   return (
     <DpPage>
-      <Helmet><title>Disciplinar — DP 360°</title></Helmet>
-      <input
-        ref={uploadRef}
-        type="file"
-        accept="application/pdf,image/*"
-        className="hidden"
-        onChange={handleFileChange}
-      />
+      <Helmet><title>Registros Disciplinares — DP 360°</title></Helmet>
       <DpPageHeader
-        icon={AlertOctagon}
-        title="Registros disciplinares"
-        description="Advertências, suspensões, elogios e observações."
-        actions={
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" /> Novo registro</Button></DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader><DialogTitle>Novo registro</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div>
-                <Label>Colaborador</Label>
-                <Select value={form.colaborador_id} onValueChange={(v) => setForm({ ...form, colaborador_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+        icon={ShieldAlert}
+        title="Registros Disciplinares"
+        description="Gerencie advertências, suspensões e outros registros disciplinares."
+      />
+
+      <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
+        <TabsList>
+          <TabsTrigger value="importar"><Upload className="size-4 mr-2" />Importar</TabsTrigger>
+          <TabsTrigger value="historico"><History className="size-4 mr-2" />Histórico</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="importar" className="mt-4">
+          <DpContentCard>
+            <div className="flex items-center gap-2 mb-4">
+              <Upload className="size-5 text-primary" />
+              <h3 className="text-lg font-semibold">Importar Registro Disciplinar</h3>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Unidade *</Label>
+                <Select value={unidadeId} onValueChange={(v) => { setUnidadeId(v); setColaboradorId(""); }}>
+                  <SelectTrigger><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
                   <SelectContent>
-                    {(colabs.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                    {(unidades.data ?? []).map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Tipo</Label>
-                  <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Data</Label>
-                  <Input type="date" value={form.data} onChange={(e) => setForm({ ...form, data: e.target.value })} />
-                </div>
+
+              <div className="space-y-2">
+                <Label>Colaborador *</Label>
+                <Select
+                  value={colaboradorId}
+                  onValueChange={(v) => {
+                    setColaboradorId(v);
+                    const c = (colabs.data ?? []).find((x) => x.id === v);
+                    if (c?.unidade_id) setUnidadeId(c.unidade_id);
+                  }}
+                  disabled={!unidadeId}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecione o colaborador" /></SelectTrigger>
+                  <SelectContent>
+                    {(colabs.data ?? [])
+                      .filter((c) => !unidadeId || c.unidade_id === unidadeId)
+                      .map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
-              {form.tipo === "suspensao" && (
-                <div>
-                  <Label>Dias de suspensão *</Label>
-                  <Input type="number" min="1" value={form.suspensao_dias} onChange={(e) => setForm({ ...form, suspensao_dias: e.target.value })} />
-                </div>
-              )}
-              <div>
-                <Label>Motivo</Label>
-                <Input value={form.motivo} onChange={(e) => setForm({ ...form, motivo: e.target.value })} />
+
+              <div className="space-y-2">
+                <Label>Data do Documento *</Label>
+                <Input type="date" value={dataDoc} onChange={(e) => setDataDoc(e.target.value)} />
               </div>
-              <div>
-                <Label>Descrição</Label>
-                <Textarea rows={3} value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} />
+
+              <div className="space-y-2">
+                <Label>Tipo de Registro *</Label>
+                <Select value={tipo} onValueChange={setTipo}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
+                  <SelectContent>
+                    {TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Após salvar, você poderá gerar o PDF automaticamente ou anexar um PDF já assinado usando os ícones em cada registro.
-              </p>
+
+              <div className="space-y-2">
+                <Label>Dias de Afastamento (se aplicável)</Label>
+                <Input type="number" min={0} value={dias} onChange={(e) => setDias(e.target.value)} />
+                <p className="text-xs text-muted-foreground">Preencha com 0 se não houver afastamento.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Arquivo (PDF ou Imagem) *</Label>
+                <Input
+                  ref={fileRef}
+                  type="file"
+                  accept="application/pdf,image/*"
+                  onChange={(e) => setPendingFile(e.target.files?.[0] ?? null)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Observações</Label>
+                <Textarea rows={3} value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Observações adicionais (opcional)" />
+              </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button
-                disabled={
-                  !form.colaborador_id || !form.motivo || create.isPending ||
-                  (form.tipo === "suspensao" && (!form.suspensao_dias || Number(form.suspensao_dias) <= 0))
-                }
-                onClick={() => create.mutate()}
-              >Salvar</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        }
+
+            <Button
+              className="w-full mt-6"
+              size="lg"
+              disabled={doImport.isPending}
+              onClick={() => doImport.mutate()}
+            >
+              <Upload className="size-4 mr-2" />
+              {doImport.isPending ? "Enviando..." : "Importar"}
+            </Button>
+          </DpContentCard>
+        </TabsContent>
+
+        <TabsContent value="historico" className="mt-4 space-y-4">
+          <DpFilterCard>
+            <div className="grid gap-3 md:grid-cols-5">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase text-foreground">Unidade</Label>
+                <Select value={fUnidade} onValueChange={setFUnidade}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas</SelectItem>
+                    {(unidades.data ?? []).map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase text-foreground">Colaborador</Label>
+                <Select value={fColab} onValueChange={setFColab}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    {colabsHistorico.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase text-foreground">Data Início</Label>
+                <Input type="date" value={fDataInicio} onChange={(e) => setFDataInicio(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase text-foreground">Data Fim</Label>
+                <Input type="date" value={fDataFim} onChange={(e) => setFDataFim(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase text-foreground">Tipo</Label>
+                <Select value={fTipo} onValueChange={setFTipo}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    {TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </DpFilterCard>
+
+          <DpContentCard contentClassName="overflow-x-auto">
+            {list.isLoading ? (
+              <TableSkeleton columns={8} headers={["Colaborador", "Unidade", "Data", "Tipo", "Dias", "Observações", "Arquivo", "Ações"]} />
+            ) : filtered.length === 0 ? (
+              <div className="text-center text-muted-foreground py-10">
+                <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                Nenhum documento encontrado.
+              </div>
+            ) : (
+              <Table className="text-xs">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="px-3">Colaborador</TableHead>
+                    <TableHead className="px-3">Unidade</TableHead>
+                    <TableHead className="px-3">Data</TableHead>
+                    <TableHead className="px-3">Tipo</TableHead>
+                    <TableHead className="px-3">Dias</TableHead>
+                    <TableHead className="px-3">Observações</TableHead>
+                    <TableHead className="px-3">Arquivo</TableHead>
+                    <TableHead className="w-32 px-3 text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((r) => {
+                    const unitName = r.dp_colaboradores?.unidade_id ? unidadeNameById.get(r.dp_colaboradores.unidade_id) : null;
+                    const fileKind = getFileKind(r.pdf_storage_path);
+                    const FileIcon = fileKind.icon;
+                    return (
+                      <TableRow key={r.id} className="align-middle">
+                        <TableCell className="max-w-44 px-3 font-bold uppercase text-foreground">{r.dp_colaboradores?.nome ?? "—"}</TableCell>
+                        <TableCell className="max-w-28 px-3">{unitName ?? "—"}</TableCell>
+                        <TableCell className="whitespace-nowrap px-3">{formatDate(r.data)}</TableCell>
+                        <TableCell className="px-3">
+                          <Badge variant="outline">{TIPO_LABEL[r.tipo] ?? r.tipo}</Badge>
+                        </TableCell>
+                        <TableCell className="px-3">{r.suspensao_dias ?? "—"}</TableCell>
+                        <TableCell className="max-w-40 truncate px-3">{r.descricao || r.motivo || "—"}</TableCell>
+                        <TableCell className="px-3">
+                          {r.pdf_storage_path ? (
+                            <button
+                              type="button"
+                              className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+                              onClick={() => setPreview({ title: `Registro — ${r.dp_colaboradores?.nome ?? ""}`, path: r.pdf_storage_path! })}
+                            >
+                              <FileIcon className="h-4 w-4" />
+                              {fileKind.label}
+                            </button>
+                          ) : "—"}
+                        </TableCell>
+                        <TableCell className="px-3 text-right">
+                          <div className="flex gap-1 justify-end">
+                            <Button size="icon" variant="ghost" title="Editar" onClick={() => setEditing(r)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            {!r.pdf_storage_path && (
+                              <Button size="icon" variant="ghost" title="Gerar PDF" disabled={genPdf.isPending} onClick={() => genPdf.mutate(r.id)}>
+                                <FileSignature className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {r.pdf_storage_path && (
+                              <Button size="icon" variant="ghost" title="Baixar" onClick={() => handleDownload(r)}>
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button size="icon" variant="ghost" title="Excluir" onClick={() => setToDelete(r)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </DpContentCard>
+        </TabsContent>
+      </Tabs>
+
+      <DocumentPreview
+        open={!!preview}
+        onOpenChange={(v) => { if (!v) setPreview(null); }}
+        title={preview?.title}
+        bucket={BUCKET}
+        path={preview?.path}
       />
 
-      <DpFilterCard>
-        <div className="grid gap-3 md:grid-cols-4">
-          <div>
-            <Label className="text-xs">Colaborador</Label>
-            <Select value={filterColab} onValueChange={setFilterColab}>
-              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {(colabs.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-              </SelectContent>
-            </Select>
+      <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Editar registro disciplinar</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Unidade</Label>
+              <Select value={editUnidadeId} onValueChange={(v) => { setEditUnidadeId(v); setEditColaboradorId(""); }}>
+                <SelectTrigger><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
+                <SelectContent>
+                  {(unidades.data ?? []).map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Colaborador</Label>
+              <Select value={editColaboradorId} onValueChange={setEditColaboradorId}>
+                <SelectTrigger><SelectValue placeholder="Selecione o colaborador" /></SelectTrigger>
+                <SelectContent>
+                  {editColabs.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Data</Label>
+                <Input type="date" value={editData} onChange={(e) => setEditData(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Dias</Label>
+                <Input type="number" min={0} value={editDias} onChange={(e) => setEditDias(e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo</Label>
+              <Select value={editTipo} onValueChange={setEditTipo}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Observações</Label>
+              <Textarea rows={3} value={editObs} onChange={(e) => setEditObs(e.target.value)} />
+            </div>
           </div>
-          <div>
-            <Label className="text-xs">Tipo</Label>
-            <Select value={filterTipo} onValueChange={setFilterTipo}>
-              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs">De</Label>
-            <Input type="date" className="h-9" value={dataDe} onChange={(e) => setDataDe(e.target.value)} />
-          </div>
-          <div>
-            <Label className="text-xs">Até</Label>
-            <Input type="date" className="h-9" value={dataAte} onChange={(e) => setDataAte(e.target.value)} />
-          </div>
-        </div>
-      </DpFilterCard>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
+            <Button onClick={() => doEdit.mutate()} disabled={doEdit.isPending}>
+              {doEdit.isPending ? "Salvando..." : "Salvar alterações"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {list.isLoading ? (
-        <DpContentCard contentClassName="p-6"><p className="text-sm text-muted-foreground">Carregando…</p></DpContentCard>
-      ) : (
-        <HistoricoDisciplinar
-          registros={filtered}
-          showColaborador
-          renderActions={(r) => {
-            const origem = pdfOrigem(r);
-            return (
-              <>
-                {origem && (
-                  <Badge variant="outline" className={origem === "gerado"
-                    ? "text-[10px] border-blue-300 text-blue-700 dark:text-blue-300"
-                    : "text-[10px] border-emerald-300 text-emerald-700 dark:text-emerald-300"}>
-                    PDF {origem === "gerado" ? "gerado" : "anexado"}
-                  </Badge>
-                )}
-                {!r.pdf_storage_path && (
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    title="Gerar PDF automaticamente"
-                    disabled={genPdf.isPending}
-                    onClick={() => genPdf.mutate(r.id)}
-                  >
-                    <FileSignature className="h-4 w-4" />
-                  </Button>
-                )}
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  title={r.pdf_storage_path ? "Substituir PDF assinado" : "Anexar PDF assinado"}
-                  disabled={uploadPdf.isPending}
-                  onClick={() => triggerUpload(r.id)}
-                >
-                  <Upload className="h-4 w-4" />
-                </Button>
-                <Button size="icon" variant="ghost" title="Excluir" onClick={() => setConfirmDel(r.id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </>
-            );
-          }}
-        />
-      )}
-
-      <AlertDialog open={!!confirmDel} onOpenChange={(v) => !v && setConfirmDel(null)}>
+      <AlertDialog open={!!toDelete} onOpenChange={(v) => !v && setToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir registro disciplinar?</AlertDialogTitle>
+            <AlertDialogTitle>Excluir registro?</AlertDialogTitle>
             <AlertDialogDescription>
-              O registro e o PDF anexado (se houver) serão removidos. Esta ação não pode ser desfeita.
+              O registro e o arquivo anexado (se houver) serão removidos. Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => confirmDel && del.mutate(confirmDel)}>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => toDelete && doDelete.mutate(toDelete)}>
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
