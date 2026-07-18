@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeStorageFilename } from "@/lib/storage";
 import {
   Upload, Download, Trash2, FileText, ArrowLeft, FolderOpen,
   Check, X, Clock, CheckCircle2, XCircle,
@@ -121,7 +122,7 @@ export default function DpDocumentos() {
     try {
       let ok = 0;
       for (const file of Array.from(files)) {
-        const path = `${selectedCompanyId}/${form.colaborador_id || "geral"}/${Date.now()}-${file.name}`;
+        const path = `${selectedCompanyId}/${form.colaborador_id || "geral"}/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
         const up = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
         if (up.error) throw up.error;
         const titulo = files.length > 1 ? file.name.replace(/\.[^.]+$/, "") : form.titulo.trim();

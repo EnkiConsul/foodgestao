@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { FileText, Plus, Pencil, Trash2, Eye, Download, Building2, Users, Calendar } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeStorageFilename } from "@/lib/storage";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -138,11 +139,7 @@ export default function DpSindicatoNegociacoes() {
       let arquivo_nome: string | null = form.arquivo_nome ?? null;
       if (form.arquivo) {
         const file = form.arquivo;
-        const safeName = file.name
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .replace(/[^A-Za-z0-9._-]+/g, "_")
-          .replace(/_+/g, "_");
+        const safeName = sanitizeStorageFilename(file.name);
         const path = `${selectedCompanyId}/sindicato-negociacoes/${form.unidade_id}/${Date.now()}-${safeName}`;
         const { error: upErr } = await supabase.storage
           .from("dp-documentos")

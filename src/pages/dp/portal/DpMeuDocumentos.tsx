@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeStorageFilename } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -124,7 +125,7 @@ export default function DpMeuDocumentos() {
     setUploading(true);
     try {
       const file = files[0];
-      const path = `${meRef.data.company_id}/${meRef.data.id}/${Date.now()}-${file.name}`;
+      const path = `${meRef.data.company_id}/${meRef.data.id}/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
       const up = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
       if (up.error) throw up.error;
       const { error } = await supabase.from("dp_documentos").insert({

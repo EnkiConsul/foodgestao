@@ -5,6 +5,7 @@ import { HeartPulse, Upload, FileText, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeStorageFilename } from "@/lib/storage";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,7 +66,7 @@ export default function DpMeuAtestados() {
 
       let arquivo_path: string | undefined;
       if (file) {
-        const ext = file.name.split(".").pop() ?? "bin";
+        const ext = sanitizeStorageFilename(file.name.split(".").pop() ?? "bin");
         const path = `${ctx.data.company_id}/atestados/${ctx.data.id}/${Date.now()}.${ext}`;
         const up = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type });
         if (up.error) throw up.error;

@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ShieldAlert, Upload, History, FileText, FileImage, Download, Trash2, Pencil, FileSignature } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeStorageFilename } from "@/lib/storage";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
@@ -176,7 +177,7 @@ export default function DpDisciplinar() {
         .single();
       if (insErr) throw insErr;
 
-      const safeName = pendingFile.name.replace(/\s+/g, "_");
+      const safeName = sanitizeStorageFilename(pendingFile.name);
       const path = `${selectedCompanyId}/${inserted.id}/${Date.now()}-${safeName}`;
       const up = await supabase.storage.from(BUCKET).upload(path, pendingFile, {
         upsert: true,

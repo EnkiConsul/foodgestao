@@ -10,6 +10,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeStorageFilename } from "@/lib/storage";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
@@ -194,7 +195,7 @@ export default function DpDocumentosPorTipo({ tipo: tipoProp }: { tipo?: Tipo } 
     setUploading(true);
     try {
       const refDate = `${ano}-${String(mes).padStart(2, "0")}-01`;
-      const path = `${selectedCompanyId}/${tipo}/geral/${Date.now()}-${pendingFile.name}`;
+      const path = `${selectedCompanyId}/${tipo}/geral/${Date.now()}-${sanitizeStorageFilename(pendingFile.name)}`;
       const up = await supabase.storage.from(BUCKET).upload(path, pendingFile, {
         contentType: pendingFile.type, upsert: false,
       });

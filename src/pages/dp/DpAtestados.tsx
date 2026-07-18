@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FileWarning, Download, Upload, History, FileText, Trash2, Pencil, FileImage, FileUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeStorageFilename } from "@/lib/storage";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
@@ -158,7 +159,7 @@ export default function DpAtestados() {
       if (Number.isNaN(d) || d < 0) throw new Error("Dias de afastamento inválido");
       if (!pendingFile) throw new Error("Anexe o arquivo do atestado");
 
-      const path = `${selectedCompanyId}/atestado/${colaboradorId}/${Date.now()}-${pendingFile.name}`;
+      const path = `${selectedCompanyId}/atestado/${colaboradorId}/${Date.now()}-${sanitizeStorageFilename(pendingFile.name)}`;
       const up = await supabase.storage.from(BUCKET).upload(path, pendingFile, { upsert: false });
       if (up.error) throw up.error;
 
