@@ -67,13 +67,11 @@ const ADMIN_ITEMS: Item[] = [
   },
   {
     kind: "group", title: "Comunicação", icon: MessageSquare,
-    prefixes: ["/dp/comunicacao", "/dp/mensagens", "/dp/avisos", "/dp/modelos-mensagem"],
+    prefixes: ["/dp/comunicacao", "/dp/mensagens", "/dp/avisos"],
     hubUrl: "/dp/comunicacao",
     items: [
-      { title: "Central de Comunicação", url: "/dp/comunicacao", icon: MessageSquare, end: true },
       { title: "Mensagens", url: "/dp/mensagens", icon: MessageSquare },
       { title: "Quadro de Avisos", url: "/dp/avisos", icon: Bell },
-      { title: "Modelos de Mensagem", url: "/dp/modelos-mensagem", icon: MessageSquare },
     ],
   },
 ];
