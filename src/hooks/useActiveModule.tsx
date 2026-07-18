@@ -35,4 +35,5 @@ export const MODULE_LABEL: Record<ActiveModule, string> = {
   rh: "RH 360°",
   pedidos: "Pedidos 360°",
   admin: "Backoffice",
+  conta: "Conta",
 };
