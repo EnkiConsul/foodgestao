@@ -45,7 +45,7 @@ function AvisoDialog({
   const [dataFim, setDataFim] = useState(aviso?.expira_em?.slice(0, 10) ?? "");
   const [destinatario, setDestinatario] = useState<string>(
     aviso?.escopo === "unidade" ? `unidade:${aviso.unidade_id}` :
-    aviso?.escopo === "colaborador" ? `colaborador:${(aviso as any).colaborador_id}` : "todos"
+    (aviso as any)?.escopo === "colaborador" ? `colaborador:${(aviso as any).colaborador_id}` : "todos"
   );
   const [arquivoPath, setArquivoPath] = useState(aviso?.arquivo_path ?? "");
   const [arquivoMime, setArquivoMime] = useState(aviso?.arquivo_mime ?? "");
