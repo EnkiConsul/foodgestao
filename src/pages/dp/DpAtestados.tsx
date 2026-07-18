@@ -230,65 +230,76 @@ export default function DpAtestados() {
               <h3 className="text-lg font-semibold">Importar Atestado</h3>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Colaborador *</Label>
-                <Select value={colaboradorId} onValueChange={setColaboradorId}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o colaborador" /></SelectTrigger>
+                <Label>Unidade *</Label>
+                <Select value={unidadeId} onValueChange={(v) => { setUnidadeId(v); setColaboradorId(""); }}>
+                  <SelectTrigger><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
                   <SelectContent>
-                    {(colabs.data ?? []).map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                    {(unidades.data ?? []).map((u) => (
+                      <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="space-y-2">
-                <Label>Data do Atestado *</Label>
+                <Label>Colaborador *</Label>
+                <Select
+                  value={colaboradorId}
+                  onValueChange={(v) => {
+                    setColaboradorId(v);
+                    const c = (colabs.data ?? []).find((x) => x.id === v);
+                    if (c?.unidade_id) setUnidadeId(c.unidade_id);
+                  }}
+                  disabled={!unidadeId}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecione o colaborador" /></SelectTrigger>
+                  <SelectContent>
+                    {(colabs.data ?? [])
+                      .filter((c) => !unidadeId || c.unidade_id === unidadeId)
+                      .map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Data do Documento *</Label>
                 <Input type="date" value={dataDoc} onChange={(e) => setDataDoc(e.target.value)} />
               </div>
+
               <div className="space-y-2">
                 <Label>Dias de Afastamento *</Label>
                 <Input type="number" min={0} placeholder="Ex: 3" value={dias} onChange={(e) => setDias(e.target.value)} />
               </div>
-              <div className="space-y-2">
-                <Label>Data de Retorno</Label>
-                <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm h-10 flex items-center">
-                  {dataRetorno ?? <span className="text-muted-foreground">Calculado automaticamente</span>}
-                </div>
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label>Observação</Label>
-                <Textarea rows={2} value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Opcional" />
-              </div>
-            </div>
 
-            <div
-              className={`mt-4 rounded-xl border-2 border-dashed transition-colors ${isDragging ? "border-primary bg-primary/5" : "border-border"}`}
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={(e) => {
-                e.preventDefault(); setIsDragging(false);
-                const f = e.dataTransfer.files?.[0]; if (f) setPendingFile(f);
-              }}
-            >
-              <label className="flex flex-col items-center justify-center py-14 cursor-pointer text-center">
-                <Upload className="size-8 text-muted-foreground mb-3" />
-                <div className="font-medium">
-                  {pendingFile ? pendingFile.name : "Arraste um PDF/imagem ou clique para selecionar"}
+              {dataDoc && dias && parseInt(dias) > 0 && (
+                <div className="rounded-xl bg-muted/30 p-3 text-sm">
+                  <span className="font-semibold">Data de retorno:</span>{" "}
+                  {dataRetorno}
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">PDF, JPG ou PNG</div>
-                <input
+              )}
+
+              <div className="space-y-2">
+                <Label>Arquivo (PDF ou Imagem) *</Label>
+                <Input
                   ref={fileRef}
                   type="file"
                   accept="application/pdf,image/*"
-                  className="hidden"
                   onChange={(e) => setPendingFile(e.target.files?.[0] ?? null)}
                 />
-              </label>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Observações</Label>
+                <Textarea rows={3} value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Observações adicionais (opcional)" />
+              </div>
             </div>
 
             <Button
-              className="w-full mt-4"
+              className="w-full mt-6"
               size="lg"
               disabled={doUpload.isPending}
               onClick={() => doUpload.mutate()}
@@ -296,6 +307,7 @@ export default function DpAtestados() {
               <Upload className="size-4 mr-2" />
               {doUpload.isPending ? "Enviando..." : "Enviar Atestado"}
             </Button>
+
           </DpContentCard>
         </TabsContent>
 
