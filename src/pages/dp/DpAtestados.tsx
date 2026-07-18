@@ -63,12 +63,12 @@ export default function DpAtestados() {
 
   // form
   const fileRef = useRef<HTMLInputElement>(null);
+  const [unidadeId, setUnidadeId] = useState<string>("");
   const [colaboradorId, setColaboradorId] = useState<string>("");
   const [dataDoc, setDataDoc] = useState<string>("");
   const [dias, setDias] = useState<string>("");
   const [observacao, setObservacao] = useState<string>("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
 
   // filtros histórico
   const [fColab, setFColab] = useState<string>("todos");
