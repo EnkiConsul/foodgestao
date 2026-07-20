@@ -29,7 +29,7 @@ jobs:
         run: npx tsc -p tsconfig.strict.json --noEmit
 
       - name: ESLint (ceiling — must not increase)
-        # Ratchet decrescente. Baseline: 546 warnings (out/2026), 0 errors.
+        # Ratchet decrescente. Baseline: 546 warnings (jul/2026), 0 errors.
         # Baixe este teto ao mesmo tempo em que reduz warnings; nunca aumente.
         run: npx eslint . --max-warnings=546
 
