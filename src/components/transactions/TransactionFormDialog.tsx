@@ -511,7 +511,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     setType("despesa");
     setDescription("");
     setAmount("");
-    setDate(new Date().toISOString().split("T")[0]);
+    setDate(toYmd(new Date()));
     setDueDate("");
     setPaymentDate("");
     setAccountId(accounts[0]?.id ?? "");
