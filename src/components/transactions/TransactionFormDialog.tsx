@@ -863,11 +863,18 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
             const futurePayloads = futureDates.map((futureDate) => {
               const futureDueDate = hasDueDate && dueDate
                 ? (() => {
-                    const diffMs = new Date(dueDate).getTime() - new Date(date).getTime();
-                    const fd = new Date(new Date(futureDate).getTime() + diffMs);
-                    return fd.toISOString().split("T")[0];
+                    // Parse YYYY-MM-DD como data local (evita drift de fuso
+                    // que jogaria o vencimento para o mês anterior/seguinte).
+                    const MS_DAY = 86_400_000;
+                    const baseDue = parseLocalDate(dueDate).getTime();
+                    const baseTx = parseLocalDate(date).getTime();
+                    const fdBase = parseLocalDate(futureDate).getTime();
+                    const diffDays = Math.round((baseDue - baseTx) / MS_DAY);
+                    const fd = new Date(fdBase + diffDays * MS_DAY);
+                    return toYmd(fd);
                   })()
                 : null;
+
               return {
                 ...payload,
                 user_id: user.id,
