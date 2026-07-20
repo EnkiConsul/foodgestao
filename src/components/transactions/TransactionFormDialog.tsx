@@ -243,7 +243,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
         setDescription(duplicateSource.description);
         setAmount(duplicateSource.amount.toFixed(2).replace(".", ","));
         setDate(duplicateSource.transaction_date);
-        setAccountId(duplicateSource.account_id);
+        setAccountId(duplicateSource.credit_card_id ? `cc:${duplicateSource.credit_card_id}` : (duplicateSource.account_id ?? ""));
         setDestinationAccountId(duplicateSource.destination_account_id ?? "");
         setCategoryId(duplicateSource.category_id ?? "");
         setContactId(duplicateSource.contact_id ?? "");
