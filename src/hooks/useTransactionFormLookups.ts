@@ -70,6 +70,25 @@ export function useTransactionFormLookups(enabled: boolean) {
     },
   });
 
+  const creditCardsQuery = useQuery({
+    queryKey: ["form-credit-cards", user?.id, contextType, selectedCompanyId],
+    enabled: !!user,
+    queryFn: async () => {
+      let q = supabase
+        .from("credit_cards")
+        .select("id, account_id, brand, issuer, last4, closing_day, due_day")
+        .eq("is_active", true);
+      if (contextType === "pf") q = q.eq("context", "pf");
+      else if (contextType === "pj" && selectedCompanyId) q = q.eq("context", "pj").eq("company_id", selectedCompanyId);
+      const { data } = await q;
+      return (data ?? []) as Array<{
+        id: string; account_id: string;
+        brand: string | null; issuer: string | null; last4: string | null;
+        closing_day: number; due_day: number;
+      }>;
+    },
+  });
+
   const categoryCompaniesQuery = useQuery({
     queryKey: ["form-category-companies", user?.id],
     enabled: !!user,
@@ -129,7 +148,7 @@ export function useTransactionFormLookups(enabled: boolean) {
   }, [paymentMethodCompaniesQuery.data]);
 
   useRealtimeSync({
-    tables: ["accounts", "categories", "contacts", "payment_methods"],
+    tables: ["accounts", "categories", "contacts", "payment_methods", "credit_cards"],
     invalidateKeyPrefixes: ["form-"],
     enabled: !!user && enabled,
   });
@@ -145,6 +164,7 @@ export function useTransactionFormLookups(enabled: boolean) {
     categories: categoriesQuery.data ?? [],
     contacts: contactsQuery.data ?? [],
     paymentMethods: paymentMethodsQuery.data ?? [],
+    creditCards: creditCardsQuery.data ?? [],
     categoryCompanyIds,
     contactCompanyIds,
     paymentMethodCompanyIds,

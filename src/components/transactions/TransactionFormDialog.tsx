@@ -14,7 +14,7 @@ import { CurrencyInput, parseCurrencyToNumber } from "@/components/ui/currency-i
 import { toast } from "sonner";
 import { transactionSchema } from "@/lib/validations";
 import { getSignedAttachmentUrl } from "@/lib/attachments";
-import { Calendar, Repeat, X, FileText, Upload, CheckCircle, Clock, XCircle, Plus, Wallet } from "lucide-react";
+import { Calendar, Repeat, X, FileText, Upload, CheckCircle, Clock, XCircle, Plus, Wallet, CreditCard, Info } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
 import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
@@ -39,6 +39,7 @@ import {
   formatBR,
   buildOccurrencePreview,
 } from "@/lib/transactions/formHelpers";
+import { assignPurchaseToInvoice, toYmd } from "@/lib/credit-card/cycle";
 
 type TransactionType = "receita" | "despesa" | "transferencia";
 
@@ -92,6 +93,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     categories,
     contacts,
     paymentMethods,
+    creditCards,
     categoryCompanyIds,
     contactCompanyIds,
     paymentMethodCompanyIds,
@@ -300,23 +302,80 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     if (!exists) setPaymentMethodId("");
   }, [open, filteredPaymentMethods, paymentMethodId]);
 
+  // ---- Credit-card awareness ----
+  const selectedAccount = accounts.find((a) => a.id === accountId);
+  const isCreditCardAccount = selectedAccount?.account_type === "cartao_credito";
+  const matchedCard = isCreditCardAccount
+    ? creditCards.find((c) => c.account_id === accountId)
+    : undefined;
+  const cardLabel = matchedCard
+    ? [matchedCard.brand, matchedCard.last4 ? `•••• ${matchedCard.last4}` : null]
+        .filter(Boolean).join(" ") || matchedCard.issuer || "Cartão"
+    : null;
+
+  const invoicePreview = (() => {
+    if (!matchedCard || !date) return null;
+    try {
+      const cycle = assignPurchaseToInvoice(parseLocalDate(date), {
+        closingDay: matchedCard.closing_day,
+        dueDay: matchedCard.due_day,
+      });
+      return {
+        reference: cycle.referenceMonth,
+        closing: cycle.closingDate,
+        due: cycle.dueDate,
+      };
+    } catch {
+      return null;
+    }
+  })();
+
+  // Auto-switch away from transferência when picking a credit card account
+  useEffect(() => {
+    if (isCreditCardAccount && type === "transferencia") {
+      setType("despesa");
+      setCategoryId("");
+    }
+  }, [isCreditCardAccount, type]);
+
+  // Compras no cartão nunca são "pagas" à vista — o pagamento vem da fatura.
+  useEffect(() => {
+    if (!isCreditCardAccount) return;
+    if (status !== "pendente") setStatus("pendente");
+    if (paymentDate) setPaymentDate("");
+    // Vencimento é derivado do ciclo do cartão — mantemos vazio no lançamento
+    if (dueDate) setDueDate("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCreditCardAccount]);
+
+
 
 
 
   // --- Option builders with rich visuals matching each module ---
-  const accountOptions: SearchableSelectOption[] = accounts.map((acc) => ({
-    value: acc.id,
-    label: acc.name,
-    keywords: acc.account_type,
-    leading: (
-      <span
-        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
-        style={{ backgroundColor: (acc.color || "#1B3A5C") + "22" }}
-      >
-        <Wallet className="h-3 w-3" style={{ color: acc.color || "#1B3A5C" }} />
-      </span>
-    ),
-  }));
+  const accountOptions: SearchableSelectOption[] = accounts.map((acc) => {
+    const isCard = acc.account_type === "cartao_credito";
+    return {
+      value: acc.id,
+      label: acc.name,
+      keywords: acc.account_type,
+      leading: (
+        <span
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+          style={{ backgroundColor: (acc.color || "#1B3A5C") + "22" }}
+        >
+          {isCard ? (
+            <CreditCard className="h-3 w-3" style={{ color: acc.color || "#1B3A5C" }} />
+          ) : (
+            <Wallet className="h-3 w-3" style={{ color: acc.color || "#1B3A5C" }} />
+          )}
+        </span>
+      ),
+      trailing: isCard ? (
+        <Badge variant="secondary" className="shrink-0 border-0 text-[10px] h-4 px-1.5">Cartão</Badge>
+      ) : undefined,
+    };
+  });
 
   const flatCategoryOptions: SearchableSelectOption[] = (function () {
     const out: SearchableSelectOption[] = [];
@@ -807,7 +866,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
               <TabsTrigger value="despesa" className="data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground">
                 Despesa
               </TabsTrigger>
-              <TabsTrigger value="transferencia">
+              <TabsTrigger value="transferencia" disabled={isCreditCardAccount}>
                 Transferência
               </TabsTrigger>
             </TabsList>
@@ -849,8 +908,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
             </div>
           </div>
 
-          {/* Due date - only for receita/despesa */}
-          {type !== "transferencia" && (
+          {/* Due date - only for receita/despesa (não para cartão de crédito) */}
+          {type !== "transferencia" && !isCreditCardAccount && (
             <div className="space-y-2" data-field="due_date">
               <Label>Data de vencimento{fieldSuffix("due_date")}</Label>
               <div className="relative">
@@ -904,8 +963,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
             </div>
           )}
 
-          {/* Payment date - only for receita/despesa with confirmed status */}
-          {type !== "transferencia" && status === "confirmado" && (
+          {/* Payment date - only for receita/despesa with confirmed status (não para cartão) */}
+          {type !== "transferencia" && !isCreditCardAccount && status === "confirmado" && (
             <div className="space-y-2" data-field="payment_date">
               <Label>Data de pagamento{fieldSuffix("payment_date")}</Label>
               <div className="relative">
@@ -1232,6 +1291,41 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
             </div>
           </div>
 
+          {/* Credit card invoice preview */}
+          {isCreditCardAccount && (
+            <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <CreditCard className="h-4 w-4 text-primary" />
+                <span>Compra no cartão{cardLabel ? ` — ${cardLabel}` : ""}</span>
+              </div>
+              {invoicePreview ? (
+                <div className="text-xs text-muted-foreground space-y-0.5">
+                  <p>
+                    Será alocada na fatura de{" "}
+                    <strong className="text-foreground">
+                      {invoicePreview.reference.toLocaleString("pt-BR", { month: "long", year: "numeric" })}
+                    </strong>
+                  </p>
+                  <p>
+                    Fechamento: <strong className="text-foreground">{formatBR(toYmd(invoicePreview.closing))}</strong>
+                    {" · "}Vencimento: <strong className="text-foreground">{formatBR(toYmd(invoicePreview.due))}</strong>
+                  </p>
+                  {isInstallment && installmentTotal > 1 && (
+                    <p className="pt-1">Cada parcela cairá na fatura do respectivo mês.</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground flex items-start gap-1.5">
+                  <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                  Cartão sem ciclo configurado — cadastre em Cartões de Crédito para calcular a fatura.
+                </p>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                O status fica <strong>pendente</strong> e a baixa acontece ao pagar a fatura.
+              </p>
+            </div>
+          )}
+
           {/* Destination account (transfer) */}
           {type === "transferencia" && (
             <div className="space-y-2" data-field="destination_account_id">
@@ -1337,7 +1431,11 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           {/* Status */}
           <div className="space-y-2">
             <Label>Status</Label>
-            <Select value={status} onValueChange={(v) => setStatus(v as "confirmado" | "pendente" | "cancelado")}>
+            <Select
+              value={status}
+              onValueChange={(v) => setStatus(v as "confirmado" | "pendente" | "cancelado")}
+              disabled={isCreditCardAccount}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -1362,6 +1460,11 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                 </SelectItem>
               </SelectContent>
             </Select>
+            {isCreditCardAccount && (
+              <p className="text-[11px] text-muted-foreground">
+                Compras no cartão ficam pendentes até o pagamento da fatura.
+              </p>
+            )}
             {status === "cancelado" && (
               <p className="text-[11px] text-destructive">
                 O valor pago será zerado e não será considerado nos saldos.
