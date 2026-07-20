@@ -35,7 +35,6 @@ export function CreditCardFormDialog({ open, onOpenChange, onSaved, card }: Prop
   const [last4, setLast4] = useState("");
   const [brand, setBrand] = useState<string>("Visa");
   const [issuer, setIssuer] = useState("");
-  const [accountId, setAccountId] = useState<string>("");
   const [paymentAccountId, setPaymentAccountId] = useState<string>("");
   const [creditLimit, setCreditLimit] = useState("");
   const [closingDay, setClosingDay] = useState<number>(1);
@@ -63,7 +62,6 @@ export function CreditCardFormDialog({ open, onOpenChange, onSaved, card }: Prop
       setLast4(card.last4 ?? "");
       setBrand(card.brand ?? "Visa");
       setIssuer(card.issuer ?? "");
-      setAccountId(card.account_id);
       setPaymentAccountId(card.default_payment_account_id ?? "");
       setCreditLimit(numToInput(Number(card.credit_limit)));
       setClosingDay(card.closing_day);
@@ -72,17 +70,15 @@ export function CreditCardFormDialog({ open, onOpenChange, onSaved, card }: Prop
       setInterest(Number(card.interest_rate_monthly));
     } else {
       setHolderName(""); setLast4(""); setBrand("Visa"); setIssuer("");
-      setAccountId(""); setPaymentAccountId(""); setCreditLimit("");
+      setPaymentAccountId(""); setCreditLimit("");
       setClosingDay(1); setDueDay(10); setMinPct(15); setInterest(12);
     }
   }, [open, card]);
 
-  const cardAccounts = accounts.filter((a) => a.account_type === "cartao_credito");
   const bankAccounts = accounts.filter((a) => a.account_type !== "cartao_credito");
 
   const handleSave = async () => {
     if (!user) return;
-    if (!accountId) return toast.error("Selecione a conta 'Cartão de Crédito' vinculada");
     if (closingDay < 1 || closingDay > 28) return toast.error("Dia de fechamento deve ser entre 1 e 28");
     if (dueDay < 1 || dueDay > 28) return toast.error("Dia de vencimento deve ser entre 1 e 28");
     if (last4 && !/^\d{4}$/.test(last4)) return toast.error("Últimos 4 dígitos devem ter 4 números");
@@ -92,7 +88,6 @@ export function CreditCardFormDialog({ open, onOpenChange, onSaved, card }: Prop
       user_id: user.id,
       context: contextType,
       company_id: contextType === "pj" ? selectedCompanyId : null,
-      account_id: accountId,
       default_payment_account_id: paymentAccountId || null,
       holder_name: holderName || null,
       last4: last4 || null,
@@ -122,23 +117,6 @@ export function CreditCardFormDialog({ open, onOpenChange, onSaved, card }: Prop
           <DialogTitle>{isEdit ? "Editar cartão" : "Novo cartão de crédito"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          <div>
-            <Label>Conta 'Cartão de Crédito' vinculada *</Label>
-            <Select value={accountId} onValueChange={setAccountId} disabled={isEdit}>
-              <SelectTrigger><SelectValue placeholder="Selecione uma conta" /></SelectTrigger>
-              <SelectContent>
-                {cardAccounts.length === 0 && (
-                  <div className="px-2 py-4 text-xs text-muted-foreground">
-                    Cadastre uma conta do tipo 'Cartão de Crédito' em Contas Bancárias.
-                  </div>
-                )}
-                {cardAccounts.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Bandeira</Label>
