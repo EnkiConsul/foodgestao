@@ -80,3 +80,16 @@ export async function parseNubankStatementPdf(file: File): Promise<ParsedStateme
   const lines = await extractLines(file);
   return parseLinesToEntries(lines);
 }
+
+/**
+ * Same as `parseNubankStatementPdf` but also returns the printed summary
+ * (saldo inicial/final, totais, rendimento) so consumers can reconcile.
+ */
+export async function parseNubankStatementPdfWithSummary(file: File) {
+  const { extractStatementSummary, reconcileEntries } = await import("./nubankParser");
+  const lines = await extractLines(file);
+  const entries = await parseLinesToEntries(lines);
+  const summary = extractStatementSummary(lines);
+  const reconciliation = reconcileEntries(entries, summary);
+  return { entries, summary, reconciliation };
+}
