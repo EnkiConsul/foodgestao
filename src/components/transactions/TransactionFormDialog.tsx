@@ -39,6 +39,7 @@ import {
   formatBR,
   buildOccurrencePreview,
 } from "@/lib/transactions/formHelpers";
+import { assignPurchaseToInvoice, toYmd } from "@/lib/credit-card/cycle";
 
 type TransactionType = "receita" | "despesa" | "transferencia";
 
