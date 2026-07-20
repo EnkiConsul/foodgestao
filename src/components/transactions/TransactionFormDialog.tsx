@@ -49,7 +49,8 @@ interface EditableTransaction {
   amount: number;
   transaction_type: TransactionType;
   transaction_date: string;
-  account_id: string;
+  account_id: string | null;
+  credit_card_id?: string | null;
   destination_account_id?: string | null;
   category_id?: string | null;
   contact_id?: string | null;
@@ -215,7 +216,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       setDescription(transaction.description);
       setAmount(transaction.amount.toFixed(2).replace(".", ","));
       setDate(transaction.transaction_date);
-      setAccountId(transaction.account_id);
+      setAccountId(transaction.credit_card_id ? `cc:${transaction.credit_card_id}` : (transaction.account_id ?? ""));
       setDestinationAccountId(transaction.destination_account_id ?? "");
       setCategoryId(transaction.category_id ?? "");
       setContactId(transaction.contact_id ?? "");
@@ -242,7 +243,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
         setDescription(duplicateSource.description);
         setAmount(duplicateSource.amount.toFixed(2).replace(".", ","));
         setDate(duplicateSource.transaction_date);
-        setAccountId(duplicateSource.account_id);
+        setAccountId(duplicateSource.credit_card_id ? `cc:${duplicateSource.credit_card_id}` : (duplicateSource.account_id ?? ""));
         setDestinationAccountId(duplicateSource.destination_account_id ?? "");
         setCategoryId(duplicateSource.category_id ?? "");
         setContactId(duplicateSource.contact_id ?? "");
@@ -303,11 +304,13 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   }, [open, filteredPaymentMethods, paymentMethodId]);
 
   // ---- Credit-card awareness ----
+  // Uses synthetic "cc:<id>" values in accountId to represent credit cards.
+  const selectedCardId = accountId.startsWith("cc:") ? accountId.slice(3) : null;
   const selectedAccount = accounts.find((a) => a.id === accountId);
-  const isCreditCardAccount = selectedAccount?.account_type === "cartao_credito";
-  const matchedCard = isCreditCardAccount
-    ? creditCards.find((c) => c.account_id === accountId)
+  const matchedCard = selectedCardId
+    ? creditCards.find((c) => c.id === selectedCardId)
     : undefined;
+  const isCreditCardAccount = !!matchedCard;
   const cardLabel = matchedCard
     ? [matchedCard.brand, matchedCard.last4 ? `•••• ${matchedCard.last4}` : null]
         .filter(Boolean).join(" ") || matchedCard.issuer || "Cartão"
@@ -353,29 +356,48 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
 
   // --- Option builders with rich visuals matching each module ---
-  const accountOptions: SearchableSelectOption[] = accounts.map((acc) => {
-    const isCard = acc.account_type === "cartao_credito";
-    return {
-      value: acc.id,
-      label: acc.name,
-      keywords: acc.account_type,
-      leading: (
-        <span
-          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
-          style={{ backgroundColor: (acc.color || "#1B3A5C") + "22" }}
-        >
-          {isCard ? (
-            <CreditCard className="h-3 w-3" style={{ color: acc.color || "#1B3A5C" }} />
-          ) : (
-            <Wallet className="h-3 w-3" style={{ color: acc.color || "#1B3A5C" }} />
-          )}
-        </span>
-      ),
-      trailing: isCard ? (
-        <Badge variant="secondary" className="shrink-0 border-0 text-[10px] h-4 px-1.5">Cartão</Badge>
-      ) : undefined,
-    };
-  });
+  const accountOptions: SearchableSelectOption[] = [
+    ...accounts.map((acc) => {
+      const isCard = acc.account_type === "cartao_credito";
+      return {
+        value: acc.id,
+        label: acc.name,
+        keywords: acc.account_type,
+        leading: (
+          <span
+            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+            style={{ backgroundColor: (acc.color || "#1B3A5C") + "22" }}
+          >
+            {isCard ? (
+              <CreditCard className="h-3 w-3" style={{ color: acc.color || "#1B3A5C" }} />
+            ) : (
+              <Wallet className="h-3 w-3" style={{ color: acc.color || "#1B3A5C" }} />
+            )}
+          </span>
+        ),
+        trailing: isCard ? (
+          <Badge variant="secondary" className="shrink-0 border-0 text-[10px] h-4 px-1.5">Cartão</Badge>
+        ) : undefined,
+      } as SearchableSelectOption;
+    }),
+    ...creditCards.map((c) => {
+      const label = [c.brand, c.last4 ? `•••• ${c.last4}` : null].filter(Boolean).join(" ")
+        || c.issuer || "Cartão";
+      return {
+        value: `cc:${c.id}`,
+        label,
+        keywords: `cartao credito ${c.brand ?? ""} ${c.issuer ?? ""} ${c.last4 ?? ""}`,
+        leading: (
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15">
+            <CreditCard className="h-3 w-3 text-primary" />
+          </span>
+        ),
+        trailing: (
+          <Badge variant="secondary" className="shrink-0 border-0 text-[10px] h-4 px-1.5">Cartão</Badge>
+        ),
+      } as SearchableSelectOption;
+    }),
+  ];
 
   const flatCategoryOptions: SearchableSelectOption[] = (function () {
     const out: SearchableSelectOption[] = [];
@@ -503,9 +525,11 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     if (!user) return;
 
     const numAmount = parseCurrencyToNumber(amount);
+    const effectiveAccountId = selectedCardId ? "" : accountId;
+    const effectiveCardId = selectedCardId;
     const parseResult = transactionSchema.safeParse({
       description, amount: numAmount, transaction_type: type,
-      transaction_date: date, account_id: accountId || "",
+      transaction_date: date, account_id: effectiveAccountId || effectiveCardId || "",
       destination_account_id: type === "transferencia" ? destinationAccountId || "" : null,
       category_id: categoryId || null, notes: notes || null,
       payment_method_id: paymentMethodId || null,
@@ -584,7 +608,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           contact_id: contactId || null,
           notes: notes.trim() || null,
           payment_method_id: paymentMethodId || null,
-          account_id: accountId,
+          account_id: effectiveAccountId || null,
+          credit_card_id: effectiveCardId || null,
           context: contextType,
           company_id: contextType === "pj" ? selectedCompanyId : null,
         };
@@ -652,7 +677,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       description: description.trim(),
       amount: numAmount,
       transaction_date: date,
-      account_id: accountId,
+      account_id: effectiveAccountId || null,
+      credit_card_id: effectiveCardId || null,
       destination_account_id: type === "transferencia" ? destinationAccountId : null,
       category_id: categoryId || null,
       contact_id: type !== "transferencia" ? (contactId || null) : null,

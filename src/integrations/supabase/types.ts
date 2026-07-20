@@ -1794,6 +1794,13 @@ export type Database = {
             foreignKeyName: "credit_card_invoices_payment_transaction_id_fkey"
             columns: ["payment_transaction_id"]
             isOneToOne: false
+            referencedRelation: "transaction_sources"
+            referencedColumns: ["transaction_id"]
+          },
+          {
+            foreignKeyName: "credit_card_invoices_payment_transaction_id_fkey"
+            columns: ["payment_transaction_id"]
+            isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -1801,7 +1808,6 @@ export type Database = {
       }
       credit_cards: {
         Row: {
-          account_id: string
           autopay: boolean
           brand: string | null
           closing_day: number
@@ -1826,7 +1832,6 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          account_id: string
           autopay?: boolean
           brand?: string | null
           closing_day: number
@@ -1851,7 +1856,6 @@ export type Database = {
           user_id: string
         }
         Update: {
-          account_id?: string
           autopay?: boolean
           brand?: string | null
           closing_day?: number
@@ -1876,13 +1880,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "credit_cards_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: true
-            referencedRelation: "accounts"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "credit_cards_company_id_fkey"
             columns: ["company_id"]
@@ -3004,6 +3001,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "dp_folha_periodos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_folha_lancamentos_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_sources"
+            referencedColumns: ["transaction_id"]
           },
           {
             foreignKeyName: "dp_folha_lancamentos_transaction_id_fkey"
@@ -4669,6 +4673,13 @@ export type Database = {
             foreignKeyName: "fk_transaction_attachments_transaction"
             columns: ["transaction_id"]
             isOneToOne: false
+            referencedRelation: "transaction_sources"
+            referencedColumns: ["transaction_id"]
+          },
+          {
+            foreignKeyName: "fk_transaction_attachments_transaction"
+            columns: ["transaction_id"]
+            isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -4699,6 +4710,13 @@ export type Database = {
             foreignKeyName: "fk_transaction_tags_transaction"
             columns: ["transaction_id"]
             isOneToOne: false
+            referencedRelation: "transaction_sources"
+            referencedColumns: ["transaction_id"]
+          },
+          {
+            foreignKeyName: "fk_transaction_tags_transaction"
+            columns: ["transaction_id"]
+            isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -4706,7 +4724,7 @@ export type Database = {
       }
       transactions: {
         Row: {
-          account_id: string
+          account_id: string | null
           amount: number
           amount_paid: number
           attachment_url: string | null
@@ -4718,6 +4736,7 @@ export type Database = {
           context: Database["public"]["Enums"]["context_type"]
           cost_center_id: string | null
           created_at: string
+          credit_card_id: string | null
           credit_card_invoice_id: string | null
           description: string
           destination_account_id: string | null
@@ -4747,7 +4766,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          account_id: string
+          account_id?: string | null
           amount: number
           amount_paid?: number
           attachment_url?: string | null
@@ -4759,6 +4778,7 @@ export type Database = {
           context?: Database["public"]["Enums"]["context_type"]
           cost_center_id?: string | null
           created_at?: string
+          credit_card_id?: string | null
           credit_card_invoice_id?: string | null
           description: string
           destination_account_id?: string | null
@@ -4790,7 +4810,7 @@ export type Database = {
           user_id: string
         }
         Update: {
-          account_id?: string
+          account_id?: string | null
           amount?: number
           amount_paid?: number
           attachment_url?: string | null
@@ -4802,6 +4822,7 @@ export type Database = {
           context?: Database["public"]["Enums"]["context_type"]
           cost_center_id?: string | null
           created_at?: string
+          credit_card_id?: string | null
           credit_card_invoice_id?: string | null
           description?: string
           destination_account_id?: string | null
@@ -4879,6 +4900,13 @@ export type Database = {
             foreignKeyName: "fk_transactions_parent"
             columns: ["parent_transaction_id"]
             isOneToOne: false
+            referencedRelation: "transaction_sources"
+            referencedColumns: ["transaction_id"]
+          },
+          {
+            foreignKeyName: "fk_transactions_parent"
+            columns: ["parent_transaction_id"]
+            isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -4894,6 +4922,13 @@ export type Database = {
             columns: ["connection_id"]
             isOneToOne: false
             referencedRelation: "bank_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_credit_card_id_fkey"
+            columns: ["credit_card_id"]
+            isOneToOne: false
+            referencedRelation: "credit_cards"
             referencedColumns: ["id"]
           },
           {
@@ -5088,6 +5123,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      transaction_sources: {
+        Row: {
+          source_color: string | null
+          source_id: string | null
+          source_kind: string | null
+          source_name: string | null
+          source_slug: string | null
+          transaction_id: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {

@@ -76,13 +76,13 @@ export function useTransactionFormLookups(enabled: boolean) {
     queryFn: async () => {
       let q = supabase
         .from("credit_cards")
-        .select("id, account_id, brand, issuer, last4, closing_day, due_day")
+        .select("id, brand, issuer, last4, closing_day, due_day")
         .eq("is_active", true);
       if (contextType === "pf") q = q.eq("context", "pf");
       else if (contextType === "pj" && selectedCompanyId) q = q.eq("context", "pj").eq("company_id", selectedCompanyId);
       const { data } = await q;
       return (data ?? []) as Array<{
-        id: string; account_id: string;
+        id: string;
         brand: string | null; issuer: string | null; last4: string | null;
         closing_day: number; due_day: number;
       }>;
