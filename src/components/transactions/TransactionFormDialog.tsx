@@ -608,7 +608,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           contact_id: contactId || null,
           notes: notes.trim() || null,
           payment_method_id: paymentMethodId || null,
-          account_id: accountId,
+          account_id: effectiveAccountId || null,
+          credit_card_id: effectiveCardId || null,
           context: contextType,
           company_id: contextType === "pj" ? selectedCompanyId : null,
         };
