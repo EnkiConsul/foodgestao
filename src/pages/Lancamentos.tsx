@@ -552,6 +552,10 @@ export default function Lancamentos() {
       if (filterPaymentMethod.length > 0 && (!t.payment_method_id || !filterPaymentMethod.includes(t.payment_method_id))) return;
       if (filterCategory !== "all" && t.category_id !== filterCategory) return;
 
+      // Guarda: mês atual deve considerar due_date quando existe, senão transaction_date
+      const refDate = t.due_date ?? t.transaction_date;
+      if (refDate < monthStart || refDate > monthEnd) return;
+
       const computed = computeDisplayStatus(t);
 
       // Status filter
