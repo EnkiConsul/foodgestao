@@ -1,65 +1,24 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
-import { Plus, Search, Tag, Pencil, Trash2, ChevronRight, Filter, ChevronsUpDown, GripVertical, FolderTree, Eye, Sparkles } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
+import { Plus, Search, Tag, ChevronsUpDown, Filter, Sparkles } from "lucide-react";
+import { DragDropContext, Droppable, type DropResult } from "@hello-pangea/dnd";
 import { toast } from "sonner";
-import type { Tables } from "@/integrations/supabase/types";
+import { buildCategoryTree, type Category, type TreeNode } from "@/lib/categories/tree";
+import { CategoryRow } from "@/components/categorias/CategoryRow";
+import { BatchActionBar } from "@/components/categorias/BatchActionBar";
+import { BatchVisibilityDialog } from "@/components/categorias/BatchVisibilityDialog";
 
-type Category = Tables<"categories">;
-
-type TreeNode = Category & { depth: number; hasChildren: boolean; index: string };
-
-const BATCH_COLOR_OPTIONS = [
-  "#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#6366f1",
-  "#8b5cf6", "#ec4899", "#14b8a6", "#f97316", "#64748b",
-];
-
-function buildTree(categories: Category[]): TreeNode[] {
-  const map = new Map<string, Category[]>();
-  const roots: Category[] = [];
-  const childSet = new Set<string>();
-
-  for (const cat of categories) {
-    if (cat.parent_id) {
-      const children = map.get(cat.parent_id) || [];
-      children.push(cat);
-      map.set(cat.parent_id, children);
-      childSet.add(cat.parent_id);
-    } else {
-      roots.push(cat);
-    }
-  }
-
-  const result: TreeNode[] = [];
-  function walk(items: Category[], depth: number, parentIndex: string) {
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      const idx = parentIndex ? `${parentIndex}.${i + 1}` : `${i + 1}`;
-      result.push({ ...item, depth, hasChildren: childSet.has(item.id), index: idx });
-      const children = map.get(item.id);
-      if (children) walk(children, depth + 1, idx);
-    }
-  }
-  walk(roots, 0, "");
-  return result;
-}
 
 export default function Categorias() {
   const { user } = useAuth();
