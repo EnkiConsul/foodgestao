@@ -105,7 +105,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const [type, setType] = useState<TransactionType>("despesa");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(toYmd(new Date()));
   const [dueDate, setDueDate] = useState("");
   const [paymentDate, setPaymentDate] = useState("");
   const [accountId, setAccountId] = useState("");
@@ -511,7 +511,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     setType("despesa");
     setDescription("");
     setAmount("");
-    setDate(new Date().toISOString().split("T")[0]);
+    setDate(toYmd(new Date()));
     setDueDate("");
     setPaymentDate("");
     setAccountId(accounts[0]?.id ?? "");
@@ -635,11 +635,12 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
         // Datas de cada parcela
         const dates: string[] = [];
-        let cursor = new Date(date);
+        let cursor = parseLocalDate(date);
         for (let i = 0; i < installmentTotal; i++) {
-          dates.push(cursor.toISOString().split("T")[0]);
+          dates.push(toYmd(cursor));
           cursor = getNextRecurrenceDate(cursor, installmentPeriod);
         }
+
 
         const commonFields = {
           user_id: user.id,
@@ -863,11 +864,18 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
             const futurePayloads = futureDates.map((futureDate) => {
               const futureDueDate = hasDueDate && dueDate
                 ? (() => {
-                    const diffMs = new Date(dueDate).getTime() - new Date(date).getTime();
-                    const fd = new Date(new Date(futureDate).getTime() + diffMs);
-                    return fd.toISOString().split("T")[0];
+                    // Parse YYYY-MM-DD como data local (evita drift de fuso
+                    // que jogaria o vencimento para o mês anterior/seguinte).
+                    const MS_DAY = 86_400_000;
+                    const baseDue = parseLocalDate(dueDate).getTime();
+                    const baseTx = parseLocalDate(date).getTime();
+                    const fdBase = parseLocalDate(futureDate).getTime();
+                    const diffDays = Math.round((baseDue - baseTx) / MS_DAY);
+                    const fd = new Date(fdBase + diffDays * MS_DAY);
+                    return toYmd(fd);
                   })()
                 : null;
+
               return {
                 ...payload,
                 user_id: user.id,
