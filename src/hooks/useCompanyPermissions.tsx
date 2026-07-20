@@ -34,7 +34,7 @@ export function useCompanyPermissions() {
         .from("company_members")
         .select("role, permissions")
         .eq("user_id", user!.id)
-        .eq("company_id", activeCompanyId)
+        .eq("company_id", activeCompanyId!)
         .maybeSingle();
       if (!data) return null;
       return {
