@@ -5442,6 +5442,16 @@ export type Database = {
         }
         Returns: number
       }
+      pay_credit_card_invoice: {
+        Args: {
+          _amount: number
+          _invoice_id: string
+          _notes?: string
+          _payment_account_id: string
+          _payment_date?: string
+        }
+        Returns: Json
+      }
       plin_ia_accounts_balance: {
         Args: {
           _company_id?: string
