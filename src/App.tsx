@@ -46,6 +46,7 @@ const Configuracoes = lazy(() => import("./pages/Configuracoes"));
 const GestaoUsuarios = lazy(() => import("./pages/GestaoUsuarios"));
 const Empresas = lazy(() => import("./pages/Empresas"));
 const FormasPagamento = lazy(() => import("./pages/FormasPagamento"));
+const CartoesCredito = lazy(() => import("./pages/CartoesCredito"));
 
 // DP admin
 const DpHome = lazy(() => import("./pages/dp/DpHome"));
@@ -308,6 +309,7 @@ const AppRoutes = () => (
         <Route path="/categorias" element={<Categorias />} />
         <Route path="/contas-contabeis" element={<ContasContabeis />} />
         <Route path="/contas-bancarias" element={<ContasBancarias />} />
+        <Route path="/cartoes-credito" element={<CartoesCredito />} />
         <Route path="/configuracoes" element={<Configuracoes />} />
         <Route path="/gestao-usuarios" element={<GestaoUsuarios />} />
         <Route path="/empresas" element={<Empresas />} />
