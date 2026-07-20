@@ -1,31 +1,44 @@
-import { useState, useEffect, useMemo, useRef } from "react";
-import { addDays, addWeeks, addMonths, addYears } from "date-fns";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CurrencyInput, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { toast } from "sonner";
-import { transactionSchema, validateWithToast } from "@/lib/validations";
+import { transactionSchema } from "@/lib/validations";
 import { getSignedAttachmentUrl } from "@/lib/attachments";
-import { Calendar, Repeat, Paperclip, X, FileText, Upload, CheckCircle, Clock, XCircle, Plus, Wallet } from "lucide-react";
+import { Calendar, Repeat, X, FileText, Upload, CheckCircle, Clock, XCircle, Plus, Wallet } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import type { Tables } from "@/integrations/supabase/types";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
 import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { PaymentMethodFormDialog } from "@/components/payment-methods/PaymentMethodFormDialog";
 import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/searchable-select";
 import { useTransactionFieldSettings, TRANSACTION_FIELD_LABELS, type TransactionField } from "@/hooks/useTransactionFieldSettings";
+import { useTransactionFormLookups } from "@/hooks/useTransactionFormLookups";
+import {
+  type CategoryNode,
+  buildCategoryTree,
+  generateRecurrenceDates,
+  getNextRecurrenceDate,
+  WEEKDAYS,
+  parseLocalDate,
+  shiftToWeekday,
+  currentWeekday,
+  lastDayOfMonth,
+  shiftToMonthDay,
+  currentMonthDay,
+  MONTH_DAYS,
+  formatBR,
+  buildOccurrencePreview,
+} from "@/lib/transactions/formHelpers";
 
 type TransactionType = "receita" | "despesa" | "transferencia";
 
