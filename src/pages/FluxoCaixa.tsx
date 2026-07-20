@@ -110,7 +110,7 @@ export default function FluxoCaixa() {
       if (contextType === "pj" && !selectedCompanyId) return [];
       const { data } = await supabase.rpc("get_accessible_accounts", {
         _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId : null,
+        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
       });
       return (data ?? []).map((a: any) => ({ current_balance: a.current_balance }));
     },

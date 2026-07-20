@@ -229,14 +229,14 @@ export default function Lancamentos() {
     else {
       supabase.rpc("get_accessible_accounts", {
         _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId : null,
+        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
       }).then(({ data }) => setAccounts((data ?? []).map((a: any) => ({ id: a.id, name: a.name }))));
     }
     if (contextType === "pj" && !selectedCompanyId) { setPaymentMethods([]); }
     else {
       supabase.rpc("get_accessible_payment_methods", {
         _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId : null,
+        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
       }).then(({ data }) => setPaymentMethods((data ?? []).map((pm: any) => ({ id: pm.id, name: pm.name }))));
     }
     if (contextType === "pj" && !selectedCompanyId) {
@@ -245,7 +245,7 @@ export default function Lancamentos() {
       supabase
         .rpc("get_accessible_categories", {
           _context: contextType,
-          _company_id: contextType === "pj" ? selectedCompanyId : null,
+          _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
         })
         .then(({ data }) => setCategories((data ?? []).map((c: any) => ({ id: c.id, name: c.name }))));
     }
@@ -296,7 +296,7 @@ export default function Lancamentos() {
   // Fetch previous balance via RPC agregada (1 número em vez de N linhas)
   const fetchPreviousBalance = useCallback(async () => {
     if (!user) return;
-    const companyId = contextType === "pj" && selectedCompanyId ? selectedCompanyId : null;
+    const companyId = contextType === "pj" && selectedCompanyId ? selectedCompanyId : undefined;
     const { data, error } = await supabase.rpc("get_balance_before", {
       _user_id: user.id,
       _context: contextType,
@@ -480,7 +480,7 @@ export default function Lancamentos() {
       await supabase.rpc("insert_audit_log", {
         _action: "transactions_bulk_deleted",
         _entity_type: "transaction",
-        _entity_id: null,
+        _entity_id: undefined,
         _details: { count: ids.length, ids, delete_scope: scope },
       });
 
@@ -1621,7 +1621,7 @@ export default function Lancamentos() {
             await supabase.rpc("insert_audit_log", {
               _action: "transactions_bulk_updated",
               _entity_type: "transaction",
-              _entity_id: null,
+              _entity_id: undefined,
               _details: { count: ids.length, fields: Object.keys(updates) },
             });
             toast.success(`${ids.length} lançamento(s) atualizado(s)`);
