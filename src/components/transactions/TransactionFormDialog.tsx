@@ -953,8 +953,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
             </div>
           )}
 
-          {/* Payment date - only for receita/despesa with confirmed status */}
-          {type !== "transferencia" && status === "confirmado" && (
+          {/* Payment date - only for receita/despesa with confirmed status (não para cartão) */}
+          {type !== "transferencia" && !isCreditCardAccount && status === "confirmado" && (
             <div className="space-y-2" data-field="payment_date">
               <Label>Data de pagamento{fieldSuffix("payment_date")}</Label>
               <div className="relative">
