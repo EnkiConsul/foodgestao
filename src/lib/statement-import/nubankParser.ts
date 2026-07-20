@@ -124,7 +124,7 @@ export async function parseLinesToEntries(lines: string[]): Promise<ParsedStatem
     }
     if (/^saldo\b/i.test(line)) continue;
 
-    if (!currentDate || !currentSign) continue;
+    if (!currentDate) continue;
 
     const am = line.match(AMOUNT_END_RE);
     if (!am) {
@@ -138,8 +138,20 @@ export async function parseLinesToEntries(lines: string[]): Promise<ParsedStatem
       continue;
     }
 
-    const amount = parseNumberBR(am[1]);
-    if (!amount) continue;
+    const rawAmount = am[1].trim();
+    const signed = parseNumberBR(rawAmount);
+    if (!signed) continue;
+
+    // Sign resolution: explicit +/- on the line wins over the section header.
+    const explicitSign: "receita" | "despesa" | null =
+      rawAmount.startsWith("-") ? "despesa"
+      : rawAmount.startsWith("+") ? "receita"
+      : null;
+    const type = explicitSign ?? currentSign;
+    if (!type) continue;
+
+    // Invariant: amount is always a positive magnitude in reais.
+    const amount = Math.abs(signed);
 
     const head = line.slice(0, am.index!).trim();
     if (!head) continue;
@@ -167,7 +179,6 @@ export async function parseLinesToEntries(lines: string[]): Promise<ParsedStatem
     }
 
     const description = [title, cpName].filter(Boolean).join(" - ").trim() || title || "Lançamento";
-    const type = currentSign;
     const import_hash = await sha1(`${currentDate}|${type}|${amount.toFixed(2)}|${description.toUpperCase()}`);
 
     entries.push({
