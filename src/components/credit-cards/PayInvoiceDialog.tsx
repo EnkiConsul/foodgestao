@@ -12,6 +12,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
+const numToInput = (n: number) => formatCurrency(String(Math.round(n * 100)));
+
 type Invoice = Database["public"]["Tables"]["credit_card_invoices"]["Row"];
 type Account = Database["public"]["Tables"]["accounts"]["Row"];
 
@@ -53,14 +55,14 @@ export function PayInvoiceDialog({ open, onOpenChange, onPaid, invoice, defaultP
 
   useEffect(() => {
     if (!open || !invoice) return;
-    setAmount(formatCurrency(outstanding));
+    setAmount(numToInput(outstanding));
     setPaymentDate(new Date().toISOString().slice(0, 10));
     setNotes("");
   }, [open, invoice, outstanding]);
 
   const setPreset = (kind: "full" | "min") => {
     if (!invoice) return;
-    setAmount(formatCurrency(kind === "full" ? outstanding : Number(invoice.minimum_amount)));
+    setAmount(numToInput(kind === "full" ? outstanding : Number(invoice.minimum_amount)));
   };
 
   const handlePay = async () => {
@@ -132,7 +134,7 @@ export function PayInvoiceDialog({ open, onOpenChange, onPaid, invoice, defaultP
                   <button type="button" className="text-primary hover:underline" onClick={() => setPreset("min")}>Mínimo</button>
                 </div>
               </div>
-              <CurrencyInput value={amount} onChange={setAmount} />
+              <CurrencyInput value={amount} onValueChange={setAmount} />
             </div>
 
             <div>
