@@ -25,6 +25,7 @@ import { ImportStatementDialog } from "@/components/transactions/ImportStatement
 import { PaymentDialog } from "@/components/bills/PaymentDialog";
 import { BulkEditDialog } from "@/components/lancamentos/BulkEditDialog";
 import { FilterPanel, SaldosCard } from "@/components/lancamentos/LancamentosSidebar";
+import { LancamentoRow } from "@/components/lancamentos/LancamentoRow";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
