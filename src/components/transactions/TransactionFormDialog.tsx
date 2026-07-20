@@ -49,7 +49,8 @@ interface EditableTransaction {
   amount: number;
   transaction_type: TransactionType;
   transaction_date: string;
-  account_id: string;
+  account_id: string | null;
+  credit_card_id?: string | null;
   destination_account_id?: string | null;
   category_id?: string | null;
   contact_id?: string | null;
