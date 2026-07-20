@@ -105,7 +105,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const [type, setType] = useState<TransactionType>("despesa");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(toYmd(new Date()));
   const [dueDate, setDueDate] = useState("");
   const [paymentDate, setPaymentDate] = useState("");
   const [accountId, setAccountId] = useState("");
