@@ -241,7 +241,7 @@ export default function CartoesCredito() {
                       cardInvoices.slice(0, 6).map((inv) => {
                         const s = statusLabels[inv.status];
                         const remaining = Number(inv.total_amount) - Number(inv.paid_amount);
-                        const canPay = inv.status === "fechada" || inv.status === "parcial" || inv.status === "vencida";
+                        const canPay = inv.status === "fechada" || inv.status === "parcial" || inv.status === "vencida" || inv.status === "atrasada";
                         return (
                           <div key={inv.id} className="flex items-center justify-between gap-3 rounded-md border bg-card p-3">
                             <div className="min-w-0">
