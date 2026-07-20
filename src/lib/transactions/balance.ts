@@ -107,14 +107,19 @@ export interface RunningBalanceRow<T> {
 
 /**
  * Aplica saldo corrido em ordem cronológica. Só realiza pagamentos efetivos.
+ * `regime` (default "caixa") controla se compras de cartão contam antes do
+ * pagamento da fatura (competência) ou apenas quando a fatura é paga (caixa).
  */
 export function runningBalance<T extends TxLike>(
   txs: T[],
   previousBalance: number,
+  regime: BalanceRegime = "caixa",
 ): RunningBalanceRow<T>[] {
   let running = previousBalance;
   return txs.map((tx) => {
-    if (isRealized(tx)) running += signedEffect(tx);
+    if (isRealized(tx) && belongsToRegime(tx, regime)) {
+      running += signedEffect(tx);
+    }
     return { tx, runningBalance: running };
   });
 }
