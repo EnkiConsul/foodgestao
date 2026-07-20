@@ -46,6 +46,7 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
   const [categories, setCategories] = useState<Category[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [rows, setRows] = useState<ReviewRow[]>([]);
+  const [reconciliation, setReconciliation] = useState<Reconciliation | null>(null);
   const [busy, setBusy] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
   const [duplicateCount, setDuplicateCount] = useState(0);
