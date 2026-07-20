@@ -15,7 +15,9 @@
     "src/lib/**/*.ts",
     "src/lib/**/*.tsx",
     "src/hooks/**/*.ts",
-    "src/hooks/**/*.tsx"
+    "src/hooks/**/*.tsx",
+    "src/contexts/**/*.ts",
+    "src/contexts/**/*.tsx"
   ],
   "exclude": [
     "src/lib/**/*.test.ts",
