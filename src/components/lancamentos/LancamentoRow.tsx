@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import {
   CalendarIcon, Check, Copy, DollarSign, Paperclip, Pencil, Repeat, Trash2, X,
 } from "lucide-react";
-import { toast } from "sonner";
+
 import { supabase } from "@/integrations/supabase/client";
 import { resolveAttachments } from "@/lib/attachments";
 import { amountColorClass } from "@/lib/transaction-sign";
