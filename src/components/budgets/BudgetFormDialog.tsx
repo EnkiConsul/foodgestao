@@ -39,7 +39,7 @@ export function BudgetFormDialog({ open, onOpenChange, onCreated }: Props) {
     supabase
       .rpc("get_accessible_categories", {
         _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId : null,
+        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
         _transaction_type: "despesa",
       })
       .then(({ data }) => setCategories((data ?? []) as any));

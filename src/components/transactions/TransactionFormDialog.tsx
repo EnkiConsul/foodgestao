@@ -366,7 +366,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       if (contextType === "pj" && !selectedCompanyId) return [];
       const { data, error } = await supabase.rpc("get_accessible_accounts", {
         _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId : null,
+        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
       });
       if (error) throw error;
       return data ?? [];
@@ -378,7 +378,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     queryFn: async () => {
       const { data } = await supabase.rpc("get_accessible_categories", {
         _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId : null,
+        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
       });
       return (data ?? []) as any[];
     },
@@ -400,7 +400,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       if (contextType === "pj" && !selectedCompanyId) return [];
       const { data } = await supabase.rpc("get_accessible_payment_methods", {
         _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId : null,
+        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
       });
       return (data ?? []) as any[];
     },

@@ -71,15 +71,15 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
     (async () => {
       const { data: accs } = await supabase.rpc("get_accessible_accounts", {
         _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId : null,
+        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
         _include_inactive: false,
       });
       setAccounts(((accs ?? []) as Array<{ id: string; name: string }>).map((a) => ({ id: a.id, name: a.name })));
 
       const { data: cats } = await supabase.rpc("get_accessible_categories", {
         _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId : null,
-        _transaction_type: null,
+        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
+        _transaction_type: undefined,
       });
       setCategories(((cats ?? []) as Array<{ id: string; name: string; transaction_type: string }>).map((c) => ({
         id: c.id, name: c.name, transaction_type: c.transaction_type as "receita" | "despesa",
@@ -251,8 +251,8 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
     if (!user) return;
     const { data: cats } = await supabase.rpc("get_accessible_categories", {
       _context: contextType,
-      _company_id: contextType === "pj" ? selectedCompanyId : null,
-      _transaction_type: null,
+      _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
+      _transaction_type: undefined,
     });
     setCategories(((cats ?? []) as Array<{ id: string; name: string; transaction_type: string }>).map((c) => ({
       id: c.id, name: c.name, transaction_type: c.transaction_type as "receita" | "despesa",
