@@ -205,9 +205,11 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   // Default account when opening for new transaction; also reset if current selection is no longer in scope
   useEffect(() => {
     if (!open || transaction) return;
-    const exists = accountId && accounts.some((a) => a.id === accountId);
-    if (!exists) setAccountId(accounts[0]?.id ?? "");
-  }, [open, transaction, accounts, accountId]);
+    const isCard = accountId.startsWith("cc:")
+      && creditCards.some((c) => `cc:${c.id}` === accountId);
+    const isAccount = accountId && accounts.some((a) => a.id === accountId);
+    if (!isCard && !isAccount) setAccountId(accounts[0]?.id ?? "");
+  }, [open, transaction, accounts, creditCards, accountId]);
 
   // Populate form when editing
   useEffect(() => {
