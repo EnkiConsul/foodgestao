@@ -147,13 +147,16 @@ export interface PeriodTotals {
 
 /**
  * Agrega totais do período reproduzindo o cálculo de `Lancamentos.tsx`.
+ * `regime` filtra os lançamentos considerados (default "caixa").
  */
 export function computePeriodTotals(
   txs: TxLike[],
   today: Date,
   previousBalance = 0,
+  regime: BalanceRegime = "caixa",
 ): PeriodTotals {
-  const realized = txs.filter(isRealized);
+  const scoped = txs.filter((t) => belongsToRegime(t, regime));
+  const realized = scoped.filter(isRealized);
   const receitas = realized
     .filter((t) => t.transaction_type === "receita")
     .reduce((s, t) => s + t.amount, 0);
@@ -161,7 +164,7 @@ export function computePeriodTotals(
     .filter((t) => t.transaction_type === "despesa")
     .reduce((s, t) => s + t.amount, 0);
 
-  const withStatus = txs.map((t) => ({ tx: t, status: computeDisplayStatus(t, today) }));
+  const withStatus = scoped.map((t) => ({ tx: t, status: computeDisplayStatus(t, today) }));
   const pending = withStatus.filter((r) => r.status !== "pago");
   const aPagar = pending
     .filter((r) => r.tx.transaction_type === "despesa")
@@ -171,10 +174,10 @@ export function computePeriodTotals(
     .reduce((s, r) => s + Math.max(0, r.tx.amount - r.tx.amount_paid), 0);
   const atrasadas = withStatus.filter((r) => r.status === "atrasado").length;
 
-  const allReceitas = txs
+  const allReceitas = scoped
     .filter((t) => t.transaction_type === "receita")
     .reduce((s, t) => s + t.amount, 0);
-  const allDespesas = txs
+  const allDespesas = scoped
     .filter((t) => t.transaction_type === "despesa")
     .reduce((s, t) => s + t.amount, 0);
   const saldoPeriodo = allReceitas - allDespesas;
