@@ -26,6 +26,10 @@ import { PaymentDialog } from "@/components/bills/PaymentDialog";
 import { BulkEditDialog } from "@/components/lancamentos/BulkEditDialog";
 import { FilterPanel, SaldosCard } from "@/components/lancamentos/LancamentosSidebar";
 import { LancamentoRow } from "@/components/lancamentos/LancamentoRow";
+import { SummaryCards } from "@/components/lancamentos/SummaryCards";
+import { RecurringEditScopeDialog } from "@/components/lancamentos/RecurringEditScopeDialog";
+import { DeleteTransactionDialog } from "@/components/lancamentos/DeleteTransactionDialog";
+import { CancelTransactionDialog } from "@/components/lancamentos/CancelTransactionDialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
