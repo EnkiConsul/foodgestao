@@ -1,26 +1,27 @@
-## Causa
+## Objetivo
 
-O seletor de conta em `TransactionFormDialog.tsx` desfaz a escolha do cartão de crédito imediatamente após o clique.
+Remover o campo "Data" visível no formulário de cadastro de lançamento. O sistema passa a atribuir automaticamente a data (data atual no momento da criação) sem que o usuário precise ver ou digitar.
 
-O efeito das linhas 206–210 revalida a `accountId` atual apenas contra a lista `accounts` (contas bancárias). Quando o usuário escolhe um cartão, o valor fica no formato sintético `cc:<uuid>`, que nunca existe em `accounts` → o efeito considera "não existe" e reseta para `accounts[0].id`, voltando para a primeira conta bancária. Visualmente parece que o cartão "não deixa ser selecionado".
+## Escopo
 
-## Correção
+Apenas alteração de UI em `src/components/transactions/TransactionFormDialog.tsx`. Nenhuma mudança no banco, triggers, RLS ou hooks.
 
-Ajustar a checagem para aceitar também IDs de cartão:
+## Mudanças
 
-```ts
-useEffect(() => {
-  if (!open || transaction) return;
-  const isCard = accountId.startsWith("cc:")
-    && creditCards.some((c) => `cc:${c.id}` === accountId);
-  const isAccount = accountId && accounts.some((a) => a.id === accountId);
-  if (!isCard && !isAccount) setAccountId(accounts[0]?.id ?? "");
-}, [open, transaction, accounts, creditCards, accountId]);
-```
+1. **Remover o bloco visual do campo "Data"** (linhas 926–940 aprox., `<div data-field="transaction_date">` com Label + DatePicker).
+2. **Manter o estado `date` interno** já existente, que:
+   - Em novo lançamento: continua inicializado com `format(new Date(), "yyyy-MM-dd")` → vira automaticamente a data de criação.
+   - Em edição: continua carregando `transaction.transaction_date` (não altera lançamentos já criados).
+   - Em duplicação: mantemos o comportamento atual (herda do original) — pode ser ajustado para "hoje" se preferir; ver pergunta abaixo.
+3. **Preservar toda a lógica dependente de `date`** (payload, parcelas, recorrência, preview) — apenas o input desaparece da tela.
 
-Nenhuma outra mudança é necessária — o restante do fluxo (payload com `credit_card_id`, trigger de alocação de fatura, RLS) já foi validado e funciona.
+## Fora do escopo
+
+- Nenhuma alteração nos campos "Data de vencimento" e "Data de pagamento" — permanecem visíveis e editáveis como hoje.
+- Nenhuma migração de dados.
 
 ## Validação
 
-- Abrir "Novo lançamento" em PJ → selecionar cartão Mastercard no seletor de conta → a seleção persiste e o banner de fatura aparece.
-- Salvar como Despesa pendente → registro é criado e vinculado à fatura correta.
+- Abrir "Novo lançamento" → o campo "Data" não aparece mais; ao salvar, o registro é gravado com `transaction_date = hoje`.
+- Editar lançamento existente → data original é preservada.
+- Parcelamento e recorrência continuam gerando datas corretamente a partir da data atual.
