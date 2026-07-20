@@ -157,6 +157,15 @@ export { parseNumberBR };
  */
 export async function parseNubankStatementPdf(file: File): Promise<ParsedStatementEntry[]> {
   const lines = await extractLines(file);
+  return parseLinesToEntries(lines);
+}
+
+/**
+ * Pure parser: converts extracted text lines into structured entries.
+ * Extracted from `parseNubankStatementPdf` so it can be unit-tested without a real PDF.
+ */
+export async function parseLinesToEntries(lines: string[]): Promise<ParsedStatementEntry[]> {
+
 
   const entries: ParsedStatementEntry[] = [];
   let currentDate: string | null = null;
