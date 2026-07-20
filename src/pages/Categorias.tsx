@@ -1,65 +1,24 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
-import { Plus, Search, Tag, Pencil, Trash2, ChevronRight, Filter, ChevronsUpDown, GripVertical, FolderTree, Eye, Sparkles } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
+import { Plus, Search, Tag, ChevronsUpDown, Filter, Sparkles } from "lucide-react";
+import { DragDropContext, Droppable, type DropResult } from "@hello-pangea/dnd";
 import { toast } from "sonner";
-import type { Tables } from "@/integrations/supabase/types";
+import { buildCategoryTree, type Category, type TreeNode } from "@/lib/categories/tree";
+import { CategoryRow } from "@/components/categorias/CategoryRow";
+import { BatchActionBar } from "@/components/categorias/BatchActionBar";
+import { BatchVisibilityDialog } from "@/components/categorias/BatchVisibilityDialog";
 
-type Category = Tables<"categories">;
-
-type TreeNode = Category & { depth: number; hasChildren: boolean; index: string };
-
-const BATCH_COLOR_OPTIONS = [
-  "#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#6366f1",
-  "#8b5cf6", "#ec4899", "#14b8a6", "#f97316", "#64748b",
-];
-
-function buildTree(categories: Category[]): TreeNode[] {
-  const map = new Map<string, Category[]>();
-  const roots: Category[] = [];
-  const childSet = new Set<string>();
-
-  for (const cat of categories) {
-    if (cat.parent_id) {
-      const children = map.get(cat.parent_id) || [];
-      children.push(cat);
-      map.set(cat.parent_id, children);
-      childSet.add(cat.parent_id);
-    } else {
-      roots.push(cat);
-    }
-  }
-
-  const result: TreeNode[] = [];
-  function walk(items: Category[], depth: number, parentIndex: string) {
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      const idx = parentIndex ? `${parentIndex}.${i + 1}` : `${i + 1}`;
-      result.push({ ...item, depth, hasChildren: childSet.has(item.id), index: idx });
-      const children = map.get(item.id);
-      if (children) walk(children, depth + 1, idx);
-    }
-  }
-  walk(roots, 0, "");
-  return result;
-}
 
 export default function Categorias() {
   const { user } = useAuth();
@@ -291,7 +250,7 @@ export default function Categorias() {
     });
   }, [categories, search, filterType]);
 
-  const tree = useMemo(() => buildTree(filtered), [filtered]);
+  const tree = useMemo(() => buildCategoryTree(filtered), [filtered]);
 
   // hierarchy_index é apenas um rótulo visual calculado em memória pelo buildTree.
   // Não é mais persistido a cada render — evita loop de update + realtime + reordenação instável.
@@ -482,70 +441,25 @@ export default function Categorias() {
 
       {/* Batch action bar */}
       {selected.size > 0 && (
-        <div className="flex flex-wrap items-center gap-3 p-3 rounded-lg border bg-muted/50">
-          <span className="text-sm font-medium">{selected.size} selecionada(s)</span>
-          <div className="flex items-center gap-2">
-            <FolderTree className="h-4 w-4 text-muted-foreground" />
-            <Select value={batchParentId} onValueChange={setBatchParentId}>
-              <SelectTrigger className="h-8 w-[200px] text-xs">
-                <SelectValue placeholder="Categoria Raiz" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">Nenhuma (raiz)</SelectItem>
-                {categories
-                  .filter((c) => !selected.has(c.id))
-                  .map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-            <Button size="sm" className="h-8 text-xs" onClick={handleBatchChangeParent} disabled={batchSaving}>
-              {batchSaving ? "Movendo..." : "Mover"}
-            </Button>
-          </div>
-          <div className="flex items-center gap-2 ml-auto">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
-                  <div className="h-3.5 w-3.5 rounded-full border" style={{ backgroundColor: "#3b82f6" }} />
-                  Cor
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-3" align="end">
-                <p className="text-xs font-medium mb-2">Aplicar cor a {selected.size} categoria(s)</p>
-                <div className="flex gap-2 flex-wrap max-w-[200px]">
-                  {BATCH_COLOR_OPTIONS.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => handleBatchColor(c)}
-                      className="h-7 w-7 rounded-full border-2 border-transparent hover:border-foreground transition-transform hover:scale-110"
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
-            <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => {
-              setBatchVisiblePf(true);
-              setBatchSelectedCompanies(new Set(companies.map((c) => c.id)));
-              setBatchVisibilityOpen(true);
-            }}>
-              <Eye className="h-3.5 w-3.5" />
-              Visibilidade
-            </Button>
-            <Button variant="destructive" size="sm" className="h-8 text-xs gap-1" onClick={() => setBatchDeleteOpen(true)}>
-              <Trash2 className="h-3.5 w-3.5" />
-              Excluir
-            </Button>
-            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setSelected(new Set())}>
-              Limpar seleção
-            </Button>
-          </div>
-        </div>
+        <BatchActionBar
+          selectedCount={selected.size}
+          categories={categories}
+          selected={selected}
+          batchParentId={batchParentId}
+          batchSaving={batchSaving}
+          onBatchParentChange={setBatchParentId}
+          onBatchChangeParent={handleBatchChangeParent}
+          onBatchColor={handleBatchColor}
+          onOpenVisibility={() => {
+            setBatchVisiblePf(true);
+            setBatchSelectedCompanies(new Set(companies.map((c) => c.id)));
+            setBatchVisibilityOpen(true);
+          }}
+          onOpenDelete={() => setBatchDeleteOpen(true)}
+          onClearSelection={() => setSelected(new Set())}
+        />
       )}
+
 
       {/* Table */}
       {categories.length === 0 ? (
@@ -579,143 +493,23 @@ export default function Categorias() {
                 {(provided) => (
                   <TableBody ref={provided.innerRef} {...provided.droppableProps}>
                     {visibleTree.map((cat, index) => (
-                      <Draggable key={cat.id} draggableId={cat.id} index={index}>
-                        {(provided, snapshot) => (
-                          <TableRow
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            className={`group ${snapshot.isDragging ? "bg-muted shadow-md" : ""}`}
-                          >
-                            <TableCell className="py-1.5 px-4">
-                              <Checkbox
-                                checked={selected.has(cat.id)}
-                                onCheckedChange={() => toggleSelect(cat.id)}
-                              />
-                            </TableCell>
-                            <TableCell className="py-1.5 px-1">
-                              <div
-                                {...provided.dragHandleProps}
-                                className="flex items-center justify-center cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
-                              >
-                                <GripVertical className="h-4 w-4" />
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-1.5">
-                              <div className="flex items-center gap-1" style={{ paddingLeft: `${cat.depth * 24}px` }}>
-                                {cat.hasChildren ? (
-                                  <button
-                                    onClick={() => toggleCollapse(cat.id)}
-                                    className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
-                                  >
-                                    <ChevronRight className={`h-3.5 w-3.5 transition-transform ${collapsed.has(cat.id) ? "" : "rotate-90"}`} />
-                                  </button>
-                                ) : (
-                                  <span className="w-[18px]" />
-                                )}
-                                <div
-                                  className="h-3 w-3 shrink-0 rounded-full"
-                                  style={{ backgroundColor: cat.color ?? "hsl(var(--primary))" }}
-                                />
-                                <span className="font-mono text-xs text-muted-foreground w-20 shrink-0">{cat.index}.</span>
-                                <span className={`text-sm ${cat.depth === 0 ? "font-semibold uppercase" : ""}`}>
-                                  {cat.depth === 0 ? cat.name.toUpperCase() : cat.name}
-                                </span>
-                                {(cat as any).chart_account_id && chartAccountMap.get((cat as any).chart_account_id) && (
-                                  <Badge variant="outline" className="text-[10px] h-4 px-1.5 ml-1 font-mono">
-                                    {chartAccountMap.get((cat as any).chart_account_id)}
-                                  </Badge>
-                                )}
-                                {(cat as any).category_subtype && (() => {
-                                  const s = (cat as any).category_subtype as string;
-                                  const cls: Record<string, string> = {
-                                    receita: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-                                    saida: "bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400",
-                                    custo: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-                                    despesa: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-                                    imposto: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-                                    investimento: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-                                  };
-                                  const label: Record<string, string> = { receita: "Receita", saida: "Saída", custo: "Custo", despesa: "Despesa", imposto: "Imposto", investimento: "Investimento" };
-                                  return (
-                                    <Badge variant="secondary" className={`text-[10px] h-4 px-1.5 ml-1 ${cls[s] ?? ""}`}>{label[s] ?? s}</Badge>
-                                  );
-                                })()}
-                                {(cat as any).template_code && (
-                                  <TooltipProvider delayDuration={300}>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Badge variant="outline" className="text-[10px] h-4 px-1.5 ml-1 font-mono cursor-help">
-                                          {(cat as any).template_code}
-                                        </Badge>
-                                      </TooltipTrigger>
-                                      <TooltipContent side="top"><p>ID Interno {(cat as any).template_code?.startsWith("USR-") ? "(gerado)" : "(plano padrão 360°FOOD)"} — imutável, preserva o histórico dos lançamentos.</p></TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                )}
-                              </div>
-                            </TableCell>
-
-                            <TableCell className="py-1.5 text-center">
-                              <Badge
-                                variant="secondary"
-                                className={`text-[10px] h-5 px-1.5 ${
-                                  cat.transaction_type === "receita"
-                                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                                    : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                                }`}
-                              >
-                                {cat.transaction_type === "despesa" ? "Despesa" : "Receita"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="py-1.5 hidden md:table-cell">
-                              <div className="flex items-center gap-1 flex-wrap">
-                                {(cat as any).visible_pf && (
-                                  <Badge variant="outline" className="text-[10px] h-4 px-1.5">PF</Badge>
-                                )}
-                                {(catCompanyMap.get(cat.id) || []).map((compId) => (
-                                  <Badge key={compId} variant="outline" className="text-[10px] h-4 px-1.5">
-                                    {companyMap.get(compId) ?? "Empresa"}
-                                  </Badge>
-                                ))}
-                                {!(cat as any).visible_pf && !(catCompanyMap.get(cat.id) || []).length && (
-                                  <span className="text-[10px] text-muted-foreground">Sem visibilidade</span>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-1.5 text-right">
-                              <div className="flex justify-end gap-0.5">
-                                <TooltipProvider delayDuration={300}>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => openAddChild(cat)}>
-                                        <Plus className="h-3.5 w-3.5" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top"><p>Adicionar filho</p></TooltipContent>
-                                  </Tooltip>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => openEdit(cat)}>
-                                        <Pencil className="h-3.5 w-3.5" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top"><p>Editar</p></TooltipContent>
-                                  </Tooltip>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(cat.id)}>
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top"><p>Excluir</p></TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </Draggable>
+                      <CategoryRow
+                        key={cat.id}
+                        cat={cat}
+                        index={index}
+                        isSelected={selected.has(cat.id)}
+                        isCollapsed={collapsed.has(cat.id)}
+                        onToggleSelect={toggleSelect}
+                        onToggleCollapse={toggleCollapse}
+                        onEdit={openEdit}
+                        onAddChild={openAddChild}
+                        onDelete={setDeleteId}
+                        chartAccountMap={chartAccountMap}
+                        companyMap={companyMap}
+                        catCompanyMap={catCompanyMap}
+                      />
                     ))}
+
                     {provided.placeholder}
                     {visibleTree.length === 0 && (
                       <TableRow>
@@ -783,44 +577,26 @@ export default function Categorias() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog open={batchVisibilityOpen} onOpenChange={setBatchVisibilityOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Alterar Visibilidade ({selected.size} categorias)</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Selecione onde as categorias ficarão disponíveis</p>
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={batchVisiblePf} onCheckedChange={(v) => setBatchVisiblePf(!!v)} />
-              Pessoa Física (PF)
-            </label>
-            {companies.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Empresas</p>
-                {companies.map((company) => (
-                  <label key={company.id} className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={batchSelectedCompanies.has(company.id)}
-                      onCheckedChange={() => {
-                        setBatchSelectedCompanies((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(company.id)) next.delete(company.id);
-                          else next.add(company.id);
-                          return next;
-                        });
-                      }}
-                    />
-                    {company.name}
-                  </label>
-                ))}
-              </div>
-            )}
-            <Button className="w-full" onClick={handleBatchVisibility} disabled={batchVisibilitySaving}>
-              {batchVisibilitySaving ? "Salvando..." : "Aplicar"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <BatchVisibilityDialog
+        open={batchVisibilityOpen}
+        onOpenChange={setBatchVisibilityOpen}
+        selectedCount={selected.size}
+        visiblePf={batchVisiblePf}
+        setVisiblePf={setBatchVisiblePf}
+        companies={companies}
+        selectedCompanies={batchSelectedCompanies}
+        toggleCompany={(id) =>
+          setBatchSelectedCompanies((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+          })
+        }
+        onApply={handleBatchVisibility}
+        saving={batchVisibilitySaving}
+      />
+
     </div>
   );
 }
