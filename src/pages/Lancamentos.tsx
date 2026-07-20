@@ -779,8 +779,15 @@ export default function Lancamentos() {
                   <SheetTitle>Filtros</SheetTitle>
                 </SheetHeader>
                 <div className="mt-4">
-                  <FilterPanel />
-                  <SaldosCard />
+                  <FilterPanel {...filterPanelProps} />
+                  <SaldosCard
+                    previousBalance={previousBalance}
+                    saldoPeriodo={totals.saldoPeriodo}
+                    saldoAcumulado={totals.saldoAcumulado}
+                    dates={saldoDates}
+                    formatBRL={formatBRL}
+                  />
+
                 </div>
               </SheetContent>
             </Sheet>
