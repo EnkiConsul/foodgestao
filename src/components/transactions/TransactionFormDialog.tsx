@@ -898,8 +898,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
             </div>
           </div>
 
-          {/* Due date - only for receita/despesa */}
-          {type !== "transferencia" && (
+          {/* Due date - only for receita/despesa (não para cartão de crédito) */}
+          {type !== "transferencia" && !isCreditCardAccount && (
             <div className="space-y-2" data-field="due_date">
               <Label>Data de vencimento{fieldSuffix("due_date")}</Label>
               <div className="relative">
