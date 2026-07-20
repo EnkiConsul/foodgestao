@@ -92,6 +92,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     categories,
     contacts,
     paymentMethods,
+    creditCards,
     categoryCompanyIds,
     contactCompanyIds,
     paymentMethodCompanyIds,
