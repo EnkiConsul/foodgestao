@@ -151,7 +151,7 @@ export function usePluggyActions() {
     mutationFn: async (vars: { connAccountId: string; accountId: string | null }) => {
       const { error } = await supabase.rpc("pluggy_link_provider_account", {
         _conn_account_id: vars.connAccountId,
-        _account_id: vars.accountId,
+        _account_id: vars.accountId as string,
       });
       if (error) throw error;
     },
