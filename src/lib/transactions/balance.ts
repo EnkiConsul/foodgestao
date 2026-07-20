@@ -16,6 +16,7 @@
 export type TransactionType = "receita" | "despesa" | "transferencia";
 export type TransactionStatus = "pendente" | "confirmado" | "cancelado";
 export type DisplayStatus = "pago" | "a_vencer" | "atrasado";
+export type BalanceRegime = "caixa" | "competencia";
 
 export interface TxLike {
   amount: number;
@@ -23,6 +24,10 @@ export interface TxLike {
   transaction_type: TransactionType;
   transaction_date: string; // yyyy-MM-dd
   due_date: string | null;
+  /** Compra atribuída a uma fatura de cartão (competência, não afeta caixa). */
+  credit_card_invoice_id?: string | null;
+  /** Lançamento que representa o pagamento da fatura (esse SIM sai do caixa). */
+  is_invoice_payment?: boolean;
   payment_date?: string | null;
   status: TransactionStatus;
 }
