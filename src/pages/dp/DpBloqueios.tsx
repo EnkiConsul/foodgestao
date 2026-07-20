@@ -5,138 +5,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { toast } from "sonner";
 import {
-  Plus, Trash2, Calendar, CalendarX, CalendarCheck, Filter, Building2, Check,
-  Eye, EyeOff,
+  Plus, Calendar, CalendarX, Eye, EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
-import { cn } from "@/lib/utils";
+import {
+  MESES, getMonthName, parseYMD, toYMD,
+  gerarDatasParaRegra, emptyRegraForm, regraToFormState,
+  type Regra, type DataBloq, type Unidade,
+  type RegraFormState, type DataFormState, type RegraJson,
+} from "@/lib/dp/bloqueios";
+import { RegraDialog } from "@/components/dp/bloqueios/RegraDialog";
+import { DataDialog } from "@/components/dp/bloqueios/DataDialog";
+import { RegraRow } from "@/components/dp/bloqueios/RegraRow";
+import { DataRow } from "@/components/dp/bloqueios/DataRow";
 
-// ------------------------------------------------------------------
-// Tipagens locais
-// ------------------------------------------------------------------
-type Unidade = { id: string; nome: string };
-
-type RegraJson = {
-  aplicacao?: "anual" | "unica";
-  ano_referencia?: number | null;
-  meses?: number[];
-  dias?: number[];
-  ordinal?: number | null;
-  dia_semana?: number | null;
-  pos_pagamento_dia?: number | null;
-};
-
-type Regra = {
-  id: string;
-  company_id: string;
-  nome: string;
-  tipo: "fixa_anual" | "dinamica" | "pos_pagamento";
-  mes: number | null;
-  dia: number | null;
-  regra_json: RegraJson | null;
-  ativo: boolean;
-  unidades?: Unidade[];
-};
-
-type DataBloq = {
-  id: string;
-  company_id: string;
-  data: string;
-  motivo: string;
-  regra_id: string | null;
-  unidade_id: string | null;
-  liberada_por_solicitacao: string | null;
-  unidade?: Unidade | null;
-};
-
-const MESES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-const DIAS = Array.from({ length: 31 }, (_, i) => i + 1);
-const NOMES_MESES = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
-];
-const NOMES_ORDINAIS = ["Primeiro", "Segundo", "Terceiro", "Quarto", "Quinto"];
-const NOMES_SEMANA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-
-const getMonthName = (m: number) => NOMES_MESES[m - 1] ?? String(m);
-const formatBR = (iso: string) => {
-  const [y, mo, d] = iso.split("-").map(Number);
-  return `${String(d).padStart(2, "0")}/${String(mo).padStart(2, "0")}/${y}`;
-};
-const parseYMD = (iso: string) => {
-  const [y, mo, d] = iso.split("-").map(Number);
-  return new Date(y, mo - 1, d);
-};
-const toYMD = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-
-// ------------------------------------------------------------------
-// Geração de datas a partir das regras (próximos 12 meses)
-// ------------------------------------------------------------------
-function gerarDatasParaRegra(r: Regra, hoje: Date): string[] {
-  const cfg = r.regra_json ?? {};
-  const mesesConfig = cfg.meses && cfg.meses.length > 0 ? cfg.meses : r.mes ? [r.mes] : MESES;
-  const diasConfig = cfg.dias && cfg.dias.length > 0 ? cfg.dias : r.dia ? [r.dia] : [];
-
-  const start = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-  const out = new Set<string>();
-
-  for (let i = 0; i < 13; i++) {
-    const cursor = new Date(start.getFullYear(), start.getMonth() + i, 1);
-    const ano = cursor.getFullYear();
-    const mes = cursor.getMonth() + 1;
-
-    if (cfg.aplicacao === "unica" && cfg.ano_referencia && cfg.ano_referencia !== ano) continue;
-    if (!mesesConfig.includes(mes)) continue;
-
-    if (r.tipo === "fixa_anual") {
-      const diasAlvo = diasConfig.length ? diasConfig : Array.from({ length: 31 }, (_, k) => k + 1);
-      for (const dia of diasAlvo) {
-        const d = new Date(ano, mes - 1, dia);
-        if (d.getMonth() !== mes - 1) continue; // dia inválido no mês
-        if (d < hoje) continue;
-        out.add(toYMD(d));
-      }
-    } else if (r.tipo === "dinamica") {
-      const ordinal = cfg.ordinal ?? 1;
-      const diaSemana = cfg.dia_semana ?? 0;
-      // encontrar o "n-ésimo" diaSemana do mês
-      const first = new Date(ano, mes - 1, 1);
-      const shift = (diaSemana - first.getDay() + 7) % 7;
-      const diaAlvo = 1 + shift + (ordinal - 1) * 7;
-      const d = new Date(ano, mes - 1, diaAlvo);
-      if (d.getMonth() === mes - 1 && d >= hoje) out.add(toYMD(d));
-    } else if (r.tipo === "pos_pagamento") {
-      const diaBase = cfg.pos_pagamento_dia ?? 5;
-      const cursor2 = new Date(ano, mes - 1, diaBase + 1);
-      // primeiro sábado
-      while (cursor2.getDay() !== 6) cursor2.setDate(cursor2.getDate() + 1);
-      if (cursor2.getMonth() === mes - 1 && cursor2 >= hoje) out.add(toYMD(cursor2));
-      // domingo seguinte
-      const dom = new Date(cursor2);
-      dom.setDate(dom.getDate() + 1);
-      if (dom.getMonth() === mes - 1 && dom >= hoje) out.add(toYMD(dom));
-    }
-  }
-
-  return Array.from(out);
-}
-
-// ------------------------------------------------------------------
-// Página
-// ------------------------------------------------------------------
 export default function DpBloqueios() {
   const { selectedCompanyId } = useCompanyContext();
   const qc = useQueryClient();
@@ -155,29 +40,8 @@ export default function DpBloqueios() {
   const [editRegraId, setEditRegraId] = useState<string | null>(null);
   const [editDataId, setEditDataId] = useState<string | null>(null);
 
-  // Form: Regra
-  const [regraForm, setRegraForm] = useState<{
-    nome: string;
-    tipo: "fixa_anual" | "dinamica" | "pos_pagamento";
-    aplicacao: "anual" | "unica";
-    ano_referencia: number | null;
-    meses: number[];
-    dias: number[];
-    ordinal: number | null;
-    dia_semana: number | null;
-    pos_pagamento_dia: number | null;
-    ativo: boolean;
-    unidades: string[];
-  }>({
-    nome: "", tipo: "fixa_anual", aplicacao: "anual", ano_referencia: null,
-    meses: [], dias: [], ordinal: null, dia_semana: null, pos_pagamento_dia: 5,
-    ativo: true, unidades: [],
-  });
-
-  // Form: Data manual
-  const [dataForm, setDataForm] = useState<{ data: string; motivo: string; unidade_id: string }>({
-    data: "", motivo: "", unidade_id: "",
-  });
+  const [regraForm, setRegraForm] = useState<RegraFormState>(emptyRegraForm);
+  const [dataForm, setDataForm] = useState<DataFormState>({ data: "", motivo: "", unidade_id: "" });
 
   // ---- Queries ----
   const unidadesQ = useQuery({
@@ -238,7 +102,7 @@ export default function DpBloqueios() {
     },
   });
 
-  // ---- Filtros ----
+  // ---- Filtros memo ----
   const today = useMemo(() => {
     const t = new Date(); t.setHours(0, 0, 0, 0); return t;
   }, []);
@@ -263,6 +127,68 @@ export default function DpBloqueios() {
     if (aplicacaoFiltro === "all") return rows;
     return rows.filter((r) => (r.regra_json?.aplicacao ?? "anual") === aplicacaoFiltro);
   }, [regrasQ.data, aplicacaoFiltro]);
+
+  // ---- Regenerar próximos 12 meses ----
+  const regenerar12 = async () => {
+    if (!selectedCompanyId || reprocessando) return;
+    setReprocessando(true);
+    try {
+      const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+      const limite = new Date(hoje.getFullYear(), hoje.getMonth() + 13, 0);
+
+      const { error: delErr } = await supabase
+        .from("dp_datas_bloqueadas")
+        .delete()
+        .eq("company_id", selectedCompanyId)
+        .not("regra_id", "is", null)
+        .gte("data", toYMD(hoje))
+        .lte("data", toYMD(limite));
+      if (delErr) throw delErr;
+
+      const { data: regras, error: rErr } = await supabase
+        .from("dp_bloqueio_regras")
+        .select("*")
+        .eq("company_id", selectedCompanyId)
+        .eq("ativo", true);
+      if (rErr) throw rErr;
+
+      const { data: vinc } = await supabase
+        .from("dp_bloqueio_regra_unidades").select("regra_id, unidade_id");
+      const vincByRegra = new Map<string, string[]>();
+      (vinc ?? []).forEach((v: any) => {
+        const arr = vincByRegra.get(v.regra_id) ?? [];
+        arr.push(v.unidade_id); vincByRegra.set(v.regra_id, arr);
+      });
+
+      const inserts: any[] = [];
+      for (const r of (regras ?? []) as Regra[]) {
+        const datas = gerarDatasParaRegra(r, hoje);
+        const unidades = vincByRegra.get(r.id) ?? [];
+        if (unidades.length === 0) {
+          for (const d of datas) inserts.push({
+            company_id: selectedCompanyId, data: d, motivo: r.nome,
+            regra_id: r.id, unidade_id: null,
+          });
+        } else {
+          for (const d of datas) for (const u of unidades) inserts.push({
+            company_id: selectedCompanyId, data: d, motivo: r.nome,
+            regra_id: r.id, unidade_id: u,
+          });
+        }
+      }
+
+      if (inserts.length > 0) {
+        const { error } = await supabase.from("dp_datas_bloqueadas").insert(inserts);
+        if (error) throw error;
+      }
+      toast.success(`${inserts.length} datas bloqueadas geradas`);
+      await qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
+    } catch (e: any) {
+      toast.error("Erro ao gerar bloqueios", { description: e?.message });
+    } finally {
+      setReprocessando(false);
+    }
+  };
 
   // ---- Mutations ----
   const saveRegra = useMutation({
@@ -373,102 +299,17 @@ export default function DpBloqueios() {
     },
   });
 
-  // ---- Regenerar próximos 12 meses (client-side) ----
-  const regenerar12 = async () => {
-    if (!selectedCompanyId || reprocessando) return;
-    setReprocessando(true);
-    try {
-      const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-      const limite = new Date(hoje.getFullYear(), hoje.getMonth() + 13, 0);
-
-      // 1) apagar futuros auto (regra_id IS NOT NULL) no intervalo
-      const { error: delErr } = await supabase
-        .from("dp_datas_bloqueadas")
-        .delete()
-        .eq("company_id", selectedCompanyId)
-        .not("regra_id", "is", null)
-        .gte("data", toYMD(hoje))
-        .lte("data", toYMD(limite));
-      if (delErr) throw delErr;
-
-      // 2) para cada regra ativa gerar datas
-      const { data: regras, error: rErr } = await supabase
-        .from("dp_bloqueio_regras")
-        .select("*")
-        .eq("company_id", selectedCompanyId)
-        .eq("ativo", true);
-      if (rErr) throw rErr;
-
-      const { data: vinc } = await supabase.from("dp_bloqueio_regra_unidades").select("regra_id, unidade_id");
-      const vincByRegra = new Map<string, string[]>();
-      (vinc ?? []).forEach((v: any) => {
-        const arr = vincByRegra.get(v.regra_id) ?? [];
-        arr.push(v.unidade_id); vincByRegra.set(v.regra_id, arr);
-      });
-
-      const inserts: any[] = [];
-      for (const r of (regras ?? []) as Regra[]) {
-        const datas = gerarDatasParaRegra(r, hoje);
-        const unidades = vincByRegra.get(r.id) ?? [];
-        if (unidades.length === 0) {
-          for (const d of datas) inserts.push({
-            company_id: selectedCompanyId, data: d, motivo: r.nome,
-            regra_id: r.id, unidade_id: null,
-          });
-        } else {
-          for (const d of datas) for (const u of unidades) inserts.push({
-            company_id: selectedCompanyId, data: d, motivo: r.nome,
-            regra_id: r.id, unidade_id: u,
-          });
-        }
-      }
-
-      if (inserts.length > 0) {
-        const { error } = await supabase.from("dp_datas_bloqueadas").insert(inserts);
-        if (error) throw error;
-      }
-      toast.success(`${inserts.length} datas bloqueadas geradas`);
-      await qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
-    } catch (e: any) {
-      toast.error("Erro ao gerar bloqueios", { description: e?.message });
-    } finally {
-      setReprocessando(false);
-    }
-  };
-
-  // ---- Helpers UI ----
-  const toggleArr = <T,>(arr: T[], v: T): T[] =>
-    arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
-
+  // ---- Handlers de abertura ----
   const openNovaRegra = () => {
     setEditRegraId(null);
-    setRegraForm({
-      nome: "", tipo: "fixa_anual", aplicacao: "anual", ano_referencia: null,
-      meses: [], dias: [], ordinal: null, dia_semana: null, pos_pagamento_dia: 5,
-      ativo: true, unidades: [],
-    });
+    setRegraForm(emptyRegraForm);
     setRegraOpen(true);
   };
-
-  const openEditRegra = async (r: Regra) => {
+  const openEditRegra = (r: Regra) => {
     setEditRegraId(r.id);
-    const cfg = r.regra_json ?? {};
-    setRegraForm({
-      nome: r.nome,
-      tipo: r.tipo,
-      aplicacao: (cfg.aplicacao as any) ?? "anual",
-      ano_referencia: cfg.ano_referencia ?? null,
-      meses: cfg.meses && cfg.meses.length ? cfg.meses : (r.mes ? [r.mes] : []),
-      dias: cfg.dias && cfg.dias.length ? cfg.dias : (r.dia ? [r.dia] : []),
-      ordinal: cfg.ordinal ?? null,
-      dia_semana: cfg.dia_semana ?? null,
-      pos_pagamento_dia: cfg.pos_pagamento_dia ?? 5,
-      ativo: r.ativo,
-      unidades: (r.unidades ?? []).map((u) => u.id),
-    });
+    setRegraForm(regraToFormState(r));
     setRegraOpen(true);
   };
-
   const openNovaData = () => {
     setEditDataId(null);
     setDataForm({ data: "", motivo: "", unidade_id: "" });
@@ -480,13 +321,6 @@ export default function DpBloqueios() {
     setDataOpen(true);
   };
 
-  const getTipoLabel = (t: string) =>
-    t === "fixa_anual" ? "Fixa (dia/mês fixo)"
-    : t === "dinamica" ? "Dinâmica (ex: 2º sábado)"
-    : t === "pos_pagamento" ? "Pós-Pagamento (1º sáb e dom após dia 5)"
-    : t;
-
-  // ------------------------------------------------------------------
   return (
     <DpPage>
       <Helmet><title>Datas Bloqueadas — DP 360°</title></Helmet>
@@ -565,90 +399,14 @@ export default function DpBloqueios() {
             <div className="p-8 text-center text-muted-foreground">Nenhuma regra configurada.</div>
           ) : (
             <div className="divide-y divide-border">
-              {regrasFiltradas.map((r) => {
-                const cfg = r.regra_json ?? {};
-                return (
-                  <div key={r.id} className="p-4 flex flex-wrap items-center justify-between gap-4 hover:bg-muted/20">
-                    <div className="flex items-center gap-4 flex-1 min-w-[300px]">
-                      <div className={cn("size-10 rounded-xl flex items-center justify-center",
-                        r.ativo ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
-                        <CalendarCheck className="size-5" />
-                      </div>
-                      <div>
-                        <div className="font-semibold">{r.nome}</div>
-                        <div className="text-sm text-muted-foreground flex items-center gap-4 flex-wrap">
-                          <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs font-medium">
-                            {getTipoLabel(r.tipo)}
-                          </span>
-                          {r.tipo === "fixa_anual" && (
-                            <>
-                              <span>Meses: {(cfg.meses ?? []).map(getMonthName).join(", ") || "Todos"}</span>
-                              <span>Dias: {(cfg.dias ?? []).join(", ") || "Todos"}</span>
-                            </>
-                          )}
-                          {r.tipo === "dinamica" && (
-                            <>
-                              <span>Mês: {cfg.meses?.[0] ? getMonthName(cfg.meses[0]) : "?"}</span>
-                              <span>{NOMES_ORDINAIS[(cfg.ordinal ?? 1) - 1]} {NOMES_SEMANA[cfg.dia_semana ?? 0]}</span>
-                            </>
-                          )}
-                          {r.tipo === "pos_pagamento" && (
-                            <span>Mês: {cfg.meses?.[0] ? getMonthName(cfg.meses[0]) : "Todos"} — após dia {cfg.pos_pagamento_dia ?? 5}</span>
-                          )}
-                          {cfg.aplicacao === "unica" && cfg.ano_referencia && (
-                            <span className="text-amber-600 font-medium">🔹 Única vez — {cfg.ano_referencia}</span>
-                          )}
-                          {(cfg.aplicacao ?? "anual") === "anual" && (
-                            <span className="text-emerald-600 font-medium">🔄 Anual</span>
-                          )}
-                          {!r.ativo && <span className="text-destructive font-medium">Inativa</span>}
-                        </div>
-                        <div className="flex flex-wrap gap-1 mt-1 items-center">
-                          {r.unidades && r.unidades.length > 0 ? (
-                            <>
-                              <Building2 className="size-3 text-muted-foreground" />
-                              {r.unidades.map((u) => (
-                                <Badge key={u.id} variant="outline" className="text-xs">{u.nome}</Badge>
-                              ))}
-                            </>
-                          ) : (
-                            <Badge variant="secondary" className="text-xs">Global (todas as unidades)</Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="icon" className="size-8" onClick={() => openEditRegra(r)}>
-                        <Filter className="size-4" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="size-8 text-destructive hover:bg-destructive/10">
-                            <Trash2 className="size-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Excluir esta regra?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Esta ação não pode ser desfeita. A regra será removida permanentemente e as datas automáticas geradas por ela serão recalculadas.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => delRegra.mutate(r.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Excluir
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </div>
-                );
-              })}
+              {regrasFiltradas.map((r) => (
+                <RegraRow
+                  key={r.id}
+                  regra={r}
+                  onEdit={openEditRegra}
+                  onDelete={(id) => delRegra.mutate(id)}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -667,266 +425,40 @@ export default function DpBloqueios() {
             <div className="p-8 text-center text-muted-foreground">Nenhuma data bloqueada neste período.</div>
           ) : (
             <div className="divide-y divide-border">
-              {datasFiltradas.map((d) => {
-                const auto = !!d.regra_id;
-                const liberada = !!d.liberada_por_solicitacao;
-                return (
-                  <div key={d.id} className="p-4 flex flex-wrap items-center justify-between gap-4 hover:bg-muted/20">
-                    <div className="flex items-center gap-4 flex-1 min-w-[300px]">
-                      <div className={cn("size-10 rounded-xl flex items-center justify-center",
-                        liberada ? "bg-emerald-500/15 text-emerald-600"
-                        : auto ? "bg-amber-500/15 text-amber-600"
-                        : "bg-rose-500/15 text-rose-600")}>
-                        {liberada ? <CalendarCheck className="size-5" /> : <CalendarX className="size-5" />}
-                      </div>
-                      <div>
-                        <div className="font-semibold">{formatBR(d.data)}</div>
-                        <div className="text-sm text-muted-foreground flex items-center gap-4 flex-wrap">
-                          <span>{d.motivo}</span>
-                          {d.unidade ? <Badge variant="outline">{d.unidade.nome}</Badge> : <Badge variant="outline">Global</Badge>}
-                          <Badge variant="outline" className={auto
-                            ? "bg-amber-500/10 text-amber-700 border-amber-500/40"
-                            : "bg-rose-500/10 text-rose-700 border-rose-500/40"}>
-                            {auto ? "Automático" : "Manual"}
-                          </Badge>
-                          <Badge variant="outline" className={liberada
-                            ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/40"
-                            : "bg-rose-500/10 text-rose-700 border-rose-500/40"}>
-                            {liberada ? "Liberada" : "Bloqueada"}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      {!auto && (
-                        <>
-                          <Button variant="ghost" size="icon" className="size-8" onClick={() => openEditData(d)}>
-                            <Filter className="size-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="size-8 text-destructive hover:bg-destructive/10">
-                                <Trash2 className="size-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Remover este bloqueio?</AlertDialogTitle>
-                                <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => delData.mutate(d.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Remover
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+              {datasFiltradas.map((d) => (
+                <DataRow
+                  key={d.id}
+                  data={d}
+                  onEdit={openEditData}
+                  onDelete={(id) => delData.mutate(id)}
+                />
+              ))}
             </div>
           )}
         </div>
       </section>
 
-      {/* Dialog: Regra */}
-      <Dialog open={regraOpen} onOpenChange={(o) => { if (!o) { setRegraOpen(false); setEditRegraId(null); } }}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editRegraId ? "Editar Regra" : "Nova Regra"}</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label>Descrição *</Label>
-              <Input value={regraForm.nome} onChange={(e) => setRegraForm({ ...regraForm, nome: e.target.value })}
-                placeholder="Ex: Natal, Black Friday..." />
-            </div>
-            <div className="space-y-2">
-              <Label>Tipo *</Label>
-              <select value={regraForm.tipo}
-                onChange={(e) => {
-                  const tipo = e.target.value as any;
-                  setRegraForm((p) => ({
-                    ...p, tipo,
-                    dias: tipo === "fixa_anual" ? p.dias : [],
-                    ordinal: tipo === "dinamica" ? p.ordinal : null,
-                    dia_semana: tipo === "dinamica" ? p.dia_semana : null,
-                  }));
-                }}
-                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                <option value="fixa_anual">Fixa (dia/mês fixo)</option>
-                <option value="dinamica">Dinâmica (ex: 2º sábado)</option>
-                <option value="pos_pagamento">Pós-Pagamento (1º sábado e domingo após o dia)</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label>Aplicação *</Label>
-              <select value={regraForm.aplicacao}
-                onChange={(e) => {
-                  const val = e.target.value as any;
-                  setRegraForm({ ...regraForm, aplicacao: val, ano_referencia: val === "unica" ? new Date().getFullYear() : null });
-                }}
-                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                <option value="anual">🔄 Anual (repetir todo ano)</option>
-                <option value="unica">🔹 Única vez (aplicar apenas em um ano)</option>
-              </select>
-            </div>
-            {regraForm.aplicacao === "unica" && (
-              <div className="space-y-2">
-                <Label>Ano de Referência *</Label>
-                <Input type="number" min={2000} max={2100} placeholder="Ex: 2026"
-                  value={regraForm.ano_referencia ?? ""}
-                  onChange={(e) => setRegraForm({ ...regraForm, ano_referencia: parseInt(e.target.value) || null })} />
-              </div>
-            )}
+      <RegraDialog
+        open={regraOpen}
+        isEditing={!!editRegraId}
+        form={regraForm}
+        unidades={unidadesQ.data ?? []}
+        saving={saveRegra.isPending}
+        onChange={(updater) => setRegraForm(updater)}
+        onCancel={() => { setRegraOpen(false); setEditRegraId(null); }}
+        onSubmit={() => saveRegra.mutate()}
+      />
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Meses *</Label>
-                <Button variant="ghost" size="sm"
-                  onClick={() => setRegraForm((p) => ({ ...p, meses: p.meses.length === MESES.length ? [] : [...MESES] }))}>
-                  {regraForm.meses.length === MESES.length ? "Desmarcar todos" : "Marcar todos"}
-                </Button>
-              </div>
-              <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-border rounded-lg p-3">
-                {MESES.map((m) => (
-                  <button key={m} type="button"
-                    onClick={() => setRegraForm((p) => ({ ...p, meses: toggleArr(p.meses, m) }))}
-                    className={cn("flex items-center gap-2 text-sm text-left px-1.5 py-0.5 rounded")}>
-                    <span className={cn("size-5 rounded border-2 flex items-center justify-center",
-                      regraForm.meses.includes(m) ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30")}>
-                      {regraForm.meses.includes(m) && <Check className="size-3" />}
-                    </span>
-                    {getMonthName(m)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {regraForm.tipo === "fixa_anual" && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>Dias *</Label>
-                  <Button variant="ghost" size="sm"
-                    onClick={() => setRegraForm((p) => ({ ...p, dias: p.dias.length === DIAS.length ? [] : [...DIAS] }))}>
-                    {regraForm.dias.length === DIAS.length ? "Desmarcar todos" : "Marcar todos"}
-                  </Button>
-                </div>
-                <div className="grid grid-cols-7 gap-1 max-h-40 overflow-y-auto border border-border rounded-lg p-3">
-                  {DIAS.map((d) => (
-                    <button key={d} type="button"
-                      onClick={() => setRegraForm((p) => ({ ...p, dias: toggleArr(p.dias, d) }))}
-                      className={cn("size-7 rounded border-2 flex items-center justify-center text-xs",
-                        regraForm.dias.includes(d) ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30")}>
-                      {regraForm.dias.includes(d) ? <Check className="size-3" /> : d}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {regraForm.tipo === "dinamica" && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Ordinal *</Label>
-                  <select value={regraForm.ordinal ?? ""}
-                    onChange={(e) => setRegraForm({ ...regraForm, ordinal: parseInt(e.target.value) })}
-                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                    <option value="">Selecione</option>
-                    {[1, 2, 3, 4, 5].map((o) => <option key={o} value={o}>{NOMES_ORDINAIS[o - 1]}</option>)}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Dia da Semana *</Label>
-                  <select value={regraForm.dia_semana ?? ""}
-                    onChange={(e) => setRegraForm({ ...regraForm, dia_semana: parseInt(e.target.value) })}
-                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                    <option value="">Selecione</option>
-                    {NOMES_SEMANA.map((n, i) => <option key={i} value={i}>{n}</option>)}
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {regraForm.tipo === "pos_pagamento" && (
-              <div className="space-y-2">
-                <Label>Dia base do pagamento *</Label>
-                <Input type="number" min={1} max={31} value={regraForm.pos_pagamento_dia ?? 5}
-                  onChange={(e) => setRegraForm({ ...regraForm, pos_pagamento_dia: parseInt(e.target.value) || null })} />
-                <p className="text-xs text-muted-foreground">Bloqueia o 1º sábado e domingo posteriores a esse dia.</p>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label className="text-base font-semibold">Unidades (opcional)</Label>
-              <p className="text-sm text-muted-foreground">
-                Se nenhuma unidade for selecionada, a regra é aplicada a <strong>todas</strong>.
-              </p>
-              <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border border-border rounded-lg p-3">
-                {(unidadesQ.data ?? []).map((u) => (
-                  <button key={u.id} type="button"
-                    onClick={() => setRegraForm((p) => ({ ...p, unidades: toggleArr(p.unidades, u.id) }))}
-                    className="flex items-center gap-2 text-sm text-left">
-                    <span className={cn("size-5 rounded border-2 flex items-center justify-center",
-                      regraForm.unidades.includes(u.id) ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30")}>
-                      {regraForm.unidades.includes(u.id) && <Check className="size-3" />}
-                    </span>
-                    {u.nome}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={regraForm.ativo}
-                onChange={(e) => setRegraForm({ ...regraForm, ativo: e.target.checked })} />
-              Regra ativa
-            </label>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setRegraOpen(false); setEditRegraId(null); }}>Cancelar</Button>
-            <Button disabled={saveRegra.isPending} onClick={() => saveRegra.mutate()}>Salvar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog: Data manual */}
-      <Dialog open={dataOpen} onOpenChange={(o) => { if (!o) { setDataOpen(false); setEditDataId(null); } }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>{editDataId ? "Editar Bloqueio" : "Bloquear Data"}</DialogTitle></DialogHeader>
-          <div className="space-y-3 py-2">
-            <div className="space-y-2">
-              <Label>Data *</Label>
-              <Input type="date" value={dataForm.data}
-                onChange={(e) => setDataForm({ ...dataForm, data: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label>Motivo *</Label>
-              <Input value={dataForm.motivo}
-                onChange={(e) => setDataForm({ ...dataForm, motivo: e.target.value })}
-                placeholder="Ex: Evento interno" />
-            </div>
-            <div className="space-y-2">
-              <Label>Unidade</Label>
-              <select value={dataForm.unidade_id}
-                onChange={(e) => setDataForm({ ...dataForm, unidade_id: e.target.value })}
-                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                <option value="">Global (todas)</option>
-                {(unidadesQ.data ?? []).map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
-              </select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setDataOpen(false); setEditDataId(null); }}>Cancelar</Button>
-            <Button disabled={saveData.isPending} onClick={() => saveData.mutate()}>Salvar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DataDialog
+        open={dataOpen}
+        isEditing={!!editDataId}
+        form={dataForm}
+        unidades={unidadesQ.data ?? []}
+        saving={saveData.isPending}
+        onChange={(updater) => setDataForm(updater)}
+        onCancel={() => { setDataOpen(false); setEditDataId(null); }}
+        onSubmit={() => saveData.mutate()}
+      />
     </DpPage>
   );
 }
