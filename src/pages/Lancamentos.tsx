@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
 import { resolveAttachments } from "@/lib/attachments";
 import { amountColorClass } from "@/lib/transaction-sign";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,7 +21,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TransactionFormDialog } from "@/components/transactions/TransactionFormDialog";
-import { ImportStatementDialog } from "@/components/transactions/ImportStatementDialog";
+const ImportStatementDialog = lazy(() =>
+  import("@/components/transactions/ImportStatementDialog").then((m) => ({ default: m.ImportStatementDialog })),
+);
 import { PaymentDialog } from "@/components/bills/PaymentDialog";
 import { BulkEditDialog } from "@/components/lancamentos/BulkEditDialog";
 import { FilterPanel, SaldosCard } from "@/components/lancamentos/LancamentosSidebar";
@@ -999,7 +1001,11 @@ export default function Lancamentos() {
       />
 
 
-      <ImportStatementDialog open={importOpen} onOpenChange={setImportOpen} onImported={refreshAll} />
+      {importOpen && (
+        <Suspense fallback={null}>
+          <ImportStatementDialog open={importOpen} onOpenChange={setImportOpen} onImported={refreshAll} />
+        </Suspense>
+      )}
 
       {/* Recurring edit scope prompt */}
       <RecurringEditScopeDialog
