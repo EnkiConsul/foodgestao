@@ -829,40 +829,7 @@ export default function Lancamentos() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <Card className="shadow-sm">
-          <CardContent className="p-3 text-center">
-            <p className="text-xs text-muted-foreground">Receitas</p>
-            <p className={`text-sm font-bold ${amountColorClass(totals.receitas)}`}>{formatBRL(totals.receitas)}</p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm">
-          <CardContent className="p-3 text-center">
-            <p className="text-xs text-muted-foreground">Despesas</p>
-            <p className={`text-sm font-bold ${amountColorClass(-totals.despesas)}`}>{formatBRL(totals.despesas)}</p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm">
-          <CardContent className="p-3 text-center">
-            <p className="text-xs text-muted-foreground">A Pagar</p>
-            <p className="text-sm font-bold text-destructive">{formatBRL(totals.aPagar)}</p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm">
-          <CardContent className="p-3 text-center">
-            <p className="text-xs text-muted-foreground">A Receber</p>
-            <p className="text-sm font-bold text-success">{formatBRL(totals.aReceber)}</p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm col-span-2 md:col-span-1">
-          <CardContent className="p-3 text-center">
-            <p className="text-xs text-muted-foreground">Atrasadas</p>
-            <p className={`text-sm font-bold ${totals.atrasadas > 0 ? "text-destructive" : "text-muted-foreground"}`}>
-              {totals.atrasadas}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <SummaryCards totals={totals} formatBRL={formatBRL} />
 
       {/* Main content grid */}
       <div className={`gap-3 ${isMobile ? "" : "grid grid-cols-[1fr_185px]"}`}>
@@ -1035,52 +1002,20 @@ export default function Lancamentos() {
       <ImportStatementDialog open={importOpen} onOpenChange={setImportOpen} onImported={refreshAll} />
 
       {/* Recurring edit scope prompt */}
-      <AlertDialog
+      <RecurringEditScopeDialog
         open={!!editScopePrompt}
-        onOpenChange={(o) => { if (!o) { setEditScopePrompt(null); setEditScopeChoice("single"); } }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Editar lançamento recorrente</AlertDialogTitle>
-            <AlertDialogDescription>
-              Este lançamento faz parte de uma série recorrente. O que você deseja alterar?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <RadioGroup
-            value={editScopeChoice}
-            onValueChange={(v) => setEditScopeChoice(v as "single" | "forward" | "all")}
-            className="space-y-2 py-2"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="single" id="edit-scope-single" />
-              <Label htmlFor="edit-scope-single" className="cursor-pointer font-normal">Somente este lançamento</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="forward" id="edit-scope-forward" />
-              <Label htmlFor="edit-scope-forward" className="cursor-pointer font-normal">Este e os próximos</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="all" id="edit-scope-all" />
-              <Label htmlFor="edit-scope-all" className="cursor-pointer font-normal">Todos da série</Label>
-            </div>
-          </RadioGroup>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                const tx = editScopePrompt;
-                if (!tx) return;
-                setPendingEditScope(editScopeChoice);
-                setEditTransaction(tx);
-                setEditScopePrompt(null);
-                setDialogOpen(true);
-              }}
-            >
-              Continuar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        value={editScopeChoice}
+        onValueChange={setEditScopeChoice}
+        onCancel={() => { setEditScopePrompt(null); setEditScopeChoice("single"); }}
+        onConfirm={() => {
+          const tx = editScopePrompt;
+          if (!tx) return;
+          setPendingEditScope(editScopeChoice);
+          setEditTransaction(tx);
+          setEditScopePrompt(null);
+          setDialogOpen(true);
+        }}
+      />
 
       <PaymentDialog
         open={!!paymentTx}
@@ -1098,61 +1033,21 @@ export default function Lancamentos() {
         onPaid={refreshAll}
       />
 
-      <AlertDialog open={!!deleteId} onOpenChange={(o) => { if (!o) { setDeleteId(null); setDeleteScope("single"); } }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir lançamento?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {isPartOfRecurringSeries
-                ? "Este lançamento faz parte de uma série recorrente. Escolha o que deseja excluir:"
-                : "Essa ação não pode ser desfeita. O registro será removido permanentemente."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          {isPartOfRecurringSeries && (
-            <RadioGroup value={deleteScope} onValueChange={(v) => setDeleteScope(v as any)} className="gap-2 px-1">
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="single" id="scope-single" />
-                <label htmlFor="scope-single" className="text-sm cursor-pointer">Somente este lançamento</label>
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="forward" id="scope-forward" />
-                <label htmlFor="scope-forward" className="text-sm cursor-pointer">Este e os próximos</label>
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="all" id="scope-all" />
-                <label htmlFor="scope-all" className="text-sm cursor-pointer">Todos os lançamentos da série</label>
-              </div>
-            </RadioGroup>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteTransactionDialog
+        open={!!deleteId}
+        isRecurring={isPartOfRecurringSeries}
+        scope={deleteScope}
+        onScopeChange={setDeleteScope}
+        onCancel={() => { setDeleteId(null); setDeleteScope("single"); }}
+        onConfirm={confirmDelete}
+      />
 
 
-      <AlertDialog open={!!cancelStatusId} onOpenChange={(o) => { if (!o) setCancelStatusId(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cancelar lançamento?</AlertDialogTitle>
-            <AlertDialogDescription>
-              O lançamento será marcado como cancelado, o valor pago será zerado e não será mais considerado nos saldos.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Voltar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => { if (cancelStatusId) { updateTransactionStatus(cancelStatusId, "cancelado"); setCancelStatusId(null); } }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Confirmar cancelamento
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <CancelTransactionDialog
+        open={!!cancelStatusId}
+        onCancel={() => setCancelStatusId(null)}
+        onConfirm={() => { if (cancelStatusId) { updateTransactionStatus(cancelStatusId, "cancelado"); setCancelStatusId(null); } }}
+      />
 
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
