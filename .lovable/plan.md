@@ -1,75 +1,51 @@
-## Diagnóstico (verificado)
+## Análise
 
-Rodei os checks no repo antes de planejar:
+Três achados confirmados:
 
-- `tsconfig.app.json` tem `strict: false`, `noImplicitAny: false`. O passo do CI "TypeScript typecheck (strict)" aponta para ele — **o nome mente, não guarda nada**.
-- `tsconfig.strict.json` compila **com 0 erros** hoje (validei com `npx tsc -p tsconfig.strict.json --noEmit`). O trabalho está feito e desprotegido.
-- `package.json` tem `"typecheck:strict": "tsgo -p ./tsconfig.strict.json"`. `tsgo` não existe como binário no projeto — o script quebra ao rodar.
-- `npx eslint .` retorna **555 problemas: 501 errors + 54 warnings**. Com `--max-warnings=0` o passo sempre falha. A troca sugerida (`--max-warnings=54`) **não resolve sozinha**: `--max-warnings` só limita warnings; os 501 *errors* continuam quebrando o CI. Precisa mexer nas regras também.
+**1. Furos no strict** — `tsconfig.strict.json` inclui só `src/lib`, `src/hooks`, `src/components`, `src/pages` + `vite-env.d.ts`. Ficam de fora:
+- `src/main.tsx` — entrypoint (uso de `document.getElementById("root")!` já com non-null assert, mas fora do gate).
+- `src/App.tsx` — roteamento + guards.
+- `src/routes/onboardingGuards.tsx` — decisões de fluxo pós-login.
+- `src/integrations/supabase/client.ts` — auto-gerado, mas é o portal por onde entra todo dado potencialmente `null` no app. Sem checagem strict aqui, o benefício em `src/lib` fica furado.
 
-Distribuição dos errors:
-- 485 `@typescript-eslint/no-explicit-any` — dívida real, muito volume, precisa virar warning para ratchet decrescente
-- 5 `prefer-const` — auto-fixáveis
-- 11 outros (`no-require-imports`, `no-empty-object-type`, etc.) — pontuais, correção rápida
+**2. Teto ESLint colado em 546** — comportamento desejado para ratchet, mas sem folga. Precisa estar documentado para o time não interpretar vermelho como flakiness.
 
-## O que fazer
+**3. Comentário desatualizado** — `ci.yml` diz "Baseline: 546 warnings (out/2026)", estamos em julho/2026.
 
-### 1. Guardar o ganho do strict no CI
-Em `.github/workflows/ci.yml`, trocar o alvo do typecheck:
+## Correções
 
-```yaml
-- name: TypeScript typecheck (strict — no errors allowed)
-  run: npx tsc -p tsconfig.strict.json --noEmit
+**A. Expandir `tsconfig.strict.json`**
+Adicionar ao `include`:
 ```
-
-Assim a primeira PR que introduzir um `null` não tratado ou `any` implícito em `src/lib|hooks|components|pages` é bloqueada.
-
-### 2. Consertar o script `typecheck:strict`
-Em `package.json`, trocar `tsgo` por `tsc`:
-
-```json
-"typecheck:strict": "tsc -p ./tsconfig.strict.json --noEmit"
+"src/main.tsx",
+"src/App.tsx",
+"src/routes/**/*.ts",
+"src/routes/**/*.tsx",
+"src/integrations/**/*.ts"
 ```
+Após adicionar, rodar `tsc -p tsconfig.strict.json --noEmit` e corrigir erros que aparecerem. Expectativa:
+- `main.tsx` — provavelmente 0 erros (já usa `!`).
+- `App.tsx` — pode ter alguns por `useState<boolean|null>` e handlers RPC (`data` possivelmente null).
+- `onboardingGuards.tsx` — precisa ser lido; provável passar limpo pois já vive em contexto strict-adjacente.
+- `supabase/client.ts` — auto-gerado, não editável. Se der erro, incluímos e resolvemos via type-augmentation em arquivo próprio (nunca editar o gerado).
 
-Assim `npm run typecheck:strict` funciona local e reproduz o CI.
+Se algum arquivo tiver mais que ~5 erros bobos, corrigimos na mesma PR. Se for volumoso, plano é: incluir mesmo assim e abrir apenas os que passam limpos primeiro (`main.tsx`, `onboardingGuards.tsx`, `integrations/**`), deixando `App.tsx` para uma segunda passada anotada como TODO no arquivo do ratchet.
 
-### 3. Destravar o ESLint (ratchet decrescente honesto)
+**B. Documentar o ratchet no `README.md`**
+Adicionar aviso curto na seção CI: "Teto colado por design. `any` novo = build vermelho — isso não é flakiness, é o ratchet funcionando. Para adicionar dívida técnica justificada, reduza a dívida em outro lugar na mesma PR e mantenha o teto."
 
-Três passos, na ordem:
+**C. Corrigir comentário no `ci.yml`**
+`out/2026` → `jul/2026`.
 
-a) **Auto-fix dos erros triviais**: rodar `npx eslint . --fix` para resolver os 5 `prefer-const` e ~2 fixáveis extras.
+## Ordem de execução
 
-b) **Corrigir os erros pontuais restantes** (~9 casos manuais):
-   - `tailwind.config.ts:94` — trocar `require(...)` por `import`
-   - `~7` `no-empty-object-type` e outros — ajustes locais
-
-c) **Rebaixar `@typescript-eslint/no-explicit-any` de `error` → `warn`** em `eslint.config.js`. Isso reconhece a dívida como dívida (aparece no output) sem quebrar o CI, e permite baixar o teto ao longo do tempo.
-
-d) **Definir um teto de warnings** no CI igual à nova baseline (a ser medida após passos a–c; estimativa ~539 = 485 + 54). O teto vira uma trava decrescente: qualquer PR que adicione warning quebra; PRs que reduzem podem baixar o número.
-
-```yaml
-- name: ESLint (ceiling — must not increase)
-  run: npx eslint . --max-warnings=<baseline>
-```
-
-### 4. Documentar
-Adicionar 3–4 linhas no `README.md` (seção CI) explicando o ratchet: strict TS = zero, ESLint warnings = teto decrescente.
-
-## Detalhes técnicos
-
-- Não vou tocar em regras de `react-hooks/exhaustive-deps` nem `react-refresh` — os 54 warnings atuais já ficam abaixo do teto.
-- Não vou fixar `no-explicit-any` em lote (485 casos = risco de regressão silenciosa). O plano é ratchet, não big-bang.
-- Escopo do `tsconfig.strict.json` continua o mesmo (`src/lib|hooks|components|pages`, exclui testes). Edge functions e configs ficam fora do strict, dentro do lint.
-- O workflow `security-lint.yml` continua independente — este plano não mexe nele.
+1. Ler `src/App.tsx`, `src/routes/onboardingGuards.tsx`, `src/integrations/supabase/client.ts` para dimensionar erros.
+2. Expandir `include` do `tsconfig.strict.json`.
+3. Rodar typecheck strict; corrigir o que aparecer (não editar arquivos auto-gerados).
+4. Atualizar comentário do `ci.yml` e adicionar nota no `README.md`.
+5. Rodar CI local (`tsc strict` + `eslint --max-warnings=546`) para validar verde.
 
 ## Fora de escopo
 
-- Zerar os `no-explicit-any` (será feito em ondas depois, cada PR baixa o teto).
-- Habilitar strict no `tsconfig.app.json` inteiro (Fase 2 já foi incremental por diretório; expandir é trabalho novo).
-
-## Resultado esperado
-
-- CI vermelho por motivo real, não por ruído histórico.
-- Strict TS trancado: PR que quebra strict é rejeitada.
-- ESLint com teto decrescente: dívida visível, sem falso vermelho.
-- `npm run typecheck:strict` funciona local.
+- Não baixar o teto de 546 agora (é trabalho separado, PR-a-PR).
+- Não editar `src/integrations/supabase/client.ts` nem `types.ts` (auto-gerados).
