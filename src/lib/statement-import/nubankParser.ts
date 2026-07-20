@@ -124,7 +124,7 @@ export async function parseLinesToEntries(lines: string[]): Promise<ParsedStatem
     }
     if (/^saldo\b/i.test(line)) continue;
 
-    if (!currentDate || !currentSign) continue;
+    if (!currentDate) continue;
 
     const am = line.match(AMOUNT_END_RE);
     if (!am) {
@@ -138,8 +138,20 @@ export async function parseLinesToEntries(lines: string[]): Promise<ParsedStatem
       continue;
     }
 
-    const amount = parseNumberBR(am[1]);
-    if (!amount) continue;
+    const rawAmount = am[1].trim();
+    const signed = parseNumberBR(rawAmount);
+    if (!signed) continue;
+
+    // Sign resolution: explicit +/- on the line wins over the section header.
+    const explicitSign: "receita" | "despesa" | null =
+      rawAmount.startsWith("-") ? "despesa"
+      : rawAmount.startsWith("+") ? "receita"
+      : null;
+    const type = explicitSign ?? currentSign;
+    if (!type) continue;
+
+    // Invariant: amount is always a positive magnitude in reais.
+    const amount = Math.abs(signed);
 
     const head = line.slice(0, am.index!).trim();
     if (!head) continue;
@@ -167,7 +179,6 @@ export async function parseLinesToEntries(lines: string[]): Promise<ParsedStatem
     }
 
     const description = [title, cpName].filter(Boolean).join(" - ").trim() || title || "Lançamento";
-    const type = currentSign;
     const import_hash = await sha1(`${currentDate}|${type}|${amount.toFixed(2)}|${description.toUpperCase()}`);
 
     entries.push({
@@ -182,4 +193,118 @@ export async function parseLinesToEntries(lines: string[]): Promise<ParsedStatem
   }
 
   return entries;
+}
+
+export type StatementSummary = {
+  saldo_inicial: number | null;
+  saldo_final: number | null;
+  total_entradas: number | null;
+  total_saidas: number | null;
+  rendimento_liquido: number | null;
+};
+
+const SUMMARY_AMOUNT_RE = /(-?\s?R?\$?\s?\d{1,3}(?:\.\d{3})*,\d{2})/;
+
+function extractAmountFromLine(line: string): number | null {
+  const m = line.match(SUMMARY_AMOUNT_RE);
+  if (!m) return null;
+  const n = parseNumberBR(m[1]);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Extract balance/summary values printed at the top or bottom of the statement.
+ * Only reads lines that appear BEFORE the first date header OR after all entries
+ * are consumed — heuristic based on Nubank's layout. All fields are optional.
+ */
+export function extractStatementSummary(lines: string[]): StatementSummary {
+  const summary: StatementSummary = {
+    saldo_inicial: null,
+    saldo_final: null,
+    total_entradas: null,
+    total_saidas: null,
+    rendimento_liquido: null,
+  };
+  for (const line of lines) {
+    if (!line) continue;
+    if (summary.saldo_inicial === null && /^saldo inicial/i.test(line)) {
+      summary.saldo_inicial = extractAmountFromLine(line);
+    } else if (summary.saldo_final === null && /^saldo final/i.test(line)) {
+      summary.saldo_final = extractAmountFromLine(line);
+    } else if (summary.rendimento_liquido === null && /^rendimento l[ií]quido/i.test(line)) {
+      summary.rendimento_liquido = extractAmountFromLine(line);
+    }
+    // "Total de entradas/saidas" as a standalone summary line (not the per-day
+    // section header, which sits on the same row as a date). Grab first occurrence.
+    if (summary.total_entradas === null && /^total de entradas\b/i.test(line)) {
+      const v = extractAmountFromLine(line);
+      if (v !== null) summary.total_entradas = Math.abs(v);
+    }
+    if (summary.total_saidas === null && /^total de sa[ií]das\b/i.test(line)) {
+      const v = extractAmountFromLine(line);
+      if (v !== null) summary.total_saidas = Math.abs(v);
+    }
+  }
+  return summary;
+}
+
+export type Reconciliation = {
+  parsed_entradas: number;
+  parsed_saidas: number;
+  expected_entradas: number | null;
+  expected_saidas: number | null;
+  entradas_diff: number | null;
+  saidas_diff: number | null;
+  balance_diff: number | null;
+  balanced: boolean;
+};
+
+const TOLERANCE_CENTS = 0.01;
+
+/**
+ * Compare the sum of parsed entries against the statement's own summary rows.
+ * Returns diffs (parsed - expected) and a `balanced` flag when all available
+ * checks are within one cent. Missing summary fields are treated as unknown
+ * (never blocks import).
+ */
+export function reconcileEntries(
+  entries: ParsedStatementEntry[],
+  summary: StatementSummary,
+): Reconciliation {
+  const parsed_entradas = entries
+    .filter((e) => e.transaction_type === "receita")
+    .reduce((s, e) => s + e.amount, 0);
+  const parsed_saidas = entries
+    .filter((e) => e.transaction_type === "despesa")
+    .reduce((s, e) => s + e.amount, 0);
+
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+
+  const entradas_diff =
+    summary.total_entradas === null ? null : round2(parsed_entradas - summary.total_entradas);
+  const saidas_diff =
+    summary.total_saidas === null ? null : round2(parsed_saidas - summary.total_saidas);
+
+  let balance_diff: number | null = null;
+  if (summary.saldo_inicial !== null && summary.saldo_final !== null) {
+    const expected = round2(summary.saldo_final - summary.saldo_inicial);
+    const computed = round2(parsed_entradas - parsed_saidas + (summary.rendimento_liquido ?? 0));
+    balance_diff = round2(computed - expected);
+  }
+
+  const checks = [entradas_diff, saidas_diff, balance_diff].filter(
+    (v): v is number => v !== null,
+  );
+  const balanced = checks.length > 0 && checks.every((d) => Math.abs(d) <= TOLERANCE_CENTS);
+
+  return {
+    parsed_entradas: round2(parsed_entradas),
+    parsed_saidas: round2(parsed_saidas),
+    expected_entradas: summary.total_entradas,
+    expected_saidas: summary.total_saidas,
+    entradas_diff,
+    saidas_diff,
+    balance_diff,
+    balanced,
+  };
 }

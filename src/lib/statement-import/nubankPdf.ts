@@ -2,7 +2,16 @@ import type { ParsedStatementEntry } from "./types";
 import { parseLinesToEntries } from "./nubankParser";
 
 // Re-export pure helpers so consumers keep working after the split.
-export { parseNumberBR, normalizeMonthKey, isNoise, sha1, parseLinesToEntries } from "./nubankParser";
+export {
+  parseNumberBR,
+  normalizeMonthKey,
+  isNoise,
+  sha1,
+  parseLinesToEntries,
+  extractStatementSummary,
+  reconcileEntries,
+} from "./nubankParser";
+export type { StatementSummary, Reconciliation } from "./nubankParser";
 
 // pdfjs worker setup (Vite friendly)
 import * as pdfjsLib from "pdfjs-dist";

@@ -202,3 +202,148 @@ describe("parseLinesToEntries", () => {
     expect(entries[0].import_hash).not.toBe(entries[1].import_hash);
   });
 });
+
+import { extractStatementSummary, reconcileEntries } from "./nubankParser";
+
+describe("sign inference from explicit +/-", () => {
+  it("uses explicit '-' to mark despesa even without section header", async () => {
+    const entries = await parseLinesToEntries([
+      "05 JUN 2026",
+      "Compra no débito Padaria X -12,50",
+    ]);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].transaction_type).toBe("despesa");
+    expect(entries[0].amount).toBe(12.5);
+  });
+
+  it("uses explicit '+' to mark receita even without section header", async () => {
+    const entries = await parseLinesToEntries([
+      "05 JUN 2026",
+      "Pix recebido Cliente A +200,00",
+    ]);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].transaction_type).toBe("receita");
+    expect(entries[0].amount).toBe(200);
+  });
+
+  it("explicit sign overrides a wrong section header", async () => {
+    const entries = await parseLinesToEntries([
+      "05 JUN 2026 Total de entradas",
+      "Estorno de compra -30,00",
+      "Pix recebido A 50,00",
+    ]);
+    expect(entries).toHaveLength(2);
+    expect(entries[0]).toMatchObject({ transaction_type: "despesa", amount: 30 });
+    expect(entries[1]).toMatchObject({ transaction_type: "receita", amount: 50 });
+  });
+
+  it("always stores amount as positive magnitude", async () => {
+    const entries = await parseLinesToEntries([
+      "05 JUN 2026 Total de saídas",
+      "Pix enviado B -75,50",
+    ]);
+    expect(entries[0].amount).toBe(75.5);
+    expect(entries[0].amount).toBeGreaterThan(0);
+  });
+});
+
+describe("extractStatementSummary", () => {
+  it("extracts saldo inicial, saldo final and rendimento", () => {
+    const s = extractStatementSummary([
+      "Extrato gerado dia 10/07/2026",
+      "Saldo inicial R$ 1.000,00",
+      "Total de entradas 500,00",
+      "Total de saídas 200,00",
+      "Rendimento líquido 3,50",
+      "Saldo final R$ 1.303,50",
+    ]);
+    expect(s).toEqual({
+      saldo_inicial: 1000,
+      saldo_final: 1303.5,
+      total_entradas: 500,
+      total_saidas: 200,
+      rendimento_liquido: 3.5,
+    });
+  });
+
+  it("returns nulls when summary rows are missing", () => {
+    const s = extractStatementSummary(["05 JUN 2026 Total de entradas", "Pix X 10,00"]);
+    // "Total de entradas" here has amount → still captured
+    expect(s.saldo_inicial).toBeNull();
+    expect(s.saldo_final).toBeNull();
+    expect(s.rendimento_liquido).toBeNull();
+  });
+});
+
+describe("reconcileEntries", () => {
+  it("reports balanced=true when parsed totals match summary", async () => {
+    const entries = await parseLinesToEntries([
+      "05 JUN 2026 Total de entradas",
+      "Pix recebido A 300,00",
+      "Pix recebido B 200,00",
+      "Total de saídas",
+      "Pix enviado C 120,00",
+      "Pix enviado D 80,00",
+    ]);
+    const rec = reconcileEntries(entries, {
+      saldo_inicial: 1000,
+      saldo_final: 1300,
+      total_entradas: 500,
+      total_saidas: 200,
+      rendimento_liquido: null,
+    });
+    expect(rec.parsed_entradas).toBe(500);
+    expect(rec.parsed_saidas).toBe(200);
+    expect(rec.entradas_diff).toBe(0);
+    expect(rec.saidas_diff).toBe(0);
+    expect(rec.balance_diff).toBe(0);
+    expect(rec.balanced).toBe(true);
+  });
+
+  it("flags balanced=false when parsed differs from summary", async () => {
+    const entries = await parseLinesToEntries([
+      "05 JUN 2026 Total de entradas",
+      "Pix recebido A 300,00",
+    ]);
+    const rec = reconcileEntries(entries, {
+      saldo_inicial: null,
+      saldo_final: null,
+      total_entradas: 500,
+      total_saidas: null,
+      rendimento_liquido: null,
+    });
+    expect(rec.entradas_diff).toBe(-200);
+    expect(rec.balanced).toBe(false);
+  });
+
+  it("returns balanced=false when no checks are available", () => {
+    const rec = reconcileEntries([], {
+      saldo_inicial: null,
+      saldo_final: null,
+      total_entradas: null,
+      total_saidas: null,
+      rendimento_liquido: null,
+    });
+    expect(rec.balanced).toBe(false);
+    expect(rec.entradas_diff).toBeNull();
+    expect(rec.saidas_diff).toBeNull();
+    expect(rec.balance_diff).toBeNull();
+  });
+
+  it("includes rendimento_liquido in balance reconciliation", async () => {
+    const entries = await parseLinesToEntries([
+      "05 JUN 2026 Total de entradas",
+      "Pix recebido A 100,00",
+    ]);
+    // saldo_final - saldo_inicial = 103.50 ; parsed entradas=100 + rendimento=3.5
+    const rec = reconcileEntries(entries, {
+      saldo_inicial: 1000,
+      saldo_final: 1103.5,
+      total_entradas: 100,
+      total_saidas: 0,
+      rendimento_liquido: 3.5,
+    });
+    expect(rec.balance_diff).toBe(0);
+    expect(rec.balanced).toBe(true);
+  });
+});
