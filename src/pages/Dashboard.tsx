@@ -571,6 +571,9 @@ export default function Dashboard() {
         {/* Faturas a vencer (Cartões) */}
         <UpcomingCardInvoicesWidget className="col-span-12 lg:col-span-6" />
 
+        {/* Projeção de Caixa configurável */}
+        <CashFlowProjectionWidget className="col-span-12" />
+
         {/* Balance Evolution (kept, full-width) */}
         {balanceEvolution.length > 1 && (
           <div className="col-span-12 lg:col-span-6 p-6 rounded-3xl bg-card border border-border/60 shadow-sm">
