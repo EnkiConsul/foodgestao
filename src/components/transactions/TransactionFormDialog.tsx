@@ -866,7 +866,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
               <TabsTrigger value="despesa" className="data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground">
                 Despesa
               </TabsTrigger>
-              <TabsTrigger value="transferencia">
+              <TabsTrigger value="transferencia" disabled={isCreditCardAccount}>
                 Transferência
               </TabsTrigger>
             </TabsList>
