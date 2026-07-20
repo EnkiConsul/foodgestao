@@ -25,6 +25,7 @@ const statusLabels: Record<InvoiceStatus, { label: string; className: string }> 
   paga: { label: "Paga", className: "bg-success/15 text-success" },
   parcial: { label: "Parcial", className: "bg-orange-500/15 text-orange-700 dark:text-orange-400" },
   vencida: { label: "Vencida", className: "bg-destructive/15 text-destructive" },
+  atrasada: { label: "Atrasada", className: "bg-destructive/15 text-destructive" },
 };
 
 export default function CartoesCredito() {
@@ -99,7 +100,7 @@ export default function CartoesCredito() {
     let toPay = 0;
     invoices.forEach((i) => {
       if (i.status === "aberta") openInvoices += Number(i.total_amount);
-      if (i.status === "fechada" || i.status === "parcial" || i.status === "vencida") {
+      if (i.status === "fechada" || i.status === "parcial" || i.status === "vencida" || i.status === "atrasada") {
         toPay += Number(i.total_amount) - Number(i.paid_amount);
       }
     });
