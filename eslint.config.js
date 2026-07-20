@@ -21,6 +21,15 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      // Ratchet: dívida técnica reconhecida como warning (contabilizada no teto
+      // decrescente do CI via --max-warnings). Novos erros dessas categorias
+      // aparecem no output mas não quebram o build; o teto impede aumento.
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-unused-expressions": "warn",
+      "@typescript-eslint/no-empty-object-type": "warn",
+      "@typescript-eslint/no-require-imports": "warn",
+      "no-empty": "warn",
+      "no-useless-escape": "warn",
     },
   },
 );

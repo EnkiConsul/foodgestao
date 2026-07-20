@@ -215,7 +215,6 @@ export function TwoFactorCard() {
             <div className="flex flex-col items-center gap-3 rounded-md border bg-muted/30 p-4">
               <div
                 className="rounded bg-white p-2"
-                // eslint-disable-next-line react/no-danger
                 dangerouslySetInnerHTML={{ __html: enroll.qrSvg }}
               />
               <div className="flex items-center gap-2 w-full max-w-sm">
