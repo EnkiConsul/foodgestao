@@ -344,14 +344,18 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   }, [isCreditCardAccount, type]);
 
   // Compras no cartão nunca são "pagas" à vista — o pagamento vem da fatura.
+  // Vencimento é derivado do ciclo do cartão e preenchido automaticamente.
   useEffect(() => {
     if (!isCreditCardAccount) return;
     if (status !== "pendente") setStatus("pendente");
     if (paymentDate) setPaymentDate("");
-    // Vencimento é derivado do ciclo do cartão — mantemos vazio no lançamento
-    if (dueDate) setDueDate("");
+    if (invoicePreview?.due) {
+      const ymd = toYmd(invoicePreview.due);
+      if (dueDate !== ymd) setDueDate(ymd);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isCreditCardAccount]);
+  }, [isCreditCardAccount, invoicePreview?.due?.getTime()]);
+
 
 
 
