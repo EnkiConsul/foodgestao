@@ -354,6 +354,39 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
                 </span>
               )}
             </div>
+            {reconciliation && (reconciliation.entradas_diff !== null || reconciliation.saidas_diff !== null || reconciliation.balance_diff !== null) && (
+              <div
+                className={`flex items-center gap-2 text-xs rounded-md border px-3 py-2 ${
+                  reconciliation.balanced
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-amber-200 bg-amber-50 text-amber-700"
+                }`}
+              >
+                {reconciliation.balanced ? (
+                  <>
+                    <CheckCircle2 className="h-3 w-3" />
+                    Extrato confere: totais parseados batem com o resumo do PDF.
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="h-3 w-3" />
+                    <span>
+                      Divergência vs. resumo do PDF:
+                      {reconciliation.entradas_diff !== null && reconciliation.entradas_diff !== 0 && (
+                        <> entradas {reconciliation.entradas_diff > 0 ? "+" : ""}{formatBRL(reconciliation.entradas_diff)};</>
+                      )}
+                      {reconciliation.saidas_diff !== null && reconciliation.saidas_diff !== 0 && (
+                        <> saídas {reconciliation.saidas_diff > 0 ? "+" : ""}{formatBRL(reconciliation.saidas_diff)};</>
+                      )}
+                      {reconciliation.balance_diff !== null && reconciliation.balance_diff !== 0 && (
+                        <> saldo {reconciliation.balance_diff > 0 ? "+" : ""}{formatBRL(reconciliation.balance_diff)}.</>
+                      )}
+                      {" "}Revise antes de importar.
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
             <div className="flex-1 overflow-auto border rounded-md">
               <Table>
                 <TableHeader className="sticky top-0 bg-background z-10">
