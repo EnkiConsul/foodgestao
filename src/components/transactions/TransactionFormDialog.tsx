@@ -635,11 +635,12 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
         // Datas de cada parcela
         const dates: string[] = [];
-        let cursor = new Date(date);
+        let cursor = parseLocalDate(date);
         for (let i = 0; i < installmentTotal; i++) {
-          dates.push(cursor.toISOString().split("T")[0]);
+          dates.push(toYmd(cursor));
           cursor = getNextRecurrenceDate(cursor, installmentPeriod);
         }
+
 
         const commonFields = {
           user_id: user.id,
