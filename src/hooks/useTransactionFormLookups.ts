@@ -148,7 +148,7 @@ export function useTransactionFormLookups(enabled: boolean) {
   }, [paymentMethodCompaniesQuery.data]);
 
   useRealtimeSync({
-    tables: ["accounts", "categories", "contacts", "payment_methods"],
+    tables: ["accounts", "categories", "contacts", "payment_methods", "credit_cards"],
     invalidateKeyPrefixes: ["form-"],
     enabled: !!user && enabled,
   });
@@ -164,6 +164,7 @@ export function useTransactionFormLookups(enabled: boolean) {
     categories: categoriesQuery.data ?? [],
     contacts: contactsQuery.data ?? [],
     paymentMethods: paymentMethodsQuery.data ?? [],
+    creditCards: creditCardsQuery.data ?? [],
     categoryCompanyIds,
     contactCompanyIds,
     paymentMethodCompanyIds,
