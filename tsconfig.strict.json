@@ -12,6 +12,8 @@
   },
   "include": [
     "src/vite-env.d.ts",
+    "src/main.tsx",
+    "src/App.tsx",
     "src/lib/**/*.ts",
     "src/lib/**/*.tsx",
     "src/hooks/**/*.ts",
@@ -19,7 +21,10 @@
     "src/components/**/*.ts",
     "src/components/**/*.tsx",
     "src/pages/**/*.ts",
-    "src/pages/**/*.tsx"
+    "src/pages/**/*.tsx",
+    "src/routes/**/*.ts",
+    "src/routes/**/*.tsx",
+    "src/integrations/**/*.ts"
   ],
   "exclude": [
     "**/*.test.ts",
