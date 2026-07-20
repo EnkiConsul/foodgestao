@@ -14,7 +14,7 @@ import { CurrencyInput, parseCurrencyToNumber } from "@/components/ui/currency-i
 import { toast } from "sonner";
 import { transactionSchema } from "@/lib/validations";
 import { getSignedAttachmentUrl } from "@/lib/attachments";
-import { Calendar, Repeat, X, FileText, Upload, CheckCircle, Clock, XCircle, Plus, Wallet } from "lucide-react";
+import { Calendar, Repeat, X, FileText, Upload, CheckCircle, Clock, XCircle, Plus, Wallet, CreditCard, Info } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
 import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
