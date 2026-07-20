@@ -24,6 +24,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, AreaChart, Area, LineChart, Line } from "recharts";
 import { BankLogo } from "@/components/accounts/BankLogo";
 import { UpcomingCardInvoicesWidget } from "@/components/dashboard/UpcomingCardInvoicesWidget";
+import { CashFlowProjectionWidget } from "@/components/dashboard/CashFlowProjectionWidget";
 
 
 const DONUT_COLORS = [
