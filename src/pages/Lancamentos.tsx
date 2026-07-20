@@ -25,6 +25,7 @@ import { ImportStatementDialog } from "@/components/transactions/ImportStatement
 import { PaymentDialog } from "@/components/bills/PaymentDialog";
 import { BulkEditDialog } from "@/components/lancamentos/BulkEditDialog";
 import { FilterPanel, SaldosCard } from "@/components/lancamentos/LancamentosSidebar";
+import { LancamentoRow } from "@/components/lancamentos/LancamentoRow";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
@@ -916,300 +917,72 @@ export default function Lancamentos() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    displayRows.map((r) => {
-                      const isInstallment = r.installmentNumber != null && r.installmentTotal != null;
-                      const isReceita = r.transactionType === "receita";
-                      const isDespesa = r.transactionType === "despesa";
-                      const isTransf = r.transactionType === "transferencia";
-                      // Efeito algébrico no saldo: receita→+amount, despesa→-amount
-                      const signedEffect = isReceita ? r.amount : isDespesa ? -r.amount : 0;
-                      const effectPositive = signedEffect > 0;
-                      const effectNegative = signedEffect < 0;
-                      const valueColorClass = isTransf ? "text-foreground" : amountColorClass(signedEffect);
-                      const hasDue = r.hasDueDate;
-                      const paidPercent = hasDue && r.amount > 0 ? Math.min((r.amountPaid / r.amount) * 100, 100) : 0;
-                      const isSelected = selectedIds.has(r.id);
-
-                      return (
-                        <TableRow key={r.id} className={cn("group", hasDue && r.billStatus !== "pago" && "bg-accent/30", isSelected && "bg-primary/5")}>
-                          <TableCell className="py-2 px-2">
-                            <Checkbox
-                              checked={isSelected}
-                              onCheckedChange={() => toggleSelected(r.id)}
-                              aria-label="Selecionar lançamento"
-                            />
-                          </TableCell>
-                          {/* Data */}
-                          {visibleColumns.data !== false && (
-                          <TableCell className="text-xs py-2">
-                            {formatTransactionDate(r.date, "dd/MM")}
-                          </TableCell>
-                          )}
-
-                          {/* Descrição */}
-                          <TableCell className="text-xs py-2">
-                            <div className="flex items-center gap-1 max-w-[280px]">
-                              {(r.isRecurring || r.isRecurrenceChild) && !isInstallment && (
-                                <TooltipProvider delayDuration={200}>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Repeat className={cn("h-3 w-3 shrink-0", r.isRecurring ? "text-primary" : "text-muted-foreground")} />
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top" className="text-xs">
-                                      {r.isRecurring ? "Lançamento recorrente (pai)" : "Gerado por recorrência"}
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                              {isInstallment && (
-                                <span className="inline-flex items-center rounded-sm bg-primary/10 px-1 py-0.5 text-[10px] font-medium text-primary shrink-0">
-                                  {r.installmentNumber}/{r.installmentTotal}
-                                </span>
-                              )}
-                              {r.attachmentCount > 0 && (
-                                <TooltipProvider delayDuration={200}>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <button
-                                        type="button"
-                                        onClick={async (e) => {
-                                          e.stopPropagation();
-                                          const { data } = await supabase
-                                            .from("transaction_attachments")
-                                            .select("id, file_name, file_url")
-                                            .eq("transaction_id", r.id);
-                                          const resolved = await resolveAttachments(data ?? []);
-                                          setPreviewAttachments(resolved);
-                                          setPreviewOpen(true);
-                                        }}
-                                        className="inline-flex"
-                                      >
-                                        <Paperclip className="h-3 w-3 shrink-0 text-muted-foreground hover:text-foreground" />
-                                      </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top" className="text-xs">
-                                      {r.attachmentCount} anexo{r.attachmentCount > 1 ? "s" : ""}
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                              <span className="truncate">{r.description}</span>
-                            </div>
-                          </TableCell>
-
-                          {/* D/C */}
-                          {visibleColumns.dc && (
-                          <TableCell className="text-center py-2">
-                            {!isTransf && effectPositive && <span className="text-xs font-bold text-success">C</span>}
-                            {!isTransf && effectNegative && <span className="text-xs font-bold text-destructive">D</span>}
-                            {isTransf && <span className="text-xs font-bold text-primary">T</span>}
-                          </TableCell>
-                          )}
-
-                          {/* Categoria */}
-                          {visibleColumns.categoria && (
-                          <TableCell className="text-xs py-2 text-muted-foreground whitespace-nowrap">
-                            {r.categoryName || "—"}
-                          </TableCell>
-                          )}
-
-                          {/* Conta */}
-                          {visibleColumns.conta && (
-                          <TableCell className="text-xs py-2 text-muted-foreground whitespace-nowrap">
-                            {r.accountName || "—"}
-                          </TableCell>
-                          )}
-
-                          {/* Forma Pgto */}
-                          {visibleColumns.formaPagamento && (
-                          <TableCell className="text-xs py-2 text-muted-foreground whitespace-nowrap">
-                            {r.paymentMethodName || "—"}
-                          </TableCell>
-                          )}
-
-                          {/* Valor */}
-                          <TableCell className={`text-xs text-right py-2 font-medium whitespace-nowrap ${valueColorClass}`}>
-                            {r.amountPaid > 0 && r.amountPaid !== r.amount ? (
-                              <TooltipProvider delayDuration={200}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="cursor-help underline decoration-dotted underline-offset-2">
-                                      {formatBRL(r.amountPaid)}
-                                    </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="left" className="text-xs">
-                                    <p>Valor original: {formatBRL(r.amount)}</p>
-                                    <p>Valor pago: {formatBRL(r.amountPaid)}</p>
-                                    <p className="text-muted-foreground">{((r.amountPaid / r.amount) * 100).toFixed(0)}% pago</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            ) : (
-                              formatBRL(r.amount)
-                            )}
-                          </TableCell>
-
-                          {/* Status */}
-                          {visibleColumns.status && (
-                          <TableCell className="py-2">
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <button type="button" className="cursor-pointer">
-                                  <Badge
-                                    variant={displayStatusConfig[r.billStatus].variant}
-                                    className={cn(
-                                      "text-[10px] h-5 px-1.5 whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity",
-                                      r.billStatus === "pago" && "bg-success text-success-foreground hover:bg-success/90"
-                                    )}
-                                  >
-                                    {displayStatusConfig[r.billStatus].label}
-                                  </Badge>
-                                </button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-40 p-1" align="start">
-                                <div className="flex flex-col gap-0.5">
-                                  <button
-                                    type="button"
-                                    className={cn("flex items-center gap-2 px-2 py-1.5 text-xs rounded-md hover:bg-accent transition-colors text-left", r.original.status === "confirmado" && "bg-accent font-medium")}
-                                    onClick={() => updateTransactionStatus(r.id, "confirmado")}
-                                  >
-                                    <Check className="h-3 w-3 text-success" />
-                                    Pago
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className={cn("flex items-center gap-2 px-2 py-1.5 text-xs rounded-md hover:bg-accent transition-colors text-left", r.original.status === "pendente" && "bg-accent font-medium")}
-                                    onClick={() => updateTransactionStatus(r.id, "pendente")}
-                                  >
-                                    <CalendarIcon className="h-3 w-3 text-muted-foreground" />
-                                    Pendente
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className={cn("flex items-center gap-2 px-2 py-1.5 text-xs rounded-md hover:bg-accent transition-colors text-left", r.original.status === "cancelado" && "bg-accent font-medium")}
-                                    onClick={() => setCancelStatusId(r.id)}
-                                  >
-                                    <X className="h-3 w-3 text-destructive" />
-                                    Cancelado
-                                  </button>
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                          </TableCell>
-                          )}
-
-                          {/* Vencimento */}
-                          {visibleColumns.vencimento && (
-                          <TableCell className="text-xs py-2 text-muted-foreground">
-                            {formatTransactionDate(r.dueDate, "dd/MM")}
-                          </TableCell>
-                          )}
-
-                          {/* Data de Pagamento */}
-                          {visibleColumns.pagamento && (
-                          <TableCell className="text-xs py-2 text-muted-foreground">
-                            {formatTransactionDate(r.paymentDate, "dd/MM")}
-                          </TableCell>
-                          )}
-
-                          {/* Saldo */}
-                          {visibleColumns.saldo && (
-                          <TableCell className={`text-xs text-right py-2 font-medium whitespace-nowrap ${r.runningBalance >= 0 ? "text-success" : "text-destructive"}`}>
-                            {formatBRL(r.runningBalance)}
-                          </TableCell>
-                          )}
-
-
-                          {/* Ações */}
-                          <TableCell className="py-2">
-                            <div className="flex items-center gap-0.5">
-                              {hasDue && r.billStatus !== "pago" && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 text-success hover:text-success"
-                                  onClick={() => setPaymentTx(r.original)}
-                                  title="Registrar pagamento"
-                                >
-                                  <DollarSign className="h-3 w-3" />
-                                </Button>
-                              )}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                onClick={() => {
-                                  const tx = r.original;
-                                  setDialogInitialType(undefined);
-                                  if (tx.is_recurring || tx.parent_transaction_id) {
-                                    setEditScopeChoice("single");
-                                    setEditScopePrompt(tx);
-                                  } else {
-                                    setPendingEditScope("single");
-                                    setEditTransaction(tx);
-                                    setDialogOpen(true);
-                                  }
-                                }}
-                              >
-                                <Pencil className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                title="Duplicar lançamento"
-                                onClick={() => {
-                                  const tx = r.original;
-                                  setEditTransaction(null);
-                                  setDialogInitialType(undefined);
-                                  // Regra de duplicação:
-                                  // COPIA (classificação/identificação do lançamento):
-                                  //   description (+ " (cópia)"), amount, transaction_type,
-                                  //   transaction_date, due_date, account_id, destination_account_id,
-                                  //   category_id, contact_id, payment_method_id, notes.
-                                  // NÃO COPIA (estado de execução — sempre reiniciado):
-                                  //   status → "pendente", amount_paid → 0, payment_date → null,
-                                  //   is_recurring/recurrence_* → false/null (duplicata é sempre 1 lançamento único),
-                                  //   parent_transaction_id → null (nunca herda vínculo de série),
-                                  //   anexos (attachment_url e transaction_attachments) → não copiados.
-                                  setDuplicateSource({
-                                    id: "",
-                                    description: `${tx.description} (cópia)`,
-                                    amount: tx.amount,
-                                    transaction_type: tx.transaction_type,
-                                    transaction_date: tx.transaction_date,
-                                    due_date: tx.due_date ?? null,
-                                    account_id: tx.account_id,
-                                    destination_account_id: tx.destination_account_id ?? null,
-                                    category_id: tx.category_id ?? null,
-                                    contact_id: tx.contact_id ?? null,
-                                    payment_method_id: tx.payment_method_id ?? null,
-                                    notes: tx.notes ?? null,
-                                    status: "pendente",
-                                    amount_paid: 0,
-                                    payment_date: null,
-                                    is_recurring: false,
-                                    parent_transaction_id: null,
-                                    attachment_url: null,
-                                  } as Transaction);
-                                  setDialogOpen(true);
-                                }}
-                              >
-                                <Copy className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                                onClick={() => setDeleteId(r.id)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
+                    displayRows.map((r) => (
+                      <LancamentoRow
+                        key={r.id}
+                        row={r}
+                        isSelected={selectedIds.has(r.id)}
+                        visibleColumns={visibleColumns}
+                        formatBRL={formatBRL}
+                        callbacks={{
+                          onToggleSelected: toggleSelected,
+                          onOpenAttachments: (attachments) => {
+                            setPreviewAttachments(attachments);
+                            setPreviewOpen(true);
+                          },
+                          onUpdateStatus: updateTransactionStatus,
+                          onRequestCancelStatus: setCancelStatusId,
+                          onRegisterPayment: setPaymentTx,
+                          onEdit: (tx) => {
+                            setDialogInitialType(undefined);
+                            if (tx.is_recurring || tx.parent_transaction_id) {
+                              setEditScopeChoice("single");
+                              setEditScopePrompt(tx);
+                            } else {
+                              setPendingEditScope("single");
+                              setEditTransaction(tx);
+                              setDialogOpen(true);
+                            }
+                          },
+                          onDuplicate: (tx) => {
+                            setEditTransaction(null);
+                            setDialogInitialType(undefined);
+                            // Regra de duplicação:
+                            // COPIA (classificação/identificação do lançamento):
+                            //   description (+ " (cópia)"), amount, transaction_type,
+                            //   transaction_date, due_date, account_id, destination_account_id,
+                            //   category_id, contact_id, payment_method_id, notes.
+                            // NÃO COPIA (estado de execução — sempre reiniciado):
+                            //   status → "pendente", amount_paid → 0, payment_date → null,
+                            //   is_recurring/recurrence_* → false/null (duplicata é sempre 1 lançamento único),
+                            //   parent_transaction_id → null (nunca herda vínculo de série),
+                            //   anexos (attachment_url e transaction_attachments) → não copiados.
+                            setDuplicateSource({
+                              id: "",
+                              description: `${tx.description} (cópia)`,
+                              amount: tx.amount,
+                              transaction_type: tx.transaction_type,
+                              transaction_date: tx.transaction_date,
+                              due_date: tx.due_date ?? null,
+                              account_id: tx.account_id,
+                              destination_account_id: tx.destination_account_id ?? null,
+                              category_id: tx.category_id ?? null,
+                              contact_id: tx.contact_id ?? null,
+                              payment_method_id: tx.payment_method_id ?? null,
+                              notes: tx.notes ?? null,
+                              status: "pendente",
+                              amount_paid: 0,
+                              payment_date: null,
+                              is_recurring: false,
+                              parent_transaction_id: null,
+                              attachment_url: null,
+                            } as Transaction);
+                            setDialogOpen(true);
+                          },
+                          onRequestDelete: setDeleteId,
+                        }}
+                      />
+                    ))
                   )}
                 </TableBody>
               </Table>
