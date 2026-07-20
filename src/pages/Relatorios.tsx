@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useMemo, useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { usePrivacy } from "@/hooks/usePrivacy";
@@ -7,50 +7,30 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   ChevronLeft,
   ChevronRight,
-  Printer,
   Download,
   ChevronsUpDown,
   Filter,
-  X,
   CalendarIcon,
-  Check,
-  Search,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Input } from "@/components/ui/input";
-import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, eachMonthOfInterval } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { SearchableFilterSelect } from "@/components/relatorios/SearchableFilterSelect";
-
-type PeriodPreset = "month" | "3months" | "6months" | "year" | "custom";
-
-function getPeriodRange(preset: PeriodPreset): { from: Date; to: Date } {
-  const now = new Date();
-  switch (preset) {
-    case "month":
-      return { from: startOfMonth(now), to: endOfMonth(now) };
-    case "3months":
-      return { from: startOfMonth(subMonths(now, 2)), to: endOfMonth(now) };
-    case "6months":
-      return { from: startOfMonth(subMonths(now, 5)), to: endOfMonth(now) };
-    case "year":
-    default:
-      return { from: startOfYear(now), to: endOfYear(now) };
-  }
-}
-
-import { formatBRL as formatBRLRaw } from "@/lib/billing";
+import { RelatoriosFiltersPanel } from "@/components/relatorios/RelatoriosFiltersPanel";
+import { FluxoCaixaCategoryRow } from "@/components/relatorios/FluxoCaixaCategoryRow";
+import {
+  computeFluxoCaixa,
+  flattenFluxoTree,
+  collectParentIds,
+  getPeriodRange,
+  type PeriodPreset,
+  type FluxoCategory,
+  type FluxoTransaction,
+} from "@/lib/relatorios/fluxoCaixa";
+import { exportFluxoCaixaPdf } from "@/lib/relatorios/exportPdf";
 
 export default function Relatorios() {
   const { user } = useAuth();
@@ -75,38 +55,6 @@ export default function Relatorios() {
     (filterPaymentMethodId !== "all" ? 1 : 0) +
     (filterContactId !== "all" ? 1 : 0) +
     (filterStatus !== "all" ? 1 : 0);
-
-  const filtersScrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const updateScrollButtons = () => {
-    const el = filtersScrollRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 0);
-    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
-  };
-
-  const scrollFilters = (direction: "left" | "right") => {
-    const el = filtersScrollRef.current;
-    if (!el) return;
-    el.scrollBy({ left: direction === "left" ? -240 : 240, behavior: "smooth" });
-  };
-
-
-
-
-
-  const collectParentIds = (nodes: any[]): string[] => {
-    const ids: string[] = [];
-    for (const n of nodes) {
-      if (n.children && n.children.length > 0) {
-        ids.push(n.id);
-        ids.push(...collectParentIds(n.children));
-      }
-    }
-    return ids;
-  };
 
   const expandAll = () => setCollapsedIds(new Set());
   const collapseAll = () => {
@@ -134,7 +82,7 @@ export default function Relatorios() {
         _context: contextType,
         _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
       });
-      return (data ?? []).map((c: any) => ({
+      return (data ?? []).map((c: any): FluxoCategory => ({
         id: c.id, name: c.name, color: c.color,
         transaction_type: c.transaction_type, parent_id: c.parent_id,
         hierarchy_index: c.hierarchy_index, sort_order: c.sort_order,
@@ -184,31 +132,11 @@ export default function Relatorios() {
         );
         return contactsList.filter((c) => allowed.has(c.id));
       }
-      // PF: contacts not linked to any company
       const linkedIds = new Set(((links ?? []) as { contact_id: string }[]).map((l) => l.contact_id));
       return contactsList.filter((c) => !linkedIds.has(c.id));
     },
   });
 
-  useEffect(() => {
-    const el = filtersScrollRef.current;
-    if (!el) return;
-    const update = () => {
-      setCanScrollLeft(el.scrollLeft > 0);
-      setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
-    };
-    update();
-    const onScroll = () => update();
-    el.addEventListener("scroll", onScroll, { passive: true });
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => {
-      el.removeEventListener("scroll", onScroll);
-      ro.disconnect();
-    };
-  }, [showFilters, accounts, categories, paymentMethods, contacts]);
-
-  // Compute active date range
   const activeRange = useMemo(() => {
     if (periodPreset === "custom") return customRange;
     if (periodPreset === "year") {
@@ -219,7 +147,6 @@ export default function Relatorios() {
   const startDate = format(activeRange.from, "yyyy-MM-dd");
   const endDate = format(activeRange.to, "yyyy-MM-dd");
 
-  // Fluxo de Caixa query with period filter
   const { data: fluxoTransactions = [] } = useQuery({
     queryKey: ["relatorios-fluxo", user?.id, startDate, endDate, contextType, selectedCompanyId],
     enabled: !!user,
@@ -233,14 +160,12 @@ export default function Relatorios() {
         .lte("transaction_date", endDate);
       if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
       const { data } = await q;
-      return data ?? [];
+      return (data ?? []) as FluxoTransaction[];
     },
   });
 
-  // Apply filters to transactions
   const filteredTransactions = useMemo(() => {
     let txs = fluxoTransactions;
-    // Status: default excludes 'cancelado' unless explicitly selected
     if (filterStatus === "all") {
       txs = txs.filter((t) => t.status !== "cancelado");
     } else {
@@ -250,13 +175,12 @@ export default function Relatorios() {
       txs = txs.filter((t) => t.account_id === filterAccountId);
     }
     if (filterPaymentMethodId !== "all") {
-      txs = txs.filter((t: any) => t.payment_method_id === filterPaymentMethodId);
+      txs = txs.filter((t) => t.payment_method_id === filterPaymentMethodId);
     }
     if (filterContactId !== "all") {
-      txs = txs.filter((t: any) => t.contact_id === filterContactId);
+      txs = txs.filter((t) => t.contact_id === filterContactId);
     }
     if (filterCategoryId !== "all") {
-      // Include the selected category and all its descendants
       const descendants = new Set<string>([filterCategoryId]);
       const findDescendants = (parentId: string) => {
         for (const cat of categories) {
@@ -272,149 +196,27 @@ export default function Relatorios() {
     return txs;
   }, [fluxoTransactions, filterAccountId, filterCategoryId, filterPaymentMethodId, filterContactId, filterStatus, categories]);
 
-  // Fluxo de Caixa data processing with hierarchy
-  type FluxoNode = {
-    id: string;
-    name: string;
-    hierarchyIndex: string;
-    type: string;
-    months: number[];
-    children: FluxoNode[];
-    depth: number;
+  const fluxoCaixaData = useMemo(
+    () => computeFluxoCaixa(filteredTransactions, categories, activeRange),
+    [filteredTransactions, categories, activeRange]
+  );
+
+  const flatReceitas = useMemo(
+    () => flattenFluxoTree(fluxoCaixaData.receitaTree, 0, collapsedIds),
+    [fluxoCaixaData.receitaTree, collapsedIds]
+  );
+  const flatDespesas = useMemo(
+    () => flattenFluxoTree(fluxoCaixaData.despesaTree, 0, collapsedIds),
+    [fluxoCaixaData.despesaTree, collapsedIds]
+  );
+
+  const clearFilters = () => {
+    setFilterAccountId("all");
+    setFilterCategoryId("all");
+    setFilterPaymentMethodId("all");
+    setFilterContactId("all");
+    setFilterStatus("all");
   };
-
-  const fluxoCaixaData = useMemo(() => {
-    // Generate dynamic month columns from the active date range
-    const monthIntervals = eachMonthOfInterval({
-      start: startOfMonth(activeRange.from),
-      end: endOfMonth(activeRange.to),
-    });
-    const MONTH_SHORT = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
-    const monthKeys = monthIntervals.map((d) => format(d, "yyyy-MM"));
-    const MONTH_LABELS = monthIntervals.map((d) => {
-      const m = d.getMonth();
-      const y = d.getFullYear().toString().slice(2);
-      return monthKeys.length > 12 ? `${MONTH_SHORT[m]}/${y}` : MONTH_SHORT[m];
-    });
-    const numMonths = monthKeys.length;
-
-    const catMap = Object.fromEntries(categories.map((c) => [c.id, c]));
-
-    // Map YYYY-MM to column index
-    const monthIndexMap: Record<string, number> = {};
-    monthKeys.forEach((k, i) => { monthIndexMap[k] = i; });
-
-    // Build monthly totals by leaf category
-    const catMonthly: Record<string, number[]> = {};
-    const totalReceitas = new Array(numMonths).fill(0);
-    const totalDespesas = new Array(numMonths).fill(0);
-
-    for (const t of filteredTransactions) {
-      if (t.transaction_type === "transferencia") continue;
-      const key = t.transaction_date.slice(0, 7);
-      const idx = monthIndexMap[key];
-      if (idx === undefined) continue;
-      const amt = Number(t.amount);
-      if (t.transaction_type === "receita") totalReceitas[idx] += amt;
-      else totalDespesas[idx] += amt;
-
-      if (t.category_id) {
-        if (!catMonthly[t.category_id]) catMonthly[t.category_id] = new Array(numMonths).fill(0);
-        catMonthly[t.category_id][idx] += amt;
-      }
-    }
-
-    const totalSaldo = totalReceitas.map((r, i) => r - totalDespesas[i]);
-    const sumArr = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
-    const avgArr = (arr: number[]) => {
-      const nonZero = arr.filter((v) => v > 0);
-      return nonZero.length > 0 ? sumArr(nonZero) / nonZero.length : 0;
-    };
-
-    // Build tree for each type
-    const buildTree = (type: string): FluxoNode[] => {
-      const relevantCats = categories.filter((c) => c.transaction_type === type);
-
-      const catsWithData = new Set<string>();
-      for (const catId of Object.keys(catMonthly)) {
-        const cat = catMap[catId];
-        if (!cat || cat.transaction_type !== type) continue;
-        let current: string | null = catId;
-        while (current) {
-          catsWithData.add(current);
-          const c: any = catMap[current];
-          current = c?.parent_id ?? null;
-        }
-      }
-
-      const buildNodes = (parentId: string | null): FluxoNode[] => {
-        return relevantCats
-          .filter((c) => c.parent_id === parentId && catsWithData.has(c.id))
-          .map((c) => {
-            const children = buildNodes(c.id);
-            const leafMonths = catMonthly[c.id] || new Array(numMonths).fill(0);
-            const months = children.length > 0
-              ? leafMonths.map((v, i) => v + children.reduce((sum, ch) => sum + ch.months[i], 0))
-              : [...leafMonths];
-            return {
-              id: c.id,
-              name: c.name,
-              hierarchyIndex: c.hierarchy_index || "",
-              type,
-              months,
-              children,
-              depth: 0,
-            };
-          });
-      };
-
-      const nodes = buildNodes(null);
-
-      const sortNodes = (nodes: FluxoNode[]): FluxoNode[] => {
-        return nodes
-          .map((n) => ({ ...n, children: sortNodes(n.children) }))
-          .sort((a, b) => {
-            const catA = catMap[a.id];
-            const catB = catMap[b.id];
-            const sortA = catA?.sort_order ?? 0;
-            const sortB = catB?.sort_order ?? 0;
-            if (sortA !== sortB) return sortA - sortB;
-            return (a.hierarchyIndex || "").localeCompare(b.hierarchyIndex || "");
-          });
-      };
-
-      return sortNodes(nodes);
-    };
-
-    const receitaTree = buildTree("receita");
-    const despesaTree = buildTree("despesa");
-
-    return {
-      MONTH_LABELS,
-      totalReceitas,
-      totalDespesas,
-      totalSaldo,
-      receitaTree,
-      despesaTree,
-      sumArr,
-      avgArr,
-    };
-  }, [filteredTransactions, categories, activeRange]);
-
-  // Flatten tree respecting collapsed state
-  const flattenTree = (nodes: FluxoNode[], depth: number): FluxoNode[] => {
-    const result: FluxoNode[] = [];
-    for (const node of nodes) {
-      result.push({ ...node, depth });
-      if (node.children.length > 0 && !collapsedIds.has(node.id)) {
-        result.push(...flattenTree(node.children, depth + 1));
-      }
-    }
-    return result;
-  };
-
-  const flatReceitas = useMemo(() => flattenTree(fluxoCaixaData.receitaTree, 0), [fluxoCaixaData.receitaTree, collapsedIds]);
-  const flatDespesas = useMemo(() => flattenTree(fluxoCaixaData.despesaTree, 0), [fluxoCaixaData.despesaTree, collapsedIds]);
 
   return (
     <div className="space-y-6" ref={reportRef}>
@@ -425,21 +227,11 @@ export default function Relatorios() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setFluxoYear((y) => y - 1)}
-            >
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setFluxoYear((y) => y - 1)}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="text-sm font-semibold min-w-[3rem] text-center">{fluxoYear}</span>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setFluxoYear((y) => y + 1)}
-            >
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setFluxoYear((y) => y + 1)}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -473,11 +265,7 @@ export default function Relatorios() {
           ))}
           <Popover>
             <PopoverTrigger asChild>
-              <Button
-                variant={periodPreset === "custom" ? "default" : "outline"}
-                size="sm"
-                className="gap-1"
-              >
+              <Button variant={periodPreset === "custom" ? "default" : "outline"} size="sm" className="gap-1">
                 <CalendarIcon className="h-3.5 w-3.5" />
                 {periodPreset === "custom"
                   ? `${format(customRange.from, "dd/MM/yy")} - ${format(customRange.to, "dd/MM/yy")}`
@@ -504,127 +292,24 @@ export default function Relatorios() {
       </div>
 
       {showFilters && (
-        <Card className="shadow-sm">
-          <CardContent className="pt-4 pb-2">
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="icon"
-                className={cn("h-7 w-7 shrink-0", !canScrollLeft && "invisible")}
-                onClick={() => scrollFilters("left")}
-                aria-label="Rolar filtros para a esquerda"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <div
-                ref={filtersScrollRef}
-                className="flex flex-nowrap items-end gap-4 overflow-x-auto pb-2 flex-1 snap-x snap-mandatory scroll-smooth"
-              >
-                <div className="space-y-1.5 min-w-[220px] snap-start shrink-0">
-                  <label className="text-xs font-medium text-muted-foreground">Conta Bancária</label>
-                  <SearchableFilterSelect
-                    value={filterAccountId}
-                    onChange={setFilterAccountId}
-                    options={accounts.map((a) => ({ id: a.id, name: a.name }))}
-                    allLabel="Todas as contas"
-                    searchPlaceholder="Buscar conta..."
-                    emptyLabel="Nenhuma conta encontrada"
-                  />
-                </div>
-                <div className="space-y-1.5 min-w-[220px] snap-start shrink-0">
-                  <label className="text-xs font-medium text-muted-foreground">Categoria</label>
-                  <SearchableFilterSelect
-                    value={filterCategoryId}
-                    onChange={setFilterCategoryId}
-                    options={categories
-                      .slice()
-                      .sort((a, b) => {
-                        const idxA = a.hierarchy_index || "";
-                        const idxB = b.hierarchy_index || "";
-                        const partsA = idxA.split(".").map(Number);
-                        const partsB = idxB.split(".").map(Number);
-                        for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
-                          const na = partsA[i] ?? 0;
-                          const nb = partsB[i] ?? 0;
-                          if (na !== nb) return na - nb;
-                        }
-                        return partsA.length - partsB.length;
-                      })
-                      .map((cat) => ({
-                        id: cat.id,
-                        name: cat.name,
-                        prefix: cat.hierarchy_index ? `${cat.hierarchy_index} ` : undefined,
-                      }))}
-                    allLabel="Todas as categorias"
-                    searchPlaceholder="Buscar categoria..."
-                    emptyLabel="Nenhuma categoria encontrada"
-                  />
-                </div>
-                <div className="space-y-1.5 min-w-[220px] snap-start shrink-0">
-                  <label className="text-xs font-medium text-muted-foreground">Forma de Pagamento</label>
-                  <SearchableFilterSelect
-                    value={filterPaymentMethodId}
-                    onChange={setFilterPaymentMethodId}
-                    options={(paymentMethods as any[]).map((pm) => ({ id: pm.id, name: pm.name }))}
-                    allLabel="Todas as formas"
-                    searchPlaceholder="Buscar forma de pagamento..."
-                    emptyLabel="Nenhuma forma encontrada"
-                  />
-                </div>
-                <div className="space-y-1.5 min-w-[220px] snap-start shrink-0">
-                  <label className="text-xs font-medium text-muted-foreground">Cliente/Fornecedor</label>
-                  <SearchableFilterSelect
-                    value={filterContactId}
-                    onChange={setFilterContactId}
-                    options={(contacts as any[]).map((c) => ({ id: c.id, name: c.name }))}
-                    allLabel="Todos"
-                    searchPlaceholder="Buscar contato..."
-                    emptyLabel="Nenhum contato encontrado"
-                  />
-                </div>
-                <div className="space-y-1.5 min-w-[160px] snap-start shrink-0">
-                  <label className="text-xs font-medium text-muted-foreground">Status</label>
-                  <Select value={filterStatus} onValueChange={setFilterStatus}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos (exceto cancelados)</SelectItem>
-                      <SelectItem value="confirmado">Confirmado</SelectItem>
-                      <SelectItem value="pendente">Pendente</SelectItem>
-                      <SelectItem value="cancelado">Cancelado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {activeFilterCount > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1 text-muted-foreground"
-                  onClick={() => {
-                    setFilterAccountId("all");
-                    setFilterCategoryId("all");
-                    setFilterPaymentMethodId("all");
-                    setFilterContactId("all");
-                    setFilterStatus("all");
-                  }}
-                >
-                  <X className="h-3.5 w-3.5" /> Limpar filtros
-                </Button>
-              )}
-            </div>
-            <Button
-              variant="outline"
-              size="icon"
-              className={cn("h-7 w-7 shrink-0", !canScrollRight && "invisible")}
-              onClick={() => scrollFilters("right")}
-              aria-label="Rolar filtros para a direita"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-          </CardContent>
-        </Card>
+        <RelatoriosFiltersPanel
+          accounts={accounts}
+          categories={categories}
+          paymentMethods={paymentMethods}
+          contacts={contacts}
+          filterAccountId={filterAccountId}
+          filterCategoryId={filterCategoryId}
+          filterPaymentMethodId={filterPaymentMethodId}
+          filterContactId={filterContactId}
+          filterStatus={filterStatus}
+          activeFilterCount={activeFilterCount}
+          onAccountChange={setFilterAccountId}
+          onCategoryChange={setFilterCategoryId}
+          onPaymentMethodChange={setFilterPaymentMethodId}
+          onContactChange={setFilterContactId}
+          onStatusChange={setFilterStatus}
+          onClear={clearFilters}
+        />
       )}
 
       <Card className="shadow-sm">
@@ -660,37 +345,7 @@ export default function Relatorios() {
               variant="outline"
               size="sm"
               className="gap-1"
-              onClick={() => {
-                const tableEl = document.getElementById("fluxo-caixa-table");
-                if (!tableEl) return;
-                const periodLabel = `${format(activeRange.from, "dd/MM/yyyy")} a ${format(activeRange.to, "dd/MM/yyyy")}`;
-                const pdfWindow = window.open("", "_blank");
-                if (!pdfWindow) return;
-                pdfWindow.document.write(`
-                  <!DOCTYPE html><html><head><title>Fluxo de Caixa ${periodLabel}</title>
-                  <style>
-                    body { font-family: Arial, sans-serif; font-size: 10px; padding: 10px; }
-                    table { width: 100%; border-collapse: collapse; }
-                    th, td { padding: 4px 6px; border: 1px solid #ddd; text-align: right; white-space: nowrap; }
-                    th { background: #f5f5f5; }
-                    td:first-child, th:first-child { text-align: left; }
-                    .receita { color: #16a34a; } .despesa { color: #dc2626; } .saldo-pos { color: #2563eb; } .saldo-neg { color: #dc2626; }
-                    .header-row { background: #f0f0f0; font-weight: bold; }
-                    .cat-row td:first-child { padding-left: 24px; }
-                    @page { size: landscape; margin: 10mm; }
-                    @media print {
-                      body { padding: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-                      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-                    }
-                  </style></head><body>
-                  <h2>Fluxo de Caixa — ${periodLabel}</h2>
-                  <p style="font-size:11px;color:#666;margin-bottom:8px;">Exportado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</p>
-                  ${tableEl.outerHTML}
-                  </body></html>
-                `);
-                pdfWindow.document.close();
-                setTimeout(() => pdfWindow.print(), 300);
-              }}
+              onClick={() => exportFluxoCaixaPdf(activeRange)}
             >
               <Download className="h-3.5 w-3.5" /> Exportar PDF
             </Button>
@@ -709,7 +364,6 @@ export default function Relatorios() {
               </tr>
             </thead>
             <tbody>
-              {/* Receitas row */}
               <tr className="border-b bg-success/5 font-semibold">
                 <td className="py-2 px-2 text-success sticky left-0 bg-success/5">Receitas</td>
                 {fluxoCaixaData.totalReceitas.map((v, i) => (
@@ -718,7 +372,6 @@ export default function Relatorios() {
                 <td className="text-right py-2 px-2 text-success tabular-nums">{formatBRL(fluxoCaixaData.avgArr(fluxoCaixaData.totalReceitas))}</td>
                 <td className="text-right py-2 px-2 text-success font-bold tabular-nums">{formatBRL(fluxoCaixaData.sumArr(fluxoCaixaData.totalReceitas))}</td>
               </tr>
-              {/* Despesas row */}
               <tr className="border-b bg-destructive/5 font-semibold">
                 <td className="py-2 px-2 text-destructive sticky left-0 bg-destructive/5">Despesas</td>
                 {fluxoCaixaData.totalDespesas.map((v, i) => (
@@ -727,7 +380,6 @@ export default function Relatorios() {
                 <td className="text-right py-2 px-2 text-destructive tabular-nums">{formatBRL(fluxoCaixaData.avgArr(fluxoCaixaData.totalDespesas))}</td>
                 <td className="text-right py-2 px-2 text-destructive font-bold tabular-nums">{formatBRL(fluxoCaixaData.sumArr(fluxoCaixaData.totalDespesas))}</td>
               </tr>
-              {/* Saldo row */}
               <tr className="border-b-2 border-foreground/20 font-bold">
                 <td className="py-2 px-2 sticky left-0 bg-card">SALDO</td>
                 {fluxoCaixaData.totalSaldo.map((v, i) => (
@@ -737,82 +389,53 @@ export default function Relatorios() {
                 <td className="text-right py-2 px-2 tabular-nums">{formatBRL(fluxoCaixaData.sumArr(fluxoCaixaData.totalSaldo))}</td>
               </tr>
 
-              {/* Category detail */}
               {(flatReceitas.length > 0 || flatDespesas.length > 0) && (
                 <>
-                  <tr><td colSpan={fluxoCaixaData.MONTH_LABELS.length + 3} className="py-3 px-2 text-xs font-bold text-muted-foreground uppercase tracking-wider bg-muted/30 sticky left-0">Categorias (Detalhamento)</td></tr>
+                  <tr>
+                    <td colSpan={fluxoCaixaData.MONTH_LABELS.length + 3} className="py-3 px-2 text-xs font-bold text-muted-foreground uppercase tracking-wider bg-muted/30 sticky left-0">
+                      Categorias (Detalhamento)
+                    </td>
+                  </tr>
 
-                  {/* RECEITAS section */}
                   {flatReceitas.length > 0 && (
                     <>
                       <tr className="border-b bg-success/5">
-                        <td colSpan={fluxoCaixaData.MONTH_LABELS.length + 3} className="py-1.5 px-2 font-bold text-success text-xs uppercase sticky left-0 bg-success/5">RECEITAS</td>
+                        <td colSpan={fluxoCaixaData.MONTH_LABELS.length + 3} className="py-1.5 px-2 font-bold text-success text-xs uppercase sticky left-0 bg-success/5">
+                          RECEITAS
+                        </td>
                       </tr>
-                      {flatReceitas.map((node) => {
-                        const hasChildren = node.children.length > 0;
-                        const isCollapsed = collapsedIds.has(node.id);
-                        const paddingLeft = 12 + node.depth * 16;
-                        return (
-                          <tr key={node.id + "-" + node.depth} className={cn("border-b hover:bg-muted/30", hasChildren && "bg-muted/10")}>
-                            <td
-                              className={cn("py-1.5 px-2 sticky left-0", hasChildren ? "font-semibold text-foreground cursor-pointer select-none bg-muted/10" : "text-muted-foreground bg-card")}
-                              style={{ paddingLeft }}
-                              onClick={hasChildren ? () => toggleCollapse(node.id) : undefined}
-                            >
-                              <span className="inline-flex items-center gap-1">
-                                {hasChildren && (
-                                  <ChevronRight className={cn("h-3.5 w-3.5 transition-transform shrink-0", !isCollapsed && "rotate-90")} />
-                                )}
-                                {node.hierarchyIndex ? `${node.hierarchyIndex}. ` : ""}{node.name}
-                              </span>
-                            </td>
-                            {node.months.map((v, i) => (
-                              <td key={i} className={cn("text-right py-1.5 px-2 tabular-nums", hasChildren ? "font-medium text-foreground" : "text-foreground")}>
-                                {v > 0 ? formatBRL(v) : "-"}
-                              </td>
-                            ))}
-                            <td className={cn("text-right py-1.5 px-2 tabular-nums", hasChildren && "font-medium")}>{formatBRL(fluxoCaixaData.avgArr(node.months))}</td>
-                            <td className={cn("text-right py-1.5 px-2 tabular-nums", hasChildren ? "font-bold" : "font-medium")}>{formatBRL(fluxoCaixaData.sumArr(node.months))}</td>
-                          </tr>
-                        );
-                      })}
+                      {flatReceitas.map((node) => (
+                        <FluxoCaixaCategoryRow
+                          key={node.id + "-" + node.depth}
+                          node={node}
+                          isCollapsed={collapsedIds.has(node.id)}
+                          onToggle={toggleCollapse}
+                          formatBRL={formatBRL}
+                          avg={fluxoCaixaData.avgArr}
+                          sum={fluxoCaixaData.sumArr}
+                        />
+                      ))}
                     </>
                   )}
 
-                  {/* DESPESAS section */}
                   {flatDespesas.length > 0 && (
                     <>
                       <tr className="border-b bg-destructive/5">
-                        <td colSpan={fluxoCaixaData.MONTH_LABELS.length + 3} className="py-1.5 px-2 font-bold text-destructive text-xs uppercase sticky left-0 bg-destructive/5">DESPESAS</td>
+                        <td colSpan={fluxoCaixaData.MONTH_LABELS.length + 3} className="py-1.5 px-2 font-bold text-destructive text-xs uppercase sticky left-0 bg-destructive/5">
+                          DESPESAS
+                        </td>
                       </tr>
-                      {flatDespesas.map((node) => {
-                        const hasChildren = node.children.length > 0;
-                        const isCollapsed = collapsedIds.has(node.id);
-                        const paddingLeft = 12 + node.depth * 16;
-                        return (
-                          <tr key={node.id + "-" + node.depth} className={cn("border-b hover:bg-muted/30", hasChildren && "bg-muted/10")}>
-                            <td
-                              className={cn("py-1.5 px-2 sticky left-0", hasChildren ? "font-semibold text-foreground cursor-pointer select-none bg-muted/10" : "text-muted-foreground bg-card")}
-                              style={{ paddingLeft }}
-                              onClick={hasChildren ? () => toggleCollapse(node.id) : undefined}
-                            >
-                              <span className="inline-flex items-center gap-1">
-                                {hasChildren && (
-                                  <ChevronRight className={cn("h-3.5 w-3.5 transition-transform shrink-0", !isCollapsed && "rotate-90")} />
-                                )}
-                                {node.hierarchyIndex ? `${node.hierarchyIndex}. ` : ""}{node.name}
-                              </span>
-                            </td>
-                            {node.months.map((v, i) => (
-                              <td key={i} className={cn("text-right py-1.5 px-2 tabular-nums", hasChildren ? "font-medium text-foreground" : "text-foreground")}>
-                                {v > 0 ? formatBRL(v) : "-"}
-                              </td>
-                            ))}
-                            <td className={cn("text-right py-1.5 px-2 tabular-nums", hasChildren && "font-medium")}>{formatBRL(fluxoCaixaData.avgArr(node.months))}</td>
-                            <td className={cn("text-right py-1.5 px-2 tabular-nums", hasChildren ? "font-bold" : "font-medium")}>{formatBRL(fluxoCaixaData.sumArr(node.months))}</td>
-                          </tr>
-                        );
-                      })}
+                      {flatDespesas.map((node) => (
+                        <FluxoCaixaCategoryRow
+                          key={node.id + "-" + node.depth}
+                          node={node}
+                          isCollapsed={collapsedIds.has(node.id)}
+                          onToggle={toggleCollapse}
+                          formatBRL={formatBRL}
+                          avg={fluxoCaixaData.avgArr}
+                          sum={fluxoCaixaData.sumArr}
+                        />
+                      ))}
                     </>
                   )}
                 </>
