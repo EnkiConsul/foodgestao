@@ -344,7 +344,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   }, [isCreditCardAccount, type]);
 
   // Compras no cartão nunca são "pagas" à vista — o pagamento vem da fatura.
-  // Vencimento é derivado do ciclo do cartão e preenchido automaticamente.
+  // Vencimento é derivado do ciclo do cartão e re-sincronizado sempre que o
+  // cartão selecionado (ou seu ciclo/data-base) muda.
   useEffect(() => {
     if (!isCreditCardAccount) return;
     if (status !== "pendente") setStatus("pendente");
@@ -354,7 +355,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       if (dueDate !== ymd) setDueDate(ymd);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isCreditCardAccount, invoicePreview?.due?.getTime()]);
+  }, [isCreditCardAccount, selectedCardId, invoicePreview?.due?.getTime()]);
 
 
 
