@@ -51,4 +51,28 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Vendor chunks estáveis: melhoram cache entre releases quando só o
+        // código da aplicação muda. Rotas continuam divididas pelo React.lazy.
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return;
+          if (id.includes("/pdfjs-dist/")) return "pdf";
+          if (id.includes("/@radix-ui/")) return "radix";
+          if (id.includes("/recharts/") || id.match(/\/d3-[^/]+\//)) return "charts";
+          if (id.includes("/@supabase/")) return "supabase";
+          if (
+            id.includes("/react-hook-form/") ||
+            id.includes("/@hookform/") ||
+            id.match(/\/zod\//)
+          ) return "forms";
+          if (
+            id.match(/\/react(-dom|-router-dom)?\//) ||
+            id.includes("/scheduler/")
+          ) return "react-vendor";
+        },
+      },
+    },
+  },
 }));
