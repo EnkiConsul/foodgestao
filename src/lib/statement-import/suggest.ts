@@ -56,7 +56,7 @@ export async function suggestForEntries(
 
   const rows: ReviewRow[] = [];
   for (const e of entries) {
-    let suggestion: ImportSuggestion = { category_id: null, contact_id: null, source: null };
+    const suggestion: ImportSuggestion = { category_id: null, contact_id: null, source: null };
 
     // 1) contact by document
     const doc = cleanDoc(e.counterparty_document);
