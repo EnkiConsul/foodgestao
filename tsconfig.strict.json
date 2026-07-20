@@ -15,10 +15,12 @@
     "src/lib/**/*.ts",
     "src/lib/**/*.tsx",
     "src/hooks/**/*.ts",
-    "src/hooks/**/*.tsx"
+    "src/hooks/**/*.tsx",
+    "src/components/**/*.ts",
+    "src/components/**/*.tsx"
   ],
   "exclude": [
-    "src/lib/**/*.test.ts",
-    "src/lib/**/*.test.tsx"
+    "**/*.test.ts",
+    "**/*.test.tsx"
   ]
 }

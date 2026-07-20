@@ -45,7 +45,7 @@ export function PaymentDialog({ open, onOpenChange, bill, onPaid }: Props) {
     if (contextType === "pj" && !selectedCompanyId) { setPaymentMethods([]); return; }
     supabase.rpc("get_accessible_payment_methods", {
       _context: contextType,
-      _company_id: contextType === "pj" ? selectedCompanyId : null,
+      _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
     }).then(({ data }) => setPaymentMethods((data ?? []) as any));
   }, [user, open, contextType, selectedCompanyId]);
 
