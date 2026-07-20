@@ -87,7 +87,16 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const { isRequired } = useTransactionFieldSettings();
-  const queryClient = useQueryClient();
+  const {
+    accounts,
+    categories,
+    contacts,
+    paymentMethods,
+    categoryCompanyIds,
+    contactCompanyIds,
+    paymentMethodCompanyIds,
+    invalidateLookups,
+  } = useTransactionFormLookups(open);
   const [type, setType] = useState<TransactionType>("despesa");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -187,127 +196,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
 
 
-  // --- Lookup queries (React Query so realtime invalidation works) ---
-  const accountsQuery = useQuery({
-    queryKey: ["form-accounts", user?.id, contextType, selectedCompanyId],
-    enabled: !!user,
-    queryFn: async () => {
-      if (contextType === "pj" && !selectedCompanyId) return [];
-      const { data, error } = await supabase.rpc("get_accessible_accounts", {
-        _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
-      });
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-  const categoriesQuery = useQuery({
-    queryKey: ["form-categories", user?.id, contextType, selectedCompanyId],
-    enabled: !!user && (contextType === "pf" || !!selectedCompanyId),
-    queryFn: async () => {
-      const { data } = await supabase.rpc("get_accessible_categories", {
-        _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
-      });
-      return (data ?? []) as any[];
-    },
-  });
-  const contactsQuery = useQuery({
-    queryKey: ["form-contacts", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("contacts").select("*")
-        .eq("user_id", user!.id).eq("is_active", true).order("name");
-      return data ?? [];
-    },
-  });
-  const paymentMethodsQuery = useQuery({
-    queryKey: ["form-payment-methods", user?.id, contextType, selectedCompanyId],
-    enabled: !!user,
-    queryFn: async () => {
-      if (contextType === "pj" && !selectedCompanyId) return [];
-      const { data } = await supabase.rpc("get_accessible_payment_methods", {
-        _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
-      });
-      return (data ?? []) as any[];
-    },
-  });
-  const categoryCompaniesQuery = useQuery({
-    queryKey: ["form-category-companies", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase.from("category_companies").select("category_id, company_id");
-      return data ?? [];
-    },
-  });
-  const contactCompaniesQuery = useQuery({
-    queryKey: ["form-contact-companies", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase.from("contact_companies").select("contact_id, company_id");
-      return data ?? [];
-    },
-  });
-  const paymentMethodCompaniesQuery = useQuery({
-    queryKey: ["form-payment-method-companies", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await (supabase.from("payment_method_companies" as any) as any)
-        .select("payment_method_id, company_id");
-      return (data ?? []) as { payment_method_id: string; company_id: string }[];
-    },
-  });
-
-  const accounts = accountsQuery.data ?? [];
-  const categories = categoriesQuery.data ?? [];
-  const contacts = contactsQuery.data ?? [];
-  const paymentMethods = paymentMethodsQuery.data ?? [];
-
-  const categoryCompanyIds = useMemo(() => {
-    const map = new Map<string, string[]>();
-    (categoryCompaniesQuery.data ?? []).forEach((cc) => {
-      const list = map.get(cc.category_id) || [];
-      list.push(cc.company_id);
-      map.set(cc.category_id, list);
-    });
-    return map;
-  }, [categoryCompaniesQuery.data]);
-
-  const contactCompanyIds = useMemo(() => {
-    const map = new Map<string, string[]>();
-    (contactCompaniesQuery.data ?? []).forEach((cc) => {
-      const list = map.get(cc.contact_id) || [];
-      list.push(cc.company_id);
-      map.set(cc.contact_id, list);
-    });
-    return map;
-  }, [contactCompaniesQuery.data]);
-
-  const paymentMethodCompanyIds = useMemo(() => {
-    const map = new Map<string, string[]>();
-    (paymentMethodCompaniesQuery.data ?? []).forEach((pmc) => {
-      const list = map.get(pmc.payment_method_id) || [];
-      list.push(pmc.company_id);
-      map.set(pmc.payment_method_id, list);
-    });
-    return map;
-  }, [paymentMethodCompaniesQuery.data]);
 
 
-  // Realtime: invalidate lookup queries when items change anywhere
-  useRealtimeSync({
-    tables: ["accounts", "categories", "contacts", "payment_methods"],
-    invalidateKeyPrefixes: ["form-"],
-    enabled: !!user && open,
-  });
-
-  const invalidateLookups = () => {
-    queryClient.invalidateQueries({
-      predicate: (q) => typeof q.queryKey[0] === "string" && (q.queryKey[0] as string).startsWith("form-"),
-    });
-  };
 
   // Default account when opening for new transaction; also reset if current selection is no longer in scope
   useEffect(() => {
