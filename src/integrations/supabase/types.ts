@@ -1696,6 +1696,216 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_card_invoices: {
+        Row: {
+          closed_at: string | null
+          closing_date: string
+          company_id: string | null
+          created_at: string
+          credit_card_id: string
+          due_date: string
+          id: string
+          minimum_amount: number
+          paid_amount: number
+          paid_at: string | null
+          payment_transaction_id: string | null
+          period_start: string
+          previous_balance: number
+          provider_invoice_id: string | null
+          reference_month: string
+          status: Database["public"]["Enums"]["invoice_cycle_status"]
+          total_amount: number
+          total_credits: number
+          total_fees: number
+          total_installments: number
+          total_interest: number
+          total_purchases: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closing_date: string
+          company_id?: string | null
+          created_at?: string
+          credit_card_id: string
+          due_date: string
+          id?: string
+          minimum_amount?: number
+          paid_amount?: number
+          paid_at?: string | null
+          payment_transaction_id?: string | null
+          period_start: string
+          previous_balance?: number
+          provider_invoice_id?: string | null
+          reference_month: string
+          status?: Database["public"]["Enums"]["invoice_cycle_status"]
+          total_amount?: number
+          total_credits?: number
+          total_fees?: number
+          total_installments?: number
+          total_interest?: number
+          total_purchases?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          closed_at?: string | null
+          closing_date?: string
+          company_id?: string | null
+          created_at?: string
+          credit_card_id?: string
+          due_date?: string
+          id?: string
+          minimum_amount?: number
+          paid_amount?: number
+          paid_at?: string | null
+          payment_transaction_id?: string | null
+          period_start?: string
+          previous_balance?: number
+          provider_invoice_id?: string | null
+          reference_month?: string
+          status?: Database["public"]["Enums"]["invoice_cycle_status"]
+          total_amount?: number
+          total_credits?: number
+          total_fees?: number
+          total_installments?: number
+          total_interest?: number
+          total_purchases?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_card_invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_card_invoices_credit_card_id_fkey"
+            columns: ["credit_card_id"]
+            isOneToOne: false
+            referencedRelation: "credit_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_card_invoices_payment_transaction_id_fkey"
+            columns: ["payment_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_cards: {
+        Row: {
+          account_id: string
+          autopay: boolean
+          brand: string | null
+          closing_day: number
+          company_id: string | null
+          context: Database["public"]["Enums"]["context_type"]
+          cost_center_id: string | null
+          created_at: string
+          credit_limit: number
+          default_payment_account_id: string | null
+          due_day: number
+          employee_id: string | null
+          holder_name: string | null
+          id: string
+          interest_rate_monthly: number
+          is_active: boolean
+          is_corporate: boolean
+          issuer: string | null
+          last4: string | null
+          minimum_payment_percent: number
+          monthly_spend_policy: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          autopay?: boolean
+          brand?: string | null
+          closing_day: number
+          company_id?: string | null
+          context?: Database["public"]["Enums"]["context_type"]
+          cost_center_id?: string | null
+          created_at?: string
+          credit_limit?: number
+          default_payment_account_id?: string | null
+          due_day: number
+          employee_id?: string | null
+          holder_name?: string | null
+          id?: string
+          interest_rate_monthly?: number
+          is_active?: boolean
+          is_corporate?: boolean
+          issuer?: string | null
+          last4?: string | null
+          minimum_payment_percent?: number
+          monthly_spend_policy?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          autopay?: boolean
+          brand?: string | null
+          closing_day?: number
+          company_id?: string | null
+          context?: Database["public"]["Enums"]["context_type"]
+          cost_center_id?: string | null
+          created_at?: string
+          credit_limit?: number
+          default_payment_account_id?: string | null
+          due_day?: number
+          employee_id?: string | null
+          holder_name?: string | null
+          id?: string
+          interest_rate_monthly?: number
+          is_active?: boolean
+          is_corporate?: boolean
+          issuer?: string | null
+          last4?: string | null
+          minimum_payment_percent?: number
+          monthly_spend_policy?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_cards_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: true
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_cards_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_cards_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_cards_default_payment_account_id_fkey"
+            columns: ["default_payment_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_avisos: {
         Row: {
           arquivo_mime: string | null
@@ -4508,6 +4718,7 @@ export type Database = {
           context: Database["public"]["Enums"]["context_type"]
           cost_center_id: string | null
           created_at: string
+          credit_card_invoice_id: string | null
           description: string
           destination_account_id: string | null
           due_date: string | null
@@ -4516,6 +4727,7 @@ export type Database = {
           import_hash: string | null
           installment_number: number | null
           installment_total: number | null
+          is_invoice_payment: boolean
           is_recurring: boolean
           notes: string | null
           parcel_direction:
@@ -4547,6 +4759,7 @@ export type Database = {
           context?: Database["public"]["Enums"]["context_type"]
           cost_center_id?: string | null
           created_at?: string
+          credit_card_invoice_id?: string | null
           description: string
           destination_account_id?: string | null
           due_date?: string | null
@@ -4555,6 +4768,7 @@ export type Database = {
           import_hash?: string | null
           installment_number?: number | null
           installment_total?: number | null
+          is_invoice_payment?: boolean
           is_recurring?: boolean
           notes?: string | null
           parcel_direction?:
@@ -4588,6 +4802,7 @@ export type Database = {
           context?: Database["public"]["Enums"]["context_type"]
           cost_center_id?: string | null
           created_at?: string
+          credit_card_invoice_id?: string | null
           description?: string
           destination_account_id?: string | null
           due_date?: string | null
@@ -4596,6 +4811,7 @@ export type Database = {
           import_hash?: string | null
           installment_number?: number | null
           installment_total?: number | null
+          is_invoice_payment?: boolean
           is_recurring?: boolean
           notes?: string | null
           parcel_direction?:
@@ -4678,6 +4894,13 @@ export type Database = {
             columns: ["connection_id"]
             isOneToOne: false
             referencedRelation: "bank_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_credit_card_invoice_id_fkey"
+            columns: ["credit_card_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "credit_card_invoices"
             referencedColumns: ["id"]
           },
         ]
@@ -5491,6 +5714,12 @@ export type Database = {
         | "recusada"
         | "cancelada"
       invite_status: "pending" | "accepted" | "rejected" | "expired"
+      invoice_cycle_status:
+        | "aberta"
+        | "fechada"
+        | "paga"
+        | "parcial"
+        | "atrasada"
       invoice_payment_method: "pix" | "boleto" | "card" | "manual"
       invoice_status:
         | "draft"
@@ -5763,6 +5992,13 @@ export const Constants = {
         "cancelada",
       ],
       invite_status: ["pending", "accepted", "rejected", "expired"],
+      invoice_cycle_status: [
+        "aberta",
+        "fechada",
+        "paga",
+        "parcial",
+        "atrasada",
+      ],
       invoice_payment_method: ["pix", "boleto", "card", "manual"],
       invoice_status: [
         "draft",
