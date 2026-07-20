@@ -1,51 +1,47 @@
-## Análise
+## Objetivo
+Quebrar o chunk único de ~3 MB em pedaços carregados sob demanda, priorizando o que é raramente usado no primeiro acesso (módulos DP, Relatórios, Admin, Landing, PDF worker) e agrupando libs pesadas em vendor chunks estáveis para melhorar cache.
 
-Três achados confirmados:
+## Diagnóstico confirmado
+- `src/App.tsx`: **57 imports estáticos de páginas**, zero `React.lazy`. Toda a árvore de rotas (DP, Admin, Relatórios, Checkout, Legal, Landing) entra no bundle inicial mesmo em `/dashboard`.
+- `vite.config.ts`: sem `build.rollupOptions.output.manualChunks` — Rollup joga tudo (React, Radix, Recharts, pdfjs, Supabase, react-hook-form, etc.) num único chunk grande.
+- `src/lib/statement-import/nubankPdf.ts`: importa `pdfjs-dist` e o worker via `?worker` **estaticamente**. Consumido só por `ImportStatementDialog`, mas hoje entra no bundle principal via a cadeia `Lancamentos → ImportStatementDialog`.
 
-**1. Furos no strict** — `tsconfig.strict.json` inclui só `src/lib`, `src/hooks`, `src/components`, `src/pages` + `vite-env.d.ts`. Ficam de fora:
-- `src/main.tsx` — entrypoint (uso de `document.getElementById("root")!` já com non-null assert, mas fora do gate).
-- `src/App.tsx` — roteamento + guards.
-- `src/routes/onboardingGuards.tsx` — decisões de fluxo pós-login.
-- `src/integrations/supabase/client.ts` — auto-gerado, mas é o portal por onde entra todo dado potencialmente `null` no app. Sem checagem strict aqui, o benefício em `src/lib` fica furado.
+## Escopo da mudança
 
-**2. Teto ESLint colado em 546** — comportamento desejado para ratchet, mas sem folga. Precisa estar documentado para o time não interpretar vermelho como flakiness.
+### 1. Lazy por rota em `src/App.tsx`
+Converter todas as rotas de página para `React.lazy(() => import(...))` e envolver `<Routes>` num único `<Suspense fallback={<PageSpinner />}>`. Manter eager somente as rotas críticas do primeiro paint autenticado:
+- `Landing`, `Auth`, `Hub`, `Dashboard` → eager (entrypoints prováveis)
+- Todo o resto (DP/*, Admin/*, Relatorios/*, Checkout, Faturas, Legal, Onboarding, Lancamentos, FluxoCaixa, Orcamento, Categorias, Contatos, etc.) → lazy
 
-**3. Comentário desatualizado** — `ci.yml` diz "Baseline: 546 warnings (out/2026)", estamos em julho/2026.
+Reusar o spinner que já aparece em `RootGate`/`PortalProtected` como fallback do Suspense (extrair para `components/PageSpinner.tsx`).
 
-## Correções
+### 2. Lazy do `ImportStatementDialog` dentro de `Lancamentos`
+`nubankPdf.ts` + `pdfjs-dist` + worker representam boa parte do peso. Converter o import de `ImportStatementDialog` em `Lancamentos.tsx` para `lazy()` + `Suspense`, para que pdfjs só desça quando o usuário abrir "Importar extrato". O worker (`?worker`) já é chunk separado; o problema é `pdfjs-dist` no bundle principal — resolvido pelo lazy da diálogo.
 
-**A. Expandir `tsconfig.strict.json`**
-Adicionar ao `include`:
-```
-"src/main.tsx",
-"src/App.tsx",
-"src/routes/**/*.ts",
-"src/routes/**/*.tsx",
-"src/integrations/**/*.ts"
-```
-Após adicionar, rodar `tsc -p tsconfig.strict.json --noEmit` e corrigir erros que aparecerem. Expectativa:
-- `main.tsx` — provavelmente 0 erros (já usa `!`).
-- `App.tsx` — pode ter alguns por `useState<boolean|null>` e handlers RPC (`data` possivelmente null).
-- `onboardingGuards.tsx` — precisa ser lido; provável passar limpo pois já vive em contexto strict-adjacente.
-- `supabase/client.ts` — auto-gerado, não editável. Se der erro, incluímos e resolvemos via type-augmentation em arquivo próprio (nunca editar o gerado).
+### 3. `manualChunks` em `vite.config.ts`
+Adicionar `build.rollupOptions.output.manualChunks` agrupando vendors estáveis para cache de longo prazo:
+- `react-vendor`: `react`, `react-dom`, `react-router-dom`, `react/jsx-runtime`
+- `radix`: todos os `@radix-ui/*`
+- `charts`: `recharts`, `d3-*`
+- `supabase`: `@supabase/supabase-js`
+- `forms`: `react-hook-form`, `@hookform/resolvers`, `zod`
+- `pdf`: `pdfjs-dist` (garantia extra caso alguma outra rota importe)
 
-Se algum arquivo tiver mais que ~5 erros bobos, corrigimos na mesma PR. Se for volumoso, plano é: incluir mesmo assim e abrir apenas os que passam limpos primeiro (`main.tsx`, `onboardingGuards.tsx`, `integrations/**`), deixando `App.tsx` para uma segunda passada anotada como TODO no arquivo do ratchet.
+Função `manualChunks(id)` baseada em `node_modules/<pkg>`.
 
-**B. Documentar o ratchet no `README.md`**
-Adicionar aviso curto na seção CI: "Teto colado por design. `any` novo = build vermelho — isso não é flakiness, é o ratchet funcionando. Para adicionar dívida técnica justificada, reduza a dívida em outro lugar na mesma PR e mantenha o teto."
+### 4. Verificação
+- `bun run build` antes/depois: registrar tamanho do maior chunk e do initial JS carregado em `/dashboard`.
+- Rodar `bunx vitest run` (145 testes) para garantir que nada da refatoração de lazy quebra imports/tipos.
+- Testar navegação rápida entre `/dashboard → /dp → /relatorios → /lancamentos → abrir Importar extrato` para conferir Suspense e ausência de flashes.
 
-**C. Corrigir comentário no `ci.yml`**
-`out/2026` → `jul/2026`.
-
-## Ordem de execução
-
-1. Ler `src/App.tsx`, `src/routes/onboardingGuards.tsx`, `src/integrations/supabase/client.ts` para dimensionar erros.
-2. Expandir `include` do `tsconfig.strict.json`.
-3. Rodar typecheck strict; corrigir o que aparecer (não editar arquivos auto-gerados).
-4. Atualizar comentário do `ci.yml` e adicionar nota no `README.md`.
-5. Rodar CI local (`tsc strict` + `eslint --max-warnings=546`) para validar verde.
+## Detalhes técnicos
+- `React.lazy` exige `export default` nas páginas. Todas as páginas em `src/pages/**` já usam default export — compatível.
+- `Suspense` fica **dentro** dos providers e **dentro** de cada `<Route element={...}>` layout que já tem `<Outlet />`? Não: colocar um `<Suspense>` externo em `AppRoutes` cobre todas as rotas com um único fallback centralizado.
+- `useSearchParams`/`useLocation` continuam funcionando porque os wrappers (`PublicOnlyRoute`, `SubscriptionGuard`, etc.) permanecem eager — só o componente de página é lazy.
+- `manualChunks` como função (não objeto) evita listar cada pacote Radix individualmente.
+- Não mexer em `src/integrations/supabase/client.ts` (auto-gen). Vendor chunk agrupa via `node_modules` no `manualChunks`.
 
 ## Fora de escopo
-
-- Não baixar o teto de 546 agora (é trabalho separado, PR-a-PR).
-- Não editar `src/integrations/supabase/client.ts` nem `types.ts` (auto-gerados).
+- Não substituir libs (recharts/pdfjs) — só mover para chunks separados.
+- Não mexer em PWA/Workbox cache.
+- Não refatorar componentes de página além do necessário para lazy default export.
