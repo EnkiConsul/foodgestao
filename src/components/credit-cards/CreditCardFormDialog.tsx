@@ -65,7 +65,7 @@ export function CreditCardFormDialog({ open, onOpenChange, onSaved, card }: Prop
       setIssuer(card.issuer ?? "");
       setAccountId(card.account_id);
       setPaymentAccountId(card.default_payment_account_id ?? "");
-      setCreditLimit(formatCurrency(Number(card.credit_limit)));
+      setCreditLimit(numToInput(Number(card.credit_limit)));
       setClosingDay(card.closing_day);
       setDueDay(card.due_day);
       setMinPct(Number(card.minimum_payment_percent));
@@ -177,7 +177,7 @@ export function CreditCardFormDialog({ open, onOpenChange, onSaved, card }: Prop
             </div>
             <div>
               <Label>Limite</Label>
-              <CurrencyInput value={creditLimit} onChange={setCreditLimit} />
+              <CurrencyInput value={creditLimit} onValueChange={setCreditLimit} />
             </div>
           </div>
 
