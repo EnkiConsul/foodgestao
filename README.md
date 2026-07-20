@@ -8,8 +8,10 @@
 
 Dois gates rodam em toda PR (`.github/workflows/ci.yml`):
 
-- **TypeScript strict** — `npx tsc -p tsconfig.strict.json --noEmit`. Zero erros. Cobre `src/lib|hooks|components|pages`. Reproduzível local com `npm run typecheck:strict`.
+- **TypeScript strict** — `npx tsc -p tsconfig.strict.json --noEmit`. Zero erros. Cobre `src/lib|hooks|components|pages|routes|integrations` + `src/main.tsx` e `src/App.tsx`. Reproduzível local com `npm run typecheck:strict`.
 - **ESLint ratchet decrescente** — `npx eslint . --max-warnings=546`. Zero erros permitidos; o teto de warnings representa dívida técnica reconhecida (majoritariamente `@typescript-eslint/no-explicit-any`). Ao reduzir warnings, baixe o teto na mesma PR. Nunca suba.
+
+> **Ratchet colado por design.** O teto atual (546) é igual ao número real de warnings. Qualquer `any` novo — ou qualquer regra rebaixada a `warn` — quebra o CI imediatamente. Isso **não é flakiness**: é o ratchet trabalhando. Para justificar dívida técnica nova, remova dívida equivalente em outro lugar da mesma PR e mantenha o teto.
 
 
 
