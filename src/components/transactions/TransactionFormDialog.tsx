@@ -1,31 +1,44 @@
-import { useState, useEffect, useMemo, useRef } from "react";
-import { addDays, addWeeks, addMonths, addYears } from "date-fns";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CurrencyInput, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { toast } from "sonner";
-import { transactionSchema, validateWithToast } from "@/lib/validations";
+import { transactionSchema } from "@/lib/validations";
 import { getSignedAttachmentUrl } from "@/lib/attachments";
-import { Calendar, Repeat, Paperclip, X, FileText, Upload, CheckCircle, Clock, XCircle, Plus, Wallet } from "lucide-react";
+import { Calendar, Repeat, X, FileText, Upload, CheckCircle, Clock, XCircle, Plus, Wallet } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import type { Tables } from "@/integrations/supabase/types";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
 import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { PaymentMethodFormDialog } from "@/components/payment-methods/PaymentMethodFormDialog";
 import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/searchable-select";
 import { useTransactionFieldSettings, TRANSACTION_FIELD_LABELS, type TransactionField } from "@/hooks/useTransactionFieldSettings";
+import { useTransactionFormLookups } from "@/hooks/useTransactionFormLookups";
+import {
+  type CategoryNode,
+  buildCategoryTree,
+  generateRecurrenceDates,
+  getNextRecurrenceDate,
+  WEEKDAYS,
+  parseLocalDate,
+  shiftToWeekday,
+  currentWeekday,
+  lastDayOfMonth,
+  shiftToMonthDay,
+  currentMonthDay,
+  MONTH_DAYS,
+  formatBR,
+  buildOccurrencePreview,
+} from "@/lib/transactions/formHelpers";
 
 type TransactionType = "receita" | "despesa" | "transferencia";
 
@@ -67,190 +80,6 @@ interface Props {
   duplicateSource?: EditableTransaction | null;
 }
 
-type CategoryNode = Tables<"categories"> & { children: CategoryNode[]; depth: number };
-
-function buildCategoryTree(cats: Tables<"categories">[]): CategoryNode[] {
-  // Preserve the order from the query (transaction_type, sort_order, name)
-  const map = new Map<string, CategoryNode>();
-  const roots: CategoryNode[] = [];
-  cats.forEach((c) => map.set(c.id, { ...c, children: [], depth: 0 }));
-  cats.forEach((c) => {
-    const node = map.get(c.id)!;
-    if (c.parent_id && map.has(c.parent_id)) {
-      const parent = map.get(c.parent_id)!;
-      node.depth = parent.depth + 1;
-      parent.children.push(node);
-    } else {
-      roots.push(node);
-    }
-  });
-  return roots;
-}
-
-function renderCategoryNodes(nodes: CategoryNode[]): React.ReactNode[] {
-  const result: React.ReactNode[] = [];
-  nodes.forEach((node) => {
-    if (node.children.length > 0) {
-      result.push(
-        <SelectGroup key={`group-${node.id}`}>
-          <SelectLabel className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">
-            {node.name}
-          </SelectLabel>
-          <SelectItem value={node.id} className="pl-6 text-sm">
-            {node.name}
-          </SelectItem>
-          {renderCategoryNodes(node.children)}
-        </SelectGroup>
-      );
-    } else {
-      const paddingClass = node.depth === 0 ? "" : node.depth === 1 ? "pl-6" : "pl-10";
-      result.push(
-        <SelectItem key={node.id} value={node.id} className={`${paddingClass} text-sm`}>
-          {node.name}
-        </SelectItem>
-      );
-    }
-  });
-  return result;
-}
-
-function flattenCategoryTree(nodes: CategoryNode[]): SearchableSelectOption[] {
-  const out: SearchableSelectOption[] = [];
-  const walk = (list: CategoryNode[]) => {
-    list.forEach((n) => {
-      out.push({ value: n.id, label: n.name, depth: n.depth });
-      if (n.children.length) walk(n.children);
-    });
-  };
-  walk(nodes);
-  return out;
-}
-
-function getNextRecurrenceDate(current: Date, recType: string): Date {
-  switch (recType) {
-    case "diario": return addDays(current, 1);
-    case "semanal": return addWeeks(current, 1);
-    case "quinzenal": return addWeeks(current, 2);
-    case "mensal": return addMonths(current, 1);
-    case "bimestral": return addMonths(current, 2);
-    case "trimestral": return addMonths(current, 3);
-    case "semestral": return addMonths(current, 6);
-    case "anual": return addYears(current, 1);
-    default: return addMonths(current, 1);
-  }
-}
-
-function generateRecurrenceDates(startDate: string, recType: string, endDate?: string): string[] {
-  const dates: string[] = [];
-  const maxOccurrences = 365; // safety limit
-  const horizon = endDate ? new Date(endDate) : addYears(new Date(startDate), 1);
-  let current = new Date(startDate);
-
-  for (let i = 0; i < maxOccurrences; i++) {
-    current = getNextRecurrenceDate(current, recType);
-    if (current > horizon) break;
-    dates.push(current.toISOString().split("T")[0]);
-  }
-  return dates;
-}
-
-const WEEKDAYS = [
-  { value: "0", label: "Domingo" },
-  { value: "1", label: "Segunda-feira" },
-  { value: "2", label: "Terça-feira" },
-  { value: "3", label: "Quarta-feira" },
-  { value: "4", label: "Quinta-feira" },
-  { value: "5", label: "Sexta-feira" },
-  { value: "6", label: "Sábado" },
-];
-
-function parseLocalDate(dateStr: string): Date {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  return new Date(y, (m || 1) - 1, d || 1);
-}
-
-function toLocalDateStr(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function shiftToWeekday(dateStr: string, weekday: number): string {
-  if (!dateStr) return dateStr;
-  const d = parseLocalDate(dateStr);
-  const target = ((weekday % 7) + 7) % 7;
-  const diff = (target - d.getDay() + 7) % 7;
-  d.setDate(d.getDate() + diff);
-  return toLocalDateStr(d);
-}
-
-/** Returns the weekday (0-6) of the reference date, falling back to Monday. */
-function currentWeekday(dateStr: string, fallback = 1): number {
-  if (!dateStr) return fallback;
-  const d = parseLocalDate(dateStr);
-  return isNaN(d.getTime()) ? fallback : d.getDay();
-}
-
-function lastDayOfMonth(year: number, monthIndex: number): number {
-  return new Date(year, monthIndex + 1, 0).getDate();
-}
-
-/** Shifts date to have the target day-of-month, clamping to last day of that month. */
-function shiftToMonthDay(dateStr: string, dayOfMonth: number): string {
-  if (!dateStr) return dateStr;
-  const d = parseLocalDate(dateStr);
-  const last = lastDayOfMonth(d.getFullYear(), d.getMonth());
-  const target = Math.max(1, Math.min(31, dayOfMonth));
-  d.setDate(Math.min(target, last));
-  return toLocalDateStr(d);
-}
-
-function currentMonthDay(dateStr: string, fallback = 1): number {
-  if (!dateStr) return fallback;
-  const d = parseLocalDate(dateStr);
-  return isNaN(d.getTime()) ? fallback : d.getDate();
-}
-
-const MONTH_DAYS: { value: string; label: string }[] = Array.from({ length: 31 }, (_, i) => ({
-  value: String(i + 1),
-  label: `Dia ${i + 1}`,
-}));
-
-const WEEKDAY_SHORT = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
-
-function formatBR(dateStr: string): string {
-  if (!dateStr) return "—";
-  const d = parseLocalDate(dateStr);
-  if (isNaN(d.getTime())) return "—";
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  return `${dd}/${mm}/${d.getFullYear()} (${WEEKDAY_SHORT[d.getDay()]})`;
-}
-
-function buildOccurrencePreview(
-  baseDate: string,
-  dueDateStr: string,
-  period: string,
-  count: number,
-  endDate?: string,
-): { date: string; due: string | null }[] {
-  if (!baseDate) return [];
-  const results: { date: string; due: string | null }[] = [];
-  const diffMs = dueDateStr ? parseLocalDate(dueDateStr).getTime() - parseLocalDate(baseDate).getTime() : 0;
-  const horizon = endDate ? parseLocalDate(endDate) : null;
-  let cursor = parseLocalDate(baseDate);
-  for (let i = 0; i < count; i++) {
-    if (horizon && cursor > horizon) break;
-    const dStr = toLocalDateStr(cursor);
-    const dueStr = dueDateStr
-      ? toLocalDateStr(new Date(cursor.getTime() + diffMs))
-      : null;
-    results.push({ date: dStr, due: dueStr });
-    cursor = getNextRecurrenceDate(cursor, period);
-  }
-  return results;
-}
 
 const MAX_ATTACHMENTS = 5;
 
@@ -258,7 +87,16 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const { isRequired } = useTransactionFieldSettings();
-  const queryClient = useQueryClient();
+  const {
+    accounts,
+    categories,
+    contacts,
+    paymentMethods,
+    categoryCompanyIds,
+    contactCompanyIds,
+    paymentMethodCompanyIds,
+    invalidateLookups,
+  } = useTransactionFormLookups(open);
   const [type, setType] = useState<TransactionType>("despesa");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -358,127 +196,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
 
 
-  // --- Lookup queries (React Query so realtime invalidation works) ---
-  const accountsQuery = useQuery({
-    queryKey: ["form-accounts", user?.id, contextType, selectedCompanyId],
-    enabled: !!user,
-    queryFn: async () => {
-      if (contextType === "pj" && !selectedCompanyId) return [];
-      const { data, error } = await supabase.rpc("get_accessible_accounts", {
-        _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
-      });
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-  const categoriesQuery = useQuery({
-    queryKey: ["form-categories", user?.id, contextType, selectedCompanyId],
-    enabled: !!user && (contextType === "pf" || !!selectedCompanyId),
-    queryFn: async () => {
-      const { data } = await supabase.rpc("get_accessible_categories", {
-        _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
-      });
-      return (data ?? []) as any[];
-    },
-  });
-  const contactsQuery = useQuery({
-    queryKey: ["form-contacts", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("contacts").select("*")
-        .eq("user_id", user!.id).eq("is_active", true).order("name");
-      return data ?? [];
-    },
-  });
-  const paymentMethodsQuery = useQuery({
-    queryKey: ["form-payment-methods", user?.id, contextType, selectedCompanyId],
-    enabled: !!user,
-    queryFn: async () => {
-      if (contextType === "pj" && !selectedCompanyId) return [];
-      const { data } = await supabase.rpc("get_accessible_payment_methods", {
-        _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
-      });
-      return (data ?? []) as any[];
-    },
-  });
-  const categoryCompaniesQuery = useQuery({
-    queryKey: ["form-category-companies", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase.from("category_companies").select("category_id, company_id");
-      return data ?? [];
-    },
-  });
-  const contactCompaniesQuery = useQuery({
-    queryKey: ["form-contact-companies", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase.from("contact_companies").select("contact_id, company_id");
-      return data ?? [];
-    },
-  });
-  const paymentMethodCompaniesQuery = useQuery({
-    queryKey: ["form-payment-method-companies", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await (supabase.from("payment_method_companies" as any) as any)
-        .select("payment_method_id, company_id");
-      return (data ?? []) as { payment_method_id: string; company_id: string }[];
-    },
-  });
-
-  const accounts = accountsQuery.data ?? [];
-  const categories = categoriesQuery.data ?? [];
-  const contacts = contactsQuery.data ?? [];
-  const paymentMethods = paymentMethodsQuery.data ?? [];
-
-  const categoryCompanyIds = useMemo(() => {
-    const map = new Map<string, string[]>();
-    (categoryCompaniesQuery.data ?? []).forEach((cc) => {
-      const list = map.get(cc.category_id) || [];
-      list.push(cc.company_id);
-      map.set(cc.category_id, list);
-    });
-    return map;
-  }, [categoryCompaniesQuery.data]);
-
-  const contactCompanyIds = useMemo(() => {
-    const map = new Map<string, string[]>();
-    (contactCompaniesQuery.data ?? []).forEach((cc) => {
-      const list = map.get(cc.contact_id) || [];
-      list.push(cc.company_id);
-      map.set(cc.contact_id, list);
-    });
-    return map;
-  }, [contactCompaniesQuery.data]);
-
-  const paymentMethodCompanyIds = useMemo(() => {
-    const map = new Map<string, string[]>();
-    (paymentMethodCompaniesQuery.data ?? []).forEach((pmc) => {
-      const list = map.get(pmc.payment_method_id) || [];
-      list.push(pmc.company_id);
-      map.set(pmc.payment_method_id, list);
-    });
-    return map;
-  }, [paymentMethodCompaniesQuery.data]);
 
 
-  // Realtime: invalidate lookup queries when items change anywhere
-  useRealtimeSync({
-    tables: ["accounts", "categories", "contacts", "payment_methods"],
-    invalidateKeyPrefixes: ["form-"],
-    enabled: !!user && open,
-  });
-
-  const invalidateLookups = () => {
-    queryClient.invalidateQueries({
-      predicate: (q) => typeof q.queryKey[0] === "string" && (q.queryKey[0] as string).startsWith("form-"),
-    });
-  };
 
   // Default account when opening for new transaction; also reset if current selection is no longer in scope
   useEffect(() => {
