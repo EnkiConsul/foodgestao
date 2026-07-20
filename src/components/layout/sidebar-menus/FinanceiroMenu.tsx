@@ -13,6 +13,7 @@ const items: MenuItem[] = [
 
 const cadastros: MenuItem[] = [
   { title: "Contas Bancárias", url: "/contas-bancarias", icon: Landmark },
+  { title: "Cartões de Crédito", url: "/cartoes-credito", icon: CreditCard },
   { title: "Formas de Pagamento", url: "/formas-pagamento", icon: CreditCard },
   { title: "Clientes / Fornecedores", url: "/contatos", icon: Users },
   { title: "Categorias", url: "/categorias", icon: FolderTree },
