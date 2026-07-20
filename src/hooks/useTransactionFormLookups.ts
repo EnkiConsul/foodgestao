@@ -76,7 +76,7 @@ export function useTransactionFormLookups(enabled: boolean) {
     queryFn: async () => {
       let q = supabase
         .from("credit_cards")
-        .select("id, brand, issuer, last4, closing_day, due_day, color")
+        .select("id, brand, issuer, last4, closing_day, due_day")
         .eq("is_active", true);
       if (contextType === "pf") q = q.eq("context", "pf");
       else if (contextType === "pj" && selectedCompanyId) q = q.eq("context", "pj").eq("company_id", selectedCompanyId);
@@ -84,7 +84,7 @@ export function useTransactionFormLookups(enabled: boolean) {
       return (data ?? []) as Array<{
         id: string;
         brand: string | null; issuer: string | null; last4: string | null;
-        closing_day: number; due_day: number; color: string | null;
+        closing_day: number; due_day: number;
       }>;
     },
   });
