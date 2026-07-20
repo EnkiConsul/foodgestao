@@ -300,7 +300,7 @@ export default function Lancamentos() {
     const { data, error } = await supabase.rpc("get_balance_before", {
       _user_id: user.id,
       _context: contextType,
-      _company_id: companyId,
+      _company_id: companyId as string,
       _before_date: monthStart,
     });
     if (!error && data !== null && data !== undefined) {
