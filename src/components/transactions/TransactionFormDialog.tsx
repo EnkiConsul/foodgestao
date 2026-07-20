@@ -1281,6 +1281,41 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
             </div>
           </div>
 
+          {/* Credit card invoice preview */}
+          {isCreditCardAccount && (
+            <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <CreditCard className="h-4 w-4 text-primary" />
+                <span>Compra no cartão{cardLabel ? ` — ${cardLabel}` : ""}</span>
+              </div>
+              {invoicePreview ? (
+                <div className="text-xs text-muted-foreground space-y-0.5">
+                  <p>
+                    Será alocada na fatura de{" "}
+                    <strong className="text-foreground">
+                      {invoicePreview.reference.toLocaleString("pt-BR", { month: "long", year: "numeric" })}
+                    </strong>
+                  </p>
+                  <p>
+                    Fechamento: <strong className="text-foreground">{formatBR(toYmd(invoicePreview.closing))}</strong>
+                    {" · "}Vencimento: <strong className="text-foreground">{formatBR(toYmd(invoicePreview.due))}</strong>
+                  </p>
+                  {isInstallment && installmentTotal > 1 && (
+                    <p className="pt-1">Cada parcela cairá na fatura do respectivo mês.</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground flex items-start gap-1.5">
+                  <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                  Cartão sem ciclo configurado — cadastre em Cartões de Crédito para calcular a fatura.
+                </p>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                O status fica <strong>pendente</strong> e a baixa acontece ao pagar a fatura.
+              </p>
+            </div>
+          )}
+
           {/* Destination account (transfer) */}
           {type === "transferencia" && (
             <div className="space-y-2" data-field="destination_account_id">
