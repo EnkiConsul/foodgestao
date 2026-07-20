@@ -200,3 +200,49 @@ describe("statusChangePatch", () => {
     expect(p).toEqual({ status: "cancelado", amount_paid: 0, payment_date: null });
   });
 });
+
+import { belongsToRegime, computePeriodTotals as ppt, runningBalance as rb } from "./balance";
+
+describe("regime caixa vs competência", () => {
+  const cardPurchase = {
+    amount: 200, amount_paid: 200, transaction_type: "despesa" as const,
+    transaction_date: "2026-07-05", due_date: null, status: "confirmado" as const,
+    credit_card_invoice_id: "inv-1",
+  };
+  const invoicePayment = {
+    amount: 200, amount_paid: 200, transaction_type: "despesa" as const,
+    transaction_date: "2026-07-15", due_date: "2026-07-15", status: "confirmado" as const,
+    is_invoice_payment: true,
+  };
+  const cashExpense = {
+    amount: 50, amount_paid: 50, transaction_type: "despesa" as const,
+    transaction_date: "2026-07-10", due_date: null, status: "confirmado" as const,
+  };
+
+  it("belongsToRegime: caixa exclui compra no cartão, competência exclui pagamento de fatura", () => {
+    expect(belongsToRegime(cardPurchase, "caixa")).toBe(false);
+    expect(belongsToRegime(cardPurchase, "competencia")).toBe(true);
+    expect(belongsToRegime(invoicePayment, "caixa")).toBe(true);
+    expect(belongsToRegime(invoicePayment, "competencia")).toBe(false);
+    expect(belongsToRegime(cashExpense, "caixa")).toBe(true);
+    expect(belongsToRegime(cashExpense, "competencia")).toBe(true);
+  });
+
+  it("runningBalance em caixa: compra não sai, pagamento da fatura sai", () => {
+    const rows = rb([cardPurchase, cashExpense, invoicePayment], 1000, "caixa");
+    expect(rows.map((r) => r.runningBalance)).toEqual([1000, 950, 750]);
+  });
+
+  it("runningBalance em competência: compra sai imediatamente, pagamento é ignorado", () => {
+    const rows = rb([cardPurchase, cashExpense, invoicePayment], 1000, "competencia");
+    expect(rows.map((r) => r.runningBalance)).toEqual([800, 750, 750]);
+  });
+
+  it("computePeriodTotals distingue regimes", () => {
+    const today = new Date(2026, 6, 20);
+    const caixa = ppt([cardPurchase, cashExpense, invoicePayment], today, 0, "caixa");
+    const comp = ppt([cardPurchase, cashExpense, invoicePayment], today, 0, "competencia");
+    expect(caixa.despesas).toBe(250); // 50 + 200 (pagto)
+    expect(comp.despesas).toBe(250);  // 200 (compra) + 50
+  });
+});
