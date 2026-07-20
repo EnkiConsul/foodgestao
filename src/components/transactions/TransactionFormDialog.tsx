@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
+
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -318,7 +320,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
         .filter(Boolean).join(" ") || matchedCard.issuer || "Cartão"
     : null;
 
-  const invoicePreview = (() => {
+  const cycleFromCard = (() => {
     if (!matchedCard || !date) return null;
     try {
       const cycle = assignPurchaseToInvoice(parseLocalDate(date), {
@@ -335,6 +337,38 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     }
   })();
 
+  // Busca a fatura real (aberta) para o cartão + mês de referência do ciclo.
+  // Quando existe, usamos o `due_date` autoritativo do banco (que pode ter
+  // sido ajustado por feriados/reemissão), em vez de apenas recomputar.
+  const referenceMonthYmd = cycleFromCard ? toYmd(cycleFromCard.reference) : null;
+  const invoiceRowQuery = useQuery({
+    queryKey: ["form-cc-invoice", selectedCardId, referenceMonthYmd],
+    enabled: !!selectedCardId && !!referenceMonthYmd,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("credit_card_invoices")
+        .select("id, due_date, closing_date, reference_month, status")
+        .eq("credit_card_id", selectedCardId!)
+        .eq("reference_month", referenceMonthYmd!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const invoicePreview = (() => {
+    if (!cycleFromCard) return null;
+    const row = invoiceRowQuery.data;
+    if (row) {
+      return {
+        reference: parseLocalDate(row.reference_month),
+        closing: parseLocalDate(row.closing_date),
+        due: parseLocalDate(row.due_date),
+      };
+    }
+    return cycleFromCard;
+  })();
+
   // Auto-switch away from transferência when picking a credit card account
   useEffect(() => {
     if (isCreditCardAccount && type === "transferencia") {
@@ -344,8 +378,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   }, [isCreditCardAccount, type]);
 
   // Compras no cartão nunca são "pagas" à vista — o pagamento vem da fatura.
-  // Vencimento é derivado do ciclo do cartão e re-sincronizado sempre que o
-  // cartão selecionado (ou seu ciclo/data-base) muda.
+  // Vencimento é derivado do ciclo/fatura atual e re-sincronizado sempre que
+  // o cartão selecionado, o mês de referência ou o due_date da fatura mudam.
   useEffect(() => {
     if (!isCreditCardAccount) return;
     if (status !== "pendente") setStatus("pendente");
@@ -355,7 +389,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       if (dueDate !== ymd) setDueDate(ymd);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isCreditCardAccount, selectedCardId, invoicePreview?.due?.getTime()]);
+  }, [isCreditCardAccount, selectedCardId, referenceMonthYmd, invoicePreview?.due?.getTime()]);
+
 
 
 
