@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "composite": false,
+    "strict": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "noFallthroughCasesInSwitch": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "types": ["vitest/globals", "node"]
+  },
+  "include": [
+    "src/lib/**/*.ts",
+    "src/lib/**/*.tsx"
+  ],
+  "exclude": [
+    "src/lib/**/*.test.ts",
+    "src/lib/**/*.test.tsx"
+  ]
+}
