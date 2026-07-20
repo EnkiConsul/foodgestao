@@ -572,7 +572,7 @@ export default function Dashboard() {
 
         {/* Balance Evolution (kept, full-width) */}
         {balanceEvolution.length > 1 && (
-          <div className="col-span-12 p-6 rounded-3xl bg-card border border-border/60 shadow-sm">
+          <div className="col-span-12 lg:col-span-6 p-6 rounded-3xl bg-card border border-border/60 shadow-sm">
             <div className="flex justify-between items-center mb-4">
               <div>
                 <h2 className="font-display text-lg font-bold text-foreground">Evolução do Saldo</h2>
