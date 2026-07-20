@@ -1,95 +1,53 @@
-# Gestão de Cartão de Crédito — Plano de Implementação
+# Fase 9 — Projeção de Caixa com Faturas de Cartão
 
-Baseado no documento técnico fornecido. Reaproveita `accounts`, `installments.ts`, `transactions` e o motor de regime caixa/competência já existentes.
+## Objetivo
+Adicionar uma projeção de caixa configurável (7/15/30/60/90 dias) que combine:
+- Saldo atual das contas bancárias
+- Lançamentos pendentes (entradas e saídas) com `due_date` no intervalo
+- Faturas de cartão em aberto/parciais/vencidas com `due_date` no intervalo
 
-## Princípio norteador
-- **Compra no cartão** → despesa por **competência** (data da compra, categoria da compra).
-- **Pagamento da fatura** → saída de **caixa** (data do vencimento, conta corrente). Nunca conta como despesa nova.
-- **Juros do rotativo** → lançamento próprio em *Despesas Financeiras*, nunca somado à compra original.
-- Cartão é **passivo**, não é conta bancária: fica fora do saldo consolidado de caixa.
+Visualização em gráfico de linha (saldo projetado dia a dia) + KPIs de resumo.
 
-## Fase 1 — Schema + lógica pura de ciclo (1 semana)
-**Migration**
-- `credit_cards` (1:1 com `accounts`): `brand`, `last4`, `credit_limit`, `closing_day`, `due_day`, `default_payment_account_id`, `autopay`, `interest_rate_monthly`, `minimum_payment_percent`, `is_corporate`, `employee_id`, `cost_center_id`, `monthly_spend_policy`.
-- Enum `invoice_cycle_status` (`aberta|fechada|paga|parcial|atrasada`).
-- `credit_card_invoices` com `UNIQUE (credit_card_id, reference_month)`, totais materializados (compras, parcelas, juros, tarifas, créditos, `previous_balance`, `paid_amount`, `minimum_amount`), `provider_invoice_id` para idempotência.
-- `transactions.credit_card_invoice_id` + `is_invoice_payment boolean`.
-- GRANTs + RLS via `private.is_company_member` / `member_can_edit` (padrão já auditado por `security-lint`).
-- Função `private.resolve_cycle_date(year, month, day)` com `LEAST(day, days_in_month)`.
+## Entregáveis
 
-**`src/lib/credit-card/cycle.ts` + testes** — lógica pura:
-- Resolução closing/due com meses de 28/30/31.
-- Alocação compra → fatura (caso `due_day <= closing_day` → vence no mês seguinte).
-- Casos de borda: fevereiro com dia 31, virada de ano, compra no próprio dia do fechamento.
+### 1. Hook `useCashFlowProjection`
+Arquivo novo: `src/hooks/useCashFlowProjection.tsx`
 
-## Fase 2 — Alocação automática (1 semana)
-- RPC `assign_transaction_to_invoice(_transaction_id)` (SECURITY DEFINER, `REVOKE FROM anon`) fazendo UPSERT da fatura e recalculando totais.
-- Trigger `AFTER INSERT OR UPDATE OF transaction_date, amount, account_id` em `transactions` quando `account_type='cartao_credito'`.
-- Parcelamento continua usando `installments.ts` sem mudança — cada filha cai na fatura correspondente à sua `transaction_date`. Âncora `parent` permanece como registro de competência.
+Entradas:
+- `horizonDays: 7 | 15 | 30 | 60 | 90`
+- `context` e `companyId` do contexto global
 
-## Fase 3 — Fechamento automático (1 semana)
-- Edge function `close-credit-card-invoices` (verify_jwt=false + `CLOSE_INVOICES_SECRET`, no padrão de `expire-trials`).
-- Cron diário via `pg_cron` + `pg_net`.
-- Materializa totais, muda status para `fechada`, calcula `minimum_amount`, cria conta a pagar (`is_invoice_payment=true`, `due_date=invoice.due_date`, conta = `default_payment_account_id`), abre próxima fatura, enfileira notificação via `process-email-queue`.
+Saída:
+- `startingBalance`: soma dos saldos atuais das contas (exclui contas de cartão)
+- `series: { date, inflow, outflow, cardOutflow, netFlow, projectedBalance }[]` — um ponto por dia
+- `totals`: `{ totalInflow, totalOutflow, totalCardOutflow, endingBalance, lowestBalance, lowestDate }`
+- `isLoading`
 
-## Fase 4 — Pagamento e rotativo (1 semana)
-- Pagamento total → fatura `paga`, transação quitada.
-- Pagamento parcial ≥ mínimo → `parcial`, saldo vira `previous_balance` da próxima; gera lançamento de juros em *Despesas Financeiras*.
-- Pagamento < mínimo → `atrasada`, gera juros + multa + IOF, cada um em rubrica própria.
+Fontes (Realtime nas 3):
+- `bank_connection_accounts` para saldo inicial
+- `transactions` com `status IN ('pendente','parcial')` e `due_date` entre hoje e hoje+N, **excluindo** as que já pertencem a `invoice_id` (para evitar dupla contagem — a fatura já agrega)
+- `credit_card_invoices` com `status IN ('aberta','fechada','parcial','vencida')` e `due_date` entre hoje e hoje+N, valor = `total_amount - amount_paid`
 
-## Fase 5 — Caixa × competência (1 semana, mais crítica)
-- `src/lib/transactions/balance.ts`: `signedEffect` e `computePeriodTotals` recebem parâmetro de regime.
-  - Caixa: compra no cartão neutra; pagamento da fatura afeta.
-  - Competência: compra afeta; pagamento neutro.
-- Excluir `account_type='cartao_credito'` do saldo consolidado; bloco separado "Cartões — a pagar".
-- Projeção do fluxo de caixa inclui faturas fechadas + estimativa da aberta.
-- **Teste de regressão obrigatório**: DRE por competência não muda ao pagar fatura.
+### 2. Componente `CashFlowProjectionWidget`
+Arquivo novo: `src/components/dashboard/CashFlowProjectionWidget.tsx`
 
-## Fase 6 — Frontend (2 semanas)
-- `/cartoes`: cards com limite, disponível, barra de comprometimento, fechamento/vencimento.
-- `/cartoes/:id`: timeline de faturas + detalhe (lançamentos agrupados por categoria, parcelas `3/12`, botões *Pagar total / parcial*).
-- Widget "Faturas a vencer" no Dashboard; faturas distintas na projeção de fluxo de caixa.
-- Reaproveita `TransactionFormDialog` (só adiciona seleção de cartão) e `ImportStatementDialog`.
+- Header com título + `Select` de intervalo (7/15/30/60/90 dias), persistido em `localStorage`
+- 4 KPIs: Saldo Atual, Entradas Previstas, Saídas Previstas (destacando fatia de cartão), Saldo Final Projetado
+- Alerta visual quando `lowestBalance < 0` indicando data do estouro
+- Gráfico de área com `recharts` (`AreaChart`) mostrando `projectedBalance` com gradiente; tooltip com breakdown diário (entradas/saídas/cartão)
+- Respeita `maskBRL` (modo privacidade)
+- Empty state quando não há movimentações no horizonte
 
-## Fase 7 — Open Finance (1 semana)
-- Estender `pluggy-sync-connection`: `account.type='CREDIT'` cria `accounts` + `credit_cards` automaticamente.
-- Ler `creditData`: `creditLimit`, `availableCreditLimit`, `balanceCloseDate`, `balanceDueDate`, `minimumPayment`.
-- Transações de cartão alocadas via trigger; `provider_invoice_id` garante idempotência.
+### 3. Integração na Dashboard
+Editar `src/pages/Dashboard.tsx`:
+- Inserir o widget em uma nova linha `col-span-12` logo abaixo da linha atual (Faturas + Evolução do Saldo), antes de "Top 5 Categorias"
 
-## Fase 8 — Tools do agente IA (3 dias)
-- `plin_ia_credit_cards`, `plin_ia_invoice_current`, `plin_ia_invoice_upcoming`, `plin_ia_installments_future` — RPCs read-only no padrão já estabelecido.
+## Detalhes técnicos
+- Cálculo do `projectedBalance[i] = projectedBalance[i-1] + inflow[i] - outflow[i] - cardOutflow[i]`, iniciando de `startingBalance`
+- Datas normalizadas em `America/Sao_Paulo` usando helpers existentes de `src/lib/date.ts`
+- Reuso de `maskBRL` de `src/lib/privacy.ts` e cores semânticas do design system (nada hardcoded)
+- Sem alteração de schema — puramente leitura
 
-## Cálculo de limite disponível
-```
-disponível = credit_limit
-           − Σ faturas fechadas/parciais/atrasadas não quitadas
-           − Σ compras da fatura aberta
-           − Σ parcelas futuras já contratadas
-```
-
-## Critérios de aceite
-- Compra 12x distribui uma parcela por fatura, centavos residuais na última.
-- DRE por competência estável ao pagar fatura.
-- Saldo consolidado de caixa não inclui limite de cartão.
-- Fluxo de caixa projetado inclui faturas fechadas na data de vencimento.
-- Limite disponível desconta parcelas futuras.
-- Juros em *Despesas Financeiras*, não na categoria da compra.
-- Fatura de fevereiro com fechamento dia 31 fecha em 28/29.
-- `typecheck:strict` e `security-lint` verdes; cobertura em `src/lib/credit-card/**`.
-
-## Riscos mitigados
-- Dupla contagem → flag `is_invoice_payment` + teste de regressão DRE.
-- Datas de ciclo em meses irregulares → `resolve_cycle_date` + testes de borda.
-- `due_day < closing_day` → caso explícito nos testes.
-- Cartão inflando caixa → excluído do consolidado.
-- Import duplicado → `provider_invoice_id` + `import_hash` existente.
-- Retroatividade em `closing_day` → bloquear edição com faturas fechadas.
-
-## Ordem se houver corte de escopo
-1. Fases 1–3 (cartão utilizável)
-2. Fase 5 (**não cortar** — números errados são pior que ausência da feature)
-3. Fase 4
-4. Fases 6–8
-
-## Proposta de execução
-Começar pela **Fase 1** de forma completa: migration + `src/lib/credit-card/cycle.ts` com bateria de testes cobrindo todos os casos de borda de calendário. É a fundação testável de todo o resto e não afeta nada em produção. Confirmar antes de gerar a migration.
+## Fora de escopo
+- Recorrências futuras ainda não materializadas (já são geradas até 12 meses à frente pela fase de recorrentes, então aparecem naturalmente)
+- Cenários "what-if" (adiar pagamento X) — pode virar Fase 10

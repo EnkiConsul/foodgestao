@@ -24,6 +24,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, AreaChart, Area, LineChart, Line } from "recharts";
 import { BankLogo } from "@/components/accounts/BankLogo";
 import { UpcomingCardInvoicesWidget } from "@/components/dashboard/UpcomingCardInvoicesWidget";
+import { CashFlowProjectionWidget } from "@/components/dashboard/CashFlowProjectionWidget";
 
 
 const DONUT_COLORS = [
@@ -569,6 +570,9 @@ export default function Dashboard() {
 
         {/* Faturas a vencer (Cartões) */}
         <UpcomingCardInvoicesWidget className="col-span-12 lg:col-span-6" />
+
+        {/* Projeção de Caixa configurável */}
+        <CashFlowProjectionWidget className="col-span-12" />
 
         {/* Balance Evolution (kept, full-width) */}
         {balanceEvolution.length > 1 && (
