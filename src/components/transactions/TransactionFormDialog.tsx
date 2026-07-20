@@ -356,29 +356,48 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
 
   // --- Option builders with rich visuals matching each module ---
-  const accountOptions: SearchableSelectOption[] = accounts.map((acc) => {
-    const isCard = acc.account_type === "cartao_credito";
-    return {
-      value: acc.id,
-      label: acc.name,
-      keywords: acc.account_type,
-      leading: (
-        <span
-          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
-          style={{ backgroundColor: (acc.color || "#1B3A5C") + "22" }}
-        >
-          {isCard ? (
-            <CreditCard className="h-3 w-3" style={{ color: acc.color || "#1B3A5C" }} />
-          ) : (
-            <Wallet className="h-3 w-3" style={{ color: acc.color || "#1B3A5C" }} />
-          )}
-        </span>
-      ),
-      trailing: isCard ? (
-        <Badge variant="secondary" className="shrink-0 border-0 text-[10px] h-4 px-1.5">Cartão</Badge>
-      ) : undefined,
-    };
-  });
+  const accountOptions: SearchableSelectOption[] = [
+    ...accounts.map((acc) => {
+      const isCard = acc.account_type === "cartao_credito";
+      return {
+        value: acc.id,
+        label: acc.name,
+        keywords: acc.account_type,
+        leading: (
+          <span
+            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+            style={{ backgroundColor: (acc.color || "#1B3A5C") + "22" }}
+          >
+            {isCard ? (
+              <CreditCard className="h-3 w-3" style={{ color: acc.color || "#1B3A5C" }} />
+            ) : (
+              <Wallet className="h-3 w-3" style={{ color: acc.color || "#1B3A5C" }} />
+            )}
+          </span>
+        ),
+        trailing: isCard ? (
+          <Badge variant="secondary" className="shrink-0 border-0 text-[10px] h-4 px-1.5">Cartão</Badge>
+        ) : undefined,
+      } as SearchableSelectOption;
+    }),
+    ...creditCards.map((c) => {
+      const label = [c.brand, c.last4 ? `•••• ${c.last4}` : null].filter(Boolean).join(" ")
+        || c.issuer || "Cartão";
+      return {
+        value: `cc:${c.id}`,
+        label,
+        keywords: `cartao credito ${c.brand ?? ""} ${c.issuer ?? ""} ${c.last4 ?? ""}`,
+        leading: (
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15">
+            <CreditCard className="h-3 w-3 text-primary" />
+          </span>
+        ),
+        trailing: (
+          <Badge variant="secondary" className="shrink-0 border-0 text-[10px] h-4 px-1.5">Cartão</Badge>
+        ),
+      } as SearchableSelectOption;
+    }),
+  ];
 
   const flatCategoryOptions: SearchableSelectOption[] = (function () {
     const out: SearchableSelectOption[] = [];
