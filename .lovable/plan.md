@@ -1,39 +1,45 @@
-# Separar menu Conta do menu Financeiro
+# Plano: Dar ao Claude acesso à documentação e código do 360°FOOD
 
-## Problema
-Nas rotas `/empresas`, `/gestao-usuarios`, `/planos`, `/faturas` e `/configuracoes`, a sidebar renderiza o **menu Financeiro 360°** (Dashboard, Lançamentos, Fluxo de Caixa, Orçamento, Relatórios, Cadastros) **junto** com o **menu Conta**. Isso ocorre porque `useActiveModule` trata essas rotas como módulo `financeiro` (fallback), e o `AppSidebar` sempre renderiza `FinanceiroMenu` + `AccountMenu` nesse caso.
+Para o Claude "conhecer" o projeto, o caminho correto **não é alterar o app** — é dar a ele acesso ao repositório GitHub do projeto. O Claude (Desktop, Code ou via API) lê arquivos do repositório e passa a ter contexto completo do código, migrations, edge functions e documentação.
 
-## Objetivo
-Ao acessar qualquer página do menu **Conta**, a sidebar deve mostrar apenas:
-1. Link "Hub de Módulos" (mantido, conforme sua confirmação)
-2. Seção **Conta** (Minhas Empresas, Usuários, Meu Plano, Minhas Faturas, Configurações, + Backoffice para super admin)
+Nenhuma alteração de código no Lovable é necessária. O passo dentro do Lovable é apenas garantir o sync com GitHub.
 
-Sem o menu Financeiro. O menu Financeiro continua aparecendo normalmente nas rotas do módulo Financeiro.
+## Etapas
 
-## Alterações
+1. **Conectar o projeto Lovable ao GitHub** (se ainda não estiver)
+   - No editor Lovable: menu **+** (canto inferior esquerdo do chat) → **GitHub** → **Connect project**
+   - Autorizar o Lovable GitHub App
+   - Escolher a conta/organização e criar o repositório
+   - A partir daí o código sincroniza automaticamente nos dois sentidos
 
-### 1. `src/hooks/useActiveModule.tsx`
-Adicionar um novo valor `"conta"` no tipo `ActiveModule` e detectar as rotas de conta antes do fallback:
+2. **Escolher como o Claude vai ler o repositório** (opções — você escolhe a que preferir)
 
-```
-if (pathname.startsWith("/empresas")) return "conta";
-if (pathname.startsWith("/gestao-usuarios")) return "conta";
-if (pathname.startsWith("/planos")) return "conta";
-if (pathname.startsWith("/faturas")) return "conta";
-if (pathname.startsWith("/configuracoes")) return "conta";
-```
+   a) **Claude Code (CLI)** — recomendado para desenvolvimento
+      - Clonar o repo localmente: `git clone <url-do-repo>`
+      - Rodar `claude` dentro da pasta; ele indexa e responde com base no código real
+      - Melhor opção para "me ajude a desenvolver essa feature"
 
-Adicionar rótulo em `MODULE_LABEL`: `conta: "Conta"`.
+   b) **Claude Desktop com MCP do GitHub**
+      - Instalar o [GitHub MCP server](https://github.com/github/github-mcp-server) no Claude Desktop
+      - Autenticar com um Personal Access Token (repo scope)
+      - Claude passa a ler issues, PRs e arquivos do repo sob demanda
 
-### 2. `src/components/layout/AppSidebar.tsx`
-- No `switch` de `renderModuleMenu`, tratar `case "conta": return null;` para não renderizar o menu Financeiro.
-- Manter o link "Hub de Módulos" visível (a condição atual já exclui apenas `portal_colaborador` e `admin`; `conta` continuará mostrando o Hub, ok).
-- `showAccount` já é `true` para `conta` (só oculta em `admin`), então o `AccountMenu` continua aparecendo.
+   c) **Anexar arquivos manualmente no chat do Claude**
+      - Baixar o código (Code Editor → Download codebase, ou `git clone`)
+      - Arrastar arquivos/pastas específicos na conversa
+      - Bom para consultas pontuais, ruim para contexto contínuo
 
-### 3. Verificar consumidores de `useActiveModule`
-Rodar uma busca por `useActiveModule` / `ActiveModule` para garantir que nenhum outro lugar (breadcrumbs, header, guards) quebre com o novo valor `"conta"`. Onde houver `switch` exaustivo, adicionar o caso.
+3. **Manter uma pasta `docs/` no repo** (opcional, mas recomendado)
+   - Consolidar em `docs/` os arquivos de auditoria já existentes em `.lovable/auditoria/`, decisões de arquitetura, regras de negócio (PF/PJ, folha, DP) e o schema resumido
+   - Assim o Claude encontra a documentação no mesmo lugar que o código
+   - Isso pode ser feito depois, em build mode, se você quiser que eu monte a estrutura
 
-## Resultado esperado
-- `/empresas`, `/gestao-usuarios`, `/planos`, `/faturas`, `/configuracoes` → sidebar mostra apenas Hub + seção Conta.
-- Rotas do Financeiro (`/dashboard`, `/lancamentos`, etc.) → sidebar continua com Financeiro + Conta como hoje.
-- Módulo DP, Portal, Admin e demais → inalterados.
+## O que **não** vamos fazer
+
+- Criar servidor MCP no app (isso seria expor dados do 360°FOOD a assistentes — outro caso de uso, e você já cancelou)
+- Gastar créditos do Lovable AI ou mexer em edge functions
+- Compartilhar chaves do Supabase/Cloud — o Claude só precisa do código-fonte
+
+## Próximo passo sugerido
+
+Confirmar se o projeto já está sincronizado com GitHub. Se estiver, você já pode conectar o Claude pelo caminho (a), (b) ou (c) acima — nada mais precisa ser feito dentro do Lovable. Se quiser, na sequência eu monto a pasta `docs/` consolidando auditorias e regras do projeto para o Claude ter contexto pronto.
