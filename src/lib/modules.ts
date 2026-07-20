@@ -73,6 +73,10 @@ export function statusLabel(status: ModuleStatus): string {
     case "suspended": return "Suspenso";
     case "canceled": return "Cancelado";
     case "not_contracted": return "Não contratado";
+    default: {
+      const _exhaustive: never = status;
+      return _exhaustive;
+    }
   }
 }
 
