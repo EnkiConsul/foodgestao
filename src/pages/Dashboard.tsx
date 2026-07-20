@@ -102,7 +102,7 @@ export default function Dashboard() {
     queryFn: async () => {
       const { data } = await supabase.rpc("get_accessible_categories", {
         _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId : null,
+        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
       });
       return (data ?? []).map((c: any) => ({ id: c.id, name: c.name, color: c.color }));
     },
@@ -115,7 +115,7 @@ export default function Dashboard() {
       if (contextType === "pj" && !selectedCompanyId) return [];
       const { data } = await supabase.rpc("get_accessible_accounts", {
         _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId : null,
+        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
       });
       return (data ?? []).map((a: any) => ({
         name: a.name, current_balance: a.current_balance, color: a.color, is_active: a.is_active, bank_slug: a.bank_slug,

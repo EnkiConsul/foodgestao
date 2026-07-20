@@ -132,7 +132,7 @@ export default function Relatorios() {
     queryFn: async () => {
       const { data } = await supabase.rpc("get_accessible_categories", {
         _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId : null,
+        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
       });
       return (data ?? []).map((c: any) => ({
         id: c.id, name: c.name, color: c.color,
@@ -149,7 +149,7 @@ export default function Relatorios() {
       if (contextType === "pj" && !selectedCompanyId) return [];
       const { data } = await supabase.rpc("get_accessible_accounts", {
         _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId : null,
+        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
       });
       return (data ?? []).map((a: any) => ({ id: a.id, name: a.name, account_type: a.account_type }));
     },
@@ -161,7 +161,7 @@ export default function Relatorios() {
     queryFn: async () => {
       const { data } = await supabase.rpc("get_accessible_payment_methods", {
         _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId : null,
+        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
       });
       return ((data ?? []) as any[]).map((pm: any) => ({ id: pm.id, name: pm.name }));
     },
@@ -342,7 +342,7 @@ export default function Relatorios() {
         let current: string | null = catId;
         while (current) {
           catsWithData.add(current);
-          const c = catMap[current];
+          const c: any = catMap[current];
           current = c?.parent_id ?? null;
         }
       }

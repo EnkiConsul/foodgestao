@@ -55,7 +55,7 @@ export default function ContasBancarias() {
     }
     const { data, error } = await supabase.rpc("get_accessible_accounts", {
       _context: contextType,
-      _company_id: contextType === "pj" ? selectedCompanyId : null,
+      _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
       _include_inactive: true,
     });
     if (error) toast.error("Erro ao carregar contas bancárias");
