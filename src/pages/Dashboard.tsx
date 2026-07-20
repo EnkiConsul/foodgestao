@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, AreaChart, Area, LineChart, Line } from "recharts";
 import { BankLogo } from "@/components/accounts/BankLogo";
+import { UpcomingCardInvoicesWidget } from "@/components/dashboard/UpcomingCardInvoicesWidget";
 
 
 const DONUT_COLORS = [
@@ -566,9 +567,12 @@ export default function Dashboard() {
           )}
         </div>
 
+        {/* Faturas a vencer (Cartões) */}
+        <UpcomingCardInvoicesWidget className="col-span-12 lg:col-span-6" />
+
         {/* Balance Evolution (kept, full-width) */}
         {balanceEvolution.length > 1 && (
-          <div className="col-span-12 p-6 rounded-3xl bg-card border border-border/60 shadow-sm">
+          <div className="col-span-12 lg:col-span-6 p-6 rounded-3xl bg-card border border-border/60 shadow-sm">
             <div className="flex justify-between items-center mb-4">
               <div>
                 <h2 className="font-display text-lg font-bold text-foreground">Evolução do Saldo</h2>
