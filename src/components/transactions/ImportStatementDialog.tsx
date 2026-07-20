@@ -59,7 +59,7 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
   const [quickContact, setQuickContact] = useState<{ rowIdx: number; name: string; contactType: "cliente" | "fornecedor" | "ambos" } | null>(null);
 
   const reset = useCallback(() => {
-    setStep("upload"); setFile(null); setAccountId(""); setRows([]);
+    setStep("upload"); setFile(null); setAccountId(""); setRows([]); setReconciliation(null);
     setImportedCount(0); setDuplicateCount(0); setFailures([]); setProgress(null);
     setDuplicateDecision("none");
     setQuickCat(null); setQuickContact(null);
