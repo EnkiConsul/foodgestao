@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CurrencyInput, parseCurrencyToNumber, formatCurrency } from "@/components/ui/currency-input";
+
+const numToInput = (n: number) => formatCurrency(String(Math.round(n * 100)));
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
