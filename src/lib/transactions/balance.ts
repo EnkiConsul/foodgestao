@@ -16,6 +16,7 @@
 export type TransactionType = "receita" | "despesa" | "transferencia";
 export type TransactionStatus = "pendente" | "confirmado" | "cancelado";
 export type DisplayStatus = "pago" | "a_vencer" | "atrasado";
+export type BalanceRegime = "caixa" | "competencia";
 
 export interface TxLike {
   amount: number;
@@ -23,6 +24,10 @@ export interface TxLike {
   transaction_type: TransactionType;
   transaction_date: string; // yyyy-MM-dd
   due_date: string | null;
+  /** Compra atribuída a uma fatura de cartão (competência, não afeta caixa). */
+  credit_card_invoice_id?: string | null;
+  /** Lançamento que representa o pagamento da fatura (esse SIM sai do caixa). */
+  is_invoice_payment?: boolean;
   payment_date?: string | null;
   status: TransactionStatus;
 }
@@ -72,6 +77,22 @@ export function isRealized(tx: TxLike): boolean {
   return false;
 }
 
+/**
+ * Regime CAIXA: dinheiro que realmente entra/sai da conta bancária.
+ * - Compras no cartão (credit_card_invoice_id preenchido e não é pagamento
+ *   de fatura) NÃO afetam o caixa — elas só entram quando o pagamento da
+ *   fatura acontece.
+ * Regime COMPETÊNCIA: reconhece a despesa/receita no momento do fato gerador.
+ * - O lançamento de pagamento da fatura (is_invoice_payment=true) é
+ *   ignorado para não contar em dobro.
+ */
+export function belongsToRegime(tx: TxLike, regime: BalanceRegime): boolean {
+  const isCardPurchase = Boolean(tx.credit_card_invoice_id) && !tx.is_invoice_payment;
+  if (regime === "caixa") return !isCardPurchase;
+  // competência
+  return !tx.is_invoice_payment;
+}
+
 /** Efeito algébrico no saldo (positivo = entra dinheiro). */
 export function signedEffect(tx: TxLike): number {
   if (tx.transaction_type === "receita") return tx.amount;
@@ -86,14 +107,19 @@ export interface RunningBalanceRow<T> {
 
 /**
  * Aplica saldo corrido em ordem cronológica. Só realiza pagamentos efetivos.
+ * `regime` (default "caixa") controla se compras de cartão contam antes do
+ * pagamento da fatura (competência) ou apenas quando a fatura é paga (caixa).
  */
 export function runningBalance<T extends TxLike>(
   txs: T[],
   previousBalance: number,
+  regime: BalanceRegime = "caixa",
 ): RunningBalanceRow<T>[] {
   let running = previousBalance;
   return txs.map((tx) => {
-    if (isRealized(tx)) running += signedEffect(tx);
+    if (isRealized(tx) && belongsToRegime(tx, regime)) {
+      running += signedEffect(tx);
+    }
     return { tx, runningBalance: running };
   });
 }
@@ -121,13 +147,16 @@ export interface PeriodTotals {
 
 /**
  * Agrega totais do período reproduzindo o cálculo de `Lancamentos.tsx`.
+ * `regime` filtra os lançamentos considerados (default "caixa").
  */
 export function computePeriodTotals(
   txs: TxLike[],
   today: Date,
   previousBalance = 0,
+  regime: BalanceRegime = "caixa",
 ): PeriodTotals {
-  const realized = txs.filter(isRealized);
+  const scoped = txs.filter((t) => belongsToRegime(t, regime));
+  const realized = scoped.filter(isRealized);
   const receitas = realized
     .filter((t) => t.transaction_type === "receita")
     .reduce((s, t) => s + t.amount, 0);
@@ -135,7 +164,7 @@ export function computePeriodTotals(
     .filter((t) => t.transaction_type === "despesa")
     .reduce((s, t) => s + t.amount, 0);
 
-  const withStatus = txs.map((t) => ({ tx: t, status: computeDisplayStatus(t, today) }));
+  const withStatus = scoped.map((t) => ({ tx: t, status: computeDisplayStatus(t, today) }));
   const pending = withStatus.filter((r) => r.status !== "pago");
   const aPagar = pending
     .filter((r) => r.tx.transaction_type === "despesa")
@@ -145,10 +174,10 @@ export function computePeriodTotals(
     .reduce((s, r) => s + Math.max(0, r.tx.amount - r.tx.amount_paid), 0);
   const atrasadas = withStatus.filter((r) => r.status === "atrasado").length;
 
-  const allReceitas = txs
+  const allReceitas = scoped
     .filter((t) => t.transaction_type === "receita")
     .reduce((s, t) => s + t.amount, 0);
-  const allDespesas = txs
+  const allDespesas = scoped
     .filter((t) => t.transaction_type === "despesa")
     .reduce((s, t) => s + t.amount, 0);
   const saldoPeriodo = allReceitas - allDespesas;
