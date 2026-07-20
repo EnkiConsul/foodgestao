@@ -5098,6 +5098,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      assign_transaction_to_invoice: {
+        Args: { _transaction_id: string }
+        Returns: string
+      }
       can_manage_bank_connection: {
         Args: { _connection_id: string }
         Returns: boolean
@@ -5606,6 +5610,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      recalc_credit_card_invoice_totals: {
+        Args: { _invoice_id: string }
+        Returns: undefined
       }
       recompute_account_balance: {
         Args: { _account_id: string }
