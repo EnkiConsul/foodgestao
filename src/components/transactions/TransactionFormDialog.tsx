@@ -525,9 +525,11 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     if (!user) return;
 
     const numAmount = parseCurrencyToNumber(amount);
+    const effectiveAccountId = selectedCardId ? "" : accountId;
+    const effectiveCardId = selectedCardId;
     const parseResult = transactionSchema.safeParse({
       description, amount: numAmount, transaction_type: type,
-      transaction_date: date, account_id: accountId || "",
+      transaction_date: date, account_id: effectiveAccountId || effectiveCardId || "",
       destination_account_id: type === "transferencia" ? destinationAccountId || "" : null,
       category_id: categoryId || null, notes: notes || null,
       payment_method_id: paymentMethodId || null,
