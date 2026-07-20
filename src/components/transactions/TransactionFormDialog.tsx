@@ -304,11 +304,13 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   }, [open, filteredPaymentMethods, paymentMethodId]);
 
   // ---- Credit-card awareness ----
+  // Uses synthetic "cc:<id>" values in accountId to represent credit cards.
+  const selectedCardId = accountId.startsWith("cc:") ? accountId.slice(3) : null;
   const selectedAccount = accounts.find((a) => a.id === accountId);
-  const isCreditCardAccount = selectedAccount?.account_type === "cartao_credito";
-  const matchedCard = isCreditCardAccount
-    ? creditCards.find((c) => c.account_id === accountId)
+  const matchedCard = selectedCardId
+    ? creditCards.find((c) => c.id === selectedCardId)
     : undefined;
+  const isCreditCardAccount = !!matchedCard;
   const cardLabel = matchedCard
     ? [matchedCard.brand, matchedCard.last4 ? `•••• ${matchedCard.last4}` : null]
         .filter(Boolean).join(" ") || matchedCard.issuer || "Cartão"
