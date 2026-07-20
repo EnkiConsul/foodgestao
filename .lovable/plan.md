@@ -1,45 +1,117 @@
-# Plano: Dar ao Claude acesso à documentação e código do 360°FOOD
 
-Para o Claude "conhecer" o projeto, o caminho correto **não é alterar o app** — é dar a ele acesso ao repositório GitHub do projeto. O Claude (Desktop, Code ou via API) lê arquivos do repositório e passa a ter contexto completo do código, migrations, edge functions e documentação.
+# Endurecimento do 360°FOOD — Testes, Tipos e Refactor
 
-Nenhuma alteração de código no Lovable é necessária. O passo dentro do Lovable é apenas garantir o sync com GitHub.
+Três frentes, executadas nesta ordem para reduzir risco: primeiro criamos rede de segurança (testes), depois ligamos o compilador em modo estrito (que vai apontar bugs reais), e por fim quebramos os monólitos com os testes já cobrindo o comportamento.
 
-## Etapas
+Cada frente é entregue em fases pequenas e independentes — você pode aprovar/pausar entre elas.
 
-1. **Conectar o projeto Lovable ao GitHub** (se ainda não estiver)
-   - No editor Lovable: menu **+** (canto inferior esquerdo do chat) → **GitHub** → **Connect project**
-   - Autorizar o Lovable GitHub App
-   - Escolher a conta/organização e criar o repositório
-   - A partir daí o código sincroniza automaticamente nos dois sentidos
+---
 
-2. **Escolher como o Claude vai ler o repositório** (opções — você escolhe a que preferir)
+## Frente 1 — Testes da lógica financeira (rede de segurança)
 
-   a) **Claude Code (CLI)** — recomendado para desenvolvimento
-      - Clonar o repo localmente: `git clone <url-do-repo>`
-      - Rodar `claude` dentro da pasta; ele indexa e responde com base no código real
-      - Melhor opção para "me ajude a desenvolver essa feature"
+**Objetivo:** cobrir com testes automatizados os pontos onde "dinheiro errado" causa churn imediato, antes de mexer em tipos ou refatorar.
 
-   b) **Claude Desktop com MCP do GitHub**
-      - Instalar o [GitHub MCP server](https://github.com/github/github-mcp-server) no Claude Desktop
-      - Autenticar com um Personal Access Token (repo scope)
-      - Claude passa a ler issues, PRs e arquivos do repo sob demanda
+### Fase 1.1 — Parser de extratos
+- `src/lib/statement-import/nubankPdf.ts` — casos: extrato multi-página, linhas de continuação, seção entradas vs saídas, hash determinístico para dedupe.
+- `src/lib/statement-import/suggest.ts` — match por documento (CNPJ/CPF), match por histórico (tokens ≥ 4 chars), score ≥ 2.
+- `markDuplicates` — dedupe contra banco + dedupe intra-arquivo.
+- Fixtures de PDF/OFX em `src/lib/statement-import/__fixtures__/`.
 
-   c) **Anexar arquivos manualmente no chat do Claude**
-      - Baixar o código (Code Editor → Download codebase, ou `git clone`)
-      - Arrastar arquivos/pastas específicos na conversa
-      - Bom para consultas pontuais, ruim para contexto contínuo
+### Fase 1.2 — Cálculo de saldo e sinal de transação
+- `src/lib/transaction-sign.ts` — entrada/saída/transferência, parcelada, estorno.
+- Regras de `useCompanyContext` para filtro PF/PJ.
+- Confirmação de status (pendente → pago) e efeito no saldo.
 
-3. **Manter uma pasta `docs/` no repo** (opcional, mas recomendado)
-   - Consolidar em `docs/` os arquivos de auditoria já existentes em `.lovable/auditoria/`, decisões de arquitetura, regras de negócio (PF/PJ, folha, DP) e o schema resumido
-   - Assim o Claude encontra a documentação no mesmo lugar que o código
-   - Isso pode ser feito depois, em build mode, se você quiser que eu monte a estrutura
+### Fase 1.3 — Webhook Asaas
+- `supabase/functions/asaas-webhook/index.ts` — dedupe por `event_id`, mapeamento de status (PAYMENT_CONFIRMED, RECEIVED, OVERDUE, REFUNDED), atualização de assinatura.
+- Mock do cliente Supabase; garantir idempotência.
 
-## O que **não** vamos fazer
+### Fase 1.4 — DRE / Relatórios contábeis
+- `src/hooks/useContabeisReport.tsx` — agrupamento por subtipo (receita/custo/despesa/imposto/investimento), totais mensais e anuais, hierarquia de categorias.
 
-- Criar servidor MCP no app (isso seria expor dados do 360°FOOD a assistentes — outro caso de uso, e você já cancelou)
-- Gastar créditos do Lovable AI ou mexer em edge functions
-- Compartilhar chaves do Supabase/Cloud — o Claude só precisa do código-fonte
+**Meta:** sair de 7 arquivos de teste para ~25, cobrindo 100% dos caminhos que movem dinheiro.
 
-## Próximo passo sugerido
+---
 
-Confirmar se o projeto já está sincronizado com GitHub. Se estiver, você já pode conectar o Claude pelo caminho (a), (b) ou (c) acima — nada mais precisa ser feito dentro do Lovable. Se quiser, na sequência eu monto a pasta `docs/` consolidando auditorias e regras do projeto para o Claude ter contexto pronto.
+## Frente 2 — `strictNullChecks` incremental
+
+**Objetivo:** ligar `strictNullChecks` em módulos críticos primeiro, arquivo a arquivo, sem quebrar o build. As outras flags (`strict`, `noImplicitAny`) ficam para uma segunda rodada.
+
+### Estratégia
+Não dá para ligar `strictNullChecks: true` no `tsconfig.app.json` de uma vez (centenas de erros). Vamos usar a diretiva `// @ts-check` inversa: manter o projeto permissivo e ativar checagem estrita **por arquivo** via um segundo tsconfig de "arquivos endurecidos".
+
+- Criar `tsconfig.strict.json` que estende o app e ativa `strictNullChecks: true` + `include` restrito à lista de arquivos já saneados.
+- Adicionar step no CI: `tsc -p tsconfig.strict.json --noEmit` (falha se algum arquivo da lista voltar a ter erro null).
+- Nunca remove arquivo da lista — só adiciona.
+
+### Ordem de migração (por raio de blast financeiro)
+
+1. **`src/lib/`** inteiro — utils puros, isolados, baixo custo. (~15 arquivos)
+2. **`src/lib/statement-import/`** — reforça a Frente 1.
+3. **`src/hooks/useCompanyContext.tsx`**, **`useBilling.tsx`**, **`useContabeisReport.tsx`** — hooks centrais.
+4. **`src/components/transactions/`** — form e diálogos de lançamento.
+5. **`src/pages/Lancamentos.tsx`**, **`FluxoCaixa.tsx`**, **`Relatorios.tsx`** — telas de dinheiro.
+6. **`supabase/functions/asaas-*`** — webhook e checkout.
+
+Cada arquivo saneado entra na lista do `tsconfig.strict.json` e vira PR pequeno com bugs de null reais corrigidos (que é o valor real do exercício).
+
+---
+
+## Frente 3 — Quebra dos monólitos
+
+**Objetivo:** reduzir o raio de blast dos 3 maiores arquivos. **Só começa depois que Frente 1 tem testes cobrindo o comportamento deles** — refatorar sem teste é apostar de novo.
+
+### Fase 3.1 — `TransactionFormDialog.tsx` (1.796 linhas)
+Extrair em:
+- `useTransactionForm.ts` — estado + validação Zod + submit.
+- `TransactionBasicFields.tsx` — descrição, valor, data, conta.
+- `TransactionCategoryPicker.tsx` — categoria + contato + RPC lookups.
+- `TransactionInstallmentsSection.tsx` — parcelamento.
+- `TransactionRecurrenceSection.tsx` — recorrência.
+- `TransactionAttachmentsSection.tsx` — anexos.
+- `TransactionFormDialog.tsx` — só orquestração (~200 linhas).
+
+### Fase 3.2 — `Lancamentos.tsx` (1.773 linhas)
+Extrair em:
+- `useLancamentosQuery.ts` — query builder (respeitando a regra de performance de select strings da knowledge).
+- `useLancamentosFilters.ts` — estado de filtros.
+- `LancamentosToolbar.tsx` — filtros + ações em lote.
+- `LancamentosTable.tsx` — tabela + inline edit.
+- `LancamentosBulkActions.tsx` — confirmações em lote.
+- `Lancamentos.tsx` — layout (~250 linhas).
+
+### Fase 3.3 — `DpBloqueios.tsx` (932 linhas)
+Extrair em:
+- `useDpBloqueios.ts` — CRUD + regeneração de calendário.
+- `BloqueioFormDialog.tsx`
+- `BloqueiosCalendar.tsx`
+- `DpBloqueios.tsx` — layout (~150 linhas).
+
+**Regra:** cada extração é uma migração de código puro (sem mudar comportamento). Rodamos os testes da Frente 1 antes e depois.
+
+---
+
+## Fora do escopo (intencionalmente)
+
+- **Revisão estratégica de verticais** (o item 4 do Claude) — decisão de produto, não técnica. Se quiser discutir, faço em conversa separada, sem código.
+- Ligar `strict: true` completo (com `noImplicitAny`) — segunda rodada, depois do `strictNullChecks` cobrir os módulos críticos.
+- Refatorar arquivos < 500 linhas — custo/benefício não compensa agora.
+
+---
+
+## Detalhes técnicos
+
+- Testes: Vitest + Testing Library já configurados (`vitest.config.ts`, `src/test/setup.ts`).
+- Fixtures binárias (PDF) vão para `src/lib/statement-import/__fixtures__/` e são lidas via `fs` no ambiente jsdom.
+- Mocks do Supabase: helper `src/test/mocks/supabase.ts` (a criar) que devolve builder tipado — segue a regra de `.returns<T>()` da knowledge.
+- Edge functions testadas com Deno test runner ou adaptador Node — a definir na Fase 1.3.
+- CI: adicionar job `strict-typecheck` em `.github/workflows/ci.yml` que roda `tsc -p tsconfig.strict.json`.
+- Nenhuma mudança de schema/DB nesta iniciativa.
+
+---
+
+## Ordem de execução sugerida
+
+Começo pela **Fase 1.1** (parser de extratos) — é o teste mais isolado, valida a infra de testes, e destrava as demais. Depois seguimos linearmente. Cada fase é ~1 entrega, você aprova entre elas.
+
+Confirma que posso começar por 1.1?
