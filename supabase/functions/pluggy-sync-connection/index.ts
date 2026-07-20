@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
 
         let page = 1;
         let latestDate: string | null = null;
-        // eslint-disable-next-line no-constant-condition
+         
         while (true) {
           const resp = await listTransactions({
             accountId: pa.id,

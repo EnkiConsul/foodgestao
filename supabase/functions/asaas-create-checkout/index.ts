@@ -179,7 +179,7 @@ Deno.serve(async (req) => {
     let pixQrCode: string | null = null;
     let pixCopyPaste: string | null = null;
     let boletoUrl: string | null = null;
-    let invoiceUrl: string | null = firstPayment?.invoiceUrl ?? null;
+    const invoiceUrl: string | null = firstPayment?.invoiceUrl ?? null;
 
     if (firstPayment) {
       if (firstPayment.billingType === "PIX" || billingType === "PIX") {

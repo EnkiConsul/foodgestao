@@ -72,7 +72,7 @@ export function NotificationsBell() {
       });
 
       // Budgets
-      let budgetQuery = supabase
+      const budgetQuery = supabase
         .from("budgets")
         .select("id, amount, category_id, start_date, end_date, category:categories(name)")
         .eq("user_id", user!.id)

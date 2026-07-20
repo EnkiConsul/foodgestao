@@ -120,7 +120,7 @@ export default function Checkout() {
     </div>;
   }
 
-  let amount = plan.price_cents;
+  const amount = plan.price_cents;
   let discount = 0;
   if (validatedCoupon) {
     if (validatedCoupon.discount_type === "percent") {

@@ -111,7 +111,7 @@ export default function DpFolgas() {
     setUnidadeFilter(p.unidade ?? "todas");
     setColabFilter(p.colaborador ?? "todos");
     setTipoFilter(p.tipo ?? "todos");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [selectedCompanyId]);
 
   // Persiste alterações

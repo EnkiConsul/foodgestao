@@ -41,7 +41,7 @@ export default function Orcamento() {
     queryKey: ["budgets", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
     queryFn: async () => {
-      let q = supabase
+      const q = supabase
         .from("budgets")
         .select("*, categories!fk_budgets_category(name, color, icon)")
         .eq("user_id", user!.id)

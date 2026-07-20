@@ -4,6 +4,15 @@
 
 **URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
 
+## CI quality gates
+
+Dois gates rodam em toda PR (`.github/workflows/ci.yml`):
+
+- **TypeScript strict** — `npx tsc -p tsconfig.strict.json --noEmit`. Zero erros. Cobre `src/lib|hooks|components|pages`. Reproduzível local com `npm run typecheck:strict`.
+- **ESLint ratchet decrescente** — `npx eslint . --max-warnings=546`. Zero erros permitidos; o teto de warnings representa dívida técnica reconhecida (majoritariamente `@typescript-eslint/no-explicit-any`). Ao reduzir warnings, baixe o teto na mesma PR. Nunca suba.
+
+
+
 ## How can I edit this code?
 
 There are several ways of editing your application.
