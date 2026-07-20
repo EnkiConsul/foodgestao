@@ -94,7 +94,7 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
     if (!file || !accountId) { toast.error("Selecione a conta e o arquivo"); return; }
     setBusy(true);
     try {
-      const entries = await parseNubankStatementPdf(file);
+      const { entries, reconciliation: rec } = await parseNubankStatementPdfWithSummary(file);
       if (entries.length === 0) {
         toast.error("Nenhuma movimentação identificada no PDF");
         setBusy(false);
@@ -107,6 +107,7 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
       });
       const withDup = await markDuplicates(withSug, accountId);
       setRows(withDup);
+      setReconciliation(rec);
       setDuplicateDecision(withDup.some((r) => r.duplicate) ? "pending" : "none");
       setStep("review");
     } catch (e) {
