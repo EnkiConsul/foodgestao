@@ -16,6 +16,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Guard — nenhum segredo não-VITE_ no .env versionado
+        # Falha se alguém commitar chave sem prefixo VITE_ no .env
+        # (ex.: ASAAS_API_KEY, PLUGGY_CLIENT_SECRET). Roda antes do
+        # npm ci para dar feedback em segundos.
+        run: |
+          if git ls-files --error-unmatch .env >/dev/null 2>&1; then
+            offenders=$(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env | grep -Ev '^VITE_' || true)
+            if [ -n "$offenders" ]; then
+              echo "::error::Variável não-VITE_ detectada no .env versionado:"
+              echo "$offenders" | sed 's/=.*/=***/'
+              exit 1
+            fi
+          fi
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:

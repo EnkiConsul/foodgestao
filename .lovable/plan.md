@@ -1,47 +1,49 @@
 ## Objetivo
-Quebrar o chunk único de ~3 MB em pedaços carregados sob demanda, priorizando o que é raramente usado no primeiro acesso (módulos DP, Relatórios, Admin, Landing, PDF worker) e agrupando libs pesadas em vendor chunks estáveis para melhorar cache.
 
-## Diagnóstico confirmado
-- `src/App.tsx`: **57 imports estáticos de páginas**, zero `React.lazy`. Toda a árvore de rotas (DP, Admin, Relatórios, Checkout, Legal, Landing) entra no bundle inicial mesmo em `/dashboard`.
-- `vite.config.ts`: sem `build.rollupOptions.output.manualChunks` — Rollup joga tudo (React, Radix, Recharts, pdfjs, Supabase, react-hook-form, etc.) num único chunk grande.
-- `src/lib/statement-import/nubankPdf.ts`: importa `pdfjs-dist` e o worker via `?worker` **estaticamente**. Consumido só por `ImportStatementDialog`, mas hoje entra no bundle principal via a cadeia `Lancamentos → ImportStatementDialog`.
+Adicionar um guardrail permanente no CI que falhe caso alguém commit uma variável **sem prefixo `VITE_`** no `.env` versionado (ou o `.env` volte a ser rastreado com segredos reais tipo `ASAAS_API_KEY`, `PLUGGY_CLIENT_SECRET`, etc.).
 
-## Escopo da mudança
+## Onde
 
-### 1. Lazy por rota em `src/App.tsx`
-Converter todas as rotas de página para `React.lazy(() => import(...))` e envolver `<Routes>` num único `<Suspense fallback={<PageSpinner />}>`. Manter eager somente as rotas críticas do primeiro paint autenticado:
-- `Landing`, `Auth`, `Hub`, `Dashboard` → eager (entrypoints prováveis)
-- Todo o resto (DP/*, Admin/*, Relatorios/*, Checkout, Faturas, Legal, Onboarding, Lancamentos, FluxoCaixa, Orcamento, Categorias, Contatos, etc.) → lazy
+Arquivo único: `.github/workflows/ci.yml`, dentro do job `quality`, como um novo step antes do typecheck (falha rápido e barato, sem depender de `npm ci`).
 
-Reusar o spinner que já aparece em `RootGate`/`PortalProtected` como fallback do Suspense (extrair para `components/PageSpinner.tsx`).
+## O que adicionar
 
-### 2. Lazy do `ImportStatementDialog` dentro de `Lancamentos`
-`nubankPdf.ts` + `pdfjs-dist` + worker representam boa parte do peso. Converter o import de `ImportStatementDialog` em `Lancamentos.tsx` para `lazy()` + `Suspense`, para que pdfjs só desça quando o usuário abrir "Importar extrato". O worker (`?worker`) já é chunk separado; o problema é `pdfjs-dist` no bundle principal — resolvido pelo lazy da diálogo.
+Um step que:
 
-### 3. `manualChunks` em `vite.config.ts`
-Adicionar `build.rollupOptions.output.manualChunks` agrupando vendors estáveis para cache de longo prazo:
-- `react-vendor`: `react`, `react-dom`, `react-router-dom`, `react/jsx-runtime`
-- `radix`: todos os `@radix-ui/*`
-- `charts`: `recharts`, `d3-*`
-- `supabase`: `@supabase/supabase-js`
-- `forms`: `react-hook-form`, `@hookform/resolvers`, `zod`
-- `pdf`: `pdfjs-dist` (garantia extra caso alguma outra rota importe)
+1. Verifica se `.env` está versionado (`git ls-files --error-unmatch .env`).
+2. Se estiver, lê apenas linhas de atribuição (`^[A-Za-z_][A-Za-z0-9_]*=`), ignora comentários/linhas em branco, e falha se **qualquer** chave não começar com `VITE_`.
 
-Função `manualChunks(id)` baseada em `node_modules/<pkg>`.
+### Observação técnica (correção do snippet original)
 
-### 4. Verificação
-- `bun run build` antes/depois: registrar tamanho do maior chunk e do initial JS carregado em `/dashboard`.
-- Rodar `bunx vitest run` (145 testes) para garantir que nada da refatoração de lazy quebra imports/tipos.
-- Testar navegação rápida entre `/dashboard → /dp → /relatorios → /lancamentos → abrir Importar extrato` para conferir Suspense e ausência de flashes.
+O pipeline proposto pelo revisor tem um bug: `grep -qE '...' .env | grep -qv '^VITE_'` — o primeiro `grep -q` suprime a saída, então o segundo `grep` nunca recebe nada e o guard **nunca dispara**. A versão que vou usar corrige isso:
 
-## Detalhes técnicos
-- `React.lazy` exige `export default` nas páginas. Todas as páginas em `src/pages/**` já usam default export — compatível.
-- `Suspense` fica **dentro** dos providers e **dentro** de cada `<Route element={...}>` layout que já tem `<Outlet />`? Não: colocar um `<Suspense>` externo em `AppRoutes` cobre todas as rotas com um único fallback centralizado.
-- `useSearchParams`/`useLocation` continuam funcionando porque os wrappers (`PublicOnlyRoute`, `SubscriptionGuard`, etc.) permanecem eager — só o componente de página é lazy.
-- `manualChunks` como função (não objeto) evita listar cada pacote Radix individualmente.
-- Não mexer em `src/integrations/supabase/client.ts` (auto-gen). Vendor chunk agrupa via `node_modules` no `manualChunks`.
+```yaml
+- name: Guard — nenhum segredo não-VITE_ no .env versionado
+  run: |
+    if git ls-files --error-unmatch .env >/dev/null 2>&1; then
+      offenders=$(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env | grep -Ev '^VITE_' || true)
+      if [ -n "$offenders" ]; then
+        echo "::error::Variável não-VITE_ detectada no .env versionado:"
+        echo "$offenders" | sed 's/=.*/=***/'
+        exit 1
+      fi
+    fi
+```
 
-## Fora de escopo
-- Não substituir libs (recharts/pdfjs) — só mover para chunks separados.
-- Não mexer em PWA/Workbox cache.
-- Não refatorar componentes de página além do necessário para lazy default export.
+Detalhes:
+- `|| true` evita que o `grep` sem matches (exit 1) derrube o step por engano.
+- A saída mascara o valor após `=` para não vazar conteúdo em log público caso alguém já tenha commitado um segredo.
+- Roda antes do `Install dependencies` para dar feedback em ~5 segundos.
+
+## Não incluído
+
+- Não mexer em `.env`, `.env.example` nem em `.gitignore` (já tratados na fase anterior).
+- Não adicionar scan de histórico git (fora de escopo — trufflehog/gitleaks seria outro workflow).
+- Não alterar os demais steps do `ci.yml`.
+
+## Validação
+
+Como o step só existe no CI, a validação real acontece no push. Antes disso, dá para rodar manualmente o bloco `run:` no shell local para confirmar que:
+- passa quando `.env` não está versionado;
+- passa com apenas `VITE_*`;
+- falha ao adicionar uma linha `ASAAS_API_KEY=foo`.
