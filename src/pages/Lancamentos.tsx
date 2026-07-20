@@ -617,7 +617,7 @@ export default function Lancamentos() {
     });
 
     return rows;
-  }, [transactions, search, filterCredito, filterDebito, filterTransferencia, filterPago, filterAVencer, filterAtrasado, filterAccount, filterPaymentMethod, filterCategory, dateFrom, dateTo, sortBy, previousBalance]);
+  }, [transactions, search, filterCredito, filterDebito, filterTransferencia, filterPago, filterAVencer, filterAtrasado, filterAccount, filterPaymentMethod, filterCategory, dateFrom, dateTo, sortBy, previousBalance, monthStart, monthEnd]);
 
   // Totals
   const totals = useMemo(() => {
