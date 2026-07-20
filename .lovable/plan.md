@@ -1,27 +1,42 @@
-## Objetivo
+# Corrigir filtro de mês em Lançamentos
 
-Remover o campo "Data" visível no formulário de cadastro de lançamento. O sistema passa a atribuir automaticamente a data (data atual no momento da criação) sem que o usuário precise ver ou digitar.
+## Diagnóstico (confirmado por leitura do código)
 
-## Escopo
+Em `src/pages/Lancamentos.tsx` (linha 273) a query traz qualquer transação cujo `transaction_date` **OU** `due_date` caia no mês selecionado:
 
-Apenas alteração de UI em `src/components/transactions/TransactionFormDialog.tsx`. Nenhuma mudança no banco, triggers, RLS ou hooks.
+```
+.or(and(transaction_date IN mês), and(due_date IN mês))
+```
 
-## Mudanças
+Como não há filtro adicional no cliente para lançamentos com vencimento, uma conta lançada (transaction_date) neste mês mas com `due_date` em outro mês aparece na tela. É exatamente o comportamento reportado.
 
-1. **Remover o bloco visual do campo "Data"** (linhas 926–940 aprox., `<div data-field="transaction_date">` com Label + DatePicker).
-2. **Manter o estado `date` interno** já existente, que:
-   - Em novo lançamento: continua inicializado com `format(new Date(), "yyyy-MM-dd")` → vira automaticamente a data de criação.
-   - Em edição: continua carregando `transaction.transaction_date` (não altera lançamentos já criados).
-   - Em duplicação: mantemos o comportamento atual (herda do original) — pode ser ajustado para "hoje" se preferir; ver pergunta abaixo.
-3. **Preservar toda a lógica dependente de `date`** (payload, parcelas, recorrência, preview) — apenas o input desaparece da tela.
+O critério correto para a lista mensal de "Lançamentos / Contas a Pagar/Receber" é:
 
-## Fora do escopo
+- Se o registro tem `due_date` (é uma conta) → considerar apenas o `due_date` para decidir em que mês aparece.
+- Se não tem `due_date` (movimentação simples) → usar `transaction_date`.
 
-- Nenhuma alteração nos campos "Data de vencimento" e "Data de pagamento" — permanecem visíveis e editáveis como hoje.
-- Nenhuma migração de dados.
+Assim, contas "vencem no mês visível" e movimentações comuns continuam por data do lançamento.
+
+## Alterações
+
+Arquivo: `src/pages/Lancamentos.tsx`
+
+1. **Query (fetchTransactions, ~linha 273)** — trocar o `.or(...)` por:
+   ```
+   .or(`and(due_date.is.null,transaction_date.gte.${monthStart},transaction_date.lte.${monthEnd}),and(due_date.gte.${monthStart},due_date.lte.${monthEnd})`)
+   ```
+   Ou seja: sem `due_date` filtra por `transaction_date`; com `due_date` filtra por `due_date`.
+
+2. **Filtro cliente (bloco de filtros do `displayRows`, ~linha 548-616)** — adicionar guarda defensiva equivalente para o caso de dados vindos do cache/realtime:
+   ```ts
+   const ref = t.due_date ?? t.transaction_date;
+   if (ref < monthStart || ref > monthEnd) return;
+   ```
+
+Nenhum outro comportamento (status, saldo anterior via RPC, ordenação, etc.) é afetado — o RPC `get_balance_before` já usa `monthStart` como corte.
 
 ## Validação
 
-- Abrir "Novo lançamento" → o campo "Data" não aparece mais; ao salvar, o registro é gravado com `transaction_date = hoje`.
-- Editar lançamento existente → data original é preservada.
-- Parcelamento e recorrência continuam gerando datas corretamente a partir da data atual.
+- Abrir mês atual: uma conta com `transaction_date` = hoje e `due_date` no mês seguinte NÃO deve mais aparecer.
+- Navegar para o mês do `due_date` dela: passa a aparecer.
+- Movimentações sem `due_date` continuam listadas pelo mês do `transaction_date`.

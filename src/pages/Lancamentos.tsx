@@ -270,7 +270,7 @@ export default function Lancamentos() {
       .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, bill_status, payment_date, contact_id, notes, destination_account_id, is_recurring, parent_transaction_id, attachment_url, installment_number, installment_total, categories!fk_transactions_category(name), accounts!fk_transactions_account(name), payment_methods!fk_transactions_payment_method(name)")
       .eq("user_id", user.id)
       .eq("context", contextType)
-      .or(`and(transaction_date.gte.${monthStart},transaction_date.lte.${monthEnd}),and(due_date.gte.${monthStart},due_date.lte.${monthEnd})`)
+      .or(`and(due_date.is.null,transaction_date.gte.${monthStart},transaction_date.lte.${monthEnd}),and(due_date.gte.${monthStart},due_date.lte.${monthEnd})`)
       .order("transaction_date", { ascending: true });
 
     if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
@@ -552,6 +552,10 @@ export default function Lancamentos() {
       if (filterPaymentMethod.length > 0 && (!t.payment_method_id || !filterPaymentMethod.includes(t.payment_method_id))) return;
       if (filterCategory !== "all" && t.category_id !== filterCategory) return;
 
+      // Guarda: mês atual deve considerar due_date quando existe, senão transaction_date
+      const refDate = t.due_date ?? t.transaction_date;
+      if (refDate < monthStart || refDate > monthEnd) return;
+
       const computed = computeDisplayStatus(t);
 
       // Status filter
@@ -613,7 +617,7 @@ export default function Lancamentos() {
     });
 
     return rows;
-  }, [transactions, search, filterCredito, filterDebito, filterTransferencia, filterPago, filterAVencer, filterAtrasado, filterAccount, filterPaymentMethod, filterCategory, dateFrom, dateTo, sortBy, previousBalance]);
+  }, [transactions, search, filterCredito, filterDebito, filterTransferencia, filterPago, filterAVencer, filterAtrasado, filterAccount, filterPaymentMethod, filterCategory, dateFrom, dateTo, sortBy, previousBalance, monthStart, monthEnd]);
 
   // Totals
   const totals = useMemo(() => {
