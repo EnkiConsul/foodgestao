@@ -216,7 +216,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       setDescription(transaction.description);
       setAmount(transaction.amount.toFixed(2).replace(".", ","));
       setDate(transaction.transaction_date);
-      setAccountId(transaction.account_id);
+      setAccountId(transaction.credit_card_id ? `cc:${transaction.credit_card_id}` : (transaction.account_id ?? ""));
       setDestinationAccountId(transaction.destination_account_id ?? "");
       setCategoryId(transaction.category_id ?? "");
       setContactId(transaction.contact_id ?? "");
