@@ -77,6 +77,22 @@ export function isRealized(tx: TxLike): boolean {
   return false;
 }
 
+/**
+ * Regime CAIXA: dinheiro que realmente entra/sai da conta bancária.
+ * - Compras no cartão (credit_card_invoice_id preenchido e não é pagamento
+ *   de fatura) NÃO afetam o caixa — elas só entram quando o pagamento da
+ *   fatura acontece.
+ * Regime COMPETÊNCIA: reconhece a despesa/receita no momento do fato gerador.
+ * - O lançamento de pagamento da fatura (is_invoice_payment=true) é
+ *   ignorado para não contar em dobro.
+ */
+export function belongsToRegime(tx: TxLike, regime: BalanceRegime): boolean {
+  const isCardPurchase = Boolean(tx.credit_card_invoice_id) && !tx.is_invoice_payment;
+  if (regime === "caixa") return !isCardPurchase;
+  // competência
+  return !tx.is_invoice_payment;
+}
+
 /** Efeito algébrico no saldo (positivo = entra dinheiro). */
 export function signedEffect(tx: TxLike): number {
   if (tx.transaction_type === "receita") return tx.amount;
