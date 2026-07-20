@@ -1222,10 +1222,16 @@ export default function Lancamentos() {
             <Card className="shadow-sm h-fit mb-3">
               <CardContent className="p-2">
                 <h3 className="text-[11px] font-semibold mb-1.5">Filtro Rápido</h3>
-                <FilterPanel />
+                <FilterPanel {...filterPanelProps} />
               </CardContent>
             </Card>
-            <SaldosCard />
+            <SaldosCard
+              previousBalance={previousBalance}
+              saldoPeriodo={totals.saldoPeriodo}
+              saldoAcumulado={totals.saldoAcumulado}
+              dates={saldoDates}
+              formatBRL={formatBRL}
+            />
           </div>
         )}
       </div>
