@@ -124,20 +124,23 @@ async function extractLines(file: File): Promise<string[]> {
   return allLines;
 }
 
-async function sha1(input: string): Promise<string> {
+export async function sha1(input: string): Promise<string> {
   const enc = new TextEncoder().encode(input);
   const buf = await crypto.subtle.digest("SHA-1", enc);
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-function normalizeMonthKey(m: string): string | null {
+export function normalizeMonthKey(m: string): string | null {
   const key = m.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   return MONTHS[key] ?? null;
 }
 
-function isNoise(line: string): boolean {
+export function isNoise(line: string): boolean {
   return NOISE_RES.some((re) => re.test(line));
 }
+
+export { parseNumberBR };
+
 
 /**
  * Parses a Nubank checking-account PDF statement into individual movement entries.
