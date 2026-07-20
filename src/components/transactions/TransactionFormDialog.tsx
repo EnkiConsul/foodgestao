@@ -302,6 +302,53 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     if (!exists) setPaymentMethodId("");
   }, [open, filteredPaymentMethods, paymentMethodId]);
 
+  // ---- Credit-card awareness ----
+  const selectedAccount = accounts.find((a) => a.id === accountId);
+  const isCreditCardAccount = selectedAccount?.account_type === "cartao_credito";
+  const matchedCard = isCreditCardAccount
+    ? creditCards.find((c) => c.account_id === accountId)
+    : undefined;
+  const cardLabel = matchedCard
+    ? [matchedCard.brand, matchedCard.last4 ? `•••• ${matchedCard.last4}` : null]
+        .filter(Boolean).join(" ") || matchedCard.issuer || "Cartão"
+    : null;
+
+  const invoicePreview = (() => {
+    if (!matchedCard || !date) return null;
+    try {
+      const cycle = assignPurchaseToInvoice(parseLocalDate(date), {
+        closingDay: matchedCard.closing_day,
+        dueDay: matchedCard.due_day,
+      });
+      return {
+        reference: cycle.referenceMonth,
+        closing: cycle.closingDate,
+        due: cycle.dueDate,
+      };
+    } catch {
+      return null;
+    }
+  })();
+
+  // Auto-switch away from transferência when picking a credit card account
+  useEffect(() => {
+    if (isCreditCardAccount && type === "transferencia") {
+      setType("despesa");
+      setCategoryId("");
+    }
+  }, [isCreditCardAccount, type]);
+
+  // Compras no cartão nunca são "pagas" à vista — o pagamento vem da fatura.
+  useEffect(() => {
+    if (!isCreditCardAccount) return;
+    if (status !== "pendente") setStatus("pendente");
+    if (paymentDate) setPaymentDate("");
+    // Vencimento é derivado do ciclo do cartão — mantemos vazio no lançamento
+    if (dueDate) setDueDate("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCreditCardAccount]);
+
+
 
 
 
