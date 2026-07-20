@@ -20,7 +20,7 @@
     "src/components/**/*.tsx"
   ],
   "exclude": [
-    "src/lib/**/*.test.ts",
-    "src/lib/**/*.test.tsx"
+    "**/*.test.ts",
+    "**/*.test.tsx"
   ]
 }
