@@ -5728,6 +5728,7 @@ export type Database = {
         | "paga"
         | "parcial"
         | "atrasada"
+        | "vencida"
       invoice_payment_method: "pix" | "boleto" | "card" | "manual"
       invoice_status:
         | "draft"
@@ -6006,6 +6007,7 @@ export const Constants = {
         "paga",
         "parcial",
         "atrasada",
+        "vencida",
       ],
       invoice_payment_method: ["pix", "boleto", "card", "manual"],
       invoice_status: [
