@@ -16,7 +16,8 @@ import { Upload, FileText, Loader2, AlertTriangle, CheckCircle2, Plus, XCircle }
 import { formatDate } from "@/lib/date-utils";
 import { formatBRL } from "@/lib/billing";
 import { amountColorClass, amountSignPrefix, transactionSignedAmount } from "@/lib/transaction-sign";
-import { parseNubankStatementPdf } from "@/lib/statement-import/nubankPdf";
+import { parseNubankStatementPdfWithSummary } from "@/lib/statement-import/nubankPdf";
+import type { Reconciliation } from "@/lib/statement-import/nubankParser";
 import { suggestForEntries, markDuplicates } from "@/lib/statement-import/suggest";
 import type { ReviewRow } from "@/lib/statement-import/types";
 import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
