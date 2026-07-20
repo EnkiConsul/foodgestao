@@ -1001,7 +1001,11 @@ export default function Lancamentos() {
       />
 
 
-      <ImportStatementDialog open={importOpen} onOpenChange={setImportOpen} onImported={refreshAll} />
+      {importOpen && (
+        <Suspense fallback={null}>
+          <ImportStatementDialog open={importOpen} onOpenChange={setImportOpen} onImported={refreshAll} />
+        </Suspense>
+      )}
 
       {/* Recurring edit scope prompt */}
       <RecurringEditScopeDialog
