@@ -1421,7 +1421,11 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           {/* Status */}
           <div className="space-y-2">
             <Label>Status</Label>
-            <Select value={status} onValueChange={(v) => setStatus(v as "confirmado" | "pendente" | "cancelado")}>
+            <Select
+              value={status}
+              onValueChange={(v) => setStatus(v as "confirmado" | "pendente" | "cancelado")}
+              disabled={isCreditCardAccount}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -1446,6 +1450,11 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                 </SelectItem>
               </SelectContent>
             </Select>
+            {isCreditCardAccount && (
+              <p className="text-[11px] text-muted-foreground">
+                Compras no cartão ficam pendentes até o pagamento da fatura.
+              </p>
+            )}
             {status === "cancelado" && (
               <p className="text-[11px] text-destructive">
                 O valor pago será zerado e não será considerado nos saldos.
