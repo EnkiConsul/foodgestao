@@ -365,7 +365,15 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
         </CardContent>
       </Card>
 
-      <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
+      <AlertDialog
+        open={!!confirmDelete}
+        onOpenChange={(o) => {
+          if (!o) {
+            setConfirmDelete(null);
+            setDeleteError(null);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remover conexão Open Finance</AlertDialogTitle>
@@ -374,13 +382,38 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
               contas do provedor. Os lançamentos já importados permanecem em suas contas internas.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {deleteError && (
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              <p className="font-medium">Falha ao remover</p>
+              <p className="mt-1 text-xs">{deleteError.message}</p>
+              {deleteError.pluggyError && (
+                <p className="mt-2 text-xs">
+                  A conexão local não foi apagada — tente novamente. Se o item já foi removido diretamente no painel Pluggy,
+                  {isSuperAdmin ? " use \"Remover mesmo assim\"." : " peça ajuda a um super admin."}
+                </p>
+              )}
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            {deleteError?.pluggyError && isSuperAdmin && (
+              <Button
+                variant="outline"
+                onClick={() => confirmDelete && handleDelete(confirmDelete, true)}
+                disabled={deleteConnection.isPending}
+              >
+                Remover mesmo assim
+              </Button>
+            )}
             <AlertDialogAction
-              onClick={() => confirmDelete && handleDelete(confirmDelete)}
+              onClick={(e) => {
+                e.preventDefault();
+                if (confirmDelete) handleDelete(confirmDelete, false);
+              }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteConnection.isPending}
             >
-              Remover
+              {deleteError ? "Tentar novamente" : "Remover"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
