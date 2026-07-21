@@ -142,7 +142,7 @@ export function useDpPendencias() {
                 tipo: "Contracheque",
                 vencimento: ymd(vencimento),
                 atrasoDias: dias,
-                url: "/dp/folha",
+                url: "/dp/documentos/contracheque",
               });
             }
           }
@@ -180,7 +180,7 @@ export function useDpPendencias() {
               tipo: "Adiantamento",
               vencimento: ymd(vencimento),
               atrasoDias: dias,
-              url: "/dp/folha",
+              url: "/dp/documentos/adiantamento",
             });
           }
         }
