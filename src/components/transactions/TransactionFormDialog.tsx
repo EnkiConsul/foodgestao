@@ -470,6 +470,23 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     return out;
   })();
 
+  // Auto-categorization suggestion (Fase 4)
+  const { suggestion: categorySuggestion, applyHit: applyCategorizationHit } =
+    useCategorizationSuggestion({
+      description,
+      transactionType:
+        type === "receita" ? "entrada" : type === "despesa" ? "saida" : null,
+      context: contextType,
+      companyId: contextType === "pj" ? selectedCompanyId : null,
+      enabled: open && type !== "transferencia" && !isEditing,
+    });
+  const suggestionCategoryLabel =
+    categorySuggestion?.category_id
+      ? flatCategoryOptions.find((o) => o.value === categorySuggestion.category_id)?.label ?? null
+      : null;
+
+
+
   const CONTACT_BADGE_CLS: Record<string, string> = {
     cliente: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
     fornecedor: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
