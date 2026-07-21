@@ -4,6 +4,7 @@ import { corsHeaders, deleteItem } from "../_shared/pluggy.ts";
 
 const BodySchema = z.object({
   connectionId: z.string().uuid(),
+  force: z.boolean().optional().default(false),
 });
 
 Deno.serve(async (req) => {
