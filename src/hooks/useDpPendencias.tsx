@@ -295,17 +295,20 @@ export function useDpPendencias() {
               continue;
             }
             const ultima: any = negs[0];
-            // vencimento = último dia de (ano+1, mes)
-            const vencimento = new Date(ultima.ano + 1, ultima.mes, 0);
-            const dias = differenceInCalendarDays(today, vencimento);
-            const diasParaVencer = differenceInCalendarDays(vencimento, today);
-            // exibir se atrasado, ou dentro do aviso de 60 dias
-            if (dias > 0 || (diasParaVencer >= 0 && diasParaVencer <= 60)) {
+            const anoUltimo = ultima.ano ?? 0;
+            const mesUltimo = ultima.mes ?? 0;
+            // pendência se a última é de ano anterior, ou do mesmo ano mas mês anterior ao vigente
+            const desatualizada =
+              anoUltimo < anoVigente ||
+              (anoUltimo === anoVigente && mesUltimo < mesVigente);
+            if (desatualizada) {
+              const vencimento = new Date(anoVigente, 11, 31);
+              const dias = differenceInCalendarDays(today, vencimento);
               results.push({
                 id,
                 icon: Scale,
                 titulo: `Negociação coletiva pendente — ${nomeSind}`,
-                subtitulo: `${unidadeNome} — última ${String(ultima.mes).padStart(2, "0")}/${ultima.ano}`,
+                subtitulo: `${unidadeNome} — última ${String(mesUltimo).padStart(2, "0")}/${anoUltimo} · registrar ${anoVigente}`,
                 tipo: "Negociação",
                 vencimento: ymd(vencimento),
                 atrasoDias: dias > 0 ? dias : null,
