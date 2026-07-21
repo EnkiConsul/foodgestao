@@ -207,10 +207,10 @@ export default function DpAdminCalendario() {
   }, [diaConfigQ.data]);
 
   const blockedByDate = useMemo(() => {
-    const m = new Map<string, { motivo: string; auto: boolean; id: string; liberada: boolean }>();
+    const m = new Map<string, { motivo: string; auto: boolean; id: string }>();
     for (const b of bloqueios) {
-      if (b.liberada) continue;
-      m.set(b.data, { motivo: b.motivo, auto: !!b.auto, id: b.id, liberada: !!b.liberada });
+      if (b.liberada_por_solicitacao) continue;
+      m.set(b.data, { motivo: b.motivo, auto: !!b.regra_id, id: b.id });
     }
     return m;
   }, [bloqueios]);
