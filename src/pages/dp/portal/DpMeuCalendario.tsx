@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
+import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { eachDayOfInterval, endOfMonth, startOfMonth } from "date-fns";
 import {
@@ -13,7 +14,6 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { FolgaCalendarShared } from "@/components/dp/FolgaCalendarShared";
-import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -77,6 +77,7 @@ const STATUS_BADGE: Record<DateStatusKind, string> = {
 export default function DpMeuCalendario() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const today = new Date();
   const [ano, setAno] = useState(today.getFullYear());
   const [mes, setMes] = useState(today.getMonth() + 1);
@@ -396,8 +397,7 @@ export default function DpMeuCalendario() {
   const enviarExcecao = useMutation({
     mutationFn: async () => {
       if (!meRef.data || !selectedDay) throw new Error("Sem contexto");
-      const motivo = exceptionMotivo.trim();
-      if (!motivo) throw new Error("Descreva a justificativa.");
+      const motivo = exceptionMotivo.trim() || "Solicitação de exceção (sem motivo informado)";
       const { error } = await supabase.from("dp_solicitacoes").insert({
         company_id: meRef.data.company_id,
         colaborador_id: meRef.data.id,
@@ -474,54 +474,72 @@ export default function DpMeuCalendario() {
     !["past", "mine", "fixed", "pending", "swapped", "weekday"].includes(selectedDay.status);
 
   return (
-    <DpPage>
+    <div className="space-y-8 max-w-7xl mx-auto">
       <Helmet>
-        <title>Calendário — Portal</title>
+        <title>Meu calendário — Portal DP</title>
       </Helmet>
-      <DpPageHeader icon={CalendarDays} title="Meu calendário" />
 
-      <DpContentCard contentClassName="p-4 md:p-6">
-        <FolgaCalendarShared
-          year={ano}
-          month0={mes - 1}
-          occupantsByDate={occupantsByDate}
-          manualBlocked={manualBlocked}
-          dayLimits={dayLimits}
-          myColaboradorId={meRef.data?.id ?? null}
-          allFolgas={allFolgasRecords}
-          allColaboradores={colaboradores}
-          pendingRequests={pendingRequests}
-          isAdmin={false}
-          variant="compact"
-          onPrev={goPrev}
-          onNext={goNext}
-          onSelectDay={(iso, info) => {
-            // recalcula status para não confiar só no tooltip
-            const st = calculateDateStatus({
-              date: parseYMD(iso),
-              myColaboradorId: meRef.data?.id ?? null,
-              allFolgas: allFolgasRecords,
-              allColaboradores: colaboradores,
-              manualBlocked,
-              dayLimits,
-              pendingRequests,
-              isAdmin: false,
-            });
-            setSelectedDay({ iso, status: (info?.status ?? st.status) as DateStatusKind });
-          }}
-        />
-      </DpContentCard>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-4xl font-black text-foreground flex items-center gap-4 tracking-tight">
+            <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <CalendarDays className="size-7 text-primary" />
+            </div>
+            Meu calendário
+          </h1>
+          <p className="text-muted-foreground mt-2 font-medium">
+            Escolha suas folgas de fim de semana.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          className="rounded-full"
+          onClick={() => navigate("/dp/meu/trocas")}
+        >
+          <ArrowLeftRight className="size-4 mr-2" /> Minhas trocas
+        </Button>
+      </div>
+
+      <FolgaCalendarShared
+        year={ano}
+        month0={mes - 1}
+        occupantsByDate={occupantsByDate}
+        manualBlocked={manualBlocked}
+        dayLimits={dayLimits}
+        myColaboradorId={meRef.data?.id ?? null}
+        allFolgas={allFolgasRecords}
+        allColaboradores={colaboradores}
+        pendingRequests={pendingRequests}
+        isAdmin={false}
+        variant="chunky"
+        onPrev={goPrev}
+        onNext={goNext}
+        onSelectDay={(iso, info) => {
+          const st = calculateDateStatus({
+            date: parseYMD(iso),
+            myColaboradorId: meRef.data?.id ?? null,
+            allFolgas: allFolgasRecords,
+            allColaboradores: colaboradores,
+            manualBlocked,
+            dayLimits,
+            pendingRequests,
+            isAdmin: false,
+          });
+          setSelectedDay({ iso, status: (info?.status ?? st.status) as DateStatusKind });
+        }}
+      />
 
       <p className="text-xs text-muted-foreground">
         Clique em um dia para ver detalhes, marcar folga de fim de semana, pedir troca ou solicitar exceção.
       </p>
 
+
       {/* Dialog do dia */}
       <Dialog open={!!selectedDay} onOpenChange={(o) => !o && setSelectedDay(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-[2rem] border-none shadow-2xl p-8">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CalendarDays className="h-5 w-5 text-primary" />
+            <DialogTitle className="text-2xl font-black flex items-center gap-3">
+              <CalendarDays className="size-6 text-primary" />
               {selectedDay && formatBR(parseYMD(selectedDay.iso))}
             </DialogTitle>
             <DialogDescription className="sr-only">Detalhes do dia selecionado</DialogDescription>
@@ -529,8 +547,8 @@ export default function DpMeuCalendario() {
 
           {selectedDay && dayInfo && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between rounded-md border bg-muted/30 p-3 text-sm">
-                <span className="font-medium">Status</span>
+              <div className="flex items-center justify-between rounded-2xl border bg-muted/50 p-5 text-sm">
+                <span className="font-bold">Status</span>
                 <Badge variant="outline" className={cn("text-xs", STATUS_BADGE[selectedDay.status])}>
                   {STATUS_LABEL[selectedDay.status]}
                 </Badge>
@@ -538,8 +556,8 @@ export default function DpMeuCalendario() {
 
               {dayInfo.occupants.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase">
-                    Colaboradores neste dia
+                  <h4 className="text-sm font-bold text-muted-foreground">
+                    Colaboradores neste dia:
                   </h4>
                   {dayInfo.occupants.map((occ) => {
                     const isMe = occ.colaboradorId === meRef.data?.id;
@@ -548,7 +566,7 @@ export default function DpMeuCalendario() {
                     return (
                       <div
                         key={occ.key}
-                        className="flex items-center justify-between rounded-md border p-2 text-sm"
+                        className="flex items-center justify-between rounded-xl border bg-background p-3 text-sm"
                       >
                         <div className="flex items-center gap-2">
                           <UserIcon className="h-4 w-4 text-muted-foreground" />
@@ -564,6 +582,7 @@ export default function DpMeuCalendario() {
                           <Button
                             size="sm"
                             variant="outline"
+                            className="rounded-full"
                             onClick={() =>
                               setTradeOpen({
                                 occupantId: occ.colaboradorId,
@@ -645,7 +664,11 @@ export default function DpMeuCalendario() {
           )}
 
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setSelectedDay(null)}>
+            <Button
+              variant="ghost"
+              onClick={() => setSelectedDay(null)}
+              className="uppercase tracking-[0.2em] text-[11px] font-black text-muted-foreground hover:text-foreground"
+            >
               Fechar
             </Button>
           </DialogFooter>
@@ -654,10 +677,10 @@ export default function DpMeuCalendario() {
 
       {/* Dialog exceção */}
       <Dialog open={exceptionOpen} onOpenChange={(o) => !o && setExceptionOpen(false)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-[2rem] border-none shadow-2xl p-8">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-amber-500" />
+            <DialogTitle className="text-2xl font-black flex items-center gap-3">
+              <AlertCircle className="size-6 text-amber-500" />
               Solicitar exceção
             </DialogTitle>
             <DialogDescription>
@@ -666,9 +689,13 @@ export default function DpMeuCalendario() {
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label>Justificativa</Label>
+              <Label className="flex items-center gap-2">
+                Justificativa
+                <span className="text-muted-foreground text-xs font-normal">(opcional)</span>
+              </Label>
               <Textarea
                 rows={4}
+                className="rounded-xl"
                 placeholder="Descreva o motivo (compromisso pessoal, urgência, etc.)"
                 value={exceptionMotivo}
                 onChange={(e) => setExceptionMotivo(e.target.value)}
@@ -694,10 +721,10 @@ export default function DpMeuCalendario() {
 
       {/* Dialog troca */}
       <Dialog open={!!tradeOpen} onOpenChange={(o) => !o && setTradeOpen(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-[2rem] border-none shadow-2xl p-8">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ArrowLeftRight className="h-5 w-5 text-primary" />
+            <DialogTitle className="text-2xl font-black flex items-center gap-3">
+              <ArrowLeftRight className="size-6 text-primary" />
               Solicitar troca
             </DialogTitle>
             <DialogDescription>
@@ -709,7 +736,7 @@ export default function DpMeuCalendario() {
             <div>
               <Label>Folga que você oferece</Label>
               <Select value={tradeMyDate} onValueChange={setTradeMyDate}>
-                <SelectTrigger>
+                <SelectTrigger className="rounded-xl">
                   <SelectValue placeholder="Escolha uma folga sua" />
                 </SelectTrigger>
                 <SelectContent>
@@ -727,9 +754,13 @@ export default function DpMeuCalendario() {
               )}
             </div>
             <div>
-              <Label>Mensagem (opcional)</Label>
+              <Label className="flex items-center gap-2">
+                Mensagem
+                <span className="text-muted-foreground text-xs font-normal">(opcional)</span>
+              </Label>
               <Textarea
                 rows={3}
+                className="rounded-xl"
                 placeholder="Alguma observação para o colega?"
                 value={tradeMotivo}
                 onChange={(e) => setTradeMotivo(e.target.value)}
@@ -749,6 +780,6 @@ export default function DpMeuCalendario() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </DpPage>
+    </div>
   );
 }
