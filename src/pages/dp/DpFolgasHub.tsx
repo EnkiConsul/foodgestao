@@ -33,9 +33,24 @@ export default function DpFolgasHub() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_colaboradores")
-        .select("id, ativo")
+        .select("id, ativo, folga_fixa_semana")
         .eq("company_id", selectedCompanyId!)
         .eq("ativo", true);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: folgasMesData = [] } = useQuery({
+    queryKey: ["dp_folgas_hub_mes", selectedCompanyId, format(monthStart, "yyyy-MM")],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_folgas")
+        .select("id, data, status")
+        .eq("company_id", selectedCompanyId!)
+        .gte("data", format(monthStart, "yyyy-MM-dd"))
+        .lte("data", format(monthEnd, "yyyy-MM-dd"));
       if (error) throw error;
       return data ?? [];
     },
