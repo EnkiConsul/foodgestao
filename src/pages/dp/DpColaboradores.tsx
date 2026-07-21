@@ -187,6 +187,65 @@ export default function DpColaboradores() {
     }
   };
 
+  const openSetPwd = (c: DpColaborador) => {
+    setSetPwdTarget(c);
+    setNovaSenha("");
+    setConfirmSenha("");
+    setShowSenha(false);
+  };
+
+  const generateRandomPwd = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+    let out = "";
+    const arr = new Uint32Array(12);
+    crypto.getRandomValues(arr);
+    for (let i = 0; i < 12; i++) out += chars[arr[i] % chars.length];
+    setNovaSenha(out);
+    setConfirmSenha(out);
+    setShowSenha(true);
+  };
+
+  const handleSetPwd = async () => {
+    if (!setPwdTarget) return;
+    if (novaSenha.length < 6 || novaSenha.length > 72) {
+      toast.error("A senha deve ter entre 6 e 72 caracteres");
+      return;
+    }
+    if (novaSenha !== confirmSenha) {
+      toast.error("As senhas não conferem");
+      return;
+    }
+    setSavingSenha(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("dp-alterar-senha-colaborador", {
+        body: { colaborador_id: setPwdTarget.id, nova_senha: novaSenha },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const target = setPwdTarget;
+      setSetPwdTarget(null);
+      setAccessResult({
+        nome: target.nome,
+        cpf: target.cpf ?? "",
+        password: novaSenha,
+        kind: "reset",
+      });
+    } catch (e) {
+      toast.error("Erro ao alterar senha", { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setSavingSenha(false);
+    }
+  };
+
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(label);
+      setTimeout(() => setCopied((v) => (v === label ? null : v)), 1500);
+    } catch {
+      toast.error("Não foi possível copiar");
+    }
+  };
+
   return (
     <DpPage>
       <Helmet><title>Colaboradores — DP 360°</title></Helmet>
