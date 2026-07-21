@@ -77,6 +77,7 @@ const STATUS_BADGE: Record<DateStatusKind, string> = {
 export default function DpMeuCalendario() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const today = new Date();
   const [ano, setAno] = useState(today.getFullYear());
   const [mes, setMes] = useState(today.getMonth() + 1);
