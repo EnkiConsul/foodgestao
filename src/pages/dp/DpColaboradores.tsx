@@ -120,14 +120,64 @@ export default function DpColaboradores() {
         body: { colaborador_id: c.id },
       });
       if (error) throw error;
-      const pwd = (data as any)?.password;
-      toast.success("Senha redefinida", {
-        description: pwd ? `Nova senha: ${pwd} (6 últimos do CPF)` : undefined,
-      });
+      const pwd = (data as any)?.password as string | undefined;
+      if (pwd) {
+        setAccessResult({
+          nome: c.nome,
+          cpf: c.cpf ?? "",
+          password: pwd,
+          kind: "reset",
+        });
+      } else {
+        toast.success("Senha redefinida");
+      }
     } catch (e) {
       toast.error("Erro ao redefinir senha", { description: e instanceof Error ? e.message : String(e) });
     } finally {
       setResetting(null);
+    }
+  };
+
+  const handleGrantAccess = async (c: DpColaborador) => {
+    if (c.user_id) {
+      toast.error("Colaborador já possui acesso — use Resetar senha para gerar nova.");
+      return;
+    }
+    if (!c.cpf || c.cpf.replace(/\D/g, "").length !== 11) {
+      toast.error("CPF inválido — complete o cadastro (11 dígitos) antes de gerar o acesso.");
+      return;
+    }
+    setGranting(c.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("dp-criar-acesso-colaborador", {
+        body: { colaborador_id: c.id },
+      });
+      if (error) throw error;
+      const payload = data as { password?: string; cpf?: string; error?: string };
+      if (payload?.error) throw new Error(payload.error);
+      if (payload?.password && payload?.cpf) {
+        setAccessResult({
+          nome: c.nome,
+          cpf: payload.cpf,
+          password: payload.password,
+          kind: "created",
+        });
+        await list.refetch?.();
+      }
+    } catch (e) {
+      toast.error("Erro ao gerar acesso", { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setGranting(null);
+    }
+  };
+
+  const copyToClipboard = async (label: string, value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(label);
+      setTimeout(() => setCopied((v) => (v === label ? null : v)), 1500);
+    } catch {
+      toast.error("Não foi possível copiar");
     }
   };
 
