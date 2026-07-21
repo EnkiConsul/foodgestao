@@ -333,15 +333,27 @@ export default function DpColaboradores() {
                           <Button size="icon" variant="ghost" onClick={() => { setEditing(c); setDialogOpen(true); }} title="Editar">
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            title={c.user_id ? "Resetar senha para 6 últimos do CPF" : "Sem usuário vinculado"}
-                            disabled={!c.user_id || resetting === c.id}
-                            onClick={() => handleReset(c)}
-                          >
-                            <KeyRound className="h-4 w-4" />
-                          </Button>
+                          {c.user_id ? (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="Resetar senha para 6 últimos do CPF"
+                              disabled={resetting === c.id}
+                              onClick={() => handleReset(c)}
+                            >
+                              <KeyRound className="h-4 w-4" />
+                            </Button>
+                          ) : (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="Gerar acesso ao portal (login por CPF)"
+                              disabled={granting === c.id}
+                              onClick={() => handleGrantAccess(c)}
+                            >
+                              <UserPlus className="h-4 w-4 text-primary" />
+                            </Button>
+                          )}
                           <Button size="icon" variant="ghost" onClick={() => setToDelete(c)} title="Remover">
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
