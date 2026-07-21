@@ -18,32 +18,30 @@ function unaccent(input: string): string {
 const PAYMENT_NOISE_RE =
   /\b(PIX|TED|DOC|TRANSF(?:ERENCIA)?|PAGAMENTO|PAGTO|COMPRA|DEBITO|CREDITO|CARTAO|RECEBIDO|ENVIADO|BOLETO|SAQUE|TARIFA)\b/g;
 
-// Datas dd/mm ou dd/mm/aaaa e identificadores NSU/DOC/AUT/REF/CV/TID seguidos de token.
-const DATE_ID_RE =
-  /(\d{2}\/\d{2}(?:\/\d{2,4})?|\b(?:NSU|DOC|AUT|REF|CV|TID)\b[\s:]*\w+)/g;
+// Identificadores rotulados: "NSU 12345", "REF: abc", "AUT 987".
+const LABELED_ID_RE = /\b(NSU|DOC|AUT|REF|CV|TID)\b\s*:?\s*\w+/g;
 
-// CNPJ, máscara de cartão (**** 1234) e sequências numéricas longas.
-const CNPJ_MASK_LONG_RE = /(\*{2,}\d+|\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}|\b\d{6,}\b)/g;
+// Datas dd/mm(/aaaa).
+const DATE_RE = /\d{2}\/\d{2}(?:\/\d{2,4})?/g;
 
-// Pontuação e espaços duplicados.
-const PUNCT_SPACES_RE = /[^A-Z0-9 ]+|\s{2,}/g;
+// CNPJ, máscara de cartão (com espaço opcional), sequências numéricas longas.
+const CNPJ_MASK_LONG_RE =
+  /(\*{2,}\s*\d+|\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}|\b\d{6,}\b)/g;
 
-// Colapsa siglas separadas por pontos ("S.A." -> "SA", "S.A.S." -> "SAS").
+// Sigla com pontos ("S.A." → "SA", "S.A.S." → "SAS").
 const ACRONYM_DOT_RE = /(?<=[A-Z])\.(?=[A-Z]\b|[A-Z]\.)/g;
+
+// Pontuação restante e espaços duplicados.
+const PUNCT_SPACES_RE = /[^A-Z0-9 ]+|\s{2,}/g;
 
 export function normalizeDescription(raw: string | null | undefined): string | null {
   if (raw == null) return null;
   let s = unaccent(String(raw)).toUpperCase();
-  // 1) Colapsa siglas antes de qualquer remoção baseada em pontuação.
   s = s.replace(ACRONYM_DOT_RE, "");
-  // 2) Remove ruído de meio de pagamento.
   s = s.replace(PAYMENT_NOISE_RE, " ");
-  // 3) CNPJ / máscara de cartão / números longos ANTES de datas
-  //    (evita que "556/0001" case como data dd/mm).
+  s = s.replace(LABELED_ID_RE, " ");
+  s = s.replace(DATE_RE, " ");
   s = s.replace(CNPJ_MASK_LONG_RE, " ");
-  // 4) Datas e identificadores curtos.
-  s = s.replace(DATE_ID_RE, " ");
-  // 5) Pontuação e espaços redundantes.
   s = s.replace(PUNCT_SPACES_RE, " ");
   s = s.replace(/\s{2,}/g, " ").trim();
   return s.length === 0 ? null : s;
