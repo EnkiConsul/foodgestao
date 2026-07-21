@@ -28,6 +28,7 @@ import { PageSpinner } from "@/components/PageSpinner";
 // Eager: rotas do primeiro paint (landing/auth/hub/dashboard)
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
+const DpLogin = lazy(() => import("./pages/dp/DpLogin"));
 import Hub from "./pages/Hub";
 import Dashboard from "./pages/Dashboard";
 
@@ -267,6 +268,7 @@ const AppRoutes = () => (
     <Routes>
       <Route path="/" element={<RootGate />} />
       <Route path="/auth" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
+      <Route path="/dp/login" element={<PublicOnlyRoute><DpLogin /></PublicOnlyRoute>} />
       <Route path="/dp/meu" element={<PortalProtected><ColaboradorShell /></PortalProtected>}>
         <Route index element={<DpMeuHome />} />
         <Route path="perfil" element={<DpMeuPerfil />} />

@@ -5984,6 +5984,7 @@ export type Database = {
         Returns: number
       }
       recompute_all_account_balances: { Args: never; Returns: number }
+      resolve_cpf_login: { Args: { _cpf: string }; Returns: string }
       seed_default_categories: { Args: { _company_id: string }; Returns: Json }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Users, Search, KeyRound } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
 import {
   useDpColaboradores, useDeleteDpColaborador, useToggleDpColaboradorAtivo,
   type DpColaborador,
@@ -54,6 +57,9 @@ export default function DpColaboradores() {
   const [editing, setEditing] = useState<DpColaborador | null>(null);
   const [toDelete, setToDelete] = useState<DpColaborador | null>(null);
   const [resetting, setResetting] = useState<string | null>(null);
+  const [granting, setGranting] = useState<string | null>(null);
+  const [accessResult, setAccessResult] = useState<{ nome: string; cpf: string; password: string; kind: "created" | "reset" } | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
 
   const counts = useMemo(() => {
     const all = list.data ?? [];
@@ -114,14 +120,64 @@ export default function DpColaboradores() {
         body: { colaborador_id: c.id },
       });
       if (error) throw error;
-      const pwd = (data as any)?.password;
-      toast.success("Senha redefinida", {
-        description: pwd ? `Nova senha: ${pwd} (6 últimos do CPF)` : undefined,
-      });
+      const pwd = (data as any)?.password as string | undefined;
+      if (pwd) {
+        setAccessResult({
+          nome: c.nome,
+          cpf: c.cpf ?? "",
+          password: pwd,
+          kind: "reset",
+        });
+      } else {
+        toast.success("Senha redefinida");
+      }
     } catch (e) {
       toast.error("Erro ao redefinir senha", { description: e instanceof Error ? e.message : String(e) });
     } finally {
       setResetting(null);
+    }
+  };
+
+  const handleGrantAccess = async (c: DpColaborador) => {
+    if (c.user_id) {
+      toast.error("Colaborador já possui acesso — use Resetar senha para gerar nova.");
+      return;
+    }
+    if (!c.cpf || c.cpf.replace(/\D/g, "").length !== 11) {
+      toast.error("CPF inválido — complete o cadastro (11 dígitos) antes de gerar o acesso.");
+      return;
+    }
+    setGranting(c.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("dp-criar-acesso-colaborador", {
+        body: { colaborador_id: c.id },
+      });
+      if (error) throw error;
+      const payload = data as { password?: string; cpf?: string; error?: string };
+      if (payload?.error) throw new Error(payload.error);
+      if (payload?.password && payload?.cpf) {
+        setAccessResult({
+          nome: c.nome,
+          cpf: payload.cpf,
+          password: payload.password,
+          kind: "created",
+        });
+        await list.refetch?.();
+      }
+    } catch (e) {
+      toast.error("Erro ao gerar acesso", { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setGranting(null);
+    }
+  };
+
+  const copyToClipboard = async (label: string, value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(label);
+      setTimeout(() => setCopied((v) => (v === label ? null : v)), 1500);
+    } catch {
+      toast.error("Não foi possível copiar");
     }
   };
 
@@ -277,15 +333,27 @@ export default function DpColaboradores() {
                           <Button size="icon" variant="ghost" onClick={() => { setEditing(c); setDialogOpen(true); }} title="Editar">
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            title={c.user_id ? "Resetar senha para 6 últimos do CPF" : "Sem usuário vinculado"}
-                            disabled={!c.user_id || resetting === c.id}
-                            onClick={() => handleReset(c)}
-                          >
-                            <KeyRound className="h-4 w-4" />
-                          </Button>
+                          {c.user_id ? (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="Resetar senha para 6 últimos do CPF"
+                              disabled={resetting === c.id}
+                              onClick={() => handleReset(c)}
+                            >
+                              <KeyRound className="h-4 w-4" />
+                            </Button>
+                          ) : (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="Gerar acesso ao portal (login por CPF)"
+                              disabled={granting === c.id}
+                              onClick={() => handleGrantAccess(c)}
+                            >
+                              <UserPlus className="h-4 w-4 text-primary" />
+                            </Button>
+                          )}
                           <Button size="icon" variant="ghost" onClick={() => setToDelete(c)} title="Remover">
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -324,6 +392,46 @@ export default function DpColaboradores() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!accessResult} onOpenChange={(o) => !o && setAccessResult(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {accessResult?.kind === "created" ? "Acesso ao portal criado" : "Senha redefinida"}
+            </DialogTitle>
+            <DialogDescription>
+              Repasse manualmente as credenciais abaixo ao colaborador <strong>{accessResult?.nome}</strong>.
+              O login no portal do DP é feito pelo CPF.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="rounded-md border bg-muted/40 p-3">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Login (CPF)</div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-mono text-base">{accessResult?.cpf}</div>
+                <Button size="sm" variant="ghost" onClick={() => copyToClipboard("cpf", accessResult?.cpf ?? "")}>
+                  {copied === "cpf" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+            <div className="rounded-md border bg-muted/40 p-3">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Senha (6 últimos do CPF)</div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-mono text-lg">{accessResult?.password}</div>
+                <Button size="sm" variant="ghost" onClick={() => copyToClipboard("pwd", accessResult?.password ?? "")}>
+                  {copied === "pwd" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              O colaborador deve acessar <span className="font-mono">/dp/login</span> e informar o CPF e a senha.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setAccessResult(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DpPage>
   );
 }
