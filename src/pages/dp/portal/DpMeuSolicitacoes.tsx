@@ -300,9 +300,22 @@ export default function DpMeuSolicitacoes() {
                   <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">
                     <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
                     <p>
-                      Esta data está bloqueada pelo DP{bloqueioAtivo ? `: ${bloqueioAtivo}` : ""}. A aprovação pode ser negada.
+                      Esta data está bloqueada pelo DP{bloqueioAtivo ? `: ${bloqueioAtivo}` : ""}.
                     </p>
                   </div>
+                )}
+                {form.tipo === "folga" && dateStatus && dateStatus.status === "taken" && (
+                  <div className="flex items-start gap-2 rounded-md border border-red-300 bg-red-50 p-2 text-xs text-red-900">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <p>
+                      Data indisponível. Limite de folgas atingido ({dateStatus.occupancy ?? 0}/{dateStatus.limit ?? 0}).
+                    </p>
+                  </div>
+                )}
+                {form.tipo === "folga" && dateStatus && dateStatus.status === "available" && dateStatus.limit != null && (
+                  <p className="text-xs text-muted-foreground">
+                    Vagas disponíveis nesta data: {(dateStatus.limit ?? 0) - (dateStatus.occupancy ?? 0)} de {dateStatus.limit}.
+                  </p>
                 )}
                 <div>
                   <Label>Motivo{form.tipo !== "folga" && <span className="text-destructive ml-0.5">*</span>}</Label>
