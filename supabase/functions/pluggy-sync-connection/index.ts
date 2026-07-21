@@ -202,6 +202,21 @@ Deno.serve(async (req) => {
                 if (upe instanceof PluggyApiError && (upe.status === 401 || upe.status === 403)) {
                   needsReconnect = true;
                   acctError = "É necessário reconectar esta instituição para autorizar a coleta de lançamentos.";
+                } else if (upe instanceof PluggyApiError && upe.status === 409) {
+                  // Rate limit da Pluggy: no máximo 1 update por hora.
+                  let waitMin = 60;
+                  try {
+                    const parsed = JSON.parse(upe.body ?? "{}");
+                    const lastUpdatedAt: string | undefined =
+                      parsed?.data?.lastUpdatedAt ?? parsed?.lastUpdatedAt;
+                    const freqHours: number = parsed?.data?.minUpdateFrequencyAllowedInHours ?? 1;
+                    if (lastUpdatedAt) {
+                      const nextAllowed = new Date(lastUpdatedAt).getTime() + freqHours * 3600 * 1000;
+                      const diffMs = nextAllowed - Date.now();
+                      waitMin = Math.max(1, Math.ceil(diffMs / 60000));
+                    }
+                  } catch { /* noop */ }
+                  acctError = `A Pluggy só permite atualizar esta conexão a cada 1 hora. Aguarde ~${waitMin} minuto(s) e sincronize novamente.`;
                 }
               }
             }
