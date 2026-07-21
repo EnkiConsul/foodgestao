@@ -115,13 +115,21 @@ export default function DpFolgasHub() {
 
   const equipeAtiva = colaboradores.length;
   const todayStr = format(today, "yyyy-MM-dd");
-  const folgasHoje = solicitacoes.filter(
+  const todayDow = today.getDay();
+  const folgasHojeSolic = solicitacoes.filter(
     (s) => s.tipo === "folga" && s.status === "aprovada" && s.data_alvo === todayStr,
   ).length;
-  const folgasMes = solicitacoes.filter((s) => {
-    if (s.tipo !== "folga" || s.status !== "aprovada" || !s.data_alvo) return false;
-    return s.data_alvo >= format(monthStart, "yyyy-MM-dd") && s.data_alvo <= format(monthEnd, "yyyy-MM-dd");
-  }).length;
+  const folgasHojeRegistradas = folgasMesData.filter((f: any) => f.data === todayStr).length;
+  const folgasHojeFixas = colaboradores.filter(
+    (c: any) => Number(c.folga_fixa_semana) === todayDow,
+  ).length;
+  const folgasHoje = folgasHojeSolic + folgasHojeRegistradas + folgasHojeFixas;
+  const folgasMes =
+    folgasMesData.length +
+    solicitacoes.filter((s) => {
+      if (s.tipo !== "folga" || s.status !== "aprovada" || !s.data_alvo) return false;
+      return s.data_alvo >= format(monthStart, "yyyy-MM-dd") && s.data_alvo <= format(monthEnd, "yyyy-MM-dd");
+    }).length;
   const pedidosEspeciais = solicitacoes.filter(
     (s) => s.status === "pendente" && s.tipo !== "folga",
   ).length;
