@@ -1,29 +1,32 @@
 ## Problema
 
-O trigger `dp_folgas_validar_self` referencia `pa.status` e `pa.data_alvo` na regra 7 (aniversariante), mas a tabela `dp_prioridade_aniversario` só tem: `company_id, colaborador_id, ano, mes, prioridade, aniversariante`.
+A política `dp_folgas_self_insert` exige `private.is_company_member(auth.uid(), company_id)`, mas colaboradores DP não estão em `company_members` — eles são vinculados via `dp_colaboradores.user_id`. Resultado: o insert do próprio colaborador bate no RLS.
 
 ## Correção
 
-Reescrever a regra 7 usando os campos reais + `dp_colaboradores.data_nascimento`:
-
-- Busca `pa` do mês/ano da data pretendida, `aniversariante = true`.
-- Compara o dia da `NEW.data` com o dia de `dp_colaboradores.data_nascimento` do colaborador priorizado.
-- Bloqueia se o dono do aniversário for outro colaborador.
+Trocar a checagem de membership pela verificação de que o `company_id` do registro é o mesmo do colaborador do usuário:
 
 ```sql
-SELECT pa.colaborador_id
-  INTO v_aniv
-  FROM public.dp_prioridade_aniversario pa
-  JOIN public.dp_colaboradores c ON c.id = pa.colaborador_id
- WHERE pa.company_id = NEW.company_id
-   AND pa.ano = EXTRACT(YEAR FROM NEW.data)::int
-   AND pa.mes = EXTRACT(MONTH FROM NEW.data)::int
-   AND pa.aniversariante = true
-   AND EXTRACT(DAY FROM c.data_nascimento) = EXTRACT(DAY FROM NEW.data)
- LIMIT 1;
-IF FOUND AND v_aniv.colaborador_id <> NEW.colaborador_id THEN
-  RAISE EXCEPTION 'Data reservada para aniversariante.' USING ERRCODE = 'check_violation';
-END IF;
+DROP POLICY IF EXISTS dp_folgas_self_insert ON public.dp_folgas;
+
+CREATE POLICY dp_folgas_self_insert
+ON public.dp_folgas
+FOR INSERT
+TO authenticated
+WITH CHECK (
+  colaborador_id = public.dp_colaborador_of(auth.uid())
+  AND company_id = (
+    SELECT c.company_id FROM public.dp_colaboradores c
+     WHERE c.id = public.dp_colaborador_of(auth.uid())
+  )
+  AND criado_por = auth.uid()
+  AND origem = 'solicitacao'::dp_folga_origem
+  AND extra = false
+  AND tipo = 'normal'::dp_folga_tipo
+  AND status = 'agendada'::dp_folga_status
+);
 ```
 
-Resto do trigger permanece idêntico. Sem alterações no frontend.
+Mesma correção espelhada em `dp_folgas_self_delete` para simetria (opcional — o delete já filtra pelo colaborador; mantém como está).
+
+Sem alterações no frontend.
