@@ -925,10 +925,14 @@ async function copyOneFile(
       contentType,
       upsert: false,
     });
-    if (upErr && !String(upErr.message).toLowerCase().includes("already exists")) {
+    if (upErr) {
+      if (String(upErr.message).toLowerCase().includes("already exists") || String(upErr.message).toLowerCase().includes("duplicate")) {
+        return { ok: true, bucket, skipped: true };
+      }
       return { ok: false, bucket, error: upErr.message };
     }
     return { ok: true, bucket };
+
   }
   return { ok: false, error: "not found in any source bucket" };
 }
