@@ -5244,6 +5244,26 @@ export type Database = {
         Args: { _connection_id: string }
         Returns: boolean
       }
+      categorize_transaction: {
+        Args: {
+          p_company_id?: string
+          p_context?: string
+          p_description: string
+          p_min_similarity?: number
+          p_transaction_type?: string
+          p_user_id?: string
+        }
+        Returns: {
+          category_id: string
+          confidence: number
+          layer: string
+          match_type: string
+          pattern: string
+          payment_method_id: string
+          rule_id: string
+          similarity: number
+        }[]
+      }
       chart_account_move: {
         Args: { _id: string; _new_parent_id: string }
         Returns: undefined
@@ -5531,6 +5551,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_rule_hit: { Args: { p_rule_id: string }; Returns: undefined }
       insert_audit_log: {
         Args: {
           _action: string
