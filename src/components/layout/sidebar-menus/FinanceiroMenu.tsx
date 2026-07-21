@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, ArrowLeftRight, TrendingUp, Target, FileBarChart,
-  Landmark, CreditCard, Users, FolderTree, BookOpen,
+  Landmark, CreditCard, Users, FolderTree, BookOpen, Brain,
 } from "lucide-react";
 import { SidebarSection, SidebarNavItem, SidebarCollapsibleGroup, type MenuItem } from "./shared";
 
@@ -17,7 +17,8 @@ const cadastros: MenuItem[] = [
   { title: "Formas de Pagamento", url: "/formas-pagamento", icon: CreditCard },
   { title: "Clientes / Fornecedores", url: "/contatos", icon: Users },
   { title: "Categorias", url: "/categorias", icon: FolderTree },
-  { title: "Contas Contábeis", url: "/contas-contabeis", icon: BookOpen },
+  { title: "Categorização IA", url: "/categorizacao-ia", icon: Brain },
+  { title: "Contas Contábeis", url: "/contas-bancarias".replace("bancarias","contabeis"), icon: BookOpen },
 ];
 
 export function FinanceiroMenu() {
