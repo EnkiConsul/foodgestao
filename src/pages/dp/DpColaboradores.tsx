@@ -392,6 +392,46 @@ export default function DpColaboradores() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!accessResult} onOpenChange={(o) => !o && setAccessResult(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {accessResult?.kind === "created" ? "Acesso ao portal criado" : "Senha redefinida"}
+            </DialogTitle>
+            <DialogDescription>
+              Repasse manualmente as credenciais abaixo ao colaborador <strong>{accessResult?.nome}</strong>.
+              O login no portal do DP é feito pelo CPF.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="rounded-md border bg-muted/40 p-3">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Login (CPF)</div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-mono text-base">{accessResult?.cpf}</div>
+                <Button size="sm" variant="ghost" onClick={() => copyToClipboard("cpf", accessResult?.cpf ?? "")}>
+                  {copied === "cpf" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+            <div className="rounded-md border bg-muted/40 p-3">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Senha (6 últimos do CPF)</div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-mono text-lg">{accessResult?.password}</div>
+                <Button size="sm" variant="ghost" onClick={() => copyToClipboard("pwd", accessResult?.password ?? "")}>
+                  {copied === "pwd" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              O colaborador deve acessar <span className="font-mono">/dp/login</span> e informar o CPF e a senha.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setAccessResult(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DpPage>
   );
 }
