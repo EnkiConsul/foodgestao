@@ -1,29 +1,92 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { eachDayOfInterval, endOfMonth, startOfMonth } from "date-fns";
-import { CalendarDays } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowLeftRight,
+  CalendarDays,
+  Send,
+  User as UserIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { FolgaCalendarShared } from "@/components/dp/FolgaCalendarShared";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   buildOccupantsByDate,
   calculateDateStatus,
+  dayType,
+  formatBR,
+  monthKey,
+  normalizeWeekday,
   parseYMD,
   ymd,
   type ColaboradorRecord,
+  type DateStatusKind,
   type FolgaRecord,
 } from "@/lib/dp/folga-rules";
+import { cn } from "@/lib/utils";
+
+const STATUS_LABEL: Record<DateStatusKind, string> = {
+  available: "Disponível",
+  mine: "Sua folga",
+  fixed: "Folga semanal",
+  blocked: "Bloqueado",
+  taken: "Lotado",
+  past: "Passado",
+  pending: "Pendente",
+  birthday: "Aniversariante",
+  swapped: "Troca aprovada",
+  weekday: "Dia útil",
+};
+
+const STATUS_BADGE: Record<DateStatusKind, string> = {
+  available: "bg-emerald-500/10 text-emerald-700 border-emerald-200",
+  mine: "bg-amber-500/10 text-amber-700 border-amber-200",
+  fixed: "bg-blue-500/10 text-blue-700 border-blue-200",
+  blocked: "bg-red-500/10 text-red-700 border-red-200",
+  taken: "bg-red-500/10 text-red-700 border-red-200",
+  past: "bg-muted text-muted-foreground border-transparent",
+  pending: "bg-violet-500/10 text-violet-700 border-violet-200",
+  birthday: "bg-amber-500/10 text-amber-700 border-amber-200",
+  swapped: "bg-amber-500/10 text-amber-700 border-amber-200",
+  weekday: "bg-muted text-muted-foreground border-transparent",
+};
 
 export default function DpMeuCalendario() {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const qc = useQueryClient();
   const today = new Date();
   const [ano, setAno] = useState(today.getFullYear());
   const [mes, setMes] = useState(today.getMonth() + 1);
+
+  const [selectedDay, setSelectedDay] = useState<{ iso: string; status: DateStatusKind } | null>(null);
+  const [exceptionOpen, setExceptionOpen] = useState(false);
+  const [exceptionMotivo, setExceptionMotivo] = useState("");
+  const [tradeOpen, setTradeOpen] = useState<{ occupantId: string; occupantName: string; iso: string } | null>(null);
+  const [tradeMyDate, setTradeMyDate] = useState<string>("");
+  const [tradeMotivo, setTradeMotivo] = useState("");
 
   const meRef = useQuery({
     queryKey: ["dp_colaborador_of", user?.id],
@@ -47,6 +110,7 @@ export default function DpMeuCalendario() {
   }, [ano, mes]);
 
   const companyId = meRef.data?.company_id;
+  const myUnidade = meRef.data?.unidade_id ?? null;
 
   const colaboradoresQuery = useQuery({
     queryKey: ["dp_colabs_meu_cal", companyId],
@@ -67,7 +131,9 @@ export default function DpMeuCalendario() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_folgas")
-        .select("id, data, colaborador_id, status, tipo, extra, origem, criado_por, dp_colaboradores(nome, unidade_id)")
+        .select(
+          "id, data, colaborador_id, status, tipo, extra, origem, criado_por, dp_colaboradores(nome, unidade_id)",
+        )
         .eq("company_id", companyId!)
         .gte("data", range.start)
         .lte("data", range.end);
@@ -99,7 +165,7 @@ export default function DpMeuCalendario() {
     queryFn: async () => {
       const { data } = await supabase
         .from("dp_datas_bloqueadas")
-        .select("data, motivo, liberada_por_solicitacao")
+        .select("data, motivo, liberada_por_solicitacao, unidade_id")
         .eq("company_id", companyId!)
         .gte("data", range.start)
         .lte("data", range.end);
@@ -113,42 +179,85 @@ export default function DpMeuCalendario() {
     queryFn: async () => {
       const { data } = await supabase
         .from("dp_dia_config")
-        .select("data, limite_folgas")
+        .select("data, limite_folgas, unidade_id")
         .eq("company_id", companyId!)
-        .is("unidade_id", null)
         .gte("data", range.start)
         .lte("data", range.end);
       return data ?? [];
     },
   });
 
-  const colaboradores = colaboradoresQuery.data ?? [];
+  // Realtime — invalida queries quando qualquer fonte muda
+  useEffect(() => {
+    if (!companyId) return;
+    const ch = supabase
+      .channel(`cal-portal-${companyId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "dp_folgas", filter: `company_id=eq.${companyId}` }, () => {
+        qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "dp_solicitacoes", filter: `company_id=eq.${companyId}` }, () => {
+        qc.invalidateQueries({ queryKey: ["dp_solic_meu_cal"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "dp_datas_bloqueadas", filter: `company_id=eq.${companyId}` }, () => {
+        qc.invalidateQueries({ queryKey: ["dp_datas_bloq_meu_cal"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "dp_dia_config", filter: `company_id=eq.${companyId}` }, () => {
+        qc.invalidateQueries({ queryKey: ["dp_dia_config_meu_cal"] });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [companyId, qc]);
+
+  const colaboradoresAll = colaboradoresQuery.data ?? [];
+  // Filtra colaboradores da minha unidade (se eu tiver)
+  const colaboradores = useMemo(
+    () => (myUnidade ? colaboradoresAll.filter((c) => c.unidade_id === myUnidade) : colaboradoresAll),
+    [colaboradoresAll, myUnidade],
+  );
   const folgas = (folgasQuery.data ?? []) as any[];
   const pendentes = (pendentesQuery.data ?? []) as any[];
 
   const occupantsByDate = useMemo(() => {
     const days = eachDayOfInterval({ start: range.startDate, end: range.endDate });
+    // Também filtra folgas/pendentes pela unidade
+    const filteredFolgas = myUnidade
+      ? folgas.filter((f) => f.dp_colaboradores?.unidade_id === myUnidade)
+      : folgas;
+    const filteredPend = myUnidade
+      ? pendentes.filter((p) => p.dp_colaboradores?.unidade_id === myUnidade)
+      : pendentes;
     return buildOccupantsByDate({
       days,
       colaboradores,
-      folgas,
-      pendentes,
+      folgas: filteredFolgas,
+      pendentes: filteredPend,
     });
-  }, [colaboradores, folgas, pendentes, range.startDate, range.endDate]);
+  }, [colaboradores, folgas, pendentes, myUnidade, range.startDate, range.endDate]);
 
   const manualBlocked = useMemo(() => {
     const m = new Map<string, { reason: string; liberada: boolean }>();
     for (const b of bloqueiosQuery.data ?? []) {
-      m.set((b as any).data, { reason: (b as any).motivo, liberada: !!(b as any).liberada_por_solicitacao });
+      const row = b as any;
+      if (row.unidade_id !== null && row.unidade_id !== myUnidade) continue;
+      m.set(row.data, { reason: row.motivo, liberada: !!row.liberada_por_solicitacao });
     }
     return m;
-  }, [bloqueiosQuery.data]);
+  }, [bloqueiosQuery.data, myUnidade]);
 
   const dayLimits = useMemo(() => {
     const m = new Map<string, number>();
-    for (const r of diaConfigQuery.data ?? []) m.set((r as any).data, (r as any).limite_folgas);
+    const rows = [...(diaConfigQuery.data ?? [])] as any[];
+    // prioriza unidade específica sobre nulo
+    rows
+      .filter((r) => r.unidade_id === null || r.unidade_id === myUnidade)
+      .sort((a, b) => (b.unidade_id ? 1 : 0) - (a.unidade_id ? 1 : 0))
+      .forEach((r) => {
+        if (!m.has(r.data)) m.set(r.data, r.limite_folgas);
+      });
     return m;
-  }, [diaConfigQuery.data]);
+  }, [diaConfigQuery.data, myUnidade]);
 
   const allFolgasRecords: FolgaRecord[] = useMemo(
     () =>
@@ -177,12 +286,161 @@ export default function DpMeuCalendario() {
     setMes(d.getMonth() + 1);
   };
 
+  // Minhas folgas futuras (para oferecer troca)
+  const minhasFolgasFuturas = useMemo(() => {
+    if (!meRef.data?.id) return [];
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    return folgas
+      .filter((f) => f.colaborador_id === meRef.data!.id && f.status !== "cancelada" && parseYMD(f.data) >= hoje)
+      .sort((a, b) => a.data.localeCompare(b.data));
+  }, [folgas, meRef.data?.id]);
+
+  // -------- Mutations --------
+  const marcarFolga = useMutation({
+    mutationFn: async (iso: string) => {
+      if (!meRef.data) throw new Error("Colaborador não encontrado");
+      // regra 1 folga fim de semana por mês (client-side)
+      const d = parseYMD(iso);
+      const mk = monthKey(d);
+      const jaTem = folgas.some(
+        (f) =>
+          f.colaborador_id === meRef.data!.id &&
+          monthKey(parseYMD(f.data)) === mk &&
+          f.tipo === "normal" &&
+          f.extra !== true &&
+          f.status !== "cancelada" &&
+          (parseYMD(f.data).getDay() === 0 || parseYMD(f.data).getDay() === 6),
+      );
+      if (jaTem) throw new Error("Você já possui uma folga de fim de semana neste mês.");
+
+      const { error } = await supabase.from("dp_folgas").insert({
+        company_id: meRef.data.company_id,
+        colaborador_id: meRef.data.id,
+        data: iso,
+        tipo: "normal",
+        origem: "solicitacao",
+        status: "agendada",
+        extra: false,
+        criado_por: user!.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Folga marcada!");
+      setSelectedDay(null);
+      qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao marcar folga"),
+  });
+
+  const removerFolga = useMutation({
+    mutationFn: async (iso: string) => {
+      if (!meRef.data) throw new Error("Colaborador não encontrado");
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      if (parseYMD(iso) < hoje) throw new Error("Não é possível remover folga passada.");
+      const folga = folgas.find(
+        (f) => f.colaborador_id === meRef.data!.id && f.data === iso && f.status !== "cancelada",
+      );
+      if (!folga) throw new Error("Folga não encontrada.");
+      const { error } = await supabase.from("dp_folgas").delete().eq("id", folga.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Folga removida.");
+      setSelectedDay(null);
+      qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao remover folga"),
+  });
+
+  const enviarExcecao = useMutation({
+    mutationFn: async () => {
+      if (!meRef.data || !selectedDay) throw new Error("Sem contexto");
+      const motivo = exceptionMotivo.trim();
+      if (!motivo) throw new Error("Descreva a justificativa.");
+      const { error } = await supabase.from("dp_solicitacoes").insert({
+        company_id: meRef.data.company_id,
+        colaborador_id: meRef.data.id,
+        tipo: "folga",
+        data_alvo: selectedDay.iso,
+        motivo,
+        criado_por: user!.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Solicitação de exceção enviada.");
+      setExceptionOpen(false);
+      setExceptionMotivo("");
+      setSelectedDay(null);
+      qc.invalidateQueries({ queryKey: ["dp_solic_meu_cal"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao enviar exceção"),
+  });
+
+  const solicitarTroca = useMutation({
+    mutationFn: async () => {
+      if (!meRef.data || !tradeOpen) throw new Error("Sem contexto");
+      if (!tradeMyDate) throw new Error("Escolha uma folga sua para oferecer.");
+      const motivo = tradeMotivo.trim() || "Solicitação de troca via calendário";
+      // duplicidade
+      const { data: existing } = await supabase
+        .from("dp_trocas")
+        .select("id")
+        .eq("solicitante_id", meRef.data.id)
+        .eq("destino_id", tradeOpen.occupantId)
+        .eq("data_proposta", tradeOpen.iso)
+        .eq("status", "pendente_colega")
+        .maybeSingle();
+      if (existing) throw new Error("Você já enviou uma troca pendente para este dia com este colega.");
+
+      const { error } = await supabase.from("dp_trocas").insert({
+        company_id: meRef.data.company_id,
+        solicitante_id: meRef.data.id,
+        destino_id: tradeOpen.occupantId,
+        data_original: tradeMyDate,
+        data_proposta: tradeOpen.iso,
+        motivo,
+        status: "pendente_colega",
+        created_by: user!.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Solicitação de troca enviada ao colega.");
+      setTradeOpen(null);
+      setTradeMyDate("");
+      setTradeMotivo("");
+      setSelectedDay(null);
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao solicitar troca"),
+  });
+
+  // -------- Dados do dia selecionado --------
+  const dayInfo = useMemo(() => {
+    if (!selectedDay) return null;
+    const date = parseYMD(selectedDay.iso);
+    const isWeekend = !!dayType(date);
+    const occupants = occupantsByDate.get(selectedDay.iso) ?? [];
+    const isMine = occupants.some((o) => o.colaboradorId === meRef.data?.id);
+
+    // canTrade — só se eu tenho folga futura para oferecer e o dia está em outra ocupação (não meu, não passado)
+    const canTrade = minhasFolgasFuturas.length > 0 && !isMine && selectedDay.status !== "past";
+    return { date, isWeekend, occupants, isMine, canTrade };
+  }, [selectedDay, occupantsByDate, meRef.data?.id, minhasFolgasFuturas]);
+
+  const showExceptionBtn =
+    selectedDay &&
+    !["past", "mine", "fixed", "pending", "swapped", "weekday"].includes(selectedDay.status);
+
   return (
     <DpPage>
       <Helmet>
         <title>Calendário — Portal</title>
       </Helmet>
-      <DpPageHeader icon={CalendarDays} title="Calendário de folgas" />
+      <DpPageHeader icon={CalendarDays} title="Meu calendário" />
 
       <DpContentCard contentClassName="p-4 md:p-6">
         <FolgaCalendarShared
@@ -199,7 +457,8 @@ export default function DpMeuCalendario() {
           variant="compact"
           onPrev={goPrev}
           onNext={goNext}
-          onSelectDay={(iso) => {
+          onSelectDay={(iso, info) => {
+            // recalcula status para não confiar só no tooltip
             const st = calculateDateStatus({
               date: parseYMD(iso),
               myColaboradorId: meRef.data?.id ?? null,
@@ -210,27 +469,248 @@ export default function DpMeuCalendario() {
               pendingRequests,
               isAdmin: false,
             });
-            if (st.status === "taken") {
-              toast.error(`Data indisponível. Limite de folgas atingido (${st.occupancy ?? 0}/${st.limit ?? 0}).`);
-              return;
-            }
-            if (st.status === "blocked") {
-              toast.error(`Data bloqueada pelo DP${st.reason ? `: ${st.reason}` : ""}.`);
-              return;
-            }
-            if (st.status === "past") {
-              toast.error("Não é possível solicitar folga em data passada.");
-              return;
-            }
-            navigate(`/dp/meu/solicitacoes?data=${iso}`);
+            setSelectedDay({ iso, status: (info?.status ?? st.status) as DateStatusKind });
           }}
         />
       </DpContentCard>
 
       <p className="text-xs text-muted-foreground">
-        Clique em um dia para abrir uma nova solicitação já com a data preenchida. Sua folga semanal fixa aparece
-        marcada em azul.
+        Clique em um dia para ver detalhes, marcar folga de fim de semana, pedir troca ou solicitar exceção.
       </p>
+
+      {/* Dialog do dia */}
+      <Dialog open={!!selectedDay} onOpenChange={(o) => !o && setSelectedDay(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarDays className="h-5 w-5 text-primary" />
+              {selectedDay && formatBR(parseYMD(selectedDay.iso))}
+            </DialogTitle>
+            <DialogDescription className="sr-only">Detalhes do dia selecionado</DialogDescription>
+          </DialogHeader>
+
+          {selectedDay && dayInfo && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between rounded-md border bg-muted/30 p-3 text-sm">
+                <span className="font-medium">Status</span>
+                <Badge variant="outline" className={cn("text-xs", STATUS_BADGE[selectedDay.status])}>
+                  {STATUS_LABEL[selectedDay.status]}
+                </Badge>
+              </div>
+
+              {dayInfo.occupants.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase">
+                    Colaboradores neste dia
+                  </h4>
+                  {dayInfo.occupants.map((occ) => {
+                    const isMe = occ.colaboradorId === meRef.data?.id;
+                    const showTrade =
+                      !isMe && dayInfo.canTrade && !["blocked", "past", "mine", "fixed"].includes(selectedDay.status);
+                    return (
+                      <div
+                        key={occ.key}
+                        className="flex items-center justify-between rounded-md border p-2 text-sm"
+                      >
+                        <div className="flex items-center gap-2">
+                          <UserIcon className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">{occ.colaboradorNome}</span>
+                          {isMe && (
+                            <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">
+                              Você
+                            </Badge>
+                          )}
+                          <span className="text-[10px] text-muted-foreground">{occ.origin}</span>
+                        </div>
+                        {showTrade && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              setTradeOpen({
+                                occupantId: occ.colaboradorId,
+                                occupantName: occ.colaboradorNome,
+                                iso: selectedDay.iso,
+                              })
+                            }
+                          >
+                            <ArrowLeftRight className="h-3 w-3 mr-1" /> Trocar
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2">
+                {selectedDay.status === "available" && dayInfo.isWeekend && (
+                  <Button onClick={() => marcarFolga.mutate(selectedDay.iso)} disabled={marcarFolga.isPending}>
+                    {marcarFolga.isPending ? "Marcando..." : "Marcar folga"}
+                  </Button>
+                )}
+                {selectedDay.status === "available" && !dayInfo.isWeekend && (
+                  <p className="text-xs text-muted-foreground">
+                    Somente fins de semana podem ser marcados diretamente. Use "Solicitar exceção" para outros dias.
+                  </p>
+                )}
+                {selectedDay.status === "mine" && (
+                  <Button
+                    variant="destructive"
+                    onClick={() => removerFolga.mutate(selectedDay.iso)}
+                    disabled={removerFolga.isPending}
+                  >
+                    {removerFolga.isPending ? "Removendo..." : "Remover folga"}
+                  </Button>
+                )}
+                {selectedDay.status === "fixed" && (
+                  <p className="text-xs text-muted-foreground">
+                    Esta é sua folga semanal fixa. Para trocar, selecione o dia desejado e use o botão "Trocar" ao
+                    lado do colega.
+                  </p>
+                )}
+                {selectedDay.status === "blocked" && (
+                  <p className="text-xs text-muted-foreground">
+                    Data bloqueada administrativamente. Você pode pedir uma exceção abaixo.
+                  </p>
+                )}
+                {selectedDay.status === "taken" && (
+                  <p className="text-xs text-muted-foreground">Limite de folgas atingido neste dia.</p>
+                )}
+                {selectedDay.status === "pending" && (
+                  <p className="text-xs text-muted-foreground">Solicitação pendente de aprovação.</p>
+                )}
+                {selectedDay.status === "birthday" && (
+                  <p className="text-xs text-muted-foreground">Data reservada para aniversariante.</p>
+                )}
+                {selectedDay.status === "swapped" && (
+                  <p className="text-xs text-muted-foreground">Troca aprovada para esta data.</p>
+                )}
+                {selectedDay.status === "past" && (
+                  <p className="text-xs text-muted-foreground">Data já passou.</p>
+                )}
+
+                {showExceptionBtn && (
+                  <Button
+                    variant="outline"
+                    className="border-amber-200 text-amber-700 hover:bg-amber-50"
+                    onClick={() => {
+                      setExceptionMotivo("");
+                      setExceptionOpen(true);
+                    }}
+                  >
+                    <AlertCircle className="h-4 w-4 mr-2" /> Solicitar exceção
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setSelectedDay(null)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog exceção */}
+      <Dialog open={exceptionOpen} onOpenChange={(o) => !o && setExceptionOpen(false)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+              Solicitar exceção
+            </DialogTitle>
+            <DialogDescription>
+              Envie ao DP uma justificativa para folgar em {selectedDay && formatBR(parseYMD(selectedDay.iso))}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Justificativa</Label>
+              <Textarea
+                rows={4}
+                placeholder="Descreva o motivo (compromisso pessoal, urgência, etc.)"
+                value={exceptionMotivo}
+                onChange={(e) => setExceptionMotivo(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setExceptionOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => enviarExcecao.mutate()} disabled={enviarExcecao.isPending}>
+              {enviarExcecao.isPending ? (
+                "Enviando..."
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" /> Enviar
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog troca */}
+      <Dialog open={!!tradeOpen} onOpenChange={(o) => !o && setTradeOpen(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowLeftRight className="h-5 w-5 text-primary" />
+              Solicitar troca
+            </DialogTitle>
+            <DialogDescription>
+              Você pega o dia <b>{tradeOpen && formatBR(parseYMD(tradeOpen.iso))}</b> de{" "}
+              <b>{tradeOpen?.occupantName}</b> em troca de uma folga sua.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Folga que você oferece</Label>
+              <Select value={tradeMyDate} onValueChange={setTradeMyDate}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha uma folga sua" />
+                </SelectTrigger>
+                <SelectContent>
+                  {minhasFolgasFuturas.map((f) => (
+                    <SelectItem key={f.id} value={f.data}>
+                      {formatBR(parseYMD(f.data))}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {minhasFolgasFuturas.length === 0 && (
+                <p className="text-xs text-destructive mt-1">
+                  Você não tem folgas futuras para oferecer em troca.
+                </p>
+              )}
+            </div>
+            <div>
+              <Label>Mensagem (opcional)</Label>
+              <Textarea
+                rows={3}
+                placeholder="Alguma observação para o colega?"
+                value={tradeMotivo}
+                onChange={(e) => setTradeMotivo(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setTradeOpen(null)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => solicitarTroca.mutate()}
+              disabled={solicitarTroca.isPending || !tradeMyDate}
+            >
+              {solicitarTroca.isPending ? "Enviando..." : "Enviar troca"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DpPage>
   );
 }
