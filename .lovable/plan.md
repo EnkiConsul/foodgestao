@@ -1,58 +1,113 @@
-# Fix: Categorias somem na ClicSorte — recursão infinita nas policies RLS
 
-## Diagnóstico (confirmado)
+# Diagnóstico encontrado
 
-A rede mostra `{"code":"42P17","message":"infinite recursion detected in policy for relation \"categories\""}` em `/rest/v1/budgets?select=...category:categories(name)`. Consultei `pg_policies` e confirmei:
+## Tabelas associativas em `public`
+- `category_companies` — FK + UNIQUE ok
+- `contact_companies` — FK + UNIQUE ok
+- `payment_method_companies` — FK + UNIQUE ok
+- `chart_account_companies` — FK + UNIQUE ok
+- `company_invites`, `company_members`, `company_modules` — não são "associativas de cadastro", fora do escopo
 
-- **`categories.SELECT`** faz `EXISTS (SELECT 1 FROM category_companies …)`.
-- **`category_companies.SELECT`** faz `EXISTS (SELECT 1 FROM categories …)`.
+## Vulnerabilidades atuais nas policies
 
-As duas tabelas se referenciam mutuamente sob RLS → o Postgres detecta recursão e aborta com 42P17. Efeito: qualquer SELECT em `categories` (Categorias, joins do Orçamento, join `category:categories(name)` no widget de metas) falha para todos os usuários — não é específico da ClicSorte, mas ela é a mais afetada porque tem categorias em tabela junção.
+**CRÍTICO — payment_method_companies**
+```
+FOR ALL USING/WITH CHECK
+  EXISTS (SELECT 1 FROM payment_methods pm WHERE pm.id = payment_method_id AND pm.user_id = auth.uid())
+```
+Roles = `public`. Sem qualquer verificação de `company_id` ou membership. Qualquer dono da forma de pagamento vincula/desvincula em qualquer empresa cujo UUID conheça.
 
-O mesmo padrão foi introduzido em **`contacts` ⇄ `contact_companies`** no Bloco G. Ainda não estourou porque nenhum lugar faz join com essa forma, mas está armado para explodir do mesmo jeito assim que a UI de Contatos usar join implícito.
+**CRÍTICO — chart_account_companies**
+Mesmo padrão do payment_method_companies (FOR ALL, público, só valida dono).
 
-## Causa raiz
+**CRÍTICO — category_companies**
+```
+SELECT: is_company_member(uid, company_id) OR user_owns_category(uid, category_id)
+INSERT/DELETE: member_can_edit(uid, company_id, 'categorias') OR user_owns_category(uid, category_id)
+```
+O `OR user_owns_category(...)` derruba a autorização por empresa. Criador removido continua com poder total.
 
-O "OR (EXISTS na outra tabela)" foi adicionado para que **o dono da categoria** (quem criou) veja também o vínculo em `category_companies`, e vice-versa. Mas essa checagem cruzada dispara RLS na outra tabela, gerando o ciclo.
+**CRÍTICO — contact_companies**
+Mesmo padrão de `category_companies` com `user_owns_contact` e módulo `'contatos'`.
 
-## Correção
+## Divergência de nomes de módulos
+- Policies atuais usam PT: `'categorias'`, `'contatos'`.
+- Frontend usa EN: `categories`, `contacts`, `payment_methods`.
+- `private.member_permission` retorna `'edit'` para owner/admin sempre, e para `member` faz `COALESCE(permissions->>_module,'edit')` — como `company_members.permissions` está NULL em todos os registros hoje, a divergência não bloqueia acesso na prática, mas é bomba-relógio.
 
-Quebrar o ciclo com **helpers SECURITY DEFINER em `private`** que consultam a tabela alvo bypassando RLS. As policies passam a chamar a função em vez de fazer EXISTS na outra tabela.
+## Funções de autorização existentes
+`private.is_company_member`, `private.member_permission`, `private.member_can_edit`, `private.is_company_admin_or_owner` — corretas, SECURITY DEFINER, search_path setado. Vou **reutilizá-las** e adicionar dois wrappers explícitos exigidos pela spec (`can_view_company_module`, `can_edit_company_module`) que também tratam super_admin.
 
-### Novas funções
+## Grants atuais
+Apenas `sandbox_exec` aparece (o usuário psql). Vou reafirmar `GRANT SELECT, INSERT, DELETE TO authenticated` e `REVOKE ALL FROM anon` explicitamente em todas as 4 tabelas.
 
-- `private.user_owns_category(_uid uuid, _category_id uuid) returns boolean`  
-  `SELECT EXISTS (SELECT 1 FROM public.categories WHERE id=_category_id AND user_id=_uid)`
-- `private.user_owns_contact(_uid uuid, _contact_id uuid) returns boolean` — análogo.
-- `private.category_visible_to_member(_uid uuid, _category_id uuid) returns boolean`  
-  `SELECT EXISTS (SELECT 1 FROM public.category_companies cc WHERE cc.category_id=_category_id AND private.is_company_member(_uid, cc.company_id))`
-- `private.category_editable_by_member(_uid uuid, _category_id uuid) returns boolean` — usa `member_can_edit(..., 'categorias')`.
-- `private.contact_visible_to_member` / `private.contact_editable_by_member` — análogos para contatos.
+## Duplicidades
+Zero duplicatas em category/contact/payment. Constraints UNIQUE já existem em todas as 4 tabelas.
 
-Todas `SECURITY DEFINER`, `STABLE`, `set search_path = public, private`, `REVOKE EXECUTE FROM public` + `GRANT EXECUTE TO authenticated`.
+## Riscos
+1. Renomear módulos `categorias→categories` / `contatos→contacts` sem migrar `company_members.permissions` pode revogar acesso de members. **Mitigação**: como todas as linhas atuais têm `permissions IS NULL`, é seguro renomear agora; adicionamos backfill defensivo.
+2. Cortar o fallback `user_owns_*` pode quebrar telas que criam categoria/contato em PF e depois vinculam a PJ. **Mitigação**: em PF puro não existe `company_id` — o vínculo só existe em PJ, e para PJ o usuário sempre é membro.
+3. `chart_account_companies` está fora do escopo original mas tem exatamente a mesma falha; incluo por consistência (módulo `chart_accounts`).
 
-### Policies reescritas
+---
 
-- `categories.SELECT` → `auth.uid() = user_id OR private.category_visible_to_member(auth.uid(), id)`
-- `categories.UPDATE/DELETE` → `auth.uid() = user_id OR private.category_editable_by_member(auth.uid(), id)`
-- `category_companies.SELECT` → `private.is_company_member(auth.uid(), company_id) OR private.user_owns_category(auth.uid(), category_id)`
-- `category_companies.INSERT/DELETE` → `private.member_can_edit(auth.uid(), company_id, 'categorias') OR private.user_owns_category(auth.uid(), category_id)`
-- Contacts: mesmo padrão trocando `categoria`→`contato`.
+# Plano de execução
 
-Isso mantém 100% da semântica atual (dono OU membro) e elimina o ciclo, porque a função definer não passa mais por RLS.
+## Migration 01 — Funções canônicas de autorização
+- Criar `private.can_view_company_module(_uid, _company_id, _module text)` e `private.can_edit_company_module(...)` incluindo `is_super_admin`.
+- `SET search_path = ''`, qualificação total, `SECURITY DEFINER`, `REVOKE ALL FROM PUBLIC`, `GRANT EXECUTE TO authenticated`.
 
-## Escopo
+## Migration 02 — `category_companies` RLS
+- Drop das 3 policies antigas.
+- SELECT: `can_view_company_module(uid, company_id, 'categories')`.
+- INSERT: `can_edit_company_module(uid, company_id, 'categories') AND EXISTS(categories WHERE id=category_id AND (context IS NULL OR context='pj'))`.
+- DELETE: `can_edit_company_module(uid, company_id, 'categories')`.
+- `REVOKE UPDATE`; sem policy de UPDATE.
+- `REVOKE ALL FROM anon`; `GRANT SELECT, INSERT, DELETE TO authenticated`; `GRANT ALL TO service_role`.
+- Índices por `company_id` e `category_id` (idempotente).
 
-- **Migration única** com as 6 funções + DROP/CREATE POLICY nas 4 tabelas.
-- **Sem mudança de frontend**: assim que o SELECT em `categories` voltar, a ClicSorte volta a ver suas categorias e o widget de Orçamento para de dar 500.
+## Migration 03 — `contact_companies` RLS
+Mesmo padrão com módulo `'contacts'` e validação de existência do contato + `visible_pj/context`.
 
-## Verificação pós-migration
+## Migration 04 — `payment_method_companies` RLS
+- Drop policy `FOR ALL` insegura.
+- SELECT / INSERT / DELETE separados usando módulo `'payment_methods'`.
+- Sem UPDATE. Grants e revokes.
 
-1. `curl` autenticado no endpoint que quebrou (`/rest/v1/budgets?select=...category:categories(name)`) → 200 esperado.
-2. Rodar `src/test/rls/categories.rls.test.ts` e `contacts.rls.test.ts` — devem continuar passando (bloqueio anônimo intacto).
-3. Ler `categories` em duas contas distintas da ClicSorte para confirmar visibilidade compartilhada.
+## Migration 05 — `chart_account_companies` RLS
+Mesmo padrão, módulo `'chart_accounts'`.
 
-## Fora de escopo
+## Migration 06 — Trigger de integridade cross-tenant
+- `private.prevent_association_tenant_change()`: em UPDATE, bloqueia mudança de `company_id` e da coluna da entidade (`category_id`/`contact_id`/`payment_method_id`/`chart_account_id`). Super_admin pode.
+- Aplicar em `BEFORE UPDATE` nas 4 tabelas.
 
-- Rever o filtro `user_id=eq.<uid>` que o widget de "próximas contas" ainda envia em PJ (aparece no request de `transactions`) — é ruído dos Blocos B, resolvo separado se pedir.
-- Warnings de linter preexistentes.
+## Migration 07 — Security-lint SQL (view diagnóstica)
+- Criar `private.rls_associative_audit` view listando policies que ainda contenham `user_id = auth.uid()` em tabelas `%_companies`. Consultada pelo `scripts/security-lint.mjs`.
+
+## Testes RLS (`src/test/rls/`)
+- `category_companies.rls.test.ts` — anônimo bloqueado em SELECT/INSERT/DELETE (rede-limitada, sem fixture).
+- `contact_companies.rls.test.ts` — idem.
+- `payment_method_companies.rls.test.ts` — idem.
+- `chart_account_companies.rls.test.ts` — idem.
+- Testes autenticados A/B/C/D com fixtures reais serão adicionados como scaffold em `src/test/tenancy/associative_rls.tenancy.test.ts`, seguindo o padrão de `multi_company.tenancy.test.ts` (gated por env de credenciais). Sem `if(!fixture)return` — se fixture faltar, `throw`.
+
+## Security-lint script
+Adicionar em `scripts/security-lint.mjs` regra que reprova PRs com padrão `user_owns_(category|contact)` ou `\.user_id\s*=\s*auth\.uid\(\)` dentro de policies de tabelas `%_companies` em migrations novas.
+
+## Frontend
+Nenhuma mudança funcional: o app já opera sob autorização por empresa. Vou apenas validar `TransactionFormDialog`, `CategoriaForm`, `ContatoForm` e `FormaPagamentoForm` para garantir que enviam `company_id` correto no insert do vínculo (já enviam).
+
+---
+
+# Critérios de aceite (verificação final)
+Executarei ao término:
+- `psql` — confirmar policies novas e ausência das antigas nas 4 tabelas.
+- `npm test` — 20+ testes RLS passando.
+- `tsgo` — sem regressão de tipos.
+- Build automático do harness.
+- Rodar `supabase--linter` para verificar warnings.
+
+# Formato de relatório final
+Ao final de cada bloco reporto: Migration criada / Policies removidas / Policies criadas / Grants ajustados / Constraints / Testes / Resultado.
+
+Aprovar para iniciar pela Migration 01?
