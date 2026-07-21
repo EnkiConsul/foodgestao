@@ -232,32 +232,33 @@ export function useDpPendencias() {
         }
       }
 
-      // 6. Negociação coletiva pendente — por unidade + sindicato_laboral
+      // 6. Negociação coletiva pendente — por unidade + sindicato laboral
       try {
-        // sindicatos laborais vinculados por unidade
-        const { data: vinc } = await supabase
-          .from("dp_unidade_cargos")
-          .select("unidade_id, sindicato_laboral_id")
-          .not("sindicato_laboral_id", "is", null);
+        // Sindicatos laborais ativos da empresa
+        const { data: sinds } = await supabase
+          .from("dp_sindicatos")
+          .select("id, nome")
+          .eq("company_id", selectedCompanyId!)
+          .eq("tipo", "laboral")
+          .eq("ativo", true);
+        const sindicatoNome = new Map<string, string>(
+          (sinds ?? []).map((s: any) => [s.id, s.nome])
+        );
 
+        // Vínculos unidade↔sindicato (apenas sindicatos laborais ativos)
+        const sindIds = Array.from(sindicatoNome.keys());
         const parByUnidade = new Map<string, Set<string>>();
-        (vinc ?? []).forEach((v: any) => {
-          if (!v.sindicato_laboral_id) return;
-          if (!parByUnidade.has(v.unidade_id)) parByUnidade.set(v.unidade_id, new Set());
-          parByUnidade.get(v.unidade_id)!.add(v.sindicato_laboral_id);
-        });
-
-        // Nomes de sindicatos (todos usados)
-        const sindicatoIds = new Set<string>();
-        parByUnidade.forEach((set) => set.forEach((id) => sindicatoIds.add(id)));
-        let sindicatoNome = new Map<string, string>();
-        if (sindicatoIds.size > 0) {
-          const { data: sinds } = await supabase
-            .from("dp_sindicatos")
-            .select("id, nome")
-            .in("id", Array.from(sindicatoIds));
-          sindicatoNome = new Map((sinds ?? []).map((s: any) => [s.id, s.nome]));
+        if (sindIds.length > 0) {
+          const { data: vinc } = await supabase
+            .from("dp_sindicato_unidades")
+            .select("unidade_id, sindicato_id")
+            .in("sindicato_id", sindIds);
+          (vinc ?? []).forEach((v: any) => {
+            if (!parByUnidade.has(v.unidade_id)) parByUnidade.set(v.unidade_id, new Set());
+            parByUnidade.get(v.unidade_id)!.add(v.sindicato_id);
+          });
         }
+
 
         const unidadeMap = new Map(unidades.map((u) => [u.id, u.nome]));
 
@@ -271,12 +272,13 @@ export function useDpPendencias() {
               .select("ano, mes")
               .eq("company_id", selectedCompanyId!)
               .eq("unidade_id", unidadeId)
-              .eq("sindicato_laboral_id", sindId)
+              .or(`sindicato_laboral_id.eq.${sindId},sindicato_id.eq.${sindId}`)
               .not("ano", "is", null)
               .not("mes", "is", null)
               .order("ano", { ascending: false })
               .order("mes", { ascending: false })
               .limit(1);
+
 
             const id = `negociacao-${unidadeId}-${sindId}`;
             if (!negs || negs.length === 0) {

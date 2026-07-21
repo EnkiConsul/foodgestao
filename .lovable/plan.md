@@ -1,49 +1,25 @@
-## Objetivo
+## Causa raiz
 
-Trazer para o card **Pendências do Sistema** (`/dp` — Início) as mesmas fontes do projeto original Pakere: solicitações de exceção, trocas, **contracheques**, **adiantamentos**, **folhas de ponto** e **negociações sindicais** por unidade — todas com prazo, status (Atrasado / Hoje / Próximo) e opção de adiar.
+O bloco de "Negociação coletiva pendente" em `src/hooks/useDpPendencias.tsx` lê o vínculo unidade↔sindicato da tabela `dp_unidade_cargos`, mas essa tabela só tem `(unidade_id, cargo_id)` — não existe coluna `sindicato_laboral_id`. A consulta lança erro, cai no `catch` silencioso, e nenhuma pendência de negociação é gerada. Por isso a última negociação de 2025 (vencida em 05/2026) não aparece.
 
-## Mapeamento Pakere → 360°FOOD
+Os vínculos reais estão em `dp_sindicato_unidades (sindicato_id, unidade_id)`, e o tipo (`laboral`/`patronal`) fica em `dp_sindicatos.tipo`.
 
-| Pakere | 360°FOOD | Observação |
-| --- | --- | --- |
-| `unidades` (ativo, possui_relogio_ponto, tem_adiantamento, dia_adiantamento) | `dp_unidades` | Já tem todas as colunas necessárias |
-| `documentos` (tipo, unidade_id, mes, ano) | `dp_documentos` (colaborador_id, referencia_data) + `dp_folha_periodos` (competencia, tipo, status) | Precisa derivar mês/ano; contracheque/adiantamento por `dp_folha_periodos`; ponto por `dp_documentos.tipo='ponto'` cruzando colaboradores da unidade |
-| `negociacoes` (unidade_id, sindicato_laboral_id, ano, mes) | `dp_sindicato_negociacoes` | Colunas já existem 1:1 |
-| `unidade_cargos.sindicato_laboral_id` | `dp_unidade_cargos.sindicato_laboral_id` | Junção idêntica |
-| `pendencias_adiadas` | `dp_user_prefs.pendencias_adiadas` (JSON) | Já implementado — manter |
+## Correção
 
-Sem migração de banco: todas as tabelas e colunas necessárias já existem.
+Editar apenas o bloco 6 de `src/hooks/useDpPendencias.tsx`:
 
-## Regras que passam a ser aplicadas
+1. Trocar a fonte de vínculos: consultar `dp_sindicato_unidades` join com `dp_sindicatos` filtrando `tipo = 'laboral'`, `ativo = true` e `company_id` do contexto.
+2. Para cada par (unidade, sindicato laboral), buscar a última negociação em `dp_sindicato_negociacoes` filtrando por `company_id`, `unidade_id` e casando `sindicato_laboral_id = S OR sindicato_id = S` (compatibilidade com registros antigos que usam apenas `sindicato_id`), ordenada por `ano DESC, mes DESC`.
+3. Vencimento = último dia de (`ano + 1`, `mes`). Gerar pendência quando:
+   - não existir nenhuma negociação para o par, ou
+   - a última estiver vencida, ou
+   - faltarem ≤ 60 dias para vencer.
+4. Filtrar unidades ativas (usar o `unidades` já carregado no início do hook para descartar unidades inativas/fora do escopo).
 
-Todas dentro de `src/hooks/useDpPendencias.tsx`, escopadas por `selectedCompanyId`. Cada bloco é `try/catch` para nunca derrubar o card em caso de erro parcial.
+Nenhuma alteração em UI, rotas, ou outras pendências.
 
-1. **Solicitações pendentes** — mantém a lógica atual de `dp_solicitacoes` (vencimento = created_at + 3d, aviso a 5d).
-2. **Trocas aguardando gestor** — mantém a lógica atual de `dp_trocas`.
-3. **Contracheque não fechado** — se `hoje.dia >= 10`, para cada unidade ativa, verificar se existe `dp_folha_periodos` com `tipo='contracheque_mensal'` e `status='fechado'` na competência do mês anterior. Se não, gera pendência com `data_vencimento = dia 10 do mês corrente` e cálculo de atraso.
-4. **Adiantamento não fechado** — para cada unidade com `tem_adiantamento=true` e `dia_adiantamento` definido, se `hoje.dia >= dia_adiantamento + 5`, verificar `dp_folha_periodos` (`tipo='adiantamento'`, competência = mês corrente, `status='fechado'`). Gera pendência com vencimento = `dia_adiantamento + 5` do mês corrente.
-5. **Folha de ponto não importada** — para cada unidade com `possui_relogio_ponto=true`, se `hoje.dia >= 10`, verificar existência de `dp_documentos.tipo='ponto'` com `referencia_data` no mês anterior, cruzando com colaboradores da unidade. Se `count = 0`, gera pendência.
-6. **Negociação coletiva pendente** — para cada unidade ativa, listar `sindicato_laboral_id` distintos em `dp_unidade_cargos`. Para cada par (unidade, sindicato), buscar a última `dp_sindicato_negociacoes` (`sindicato_laboral_id`, `unidade_id`) ordenada por `(ano, mes)`. Duas rotas:
-   - **Sem nenhuma** → pendência imediata "Nenhuma negociação cadastrada".
-   - **Com última** → vencimento = último dia do mês (`ano+1`, `mes`); só vira pendência quando passou desse dia. Aviso amarelo a 60 dias antes.
-7. **Folhas em aberto** (`dp_folha_periodos.status='aberto'`) — remover do card por virar redundante com os itens 3/4 (evita duplicar pendência da mesma competência).
+## Validação
 
-## Ordenação e visual
-
-- Ordenação final: `atrasoDias DESC`, depois `vencimento ASC` (mesma prioridade do Pakere).
-- Manter o componente atual `PendenciasCard.tsx` — a estrutura visual (chips Atrasado/Hoje/Próximo, badges de status, botões Resolver/Detalhes/Adiar) já bate com o widget do Pakere. Nenhuma mudança visual necessária além dos ícones dos novos tipos:
-  - contracheque → `FileText`
-  - adiantamento → `Coins`
-  - folha_ponto → `Clock`
-  - negociacao → `Scale`
-- Rotas de "Resolver":
-  - contracheque → `/dp/folha`
-  - adiantamento → `/dp/folha`
-  - folha_ponto → `/dp/folha` (ajustável depois se houver rota dedicada)
-  - negociacao → `/dp/documentos/act-cct`
-
-## Fora de escopo
-
-- Não vou criar tabela `pendencias_adiadas` — o adiamento já usa `dp_user_prefs.pendencias_adiadas` e funciona bem.
-- Não vou alterar o portal (`DpMeuHome`) — o pedido é sobre a Home admin.
-- Não vou consolidar/renomear rotas do menu.
+Com os dados atuais:
+- SECHSEG (`3e2d3704…`) × unidade `ba21d87d…` → última 07/2026 → vencimento 31/07/2027 → sem alerta.
+- SECHSEG (`02864e4f…`) × unidades `9d412df7…` e `afd5ac01…` → última 05/2025 → vencimento 31/05/2026 → atrasada ~51 dias → devem aparecer 2 pendências em `/inicio`.
