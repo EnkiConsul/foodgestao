@@ -37,7 +37,7 @@ import { Label } from "@/components/ui/label";
 import {
   Plus, Search, ArrowLeftRight,
   Trash2, Pencil, Copy, ChevronLeft, ChevronRight, ChevronDown, Filter, SlidersHorizontal,
-  Download, DollarSign, CalendarIcon, CreditCard, HandCoins, X, Settings2, Repeat, Paperclip, Check, Upload,
+  Download, DollarSign, CalendarIcon, CreditCard, HandCoins, X, Settings2, Repeat, Paperclip, Check, Upload, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, endOfMonth, isPast } from "date-fns";
