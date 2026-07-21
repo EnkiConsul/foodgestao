@@ -237,14 +237,6 @@ export default function DpColaboradores() {
     }
   };
 
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(label);
-      setTimeout(() => setCopied((v) => (v === label ? null : v)), 1500);
-    } catch {
-      toast.error("Não foi possível copiar");
-    }
-  };
 
   return (
     <DpPage>
