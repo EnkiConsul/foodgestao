@@ -396,8 +396,7 @@ export default function DpMeuCalendario() {
   const enviarExcecao = useMutation({
     mutationFn: async () => {
       if (!meRef.data || !selectedDay) throw new Error("Sem contexto");
-      const motivo = exceptionMotivo.trim();
-      if (!motivo) throw new Error("Descreva a justificativa.");
+      const motivo = exceptionMotivo.trim() || "Solicitação de exceção (sem motivo informado)";
       const { error } = await supabase.from("dp_solicitacoes").insert({
         company_id: meRef.data.company_id,
         colaborador_id: meRef.data.id,
