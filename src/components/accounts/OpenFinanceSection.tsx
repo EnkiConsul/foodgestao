@@ -135,14 +135,17 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
     }
   }
 
-  async function handleDelete(conn: BankConnection) {
+  async function handleDelete(conn: BankConnection, force = false) {
     try {
-      await deleteConnection.mutateAsync(conn.id);
+      await deleteConnection.mutateAsync({ connectionId: conn.id, force });
       toast.success("Conexão removida");
       setConfirmDelete(null);
+      setDeleteError(null);
       onRefreshAccounts();
     } catch (e) {
-      toast.error((e as Error).message);
+      const err = e as Error & { pluggyError?: boolean };
+      setDeleteError({ message: err.message, pluggyError: !!err.pluggyError });
+      toast.error(err.message);
     }
   }
 
