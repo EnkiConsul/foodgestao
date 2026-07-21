@@ -187,7 +187,38 @@ const checks = [
         );
     `,
   },
+  {
+    id: "associative_ownership_fallback",
+    severity: "critical",
+    description:
+      "Tabela associativa `*_companies` com policy cujo predicado usa `user_id = auth.uid()` ou `user_owns_*` como autorização — vínculo empresarial deve exigir membership + módulo, nunca criador da entidade",
+    sql: `
+      SELECT p.tablename || '.' || p.policyname || ' (' || p.cmd || ')' AS finding
+      FROM pg_policies p
+      WHERE p.schemaname = 'public'
+        AND p.tablename LIKE '%\\_companies' ESCAPE '\\'
+        AND (
+          COALESCE(p.qual, '')       ~* '(user_owns_[a-z_]+|user_id\\s*=\\s*auth\\.uid\\(\\))'
+          OR COALESCE(p.with_check,'') ~* '(user_owns_[a-z_]+|user_id\\s*=\\s*auth\\.uid\\(\\))'
+        );
+    `,
+  },
+  {
+    id: "associative_missing_company_check",
+    severity: "critical",
+    description:
+      "Tabela associativa `*_companies` com policy de INSERT/DELETE/ALL que não referencia `company_id` no predicado (autorização por empresa ausente)",
+    sql: `
+      SELECT p.tablename || '.' || p.policyname || ' (' || p.cmd || ')' AS finding
+      FROM pg_policies p
+      WHERE p.schemaname = 'public'
+        AND p.tablename LIKE '%\\_companies' ESCAPE '\\'
+        AND p.cmd IN ('INSERT','DELETE','ALL','UPDATE')
+        AND COALESCE(p.with_check, p.qual, '') !~ 'company_id';
+    `,
+  },
 ];
+
 
 function runQuery(sql) {
   const psqlArgs = ["-X", "-A", "-t", "-v", "ON_ERROR_STOP=1", "-c", sql];
