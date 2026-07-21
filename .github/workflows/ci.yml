@@ -8,7 +8,7 @@ on:
 
 jobs:
   quality:
-    name: Typecheck, Lint & Build
+    name: Typecheck, Lint, Test & Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -40,12 +40,17 @@ jobs:
         run: npm ci --no-audit --no-fund
 
       - name: TypeScript typecheck (strict — no errors allowed)
-        run: npx tsc -p tsconfig.strict.json --noEmit
+        run: npm run typecheck:strict
 
       - name: ESLint (ceiling — must not increase)
         # Ratchet decrescente. Baseline: 546 warnings (jul/2026), 0 errors.
         # Baixe este teto ao mesmo tempo em que reduz warnings; nunca aumente.
         run: npx eslint . --max-warnings=546
+
+      - name: Vitest (unit + RLS regression)
+        # Suíte de tenancy em src/test/tenancy é auto-skipped quando
+        # TEST_SUPABASE_URL e credenciais dos 4 usuários não estão setadas.
+        run: npm test
 
       - name: Production build
         # Invoke vite directly to skip the `prebuild` security-lint hook —
