@@ -25,6 +25,8 @@ import { PaymentMethodFormDialog } from "@/components/payment-methods/PaymentMet
 import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/searchable-select";
 import { useTransactionFieldSettings, TRANSACTION_FIELD_LABELS, type TransactionField } from "@/hooks/useTransactionFieldSettings";
 import { useTransactionFormLookups } from "@/hooks/useTransactionFormLookups";
+import { useCategorizationSuggestion } from "@/hooks/useCategorizationSuggestion";
+import { Sparkles } from "lucide-react";
 import {
   type CategoryNode,
   buildCategoryTree,
