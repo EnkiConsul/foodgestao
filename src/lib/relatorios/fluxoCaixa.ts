@@ -124,55 +124,54 @@ export function computeFluxoCaixa(
       }
     }
 
-    const buildNodes = (parentId: string | null): FluxoNode[] => {
-      return relevantCats
-        .filter((c) => c.parent_id === parentId && catsWithData.has(c.id))
-        .map((c) => {
-          const children = buildNodes(c.id);
-          const leafMonths = catMonthly[c.id] || new Array(numMonths).fill(0);
-          const months = children.length > 0
-            ? leafMonths.map((v: number, i: number) => v + children.reduce((sum, ch) => sum + ch.months[i], 0))
-            : [...leafMonths];
-          return {
-            id: c.id,
-            name: c.name,
-            hierarchyIndex: c.hierarchy_index || "",
-            type,
-            months,
-            children,
-            depth: 0,
-          };
-        });
-    };
+    // 1) Monta a árvore COMPLETA (todas as categorias do tipo), ordenada
+    //    do mesmo modo que a página de Categorias (sort_order, depois name),
+    //    para que o índice hierárquico coincida com o cadastro.
+    const sortSiblings = (arr: FluxoCategory[]) =>
+      arr.slice().sort((a, b) => {
+        const sa = a.sort_order ?? 0;
+        const sb = b.sort_order ?? 0;
+        if (sa !== sb) return sa - sb;
+        return (a.name || "").localeCompare(b.name || "");
+      });
 
-    const nodes = buildNodes(null);
-
-    const sortNodes = (nodes: FluxoNode[]): FluxoNode[] => {
-      return nodes
-        .map((n) => ({ ...n, children: sortNodes(n.children) }))
-        .sort((a, b) => {
-          const sortA = catMap[a.id]?.sort_order ?? 0;
-          const sortB = catMap[b.id]?.sort_order ?? 0;
-          if (sortA !== sortB) return sortA - sortB;
-          return (catMap[a.id]?.name || "").localeCompare(catMap[b.id]?.name || "");
-        });
-    };
-
-    const sorted = sortNodes(nodes);
-
-    // Recomputa hierarchyIndex (1, 1.1, 1.2, 2, ...) baseado na ordem final,
-    // já que a coluna no banco pode estar vazia.
-    const assignIndex = (nodes: FluxoNode[], parentIndex: string) => {
-      nodes.forEach((n, i) => {
+    const indexMap: Record<string, string> = {};
+    const assignAll = (parentId: string | null, parentIndex: string) => {
+      const siblings = sortSiblings(relevantCats.filter((c) => c.parent_id === parentId));
+      siblings.forEach((c, i) => {
         const idx = parentIndex ? `${parentIndex}.${i + 1}` : `${i + 1}`;
-        n.hierarchyIndex = idx;
-        if (n.children.length > 0) assignIndex(n.children, idx);
+        indexMap[c.id] = idx;
+        assignAll(c.id, idx);
       });
     };
-    assignIndex(sorted, "");
+    assignAll(null, "");
 
-    return sorted;
+    // 2) Constrói só os nós com movimento, preservando o índice original.
+    const buildNodes = (parentId: string | null): FluxoNode[] => {
+      const siblings = sortSiblings(
+        relevantCats.filter((c) => c.parent_id === parentId && catsWithData.has(c.id))
+      );
+      return siblings.map((c) => {
+        const children = buildNodes(c.id);
+        const leafMonths = catMonthly[c.id] || new Array(numMonths).fill(0);
+        const months = children.length > 0
+          ? leafMonths.map((v: number, i: number) => v + children.reduce((sum, ch) => sum + ch.months[i], 0))
+          : [...leafMonths];
+        return {
+          id: c.id,
+          name: c.name,
+          hierarchyIndex: indexMap[c.id] || "",
+          type,
+          months,
+          children,
+          depth: 0,
+        };
+      });
+    };
+
+    return buildNodes(null);
   };
+
 
   return {
     MONTH_LABELS,
