@@ -400,7 +400,18 @@ export default function DpColaboradores() {
                             >
                               <KeyRound className="h-4 w-4" />
                             </Button>
-                          ) : (
+                          ) : null}
+                          {c.user_id && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="Definir senha customizada"
+                              onClick={() => openSetPwd(c)}
+                            >
+                              <Lock className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {!c.user_id && (
                             <Button
                               size="icon"
                               variant="ghost"
