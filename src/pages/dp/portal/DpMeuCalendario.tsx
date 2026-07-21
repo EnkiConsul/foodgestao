@@ -767,6 +767,6 @@ export default function DpMeuCalendario() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </DpPage>
+    </div>
   );
 }
