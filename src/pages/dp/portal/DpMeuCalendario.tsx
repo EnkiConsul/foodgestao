@@ -474,47 +474,65 @@ export default function DpMeuCalendario() {
     !["past", "mine", "fixed", "pending", "swapped", "weekday"].includes(selectedDay.status);
 
   return (
-    <DpPage>
+    <div className="space-y-8 max-w-7xl mx-auto">
       <Helmet>
-        <title>Calendário — Portal</title>
+        <title>Meu calendário — Portal DP</title>
       </Helmet>
-      <DpPageHeader icon={CalendarDays} title="Meu calendário" />
 
-      <DpContentCard contentClassName="p-4 md:p-6">
-        <FolgaCalendarShared
-          year={ano}
-          month0={mes - 1}
-          occupantsByDate={occupantsByDate}
-          manualBlocked={manualBlocked}
-          dayLimits={dayLimits}
-          myColaboradorId={meRef.data?.id ?? null}
-          allFolgas={allFolgasRecords}
-          allColaboradores={colaboradores}
-          pendingRequests={pendingRequests}
-          isAdmin={false}
-          variant="compact"
-          onPrev={goPrev}
-          onNext={goNext}
-          onSelectDay={(iso, info) => {
-            // recalcula status para não confiar só no tooltip
-            const st = calculateDateStatus({
-              date: parseYMD(iso),
-              myColaboradorId: meRef.data?.id ?? null,
-              allFolgas: allFolgasRecords,
-              allColaboradores: colaboradores,
-              manualBlocked,
-              dayLimits,
-              pendingRequests,
-              isAdmin: false,
-            });
-            setSelectedDay({ iso, status: (info?.status ?? st.status) as DateStatusKind });
-          }}
-        />
-      </DpContentCard>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-4xl font-black text-foreground flex items-center gap-4 tracking-tight">
+            <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <CalendarDays className="size-7 text-primary" />
+            </div>
+            Meu calendário
+          </h1>
+          <p className="text-muted-foreground mt-2 font-medium">
+            Escolha suas folgas de fim de semana.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          className="rounded-full"
+          onClick={() => navigate("/dp/meu/trocas")}
+        >
+          <ArrowLeftRight className="size-4 mr-2" /> Minhas trocas
+        </Button>
+      </div>
+
+      <FolgaCalendarShared
+        year={ano}
+        month0={mes - 1}
+        occupantsByDate={occupantsByDate}
+        manualBlocked={manualBlocked}
+        dayLimits={dayLimits}
+        myColaboradorId={meRef.data?.id ?? null}
+        allFolgas={allFolgasRecords}
+        allColaboradores={colaboradores}
+        pendingRequests={pendingRequests}
+        isAdmin={false}
+        variant="chunky"
+        onPrev={goPrev}
+        onNext={goNext}
+        onSelectDay={(iso, info) => {
+          const st = calculateDateStatus({
+            date: parseYMD(iso),
+            myColaboradorId: meRef.data?.id ?? null,
+            allFolgas: allFolgasRecords,
+            allColaboradores: colaboradores,
+            manualBlocked,
+            dayLimits,
+            pendingRequests,
+            isAdmin: false,
+          });
+          setSelectedDay({ iso, status: (info?.status ?? st.status) as DateStatusKind });
+        }}
+      />
 
       <p className="text-xs text-muted-foreground">
         Clique em um dia para ver detalhes, marcar folga de fim de semana, pedir troca ou solicitar exceção.
       </p>
+
 
       {/* Dialog do dia */}
       <Dialog open={!!selectedDay} onOpenChange={(o) => !o && setSelectedDay(null)}>
