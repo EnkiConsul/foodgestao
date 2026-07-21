@@ -98,7 +98,7 @@ describe("RLS: dp_cadastro_solicitacoes", () => {
       .from("dp_cadastro_solicitacoes")
       .insert({
         company_id: "11111111-1111-1111-1111-111111111111",
-        nome_completo: "Probe 2",
+        nome: "Probe 2",
         cpf: "00000000001",
         email: "rls-probe2@example.com",
         status: "pendente",
