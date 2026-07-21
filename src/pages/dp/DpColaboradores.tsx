@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -60,6 +61,11 @@ export default function DpColaboradores() {
   const [granting, setGranting] = useState<string | null>(null);
   const [accessResult, setAccessResult] = useState<{ nome: string; cpf: string; password: string; kind: "created" | "reset" } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [setPwdTarget, setSetPwdTarget] = useState<DpColaborador | null>(null);
+  const [novaSenha, setNovaSenha] = useState("");
+  const [confirmSenha, setConfirmSenha] = useState("");
+  const [showSenha, setShowSenha] = useState(false);
+  const [savingSenha, setSavingSenha] = useState(false);
 
   const counts = useMemo(() => {
     const all = list.data ?? [];
@@ -180,6 +186,57 @@ export default function DpColaboradores() {
       toast.error("Não foi possível copiar");
     }
   };
+
+  const openSetPwd = (c: DpColaborador) => {
+    setSetPwdTarget(c);
+    setNovaSenha("");
+    setConfirmSenha("");
+    setShowSenha(false);
+  };
+
+  const generateRandomPwd = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+    let out = "";
+    const arr = new Uint32Array(12);
+    crypto.getRandomValues(arr);
+    for (let i = 0; i < 12; i++) out += chars[arr[i] % chars.length];
+    setNovaSenha(out);
+    setConfirmSenha(out);
+    setShowSenha(true);
+  };
+
+  const handleSetPwd = async () => {
+    if (!setPwdTarget) return;
+    if (novaSenha.length < 6 || novaSenha.length > 72) {
+      toast.error("A senha deve ter entre 6 e 72 caracteres");
+      return;
+    }
+    if (novaSenha !== confirmSenha) {
+      toast.error("As senhas não conferem");
+      return;
+    }
+    setSavingSenha(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("dp-alterar-senha-colaborador", {
+        body: { colaborador_id: setPwdTarget.id, nova_senha: novaSenha },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const target = setPwdTarget;
+      setSetPwdTarget(null);
+      setAccessResult({
+        nome: target.nome,
+        cpf: target.cpf ?? "",
+        password: novaSenha,
+        kind: "reset",
+      });
+    } catch (e) {
+      toast.error("Erro ao alterar senha", { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setSavingSenha(false);
+    }
+  };
+
 
   return (
     <DpPage>
@@ -343,7 +400,18 @@ export default function DpColaboradores() {
                             >
                               <KeyRound className="h-4 w-4" />
                             </Button>
-                          ) : (
+                          ) : null}
+                          {c.user_id && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="Definir senha customizada"
+                              onClick={() => openSetPwd(c)}
+                            >
+                              <Lock className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {!c.user_id && (
                             <Button
                               size="icon"
                               variant="ghost"
@@ -429,6 +497,63 @@ export default function DpColaboradores() {
           </div>
           <DialogFooter>
             <Button onClick={() => setAccessResult(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!setPwdTarget} onOpenChange={(o) => !o && setSetPwdTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Definir senha do colaborador</DialogTitle>
+            <DialogDescription>
+              Defina uma nova senha para <strong>{setPwdTarget?.nome}</strong>. Ele fará login em <span className="font-mono">/dp/login</span> com o CPF e esta senha.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="nova-senha">Nova senha</Label>
+              <div className="relative">
+                <Input
+                  id="nova-senha"
+                  type={showSenha ? "text" : "password"}
+                  value={novaSenha}
+                  onChange={(e) => setNovaSenha(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                  maxLength={72}
+                  className="pr-10 font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSenha((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                >
+                  {showSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="conf-senha">Confirmar senha</Label>
+              <Input
+                id="conf-senha"
+                type={showSenha ? "text" : "password"}
+                value={confirmSenha}
+                onChange={(e) => setConfirmSenha(e.target.value)}
+                maxLength={72}
+                className="font-mono"
+              />
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={generateRandomPwd} className="w-full">
+              <Sparkles className="h-4 w-4 mr-2" /> Gerar senha aleatória
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSetPwdTarget(null)} disabled={savingSenha}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSetPwd} disabled={savingSenha}>
+              {savingSenha ? "Salvando..." : "Salvar senha"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
