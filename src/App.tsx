@@ -109,6 +109,7 @@ const AdminResetarDados = lazy(() => import("./pages/admin/ResetarDados"));
 const AdminLandingPage = lazy(() => import("./pages/admin/LandingPage"));
 const AdminBancos = lazy(() => import("./pages/admin/Bancos"));
 const AdminSeoIndexacao = lazy(() => import("./pages/admin/SeoIndexacao"));
+const AdminImportacoesDp = lazy(() => import("./pages/admin/ImportacoesDp"));
 const AdminDocumentosLegais = lazy(() => import("./pages/admin/DocumentosLegais"));
 
 // Público / auth-adjacente
@@ -399,6 +400,7 @@ const AppRoutes = () => (
         <Route path="/admin/seo-indexacao" element={<AdminSeoIndexacao />} />
         <Route path="/admin/modulos" element={<AdminModulos />} />
         <Route path="/admin/categorizacao-ia" element={<CategorizacaoIA />} />
+        <Route path="/admin/importacoes-dp" element={<AdminImportacoesDp />} />
       </Route>
       <Route path="/convite/:token" element={<AcceptInvite />} />
       <Route path="/reset-password" element={<ResetPassword />} />
