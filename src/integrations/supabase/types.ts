@@ -868,6 +868,7 @@ export type Database = {
           alert_threshold_90: boolean
           amount: number
           category_id: string
+          company_id: string | null
           context: Database["public"]["Enums"]["context_type"]
           created_at: string
           end_date: string
@@ -883,6 +884,7 @@ export type Database = {
           alert_threshold_90?: boolean
           amount: number
           category_id: string
+          company_id?: string | null
           context?: Database["public"]["Enums"]["context_type"]
           created_at?: string
           end_date: string
@@ -898,6 +900,7 @@ export type Database = {
           alert_threshold_90?: boolean
           amount?: number
           category_id?: string
+          company_id?: string | null
           context?: Database["public"]["Enums"]["context_type"]
           created_at?: string
           end_date?: string
@@ -908,6 +911,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "budgets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fk_budgets_category"
             columns: ["category_id"]
