@@ -5,6 +5,7 @@ import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { applyFinancialScope, assertFinancialScope, isFinancialScopeReady } from "@/lib/financialScope";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,21 +56,21 @@ export default function Orcamento() {
   // Fetch spending per category for current month
   const { data: spending = {} } = useQuery({
     queryKey: ["budget-spending", user?.id, contextType, selectedCompanyId],
-    enabled: !!user,
+    enabled: !!user && isFinancialScopeReady(contextType, user?.id, selectedCompanyId),
     queryFn: async () => {
+      const scope = assertFinancialScope({ context: contextType, userId: user!.id, companyId: selectedCompanyId });
       const start = format(startOfMonth(new Date()), "yyyy-MM-dd");
       const end = format(endOfMonth(new Date()), "yyyy-MM-dd");
-      let q = supabase
-        .from("transactions")
-        .select("amount, category_id")
-        .eq("user_id", user!.id)
+      const q = applyFinancialScope(
+        supabase
+          .from("transactions")
+          .select("amount, category_id"),
+        scope,
+      )
         .eq("transaction_type", "despesa")
-        .eq("context", contextType)
         .neq("status", "cancelado")
         .gte("transaction_date", start)
         .lte("transaction_date", end);
-
-      if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
 
       const { data } = await q;
       const map: Record<string, number> = {};

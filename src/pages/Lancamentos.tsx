@@ -8,6 +8,7 @@ import { usePrivacy } from "@/hooks/usePrivacy";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useMarkRouteReady } from "@/lib/perf";
 import { supabase } from "@/integrations/supabase/client";
+import { applyFinancialScope, assertFinancialScope, isFinancialScopeReady } from "@/lib/financialScope";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -323,18 +324,22 @@ export default function Lancamentos() {
   // Fetch transactions (includes bills now via due_date)
   const fetchTransactions = useCallback(async () => {
     if (!user) return;
+    if (!isFinancialScopeReady(contextType, user.id, selectedCompanyId)) {
+      setTransactions([]); setLoading(false); return;
+    }
     setLoading(true);
 
+    const scope = assertFinancialScope({ context: contextType, userId: user.id, companyId: selectedCompanyId });
+
     // We need transactions that fall in the month by transaction_date OR by due_date
-    let q = supabase
-      .from("transactions")
-      .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, bill_status, payment_date, contact_id, notes, destination_account_id, is_recurring, parent_transaction_id, attachment_url, installment_number, installment_total, categories!fk_transactions_category(name), accounts!fk_transactions_account(name), payment_methods!fk_transactions_payment_method(name)")
-      .eq("user_id", user.id)
-      .eq("context", contextType)
+    const q = applyFinancialScope(
+      supabase
+        .from("transactions")
+        .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, bill_status, payment_date, contact_id, notes, destination_account_id, is_recurring, parent_transaction_id, attachment_url, installment_number, installment_total, categories!fk_transactions_category(name), accounts!fk_transactions_account(name), payment_methods!fk_transactions_payment_method(name)"),
+      scope,
+    )
       .or(`and(due_date.is.null,transaction_date.gte.${monthStart},transaction_date.lte.${monthEnd}),and(due_date.gte.${monthStart},due_date.lte.${monthEnd})`)
       .order("transaction_date", { ascending: true });
-
-    if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
 
     const { data, error } = await q;
 
