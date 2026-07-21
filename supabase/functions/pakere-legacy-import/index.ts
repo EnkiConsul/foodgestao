@@ -914,14 +914,7 @@ async function copyOneFile(
   dryRun: boolean,
 ): Promise<{ ok: boolean; bucket?: string; error?: string; skipped?: boolean }> {
   if (!path) return { ok: false, error: "empty path" };
-  // Check if already exists in destination
-  const { data: existing } = await dest.storage.from(DEST_BUCKET).list(
-    path.includes("/") ? path.substring(0, path.lastIndexOf("/")) : "",
-    { search: path.includes("/") ? path.substring(path.lastIndexOf("/") + 1) : path },
-  );
-  if (existing?.some((f) => f.name === (path.includes("/") ? path.substring(path.lastIndexOf("/") + 1) : path))) {
-    return { ok: true, skipped: true };
-  }
+
   for (const bucket of SOURCE_BUCKET_CANDIDATES) {
     const { data, error } = await source.storage.from(bucket).download(path);
     if (error || !data) continue;
@@ -932,10 +925,14 @@ async function copyOneFile(
       contentType,
       upsert: false,
     });
-    if (upErr && !String(upErr.message).toLowerCase().includes("already exists")) {
+    if (upErr) {
+      if (String(upErr.message).toLowerCase().includes("already exists") || String(upErr.message).toLowerCase().includes("duplicate")) {
+        return { ok: true, bucket, skipped: true };
+      }
       return { ok: false, bucket, error: upErr.message };
     }
     return { ok: true, bucket };
+
   }
   return { ok: false, error: "not found in any source bucket" };
 }
@@ -943,48 +940,54 @@ async function copyOneFile(
 async function runCopyStorage(
   source: SupabaseClient,
   dest: SupabaseClient,
-  opts: { dryRun: boolean },
+  opts: { dryRun: boolean; only?: string; limit?: number; offset?: number },
 ) {
-  const results = {
-    dp_documentos: { copied: 0, skipped: 0, failed: 0, errors: [] as unknown[] },
-    dp_sindicato_negociacoes: { copied: 0, skipped: 0, failed: 0, errors: [] as unknown[] },
-    dp_solicitacoes: { copied: 0, skipped: 0, failed: 0, errors: [] as unknown[] },
+  const results: Record<string, { copied: number; skipped: number; failed: number; errors: unknown[] }> = {
+    dp_documentos: { copied: 0, skipped: 0, failed: 0, errors: [] },
+    dp_sindicato_negociacoes: { copied: 0, skipped: 0, failed: 0, errors: [] },
+    dp_solicitacoes: { copied: 0, skipped: 0, failed: 0, errors: [] },
   };
 
   const process = async (
-    table: keyof typeof results,
+    table: string,
     col: string,
     rows: { id: string; path: string | null }[],
   ) => {
-    for (const r of rows) {
-      if (!r.path) continue;
-      const res = await copyOneFile(source, dest, r.path, opts.dryRun);
-      if (res.ok && res.skipped) results[table].skipped++;
-      else if (res.ok) results[table].copied++;
-      else {
-        results[table].failed++;
-        results[table].errors.push({ id: r.id, [col]: r.path, error: res.error });
-      }
+    const CONCURRENCY = 5;
+    for (let i = 0; i < rows.length; i += CONCURRENCY) {
+      const batch = rows.slice(i, i + CONCURRENCY);
+      await Promise.all(batch.map(async (r) => {
+        if (!r.path) return;
+        const res = await copyOneFile(source, dest, r.path, opts.dryRun);
+        if (res.ok && res.skipped) results[table].skipped++;
+        else if (res.ok) results[table].copied++;
+        else {
+          results[table].failed++;
+          results[table].errors.push({ id: r.id, [col]: r.path, error: res.error });
+        }
+      }));
     }
   };
 
-  const { data: docs } = await dest.from("dp_documentos")
-    .select("id, file_path").eq("company_id", PAKERE_COMPANY_ID).not("file_path", "is", null);
-  await process("dp_documentos", "file_path",
-    (docs ?? []).map((d: any) => ({ id: d.id, path: d.file_path })));
+  const runTable = async (table: string, col: string) => {
+    if (opts.only && opts.only !== table) return;
+    let q = dest.from(table).select(`id, ${col}`).eq("company_id", PAKERE_COMPANY_ID).not(col, "is", null);
+    if (opts.offset != null || opts.limit != null) {
+      const from = opts.offset ?? 0;
+      const to = from + (opts.limit ?? 1000) - 1;
+      q = q.range(from, to);
+    }
+    const { data } = await q;
+    await process(table, col, (data ?? []).map((d: any) => ({ id: d.id, path: d[col] })));
+  };
 
-  const { data: negs } = await dest.from("dp_sindicato_negociacoes")
-    .select("id, pdf_path").eq("company_id", PAKERE_COMPANY_ID).not("pdf_path", "is", null);
-  await process("dp_sindicato_negociacoes", "pdf_path",
-    (negs ?? []).map((d: any) => ({ id: d.id, path: d.pdf_path })));
+  await runTable("dp_documentos", "file_path");
+  await runTable("dp_sindicato_negociacoes", "pdf_path");
+  await runTable("dp_solicitacoes", "arquivo_path");
 
-  const { data: sols } = await dest.from("dp_solicitacoes")
-    .select("id, arquivo_path").eq("company_id", PAKERE_COMPANY_ID).not("arquivo_path", "is", null);
-  await process("dp_solicitacoes", "arquivo_path",
-    (sols ?? []).map((d: any) => ({ id: d.id, path: d.arquivo_path })));
-
-  return { dryRun: opts.dryRun, dest_bucket: DEST_BUCKET, results };
+  return { dryRun: opts.dryRun, dest_bucket: DEST_BUCKET, only: opts.only ?? null, results };
 }
+
 
 
 
@@ -1068,7 +1071,11 @@ Deno.serve(async (req) => {
     if (mode === "copy-storage") {
       const result = await runCopyStorage(source, dest, {
         dryRun: !!body.dryRun,
+        only: body.only,
+        limit: body.limit,
+        offset: body.offset,
       });
+
       return new Response(JSON.stringify({ mode, ...result }, null, 2), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
