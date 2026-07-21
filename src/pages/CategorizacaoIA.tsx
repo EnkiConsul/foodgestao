@@ -198,10 +198,15 @@ export default function CategorizacaoIA() {
         <StatCard label="Criadas pela IA" value={stats.bySource.ai ?? 0} />
       </div>
 
-      <Tabs defaultValue="rules">
+      <Tabs defaultValue="health">
         <TabsList>
+          <TabsTrigger value="health">Saúde</TabsTrigger>
           <TabsTrigger value="rules">Regras ({stats.total})</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="health" className="mt-4">
+          <HealthPanel rules={rules} contextType={contextType} companyId={selectedCompanyId} />
+        </TabsContent>
 
         <TabsContent value="rules" className="mt-4">
           <Card>
@@ -356,5 +361,158 @@ function StatCard({ label, value }: { label: string; value: number }) {
         <p className="text-2xl font-semibold tabular-nums mt-1">{value}</p>
       </CardContent>
     </Card>
+  );
+}
+
+function HealthPanel({
+  rules,
+  contextType,
+  companyId,
+}: {
+  rules: Rule[];
+  contextType: string | null;
+  companyId: string | null;
+}) {
+  const { data: coverage } = useQuery({
+    queryKey: ["categorization-coverage", contextType, companyId],
+    queryFn: async () => {
+      const base = supabase.from("transactions").select("id", { count: "exact", head: true });
+      let withCat = base;
+      let total = supabase.from("transactions").select("id", { count: "exact", head: true });
+      if (contextType) {
+        withCat = withCat.eq("context", contextType.toUpperCase() as any);
+        total = total.eq("context", contextType.toUpperCase() as any);
+      }
+      if (companyId) {
+        withCat = withCat.eq("company_id", companyId);
+        total = total.eq("company_id", companyId);
+      }
+      const [{ count: totalCount }, { count: catCount }] = await Promise.all([
+        total,
+        withCat.not("category_id", "is", null),
+      ]);
+      return {
+        total: totalCount ?? 0,
+        categorized: catCount ?? 0,
+        uncategorized: (totalCount ?? 0) - (catCount ?? 0),
+      };
+    },
+  });
+
+  const bySource = rules.reduce<Record<string, { count: number; hits: number }>>((acc, r) => {
+    const s = r.source;
+    if (!acc[s]) acc[s] = { count: 0, hits: 0 };
+    acc[s].count += 1;
+    acc[s].hits += r.hit_count ?? 0;
+    return acc;
+  }, {});
+
+  const topRules = [...rules].sort((a, b) => b.hit_count - a.hit_count).slice(0, 10);
+  const unusedRules = rules.filter((r) => r.hit_count === 0);
+  const pct = coverage && coverage.total > 0
+    ? Math.round((coverage.categorized / coverage.total) * 100)
+    : 0;
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Cobertura de categorização</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-baseline gap-2">
+            <span className="text-4xl font-bold tabular-nums text-primary">{pct}%</span>
+            <span className="text-sm text-muted-foreground">
+              {coverage?.categorized ?? 0} de {coverage?.total ?? 0} lançamentos categorizados
+            </span>
+          </div>
+          <div className="h-2 bg-muted rounded overflow-hidden">
+            <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+          </div>
+          {coverage && coverage.uncategorized > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {coverage.uncategorized} lançamentos ainda sem categoria — use "Auto-categorizar pendentes".
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Distribuição por origem</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Origem</TableHead>
+                  <TableHead className="text-right">Regras</TableHead>
+                  <TableHead className="text-right">Acertos</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Object.entries(bySource).sort((a, b) => b[1].hits - a[1].hits).map(([src, s]) => (
+                  <TableRow key={src}>
+                    <TableCell>
+                      <Badge variant="secondary" className="gap-1">
+                        {sourceIcon[src] ?? null}
+                        {sourceLabel[src] ?? src}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{s.count}</TableCell>
+                    <TableCell className="text-right tabular-nums">{s.hits}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Top 10 regras mais usadas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Padrão</TableHead>
+                  <TableHead className="text-right">Acertos</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {topRules.length === 0 ? (
+                  <TableRow><TableCell colSpan={2} className="text-center py-4 text-muted-foreground text-sm">Sem dados</TableCell></TableRow>
+                ) : topRules.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-mono text-xs truncate max-w-[220px]" title={r.pattern}>{r.pattern}</TableCell>
+                    <TableCell className="text-right tabular-nums">{r.hit_count}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center justify-between">
+            <span>Regras nunca usadas</span>
+            <Badge variant="outline">{unusedRules.length}</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {unusedRules.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Todas as regras já foram acionadas ao menos uma vez.</p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {unusedRules.length} regras sem acerto até agora. Considere revisá-las ou desativá-las na aba "Regras".
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
