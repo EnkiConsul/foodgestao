@@ -164,11 +164,15 @@ export default function Lancamentos() {
     if (batchCategorizing) return;
     setBatchCategorizing(true);
     try {
+      const ctx = contextType ?? null;
+      const companyId = contextType === "pj" ? selectedCompanyId : null;
+
+      // Camadas 1+2 (determinístico + similaridade)
       const { data, error } = await supabase.rpc("categorize_transactions_batch", {
         p_limit: 500,
         p_min_confidence: 0.7,
-        p_context: contextType ?? null,
-        p_company_id: contextType === "pj" ? selectedCompanyId : null,
+        p_context: ctx,
+        p_company_id: companyId,
         p_only_uncategorized: true,
       });
       if (error) throw error;
@@ -177,11 +181,35 @@ export default function Lancamentos() {
       const updated = Number(row?.updated ?? 0);
       const low = Number(row?.skipped_low_confidence ?? 0);
       const none = Number(row?.skipped_no_match ?? 0);
+
+      let aiApplied = 0;
+      // Camada 3 (IA em lote) para os que sobraram sem match
+      if (none + low > 0) {
+        toast.message("Enviando restantes para a IA...", { description: `${none + low} lançamentos` });
+        const { data: enq } = await supabase.rpc("enqueue_uncategorized_for_ai", {
+          p_limit: 200,
+          p_context: ctx,
+          p_company_id: companyId,
+        });
+        const enqueued = Number((Array.isArray(enq) ? enq[0]?.enqueued : (enq as any)?.enqueued) ?? 0);
+        if (enqueued > 0) {
+          // Processa em rodadas de até 25 até esvaziar (máx 8 rodadas)
+          for (let i = 0; i < 8; i++) {
+            const { data: res, error: fnErr } = await supabase.functions.invoke("ai-categorize-transactions", {
+              body: { batch: 25 },
+            });
+            if (fnErr) break;
+            const applied = Number((res as any)?.applied ?? 0);
+            aiApplied += applied;
+            if ((res as any)?.empty || Number((res as any)?.processed ?? 0) === 0) break;
+          }
+        }
+      }
+
       toast.success(`Categorização concluída`, {
-        description: `${updated}/${scanned} categorizados · ${low} baixa confiança · ${none} sem regra`,
+        description: `${updated}/${scanned} por regras · ${aiApplied} pela IA · ${none - aiApplied} sem match`,
       });
-      if (updated > 0) {
-        // trigger reload
+      if (updated + aiApplied > 0) {
         setSelectedMonth((m) => m);
         window.dispatchEvent(new Event("transactions:refresh"));
       }
