@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3.23.8";
-import { corsHeaders, getItem, listAccounts, listTransactions } from "../_shared/pluggy.ts";
+import { corsHeaders, getItem, listAccounts, listTransactions, triggerItemUpdate, PluggyApiError } from "../_shared/pluggy.ts";
 
 const BodySchema = z.object({
   connectionId: z.string().uuid(),
@@ -75,12 +75,20 @@ Deno.serve(async (req) => {
 
     let totalImported = 0;
     let lastError: string | null = null;
+    let needsReconnect = false;
+    let itemUpdateTriggered = false;
+    const perAccount: Array<{
+      providerAccountId: string;
+      imported: number;
+      error?: string;
+      pagesFetched?: number;
+      resultsSeen?: number;
+    }> = [];
 
     try {
       const item = await getItem(conn.provider_item_id);
       const providerAccounts = await listAccounts(conn.provider_item_id);
 
-      // Atualiza saldos + metadados das contas do provedor
       const { data: connAccounts } = await admin
         .from("bank_connection_accounts")
         .select("id, provider_account_id, account_id, auto_import, last_synced_tx_date")
@@ -91,7 +99,6 @@ Deno.serve(async (req) => {
       for (const pa of providerAccounts) {
         const local = byProviderId.get(pa.id);
         if (!local) {
-          // conta nova apareceu no provider — cria
           await admin.from("bank_connection_accounts").insert({
             connection_id: connectionId,
             provider_account_id: pa.id,
@@ -112,7 +119,6 @@ Deno.serve(async (req) => {
 
         if (!local.account_id || !local.auto_import) continue;
 
-        // Determina janela de sincronização
         const fromDate = fullResync
           ? undefined
           : (local.last_synced_tx_date ??
@@ -120,36 +126,104 @@ Deno.serve(async (req) => {
 
         let page = 1;
         let latestDate: string | null = null;
-         
-        while (true) {
-          const resp = await listTransactions({
-            accountId: pa.id,
-            from: fromDate,
-            page,
-            pageSize: 500,
-          });
-          for (const tx of resp.results) {
-            const txDate = tx.date.slice(0, 10);
-            const amount = Math.abs(tx.amount);
-            const txType = tx.amount >= 0 ? "receita" : "despesa";
-            const { error: upErr } = await admin.rpc("pluggy_upsert_transaction", {
-              _account_id: local.account_id,
-              _provider_tx_id: tx.id,
-              _description: tx.description ?? tx.descriptionRaw ?? "Importado via Open Finance",
-              _amount: amount,
-              _transaction_date: txDate,
-              _transaction_type: txType,
+        let importedAcct = 0;
+        let resultsSeen = 0;
+        let acctError: string | undefined;
+
+        try {
+          while (true) {
+            const resp = await listTransactions({
+              accountId: pa.id,
+              from: fromDate,
+              page,
+              pageSize: 500,
             });
-            if (upErr) {
-              console.error("upsert tx", tx.id, upErr);
-              continue;
+            resultsSeen += resp.results.length;
+            console.log(JSON.stringify({
+              scope: "pluggy-sync",
+              connectionId,
+              providerAccountId: pa.id,
+              page,
+              received: resp.results.length,
+              totalPages: resp.totalPages,
+            }));
+            for (const tx of resp.results) {
+              const txDate = tx.date.slice(0, 10);
+              const amount = Math.abs(tx.amount);
+              const txType = tx.amount >= 0 ? "receita" : "despesa";
+              const { error: upErr } = await admin.rpc("pluggy_upsert_transaction", {
+                _account_id: local.account_id,
+                _provider_tx_id: tx.id,
+                _description: tx.description ?? tx.descriptionRaw ?? "Importado via Open Finance",
+                _amount: amount,
+                _transaction_date: txDate,
+                _transaction_type: txType,
+              });
+              if (upErr) {
+                console.error(JSON.stringify({
+                  scope: "pluggy-sync",
+                  step: "upsert_tx",
+                  connectionId,
+                  providerAccountId: pa.id,
+                  providerTxId: tx.id,
+                  error: upErr.message,
+                }));
+                continue;
+              }
+              totalImported += 1;
+              importedAcct += 1;
+              if (!latestDate || txDate > latestDate) latestDate = txDate;
             }
-            totalImported += 1;
-            if (!latestDate || txDate > latestDate) latestDate = txDate;
+            if (page >= resp.totalPages) break;
+            page += 1;
           }
-          if (page >= resp.totalPages) break;
-          page += 1;
+        } catch (e) {
+          if (e instanceof PluggyApiError && e.status === 410) {
+            // Produto TRANSACTIONS não coletado — dispara update do item na Pluggy.
+            acctError = "Pluggy ainda não coletou transações para esta conta. Iniciamos uma atualização; tente sincronizar novamente em alguns minutos.";
+            if (!itemUpdateTriggered) {
+              try {
+                await triggerItemUpdate(conn.provider_item_id);
+                itemUpdateTriggered = true;
+                console.log(JSON.stringify({
+                  scope: "pluggy-sync",
+                  step: "trigger_item_update",
+                  connectionId,
+                  itemId: conn.provider_item_id,
+                }));
+              } catch (upe) {
+                const msg = (upe as Error).message;
+                console.error(JSON.stringify({
+                  scope: "pluggy-sync",
+                  step: "trigger_item_update_failed",
+                  connectionId,
+                  error: msg,
+                }));
+                if (upe instanceof PluggyApiError && (upe.status === 401 || upe.status === 403)) {
+                  needsReconnect = true;
+                  acctError = "É necessário reconectar esta instituição para autorizar a coleta de lançamentos.";
+                }
+              }
+            }
+          } else {
+            acctError = (e as Error).message;
+            console.error(JSON.stringify({
+              scope: "pluggy-sync",
+              step: "list_tx_failed",
+              connectionId,
+              providerAccountId: pa.id,
+              error: acctError,
+            }));
+          }
         }
+
+        perAccount.push({
+          providerAccountId: pa.id,
+          imported: importedAcct,
+          error: acctError,
+          pagesFetched: page,
+          resultsSeen,
+        });
 
         await admin
           .from("bank_connection_accounts")
@@ -160,13 +234,21 @@ Deno.serve(async (req) => {
           .eq("id", local.id);
       }
 
+      // Se pelo menos uma conta pediu update, deixa status como 'updating'
+      // para o usuário saber que a Pluggy está trabalhando.
+      const finalStatus = itemUpdateTriggered
+        ? "updating"
+        : (item.status ?? "active").toLowerCase();
+
       await admin
         .from("bank_connections")
         .update({
-          status: (item.status ?? "active").toLowerCase(),
+          status: finalStatus,
           consent_expires_at: item.consentExpiresAt ?? null,
           last_sync_at: new Date().toISOString(),
-          last_error: null,
+          last_error: itemUpdateTriggered
+            ? "Coletando lançamentos na Pluggy — tente sincronizar novamente em alguns minutos."
+            : null,
         })
         .eq("id", connectionId);
     } catch (e) {
@@ -178,7 +260,13 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ imported: totalImported, error: lastError }),
+      JSON.stringify({
+        imported: totalImported,
+        error: lastError,
+        needsReconnect,
+        itemUpdateTriggered,
+        perAccount,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {

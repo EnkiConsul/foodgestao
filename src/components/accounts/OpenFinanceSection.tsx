@@ -124,11 +124,24 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
     });
   }
 
-  async function handleSync(id: string) {
+  async function handleSync(id: string, fullResync = false) {
     try {
-      const res = await syncConnection.mutateAsync(id);
-      if (res.error) toast.error(res.error);
-      else toast.success(`Sincronizado (${res.imported} lançamentos)`);
+      const res = await syncConnection.mutateAsync({ connectionId: id, fullResync });
+      const acctErrors = (res.perAccount ?? []).filter((a) => a.error);
+      if (res.needsReconnect) {
+        toast.error("É necessário reconectar esta instituição para autorizar a coleta de lançamentos.");
+      } else if (res.itemUpdateTriggered) {
+        toast.info(
+          `Saldo atualizado. Pluggy iniciou a coleta de lançamentos — sincronize novamente em alguns minutos.`,
+          { duration: 8000 },
+        );
+      } else if (res.error) {
+        toast.error(res.error);
+      } else if (acctErrors.length > 0) {
+        toast.warning(`Sincronizado com avisos: ${acctErrors[0].error}`);
+      } else {
+        toast.success(`Sincronizado (${res.imported} lançamentos)`);
+      }
       onRefreshAccounts();
     } catch (e) {
       toast.error((e as Error).message);
@@ -346,9 +359,13 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
                               <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
                                 <Switch
                                   checked={pa.auto_import}
-                                  onCheckedChange={(v) =>
-                                    toggleAutoImport.mutate({ connAccountId: pa.id, autoImport: v })
-                                  }
+                                  onCheckedChange={async (v) => {
+                                    await toggleAutoImport.mutateAsync({ connAccountId: pa.id, autoImport: v });
+                                    if (v && pa.account_id) {
+                                      // Ao ligar auto_import com conta vinculada, dispara sync imediato
+                                      handleSync(conn.id);
+                                    }
+                                  }}
                                 />
                                 Auto
                               </label>

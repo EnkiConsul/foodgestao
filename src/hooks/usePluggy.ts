@@ -126,12 +126,19 @@ export function usePluggyActions() {
   });
 
   const syncConnection = useMutation({
-    mutationFn: async (connectionId: string) => {
+    mutationFn: async (vars: string | { connectionId: string; fullResync?: boolean }) => {
+      const body = typeof vars === "string" ? { connectionId: vars } : vars;
       const { data, error } = await supabase.functions.invoke("pluggy-sync-connection", {
-        body: { connectionId },
+        body,
       });
       if (error) throw error;
-      return data as { imported: number; error: string | null };
+      return data as {
+        imported: number;
+        error: string | null;
+        needsReconnect?: boolean;
+        itemUpdateTriggered?: boolean;
+        perAccount?: Array<{ providerAccountId: string; imported: number; error?: string }>;
+      };
     },
     onSuccess: invalidate,
   });
