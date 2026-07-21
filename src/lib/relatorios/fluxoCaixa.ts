@@ -129,8 +129,10 @@ export function computeFluxoCaixa(
     //    para que o índice hierárquico coincida com o cadastro.
     const sortSiblings = (arr: FluxoCategory[]) =>
       arr.slice().sort((a, b) => {
-        const sa = a.sort_order ?? 0;
-        const sb = b.sort_order ?? 0;
+        // Postgres ORDER BY sort_order ASC coloca NULL por último — replicamos aqui
+        // para casar exatamente com a ordem exibida em /categorias.
+        const sa = a.sort_order ?? Number.POSITIVE_INFINITY;
+        const sb = b.sort_order ?? Number.POSITIVE_INFINITY;
         if (sa !== sb) return sa - sb;
         return (a.name || "").localeCompare(b.name || "");
       });
