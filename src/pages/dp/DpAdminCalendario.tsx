@@ -427,11 +427,11 @@ export default function DpAdminCalendario() {
   const liberarData = useMutation({
     mutationFn: async () => {
       if (!dayOpen) return;
-      const bloco = bloqueios.find((b) => b.data === dayOpen && !b.liberada);
+      const bloco = bloqueios.find((b) => b.data === dayOpen && !b.liberada_por_solicitacao);
       if (bloco) {
         const { error } = await supabase
           .from("dp_datas_bloqueadas")
-          .update({ liberada: true })
+          .delete()
           .eq("id", bloco.id);
         if (error) throw error;
       }
