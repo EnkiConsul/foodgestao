@@ -47,6 +47,7 @@ const GestaoUsuarios = lazy(() => import("./pages/GestaoUsuarios"));
 const Empresas = lazy(() => import("./pages/Empresas"));
 const FormasPagamento = lazy(() => import("./pages/FormasPagamento"));
 const CartoesCredito = lazy(() => import("./pages/CartoesCredito"));
+const CategorizacaoIA = lazy(() => import("./pages/CategorizacaoIA"));
 
 // DP admin
 const DpHome = lazy(() => import("./pages/dp/DpHome"));
