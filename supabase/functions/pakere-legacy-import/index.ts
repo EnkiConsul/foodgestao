@@ -984,6 +984,16 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (mode === "copy-storage") {
+      const result = await runCopyStorage(source, dest, {
+        dryRun: !!body.dryRun,
+      });
+      return new Response(JSON.stringify({ mode, ...result }, null, 2), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+
     return new Response(JSON.stringify({ error: `Modo inválido: ${mode}` }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
