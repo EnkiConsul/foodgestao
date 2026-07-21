@@ -40,8 +40,8 @@ export function normalizeDescription(raw: string | null | undefined): string | n
   s = s.replace(ACRONYM_DOT_RE, "");
   s = s.replace(PAYMENT_NOISE_RE, " ");
   s = s.replace(LABELED_ID_RE, " ");
-  s = s.replace(DATE_RE, " ");
   s = s.replace(CNPJ_MASK_LONG_RE, " ");
+  s = s.replace(DATE_RE, " ");
   s = s.replace(PUNCT_SPACES_RE, " ");
   s = s.replace(/\s{2,}/g, " ").trim();
   return s.length === 0 ? null : s;
