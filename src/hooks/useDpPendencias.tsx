@@ -12,7 +12,7 @@ export type Pendencia = {
   subtitulo: string;
   tipo: string;
   vencimento?: string | null;
-  atrasoDias?: number | null;
+  atrasoDias: number;
   url: string;
 };
 
@@ -62,7 +62,7 @@ export function useDpPendencias() {
             subtitulo: s.dp_colaboradores?.nome ?? "Colaborador",
             tipo: "Solicitação",
             vencimento: ymd(vencimento),
-            atrasoDias: dias > 0 ? dias : null,
+            atrasoDias: dias,
             url: "/dp/solicitacoes",
           });
         });
@@ -88,7 +88,7 @@ export function useDpPendencias() {
             subtitulo: t.solicitante?.nome ?? "Colaborador",
             tipo: "Troca",
             vencimento: t.created_at,
-            atrasoDias: dias > 2 ? dias : null,
+            atrasoDias: dias,
             url: "/dp/trocas",
           });
         });
@@ -141,7 +141,7 @@ export function useDpPendencias() {
                 subtitulo: `${u.nome} — ${MES_NOME[mesAnterior - 1]}/${anoAnterior}`,
                 tipo: "Contracheque",
                 vencimento: ymd(vencimento),
-                atrasoDias: dias > 0 ? dias : null,
+                atrasoDias: dias,
                 url: "/dp/folha",
               });
             }
@@ -179,7 +179,7 @@ export function useDpPendencias() {
               subtitulo: `${u.nome} — ${MES_NOME[mesVigente - 1]}/${anoVigente}`,
               tipo: "Adiantamento",
               vencimento: ymd(vencimento),
-              atrasoDias: dias > 0 ? dias : null,
+              atrasoDias: dias,
               url: "/dp/folha",
             });
           }
@@ -223,7 +223,7 @@ export function useDpPendencias() {
               subtitulo: `${u.nome} — ${MES_NOME[mesAnterior - 1]}/${anoAnterior}`,
               tipo: "Folha de Ponto",
               vencimento: ymd(vencimento),
-              atrasoDias: dias > 0 ? dias : null,
+              atrasoDias: dias,
               url: "/dp/documentos/ponto",
             });
           }
@@ -321,7 +321,7 @@ export function useDpPendencias() {
                 subtitulo: `${unidadeNome} — nenhuma negociação cadastrada`,
                 tipo: "Negociação",
                 vencimento: ymd(today),
-                atrasoDias: null,
+                atrasoDias: differenceInCalendarDays(today, today),
                 url: "/dp/documentos/act-cct",
               });
               continue;
@@ -343,7 +343,7 @@ export function useDpPendencias() {
                 subtitulo: `${unidadeNome} — última ${String(mesUltimo).padStart(2, "0")}/${anoUltimo} · registrar ${anoVigente}`,
                 tipo: "Negociação",
                 vencimento: ymd(vencimento),
-                atrasoDias: dias > 0 ? dias : null,
+                atrasoDias: dias,
                 url: "/dp/documentos/act-cct",
               });
             }
@@ -355,9 +355,7 @@ export function useDpPendencias() {
 
       // Ordenar: mais atrasado primeiro; empate → vencimento mais próximo
       results.sort((a, b) => {
-        const aa = a.atrasoDias ?? -1;
-        const bb = b.atrasoDias ?? -1;
-        if (bb !== aa) return bb - aa;
+        if (b.atrasoDias !== a.atrasoDias) return b.atrasoDias - a.atrasoDias;
         const av = a.vencimento ? new Date(a.vencimento).getTime() : Infinity;
         const bv = b.vencimento ? new Date(b.vencimento).getTime() : Infinity;
         return av - bv;
