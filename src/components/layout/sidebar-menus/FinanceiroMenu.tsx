@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, ArrowLeftRight, TrendingUp, Target, FileBarChart,
-  Landmark, CreditCard, Users, FolderTree, BookOpen, Brain,
+  Landmark, CreditCard, Users, FolderTree, BookOpen,
 } from "lucide-react";
 import { SidebarSection, SidebarNavItem, SidebarCollapsibleGroup, type MenuItem } from "./shared";
 
