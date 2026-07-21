@@ -4,12 +4,15 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { eachDayOfInterval, endOfMonth, startOfMonth } from "date-fns";
 import { CalendarDays } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { FolgaCalendarShared } from "@/components/dp/FolgaCalendarShared";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import {
   buildOccupantsByDate,
+  calculateDateStatus,
+  parseYMD,
   ymd,
   type ColaboradorRecord,
   type FolgaRecord,
