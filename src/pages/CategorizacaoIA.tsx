@@ -198,10 +198,15 @@ export default function CategorizacaoIA() {
         <StatCard label="Criadas pela IA" value={stats.bySource.ai ?? 0} />
       </div>
 
-      <Tabs defaultValue="rules">
+      <Tabs defaultValue="health">
         <TabsList>
+          <TabsTrigger value="health">Saúde</TabsTrigger>
           <TabsTrigger value="rules">Regras ({stats.total})</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="health" className="mt-4">
+          <HealthPanel rules={rules} contextType={contextType} companyId={selectedCompanyId} />
+        </TabsContent>
 
         <TabsContent value="rules" className="mt-4">
           <Card>
