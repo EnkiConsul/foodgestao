@@ -46,6 +46,7 @@ import { cn } from "@/lib/utils";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { DpCalendarDayDialog, type DpDayScheduleEntry } from "@/components/dp/DpCalendarDayDialog";
 import { DpStatusBadge, statusToneFor } from "@/components/dp/DpStatusBadge";
+import { normalizeWeekday } from "@/lib/dp/folga-rules";
 import type { Database } from "@/integrations/supabase/types";
 
 type Row = Database["public"]["Tables"]["dp_solicitacoes"]["Row"] & {
@@ -78,6 +79,7 @@ const LEGEND = [
 ];
 
 const PREFS_KEY = (companyId: string | null) => `dp:folgas:filters:${companyId ?? "none"}`;
+const WEEKLY_FOLGA_ID_PREFIX = "folga-semanal:";
 
 type SavedPrefs = {
   unidade?: string;
@@ -343,8 +345,47 @@ export default function DpFolgas() {
       } as unknown as Row);
       map.set(key, list);
     }
+
+    if (tipoFilter === "todos" || tipoFilter === "folga") {
+      const eligibleColabs = (colabs.data ?? [])
+        .filter((c) => c.ativo !== false)
+        .filter((c) => (unidadeFilter === "todas" ? true : c.unidade_id === unidadeFilter))
+        .filter((c) => (colabFilter === "todos" ? true : c.id === colabFilter));
+
+      for (const day of days) {
+        const key = format(day, "yyyy-MM-dd");
+        const weekday = day.getDay();
+        const list = map.get(key) ?? [];
+
+        for (const c of eligibleColabs) {
+          const fixedWeekday = normalizeWeekday(c.folga_fixa_semana);
+          if (fixedWeekday == null || fixedWeekday !== weekday) continue;
+
+          const alreadyHasApprovedFolga = list.some(
+            (e) => e.colaborador_id === c.id && e.tipo === "folga" && e.status === "aprovada",
+          );
+          if (alreadyHasApprovedFolga) continue;
+
+          list.push({
+            id: `${WEEKLY_FOLGA_ID_PREFIX}${c.id}:${key}`,
+            colaborador_id: c.id,
+            tipo: "folga" as Tipo,
+            status: "aprovada" as Status,
+            data_alvo: key,
+            data_fim: null,
+            motivo: "Folga semanal fixa",
+            dp_colaboradores: {
+              nome: c.nome,
+              unidade_id: c.unidade_id,
+            },
+          } as unknown as Row);
+        }
+
+        if (list.length > 0) map.set(key, list);
+      }
+    }
     return map;
-  }, [query.data, folgasQuery.data, rangeStart, rangeEnd]);
+  }, [query.data, folgasQuery.data, tipoFilter, colabs.data, unidadeFilter, colabFilter, days, rangeStart, rangeEnd]);
 
   const capacityByDay = useMemo(() => {
     const map = new Map<string, number>();
@@ -573,24 +614,29 @@ export default function DpFolgas() {
                     )}
                   </div>
                   <div className="flex flex-col gap-1 overflow-hidden">
-                    {events.slice(0, 3).map((ev) => (
+                    {events.slice(0, 3).map((ev) => {
+                      const isWeekly = ev.id.startsWith(WEEKLY_FOLGA_ID_PREFIX);
+                      return (
                       <div
                         key={ev.id + key}
                         className={cn(
                           "truncate rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase text-center",
                           ev.status === "pendente"
                             ? "bg-violet-100 text-violet-700"
-                            : ev.tipo === "folga"
+                            : isWeekly
                               ? "bg-blue-100 text-blue-700"
-                              : ev.tipo === "ferias"
+                              : ev.tipo === "folga"
                                 ? "bg-amber-100 text-amber-700"
-                                : "bg-slate-100 text-slate-700",
+                                : ev.tipo === "ferias"
+                                  ? "bg-amber-100 text-amber-700"
+                                  : "bg-slate-100 text-slate-700",
                         )}
-                        title={`${ev.dp_colaboradores?.nome ?? ""} — ${TIPO_LABEL[ev.tipo]}`}
+                        title={`${ev.dp_colaboradores?.nome ?? ""} — ${isWeekly ? "Folga Semanal" : TIPO_LABEL[ev.tipo]}`}
                       >
                         {(ev.dp_colaboradores?.nome ?? "—").split(" ")[0]}
                       </div>
-                    ))}
+                      );
+                    })}
                     {events.length > 3 && (
                       <div className="text-[10px] text-muted-foreground pl-1">
                         +{events.length - 3}
@@ -627,14 +673,14 @@ export default function DpFolgas() {
           name: ev.dp_colaboradores?.nome ?? "—",
           meta: (
             <>
-              {TIPO_LABEL[ev.tipo]}
+              {ev.id.startsWith(WEEKLY_FOLGA_ID_PREFIX) ? "Folga Semanal" : TIPO_LABEL[ev.tipo]}
               {ev.data_fim ? ` · até ${ev.data_fim}` : ""}
               {ev.motivo ? ` · ${ev.motivo}` : ""}
             </>
           ),
           status: (
-            <DpStatusBadge tone={statusToneFor(ev.status)}>
-              {STATUS_LABEL[ev.status]}
+            <DpStatusBadge tone={ev.id.startsWith(WEEKLY_FOLGA_ID_PREFIX) ? "info" : statusToneFor(ev.status)}>
+              {ev.id.startsWith(WEEKLY_FOLGA_ID_PREFIX) ? "Semanal" : STATUS_LABEL[ev.status]}
             </DpStatusBadge>
           ),
         }))}
