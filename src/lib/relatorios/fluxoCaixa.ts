@@ -154,11 +154,24 @@ export function computeFluxoCaixa(
           const sortA = catMap[a.id]?.sort_order ?? 0;
           const sortB = catMap[b.id]?.sort_order ?? 0;
           if (sortA !== sortB) return sortA - sortB;
-          return (a.hierarchyIndex || "").localeCompare(b.hierarchyIndex || "");
+          return (catMap[a.id]?.name || "").localeCompare(catMap[b.id]?.name || "");
         });
     };
 
-    return sortNodes(nodes);
+    const sorted = sortNodes(nodes);
+
+    // Recomputa hierarchyIndex (1, 1.1, 1.2, 2, ...) baseado na ordem final,
+    // já que a coluna no banco pode estar vazia.
+    const assignIndex = (nodes: FluxoNode[], parentIndex: string) => {
+      nodes.forEach((n, i) => {
+        const idx = parentIndex ? `${parentIndex}.${i + 1}` : `${i + 1}`;
+        n.hierarchyIndex = idx;
+        if (n.children.length > 0) assignIndex(n.children, idx);
+      });
+    };
+    assignIndex(sorted, "");
+
+    return sorted;
   };
 
   return {
