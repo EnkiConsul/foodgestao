@@ -57,6 +57,9 @@ export default function DpColaboradores() {
   const [editing, setEditing] = useState<DpColaborador | null>(null);
   const [toDelete, setToDelete] = useState<DpColaborador | null>(null);
   const [resetting, setResetting] = useState<string | null>(null);
+  const [granting, setGranting] = useState<string | null>(null);
+  const [accessResult, setAccessResult] = useState<{ nome: string; cpf: string; password: string; kind: "created" | "reset" } | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
 
   const counts = useMemo(() => {
     const all = list.data ?? [];
