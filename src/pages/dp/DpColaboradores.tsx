@@ -500,6 +500,63 @@ export default function DpColaboradores() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!setPwdTarget} onOpenChange={(o) => !o && setSetPwdTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Definir senha do colaborador</DialogTitle>
+            <DialogDescription>
+              Defina uma nova senha para <strong>{setPwdTarget?.nome}</strong>. Ele fará login em <span className="font-mono">/dp/login</span> com o CPF e esta senha.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="nova-senha">Nova senha</Label>
+              <div className="relative">
+                <Input
+                  id="nova-senha"
+                  type={showSenha ? "text" : "password"}
+                  value={novaSenha}
+                  onChange={(e) => setNovaSenha(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                  maxLength={72}
+                  className="pr-10 font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSenha((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                >
+                  {showSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="conf-senha">Confirmar senha</Label>
+              <Input
+                id="conf-senha"
+                type={showSenha ? "text" : "password"}
+                value={confirmSenha}
+                onChange={(e) => setConfirmSenha(e.target.value)}
+                maxLength={72}
+                className="font-mono"
+              />
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={generateRandomPwd} className="w-full">
+              <Sparkles className="h-4 w-4 mr-2" /> Gerar senha aleatória
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSetPwdTarget(null)} disabled={savingSenha}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSetPwd} disabled={savingSenha}>
+              {savingSenha ? "Salvando..." : "Salvar senha"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DpPage>
   );
 }
