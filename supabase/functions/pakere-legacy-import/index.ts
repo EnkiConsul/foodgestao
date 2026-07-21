@@ -904,6 +904,87 @@ async function runRollback(dest: SupabaseClient, runId: string) {
   return { runId, deleted };
 }
 
+const SOURCE_BUCKET_CANDIDATES = ["documentos", "documentos_admin", "sindicatos"];
+const DEST_BUCKET = "dp-documentos";
+
+async function copyOneFile(
+  source: SupabaseClient,
+  dest: SupabaseClient,
+  path: string,
+  dryRun: boolean,
+): Promise<{ ok: boolean; bucket?: string; error?: string; skipped?: boolean }> {
+  if (!path) return { ok: false, error: "empty path" };
+  // Check if already exists in destination
+  const { data: existing } = await dest.storage.from(DEST_BUCKET).list(
+    path.includes("/") ? path.substring(0, path.lastIndexOf("/")) : "",
+    { search: path.includes("/") ? path.substring(path.lastIndexOf("/") + 1) : path },
+  );
+  if (existing?.some((f) => f.name === (path.includes("/") ? path.substring(path.lastIndexOf("/") + 1) : path))) {
+    return { ok: true, skipped: true };
+  }
+  for (const bucket of SOURCE_BUCKET_CANDIDATES) {
+    const { data, error } = await source.storage.from(bucket).download(path);
+    if (error || !data) continue;
+    if (dryRun) return { ok: true, bucket, skipped: true };
+    const bytes = new Uint8Array(await data.arrayBuffer());
+    const contentType = data.type || "application/octet-stream";
+    const { error: upErr } = await dest.storage.from(DEST_BUCKET).upload(path, bytes, {
+      contentType,
+      upsert: false,
+    });
+    if (upErr && !String(upErr.message).toLowerCase().includes("already exists")) {
+      return { ok: false, bucket, error: upErr.message };
+    }
+    return { ok: true, bucket };
+  }
+  return { ok: false, error: "not found in any source bucket" };
+}
+
+async function runCopyStorage(
+  source: SupabaseClient,
+  dest: SupabaseClient,
+  opts: { dryRun: boolean },
+) {
+  const results = {
+    dp_documentos: { copied: 0, skipped: 0, failed: 0, errors: [] as unknown[] },
+    dp_sindicato_negociacoes: { copied: 0, skipped: 0, failed: 0, errors: [] as unknown[] },
+    dp_solicitacoes: { copied: 0, skipped: 0, failed: 0, errors: [] as unknown[] },
+  };
+
+  const process = async (
+    table: keyof typeof results,
+    col: string,
+    rows: { id: string; path: string | null }[],
+  ) => {
+    for (const r of rows) {
+      if (!r.path) continue;
+      const res = await copyOneFile(source, dest, r.path, opts.dryRun);
+      if (res.ok && res.skipped) results[table].skipped++;
+      else if (res.ok) results[table].copied++;
+      else {
+        results[table].failed++;
+        results[table].errors.push({ id: r.id, [col]: r.path, error: res.error });
+      }
+    }
+  };
+
+  const { data: docs } = await dest.from("dp_documentos")
+    .select("id, file_path").eq("company_id", PAKERE_COMPANY_ID).not("file_path", "is", null);
+  await process("dp_documentos", "file_path",
+    (docs ?? []).map((d: any) => ({ id: d.id, path: d.file_path })));
+
+  const { data: negs } = await dest.from("dp_sindicato_negociacoes")
+    .select("id, pdf_path").eq("company_id", PAKERE_COMPANY_ID).not("pdf_path", "is", null);
+  await process("dp_sindicato_negociacoes", "pdf_path",
+    (negs ?? []).map((d: any) => ({ id: d.id, path: d.pdf_path })));
+
+  const { data: sols } = await dest.from("dp_solicitacoes")
+    .select("id, arquivo_path").eq("company_id", PAKERE_COMPANY_ID).not("arquivo_path", "is", null);
+  await process("dp_solicitacoes", "arquivo_path",
+    (sols ?? []).map((d: any) => ({ id: d.id, path: d.arquivo_path })));
+
+  return { dryRun: opts.dryRun, dest_bucket: DEST_BUCKET, results };
+}
 
 
 
