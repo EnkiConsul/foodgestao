@@ -5677,6 +5677,9 @@ export type Database = {
       }
       recompute_all_account_balances: { Args: never; Returns: number }
       seed_default_categories: { Args: { _company_id: string }; Returns: Json }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
+      unaccent: { Args: { "": string }; Returns: string }
     }
     Enums: {
       account_type:
