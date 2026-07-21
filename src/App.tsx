@@ -308,7 +308,7 @@ const AppRoutes = () => (
         <Route path="/relatorios/contabeis" element={<RelatoriosContabeis />} />
         <Route path="/contatos" element={<Contatos />} />
         <Route path="/categorias" element={<Categorias />} />
-        <Route path="/categorizacao-ia" element={<CategorizacaoIA />} />
+        
         <Route path="/contas-contabeis" element={<ContasContabeis />} />
         <Route path="/contas-bancarias" element={<ContasBancarias />} />
         <Route path="/cartoes-credito" element={<CartoesCredito />} />
@@ -398,6 +398,7 @@ const AppRoutes = () => (
         <Route path="/admin/bancos" element={<AdminBancos />} />
         <Route path="/admin/seo-indexacao" element={<AdminSeoIndexacao />} />
         <Route path="/admin/modulos" element={<AdminModulos />} />
+        <Route path="/admin/categorizacao-ia" element={<CategorizacaoIA />} />
       </Route>
       <Route path="/convite/:token" element={<AcceptInvite />} />
       <Route path="/reset-password" element={<ResetPassword />} />
