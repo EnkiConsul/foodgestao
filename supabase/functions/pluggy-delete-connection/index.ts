@@ -4,6 +4,7 @@ import { corsHeaders, deleteItem } from "../_shared/pluggy.ts";
 
 const BodySchema = z.object({
   connectionId: z.string().uuid(),
+  force: z.boolean().optional().default(false),
 });
 
 Deno.serve(async (req) => {
@@ -40,7 +41,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { connectionId } = parsed.data;
+    const { connectionId, force } = parsed.data;
 
     const { data: canManage, error: canErr } = await userClient.rpc(
       "can_manage_bank_connection",
@@ -54,6 +55,25 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Se force=true, exigir super_admin
+    let isSuperAdmin = false;
+    if (force) {
+      const userId = (claimsData.claims as { sub?: string }).sub;
+      const { data: roleRow } = await userClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "super_admin")
+        .maybeSingle();
+      isSuperAdmin = !!roleRow;
+      if (!isSuperAdmin) {
+        return new Response(JSON.stringify({ error: "Somente super admin pode forçar remoção" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -65,11 +85,29 @@ Deno.serve(async (req) => {
       .eq("id", connectionId)
       .maybeSingle();
 
+    // Revogar consentimento no Pluggy ANTES de apagar localmente
     if (conn?.provider_item_id) {
       try {
         await deleteItem(conn.provider_item_id);
       } catch (e) {
-        console.warn("[pluggy-delete-connection] deleteItem falhou", e);
+        const msg = (e as Error).message;
+        console.error("[pluggy-delete-connection] deleteItem falhou", {
+          connectionId,
+          providerItemId: conn.provider_item_id,
+          error: msg,
+        });
+        if (!force) {
+          return new Response(
+            JSON.stringify({
+              error: `Falha ao revogar consentimento no Pluggy: ${msg}`,
+              pluggyError: true,
+            }),
+            {
+              status: 502,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
+          );
+        }
       }
     }
 

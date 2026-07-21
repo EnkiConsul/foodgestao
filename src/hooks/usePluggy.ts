@@ -137,11 +137,29 @@ export function usePluggyActions() {
   });
 
   const deleteConnection = useMutation({
-    mutationFn: async (connectionId: string) => {
+    mutationFn: async (vars: string | { connectionId: string; force?: boolean }) => {
+      const body = typeof vars === "string" ? { connectionId: vars } : vars;
       const { data, error } = await supabase.functions.invoke("pluggy-delete-connection", {
-        body: { connectionId },
+        body,
       });
-      if (error) throw error;
+      if (error) {
+        // Extrai mensagem do corpo quando disponível (FunctionsHttpError)
+        let serverMsg: string | undefined;
+        let pluggyError = false;
+        try {
+          const ctx = (error as unknown as { context?: { json?: () => Promise<{ error?: string; pluggyError?: boolean }> } }).context;
+          if (ctx && typeof ctx.json === "function") {
+            const parsed = await ctx.json();
+            serverMsg = parsed?.error;
+            pluggyError = !!parsed?.pluggyError;
+          }
+        } catch {
+          /* noop */
+        }
+        const err = new Error(serverMsg || error.message) as Error & { pluggyError?: boolean };
+        err.pluggyError = pluggyError;
+        throw err;
+      }
       return data;
     },
     onSuccess: invalidate,
