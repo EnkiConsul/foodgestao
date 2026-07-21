@@ -914,14 +914,7 @@ async function copyOneFile(
   dryRun: boolean,
 ): Promise<{ ok: boolean; bucket?: string; error?: string; skipped?: boolean }> {
   if (!path) return { ok: false, error: "empty path" };
-  // Check if already exists in destination
-  const { data: existing } = await dest.storage.from(DEST_BUCKET).list(
-    path.includes("/") ? path.substring(0, path.lastIndexOf("/")) : "",
-    { search: path.includes("/") ? path.substring(path.lastIndexOf("/") + 1) : path },
-  );
-  if (existing?.some((f) => f.name === (path.includes("/") ? path.substring(path.lastIndexOf("/") + 1) : path))) {
-    return { ok: true, skipped: true };
-  }
+
   for (const bucket of SOURCE_BUCKET_CANDIDATES) {
     const { data, error } = await source.storage.from(bucket).download(path);
     if (error || !data) continue;
