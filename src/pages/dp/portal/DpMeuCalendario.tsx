@@ -199,7 +199,31 @@ export default function DpMeuCalendario() {
           variant="compact"
           onPrev={goPrev}
           onNext={goNext}
-          onSelectDay={(iso) => navigate(`/dp/meu/solicitacoes?data=${iso}`)}
+          onSelectDay={(iso) => {
+            const st = calculateDateStatus({
+              date: parseYMD(iso),
+              myColaboradorId: meRef.data?.id ?? null,
+              allFolgas: allFolgasRecords,
+              allColaboradores: colaboradores,
+              manualBlocked,
+              dayLimits,
+              pendingRequests,
+              isAdmin: false,
+            });
+            if (st.status === "taken") {
+              toast.error(`Data indisponível. Limite de folgas atingido (${st.occupancy ?? 0}/${st.limit ?? 0}).`);
+              return;
+            }
+            if (st.status === "blocked") {
+              toast.error(`Data bloqueada pelo DP${st.reason ? `: ${st.reason}` : ""}.`);
+              return;
+            }
+            if (st.status === "past") {
+              toast.error("Não é possível solicitar folga em data passada.");
+              return;
+            }
+            navigate(`/dp/meu/solicitacoes?data=${iso}`);
+          }}
         />
       </DpContentCard>
 
