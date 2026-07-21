@@ -209,6 +209,7 @@ Deno.serve(async (req) => {
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const PAKERE_URL = Deno.env.get("PAKERE_SUPABASE_URL");
     const PAKERE_KEY =
+      Deno.env.get("PAKERE_SUPABASE_SECRET_KEY_V2") ??
       Deno.env.get("PAKERE_SUPABASE_KEY") ??
       Deno.env.get("PAKERE_SUPABASE_SECRET_KEY");
 
