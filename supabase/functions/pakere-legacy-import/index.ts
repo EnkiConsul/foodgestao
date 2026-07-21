@@ -790,8 +790,11 @@ async function runImport(
   // bloqueio_regras -> dp_bloqueio_regras
   await importTable(dest, runId, "bloqueio_regras", "dp_bloqueio_regras", all.bloqueio_regras, map,
     (row, id) => {
-      const tipoRaw = String(row.tipo ?? "fixa_anual").toLowerCase();
-      const tipo = BLOQUEIO_TIPO_MAP[tipoRaw] ?? "fixa_anual";
+      const tipoRaw = String(row.tipo ?? "").toLowerCase();
+      // Destination CHECK allows only fixa_anual (mes+dia) or dinamica (regra_json).
+      // Map fixa/fixa_anual with mes+dia → fixa_anual; everything else (dinamica, pos_pagamento…) → dinamica.
+      const canBeFixa = (tipoRaw === "fixa" || tipoRaw === "fixa_anual") && row.mes != null && row.dia != null;
+      const tipo = canBeFixa ? "fixa_anual" : "dinamica";
       return {
         id,
         company_id: PAKERE_COMPANY_ID,
@@ -800,6 +803,7 @@ async function runImport(
         mes: row.mes ?? null,
         dia: row.dia ?? null,
         regra_json: {
+          tipo_original: row.tipo ?? null,
           meses: row.meses ?? null,
           dia_semana: row.dia_semana ?? null,
           ordinal: row.ordinal ?? null,
@@ -812,6 +816,7 @@ async function runImport(
         updated_at: row.updated_at,
       };
     }, counters, opts.dryRun);
+
 
   // datas_bloqueadas -> dp_datas_bloqueadas
   await importTable(dest, runId, "datas_bloqueadas", "dp_datas_bloqueadas", all.datas_bloqueadas, map,
