@@ -2,21 +2,18 @@ import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { endOfMonth, format, startOfMonth } from "date-fns";
+import { eachDayOfInterval, endOfMonth, startOfMonth } from "date-fns";
 import { CalendarDays } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { FolgaCalendar, type FolgaCell } from "@/components/dp/FolgaCalendar";
+import { FolgaCalendarShared } from "@/components/dp/FolgaCalendarShared";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-
-const TIPO_FILTROS: { value: string; label: string }[] = [
-  { value: "folga", label: "Folga" },
-  { value: "ferias", label: "Férias" },
-  { value: "atestado", label: "Atestado" },
-  { value: "outro", label: "Outro" },
-];
+import {
+  buildOccupantsByDate,
+  ymd,
+  type ColaboradorRecord,
+  type FolgaRecord,
+} from "@/lib/dp/folga-rules";
 
 export default function DpMeuCalendario() {
   const { user } = useAuth();
@@ -24,7 +21,6 @@ export default function DpMeuCalendario() {
   const today = new Date();
   const [ano, setAno] = useState(today.getFullYear());
   const [mes, setMes] = useState(today.getMonth() + 1);
-  const [tipos, setTipos] = useState<string[]>([]);
 
   const meRef = useQuery({
     queryKey: ["dp_colaborador_of", user?.id],
@@ -33,7 +29,10 @@ export default function DpMeuCalendario() {
       const { data } = await supabase.rpc("dp_colaborador_of", { _user_id: user!.id });
       if (!data) return null;
       const { data: c } = await supabase
-        .from("dp_colaboradores").select("id, company_id, nome").eq("id", data).single();
+        .from("dp_colaboradores")
+        .select("id, company_id, nome, folga_fixa_semana, ativo, unidade_id")
+        .eq("id", data)
+        .single();
       return c;
     },
   });
@@ -41,108 +40,169 @@ export default function DpMeuCalendario() {
   const range = useMemo(() => {
     const s = startOfMonth(new Date(ano, mes - 1, 1));
     const e = endOfMonth(s);
-    return { start: format(s, "yyyy-MM-dd"), end: format(e, "yyyy-MM-dd") };
+    return { start: ymd(s), end: ymd(e), startDate: s, endDate: e };
   }, [ano, mes]);
 
-  const folgasQuery = useQuery({
-    queryKey: ["dp_folgas_meu", meRef.data?.company_id, ano, mes],
-    enabled: !!meRef.data?.company_id,
+  const companyId = meRef.data?.company_id;
+
+  const colaboradoresQuery = useQuery({
+    queryKey: ["dp_colabs_meu_cal", companyId],
+    enabled: !!companyId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("dp_folgas")
-        .select("id, data, colaborador_id, status, tipo, extra, origem, dp_colaboradores(nome)")
-        .eq("company_id", meRef.data!.company_id!)
-        .gte("data", range.start).lte("data", range.end);
+        .from("dp_colaboradores")
+        .select("id, nome, folga_fixa_semana, ativo, unidade_id")
+        .eq("company_id", companyId!);
       if (error) throw error;
-      return (data ?? []).map((f: any) => ({
-        id: f.id, data: f.data, colaborador_id: f.colaborador_id,
-        colaborador_nome: f.dp_colaboradores?.nome, status: f.status,
-        tipo: f.tipo, extra: f.extra, origem: f.origem,
-      })) as FolgaCell[];
+      return (data ?? []) as ColaboradorRecord[];
     },
   });
 
-  const folgasFiltradas = useMemo(() => {
-    const list = folgasQuery.data ?? [];
-    if (!tipos.length) return list;
-    return list.filter((f) => tipos.includes(f.tipo as any));
-  }, [folgasQuery.data, tipos]);
+  const folgasQuery = useQuery({
+    queryKey: ["dp_folgas_meu_cal", companyId, ano, mes],
+    enabled: !!companyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_folgas")
+        .select("id, data, colaborador_id, status, tipo, extra, origem, criado_por, dp_colaboradores(nome, unidade_id)")
+        .eq("company_id", companyId!)
+        .gte("data", range.start)
+        .lte("data", range.end);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const pendentesQuery = useQuery({
+    queryKey: ["dp_solic_meu_cal", companyId, ano, mes],
+    enabled: !!companyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_solicitacoes")
+        .select("id, colaborador_id, data_alvo, tipo, status, dp_colaboradores(nome, unidade_id)")
+        .eq("company_id", companyId!)
+        .eq("status", "pendente")
+        .eq("tipo", "folga")
+        .gte("data_alvo", range.start)
+        .lte("data_alvo", range.end);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   const bloqueiosQuery = useQuery({
-    queryKey: ["dp_datas_bloqueadas_meu", meRef.data?.company_id, ano, mes],
-    enabled: !!meRef.data?.company_id,
+    queryKey: ["dp_datas_bloq_meu_cal", companyId, ano, mes],
+    enabled: !!companyId,
     queryFn: async () => {
       const { data } = await supabase
-        .from("dp_datas_bloqueadas").select("data, motivo")
-        .eq("company_id", meRef.data!.company_id!)
-        .gte("data", range.start).lte("data", range.end);
+        .from("dp_datas_bloqueadas")
+        .select("data, motivo, liberada_por_solicitacao")
+        .eq("company_id", companyId!)
+        .gte("data", range.start)
+        .lte("data", range.end);
       return data ?? [];
     },
   });
 
   const diaConfigQuery = useQuery({
-    queryKey: ["dp_dia_config_meu", meRef.data?.company_id, ano, mes],
-    enabled: !!meRef.data?.company_id,
+    queryKey: ["dp_dia_config_meu_cal", companyId, ano, mes],
+    enabled: !!companyId,
     queryFn: async () => {
       const { data } = await supabase
-        .from("dp_dia_config").select("data, limite_folgas")
-        .eq("company_id", meRef.data!.company_id!)
+        .from("dp_dia_config")
+        .select("data, limite_folgas")
+        .eq("company_id", companyId!)
         .is("unidade_id", null)
-        .gte("data", range.start).lte("data", range.end);
-      const m: Record<string, number> = {};
-      for (const r of data ?? []) m[r.data as string] = r.limite_folgas as number;
-      return m;
+        .gte("data", range.start)
+        .lte("data", range.end);
+      return data ?? [];
     },
   });
 
-  const toggleTipo = (v: string) =>
-    setTipos((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
+  const colaboradores = colaboradoresQuery.data ?? [];
+  const folgas = (folgasQuery.data ?? []) as any[];
+  const pendentes = (pendentesQuery.data ?? []) as any[];
+
+  const occupantsByDate = useMemo(() => {
+    const days = eachDayOfInterval({ start: range.startDate, end: range.endDate });
+    return buildOccupantsByDate({
+      days,
+      colaboradores,
+      folgas,
+      pendentes,
+    });
+  }, [colaboradores, folgas, pendentes, range.startDate, range.endDate]);
+
+  const manualBlocked = useMemo(() => {
+    const m = new Map<string, { reason: string; liberada: boolean }>();
+    for (const b of bloqueiosQuery.data ?? []) {
+      m.set((b as any).data, { reason: (b as any).motivo, liberada: !!(b as any).liberada_por_solicitacao });
+    }
+    return m;
+  }, [bloqueiosQuery.data]);
+
+  const dayLimits = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of diaConfigQuery.data ?? []) m.set((r as any).data, (r as any).limite_folgas);
+    return m;
+  }, [diaConfigQuery.data]);
+
+  const allFolgasRecords: FolgaRecord[] = useMemo(
+    () =>
+      folgas.map((f: any) => ({
+        colaborador_id: f.colaborador_id,
+        data: f.data,
+        tipo: f.tipo,
+        extra: !!f.extra,
+      })),
+    [folgas],
+  );
+
+  const pendingRequests = useMemo(
+    () => pendentes.map((p: any) => ({ data: p.data_alvo, colaborador_id: p.colaborador_id })),
+    [pendentes],
+  );
+
+  const goPrev = () => {
+    const d = new Date(ano, mes - 2, 1);
+    setAno(d.getFullYear());
+    setMes(d.getMonth() + 1);
+  };
+  const goNext = () => {
+    const d = new Date(ano, mes, 1);
+    setAno(d.getFullYear());
+    setMes(d.getMonth() + 1);
+  };
 
   return (
     <DpPage>
-      <Helmet><title>Calendário — Portal</title></Helmet>
+      <Helmet>
+        <title>Calendário — Portal</title>
+      </Helmet>
       <DpPageHeader icon={CalendarDays} title="Calendário de folgas" />
 
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs text-muted-foreground mr-1">Filtrar por tipo:</span>
-        {TIPO_FILTROS.map((t) => {
-          const active = tipos.includes(t.value);
-          return (
-            <button
-              key={t.value}
-              type="button"
-              onClick={() => toggleTipo(t.value)}
-              className={cn(
-                "text-xs rounded-full border px-2.5 py-1 transition-colors",
-                active
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-card text-foreground/70 border-[hsl(var(--dp-border))] hover:bg-accent",
-              )}
-            >
-              {t.label}
-            </button>
-          );
-        })}
-        {tipos.length > 0 && (
-          <Badge variant="outline" className="text-[10px]">
-            {folgasFiltradas.length} de {folgasQuery.data?.length ?? 0}
-          </Badge>
-        )}
-      </div>
-
       <DpContentCard contentClassName="p-4 md:p-6">
-        <FolgaCalendar
-          ano={ano} mes={mes}
-          folgas={folgasFiltradas}
-          datasBloqueadas={bloqueiosQuery.data ?? []}
-          diaConfigLimite={diaConfigQuery.data ?? {}}
-          onChangeMonth={(a, m) => { setAno(a); setMes(m); }}
-          onDayClick={(iso) => navigate(`/dp/meu/solicitacoes?data=${iso}`)}
-          highlightColaboradorId={meRef.data?.id}
+        <FolgaCalendarShared
+          year={ano}
+          month0={mes - 1}
+          occupantsByDate={occupantsByDate}
+          manualBlocked={manualBlocked}
+          dayLimits={dayLimits}
+          myColaboradorId={meRef.data?.id ?? null}
+          allFolgas={allFolgasRecords}
+          allColaboradores={colaboradores}
+          pendingRequests={pendingRequests}
+          isAdmin={false}
+          variant="compact"
+          onPrev={goPrev}
+          onNext={goNext}
+          onSelectDay={(iso) => navigate(`/dp/meu/solicitacoes?data=${iso}`)}
         />
       </DpContentCard>
+
       <p className="text-xs text-muted-foreground">
-        Clique em um dia para abrir uma nova solicitação já com a data preenchida. Suas folgas aparecem destacadas com borda.
+        Clique em um dia para abrir uma nova solicitação já com a data preenchida. Sua folga semanal fixa aparece
+        marcada em azul.
       </p>
     </DpPage>
   );
