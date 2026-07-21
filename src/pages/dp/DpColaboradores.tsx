@@ -61,6 +61,11 @@ export default function DpColaboradores() {
   const [granting, setGranting] = useState<string | null>(null);
   const [accessResult, setAccessResult] = useState<{ nome: string; cpf: string; password: string; kind: "created" | "reset" } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [setPwdTarget, setSetPwdTarget] = useState<DpColaborador | null>(null);
+  const [novaSenha, setNovaSenha] = useState("");
+  const [confirmSenha, setConfirmSenha] = useState("");
+  const [showSenha, setShowSenha] = useState(false);
+  const [savingSenha, setSavingSenha] = useState(false);
 
   const counts = useMemo(() => {
     const all = list.data ?? [];
