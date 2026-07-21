@@ -394,12 +394,24 @@ async function importTable(
   if (!dryRun && toInsert.length) {
     const { error } = await dest.from(targetTable).insert(toInsert);
     if (error) {
-      // On failure, log all rows as errors
-      for (const r of toInsert) {
-        counters.errors[sourceTable] = (counters.errors[sourceTable] ?? 0) + 1;
-        await recordError(dest, runId, sourceTable, null, error.message, r);
+      // Batch failed — retry per row to isolate offenders
+      const okEntries: typeof mapEntries = [];
+      let imported = 0;
+      for (let i = 0; i < toInsert.length; i++) {
+        const r = toInsert[i];
+        const { error: rowErr } = await dest.from(targetTable).insert(r);
+        if (rowErr) {
+          counters.errors[sourceTable] = (counters.errors[sourceTable] ?? 0) + 1;
+          await recordError(dest, runId, sourceTable, mapEntries[i].source_id, rowErr.message, r);
+          // remove from map bucket so future retries can try again
+          bucket.delete(mapEntries[i].source_id);
+        } else {
+          okEntries.push(mapEntries[i]);
+          imported++;
+        }
       }
-      // Remove pending map entries (they didn't land)
+      if (okEntries.length) await persistIdMap(dest, runId, okEntries);
+      counters.imported[sourceTable] = (counters.imported[sourceTable] ?? 0) + imported;
       return;
     }
     await persistIdMap(dest, runId, mapEntries);
@@ -407,6 +419,7 @@ async function importTable(
   counters.imported[sourceTable] =
     (counters.imported[sourceTable] ?? 0) + toInsert.length;
 }
+
 
 async function runImport(
   source: SupabaseClient,
