@@ -759,6 +759,16 @@ export default function Lancamentos() {
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
             <Upload className="h-4 w-4 mr-1" /> Importar Extrato
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleBatchCategorize}
+            disabled={batchCategorizing}
+            title="Categorizar automaticamente lançamentos sem categoria"
+          >
+            <Sparkles className="h-4 w-4 mr-1" />
+            {batchCategorizing ? "Categorizando..." : "Auto-categorizar"}
+          </Button>
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm">
