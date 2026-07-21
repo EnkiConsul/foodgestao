@@ -5264,6 +5264,21 @@ export type Database = {
           similarity: number
         }[]
       }
+      categorize_transactions_batch: {
+        Args: {
+          p_company_id?: string
+          p_context?: string
+          p_limit?: number
+          p_min_confidence?: number
+          p_only_uncategorized?: boolean
+        }
+        Returns: {
+          scanned: number
+          skipped_low_confidence: number
+          skipped_no_match: number
+          updated: number
+        }[]
+      }
       chart_account_move: {
         Args: { _id: string; _new_parent_id: string }
         Returns: undefined

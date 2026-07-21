@@ -37,7 +37,7 @@ import { Label } from "@/components/ui/label";
 import {
   Plus, Search, ArrowLeftRight,
   Trash2, Pencil, Copy, ChevronLeft, ChevronRight, ChevronDown, Filter, SlidersHorizontal,
-  Download, DollarSign, CalendarIcon, CreditCard, HandCoins, X, Settings2, Repeat, Paperclip, Check, Upload,
+  Download, DollarSign, CalendarIcon, CreditCard, HandCoins, X, Settings2, Repeat, Paperclip, Check, Upload, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, endOfMonth, isPast } from "date-fns";
@@ -158,6 +158,39 @@ export default function Lancamentos() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [dialogInitialType, setDialogInitialType] = useState<"receita" | "despesa" | "transferencia" | undefined>(undefined);
+  const [batchCategorizing, setBatchCategorizing] = useState(false);
+
+  const handleBatchCategorize = useCallback(async () => {
+    if (batchCategorizing) return;
+    setBatchCategorizing(true);
+    try {
+      const { data, error } = await supabase.rpc("categorize_transactions_batch", {
+        p_limit: 500,
+        p_min_confidence: 0.7,
+        p_context: contextType ?? null,
+        p_company_id: contextType === "pj" ? selectedCompanyId : null,
+        p_only_uncategorized: true,
+      });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      const scanned = Number(row?.scanned ?? 0);
+      const updated = Number(row?.updated ?? 0);
+      const low = Number(row?.skipped_low_confidence ?? 0);
+      const none = Number(row?.skipped_no_match ?? 0);
+      toast.success(`Categorização concluída`, {
+        description: `${updated}/${scanned} categorizados · ${low} baixa confiança · ${none} sem regra`,
+      });
+      if (updated > 0) {
+        // trigger reload
+        setSelectedMonth((m) => m);
+        window.dispatchEvent(new Event("transactions:refresh"));
+      }
+    } catch (err: any) {
+      toast.error("Erro ao categorizar em lote", { description: err?.message });
+    } finally {
+      setBatchCategorizing(false);
+    }
+  }, [batchCategorizing, contextType, selectedCompanyId]);
   const [filterCollapsed, setFilterCollapsed] = useState(false);
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
   const [duplicateSource, setDuplicateSource] = useState<Transaction | null>(null);
@@ -725,6 +758,16 @@ export default function Lancamentos() {
           </Button>
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
             <Upload className="h-4 w-4 mr-1" /> Importar Extrato
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleBatchCategorize}
+            disabled={batchCategorizing}
+            title="Categorizar automaticamente lançamentos sem categoria"
+          >
+            <Sparkles className="h-4 w-4 mr-1" />
+            {batchCategorizing ? "Categorizando..." : "Auto-categorizar"}
           </Button>
           <Popover>
             <PopoverTrigger asChild>
