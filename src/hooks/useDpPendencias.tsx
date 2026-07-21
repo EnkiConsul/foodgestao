@@ -244,20 +244,52 @@ export function useDpPendencias() {
         const sindicatoNome = new Map<string, string>(
           (sinds ?? []).map((s: any) => [s.id, s.nome])
         );
-
-        // Vínculos unidade↔sindicato (apenas sindicatos laborais ativos)
         const sindIds = Array.from(sindicatoNome.keys());
+
+        const unidadeIdsAtivas = unidades.map((u) => u.id);
         const parByUnidade = new Map<string, Set<string>>();
-        if (sindIds.length > 0) {
-          const { data: vinc } = await supabase
-            .from("dp_sindicato_unidades")
-            .select("unidade_id, sindicato_id")
-            .in("sindicato_id", sindIds);
-          (vinc ?? []).forEach((v: any) => {
-            if (!parByUnidade.has(v.unidade_id)) parByUnidade.set(v.unidade_id, new Set());
-            parByUnidade.get(v.unidade_id)!.add(v.sindicato_id);
+        const addPar = (unidadeId: string, sindId: string) => {
+          if (!unidadeIdsAtivas.includes(unidadeId)) return;
+          if (!sindicatoNome.has(sindId)) return;
+          if (!parByUnidade.has(unidadeId)) parByUnidade.set(unidadeId, new Set());
+          parByUnidade.get(unidadeId)!.add(sindId);
+        };
+
+        if (sindIds.length > 0 && unidadeIdsAtivas.length > 0) {
+          // 6.a — Vínculo via cargos: unidade_cargos × sindicato_cargos
+          const { data: uc } = await supabase
+            .from("dp_unidade_cargos")
+            .select("unidade_id, cargo_id")
+            .in("unidade_id", unidadeIdsAtivas);
+          const cargoIds = Array.from(new Set((uc ?? []).map((r: any) => r.cargo_id)));
+          if (cargoIds.length > 0) {
+            const { data: sc } = await supabase
+              .from("dp_sindicato_cargos")
+              .select("sindicato_id, cargo_id")
+              .in("cargo_id", cargoIds)
+              .in("sindicato_id", sindIds);
+            const sindByCargo = new Map<string, string[]>();
+            (sc ?? []).forEach((r: any) => {
+              if (!sindByCargo.has(r.cargo_id)) sindByCargo.set(r.cargo_id, []);
+              sindByCargo.get(r.cargo_id)!.push(r.sindicato_id);
+            });
+            (uc ?? []).forEach((r: any) => {
+              (sindByCargo.get(r.cargo_id) ?? []).forEach((sid) => addPar(r.unidade_id, sid));
+            });
+          }
+
+          // 6.b — Fallback: pares já presentes em negociações
+          const { data: negPairs } = await supabase
+            .from("dp_sindicato_negociacoes")
+            .select("unidade_id, sindicato_id, sindicato_laboral_id")
+            .eq("company_id", selectedCompanyId!)
+            .not("unidade_id", "is", null);
+          (negPairs ?? []).forEach((r: any) => {
+            const sid = r.sindicato_laboral_id ?? r.sindicato_id;
+            if (r.unidade_id && sid) addPar(r.unidade_id, sid);
           });
         }
+
 
 
         const unidadeMap = new Map(unidades.map((u) => [u.id, u.nome]));
