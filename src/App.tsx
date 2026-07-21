@@ -69,9 +69,6 @@ const DpMensagens = lazy(() => import("./pages/dp/DpMensagens"));
 const DpDisciplinar = lazy(() => import("./pages/dp/DpDisciplinar"));
 const DpBloqueios = lazy(() => import("./pages/dp/DpBloqueios"));
 const DpTrocas = lazy(() => import("./pages/dp/DpTrocas"));
-const DpFolhaHub = lazy(() => import("./pages/dp/DpFolhaHub"));
-const DpFolhaPeriodo = lazy(() => import("./pages/dp/DpFolhaPeriodo"));
-const DpFolhaAprovacoes = lazy(() => import("./pages/dp/DpFolhaAprovacoes"));
 const DpConfiguracoes = lazy(() => import("./pages/dp/DpConfiguracoes"));
 const DpAdminCalendario = lazy(() => import("./pages/dp/DpAdminCalendario"));
 const DpModelosMensagem = lazy(() => import("./pages/dp/DpModelosMensagem"));
@@ -360,10 +357,7 @@ const AppRoutes = () => (
         <Route path="cadastros/cargos" element={<DpCargos />} />
         <Route path="cadastros/sindicatos" element={<DpSindicatos />} />
         <Route path="documentos/act-cct" element={<DpSindicatoNegociacoes />} />
-        <Route path="folha" element={<DpFolhaHub />} />
-        <Route path="folha/aprovacoes" element={<DpFolhaAprovacoes />} />
         <Route path="configuracoes" element={<DpConfiguracoes />} />
-        <Route path="folha/periodos/:id" element={<DpFolhaPeriodo />} />
         <Route path="sindicatos" element={<Navigate to="/dp/cadastros/sindicatos" replace />} />
         <Route path="unidades" element={<Navigate to="/dp/cadastros/unidades" replace />} />
         <Route path="cargos" element={<Navigate to="/dp/cadastros/cargos" replace />} />
