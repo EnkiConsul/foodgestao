@@ -60,6 +60,12 @@ export function BudgetFormDialog({ open, onOpenChange, onCreated }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+
+    if (contextType === "pj" && !selectedCompanyId) {
+      toast.error("Selecione uma empresa antes de criar o orçamento");
+      return;
+    }
+
     const numAmount = parseCurrencyToNumber(amount);
 
     const validated = validateWithToast(budgetSchema, {
@@ -70,6 +76,7 @@ export function BudgetFormDialog({ open, onOpenChange, onCreated }: Props) {
     setSaving(true);
     const { error } = await supabase.from("budgets").insert({
       user_id: user.id,
+      company_id: contextType === "pj" ? selectedCompanyId! : null,
       category_id: categoryId,
       amount: numAmount,
       period,

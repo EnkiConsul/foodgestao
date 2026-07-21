@@ -40,14 +40,15 @@ export default function Orcamento() {
 
   const { data: budgets = [], refetch } = useQuery({
     queryKey: ["budgets", user?.id, contextType, selectedCompanyId],
-    enabled: !!user,
+    enabled: !!user && isFinancialScopeReady(contextType, user?.id, selectedCompanyId),
     queryFn: async () => {
-      const q = supabase
-        .from("budgets")
-        .select("*, categories!fk_budgets_category(name, color, icon)")
-        .eq("user_id", user!.id)
-        .eq("context", contextType)
-        .order("created_at", { ascending: false });
+      const scope = assertFinancialScope({ context: contextType, userId: user!.id, companyId: selectedCompanyId });
+      const q = applyFinancialScope(
+        supabase
+          .from("budgets")
+          .select("*, categories!fk_budgets_category(name, color, icon)"),
+        scope,
+      ).order("created_at", { ascending: false });
       const { data } = await q;
       return data ?? [];
     },
@@ -84,10 +85,18 @@ export default function Orcamento() {
   });
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("budgets").delete().eq("id", id);
+    // A RLS é a proteção final; adicionamos escopo redundante para defesa em profundidade.
+    let query = supabase.from("budgets").delete().eq("id", id);
+    if (contextType === "pj" && selectedCompanyId) {
+      query = query.eq("company_id", selectedCompanyId);
+    } else {
+      query = query.eq("user_id", user!.id).is("company_id", null);
+    }
+    const { error } = await query;
     if (error) toast.error("Erro ao excluir");
     else { toast.success("Orçamento excluído"); refetch(); }
   };
+
 
   const stats = useMemo(() => {
     let totalBudget = 0;
