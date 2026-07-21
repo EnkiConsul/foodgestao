@@ -303,7 +303,7 @@ export default function CategorizacaoIA() {
                           <TableCell className="text-right tabular-nums">{r.hit_count}</TableCell>
                           <TableCell className="text-right tabular-nums">{(r.confidence * 100).toFixed(0)}%</TableCell>
                           <TableCell className="text-xs text-muted-foreground">
-                            {r.last_hit_at ? formatDate(r.last_hit_at) : "—"}
+                            {r.last_hit_at ? formatDate(r.last_hit_at, "dd/MM/yy") : "—"}
                           </TableCell>
                           <TableCell className="text-center">
                             <Switch
