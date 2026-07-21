@@ -36,14 +36,14 @@ export function parseFlexibleDate(value: DateInput, time: DayTime = "midday"): D
   let seconds = 0;
 
   if (iso) {
+    if (iso[4]) {
+      // ISO com horário: delega ao Date nativo para respeitar Z/offset
+      const d = new Date(raw);
+      return isValid(d) ? d : null;
+    }
     year = Number(iso[1]);
     month = Number(iso[2]);
     day = Number(iso[3]);
-    if (iso[4]) {
-      hours = Number(iso[4]);
-      minutes = Number(iso[5]);
-      seconds = iso[6] ? Number(iso[6]) : 0;
-    }
   } else if (dmy) {
     day = Number(dmy[1]);
     month = Number(dmy[2]);

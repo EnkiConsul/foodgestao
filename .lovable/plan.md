@@ -1,32 +1,38 @@
-## Problema
+# Correção: horário da última sincronização exibido em UTC
 
-Ao remover uma conexão Open Finance em `/contas-bancarias`, o registro é apagado localmente mas o item permanece visível no painel da Pluggy.
+## Diagnóstico
 
-A Edge Function `pluggy-delete-connection` já chama `DELETE /items/{provider_item_id}`, porém:
+O horário 18:51 mostrado no card "Última sincronização" corresponde ao valor UTC bruto do `last_sync_at` retornado pelo backend, sem conversão para o fuso do Brasil. Se agora são 16:01 BRT (19:01 UTC), o sync real ocorreu há ~10 minutos e deveria aparecer como **15:51**, não 18:51.
 
-- A chamada está dentro de um `try/catch` que apenas faz `console.warn` — se o Pluggy responder erro (token expirado, 5xx, rede), o item **não é deletado** e mesmo assim o registro local é apagado, deixando o item órfão no painel Pluggy sem forma do usuário retentar.
-- Não há retorno para o frontend indicando que a revogação remota falhou.
+A causa está em `src/lib/date-utils.ts` → `parseFlexibleDate` (linhas 28–76):
+
+- A regex ISO captura ano/mês/dia/hora/min/seg de strings como `2026-07-21T18:51:00Z` ou `...+00:00`, mas **descarta o sufixo `Z`/offset**.
+- Em seguida usa `new Date(year, month-1, day, hours, minutes, seconds)`, que interpreta esses componentes como **hora local**.
+- Resultado: 18:51 UTC vira 18:51 BRT em vez de 15:51 BRT.
+
+Isso afeta todo lugar que passa timestamps ISO com `Z`/offset por `formatDate` — hoje visível no Open Finance (última sync geral, sync por conexão e sync por conta provedora), e potencialmente em outras telas que exibem `HH:mm` de campos `timestamptz`.
 
 ## Correção
 
-### 1. `supabase/functions/pluggy-delete-connection/index.ts`
-- Sair do padrão "swallow error". Chamar `deleteItem(provider_item_id)` **antes** de apagar as linhas locais.
-- Tratar 404 como sucesso (item já não existe no Pluggy).
-- Em qualquer outro erro do Pluggy: **não apagar** `bank_connections` / `bank_connection_accounts`; retornar HTTP 502 com mensagem clara (`"Falha ao revogar consentimento no Pluggy: <status>"`) para a UI exibir e permitir nova tentativa.
-- Logar `console.error` com `connectionId` e `provider_item_id` para diagnóstico.
-- Adicionar um parâmetro opcional `force: boolean` no `BodySchema` (default `false`). Quando `true` e o usuário for `super_admin` (via `has_role`), permitir apagar localmente mesmo se o Pluggy falhar — cobre casos em que o item já foi deletado manualmente no painel Pluggy.
+Ajustar `parseFlexibleDate` em `src/lib/date-utils.ts` para que strings ISO **com componente de horário** sejam delegadas ao construtor nativo `new Date(raw)`, que respeita `Z` e offsets explícitos. O ramo "date-only" (`YYYY-MM-DD` sem `T…`) continua com a construção local atual, preservando a proteção contra o shift de fuso para datas puras (ex.: `due_date`).
 
-### 2. `supabase/functions/_shared/pluggy.ts`
-- Em `deleteItem`, incluir o corpo da resposta na mensagem de erro para facilitar debug (`throw new Error(\`Pluggy deleteItem: ${res.status} ${text}\`)`).
+Fluxo novo dentro do bloco `if (iso)`:
 
-### 3. `src/components/accounts/OpenFinanceSection.tsx` + `src/hooks/usePluggy.ts`
-- Propagar mensagem de erro da Edge Function no `toast.error` (hoje mostra genérico).
-- No `AlertDialog` de confirmação, quando a mutação falhar com erro do Pluggy, exibir botão adicional **"Remover mesmo assim"** visível apenas se `useIsSuperAdmin()` for `true`, chamando novamente com `force: true`. Usuários comuns veem apenas "Tentar novamente".
+```text
+- iso[4] presente (tem horário)  → return new Date(raw)  // respeita Z/offset
+- iso[4] ausente (só data)       → mantém lógica local com defaults de DayTime
+```
 
-### 4. Verificação
-- Testar: desconectar a conexão Santander atual (que está com item ativo no painel Pluggy) e conferir que o item some do painel.
-- Se o painel Pluggy tiver itens órfãos de exclusões anteriores, listá-los depois e apagar manualmente via nova tentativa (o registro local já foi removido, então o super admin precisa apagar direto no painel Pluggy — sem código nosso para isso).
+O ramo `dmy` (`DD/MM/YYYY`) e o fallback genérico permanecem inalterados.
 
-## Fora de escopo
-- Sincronização periódica reverse (Pluggy → local) para detectar itens órfãos.
-- Reprocessamento em background com fila de retry.
+## Verificação
+
+1. Reabrir `/contas-bancarias` → card "Última sincronização" deve mostrar horário BRT coerente com o relógio do usuário.
+2. Conferir "Última sync" do cartão da conexão e o `sync HH:mm` da conta provedora.
+3. Rodar `bun test src/lib/__tests__` (se existirem testes de date-utils) e a suíte de tenancy para garantir que nenhuma comparação de data quebrou.
+4. Confirmar que campos date-only (`due_date` em Lançamentos) continuam exibindo o dia correto — o ramo sem horário não foi alterado.
+
+## Escopo
+
+- Alterar apenas `src/lib/date-utils.ts` (função `parseFlexibleDate`).
+- Nenhuma mudança de schema, RLS, edge function ou UI.
