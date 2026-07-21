@@ -52,6 +52,7 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [confirmDelete, setConfirmDelete] = useState<BankConnection | null>(null);
   const [deleteError, setDeleteError] = useState<{ message: string; pluggyError: boolean } | null>(null);
+  const [syncingConnectionId, setSyncingConnectionId] = useState<string | null>(null);
 
   useRealtimeSync({
     tables: ["bank_connections", "bank_connection_accounts"],
@@ -125,6 +126,7 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
   }
 
   async function handleSync(id: string, fullResync = false) {
+    setSyncingConnectionId(id);
     try {
       const res = await syncConnection.mutateAsync({ connectionId: id, fullResync });
       const acctErrors = (res.perAccount ?? []).filter((a) => a.error);
@@ -139,12 +141,16 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
         toast.error(res.error);
       } else if (acctErrors.length > 0) {
         toast.warning(`Sincronizado com avisos: ${acctErrors[0].error}`);
+      } else if (res.imported === 0) {
+        toast.info("Saldo atualizado. Nenhum lançamento novo foi encontrado para importar.");
       } else {
         toast.success(`Sincronizado (${res.imported} lançamentos)`);
       }
       onRefreshAccounts();
     } catch (e) {
       toast.error((e as Error).message);
+    } finally {
+      setSyncingConnectionId(null);
     }
   }
 
@@ -235,6 +241,7 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
               const accs = byConnection.get(conn.id) ?? [];
               const isOpen = expanded[conn.id] ?? true;
               const meta = statusMeta[conn.status] ?? { label: conn.status, className: "" };
+              const isSyncing = syncingConnectionId === conn.id;
               return (
                 <div key={conn.id} className="rounded-lg border bg-card">
                   <div className="flex items-center gap-3 p-3">
@@ -278,27 +285,39 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       <Button
                         size="sm"
-                        variant="ghost"
+                        variant="outline"
                         onClick={() => handleSync(conn.id)}
-                        disabled={syncConnection.isPending}
+                        disabled={isSyncing}
+                        aria-label={`Sincronizar ${conn.institution_name ?? "instituição"}`}
+                        title="Sincronizar lançamentos"
                       >
-                        <RefreshCw className={`h-4 w-4 ${syncConnection.isPending ? "animate-spin" : ""}`} />
+                        <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? "animate-spin" : ""}`} />
+                        {isSyncing ? "Sincronizando" : "Sincronizar"}
                       </Button>
                       {conn.status === "login_error" && (
-                        <Button size="sm" variant="outline" onClick={() => handleConnect(conn.provider_item_id)}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleConnect(conn.provider_item_id)}
+                          aria-label={`Reconectar ${conn.institution_name ?? "instituição"}`}
+                          title="Reconectar instituição"
+                        >
                           Reconectar
                         </Button>
                       )}
                       <Button
                         size="sm"
-                        variant="ghost"
+                        variant="outline"
                         className="text-destructive hover:bg-destructive/10"
                         onClick={() => setConfirmDelete(conn)}
+                        aria-label={`Excluir conexão ${conn.institution_name ?? "instituição"}`}
+                        title="Excluir conexão"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Excluir
                       </Button>
                     </div>
                   </div>
