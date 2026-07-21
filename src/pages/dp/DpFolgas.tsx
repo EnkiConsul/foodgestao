@@ -270,6 +270,37 @@ export default function DpFolgas() {
     },
   });
 
+  // Folgas efetivadas em dp_folgas (sorteio, admin manual, trocas)
+  const folgasQuery = useQuery({
+    queryKey: ["dp_folgas_efetivadas", selectedCompanyId, format(cursor, "yyyy-MM"), unidadeFilter, colabFilter, tipoFilter],
+    enabled: !!selectedCompanyId && (tipoFilter === "todos" || tipoFilter === "folga"),
+    queryFn: async () => {
+      let q = supabase
+        .from("dp_folgas")
+        .select("id, colaborador_id, data, tipo, status, observacao, dp_colaboradores!inner(nome, unidade_id)")
+        .eq("company_id", selectedCompanyId!)
+        .neq("status", "cancelada")
+        .gte("data", format(rangeStart, "yyyy-MM-dd"))
+        .lte("data", format(rangeEnd, "yyyy-MM-dd"));
+      if (colabFilter !== "todos") q = q.eq("colaborador_id", colabFilter);
+      const { data, error } = await q;
+      if (error) throw error;
+      let rows = (data ?? []) as Array<{
+        id: string;
+        colaborador_id: string;
+        data: string;
+        tipo: string;
+        status: string;
+        observacao: string | null;
+        dp_colaboradores: { nome: string; unidade_id: string | null } | null;
+      }>;
+      if (unidadeFilter !== "todas") {
+        rows = rows.filter((r) => r.dp_colaboradores?.unidade_id === unidadeFilter);
+      }
+      return rows;
+    },
+  });
+
   const days = useMemo(
     () => eachDayOfInterval({ start: rangeStart, end: rangeEnd }),
     [rangeStart, rangeEnd],
@@ -289,8 +320,31 @@ export default function DpFolgas() {
         map.set(key, list);
       }
     }
+    // Merge dp_folgas efetivadas como eventos sintéticos aprovados
+    for (const f of folgasQuery.data ?? []) {
+      const key = f.data;
+      const list = map.get(key) ?? [];
+      const dup = list.some(
+        (e) =>
+          e.colaborador_id === f.colaborador_id &&
+          e.tipo === "folga" &&
+          e.status === "aprovada",
+      );
+      if (dup) continue;
+      list.push({
+        id: `folga:${f.id}`,
+        colaborador_id: f.colaborador_id,
+        tipo: "folga" as Tipo,
+        status: "aprovada" as Status,
+        data_alvo: f.data,
+        data_fim: null,
+        motivo: f.observacao,
+        dp_colaboradores: f.dp_colaboradores,
+      } as unknown as Row);
+      map.set(key, list);
+    }
     return map;
-  }, [query.data, rangeStart, rangeEnd]);
+  }, [query.data, folgasQuery.data, rangeStart, rangeEnd]);
 
   const capacityByDay = useMemo(() => {
     const map = new Map<string, number>();
