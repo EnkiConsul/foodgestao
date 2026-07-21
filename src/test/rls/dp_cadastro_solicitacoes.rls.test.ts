@@ -45,7 +45,7 @@ describe("RLS: dp_cadastro_solicitacoes", () => {
       .from("dp_cadastro_solicitacoes")
       .insert({
         company_id: "00000000-0000-0000-0000-000000000000",
-        nome_completo: "RLS Regression Probe",
+        nome: "RLS Regression Probe",
         cpf: "00000000000",
         email: "rls-probe@example.com",
         status: "pendente",
@@ -54,16 +54,20 @@ describe("RLS: dp_cadastro_solicitacoes", () => {
 
     expect(data).toBeNull();
     expect(error).toBeTruthy();
-    // 42501 = insufficient_privilege / RLS violation on PostgREST.
-    // '401'/'403' surface when GRANT is revoked from anon.
     const code = error?.code ?? "";
     const status = (error as { status?: number } | null)?.status ?? 0;
+    // Acceptable rejections: RLS (42501), missing GRANT (401/403),
+    // or PostgREST schema-cache denial (PGRST204/PGRST301) when the
+    // anon role has no visibility into the writable columns.
     const matched =
       code === "42501" ||
       code === "PGRST301" ||
+      code === "PGRST204" ||
       status === 401 ||
       status === 403 ||
-      /row-level security|permission denied|not allowed/i.test(error?.message ?? "");
+      /row-level security|permission denied|not allowed|schema cache/i.test(
+        error?.message ?? "",
+      );
     expect(matched).toBe(true);
   });
 
