@@ -721,10 +721,10 @@ export default function DpMeuCalendario() {
 
       {/* Dialog troca */}
       <Dialog open={!!tradeOpen} onOpenChange={(o) => !o && setTradeOpen(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-[2rem] border-none shadow-2xl p-8">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ArrowLeftRight className="h-5 w-5 text-primary" />
+            <DialogTitle className="text-2xl font-black flex items-center gap-3">
+              <ArrowLeftRight className="size-6 text-primary" />
               Solicitar troca
             </DialogTitle>
             <DialogDescription>
@@ -736,7 +736,7 @@ export default function DpMeuCalendario() {
             <div>
               <Label>Folga que você oferece</Label>
               <Select value={tradeMyDate} onValueChange={setTradeMyDate}>
-                <SelectTrigger>
+                <SelectTrigger className="rounded-xl">
                   <SelectValue placeholder="Escolha uma folga sua" />
                 </SelectTrigger>
                 <SelectContent>
@@ -754,9 +754,13 @@ export default function DpMeuCalendario() {
               )}
             </div>
             <div>
-              <Label>Mensagem (opcional)</Label>
+              <Label className="flex items-center gap-2">
+                Mensagem
+                <span className="text-muted-foreground text-xs font-normal">(opcional)</span>
+              </Label>
               <Textarea
                 rows={3}
+                className="rounded-xl"
                 placeholder="Alguma observação para o colega?"
                 value={tradeMotivo}
                 onChange={(e) => setTradeMotivo(e.target.value)}
