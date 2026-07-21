@@ -1,73 +1,67 @@
-## Comparativo Pakere × 360°FOOD (`/dp/meu/calendario`)
+# Marcação direta de folga — colaborador (paridade Pakere)
 
-O calendário atual só exibe o mês e, ao clicar num dia, redireciona para `/dp/meu/solicitacoes` — o usuário perdeu quase todo o auto-atendimento que existia no Pakere. Vou replicar as funcionalidades faltantes, com o backend do 360°FOOD.
+## Diagnóstico
 
-### O que falta hoje
+- **RLS atual de `dp_folgas`**: só `dp_folgas_admin_write` (admin/owner). Qualquer INSERT do colaborador retorna 403. Por isso os 4 POSTs falharam nos logs.
+- **Frontend**: `marcarFolga` em `DpMeuCalendario.tsx` já valida "1 folga de fim de semana por mês" client-side, mas **não** valida lotação, bloqueio manual, aniversariante nem folga fixa antes do INSERT.
+- **Trigger existente `dp_solicitacoes_validar`**: só roda em `dp_solicitacoes`, não em `dp_folgas`.
 
-| Recurso (Pakere) | Status no 360°FOOD |
-|---|---|
-| Dialog do dia com **status** e **ocupantes** | Ausente |
-| **Marcar folga** direto (1 clique em fim de semana disponível) | Ausente — só via aprovação |
-| **Remover folga** própria futura | Ausente |
-| **Solicitar troca** com um ocupante do dia | Ausente no calendário (só em `/dp/meu/trocas`) |
-| **Solicitar exceção** (dia bloqueado/lotado) | Ausente |
-| Filtro por **unidade** ao computar ocupantes | Já feito no back, mas ocupantes vêm de toda empresa no front |
-| **Realtime** (folgas, bloqueios, dia_config, solicitações) | Ausente |
-| Regra **1 folga de fim de semana por mês** | Não validada no front |
+## O que muda
 
-## Escopo aprovado
+### 1. Backend — permitir INSERT do colaborador em `dp_folgas` (com trave dura)
 
-- **Marcar folga = direto igual Pakere** → `insert into dp_folgas` (trigger `dp_validar_folga_insert` já bloqueia limite/data bloqueada/bloqueio individual).
-- **Exceção** → reaproveita `dp_solicitacoes` com `tipo='folga'` + motivo obrigatório.
-- **Troca** → cria linha em `dp_trocas` a partir do dialog.
+Migração:
 
-## Mudanças
+- **Nova policy** `dp_folgas_self_insert` em `dp_folgas` (INSERT, role `authenticated`) permitindo `colaborador_id = private.dp_colaborador_of(auth.uid())` **e** `company_id` bater. Sem SELECT/UPDATE/DELETE — quem pode alterar depois continua sendo admin ou o dono via policy dedicada.
+- **Nova policy** `dp_folgas_self_delete` (DELETE) para o colaborador remover **apenas** sua própria folga futura, origem `solicitacao`, status `agendada` e criada por ele.
+- **Nova trigger `dp_folgas_validar_self`** (BEFORE INSERT) — dispara **apenas** quando o autor não é admin/owner. Refaz no banco todas as regras (defesa em profundidade):
+  1. `data >= current_date` (sem data passada).
+  2. `tipo = 'normal'` e `extra = false` e `origem = 'solicitacao'` (bloqueia forjar `extra`/`sorteio`).
+  3. Dia da semana ∈ {0,6}.
+  4. Limite mensal: 0 folgas de fim de semana ativas no mês (excluindo canceladas).
+  5. Lotação: `count(dp_folgas ativos naquele dia) < coalesce(dp_dia_config.limite_folgas, 1)` — com precedência da linha `unidade_id` do colaborador sobre `NULL`.
+  6. `dp_datas_bloqueadas` não bloqueia (respeitando `unidade_id` e `liberada_por_solicitacao`).
+  7. Aniversariante ativo naquele dia ≠ colaborador → RAISE.
+  8. Folga fixa semanal do próprio colaborador cai naquele weekday → RAISE (usa `solicitacao especial`/exceção).
+  9. Já existe folga sua nesse dia → RAISE.
+- Mensagens de erro em pt-BR, específicas por regra (o front mapeia para `toast.error`).
 
-### 1. `src/pages/dp/portal/DpMeuCalendario.tsx` — reescrita da interação
+### 2. Frontend — `src/pages/dp/portal/DpMeuCalendario.tsx`
 
-Substituir `onSelectDay` (que hoje navega) por um **dialog** contendo:
+Refatorar `marcarFolga` para validar antes do INSERT (mesmas 9 regras acima), reaproveitando `calculateDateStatus`/helpers de `folga-rules.ts`:
 
-- Cabeçalho com data BR + badge de status (available/mine/fixed/blocked/taken/past/pending/birthday/swapped).
-- Se ocupado por outros → lista de ocupantes com botão **Trocar** ao lado de cada nome (mesma unidade).
-- Bloco de ações contextual:
-  - `available` (fim de semana) → botão **Marcar folga** (insere em `dp_folgas` com `tipo = sabado|domingo`, `extra=false`, `criado_por=user.id`).
-  - `mine` → botão **Remover folga** (só se `data >= hoje`; `delete from dp_folgas where id=…`).
-  - `fixed` → texto explicativo + dica de troca.
-  - `blocked` / `taken` / `past` / `pending` / `birthday` / `swapped` → mensagem informativa.
-- Botão **Solicitar exceção** (visível quando status ∈ blocked/taken/available/birthday) → abre segundo dialog com Textarea de motivo → `insert into dp_solicitacoes { tipo:'folga', data_alvo:iso, motivo }`.
-- Validação client-side **1 folga fim de semana por mês** antes de inserir (contando `dp_folgas` do próprio user no mês, `tipo ∈ (sabado, domingo)`, `extra=false`) — igual ao Pakere.
-- Após qualquer mutação, `queryClient.invalidateQueries` para recarregar.
+- Checar `dayType` (fim de semana).
+- Contar folgas de fim de semana no mês do colaborador (`tipo` normal + weekday, `extra=false`, `status<>'cancelada'`).
+- Contar ocupados do dia com o limite efetivo (`dayLimits` já leva unidade em conta).
+- Consultar `manualBlocked` do dia.
+- `birthdayByDate` (nova query — hoje não é buscada nesta página; adicionar `useQuery` para `dp_prioridade_aniversario` do mês, filtrado por unidade).
+- Folga fixa do próprio colaborador vs `date.getDay()`.
+- Mensagens de toast idênticas às especificadas.
 
-### 2. Filtro por unidade
+Após validar, INSERT em `dp_folgas` com `tipo='normal'`, `extra=false`, `origem='solicitacao'`, `status='agendada'`, `criado_por=user.id`. Em caso de 403 residual, cair no toast genérico.
 
-Ao montar `occupantsByDate`, filtrar `colaboradores` pela `unidade_id` do usuário (se ele tiver), igual `filteredProfiles` do Pakere. Hoje `buildOccupantsByDate` recebe todos.
+O botão do dialog:
 
-### 3. Realtime
+- Mostra **"Marcar folga"** apenas quando o status calculado for `available` **e** fim de semana **e** nenhuma das regras 4-9 falhar (pré-check síncrono para o botão já vir habilitado/desabilitado com tooltip do motivo).
+- Nos demais casos permanece **"Solicitar exceção"** já existente.
 
-Subscribe em `dp_folgas`, `dp_datas_bloqueadas`, `dp_dia_config`, `dp_solicitacoes` (filtrando por `company_id`) → `invalidateQueries` das 4 queries do calendário. Cleanup no unmount.
+Remover folga (`removerFolga`) continua igual — agora funciona porque temos policy DELETE self.
 
-### 4. Troca via calendário
+### 3. Verificação
 
-Ação **Trocar** ao lado de um ocupante:
-- Validação: não pode ser eu mesmo; ocupante e eu devem ter a mesma `unidade_id` (skip se admin — colaborador nunca é admin nessa tela).
-- Verifica duplicidade: `select id from dp_trocas where solicitante_id=me and destino_id=X and data_original=iso and status='pendente'`.
-- Insert: `{ company_id, solicitante_id: me, destino_id: X, data_original: iso, motivo: 'Solicitação via calendário', status: 'pendente' }`.
-- Como `dp_trocas` exige `data_proposta`? Se coluna for NOT NULL, usar a minha própria folga fixa/mensal como proposta; se nulo permitido, deixar `null`. **Verificar no build.**
+- `supabase--linter` pós-migração.
+- Query manual: reproduzir INSERT como colaborador (via `supabase--read_query` não dá; será verificado no preview autenticado).
+- Testes manuais no preview (Playwright): tentar marcar em (a) sábado disponível → sucesso; (b) mesmo mês outro fim de semana → toast de limite mensal; (c) dia bloqueado → toast bloqueio; (d) dia lotado (limite=1 já ocupado) → toast lotado; (e) dia útil → botão some, só exceção.
 
-### 5. `src/lib/dp/folga-rules.ts`
+## Arquivos
 
-Nenhuma alteração — `calculateDateStatus` já cobre todos os status usados no dialog. Vou apenas usar `getWeekStart`, `parseYMD`, `dayType`, `monthKey` (já existem) para a regra de 1 folga/mês e para computar `canTrade`.
+- **Nova migração** (backend): policy INSERT/DELETE + trigger `dp_folgas_validar_self`.
+- `src/pages/dp/portal/DpMeuCalendario.tsx`: `marcarFolga` completo + `useQuery` de aniversariantes + gating do botão.
 
-### 6. Sem migração
+## Detalhes técnicos
 
-- Tudo suportado pelo schema atual. Triggers de validação em `dp_folgas` continuam sendo a fonte de verdade no servidor.
-- `dp_solicitacoes` já tem a trigger `dp_solicitacoes_validar` que acabamos de criar (bloqueia insert em dia lotado). Exceções também caem nela — comportamento correto (não deixa "trapacear" via botão de exceção com data lotada). Se o produto quiser permitir exceção mesmo em dia lotado, ajustamos a trigger depois; por ora mantém.
+- A trigger usa `SECURITY DEFINER` + `search_path=public` e faz `IF private.is_company_admin_or_owner(auth.uid(), NEW.company_id) THEN RETURN NEW; END IF;` no topo para não afetar o fluxo do admin.
+- `dp_folgas_self_insert` só permite `origem='solicitacao'` e `criado_por = auth.uid()` no `WITH CHECK`, evitando forjar `sorteio`.
+- Rate-limit não é adicionado agora (fluxo é bloqueado por regras de negócio; limite mensal já é 1).
 
-## Verificação
-
-1. Colaborador clica em sábado disponível → dialog mostra "Disponível" + botão "Marcar folga" → 1 clique grava em `dp_folgas`, atualização em tempo real reflete no calendário.
-2. Clica em sua própria folga futura → botão "Remover folga" funciona.
-3. Clica em dia lotado → status "Ocupado", vê ocupantes da sua unidade + botão "Trocar" ao lado de cada um.
-4. Clica em dia bloqueado → botão "Solicitar exceção" cria pendência em `dp_solicitacoes`.
-5. Tentativa de marcar 2ª folga de fim de semana no mesmo mês → toast "Você já possui uma folga de fim de semana neste mês".
-6. Alteração feita por outro dispositivo aparece via realtime sem refresh.
+Sem alterações em outras páginas.
