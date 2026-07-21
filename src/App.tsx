@@ -109,7 +109,7 @@ const AdminResetarDados = lazy(() => import("./pages/admin/ResetarDados"));
 const AdminLandingPage = lazy(() => import("./pages/admin/LandingPage"));
 const AdminBancos = lazy(() => import("./pages/admin/Bancos"));
 const AdminSeoIndexacao = lazy(() => import("./pages/admin/SeoIndexacao"));
-const AdminImportacoesDp = lazy(() => import("./pages/admin/ImportacoesDp"));
+
 const AdminDocumentosLegais = lazy(() => import("./pages/admin/DocumentosLegais"));
 
 // Público / auth-adjacente
