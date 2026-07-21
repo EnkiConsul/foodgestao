@@ -20,6 +20,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { cn } from "@/lib/utils";
+import { calculateDateStatus, type ColaboradorRecord, type FolgaRecord } from "@/lib/dp/folga-rules";
 
 const TIPOS = [
   { value: "folga", label: "Folga" },
@@ -76,7 +77,10 @@ export default function DpMeuSolicitacoes() {
       const { data } = await supabase.rpc("dp_colaborador_of", { _user_id: user!.id });
       if (!data) return null;
       const { data: c } = await supabase
-        .from("dp_colaboradores").select("id, company_id").eq("id", data).single();
+        .from("dp_colaboradores")
+        .select("id, company_id, unidade_id, folga_fixa_semana, ativo, nome")
+        .eq("id", data)
+        .single();
       return c;
     },
   });
@@ -100,16 +104,102 @@ export default function DpMeuSolicitacoes() {
     enabled: !!meRef.data?.company_id,
     queryFn: async () => {
       const { data } = await supabase
-        .from("dp_datas_bloqueadas").select("data, motivo")
+        .from("dp_datas_bloqueadas").select("data, motivo, liberada_por_solicitacao, unidade_id")
         .eq("company_id", meRef.data!.company_id!);
-      const map: Record<string, string> = {};
-      for (const r of data ?? []) map[r.data as string] = (r.motivo as string) ?? "";
-      return map;
+      return data ?? [];
     },
   });
 
   const dataAlvoIso = toIso(form.data_alvo);
-  const bloqueioAtivo = bloqueios.data?.[dataAlvoIso];
+  const bloqueioAtivo = useMemo(() => {
+    const row = (bloqueios.data ?? []).find(
+      (b: any) =>
+        b.data === dataAlvoIso &&
+        (b.unidade_id === null || b.unidade_id === meRef.data?.unidade_id) &&
+        !b.liberada_por_solicitacao,
+    );
+    return row ? ((row as any).motivo as string) ?? "" : null;
+  }, [bloqueios.data, dataAlvoIso, meRef.data?.unidade_id]);
+
+  // Capacidade do dia (só relevante quando tipo = folga)
+  const capacity = useQuery({
+    queryKey: ["dp_meu_sol_cap", meRef.data?.company_id, dataAlvoIso],
+    enabled: !!meRef.data?.company_id && !!dataAlvoIso && form.tipo === "folga",
+    queryFn: async () => {
+      const companyId = meRef.data!.company_id!;
+      const [colabsRes, folgasRes, pendRes, diaCfgRes] = await Promise.all([
+        supabase
+          .from("dp_colaboradores")
+          .select("id, nome, folga_fixa_semana, ativo, unidade_id")
+          .eq("company_id", companyId),
+        supabase
+          .from("dp_folgas")
+          .select("id, data, colaborador_id, tipo, extra, status")
+          .eq("company_id", companyId)
+          .eq("data", dataAlvoIso),
+        supabase
+          .from("dp_solicitacoes")
+          .select("id, colaborador_id, data_alvo")
+          .eq("company_id", companyId)
+          .eq("tipo", "folga")
+          .eq("status", "pendente")
+          .eq("data_alvo", dataAlvoIso),
+        supabase
+          .from("dp_dia_config")
+          .select("data, limite_folgas, unidade_id")
+          .eq("company_id", companyId)
+          .eq("data", dataAlvoIso),
+      ]);
+      return {
+        colaboradores: (colabsRes.data ?? []) as ColaboradorRecord[],
+        folgas: (folgasRes.data ?? []) as any[],
+        pendentes: (pendRes.data ?? []) as any[],
+        diaCfg: (diaCfgRes.data ?? []) as any[],
+      };
+    },
+  });
+
+  const dateStatus = useMemo(() => {
+    if (!form.data_alvo || form.tipo !== "folga" || !capacity.data || !meRef.data) return null;
+    const myUnidade = meRef.data.unidade_id ?? null;
+    // Filtra limite priorizando unidade específica
+    const dayLimits = new Map<string, number>();
+    const rows = capacity.data.diaCfg
+      .filter((r: any) => r.unidade_id === null || r.unidade_id === myUnidade)
+      .sort((a: any, b: any) => (b.unidade_id ? 1 : 0) - (a.unidade_id ? 1 : 0));
+    if (rows[0]) dayLimits.set(rows[0].data, rows[0].limite_folgas);
+
+    const manualBlocked = new Map<string, { reason: string; liberada: boolean }>();
+    for (const b of bloqueios.data ?? []) {
+      if ((b as any).unidade_id === null || (b as any).unidade_id === myUnidade) {
+        manualBlocked.set((b as any).data, {
+          reason: (b as any).motivo ?? "",
+          liberada: !!(b as any).liberada_por_solicitacao,
+        });
+      }
+    }
+
+    const allFolgas: FolgaRecord[] = capacity.data.folgas.map((f: any) => ({
+      colaborador_id: f.colaborador_id,
+      data: f.data,
+      tipo: f.tipo,
+      extra: !!f.extra,
+    }));
+
+    return calculateDateStatus({
+      date: form.data_alvo,
+      myColaboradorId: meRef.data.id,
+      allFolgas,
+      allColaboradores: capacity.data.colaboradores,
+      manualBlocked,
+      dayLimits,
+      pendingRequests: capacity.data.pendentes.map((p: any) => ({
+        data: p.data_alvo,
+        colaborador_id: p.colaborador_id,
+      })),
+      isAdmin: false,
+    });
+  }, [form.data_alvo, form.tipo, capacity.data, meRef.data, bloqueios.data]);
 
   // Validação
   const validation = useMemo(() => {
@@ -119,8 +209,19 @@ export default function DpMeuSolicitacoes() {
       errors.push("A data fim não pode ser anterior à data inicial.");
     if (form.tipo !== "folga" && !form.motivo.trim())
       errors.push("Motivo obrigatório para este tipo de solicitação.");
+    if (form.tipo === "folga" && dateStatus) {
+      if (dateStatus.status === "taken") {
+        errors.push(
+          `Data indisponível. Limite de folgas atingido (${dateStatus.occupancy ?? "?"}/${dateStatus.limit ?? "?"}).`,
+        );
+      } else if (dateStatus.status === "blocked") {
+        errors.push(`Esta data está bloqueada pelo DP${dateStatus.reason ? `: ${dateStatus.reason}` : ""}.`);
+      } else if (dateStatus.status === "past") {
+        errors.push("Não é possível solicitar folga em data passada.");
+      }
+    }
     return errors;
-  }, [form]);
+  }, [form, dateStatus]);
 
   const create = useMutation({
     mutationFn: async () => {
@@ -199,9 +300,22 @@ export default function DpMeuSolicitacoes() {
                   <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">
                     <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
                     <p>
-                      Esta data está bloqueada pelo DP{bloqueioAtivo ? `: ${bloqueioAtivo}` : ""}. A aprovação pode ser negada.
+                      Esta data está bloqueada pelo DP{bloqueioAtivo ? `: ${bloqueioAtivo}` : ""}.
                     </p>
                   </div>
+                )}
+                {form.tipo === "folga" && dateStatus && dateStatus.status === "taken" && (
+                  <div className="flex items-start gap-2 rounded-md border border-red-300 bg-red-50 p-2 text-xs text-red-900">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <p>
+                      Data indisponível. Limite de folgas atingido ({dateStatus.occupancy ?? 0}/{dateStatus.limit ?? 0}).
+                    </p>
+                  </div>
+                )}
+                {form.tipo === "folga" && dateStatus && dateStatus.status === "available" && dateStatus.limit != null && (
+                  <p className="text-xs text-muted-foreground">
+                    Vagas disponíveis nesta data: {(dateStatus.limit ?? 0) - (dateStatus.occupancy ?? 0)} de {dateStatus.limit}.
+                  </p>
                 )}
                 <div>
                   <Label>Motivo{form.tipo !== "folga" && <span className="text-destructive ml-0.5">*</span>}</Label>

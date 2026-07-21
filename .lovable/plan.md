@@ -1,46 +1,52 @@
-## Objetivo
-Permitir que o admin da empresa, no módulo DP, defina uma senha customizada para qualquer colaborador (além do reset automático para 6 últimos do CPF que já existe).
+## Problema real no 360°FOOD
 
-## Backend
+O colaborador **não insere direto em `dp_folgas`** — ele cria uma linha em `dp_solicitacoes` (tipo `folga`), que o admin aprova depois. Só a aprovação gera `dp_folgas`.
 
-**Nova Edge Function `dp-alterar-senha-colaborador`** (`supabase/functions/dp-alterar-senha-colaborador/index.ts`):
+- `dp_folgas` **já tem** trigger `dp_validar_folga_insert` que valida limite diário, datas bloqueadas coletivas e bloqueios individuais.
+- `dp_solicitacoes` **não valida nada** — por isso o colaborador consegue pedir folga em data lotada. O erro só apareceria na hora de o admin aprovar (ou pior, passa despercebido).
+- No frontend, `src/pages/dp/portal/DpMeuSolicitacoes.tsx` também não checa capacidade antes do insert.
+- O calendário `DpMeuCalendario` já usa `calculateDateStatus` (que retorna `taken`/`blocked`), mas ao clicar em um dia lotado ele mesmo assim abre o formulário de solicitação com a data preenchida.
 
-- Requer `Authorization: Bearer <jwt>` — valida via `supabase.auth.getUser(token)`. Sem token → 401.
-- Body validado com Zod: `{ colaborador_id: uuid, nova_senha: string (6..72 chars) }`.
-- Autorização server-side (nunca confiar em campos do cliente):
-  1. Carrega o colaborador (`dp_colaboradores`) pelo `colaborador_id` e obtém `company_id` + `user_id` (usuário auth do colaborador).
-  2. Confere que o chamador é admin/owner da mesma empresa via `private.is_company_admin_or_owner(company_id)` (mesma função já usada nas políticas atuais). Sem permissão → 403.
-  3. Bloqueia auto-alteração: se `colaborador.user_id === caller.id` → 400 ("use a tela do próprio perfil").
-- Ação: `admin.updateUserById(colaborador.user_id, { password: nova_senha })` com o service role.
-- Registra em `audit_logs` a ação `dp_admin_password_change` (sem gravar a senha).
-- CORS padrão, retorno `{ success: true }`.
+Nota: os arquivos citados na mensagem (`src/lib/folga-rules.ts`, `src/pages/Calendario.tsx`, `src/lib/admin-api.ts`, `supabase/functions/sorteio-folgas/index.ts`) são do projeto legado Pakere. No 360°FOOD os equivalentes são `src/lib/dp/folga-rules.ts`, `src/pages/dp/portal/DpMeuCalendario.tsx` + `DpMeuSolicitacoes.tsx`, e a Edge Function `dp-sorteio-folgas` (que já valida bloqueios/limites). Vou aplicar a correção nesses.
 
-Nada é gravado com `NULL` em ownership; a operação apenas atualiza a senha do usuário do colaborador — o `owner_id` das tabelas do domínio não é tocado.
+## Correção
 
-## Frontend
+### 1. Frontend — `src/pages/dp/portal/DpMeuSolicitacoes.tsx`
 
-**`src/pages/dp/DpColaboradores.tsx`**:
-- Adicionar terceira ação na coluna (visível apenas quando `colaborador.user_id` existe), ícone `KeyRound`/`Lock`, tooltip "Definir senha".
-- Novo dialog `DefinirSenhaDialog` (componente inline ou em `src/components/dp/DefinirSenhaDialog.tsx`) com:
-  - Input "Nova senha" (mínimo 6, máximo 72, com toggle mostrar/ocultar).
-  - Input "Confirmar senha".
-  - Botão "Gerar senha aleatória" (12 chars alfanuméricos).
-  - Validação Zod local antes de enviar.
-  - Chamada `supabase.functions.invoke("dp-alterar-senha-colaborador", { body })`.
-- Ao sucesso, reaproveita o modal `accessResult` já existente (variante `password_set`) exibindo CPF do colaborador + a senha definida, com botões de copiar — mantendo o padrão visual do "Gerar acesso"/"Reset".
+Quando `tipo = folga` e há `data_alvo` selecionada:
 
-## Segurança
-- Autorização feita 100% no servidor a partir do JWT (nunca do body).
-- Colaboradores comuns não têm acesso à Edge Function (retorna 403 quando `is_company_admin_or_owner` é falso).
-- Rate limit simples in-memory (5 requisições/min por caller) para reduzir abuso.
-- Nenhuma senha é logada; apenas o evento em `audit_logs`.
+- Buscar em paralelo (react-query): folgas existentes no dia, `dp_dia_config` (limite), `dp_datas_bloqueadas`, solicitações pendentes do dia, e o próprio perfil (`folga_fixa_semana`, `unidade_id`).
+- Rodar `calculateDateStatus` de `src/lib/dp/folga-rules.ts` sobre a data escolhida.
+- Se retornar `taken` → bloquear com aviso: **"Data indisponível. Limite de folgas atingido (X/Y)."**
+- Se retornar `blocked` → **"Esta data está bloqueada pelo DP."** (hoje só há aviso amarelo permitindo enviar; passa a impedir para `tipo=folga`).
+- Botão **Enviar** fica desabilitado nesses casos; adicionar a mensagem no bloco de `validation`.
+- Para outros tipos (`atestado`, `ferias`, `adiantamento`, `outro`) mantém o comportamento atual (não valida capacidade).
+
+### 2. Frontend — `src/pages/dp/portal/DpMeuCalendario.tsx`
+
+- No `onSelectDay`, antes de navegar, checar o `DateStatus` do dia via `calculateDateStatus` (dados já carregados na página). Se `taken`/`blocked`/`past` → `toast.error` com o motivo e **não** navegar para a nova solicitação. Se `available`/`fixed`/`mine` → comportamento atual.
+- A ocupação já aparece via `FolgaCalendarShared` (badge X/Y). Sem mudança visual necessária.
+
+### 3. Backend — nova migração
+
+Criar trigger `BEFORE INSERT ON dp_solicitacoes` (`dp_validar_solicitacao_folga`) que, quando `tipo = 'folga'` e `status = 'pendente'`:
+
+- Verifica `dp_datas_bloqueadas` (empresa/unidade, respeitando `liberada_por_solicitacao`).
+- Verifica `dp_bloqueios` individuais do colaborador.
+- Calcula ocupação = folgas confirmadas (não canceladas, não extra, tipos elegíveis) + solicitações **pendentes** do mesmo dia/unidade, e compara com `dp_dia_config.limite_folgas` (unidade específica tem prioridade sobre nulo).
+- Se estourar → `RAISE EXCEPTION` com mensagem `"Data % indisponível. Limite de folgas atingido"`.
+- Solicitações com `tipo != 'folga'` ou `status = 'cancelada'` passam livres.
+
+Assim a validação é servidor-primeiro e nunca fica dessincronizada com o RLS.
+
+### 4. Sem alteração
+
+- `dp_folgas` já tem sua trigger própria — nada a mudar lá.
+- `dp-sorteio-folgas` (Edge Function) já respeita o mesmo limite.
 
 ## Verificação
-- `curl_edge_functions` com JWT de admin válido → 200 e senha efetivamente trocada (testar login em seguida via `signInWithPassword`).
-- `curl_edge_functions` sem JWT → 401.
-- Chamada como usuário comum (não admin) → 403.
-- Chamada para colaborador de outra empresa → 403.
 
-## Fora de escopo
-- Não altera o fluxo `dp-reset-password` (permanece para reset ao padrão CPF).
-- Não altera políticas RLS existentes.
+1. Como colaborador, tentar solicitar folga em dia lotado → toast "Data indisponível…" e insert bloqueado (tanto no botão quanto no banco caso alguém burle o front).
+2. No calendário do colaborador, clicar em dia lotado → toast, sem abrir formulário.
+3. Como admin, `dp_dia_config` continua refletindo ocupação correta (X/Y) — não há mudança na leitura.
+4. Solicitações de `atestado`/`ferias` continuam sendo criadas normalmente em qualquer data.
