@@ -15,6 +15,7 @@ import {
   FileText,
   Landmark,
   Search,
+  Brain,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -55,6 +56,7 @@ const tenantItems = [
   { title: "Módulos", url: "/admin/modulos", icon: Sparkles },
   { title: "Bancos", url: "/admin/bancos", icon: Landmark },
   { title: "Resetar Dados", url: "/admin/resetar-dados", icon: Database },
+  { title: "Categorização IA", url: "/admin/categorizacao-ia", icon: Brain },
 ];
 
 export function AdminSidebar() {
