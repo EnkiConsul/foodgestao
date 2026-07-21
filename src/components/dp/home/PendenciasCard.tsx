@@ -29,14 +29,9 @@ export function PendenciasCard() {
   const counters = useMemo(() => {
     let atrasado = 0, hoje = 0, proximo = 0;
     for (const p of visible) {
-      if ((p.atrasoDias ?? 0) > 0) atrasado++;
-      else if (p.vencimento) {
-        const v = new Date(p.vencimento);
-        const today = new Date();
-        const sameDay = v.toDateString() === today.toDateString();
-        if (sameDay) hoje++;
-        else proximo++;
-      } else proximo++;
+      if (p.atrasoDias > 0) atrasado++;
+      else if (p.atrasoDias === 0) hoje++;
+      else proximo++;
     }
     return { atrasado, hoje, proximo };
   }, [visible]);
@@ -79,10 +74,20 @@ export function PendenciasCard() {
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
                 <p className="text-sm font-medium truncate">{p.titulo}</p>
-                {p.atrasoDias != null && p.atrasoDias > 0 && (
+                {p.atrasoDias > 0 ? (
                   <Badge variant="outline" className="border-destructive/40 bg-destructive/10 text-destructive text-[10px] shrink-0">
                     <Clock className="h-3 w-3 mr-1" />
                     Atrasado {p.atrasoDias}d
+                  </Badge>
+                ) : p.atrasoDias === 0 ? (
+                  <Badge variant="outline" className="border-amber-300 bg-amber-100 text-amber-900 text-[10px] shrink-0">
+                    <Clock className="h-3 w-3 mr-1" />
+                    Vence hoje
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-800 text-[10px] shrink-0">
+                    <Clock className="h-3 w-3 mr-1" />
+                    Vence em {Math.abs(p.atrasoDias)}d
                   </Badge>
                 )}
               </div>
@@ -126,9 +131,17 @@ export function PendenciasCard() {
                     {format(new Date(detail.vencimento), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                   </p>
                 )}
-                {detail.atrasoDias != null && detail.atrasoDias > 0 && (
+                {detail.atrasoDias > 0 ? (
                   <Badge variant="outline" className="border-destructive/40 bg-destructive/10 text-destructive">
                     <Clock className="h-3 w-3 mr-1" /> Atrasado há {detail.atrasoDias} dia(s)
+                  </Badge>
+                ) : detail.atrasoDias === 0 ? (
+                  <Badge variant="outline" className="border-amber-300 bg-amber-100 text-amber-900">
+                    <Clock className="h-3 w-3 mr-1" /> Vence hoje
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-800">
+                    <Clock className="h-3 w-3 mr-1" /> Vence em {Math.abs(detail.atrasoDias)} dia(s)
                   </Badge>
                 )}
               </div>
