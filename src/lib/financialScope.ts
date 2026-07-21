@@ -43,20 +43,21 @@ export function assertFinancialScope(params: {
  * Aplica os filtros de propriedade financeira em um query builder Supabase.
  * Não filtra por user_id em PJ — a RLS garante o isolamento entre empresas
  * e todos os membros autorizados devem ver a mesma base.
+ *
+ * O parâmetro é tipado como `any` internamente para evitar explosão
+ * de generics do PostgrestFilterBuilder, mas devolve o mesmo tipo recebido.
  */
-export function applyFinancialScope<T extends {
-  eq: (col: string, value: unknown) => T;
-  is: (col: string, value: unknown) => T;
-}>(query: T, scope: FinancialScope): T {
+export function applyFinancialScope<T>(query: T, scope: FinancialScope): T {
+  const q = query as any;
   if (scope.context === "pf") {
-    return query
+    return q
       .eq("context", "pf")
       .eq("user_id", scope.userId)
-      .is("company_id", null);
+      .is("company_id", null) as T;
   }
-  return query
+  return q
     .eq("context", "pj")
-    .eq("company_id", scope.companyId);
+    .eq("company_id", scope.companyId) as T;
 }
 
 /** true quando é seguro montar consultas financeiras para o contexto. */
