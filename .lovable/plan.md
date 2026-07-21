@@ -1,38 +1,29 @@
 ## Objetivo
 
-Ajustar o cálculo de `atrasoDias` para pendências de Negociação Coletiva (ACT/CCT) em `src/hooks/useDpPendencias.tsx`, para que a régua use a **data-base da última negociação registrada** (mês/ano) em vez de 31/12 do ano vigente.
-
-## Regra nova
-
-Para cada par unidade × sindicato laboral, considerando a última negociação (`ano`, `mes`):
-
-- **Data-base**: primeiro dia do mês/ano da última negociação.
-- **Vencimento**: último dia do mesmo mês, **um ano depois** da data-base (`new Date(ano+1, mes-1, 0)`).
-- **Início do atraso**: dia seguinte ao vencimento.
-- **atrasoDias** = `differenceInCalendarDays(hoje, inicioAtraso)`.
-  - `> 0` → "Atrasado Xd" (vermelho)
-  - `= 0` → "Vence hoje" (âmbar)
-  - `< 0` → "Vence em Xd" (verde)
-
-Exemplo: última = 05/2025 → vence 31/05/2026 → início atraso 01/06/2026 → hoje 21/07/2026 → **Atrasado 50d** (em vez de "Vence em 163d").
+A pendência "Contracheque não fechado" no widget de Pendências abre `/dp/folha`, página que não existe no projeto original (Pakere) e não deve fazer parte do 360°FOOD. Redirecionar cada pendência para a página de documentos correta e remover `/dp/folha` do projeto.
 
 ## Alterações
 
-Arquivo único: `src/hooks/useDpPendencias.tsx`, bloco de negociações coletivas (~linhas 315-349):
+### 1. `src/hooks/useDpPendencias.tsx`
+- Pendência **Contracheque não fechado** (linha 145): `url: "/dp/folha"` → `url: "/dp/documentos/contracheque"`.
+- Pendência **Adiantamento não fechado** (linha 183): `url: "/dp/folha"` → `url: "/dp/documentos/adiantamento"`.
 
-1. Substituir `const vencimento = new Date(anoVigente, 11, 31)` por cálculo baseado em `mesUltimo`/`anoUltimo`:
-   ```ts
-   const vencimento = new Date(anoUltimo + 1, mesUltimo - 1, 0); // último dia do mês, +1 ano
-   const inicioAtraso = addDays(vencimento, 1);
-   const dias = differenceInCalendarDays(today, inicioAtraso);
-   ```
-2. Manter a condição de pendência: gerar somente quando `desatualizada` (última < ano/mês vigente), como já é hoje.
-3. Ajustar o `subtitulo` para incluir o vencimento calculado, ex.: `"Camaçari — última 05/2025 · venceu em 05/2026"`.
-4. Para o caso "nenhuma negociação cadastrada" (linhas 316-327), manter `atrasoDias = 0` (vence hoje) — sem data-base não há como calcular atraso.
+### 2. `src/App.tsx` — remover rotas e imports órfãos
+- Remover imports lazy (linhas 72–74): `DpFolhaHub`, `DpFolhaPeriodo`, `DpFolhaAprovacoes`.
+- Remover rotas (linhas 363–366): `folha`, `folha/aprovacoes`, `folha/periodos/:id`.
 
-Nenhuma mudança em componentes, RLS, banco ou outras pendências.
+### 3. Excluir arquivos das páginas removidas
+- `src/pages/dp/DpFolhaHub.tsx`
+- `src/pages/dp/DpFolhaPeriodo.tsx`
+- `src/pages/dp/DpFolhaAprovacoes.tsx`
 
-## Verificação
+### 4. `src/components/dp/favoritablePages.ts`
+- Remover entradas que referenciam `/dp/folha*` para não deixar favoritos apontando para rota inexistente.
 
-- Recarregar `/dp` e conferir que as pendências de SECHSEG/Pakerê Garavelo e Pakerê T-63 passam a exibir "Atrasado Xd" em vermelho.
-- Ordenação (`b.atrasoDias - a.atrasoDias`) continua correta: mais atrasado primeiro.
+### 5. Menu / sidebar do DP
+- Verificar `DpSidebar` (e demais menus do módulo DP) e remover qualquer item que aponte para `/dp/folha`, se existir.
+
+## Fora de escopo
+
+- Não altero a lógica de detecção das pendências (regras de vencimento, leitura de `dp_folha_periodos`) — só o destino do botão "Resolver" e a remoção da página órfã.
+- A tabela `dp_folha_periodos` continua sendo usada para saber se contracheque/adiantamento foi fechado.
