@@ -5,6 +5,7 @@ import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { applyFinancialScope, assertFinancialScope, isFinancialScopeReady } from "@/lib/financialScope";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -85,18 +86,19 @@ export default function FluxoCaixa() {
   // Fetch all transactions (realized + projected via due_date)
   const { data: transactions = [] } = useQuery({
     queryKey: ["fluxo-caixa-transactions", user?.id, contextType, selectedCompanyId, periodPreset, customRange.from.toISOString(), customRange.to.toISOString()],
-    enabled: !!user,
+    enabled: !!user && isFinancialScopeReady(contextType, user?.id, selectedCompanyId),
     queryFn: async () => {
+      const scope = assertFinancialScope({ context: contextType, userId: user!.id, companyId: selectedCompanyId });
       const startDate = format(activeRange.from, "yyyy-MM-dd");
       const endDate = format(activeRange.to, "yyyy-MM-dd");
-      let q = supabase
-        .from("transactions")
-        .select("amount, amount_paid, transaction_type, transaction_date, status, due_date, bill_status")
-        .eq("user_id", user!.id)
-        .eq("context", contextType)
+      const q = applyFinancialScope(
+        supabase
+          .from("transactions")
+          .select("amount, amount_paid, transaction_type, transaction_date, status, due_date, bill_status"),
+        scope,
+      )
         .neq("status", "cancelado")
         .or(`and(transaction_date.gte.${startDate},transaction_date.lte.${endDate}),and(due_date.gte.${startDate},due_date.lte.${endDate})`);
-      if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
       const { data } = await q;
       return data ?? [];
     },

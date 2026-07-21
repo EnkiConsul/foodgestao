@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -22,6 +23,37 @@ const CompanyContext = createContext<CompanyContextValue | undefined>(undefined)
 
 const STORAGE_KEY = "app-company-context";
 
+// Prefixos de queryKey cujo cache deve ser invalidado ao trocar de empresa.
+// Cobrimos telas financeiras + hooks de lookup + DP com escopo por empresa.
+const FINANCIAL_KEY_PREFIXES = [
+  "dashboard-",
+  "fluxo-caixa-",
+  "relatorios-",
+  "budget",
+  "budgets",
+  "categories-page",
+  "category-companies",
+  "contacts-page",
+  "contact-companies-page",
+  "payment-methods",
+  "payment-method-companies",
+  "chart-accounts",
+  "form-",
+  "credit-cards",
+  "credit-card-",
+  "upcoming-card-invoices",
+  "cash-flow-projection",
+  "form-transactions",
+  "dp-",
+];
+
+function keyMatchesFinancial(key: unknown): boolean {
+  if (!Array.isArray(key)) return false;
+  const first = key[0];
+  if (typeof first !== "string") return false;
+  return FINANCIAL_KEY_PREFIXES.some((p) => first === p || first.startsWith(p));
+}
+
 function loadFromStorage(): { contextType: ContextType; selectedCompanyId: string | null } {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -35,14 +67,23 @@ function loadFromStorage(): { contextType: ContextType; selectedCompanyId: strin
   return { contextType: "pf", selectedCompanyId: null };
 }
 
+function persist(contextType: ContextType, selectedCompanyId: string | null) {
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({ contextType, selectedCompanyId: contextType === "pf" ? null : selectedCompanyId }),
+  );
+}
+
 export function CompanyContextProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
 
   const stored = loadFromStorage();
   const [contextType, setContextType] = useState<ContextType>(stored.contextType);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(stored.selectedCompanyId);
+  const lastActiveScopeRef = useRef<string>(`${stored.contextType}|${stored.selectedCompanyId ?? ""}`);
 
   useEffect(() => {
     if (!user) {
@@ -70,16 +111,45 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
           const c = row.companies;
           if (c?.id) byId.set(c.id, { id: c.id, name: c.name, trade_name: c.trade_name });
         });
-        setCompanies(Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name)));
+        const list = Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name));
+        setCompanies(list);
+
+        // Validação do selectedCompanyId salvo: se o usuário perdeu acesso à
+        // empresa, limpa e seleciona a primeira acessível. Se estiver em PJ
+        // sem empresa disponível, força fallback para PF.
+        setSelectedCompanyId((prev) => {
+          if (contextType !== "pj") return prev;
+          if (prev && list.some((c) => c.id === prev)) return prev;
+          const fallback = list[0]?.id ?? null;
+          if (!fallback) {
+            setContextType("pf");
+            persist("pf", null);
+            return null;
+          }
+          persist("pj", fallback);
+          return fallback;
+        });
+
         setLoading(false);
       });
     // Depende apenas do user.id para não refazer fetch em refresh de token
   }, [user?.id]);
 
+  // Ao mudar de escopo (contextType + empresa), invalida caches financeiros
+  // para impedir vazamento de dados de uma empresa em outra.
+  useEffect(() => {
+    const nextScope = `${contextType}|${selectedCompanyId ?? ""}`;
+    if (lastActiveScopeRef.current !== nextScope) {
+      lastActiveScopeRef.current = nextScope;
+      queryClient.removeQueries({ predicate: (q) => keyMatchesFinancial(q.queryKey) });
+    }
+  }, [contextType, selectedCompanyId, queryClient]);
+
   const setContext = useCallback((type: ContextType, companyId: string | null) => {
     setContextType(type);
-    setSelectedCompanyId(type === "pf" ? null : companyId);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ contextType: type, selectedCompanyId: type === "pf" ? null : companyId }));
+    const nextCompany = type === "pf" ? null : companyId;
+    setSelectedCompanyId(nextCompany);
+    persist(type, nextCompany);
   }, []);
 
   const value = useMemo(
@@ -99,3 +169,4 @@ export function useCompanyContext() {
   if (!context) throw new Error("useCompanyContext must be used within CompanyContextProvider");
   return context;
 }
+

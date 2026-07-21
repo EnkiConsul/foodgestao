@@ -4,6 +4,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { applyFinancialScope, assertFinancialScope, isFinancialScopeReady } from "@/lib/financialScope";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -149,16 +150,17 @@ export default function Relatorios() {
 
   const { data: fluxoTransactions = [] } = useQuery({
     queryKey: ["relatorios-fluxo", user?.id, startDate, endDate, contextType, selectedCompanyId],
-    enabled: !!user,
+    enabled: !!user && isFinancialScopeReady(contextType, user?.id, selectedCompanyId),
     queryFn: async () => {
-      let q = supabase
-        .from("transactions")
-        .select("amount, amount_paid, transaction_type, transaction_date, category_id, account_id, status, due_date, payment_method_id, contact_id")
-        .eq("user_id", user!.id)
-        .eq("context", contextType)
+      const scope = assertFinancialScope({ context: contextType, userId: user!.id, companyId: selectedCompanyId });
+      const q = applyFinancialScope(
+        supabase
+          .from("transactions")
+          .select("amount, amount_paid, transaction_type, transaction_date, category_id, account_id, status, due_date, payment_method_id, contact_id"),
+        scope,
+      )
         .gte("transaction_date", startDate)
         .lte("transaction_date", endDate);
-      if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
       const { data } = await q;
       return (data ?? []) as FluxoTransaction[];
     },

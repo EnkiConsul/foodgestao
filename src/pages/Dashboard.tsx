@@ -7,6 +7,7 @@ import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { applyFinancialScope, assertFinancialScope, isFinancialScopeReady } from "@/lib/financialScope";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -79,19 +80,20 @@ export default function Dashboard() {
 
   const { data: transactions = [] } = useQuery({
     queryKey: ["dashboard-transactions", user?.id, contextType, selectedCompanyId, periodPreset, customRange.from.toISOString(), customRange.to.toISOString(), paymentStatus],
-    enabled: !!user,
+    enabled: !!user && isFinancialScopeReady(contextType, user?.id, selectedCompanyId),
     queryFn: async () => {
+      const scope = assertFinancialScope({ context: contextType, userId: user!.id, companyId: selectedCompanyId });
       const startDate = activeRange.from.toISOString().split("T")[0];
       const endDate = activeRange.to.toISOString().split("T")[0];
-      let q = supabase
-        .from("transactions")
-        .select("amount, amount_paid, transaction_type, transaction_date, category_id, status, due_date")
-        .eq("user_id", user!.id)
-        .eq("context", contextType)
+      let q = applyFinancialScope(
+        supabase
+          .from("transactions")
+          .select("amount, amount_paid, transaction_type, transaction_date, category_id, status, due_date"),
+        scope,
+      )
         .gte("transaction_date", startDate)
         .lte("transaction_date", endDate)
         .neq("status", "cancelado");
-      if (contextType === "pj" && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
       if (paymentStatus !== "todos") q = q.eq("status", paymentStatus);
       const { data } = await q;
       return data ?? [];
