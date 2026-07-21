@@ -677,10 +677,10 @@ export default function DpMeuCalendario() {
 
       {/* Dialog exceção */}
       <Dialog open={exceptionOpen} onOpenChange={(o) => !o && setExceptionOpen(false)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-[2rem] border-none shadow-2xl p-8">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-amber-500" />
+            <DialogTitle className="text-2xl font-black flex items-center gap-3">
+              <AlertCircle className="size-6 text-amber-500" />
               Solicitar exceção
             </DialogTitle>
             <DialogDescription>
@@ -689,9 +689,13 @@ export default function DpMeuCalendario() {
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label>Justificativa</Label>
+              <Label className="flex items-center gap-2">
+                Justificativa
+                <span className="text-muted-foreground text-xs font-normal">(opcional)</span>
+              </Label>
               <Textarea
                 rows={4}
+                className="rounded-xl"
                 placeholder="Descreva o motivo (compromisso pessoal, urgência, etc.)"
                 value={exceptionMotivo}
                 onChange={(e) => setExceptionMotivo(e.target.value)}
