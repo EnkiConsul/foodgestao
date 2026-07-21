@@ -200,6 +200,17 @@ async function runDiagnose(source: SupabaseClient, dest: SupabaseClient) {
     blocked_tables: blocked,
   };
 }
+async function runImport(
+  source: SupabaseClient,
+  dest: SupabaseClient,
+  opts: { dryRun: boolean; copyStorage: boolean },
+) {
+  return { status: "pending_sample", note: "Rode primeiro o modo 'sample' para inspecionar o schema." };
+}
+async function runRollback(_dest: SupabaseClient, _runId: string) {
+  return { status: "pending" };
+}
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
