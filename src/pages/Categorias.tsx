@@ -151,11 +151,10 @@ export default function Categorias() {
     enabled: !!user && (contextType === "pf" || !!selectedCompanyId),
     queryFn: async () => {
       if (contextType === "pj") {
-        // Em PJ, mostrar apenas categorias vinculadas à empresa ativa (via junção)
+        // Em PJ, mostrar todas as categorias vinculadas à empresa ativa (visíveis a qualquer membro).
         const { data } = await supabase
           .from("categories")
           .select("*, category_companies!inner(company_id)")
-          .eq("user_id", user!.id)
           .or("context.is.null,context.eq.pj")
           .eq("category_companies.company_id", selectedCompanyId!)
           .order("parent_id", { nullsFirst: true })
