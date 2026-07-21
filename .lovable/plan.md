@@ -1,129 +1,58 @@
-# Fase 1 — Multiempresa, Isolamento e RLS
+# Fix: Categorias somem na ClicSorte — recursão infinita nas policies RLS
 
-## 1. Diagnóstico (verificado no banco)
+## Diagnóstico (confirmado)
 
-### Estado atual das RLS (findings principais)
-| Tabela | Policy atual | Diagnóstico |
-|---|---|---|
-| `transactions` | separada em SELECT/INSERT/UPDATE/DELETE via `is_company_member` + `member_can_edit` | **OK** — RLS já isola por empresa |
-| `accounts` | idem `transactions` | **OK** |
-| `credit_cards` | `is_company_member` / `member_can_edit` | **OK** |
-| `bank_connections` | `user_id = auth.uid()` **OR** `is_company_member` | OK (dupla via) |
-| `budgets` | `USING (auth.uid() = user_id)` (ALL, role `public`) | **QUEBRADO** — sem `company_id`, membros não veem entre si |
-| `categories` | `USING (auth.uid() = user_id)` (ALL, `public`) | **QUEBRADO** para PJ; hoje "salva" pela RPC `get_accessible_categories` + tabela `category_companies` |
-| `contacts` | `USING (auth.uid() = user_id)` (ALL, `public`) | **QUEBRADO** para PJ |
-| `payment_methods` | `USING (auth.uid() = user_id)` | **QUEBRADO** para PJ |
-| `cost_centers` | `USING (auth.uid() = user_id)` | **QUEBRADO** para PJ |
-| `transaction_attachments` | `USING (auth.uid() = user_id)` + SELECT company via EXISTS | Escrita não colaborativa entre membros |
+A rede mostra `{"code":"42P17","message":"infinite recursion detected in policy for relation \"categories\""}` em `/rest/v1/budgets?select=...category:categories(name)`. Consultei `pg_policies` e confirmei:
 
-Funções em `private` já existem: `is_company_member`, `is_company_admin_or_owner`, `member_can_edit` (retorna bool para módulo). Faltam: `can_view_module`, `can_edit_module` explícitas por módulo já cobertas por `member_can_edit`.
+- **`categories.SELECT`** faz `EXISTS (SELECT 1 FROM category_companies …)`.
+- **`category_companies.SELECT`** faz `EXISTS (SELECT 1 FROM categories …)`.
 
-### Estado atual do frontend
-Filtro por `user_id` está aplicado em consultas PJ em (verificado): `Dashboard.tsx:89`, `Lancamentos.tsx:332`, `FluxoCaixa.tsx:95`, `Relatorios.tsx:157`, `Orcamento.tsx:47,65`, `Categorias.tsx` (4x), `Contatos.tsx:50`, `FormasPagamento.tsx:32`, `ContasContabeis.tsx:66`, `ContasBancarias`, `useTransactionFormLookups.ts:55`, `ImportStatementDialog.tsx` (2x), `Relatorios.tsx:123`. Todos precisam da mesma normalização: PF filtra `user_id + company_id IS NULL`; PJ filtra apenas `company_id`.
+As duas tabelas se referenciam mutuamente sob RLS → o Postgres detecta recursão e aborta com 42P17. Efeito: qualquer SELECT em `categories` (Categorias, joins do Orçamento, join `category:categories(name)` no widget de metas) falha para todos os usuários — não é específico da ClicSorte, mas ela é a mais afetada porque tem categorias em tabela junção.
 
-### Estado dos dados
-- `transactions`: 251 registros, **0 inconsistências** (PJ sem company_id: 0; PF com company_id: 0)
-- `budgets`: **0 registros** — migração pode adicionar `company_id` sem risco de backfill
-- Constraint de coerência (context ↔ company_id) ausente em todas as tabelas
+O mesmo padrão foi introduzido em **`contacts` ⇄ `contact_companies`** no Bloco G. Ainda não estourou porque nenhum lugar faz join com essa forma, mas está armado para explodir do mesmo jeito assim que a UI de Contatos usar join implícito.
 
-### Causa raiz
-1. Frontend fixa `.eq("user_id", user.id)` mesmo em PJ, então membros só enxergam o que criaram, ainda que a RLS permita ver o resto.
-2. `budgets`, `categories`, `contacts`, `payment_methods`, `cost_centers` têm policy única `auth.uid() = user_id` → membros ficam bloqueados pela RLS.
-3. `budgets` não tem `company_id`.
+## Causa raiz
 
-## 2. Escopo (o que muda / o que NÃO muda)
+O "OR (EXISTS na outra tabela)" foi adicionado para que **o dono da categoria** (quem criou) veja também o vínculo em `category_companies`, e vice-versa. Mas essa checagem cruzada dispara RLS na outra tabela, gerando o ciclo.
 
-Escopo estritamente restrito às Etapas 1–19 do briefing. **Não** vamos: mexer em módulo DP, IA, cobrança, landing, planos, Pluggy (além de garantir `company_id` já persistido), remover `user_id`, refatorar UI.
+## Correção
 
-## 3. Plano por blocos (migrations + código, cada bloco = uma entrega revisável)
+Quebrar o ciclo com **helpers SECURITY DEFINER em `private`** que consultam a tabela alvo bypassando RLS. As policies passam a chamar a função em vez de fazer EXISTS na outra tabela.
 
-### Bloco A — Helper de escopo financeiro (frontend, zero risco)
-- Criar `src/lib/financialScope.ts` com `FinancialScope`, `assertFinancialScope`, `applyFinancialScope(query, scope)`.
-- Uso obrigatório: PF → `user_id + context='pf' + company_id IS NULL`; PJ → `company_id + context='pj'` (sem `user_id`).
-- Adicionar teste unitário do helper em `src/lib/financialScope.test.ts`.
+### Novas funções
 
-### Bloco B — Frontend: unificar consultas financeiras
-Substituir `.eq("user_id", …)` por `applyFinancialScope` nos seguintes arquivos (apenas leitura/agregação; mutações mantêm `user_id` como autor):
-- `src/pages/Dashboard.tsx`
-- `src/pages/Lancamentos.tsx` (fetch principal, listas auxiliares, RPCs)
-- `src/pages/FluxoCaixa.tsx`
-- `src/pages/Relatorios.tsx` (transações + lookups de contatos)
-- `src/pages/Orcamento.tsx` (budgets + spending)
-- `src/pages/Categorias.tsx`, `Contatos.tsx`, `FormasPagamento.tsx`, `ContasContabeis.tsx`, `ContasBancarias.tsx`, `CartoesCredito.tsx`
-- `src/hooks/useTransactionFormLookups.ts`
-- `src/components/transactions/ImportStatementDialog.tsx`
-- `src/components/budgets/BudgetFormDialog.tsx`
-- `src/components/transactions/TransactionFormDialog.tsx` (lookups)
+- `private.user_owns_category(_uid uuid, _category_id uuid) returns boolean`  
+  `SELECT EXISTS (SELECT 1 FROM public.categories WHERE id=_category_id AND user_id=_uid)`
+- `private.user_owns_contact(_uid uuid, _contact_id uuid) returns boolean` — análogo.
+- `private.category_visible_to_member(_uid uuid, _category_id uuid) returns boolean`  
+  `SELECT EXISTS (SELECT 1 FROM public.category_companies cc WHERE cc.category_id=_category_id AND private.is_company_member(_uid, cc.company_id))`
+- `private.category_editable_by_member(_uid uuid, _category_id uuid) returns boolean` — usa `member_can_edit(..., 'categorias')`.
+- `private.contact_visible_to_member` / `private.contact_editable_by_member` — análogos para contatos.
 
-Cache keys do React Query recebem `contextType + selectedCompanyId` (já parcialmente feito).
+Todas `SECURITY DEFINER`, `STABLE`, `set search_path = public, private`, `REVOKE EXECUTE FROM public` + `GRANT EXECUTE TO authenticated`.
 
-### Bloco C — CompanyContext hardening
-- Em `useCompanyContext.tsx`: validar `selectedCompanyId` contra lista carregada; se inválido, limpar `localStorage` e selecionar a primeira acessível.
-- No `setContext`, invalidar caches financeiros: `queryClient.removeQueries({ predicate: q => financialKeys.includes(q.queryKey[0]) })`.
-- Bloquear render de páginas PJ enquanto `contextType==='pj' && !selectedCompanyId`.
+### Policies reescritas
 
-### Bloco D — Permissões na UI
-- Envolver botões de criar/editar/excluir em Dashboard/Lançamentos/Orçamento/Contas/Categorias/Contatos/Cartões com `useCompanyPermissions().can(module, 'edit')`.
-- Rotas com `none` → redirect (usar wrapper existente ou criar `RequireModuleAccess`).
+- `categories.SELECT` → `auth.uid() = user_id OR private.category_visible_to_member(auth.uid(), id)`
+- `categories.UPDATE/DELETE` → `auth.uid() = user_id OR private.category_editable_by_member(auth.uid(), id)`
+- `category_companies.SELECT` → `private.is_company_member(auth.uid(), company_id) OR private.user_owns_category(auth.uid(), category_id)`
+- `category_companies.INSERT/DELETE` → `private.member_can_edit(auth.uid(), company_id, 'categorias') OR private.user_owns_category(auth.uid(), category_id)`
+- Contacts: mesmo padrão trocando `categoria`→`contato`.
 
-### Bloco E — Migration: `budgets.company_id` + RLS
-```sql
--- 1. Coluna + FK + índices
-ALTER TABLE public.budgets
-  ADD COLUMN company_id uuid REFERENCES public.companies(id) ON DELETE CASCADE;
-CREATE INDEX idx_budgets_company_id ON public.budgets(company_id);
-CREATE INDEX idx_budgets_company_context ON public.budgets(company_id, context);
+Isso mantém 100% da semântica atual (dono OU membro) e elimina o ciclo, porque a função definer não passa mais por RLS.
 
--- 2. Constraint de coerência (0 linhas hoje, seguro sem NOT VALID)
-ALTER TABLE public.budgets ADD CONSTRAINT budgets_context_company_check
-  CHECK ((context='pf' AND company_id IS NULL) OR (context='pj' AND company_id IS NOT NULL));
+## Escopo
 
--- 3. Substituir policy única por SELECT/INSERT/UPDATE/DELETE espelhando transactions
-DROP POLICY "Users can manage own budgets" ON public.budgets;
--- SELECT: PF próprio OR PJ member OR super_admin
--- INSERT/UPDATE/DELETE: PF próprio OR PJ member_can_edit(company_id,'budgets')
-```
-Rollback: `DROP CONSTRAINT`, `DROP COLUMN`, recriar policy antiga.
+- **Migration única** com as 6 funções + DROP/CREATE POLICY nas 4 tabelas.
+- **Sem mudança de frontend**: assim que o SELECT em `categories` voltar, a ClicSorte volta a ver suas categorias e o widget de Orçamento para de dar 500.
 
-### Bloco F — Migration: RLS colaborativa em `categories`, `contacts`, `payment_methods`, `cost_centers`, `transaction_attachments`
-Padrão idêntico ao `accounts`:
-- SELECT: PF próprio (`user_id=auth.uid() AND company_id IS NULL`) OR PJ via `is_company_member` (para categorias/contatos/payment_methods usar `category_companies`/`contact_companies`/`payment_method_companies` como junção) OR super_admin
-- INSERT/UPDATE/DELETE via `member_can_edit(company_id, <module>)`.
-- `transaction_attachments`: autorização derivada da transação (SELECT e escrita).
+## Verificação pós-migration
 
-Rollback documentado: recriar policy antiga `USING (auth.uid()=user_id)`.
+1. `curl` autenticado no endpoint que quebrou (`/rest/v1/budgets?select=...category:categories(name)`) → 200 esperado.
+2. Rodar `src/test/rls/categories.rls.test.ts` e `contacts.rls.test.ts` — devem continuar passando (bloqueio anônimo intacto).
+3. Ler `categories` em duas contas distintas da ClicSorte para confirmar visibilidade compartilhada.
 
-### Bloco G — Trigger anti-cross-tenant
-Trigger `BEFORE INSERT OR UPDATE` em `transactions` validando que `account_id`, `destination_account_id`, `category_id`, `contact_id`, `payment_method_id`, `credit_card_id`, `cost_center_id` compartilham `company_id` (ou pertencem ao usuário em PF). Bloquear troca de `company_id`/`context` no UPDATE (já parcialmente coberto pela policy — reforço defensivo).
+## Fora de escopo
 
-### Bloco H — Security lint
-Adicionar checks em `scripts/security-lint.mjs`:
-- policy PJ que use somente `user_id = auth.uid()`
-- tabela com `context` sem CHECK de coerência
-- policy `USING (true)` ou `USING (auth.uid() = user_id)` em tabela com `company_id`
-
-### Bloco I — Testes
-- Unit: `financialScope.test.ts` (matriz PF/PJ, ausência de companyId em PJ deve lançar).
-- Regressão (Vitest + supabase-js contra ambiente TEST_*): criar `src/test/tenancy/` com 4 usuários (A/B/C owner/member/viewer da Empresa 1, D owner Empresa 2) cobrindo os cenários da Etapa 13. Rodam somente quando `TEST_SUPABASE_URL` está setado; caso contrário `describe.skip`.
-
-### Bloco J — CI
-Adicionar `npm run typecheck:strict && npm run lint && npm run test && npm run build && npm run security-lint -- --ci` no workflow atual (já existe base). Não incluir testes de tenancy sem as vars.
-
-## 4. Ordem de entrega e rollback
-1. Bloco A (helper) — sem impacto em produção.
-2. Bloco B (frontend consultas) — atrás de flag mental: se algo quebrar, `git revert`.
-3. Bloco C (contexto) + D (UI perms).
-4. Migration E (budgets) — segura (0 registros).
-5. Migration F (RLS colaborativa) — a mais sensível; validar antes com `EXPLAIN` que a RPC `get_accessible_categories` continua funcional.
-6. Migration G (trigger cross-tenant).
-7. Bloco H + I + J.
-
-Cada migration inclui bloco `-- ROLLBACK` comentado.
-
-## 5. Riscos de compatibilidade
-- **Categorias/Contatos/Payment methods**: hoje muitos são criados sem `company_id` mesmo em PJ (usa junção `*_companies`). A nova RLS precisa contemplar ambos os modelos: dono (`user_id`) OU vínculo por junção. Se ignorarmos, membros que criam categoria dentro do PJ podem perder a categoria ao trocar de contexto. **Ação:** durante Bloco F, validar via `supabase--read_query` como a app está criando esses registros hoje antes de fechar a policy.
-- **RPCs de relatórios** (`chart_accounts_report`, `dre_generate`, etc.) — auditar internamente que validam membership; se não, adicionar `if not private.is_company_member(auth.uid(), _company_id) then raise`.
-- **Realtime**: canais atuais já filtram por `company_id`; nenhum ajuste necessário além dos caches.
-
-## 6. Aprovação
-Solicito aprovação para executar do **Bloco A ao Bloco D** (frontend + helper + UI perms, sem migrations). Migrations (E/F/G) e testes (I) entrariam em turnos separados para revisão granular.
+- Rever o filtro `user_id=eq.<uid>` que o widget de "próximas contas" ainda envia em PJ (aparece no request de `transactions`) — é ruído dos Blocos B, resolvo separado se pedir.
+- Warnings de linter preexistentes.
