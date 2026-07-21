@@ -28,13 +28,22 @@ const CNPJ_MASK_LONG_RE = /(\*{2,}\d+|\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}|\b\d{6,}\
 // Pontuação e espaços duplicados.
 const PUNCT_SPACES_RE = /[^A-Z0-9 ]+|\s{2,}/g;
 
+// Colapsa siglas separadas por pontos ("S.A." -> "SA", "S.A.S." -> "SAS").
+const ACRONYM_DOT_RE = /(?<=[A-Z])\.(?=[A-Z]\b|[A-Z]\.)/g;
+
 export function normalizeDescription(raw: string | null | undefined): string | null {
   if (raw == null) return null;
   let s = unaccent(String(raw)).toUpperCase();
+  // 1) Colapsa siglas antes de qualquer remoção baseada em pontuação.
+  s = s.replace(ACRONYM_DOT_RE, "");
+  // 2) Remove ruído de meio de pagamento.
   s = s.replace(PAYMENT_NOISE_RE, " ");
-  s = s.replace(DATE_ID_RE, " ");
+  // 3) CNPJ / máscara de cartão / números longos ANTES de datas
+  //    (evita que "556/0001" case como data dd/mm).
   s = s.replace(CNPJ_MASK_LONG_RE, " ");
-  // roda 2x para colapsar espaços gerados pelas etapas anteriores
+  // 4) Datas e identificadores curtos.
+  s = s.replace(DATE_ID_RE, " ");
+  // 5) Pontuação e espaços redundantes.
   s = s.replace(PUNCT_SPACES_RE, " ");
   s = s.replace(/\s{2,}/g, " ").trim();
   return s.length === 0 ? null : s;
