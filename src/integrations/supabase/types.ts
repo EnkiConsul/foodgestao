@@ -1011,6 +1011,94 @@ export type Database = {
           },
         ]
       }
+      categorization_rules: {
+        Row: {
+          category_id: string
+          company_id: string | null
+          confidence: number
+          context: string | null
+          created_at: string
+          hit_count: number
+          id: string
+          is_active: boolean
+          last_hit_at: string | null
+          match_type: string
+          notes: string | null
+          pattern: string
+          payment_method_id: string | null
+          priority: number
+          scope: string
+          source: string
+          transaction_type: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          category_id: string
+          company_id?: string | null
+          confidence?: number
+          context?: string | null
+          created_at?: string
+          hit_count?: number
+          id?: string
+          is_active?: boolean
+          last_hit_at?: string | null
+          match_type?: string
+          notes?: string | null
+          pattern: string
+          payment_method_id?: string | null
+          priority?: number
+          scope: string
+          source?: string
+          transaction_type?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          category_id?: string
+          company_id?: string | null
+          confidence?: number
+          context?: string | null
+          created_at?: string
+          hit_count?: number
+          id?: string
+          is_active?: boolean
+          last_hit_at?: string | null
+          match_type?: string
+          notes?: string | null
+          pattern?: string
+          payment_method_id?: string | null
+          priority?: number
+          scope?: string
+          source?: string
+          transaction_type?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categorization_rules_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categorization_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categorization_rules_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       category_companies: {
         Row: {
           category_id: string
