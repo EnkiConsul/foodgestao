@@ -380,8 +380,8 @@ function HealthPanel({
       let withCat = base;
       let total = supabase.from("transactions").select("id", { count: "exact", head: true });
       if (contextType) {
-        withCat = withCat.eq("context", contextType.toUpperCase());
-        total = total.eq("context", contextType.toUpperCase());
+        withCat = withCat.eq("context", contextType.toUpperCase() as any);
+        total = total.eq("context", contextType.toUpperCase() as any);
       }
       if (companyId) {
         withCat = withCat.eq("company_id", companyId);
