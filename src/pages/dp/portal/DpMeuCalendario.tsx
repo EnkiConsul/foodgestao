@@ -300,19 +300,57 @@ export default function DpMeuCalendario() {
   const marcarFolga = useMutation({
     mutationFn: async (iso: string) => {
       if (!meRef.data) throw new Error("Colaborador não encontrado");
-      // regra 1 folga fim de semana por mês (client-side)
       const d = parseYMD(iso);
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+
+      // 1) data passada
+      if (d < hoje) throw new Error("Não é possível marcar folga em data passada.");
+
+      // 2) fim de semana
+      const wd = d.getDay();
+      if (wd !== 0 && wd !== 6) {
+        throw new Error('Apenas fins de semana podem ser marcados diretamente. Use "Solicitar exceção".');
+      }
+
+      // 3) folga fixa própria
+      const fixa = normalizeWeekday(meRef.data.folga_fixa_semana);
+      if (fixa != null && fixa === wd) {
+        throw new Error('Este é seu dia de folga fixa. Use "Solicitar exceção" ou uma troca.');
+      }
+
+      // 4) já tem folga própria nesse dia
+      const jaNoDia = folgas.some(
+        (f) => f.colaborador_id === meRef.data!.id && f.data === iso && f.status !== "cancelada",
+      );
+      if (jaNoDia) throw new Error("Você já tem folga marcada neste dia.");
+
+      // 5) limite mensal (1 folga de fim de semana)
       const mk = monthKey(d);
       const jaTem = folgas.some(
         (f) =>
           f.colaborador_id === meRef.data!.id &&
           monthKey(parseYMD(f.data)) === mk &&
-          f.tipo === "normal" &&
           f.extra !== true &&
           f.status !== "cancelada" &&
-          (parseYMD(f.data).getDay() === 0 || parseYMD(f.data).getDay() === 6),
+          [0, 6].includes(parseYMD(f.data).getDay()),
       );
       if (jaTem) throw new Error("Você já possui uma folga de fim de semana neste mês.");
+
+      // 6) bloqueio manual
+      const bloq = manualBlocked.get(iso);
+      if (bloq && !bloq.liberada) throw new Error("Esta data está bloqueada administrativamente.");
+
+      // 7) lotação (limite efetivo x ocupantes da unidade)
+      const limite = dayLimits.get(iso) ?? 1;
+      const ocupados = folgas.filter(
+        (f: any) =>
+          f.data === iso &&
+          f.extra !== true &&
+          f.status !== "cancelada" &&
+          (!myUnidade || f.dp_colaboradores?.unidade_id === myUnidade),
+      ).length;
+      if (ocupados >= limite) throw new Error("Data indisponível. Limite de folgas atingido.");
 
       const { error } = await supabase.from("dp_folgas").insert({
         company_id: meRef.data.company_id,
