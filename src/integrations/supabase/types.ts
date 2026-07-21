@@ -3163,150 +3163,147 @@ export type Database = {
           },
         ]
       }
-      dp_import_id_map: {
+      dp_legacy_import_errors: {
+        Row: {
+          created_at: string
+          error_code: string | null
+          error_message: string
+          id: string
+          import_run_id: string
+          source_id: string | null
+          source_payload: Json | null
+          source_table: string
+        }
+        Insert: {
+          created_at?: string
+          error_code?: string | null
+          error_message: string
+          id?: string
+          import_run_id: string
+          source_id?: string | null
+          source_payload?: Json | null
+          source_table: string
+        }
+        Update: {
+          created_at?: string
+          error_code?: string | null
+          error_message?: string
+          id?: string
+          import_run_id?: string
+          source_id?: string | null
+          source_payload?: Json | null
+          source_table?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_legacy_import_errors_import_run_id_fkey"
+            columns: ["import_run_id"]
+            isOneToOne: false
+            referencedRelation: "dp_legacy_import_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_legacy_import_id_map: {
         Row: {
           company_id: string
           created_at: string
-          dest_id: string
-          entity: string
           id: string
-          run_id: string
+          import_run_id: string
           source_id: string
+          source_table: string
+          target_id: string
+          target_table: string
         }
         Insert: {
           company_id: string
           created_at?: string
-          dest_id: string
-          entity: string
           id?: string
-          run_id: string
+          import_run_id: string
           source_id: string
+          source_table: string
+          target_id: string
+          target_table: string
         }
         Update: {
           company_id?: string
           created_at?: string
-          dest_id?: string
-          entity?: string
           id?: string
-          run_id?: string
+          import_run_id?: string
           source_id?: string
+          source_table?: string
+          target_id?: string
+          target_table?: string
         }
         Relationships: [
           {
-            foreignKeyName: "dp_import_id_map_company_id_fkey"
+            foreignKeyName: "dp_legacy_import_id_map_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "dp_import_id_map_run_id_fkey"
-            columns: ["run_id"]
+            foreignKeyName: "dp_legacy_import_id_map_import_run_id_fkey"
+            columns: ["import_run_id"]
             isOneToOne: false
-            referencedRelation: "dp_import_runs"
+            referencedRelation: "dp_legacy_import_runs"
             referencedColumns: ["id"]
           },
         ]
       }
-      dp_import_logs: {
+      dp_legacy_import_runs: {
         Row: {
-          context: Json
-          created_at: string
-          entity: string
-          id: string
-          level: string
-          message: string
-          run_id: string
-        }
-        Insert: {
-          context?: Json
-          created_at?: string
-          entity: string
-          id?: string
-          level: string
-          message: string
-          run_id: string
-        }
-        Update: {
-          context?: Json
-          created_at?: string
-          entity?: string
-          id?: string
-          level?: string
-          message?: string
-          run_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dp_import_logs_run_id_fkey"
-            columns: ["run_id"]
-            isOneToOne: false
-            referencedRelation: "dp_import_runs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      dp_import_runs: {
-        Row: {
-          batch_size: number
           company_id: string
           copy_storage: boolean
           created_at: string
-          dest_counts: Json
           dry_run: boolean
-          errors: Json
+          error_counts: Json
           finished_at: string | null
           id: string
-          modules: Json
+          imported_counts: Json
           report: Json
+          skipped_counts: Json
           source_counts: Json
-          source_name: string
+          source_project: string
           started_at: string | null
-          started_by: string | null
           status: string
-          updated_at: string
         }
         Insert: {
-          batch_size?: number
           company_id: string
           copy_storage?: boolean
           created_at?: string
-          dest_counts?: Json
           dry_run?: boolean
-          errors?: Json
+          error_counts?: Json
           finished_at?: string | null
           id?: string
-          modules?: Json
+          imported_counts?: Json
           report?: Json
+          skipped_counts?: Json
           source_counts?: Json
-          source_name?: string
+          source_project?: string
           started_at?: string | null
-          started_by?: string | null
           status?: string
-          updated_at?: string
         }
         Update: {
-          batch_size?: number
           company_id?: string
           copy_storage?: boolean
           created_at?: string
-          dest_counts?: Json
           dry_run?: boolean
-          errors?: Json
+          error_counts?: Json
           finished_at?: string | null
           id?: string
-          modules?: Json
+          imported_counts?: Json
           report?: Json
+          skipped_counts?: Json
           source_counts?: Json
-          source_name?: string
+          source_project?: string
           started_at?: string | null
-          started_by?: string | null
           status?: string
-          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "dp_import_runs_company_id_fkey"
+            foreignKeyName: "dp_legacy_import_runs_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
