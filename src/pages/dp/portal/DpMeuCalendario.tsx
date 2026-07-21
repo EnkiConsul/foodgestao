@@ -536,10 +536,10 @@ export default function DpMeuCalendario() {
 
       {/* Dialog do dia */}
       <Dialog open={!!selectedDay} onOpenChange={(o) => !o && setSelectedDay(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-[2rem] border-none shadow-2xl p-8">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CalendarDays className="h-5 w-5 text-primary" />
+            <DialogTitle className="text-2xl font-black flex items-center gap-3">
+              <CalendarDays className="size-6 text-primary" />
               {selectedDay && formatBR(parseYMD(selectedDay.iso))}
             </DialogTitle>
             <DialogDescription className="sr-only">Detalhes do dia selecionado</DialogDescription>
@@ -547,8 +547,8 @@ export default function DpMeuCalendario() {
 
           {selectedDay && dayInfo && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between rounded-md border bg-muted/30 p-3 text-sm">
-                <span className="font-medium">Status</span>
+              <div className="flex items-center justify-between rounded-2xl border bg-muted/50 p-5 text-sm">
+                <span className="font-bold">Status</span>
                 <Badge variant="outline" className={cn("text-xs", STATUS_BADGE[selectedDay.status])}>
                   {STATUS_LABEL[selectedDay.status]}
                 </Badge>
