@@ -105,9 +105,10 @@ export async function getItem(itemId: string): Promise<PluggyItem> {
 export async function deleteItem(itemId: string): Promise<void> {
   const res = await pluggyFetch(`/items/${itemId}`, { method: "DELETE" });
   if (!res.ok && res.status !== 404) {
-    throw new Error(`Pluggy deleteItem: ${res.status}`);
+    const text = res.body ? await res.text().catch(() => "") : "";
+    throw new Error(`Pluggy deleteItem: ${res.status} ${text}`.trim());
   }
-  if (res.body) await res.text();
+  if (res.body) await res.text().catch(() => "");
 }
 
 export async function listAccounts(itemId: string): Promise<PluggyAccount[]> {
