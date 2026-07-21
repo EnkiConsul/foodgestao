@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -28,6 +29,7 @@ const TYPE_COLORS: Record<string, string> = {
 
 export default function Contatos() {
   const { user } = useAuth();
+  const { contextType, selectedCompanyId } = useCompanyContext();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editContact, setEditContact] = useState<Tables<"contacts"> | null>(null);
   const [search, setSearch] = useState("");
@@ -41,21 +43,32 @@ export default function Contatos() {
   });
 
   const { data: contacts = [], refetch } = useQuery({
-    queryKey: ["contacts-page", user?.id],
-    enabled: !!user,
+    queryKey: ["contacts-page", user?.id, contextType, selectedCompanyId],
+    enabled: !!user && (contextType === "pf" || !!selectedCompanyId),
     queryFn: async () => {
+      if (contextType === "pj") {
+        // Em PJ: contatos vinculados à empresa ativa (visíveis a qualquer membro).
+        const { data } = await supabase
+          .from("contacts")
+          .select("*, contact_companies!inner(company_id)")
+          .eq("contact_companies.company_id", selectedCompanyId!)
+          .order("name");
+        return (data ?? []) as Tables<"contacts">[];
+      }
+      // Em PF: contatos do usuário, apenas visíveis no perfil pessoal.
       const { data } = await supabase
         .from("contacts")
         .select("*")
         .eq("user_id", user!.id)
+        .eq("visible_pf", true)
         .order("name");
-      return data ?? [];
+      return (data ?? []) as Tables<"contacts">[];
     },
   });
 
   // Fetch contact_companies with company names
   const { data: contactCompanies = [], refetch: refetchCompanies } = useQuery({
-    queryKey: ["contact-companies-page", user?.id],
+    queryKey: ["contact-companies-page", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
     queryFn: async () => {
       const { data } = await (supabase.from("contact_companies" as any) as any)
