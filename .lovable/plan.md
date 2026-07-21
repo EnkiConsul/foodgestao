@@ -1,26 +1,29 @@
 ## Problema
 
-O trigger `dp_folgas_validar_self` está falhando com `COALESCE types uuid and boolean cannot be matched` na regra 5 (bloqueio manual):
-
-```sql
-IF FOUND AND COALESCE(v_bloq.liberada_por_solicitacao, false) = false THEN
-```
-
-A coluna `dp_datas_bloqueadas.liberada_por_solicitacao` é `uuid` (referência à solicitação que liberou), não boolean. O COALESCE tenta juntar `uuid` com `false` e explode.
+O trigger `dp_folgas_validar_self` referencia `pa.status` e `pa.data_alvo` na regra 7 (aniversariante), mas a tabela `dp_prioridade_aniversario` só tem: `company_id, colaborador_id, ano, mes, prioridade, aniversariante`.
 
 ## Correção
 
-Migração ajustando a checagem para usar `IS NULL` (sem liberação = bloqueado):
+Reescrever a regra 7 usando os campos reais + `dp_colaboradores.data_nascimento`:
+
+- Busca `pa` do mês/ano da data pretendida, `aniversariante = true`.
+- Compara o dia da `NEW.data` com o dia de `dp_colaboradores.data_nascimento` do colaborador priorizado.
+- Bloqueia se o dono do aniversário for outro colaborador.
 
 ```sql
-CREATE OR REPLACE FUNCTION public.dp_folgas_validar_self()
-...
-  -- 5) bloqueio manual
-  IF FOUND AND v_bloq.liberada_por_solicitacao IS NULL THEN
-    RAISE EXCEPTION 'Esta data está bloqueada administrativamente.'
-      USING ERRCODE = 'check_violation';
-  END IF;
-...
+SELECT pa.colaborador_id
+  INTO v_aniv
+  FROM public.dp_prioridade_aniversario pa
+  JOIN public.dp_colaboradores c ON c.id = pa.colaborador_id
+ WHERE pa.company_id = NEW.company_id
+   AND pa.ano = EXTRACT(YEAR FROM NEW.data)::int
+   AND pa.mes = EXTRACT(MONTH FROM NEW.data)::int
+   AND pa.aniversariante = true
+   AND EXTRACT(DAY FROM c.data_nascimento) = EXTRACT(DAY FROM NEW.data)
+ LIMIT 1;
+IF FOUND AND v_aniv.colaborador_id <> NEW.colaborador_id THEN
+  RAISE EXCEPTION 'Data reservada para aniversariante.' USING ERRCODE = 'check_violation';
+END IF;
 ```
 
 Resto do trigger permanece idêntico. Sem alterações no frontend.
