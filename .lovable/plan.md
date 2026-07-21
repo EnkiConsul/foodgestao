@@ -1,29 +1,44 @@
-## Objetivo
+## Diagnóstico (confirmado via Playwright na produção)
 
-A pendência "Contracheque não fechado" no widget de Pendências abre `/dp/folha`, página que não existe no projeto original (Pakere) e não deve fazer parte do 360°FOOD. Redirecionar cada pendência para a página de documentos correta e remover `/dp/folha` do projeto.
+O domínio `gestor360food.com` carrega o HTML, mas o React nunca monta (`<div id="root">` fica vazio). O runtime lança:
 
-## Alterações
+```
+ReferenceError: Cannot access '_' before initialization
+  at /assets/charts-CPXksVZQ.js:9:16763
+```
 
-### 1. `src/hooks/useDpPendencias.tsx`
-- Pendência **Contracheque não fechado** (linha 145): `url: "/dp/folha"` → `url: "/dp/documentos/contracheque"`.
-- Pendência **Adiantamento não fechado** (linha 183): `url: "/dp/folha"` → `url: "/dp/documentos/adiantamento"`.
+Isto é um erro clássico de **Temporal Dead Zone causado por dependência circular** entre chunks criados pelo `manualChunks` do Vite. Em `vite.config.ts` (linha 63), agrupamos `recharts` + `d3-*` num chunk `"charts"`, mas `recharts` depende internamente de módulos que ficam em outros chunks (ex.: `react-vendor`, `react-is` fora do padrão `/d3-*/`), gerando referências cíclicas resolvidas antes da inicialização em produção. O bundle de dev não sofre porque Vite serve ESM sem manual chunking.
 
-### 2. `src/App.tsx` — remover rotas e imports órfãos
-- Remover imports lazy (linhas 72–74): `DpFolhaHub`, `DpFolhaPeriodo`, `DpFolhaAprovacoes`.
-- Remover rotas (linhas 363–366): `folha`, `folha/aprovacoes`, `folha/periodos/:id`.
+O preview de dev funciona porque não passa pelo Rollup manualChunks — só a build de produção quebra, o que bate exatamente com o sintoma: preview OK, domínio publicado branco.
 
-### 3. Excluir arquivos das páginas removidas
-- `src/pages/dp/DpFolhaHub.tsx`
-- `src/pages/dp/DpFolhaPeriodo.tsx`
-- `src/pages/dp/DpFolhaAprovacoes.tsx`
+## Correção proposta
 
-### 4. `src/components/dp/favoritablePages.ts`
-- Remover entradas que referenciam `/dp/folha*` para não deixar favoritos apontando para rota inexistente.
+### `vite.config.ts` — remover o chunk manual `"charts"`
 
-### 5. Menu / sidebar do DP
-- Verificar `DpSidebar` (e demais menus do módulo DP) e remover qualquer item que aponte para `/dp/folha`, se existir.
+Deixar Rollup decidir automaticamente onde colocar `recharts` e `d3-*`. Isso elimina a fronteira de chunk que hoje racha o grafo de dependências e causa o TDZ.
+
+Alterar o bloco `manualChunks(id)` para remover **apenas** a linha:
+
+```ts
+if (id.includes("/recharts/") || id.match(/\/d3-[^/]+\//)) return "charts";
+```
+
+Os demais chunks (`pdf`, `radix`, `supabase`, `forms`, `react-vendor`) permanecem — eles não apresentam a mesma característica circular e ajudam no cache.
+
+### Verificação
+
+Após a alteração, republicar (`Publish → Update`) e:
+
+1. Confirmar via `curl -s https://gestor360food.com | grep -o 'src="/assets/[^"]*"'` que o chunk `charts-*.js` não existe mais.
+2. Rodar Playwright headless em `https://gestor360food.com/` e checar que `document.getElementById('root').innerHTML.length > 0` e que não há `pageerror`.
+3. Abrir a Landing Page e o Dashboard (que usam recharts) para garantir que os gráficos ainda montam.
+
+## Por que não outras hipóteses
+
+- **Cache do Service Worker**: o HTML servido é fresco e referencia hash novo (`index-BdWIXy5h.js` retorna 200). O erro aparece já na primeira execução do bundle, antes de qualquer SW ativar. Não é SW.
+- **DNS / hospedagem**: bundle serve com 200, HTML íntegro, headers de SPA fallback OK. Não é infra.
+- **Publicação incompleta**: o hash do JS bate com o servido, ou seja, o deploy chegou — só está quebrado em runtime.
 
 ## Fora de escopo
 
-- Não altero a lógica de detecção das pendências (regras de vencimento, leitura de `dp_folha_periodos`) — só o destino do botão "Resolver" e a remoção da página órfã.
-- A tabela `dp_folha_periodos` continua sendo usada para saber se contracheque/adiantamento foi fechado.
+Nenhuma outra mudança de lógica ou UI. A correção é 1 linha em `vite.config.ts` seguida de re-publicação.
