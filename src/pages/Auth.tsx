@@ -454,6 +454,12 @@ export default function Auth() {
                 {isLogin ? "Não tem conta? Cadastre-se" : "Já tem conta? Entre"}
               </button>
             )}
+            <Link
+              to="/dp/login"
+              className="text-xs text-muted-foreground hover:text-primary transition-colors"
+            >
+              Sou colaborador — entrar com CPF
+            </Link>
           </CardFooter>
           </form>
         )}
