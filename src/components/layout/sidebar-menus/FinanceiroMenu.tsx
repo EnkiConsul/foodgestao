@@ -18,7 +18,7 @@ const cadastros: MenuItem[] = [
   { title: "Clientes / Fornecedores", url: "/contatos", icon: Users },
   { title: "Categorias", url: "/categorias", icon: FolderTree },
   { title: "Categorização IA", url: "/categorizacao-ia", icon: Brain },
-  { title: "Contas Contábeis", url: "/contas-bancarias".replace("bancarias","contabeis"), icon: BookOpen },
+  { title: "Contas Contábeis", url: "/contas-contabeis", icon: BookOpen },
 ];
 
 export function FinanceiroMenu() {
