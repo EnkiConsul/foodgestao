@@ -556,8 +556,8 @@ export default function DpMeuCalendario() {
 
               {dayInfo.occupants.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase">
-                    Colaboradores neste dia
+                  <h4 className="text-sm font-bold text-muted-foreground">
+                    Colaboradores neste dia:
                   </h4>
                   {dayInfo.occupants.map((occ) => {
                     const isMe = occ.colaboradorId === meRef.data?.id;
@@ -566,7 +566,7 @@ export default function DpMeuCalendario() {
                     return (
                       <div
                         key={occ.key}
-                        className="flex items-center justify-between rounded-md border p-2 text-sm"
+                        className="flex items-center justify-between rounded-xl border bg-background p-3 text-sm"
                       >
                         <div className="flex items-center gap-2">
                           <UserIcon className="h-4 w-4 text-muted-foreground" />
@@ -582,6 +582,7 @@ export default function DpMeuCalendario() {
                           <Button
                             size="sm"
                             variant="outline"
+                            className="rounded-full"
                             onClick={() =>
                               setTradeOpen({
                                 occupantId: occ.colaboradorId,
