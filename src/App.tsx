@@ -28,6 +28,7 @@ import { PageSpinner } from "@/components/PageSpinner";
 // Eager: rotas do primeiro paint (landing/auth/hub/dashboard)
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
+const DpLogin = lazy(() => import("./pages/dp/DpLogin"));
 import Hub from "./pages/Hub";
 import Dashboard from "./pages/Dashboard";
 
