@@ -272,12 +272,13 @@ export function useDpPendencias() {
               .select("ano, mes")
               .eq("company_id", selectedCompanyId!)
               .eq("unidade_id", unidadeId)
-              .eq("sindicato_laboral_id", sindId)
+              .or(`sindicato_laboral_id.eq.${sindId},sindicato_id.eq.${sindId}`)
               .not("ano", "is", null)
               .not("mes", "is", null)
               .order("ano", { ascending: false })
               .order("mes", { ascending: false })
               .limit(1);
+
 
             const id = `negociacao-${unidadeId}-${sindId}`;
             if (!negs || negs.length === 0) {
