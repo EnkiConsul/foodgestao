@@ -25,6 +25,8 @@ import { PaymentMethodFormDialog } from "@/components/payment-methods/PaymentMet
 import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/searchable-select";
 import { useTransactionFieldSettings, TRANSACTION_FIELD_LABELS, type TransactionField } from "@/hooks/useTransactionFieldSettings";
 import { useTransactionFormLookups } from "@/hooks/useTransactionFormLookups";
+import { useCategorizationSuggestion } from "@/hooks/useCategorizationSuggestion";
+import { Sparkles } from "lucide-react";
 import {
   type CategoryNode,
   buildCategoryTree,
@@ -467,6 +469,23 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     walk(buildCategoryTree(filteredCategories), "");
     return out;
   })();
+
+  // Auto-categorization suggestion (Fase 4)
+  const { suggestion: categorySuggestion, applyHit: applyCategorizationHit } =
+    useCategorizationSuggestion({
+      description,
+      transactionType:
+        type === "receita" ? "entrada" : type === "despesa" ? "saida" : null,
+      context: contextType,
+      companyId: contextType === "pj" ? selectedCompanyId : null,
+      enabled: open && type !== "transferencia" && !isEditing,
+    });
+  const suggestionCategoryLabel =
+    categorySuggestion?.category_id
+      ? flatCategoryOptions.find((o) => o.value === categorySuggestion.category_id)?.label ?? null
+      : null;
+
+
 
   const CONTACT_BADGE_CLS: Record<string, string> = {
     cliente: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
@@ -968,7 +987,29 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
               placeholder="Ex: Supermercado, Salário..."
               maxLength={200}
             />
+            {categorySuggestion && !categoryId && type !== "transferencia" && suggestionCategoryLabel && (
+              <button
+                type="button"
+                onClick={async () => {
+                  setCategoryId(categorySuggestion.category_id!);
+                  await applyCategorizationHit(categorySuggestion.rule_id);
+                }}
+                className="inline-flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1 text-xs text-primary hover:bg-primary/10 transition-colors"
+                title={`Regra: ${categorySuggestion.pattern}`}
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>
+                  Sugestão: <strong>{suggestionCategoryLabel}</strong>
+                  <span className="ml-1 text-muted-foreground">
+                    ({Math.round(categorySuggestion.confidence * 100)}% ·{" "}
+                    {categorySuggestion.layer === "deterministic" ? "regra" : "similaridade"})
+                  </span>
+                </span>
+                <span className="ml-1 rounded bg-primary/15 px-1.5 py-0.5">Aplicar</span>
+              </button>
+            )}
           </div>
+
 
           {/* Data atribuída automaticamente (data de criação) — campo oculto */}
 
