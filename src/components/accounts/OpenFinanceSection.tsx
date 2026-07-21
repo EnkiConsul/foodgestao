@@ -359,9 +359,13 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
                               <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
                                 <Switch
                                   checked={pa.auto_import}
-                                  onCheckedChange={(v) =>
-                                    toggleAutoImport.mutate({ connAccountId: pa.id, autoImport: v })
-                                  }
+                                  onCheckedChange={async (v) => {
+                                    await toggleAutoImport.mutateAsync({ connAccountId: pa.id, autoImport: v });
+                                    if (v && pa.account_id) {
+                                      // Ao ligar auto_import com conta vinculada, dispara sync imediato
+                                      handleSync(conn.id);
+                                    }
+                                  }}
                                 />
                                 Auto
                               </label>
