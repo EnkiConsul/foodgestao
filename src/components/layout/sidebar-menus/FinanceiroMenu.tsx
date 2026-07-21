@@ -17,7 +17,7 @@ const cadastros: MenuItem[] = [
   { title: "Formas de Pagamento", url: "/formas-pagamento", icon: CreditCard },
   { title: "Clientes / Fornecedores", url: "/contatos", icon: Users },
   { title: "Categorias", url: "/categorias", icon: FolderTree },
-  { title: "Categorização IA", url: "/categorizacao-ia", icon: Brain },
+  
   { title: "Contas Contábeis", url: "/contas-contabeis", icon: BookOpen },
 ];
 
