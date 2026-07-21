@@ -60,7 +60,9 @@ export default defineConfig(({ mode }) => ({
           if (!id.includes("node_modules")) return;
           if (id.includes("/pdfjs-dist/")) return "pdf";
           if (id.includes("/@radix-ui/")) return "radix";
-          if (id.includes("/recharts/") || id.match(/\/d3-[^/]+\//)) return "charts";
+          // recharts + d3 são deixados sob decisão automática do Rollup:
+          // agrupá-los manualmente cria dependência circular entre chunks e
+          // dispara "Cannot access '_' before initialization" em produção.
           if (id.includes("/@supabase/")) return "supabase";
           if (
             id.includes("/react-hook-form/") ||
