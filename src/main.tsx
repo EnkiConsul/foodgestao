@@ -24,13 +24,37 @@ const isPreviewHost =
   host.includes("lovableproject.com") ||
   host.includes("lovable.app") && host.includes("--");
 
-if (import.meta.env.PROD && !isInIframe && !isPreviewHost && "serviceWorker" in navigator) {
+// Kill-switch: allow `?sw=off` to force-unregister any SW and clear caches.
+const swOff = new URLSearchParams(window.location.search).get("sw") === "off";
+
+if (swOff && "serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then(async (regs) => {
+    await Promise.allSettled(regs.map((r) => r.unregister()));
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.allSettled(keys.map((k) => caches.delete(k)));
+    }
+    window.location.replace(window.location.pathname);
+  });
+} else if (import.meta.env.PROD && !isInIframe && !isPreviewHost && "serviceWorker" in navigator) {
   import("virtual:pwa-register").then(({ registerSW }) => {
-    registerSW({ immediate: true });
+    const updateSW = registerSW({
+      immediate: true,
+      onNeedRefresh: () => {
+        // New version available: apply immediately to avoid stale-bundle white screens.
+        updateSW(true);
+      },
+      onRegisteredSW: (_swUrl, registration) => {
+        if (!registration) return;
+        // Periodically check for updates so long-lived tabs pick up new deploys.
+        setInterval(() => registration.update().catch(() => {}), 60 * 60 * 1000);
+      },
+    });
   });
 } else if ("serviceWorker" in navigator && (isInIframe || isPreviewHost)) {
   // Cleanup any previously registered SW in preview/iframe contexts.
   navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister()));
 }
+
 
 createRoot(document.getElementById("root")!).render(<App />);
