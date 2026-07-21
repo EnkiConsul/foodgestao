@@ -268,6 +268,7 @@ const AppRoutes = () => (
     <Routes>
       <Route path="/" element={<RootGate />} />
       <Route path="/auth" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
+      <Route path="/dp/login" element={<PublicOnlyRoute><DpLogin /></PublicOnlyRoute>} />
       <Route path="/dp/meu" element={<PortalProtected><ColaboradorShell /></PortalProtected>}>
         <Route index element={<DpMeuHome />} />
         <Route path="perfil" element={<DpMeuPerfil />} />
