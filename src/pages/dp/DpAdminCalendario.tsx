@@ -139,7 +139,7 @@ export default function DpAdminCalendario() {
         queryFn: async () => {
           const { data, error } = await supabase
             .from("dp_datas_bloqueadas")
-            .select("id, data, motivo, liberada, auto, created_at")
+            .select("id, data, motivo, liberada_por_solicitacao, regra_id, created_at")
             .eq("company_id", selectedCompanyId!)
             .gte("data", range.start)
             .lte("data", range.end);
