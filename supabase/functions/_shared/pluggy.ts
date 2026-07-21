@@ -118,6 +118,16 @@ export async function listAccounts(itemId: string): Promise<PluggyAccount[]> {
   return json.results ?? [];
 }
 
+export class PluggyApiError extends Error {
+  status: number;
+  body: string;
+  constructor(status: number, body: string, message: string) {
+    super(message);
+    this.status = status;
+    this.body = body;
+  }
+}
+
 export async function listTransactions(opts: {
   accountId: string;
   from?: string; // yyyy-mm-dd
@@ -131,8 +141,29 @@ export async function listTransactions(opts: {
   params.set("page", String(opts.page ?? 1));
   params.set("pageSize", String(opts.pageSize ?? 500));
   const res = await pluggyFetch(`/transactions?${params.toString()}`);
-  if (!res.ok) throw new Error(`Pluggy listTransactions: ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new PluggyApiError(res.status, body, `Pluggy listTransactions: ${res.status} ${body}`);
+  }
   return (await res.json()) as { results: PluggyTransaction[]; totalPages: number; page: number };
+}
+
+/**
+ * Dispara atualização do item pedindo produtos ACCOUNTS + TRANSACTIONS.
+ * Usado quando /transactions retorna 410 (produto não coletado).
+ */
+export async function triggerItemUpdate(itemId: string): Promise<PluggyItem> {
+  const res = await pluggyFetch(`/items/${itemId}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      products: ["ACCOUNTS", "TRANSACTIONS", "IDENTITY"],
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new PluggyApiError(res.status, body, `Pluggy triggerItemUpdate: ${res.status} ${body}`);
+  }
+  return (await res.json()) as PluggyItem;
 }
 
 export const corsHeaders = {
