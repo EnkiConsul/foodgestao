@@ -250,19 +250,32 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (mode === "dry-run" || mode === "execute" || mode === "rollback") {
-      return new Response(
-        JSON.stringify({
-          mode,
-          status: "not_implemented",
-          message:
-            "O modo diagnose precisa ser executado e aprovado primeiro. Depois desse retorno o pipeline completo (transformações por tabela, storage e rollback) é habilitado.",
-        }),
-        {
-          status: 409,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+    if (mode === "sample") {
+      const sample: Record<string, unknown> = {};
+      for (const t of SOURCE_TABLES) {
+        const { data, error } = await source.from(t).select("*").limit(1);
+        sample[t] = error ? { error: error.message } : (data?.[0] ?? null);
+      }
+      return new Response(JSON.stringify({ mode, sample }, null, 2), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (mode === "dry-run" || mode === "execute") {
+      const result = await runImport(source, dest, {
+        dryRun: mode === "dry-run",
+        copyStorage: !!body.copyStorage,
+      });
+      return new Response(JSON.stringify({ mode, ...result }, null, 2), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (mode === "rollback") {
+      const result = await runRollback(dest, String(body.runId ?? ""));
+      return new Response(JSON.stringify({ mode, ...result }, null, 2), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     return new Response(JSON.stringify({ error: `Modo inválido: ${mode}` }), {
