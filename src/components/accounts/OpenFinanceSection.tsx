@@ -48,8 +48,10 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
   const { connectionsQuery, accountsQuery, importedCountsQuery } = useBankConnections();
   const { registerItem, syncConnection, deleteConnection, linkProviderAccount, toggleAutoImport } = usePluggyActions();
   const pluggy = usePluggyConnect();
+  const { isSuperAdmin } = useSuperAdmin();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [confirmDelete, setConfirmDelete] = useState<BankConnection | null>(null);
+  const [deleteError, setDeleteError] = useState<{ message: string; pluggyError: boolean } | null>(null);
 
   useRealtimeSync({
     tables: ["bank_connections", "bank_connection_accounts"],
