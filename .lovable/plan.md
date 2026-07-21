@@ -1,38 +1,48 @@
-# Correção: horário da última sincronização exibido em UTC
+# Habilitar sincronização Pluggy em tempo real
 
-## Diagnóstico
+## Diagnóstico confirmado
 
-O horário 18:51 mostrado no card "Última sincronização" corresponde ao valor UTC bruto do `last_sync_at` retornado pelo backend, sem conversão para o fuso do Brasil. Se agora são 16:01 BRT (19:01 UTC), o sync real ocorreu há ~10 minutos e deveria aparecer como **15:51**, não 18:51.
+- Handler `supabase/functions/pluggy-webhook/index.ts` **já dispara sync** para eventos `item/updated`, `transactions/created` e `transactions/updated` (regex `/transactions|item\/updated|updated/i` na linha 59) e chama `pluggy-sync-connection` com o `connectionId` correspondente.
+- Nos últimos 15 webhooks recebidos (tabela `pluggy_webhook_events`), **100% são `connector/status_updated`** — nenhum evento de transação/item chegou. Último webhook em 11/07; hoje é 21/07.
+- Conclusão: o código do lado 360°FOOD está correto. O que falta é **inscrever os eventos certos no painel da Pluggy** — a Pluggy exige um webhook cadastrado por tipo de evento (ou um único com `event: 'all'`).
 
-A causa está em `src/lib/date-utils.ts` → `parseFlexibleDate` (linhas 28–76):
+## Ação necessária (painel Pluggy — feita pelo usuário)
 
-- A regex ISO captura ano/mês/dia/hora/min/seg de strings como `2026-07-21T18:51:00Z` ou `...+00:00`, mas **descarta o sufixo `Z`/offset**.
-- Em seguida usa `new Date(year, month-1, day, hours, minutes, seconds)`, que interpreta esses componentes como **hora local**.
-- Resultado: 18:51 UTC vira 18:51 BRT em vez de 15:51 BRT.
+No dashboard Pluggy → **Webhooks**, cadastrar (ou editar) o endpoint apontando para:
 
-Isso afeta todo lugar que passa timestamps ISO com `Z`/offset por `formatDate` — hoje visível no Open Finance (última sync geral, sync por conexão e sync por conta provedora), e potencialmente em outras telas que exibem `HH:mm` de campos `timestamptz`.
-
-## Correção
-
-Ajustar `parseFlexibleDate` em `src/lib/date-utils.ts` para que strings ISO **com componente de horário** sejam delegadas ao construtor nativo `new Date(raw)`, que respeita `Z` e offsets explícitos. O ramo "date-only" (`YYYY-MM-DD` sem `T…`) continua com a construção local atual, preservando a proteção contra o shift de fuso para datas puras (ex.: `due_date`).
-
-Fluxo novo dentro do bloco `if (iso)`:
-
-```text
-- iso[4] presente (tem horário)  → return new Date(raw)  // respeita Z/offset
-- iso[4] ausente (só data)       → mantém lógica local com defaults de DayTime
+```
+https://<projeto>.supabase.co/functions/v1/pluggy-webhook?token=<PLUGGY_WEBHOOK_TOKEN>
 ```
 
-O ramo `dmy` (`DD/MM/YYYY`) e o fallback genérico permanecem inalterados.
+Adicionar assinaturas para os seguintes eventos (uma entrada por tipo, ou uma única com `all`):
+
+- `item/updated` — dispara quando a Pluggy termina uma atualização do item.
+- `transactions/created` — novas transações identificadas.
+- `transactions/updated` — transações alteradas (ex.: descrição enriquecida).
+- Manter também `connector/status_updated` (já funciona) para refletir credenciais expiradas.
+
+Alternativa recomendada: cadastrar **um único webhook com `event: "all"`** e deixar o handler filtrar (ele já faz isso). Mais simples de manter.
+
+## Ajuste opcional no código (após habilitar os eventos)
+
+Se após inscrever os eventos você ainda quiser mais robustez, faço estas melhorias no handler:
+
+1. **Idempotência por evento**: guardar `event_id` da Pluggy no `pluggy_webhook_events` e ignorar repetidos.
+2. **Log estruturado** por tipo de evento para facilitar auditoria no painel de logs.
+3. **Fallback para itens sem `itemId` no payload**, extraindo de `data.itemId` (algumas versões do payload).
+4. **Sync incremental**: passar um `since` (última data conhecida) para `pluggy-sync-connection` a fim de reduzir custo por chamada.
+
+Esses ajustes são opcionais — o fluxo em tempo real passa a funcionar assim que os eventos forem inscritos no painel.
 
 ## Verificação
 
-1. Reabrir `/contas-bancarias` → card "Última sincronização" deve mostrar horário BRT coerente com o relógio do usuário.
-2. Conferir "Última sync" do cartão da conexão e o `sync HH:mm` da conta provedora.
-3. Rodar `bun test src/lib/__tests__` (se existirem testes de date-utils) e a suíte de tenancy para garantir que nenhuma comparação de data quebrou.
-4. Confirmar que campos date-only (`due_date` em Lançamentos) continuam exibindo o dia correto — o ramo sem horário não foi alterado.
+1. Após inscrever os eventos no painel, forçar uma atualização do item (ex.: aguardar próxima atualização automática ou tocar em "Sincronizar" no 360°FOOD).
+2. Rodar `select event_type, received_at from pluggy_webhook_events order by received_at desc limit 10` e confirmar a chegada de `item/updated` / `transactions/*`.
+3. Conferir que `bank_connections.last_sync_at` é atualizado logo após o webhook (sem esperar o cron das 03h BRT).
+4. Confirmar novos lançamentos importados aparecerem em `/lancamentos` sem intervenção manual.
 
 ## Escopo
 
-- Alterar apenas `src/lib/date-utils.ts` (função `parseFlexibleDate`).
-- Nenhuma mudança de schema, RLS, edge function ou UI.
+- **Sem alterações de código nesta fase** (o handler já cobre os eventos).
+- Ação principal é no painel Pluggy do usuário.
+- Melhorias opcionais no handler ficam para uma segunda fase, apenas se o usuário confirmar.
