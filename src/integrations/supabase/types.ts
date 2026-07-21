@@ -5225,6 +5225,15 @@ export type Database = {
       }
     }
     Functions: {
+      apply_ai_categorization: {
+        Args: {
+          p_category_id: string
+          p_confidence?: number
+          p_reason?: string
+          p_transaction_id: string
+        }
+        Returns: Json
+      }
       apply_tx_balance: {
         Args: {
           _sign: number
@@ -5367,6 +5376,10 @@ export type Database = {
         Args: { _company_id: string; _user_id: string }
         Returns: number
       }
+      delete_ai_categorization_message: {
+        Args: { p_msg_id: number }
+        Returns: boolean
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -5428,6 +5441,12 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      enqueue_uncategorized_for_ai: {
+        Args: { p_company_id?: string; p_context?: string; p_limit?: number }
+        Returns: {
+          enqueued: number
+        }[]
       }
       fn_cadastrar_empresa_onboarding: {
         Args: {
@@ -5782,6 +5801,13 @@ export type Database = {
           _transaction_type: Database["public"]["Enums"]["transaction_type"]
         }
         Returns: string
+      }
+      read_ai_categorization_queue: {
+        Args: { p_batch?: number; p_vt?: number }
+        Returns: {
+          message: Json
+          msg_id: number
+        }[]
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
