@@ -141,6 +141,11 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
       toast.success("Conexão removida");
       setConfirmDelete(null);
       setDeleteError(null);
+      await Promise.all([
+        connectionsQuery.refetch(),
+        accountsQuery.refetch(),
+        importedCountsQuery.refetch(),
+      ]);
       onRefreshAccounts();
     } catch (e) {
       const err = e as Error & { pluggyError?: boolean };
