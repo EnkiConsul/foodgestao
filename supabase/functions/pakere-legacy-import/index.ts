@@ -1071,7 +1071,11 @@ Deno.serve(async (req) => {
     if (mode === "copy-storage") {
       const result = await runCopyStorage(source, dest, {
         dryRun: !!body.dryRun,
+        only: body.only,
+        limit: body.limit,
+        offset: body.offset,
       });
+
       return new Response(JSON.stringify({ mode, ...result }, null, 2), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
