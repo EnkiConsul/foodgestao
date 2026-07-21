@@ -20,6 +20,7 @@ import { useBankConnections, usePluggyActions, requestConnectToken, type BankCon
 import { usePluggyConnect } from "@/components/accounts/usePluggyConnect";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { formatDate } from "@/lib/date-utils";
 import type { Database } from "@/integrations/supabase/types";
 
