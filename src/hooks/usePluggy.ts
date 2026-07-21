@@ -147,8 +147,7 @@ export function usePluggyActions() {
         let serverMsg: string | undefined;
         let pluggyError = false;
         try {
-          // @ts-expect-error - supabase-js expõe .context em FunctionsHttpError
-          const ctx = error.context;
+          const ctx = (error as unknown as { context?: { json?: () => Promise<{ error?: string; pluggyError?: boolean }> } }).context;
           if (ctx && typeof ctx.json === "function") {
             const parsed = await ctx.json();
             serverMsg = parsed?.error;
