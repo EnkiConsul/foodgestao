@@ -47,10 +47,7 @@ Deno.serve(async (req) => {
       parsedBody = parsed.data;
     }
 
-    const projectId = Deno.env.get("SUPABASE_URL")!.match(/https:\/\/([^.]+)/)?.[1];
-    const webhookUrl = projectId
-      ? `https://${projectId}.supabase.co/functions/v1/pluggy-webhook`
-      : undefined;
+    const webhookUrl = pluggyWebhookUrl() ?? undefined;
 
     const accessToken = await createConnectToken({
       clientUserId: userId,
