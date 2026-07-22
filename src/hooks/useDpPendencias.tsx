@@ -329,23 +329,21 @@ export function useDpPendencias() {
             const ultima: any = negs[0];
             const anoUltimo = ultima.ano ?? 0;
             const mesUltimo = ultima.mes ?? 0;
-            // pendência se a última é de ano anterior, ou do mesmo ano mas mês anterior ao vigente
-            const desatualizada =
-              anoUltimo < anoVigente ||
-              (anoUltimo === anoVigente && mesUltimo < mesVigente);
-            if (desatualizada) {
-              // Vencimento = último dia do mesmo mês da última negociação, um ano depois
-              const vencimento = new Date(anoUltimo + 1, mesUltimo, 0);
-              // Início do atraso = dia seguinte ao vencimento
-              const inicioAtraso = new Date(vencimento);
-              inicioAtraso.setDate(inicioAtraso.getDate() + 1);
-              const dias = differenceInCalendarDays(today, inicioAtraso);
+            // Vencimento = último dia do mesmo mês da última negociação, um ano depois
+            const vencimento = new Date(anoUltimo + 1, mesUltimo, 0);
+            const inicioAtraso = new Date(vencimento);
+            inicioAtraso.setDate(inicioAtraso.getDate() + 1);
+            const dias = differenceInCalendarDays(today, inicioAtraso);
+            // Só entra como pendência quando está próxima do vencimento (≤30d) ou já venceu
+            const diasAteVencimento = differenceInCalendarDays(vencimento, today);
+            if (diasAteVencimento <= 30) {
               const mesVenc = String(mesUltimo).padStart(2, "0");
+              const jaVenceu = diasAteVencimento < 0;
               results.push({
                 id,
                 icon: Scale,
                 titulo: `Negociação coletiva pendente — ${nomeSind}`,
-                subtitulo: `${unidadeNome} — última ${String(mesUltimo).padStart(2, "0")}/${anoUltimo} · venceu em ${mesVenc}/${anoUltimo + 1}`,
+                subtitulo: `${unidadeNome} — última ${String(mesUltimo).padStart(2, "0")}/${anoUltimo} · ${jaVenceu ? "venceu" : "vence"} em ${mesVenc}/${anoUltimo + 1}`,
                 tipo: "Negociação",
                 vencimento: ymd(vencimento),
                 atrasoDias: dias,
