@@ -94,7 +94,7 @@ export default function DpBloqueios() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_datas_bloqueadas")
-        .select("*, unidade:dp_unidades(id, nome)")
+        .select("*, liberada, unidade:dp_unidades(id, nome)")
         .eq("company_id", selectedCompanyId!)
         .order("data", { ascending: true });
       if (error) throw error;
