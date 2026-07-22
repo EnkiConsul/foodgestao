@@ -214,49 +214,62 @@ export default function DpAdminCalendario() {
     return m;
   }, [diaConfigQ.data]);
 
+  const unidadeFilterId = filterUnidade === "all" ? null : filterUnidade;
+
   const manualBlocked = useMemo(() => {
     const m = new Map<string, { reason: string; liberada: boolean }>();
+    const liberadasSet = new Set<string>();
     for (const b of bloqueios) {
-      m.set(b.data, { reason: b.motivo, liberada: !!b.liberada_por_solicitacao });
+      const liberado = !!b.liberada_por_solicitacao || b.liberada === true;
+      if (liberado) {
+        liberadasSet.add(b.data);
+        continue;
+      }
+      m.set(b.data, { reason: b.motivo, liberada: false });
     }
     const regrasData = regrasBloqueioQuery.data;
     if (regrasData) {
-      // Admin: mostra bloqueios de todas as regras (independente da unidade)
       const fromRegras = buildBloqueiosDeRegras({
         regras: regrasData.regras,
-        vinculos: [], // ignora filtro de unidade no painel admin
-        unidadeId: null,
+        vinculos: regrasData.vinculos,
+        unidadeId: unidadeFilterId,
         from: range.startDate,
         to: range.endDate,
       });
       fromRegras.forEach((motivo, iso) => {
+        if (liberadasSet.has(iso)) return;
         if (!m.has(iso)) m.set(iso, { reason: motivo, liberada: false });
       });
     }
     return m;
-  }, [bloqueios, regrasBloqueioQuery.data, range.startDate, range.endDate]);
+  }, [bloqueios, regrasBloqueioQuery.data, unidadeFilterId, range.startDate, range.endDate]);
 
   const blockedByDate = useMemo(() => {
     const m = new Map<string, { motivo: string; auto: boolean; id: string }>();
+    const liberadasSet = new Set<string>();
     for (const b of bloqueios) {
-      if (b.liberada_por_solicitacao) continue;
+      if (b.liberada_por_solicitacao || b.liberada === true) {
+        liberadasSet.add(b.data);
+        continue;
+      }
       m.set(b.data, { motivo: b.motivo, auto: !!b.regra_id, id: b.id });
     }
     const regrasData = regrasBloqueioQuery.data;
     if (regrasData) {
       const fromRegras = buildBloqueiosDeRegras({
         regras: regrasData.regras,
-        vinculos: [],
-        unidadeId: null,
+        vinculos: regrasData.vinculos,
+        unidadeId: unidadeFilterId,
         from: range.startDate,
         to: range.endDate,
       });
       fromRegras.forEach((motivo, iso) => {
+        if (liberadasSet.has(iso)) return;
         if (!m.has(iso)) m.set(iso, { motivo, auto: true, id: `regra:${iso}` });
       });
     }
     return m;
-  }, [bloqueios, regrasBloqueioQuery.data, range.startDate, range.endDate]);
+  }, [bloqueios, regrasBloqueioQuery.data, unidadeFilterId, range.startDate, range.endDate]);
 
   const colaboradores = (colabsQ.data ?? []) as any[];
   const filteredColabs = useMemo(() => {
