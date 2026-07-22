@@ -472,6 +472,8 @@ export default function DpAdminCalendario() {
     onSuccess: () => {
       toast.success("Data liberada");
       qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas"] });
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_geral"] });
       setDayOpen(null);
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao liberar"),

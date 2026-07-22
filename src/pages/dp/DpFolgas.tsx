@@ -241,6 +241,8 @@ export default function DpFolgas() {
       toast.success("Data liberada");
       qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_geral"] });
       qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas"] });
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
+      qc.invalidateQueries({ queryKey: ["dp_bloqueio_regras"] });
       setSelectedDay(null);
     },
     onError: (e: any) => toast.error("Erro ao liberar", { description: e?.message ?? e?.error_description ?? "Tente novamente." }),
