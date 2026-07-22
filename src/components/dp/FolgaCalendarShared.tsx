@@ -52,7 +52,7 @@ type Cell =
 
 const statusStyles: Record<DateStatusKind, string> = {
   available: "bg-emerald-500/5 border-emerald-500/30 hover:bg-emerald-500/10",
-  blocked: "bg-destructive/10 border-destructive/30",
+  blocked: "bg-destructive/15 border-destructive/40",
   taken: "bg-destructive/10 border-destructive/30",
   birthday: "bg-destructive/10 border-destructive/30",
   mine: "bg-amber-500/15 border-amber-500/40",
@@ -190,7 +190,7 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
                     <span className={cn("text-sm font-bold", !wknd && "text-muted-foreground", past && "opacity-50")}>
                       {c.date.getDate()}
                     </span>
-                    {isAdmin && wknd && (
+                    {isAdmin && wknd && c.status !== "blocked" && (
                       <Badge
                         variant="outline"
                         className={cn(
@@ -213,6 +213,7 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
                         Bloqueado
                       </Badge>
                     )}
+
                     {c.status === "fixed" && !isAdmin && (
                       <Badge variant="outline" className="h-5 border-blue-500/30 bg-blue-500/10 px-1.5 py-0 text-[9px] text-blue-600">
                         Semanal
@@ -290,7 +291,7 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
                   >
                     {c.date.getDate()}
                   </span>
-                  {isAdmin && wknd && (
+                  {isAdmin && wknd && c.status !== "blocked" && (
                     <span
                       className={cn(
                         "rounded-md border px-1.5 py-0.5 text-[9px] font-black",
@@ -304,11 +305,12 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
                       {c.occupancy}/{c.limit}
                     </span>
                   )}
-                  {!isAdmin && c.status === "blocked" && (
+                  {c.status === "blocked" && (
                     <span className="rounded-md border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[9px] font-black text-destructive">
                       Bloqueado
                     </span>
                   )}
+
                   {!isAdmin && c.status === "available" && wknd && (
                     <span className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-black text-emerald-600">
                       Disponível

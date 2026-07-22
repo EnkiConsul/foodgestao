@@ -1,20 +1,33 @@
 ## Problema
 
-08/08/2026 aparece disponível no calendário do colaborador mesmo com a regra ativa "Bloqueio Pós-Pagamento (FDS após dia 5)". O banco tem 7 regras ativas para a empresa `b0d450a7…`, mas a requisição `GET /dp_bloqueio_regras?ativo=eq.true` da tela `/dp/meu/calendario` retornou `[]`. O mesmo aconteceu com `dp_bloqueio_regra_unidades`.
+No calendário de admin (`/dp/admin/calendario`), dias bloqueados por regras dinâmicas (ex.: 08/08/2026 pelo "Pós-Pagamento — FDS após dia 5") **aparecem como se estivessem disponíveis**.
 
-## Causa raiz
+## Diagnóstico
 
-RLS de `dp_bloqueio_regras` e `dp_bloqueio_regra_unidades` autoriza leitura apenas para membros em `company_members`. O colaborador logado (`is_dp_colaborador = true`, `company_members = []`) é vinculado apenas por `dp_colaboradores.user_id`, então cai fora das policies e recebe conjunto vazio — o motor runtime (`buildBloqueiosDeRegras`) não tem regras para expandir e o dia fica marcado como disponível. É a mesma lacuna que já corrigi em `dp_folgas`.
+A engine de regras funciona: `DpAdminCalendario` carrega `dp_bloqueio_regras` + `dp_bloqueio_regra_unidades` da empresa selecionada e passa por `buildBloqueiosDeRegras` (com `vinculos: []` e `unidadeId: null`, aplicando as regras globalmente). `calculateDateStatus` retorna corretamente `status: "blocked"` para admin (`folga-rules.ts:264-267`).
+
+O bug está apenas no **render** em `src/components/dp/FolgaCalendarShared.tsx` (grid "chunky", linhas 264-336):
+
+1. **Sem etiqueta "Bloqueado" para admin.** O badge "Bloqueado" está atrás de `!isAdmin` (linha 307), então o admin só vê o ícone de cadeado — pequeno e discreto.
+2. **Chip de ocupação verde sobrepõe o estado bloqueado.** Nos dias de FDS, o admin sempre vê `0/1` em verde (linhas 293-306) porque `occupancy < limit`, mesmo quando o dia está bloqueado por regra. A cor verde do chip domina visualmente e faz o dia parecer disponível, ainda que o fundo da célula esteja em vermelho tênue (`bg-destructive/10`).
+3. **Mesmo problema no layout mobile** (linhas 193-215): admin só vê o chip verde `0/1`, sem "Bloqueado".
 
 ## Correção
 
-Migração SQL adicionando políticas SELECT para colaboradores autenticados, restritas à empresa deles via `public.dp_colaborador_of(auth.uid())`:
+Editar apenas `src/components/dp/FolgaCalendarShared.tsx` (frontend/apresentação):
 
-- `dp_bloqueio_regras`: nova policy `dp_bloqueio_regras_read_colaborador` — permite `SELECT` quando `company_id` = empresa do colaborador (join em `dp_colaboradores.id = dp_colaborador_of(auth.uid())`).
-- `dp_bloqueio_regra_unidades`: nova policy `dp_bloqueio_regra_unidades_read_colaborador` — permite `SELECT` quando o `regra_id` pertence a uma regra da empresa do colaborador.
+1. **Grid desktop (chunky):**
+   - Quando `c.status === "blocked"`, esconder o chip verde/amber `occupancy/limit` do admin e exibir uma etiqueta "Bloqueado" (mesmo estilo destrutivo já usado para colaborador) — vale para admin e colaborador.
+   - Reforçar o fundo bloqueado subindo a opacidade (`bg-destructive/15 border-destructive/40`) para o estado ficar inequívoco.
+   - Manter o ícone de cadeado no canto superior direito.
 
-Ambas apenas leitura, sem `INSERT/UPDATE/DELETE` (mantém edição restrita a admin/owner). Nenhuma alteração de frontend é necessária — o `regrasBloqueioQuery` já consome esses endpoints e será refetchado automaticamente.
+2. **Layout mobile:**
+   - Se `c.status === "blocked"`, esconder o chip `occupancy/limit` do admin e mostrar a badge "Bloqueado" (que já existe, hoje só rendera para colaborador porque vem após `isAdmin && wknd`).
 
-## Validação
+3. **Sem mudanças em SQL, RLS, engine de regras ou lógica de negócio** — o cálculo já está correto; corrigimos só a apresentação.
 
-Após a migração, no portal do colaborador, 08/08/2026 e 09/08/2026 (fim de semana após dia 5 de agosto) devem aparecer bloqueados com o motivo "Bloqueio Pós-Pagamento (FDS após dia 5)". Também confirmar que 09/08/2026 mostra "Dia dos Pais" (2º domingo) e 12/06, 12/10, 24/12, 31/12 seguem bloqueados nos meses correspondentes.
+## Verificação
+
+- Recarregar `/dp/admin/calendario` em agosto/2026 e confirmar 08 e 09 marcados como "Bloqueado" (fundo vermelho + label).
+- Confirmar que dias FDS **não bloqueados** continuam mostrando `occupancy/limit` normal.
+- Confirmar que o portal do colaborador segue idêntico (rota já validada).
