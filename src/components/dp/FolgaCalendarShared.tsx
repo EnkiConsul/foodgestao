@@ -52,7 +52,7 @@ type Cell =
 
 const statusStyles: Record<DateStatusKind, string> = {
   available: "bg-emerald-500/5 border-emerald-500/30 hover:bg-emerald-500/10",
-  blocked: "bg-destructive/10 border-destructive/30",
+  blocked: "bg-destructive/15 border-destructive/40",
   taken: "bg-destructive/10 border-destructive/30",
   birthday: "bg-destructive/10 border-destructive/30",
   mine: "bg-amber-500/15 border-amber-500/40",
