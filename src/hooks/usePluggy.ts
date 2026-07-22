@@ -39,6 +39,17 @@ export function useBankConnections() {
   const connectionsQuery = useQuery({
     queryKey: ["bank-connections", contextType, selectedCompanyId, user?.id],
     enabled: !!user && (contextType === "pf" || !!selectedCompanyId),
+    // Auto-refresh a cada 15s enquanto houver conexão em atualização/criação,
+    // para refletir a conclusão do coleta de lançamentos disparada na Pluggy
+    // (webhook item/updated também invalida essas queries em tempo real).
+    refetchInterval: (query) => {
+      const rows = (query.state.data ?? []) as BankConnection[];
+      const busy = rows.some((c) =>
+        ["updating", "creating", "waiting_user_input"].includes(c.status),
+      );
+      return busy ? 15_000 : false;
+    },
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       let query = supabase
         .from("bank_connections")
