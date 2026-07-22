@@ -47,6 +47,8 @@ import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/
 import { DpCalendarDayDialog, type DpDayScheduleEntry } from "@/components/dp/DpCalendarDayDialog";
 import { DpStatusBadge, statusToneFor } from "@/components/dp/DpStatusBadge";
 import { normalizeWeekday } from "@/lib/dp/folga-rules";
+import { buildBloqueiosDeRegras, type RegraRow } from "@/lib/dp/bloqueio-rules";
+import { Lock } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Row = Database["public"]["Tables"]["dp_solicitacoes"]["Row"] & {
@@ -247,6 +249,41 @@ export default function DpFolgas() {
     },
   });
 
+  const regrasBloqueioQuery = useQuery({
+    queryKey: ["dp_bloq_regras_geral", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const [{ data: regras }, { data: vinc }] = await Promise.all([
+        supabase
+          .from("dp_bloqueio_regras")
+          .select("id, company_id, nome, tipo, mes, dia, regra_json, ativo")
+          .eq("company_id", selectedCompanyId!)
+          .eq("ativo", true),
+        supabase.from("dp_bloqueio_regra_unidades").select("regra_id, unidade_id"),
+      ]);
+      return {
+        regras: (regras ?? []) as RegraRow[],
+        vinculos: (vinc ?? []) as { regra_id: string; unidade_id: string }[],
+      };
+    },
+  });
+
+  const datasBloqueadasQuery = useQuery({
+    queryKey: ["dp_datas_bloqueadas_geral", selectedCompanyId, format(cursor, "yyyy-MM")],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_datas_bloqueadas")
+        .select("data, motivo, liberada, liberada_por_solicitacao, unidade_id, regra_id")
+        .eq("company_id", selectedCompanyId!)
+        .gte("data", format(rangeStart, "yyyy-MM-dd"))
+        .lte("data", format(rangeEnd, "yyyy-MM-dd"));
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+
   const query = useQuery({
     queryKey: ["dp_folgas", selectedCompanyId, format(cursor, "yyyy-MM"), unidadeFilter, colabFilter, tipoFilter],
     enabled: !!selectedCompanyId,
@@ -396,7 +433,40 @@ export default function DpFolgas() {
     return map;
   }, [diaConfigQuery.data]);
 
+  const blockedByDate = useMemo(() => {
+    const m = new Map<string, { reason: string; auto: boolean }>();
+    const liberadas = new Set<string>();
+    const unidadeFilterId = unidadeFilter === "todas" ? null : unidadeFilter;
+    for (const b of datasBloqueadasQuery.data ?? []) {
+      // Se o bloqueio é de uma unidade específica e o filtro é outra unidade, ignora.
+      if (b.unidade_id && unidadeFilterId && b.unidade_id !== unidadeFilterId) continue;
+      const liberado = b.liberada === true || b.liberada_por_solicitacao != null;
+      if (liberado) {
+        liberadas.add(b.data);
+        continue;
+      }
+      m.set(b.data, { reason: b.motivo ?? "Bloqueado", auto: !!b.regra_id });
+    }
+    const regrasData = regrasBloqueioQuery.data;
+    if (regrasData) {
+      const fromRegras = buildBloqueiosDeRegras({
+        regras: regrasData.regras,
+        vinculos: regrasData.vinculos,
+        unidadeId: unidadeFilterId,
+        from: rangeStart,
+        to: rangeEnd,
+      });
+      fromRegras.forEach((motivo, iso) => {
+        if (liberadas.has(iso)) return;
+        if (!m.has(iso)) m.set(iso, { reason: motivo, auto: true });
+      });
+    }
+    return m;
+  }, [datasBloqueadasQuery.data, regrasBloqueioQuery.data, unidadeFilter, rangeStart, rangeEnd]);
+
   const defaultDailyCap = 1;
+
+
 
   // Stats do mês corrente (dias dentro do mês)
   const stats = useMemo(() => {
@@ -575,16 +645,19 @@ export default function DpFolgas() {
               const isToday = isSameDay(day, new Date());
               const cap = capacityByDay.get(key) ?? defaultDailyCap;
               const aprov = events.filter((e) => e.status === "aprovada" && e.tipo === "folga").length;
-              const lotado = cap > 0 && aprov >= cap;
-              const parcial = aprov > 0 && !lotado;
+              const blocked = blockedByDate.get(key);
+              const lotado = !blocked && cap > 0 && aprov >= cap;
+              const parcial = !blocked && aprov > 0 && !lotado;
 
               return (
                 <button
                   key={key}
                   onClick={() => setSelectedDay(day)}
+                  title={blocked?.reason}
                   className={cn(
                     "min-h-[112px] bg-white p-2 text-left flex flex-col gap-1.5 transition-colors hover:bg-muted/30",
                     !inMonth && "bg-muted/10 text-muted-foreground",
+                    blocked && inMonth && "bg-destructive/15 border border-destructive/40",
                     lotado && inMonth && "bg-red-50/60",
                     parcial && inMonth && "bg-emerald-50/40",
                   )}
@@ -594,13 +667,19 @@ export default function DpFolgas() {
                       className={cn(
                         "text-sm font-semibold",
                         isToday && "text-primary",
+                        blocked && inMonth && "text-destructive",
                         lotado && inMonth && "text-red-700",
                         parcial && inMonth && "text-emerald-700",
                       )}
                     >
                       {format(day, "d")}
                     </span>
-                    {inMonth && (
+                    {inMonth && blocked && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-destructive/20 text-destructive uppercase tracking-wider">
+                        Bloqueado
+                      </span>
+                    )}
+                    {inMonth && !blocked && (
                       <span
                         className={cn(
                           "text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
@@ -613,6 +692,7 @@ export default function DpFolgas() {
                       </span>
                     )}
                   </div>
+
                   <div className="flex flex-col gap-1 overflow-hidden">
                     {events.slice(0, 3).map((ev) => {
                       const isWeekly = ev.id.startsWith(WEEKLY_FOLGA_ID_PREFIX);
@@ -702,6 +782,20 @@ export default function DpFolgas() {
                   openNew({ data_alvo: format(selectedDay, "yyyy-MM-dd") }),
               }
             : undefined
+        }
+        footerExtra={
+          selectedDay && blockedByDate.get(format(selectedDay, "yyyy-MM-dd")) ? (
+            <div className="flex items-start gap-2 rounded-2xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+              <Lock className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider">Data bloqueada</div>
+                <div className="text-xs opacity-90">
+                  {blockedByDate.get(format(selectedDay, "yyyy-MM-dd"))?.reason}
+                  {blockedByDate.get(format(selectedDay, "yyyy-MM-dd"))?.auto ? " · Automático" : ""}
+                </div>
+              </div>
+            </div>
+          ) : undefined
         }
       />
 
