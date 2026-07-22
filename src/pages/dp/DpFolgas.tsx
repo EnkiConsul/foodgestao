@@ -947,21 +947,70 @@ export default function DpFolgas() {
                     <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
                     {selectedBlock.reason}
                   </div>
-                  <Button
-                    variant="outline"
-                    className="h-11 w-full rounded-xl border-destructive/30 font-bold text-destructive hover:bg-destructive/10"
-                    onClick={() => {
-                      if (selectedBlock.auto && selectedBlock.hasGlobal) {
-                        setLiberarEscopoOpen(true);
-                      } else {
-                        const unidadeId = unidadeFilter === "todas" ? null : unidadeFilter;
-                        liberarData.mutate({ unidadeId });
-                      }
-                    }}
-                    disabled={liberarData.isPending}
-                  >
-                    <Unlock className="mr-2 h-4 w-4" /> Liberar Data
-                  </Button>
+                  {selectedBlock.partials.length > 0 && (
+                    <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 space-y-1.5">
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.15em] text-emerald-700">
+                        <MapPin className="h-3 w-3" />
+                        Liberada em {selectedBlock.partials.length} unidade
+                        {selectedBlock.partials.length > 1 ? "s" : ""}
+                      </div>
+                      <div className="text-xs text-emerald-800 space-y-0.5">
+                        {selectedBlock.partials.map((p) => (
+                          <div key={p.id}>• {p.unidade_nome}</div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {selectedBlock.partials.length > 0 && selectedBlock.auto ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="h-11 w-full rounded-xl border-emerald-500/40 font-bold text-emerald-700 hover:bg-emerald-500/10"
+                          disabled={liberarData.isPending || rebloquearOverride.isPending}
+                        >
+                          <Unlock className="mr-2 h-4 w-4" />
+                          Gerenciar liberações
+                          <ChevronDown className="ml-1 h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-64">
+                        <DropdownMenuLabel className="text-xs">Liberadas por unidade</DropdownMenuLabel>
+                        {selectedBlock.partials.map((p) => (
+                          <DropdownMenuItem
+                            key={p.id}
+                            onClick={() => rebloquearOverride.mutate(p.id)}
+                          >
+                            <Lock className="mr-2 h-4 w-4 text-rose-600" />
+                            Bloquear em {p.unidade_nome}
+                          </DropdownMenuItem>
+                        ))}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => liberarData.mutate({ unidadeId: null })}>
+                          <Globe2 className="mr-2 h-4 w-4 text-amber-600" />
+                          Liberar para todas as unidades
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      className="h-11 w-full rounded-xl border-destructive/30 font-bold text-destructive hover:bg-destructive/10"
+                      onClick={() => {
+                        if (selectedBlock.auto && selectedBlock.hasGlobal && unidadeFilter !== "todas") {
+                          setLiberarEscopoOpen(true);
+                        } else if (selectedBlock.auto && selectedBlock.hasGlobal) {
+                          liberarData.mutate({ unidadeId: null });
+                        } else {
+                          const unidadeId = unidadeFilter === "todas" ? null : unidadeFilter;
+                          liberarData.mutate({ unidadeId });
+                        }
+                      }}
+                      disabled={liberarData.isPending}
+                    >
+                      <Unlock className="mr-2 h-4 w-4" /> Liberar Data
+                    </Button>
+                  )}
                 </div>
               )}
 
