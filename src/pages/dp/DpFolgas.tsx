@@ -1133,6 +1133,24 @@ export default function DpFolgas() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <LiberarEscopoDialog
+        open={liberarEscopoOpen}
+        onOpenChange={setLiberarEscopoOpen}
+        dataLabel={selectedDay ? format(selectedDay, "dd/MM/yyyy") : ""}
+        unidadeNome={(() => {
+          if (unidadeFilter === "todas") return null;
+          const u = (unidadesQuery.data ?? []).find((x: any) => x.id === unidadeFilter);
+          return u?.nome ?? null;
+        })()}
+        motivo={selectedBlock?.reason}
+        loading={liberarData.isPending}
+        onLiberarUnidade={() => {
+          if (unidadeFilter === "todas") return;
+          liberarData.mutate({ unidadeId: unidadeFilter });
+        }}
+        onLiberarGlobal={() => liberarData.mutate({ unidadeId: null })}
+      />
     </DpPage>
   );
 }
