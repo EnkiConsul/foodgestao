@@ -17,7 +17,7 @@ import {
   type Regra, type DataBloq, type Unidade,
   type RegraFormState, type DataFormState, type RegraJson,
 } from "@/lib/dp/bloqueios";
-import { buildBloqueiosDeRegras, type RegraRow, type RegraUnidadeLink } from "@/lib/dp/bloqueio-rules";
+import { expandRegraNoIntervalo, type RegraRow, type RegraUnidadeLink } from "@/lib/dp/bloqueio-rules";
 import { RegraDialog } from "@/components/dp/bloqueios/RegraDialog";
 import { DataDialog } from "@/components/dp/bloqueios/DataDialog";
 import { RegraRow as RegraRowUI } from "@/components/dp/bloqueios/RegraRow";
