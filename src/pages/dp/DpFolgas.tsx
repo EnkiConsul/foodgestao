@@ -433,7 +433,40 @@ export default function DpFolgas() {
     return map;
   }, [diaConfigQuery.data]);
 
+  const blockedByDate = useMemo(() => {
+    const m = new Map<string, { reason: string; auto: boolean }>();
+    const liberadas = new Set<string>();
+    const unidadeFilterId = unidadeFilter === "todas" ? null : unidadeFilter;
+    for (const b of datasBloqueadasQuery.data ?? []) {
+      // Se o bloqueio é de uma unidade específica e o filtro é outra unidade, ignora.
+      if (b.unidade_id && unidadeFilterId && b.unidade_id !== unidadeFilterId) continue;
+      const liberado = b.liberada === true || b.liberada_por_solicitacao != null;
+      if (liberado) {
+        liberadas.add(b.data);
+        continue;
+      }
+      m.set(b.data, { reason: b.motivo ?? "Bloqueado", auto: !!b.regra_id });
+    }
+    const regrasData = regrasBloqueioQuery.data;
+    if (regrasData) {
+      const fromRegras = buildBloqueiosDeRegras({
+        regras: regrasData.regras,
+        vinculos: regrasData.vinculos,
+        unidadeId: unidadeFilterId,
+        from: rangeStart,
+        to: rangeEnd,
+      });
+      fromRegras.forEach((motivo, iso) => {
+        if (liberadas.has(iso)) return;
+        if (!m.has(iso)) m.set(iso, { reason: motivo, auto: true });
+      });
+    }
+    return m;
+  }, [datasBloqueadasQuery.data, regrasBloqueioQuery.data, unidadeFilter, rangeStart, rangeEnd]);
+
   const defaultDailyCap = 1;
+
+
 
   // Stats do mês corrente (dias dentro do mês)
   const stats = useMemo(() => {
