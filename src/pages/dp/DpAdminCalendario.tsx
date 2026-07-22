@@ -293,6 +293,12 @@ export default function DpAdminCalendario() {
       .on("postgres_changes", { event: "*", schema: "public", table: "dp_solicitacoes" }, () =>
         qc.invalidateQueries({ queryKey: ["dp_solicitacoes_pend"] }),
       )
+      .on("postgres_changes", { event: "*", schema: "public", table: "dp_bloqueio_regras" }, () =>
+        qc.invalidateQueries({ queryKey: ["dp_bloq_regras_admin_cal"] }),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "dp_bloqueio_regra_unidades" }, () =>
+        qc.invalidateQueries({ queryKey: ["dp_bloq_regras_admin_cal"] }),
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
