@@ -227,6 +227,12 @@ export default function DpMeuCalendario() {
       .on("postgres_changes", { event: "*", schema: "public", table: "dp_dia_config", filter: `company_id=eq.${companyId}` }, () => {
         qc.invalidateQueries({ queryKey: ["dp_dia_config_meu_cal"] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "dp_bloqueio_regras", filter: `company_id=eq.${companyId}` }, () => {
+        qc.invalidateQueries({ queryKey: ["dp_bloq_regras_meu_cal"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "dp_bloqueio_regra_unidades" }, () => {
+        qc.invalidateQueries({ queryKey: ["dp_bloq_regras_meu_cal"] });
+      })
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
