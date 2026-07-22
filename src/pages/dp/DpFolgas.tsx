@@ -243,7 +243,7 @@ export default function DpFolgas() {
       qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas"] });
       setSelectedDay(null);
     },
-    onError: (e) => toast.error("Erro ao liberar", { description: e instanceof Error ? e.message : String(e) }),
+    onError: (e: any) => toast.error("Erro ao liberar", { description: e?.message ?? e?.error_description ?? "Tente novamente." }),
   });
 
   const salvarLimite = useMutation({
