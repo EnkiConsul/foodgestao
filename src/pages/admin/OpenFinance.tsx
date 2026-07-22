@@ -155,18 +155,29 @@ export default function AdminOpenFinance() {
     });
   }, [connections, statusFilter, search]);
 
-  async function handleSync(conn: Connection) {
-    setSyncingId(conn.id);
+  async function handleSync(conn: Connection, mode: "full" | "reimport" = "full") {
+    setSyncingId(conn.id + ":" + mode);
     try {
       const { data, error } = await supabase.functions.invoke("pluggy-sync-connection", {
-        body: { connectionId: conn.id },
+        body: {
+          connectionId: conn.id,
+          ...(mode === "reimport" ? { skipItemUpdate: true, source: "admin" } : {}),
+        },
       });
       if (error) throw error;
-      const res = data as { imported: number; error: string | null; needsReconnect?: boolean; itemUpdateTriggered?: boolean };
+      const res = data as {
+        imported: number;
+        error: string | null;
+        needsReconnect?: boolean;
+        itemUpdateTriggered?: boolean;
+        perAccount?: Array<{ imported: number; error?: string }>;
+      };
+      const errs = (res.perAccount ?? []).filter((p) => p.error).length;
       if (res.needsReconnect) toast.error("Requer reconexão pelo usuário");
       else if (res.itemUpdateTriggered) toast.info("Coleta iniciada na Pluggy. Aguarde webhook.");
+      else if (res.imported > 0) toast.success(`Importados ${res.imported} lançamentos${errs ? ` · ${errs} conta(s) com aviso` : ""}`);
       else if (res.error) toast.error(res.error);
-      else toast.success(`Sincronizado (${res.imported} lançamentos)`);
+      else toast.info(`Nenhum lançamento novo${errs ? ` · ${errs} conta(s) com aviso` : ""}`);
       connectionsQuery.refetch();
       eventsQuery.refetch();
     } catch (e) {
