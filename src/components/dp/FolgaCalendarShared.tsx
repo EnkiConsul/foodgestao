@@ -291,7 +291,7 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
                   >
                     {c.date.getDate()}
                   </span>
-                  {isAdmin && wknd && (
+                  {isAdmin && wknd && c.status !== "blocked" && (
                     <span
                       className={cn(
                         "rounded-md border px-1.5 py-0.5 text-[9px] font-black",
@@ -305,11 +305,12 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
                       {c.occupancy}/{c.limit}
                     </span>
                   )}
-                  {!isAdmin && c.status === "blocked" && (
+                  {c.status === "blocked" && (
                     <span className="rounded-md border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[9px] font-black text-destructive">
                       Bloqueado
                     </span>
                   )}
+
                   {!isAdmin && c.status === "available" && wknd && (
                     <span className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-black text-emerald-600">
                       Disponível
