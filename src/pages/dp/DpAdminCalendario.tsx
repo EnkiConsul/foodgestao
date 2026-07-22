@@ -744,7 +744,14 @@ export default function DpAdminCalendario() {
                   <Button
                     variant="outline"
                     className="h-11 w-full rounded-xl border-destructive/30 font-bold text-destructive hover:bg-destructive/10"
-                    onClick={() => liberarData.mutate()}
+                    onClick={() => {
+                      if (currentBlock.auto && currentBlock.hasGlobal) {
+                        setLiberarEscopoOpen(true);
+                      } else {
+                        const unidadeId = filterUnidade === "all" ? null : filterUnidade;
+                        liberarData.mutate({ unidadeId });
+                      }
+                    }}
                     disabled={liberarData.isPending}
                   >
                     <Unlock className="mr-2 h-4 w-4" /> Liberar Data
