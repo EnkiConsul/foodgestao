@@ -46,6 +46,7 @@ import {
   type DateStatusKind,
   type FolgaRecord,
 } from "@/lib/dp/folga-rules";
+import { buildBloqueiosDeRegras, type RegraRow } from "@/lib/dp/bloqueio-rules";
 import { cn } from "@/lib/utils";
 
 const STATUS_LABEL: Record<DateStatusKind, string> = {
