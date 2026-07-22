@@ -266,6 +266,24 @@ export default function DpFolgas() {
     onError: (e: any) => toast.error("Erro ao liberar", { description: e?.message ?? e?.error_description ?? "Tente novamente." }),
   });
 
+  const rebloquearOverride = useMutation({
+    mutationFn: async (overrideId: string) => {
+      const { error } = await supabase
+        .from("dp_datas_bloqueadas")
+        .delete()
+        .eq("id", overrideId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Data bloqueada novamente para a unidade");
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_geral"] });
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas"] });
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
+    },
+    onError: (e: any) => toast.error("Erro ao bloquear novamente", { description: e?.message ?? "Tente novamente." }),
+  });
+
+
   const salvarLimite = useMutation({
     mutationFn: async () => {
       if (!selectedCompanyId || !selectedDay) return;
