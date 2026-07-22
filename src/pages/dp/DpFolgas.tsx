@@ -824,62 +824,207 @@ export default function DpFolgas() {
         </div>
       </DpContentCard>
 
-      <DpCalendarDayDialog
-        day={selectedDay}
-        onClose={() => {
-          setSelectedDay(null);
-          setQuickColabId("");
+      <Dialog
+        open={!!selectedDay}
+        onOpenChange={(o) => {
+          if (!o) {
+            setSelectedDay(null);
+            setQuickColabId("");
+          }
         }}
-        schedule={selectedEvents.map<DpDayScheduleEntry>((ev) => ({
-          id: ev.id,
-          name: ev.dp_colaboradores?.nome ?? "—",
-          meta: (
-            <>
-              {ev.id.startsWith(WEEKLY_FOLGA_ID_PREFIX) ? "Folga Semanal" : TIPO_LABEL[ev.tipo]}
-              {ev.data_fim ? ` · até ${ev.data_fim}` : ""}
-              {ev.motivo ? ` · ${ev.motivo}` : ""}
-            </>
-          ),
-          status: (
-            <DpStatusBadge tone={ev.id.startsWith(WEEKLY_FOLGA_ID_PREFIX) ? "info" : statusToneFor(ev.status)}>
-              {ev.id.startsWith(WEEKLY_FOLGA_ID_PREFIX) ? "Semanal" : STATUS_LABEL[ev.status]}
-            </DpStatusBadge>
-          ),
-        }))}
-        assignOptions={(colabs.data ?? [])
-          .filter((c) => c.ativo !== false)
-          .filter((c) =>
-            unidadeFilter === "todas" ? true : c.unidade_id === unidadeFilter,
-          )
-          .map((c) => ({ value: c.id, label: c.nome }))}
-        assignValue={quickColabId}
-        onAssignChange={setQuickColabId}
-        onAssign={() => quickAssign.mutate()}
-        assignPending={quickAssign.isPending}
-        secondaryAction={
-          selectedDay
-            ? {
-                label: "Solicitar ausência avançada (férias, atestado, período)",
-                onClick: () =>
-                  openNew({ data_alvo: format(selectedDay, "yyyy-MM-dd") }),
-              }
-            : undefined
-        }
-        footerExtra={
-          selectedDay && blockedByDate.get(format(selectedDay, "yyyy-MM-dd")) ? (
-            <div className="flex items-start gap-2 rounded-2xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-              <Lock className="mt-0.5 h-4 w-4 shrink-0" />
-              <div>
-                <div className="text-xs font-bold uppercase tracking-wider">Data bloqueada</div>
-                <div className="text-xs opacity-90">
-                  {blockedByDate.get(format(selectedDay, "yyyy-MM-dd"))?.reason}
-                  {blockedByDate.get(format(selectedDay, "yyyy-MM-dd"))?.auto ? " · Automático" : ""}
+      >
+        <DialogContent className="max-w-lg rounded-3xl border-none p-7 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3 text-3xl font-black tracking-tight">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <CalendarDays className="h-6 w-6" />
+              </div>
+              {selectedDay && format(selectedDay, "dd/MM/yyyy")}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              {selectedDay && format(selectedDay, "PPPP", { locale: ptBR })}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedDay && (
+            <div className="space-y-6 py-2">
+              {selectedBlock && (
+                <div className="space-y-3 rounded-2xl border border-destructive/20 bg-destructive/10 p-5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-destructive">
+                      <Lock className="h-3.5 w-3.5" /> Data Bloqueada
+                    </h3>
+                    <Badge
+                      variant="outline"
+                      className="border-destructive/30 text-[9px] font-black uppercase text-destructive"
+                    >
+                      {selectedBlock.auto ? "Automático" : "Manual"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-start gap-2 text-sm font-semibold text-destructive">
+                    <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+                    {selectedBlock.reason}
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="h-11 w-full rounded-xl border-destructive/30 font-bold text-destructive hover:bg-destructive/10"
+                    onClick={() => liberarData.mutate()}
+                    disabled={liberarData.isPending}
+                  >
+                    <Unlock className="mr-2 h-4 w-4" /> Liberar Data
+                  </Button>
+                </div>
+              )}
+
+              {selectedIsWeekend && (
+                <div className="space-y-3 rounded-2xl border bg-muted/30 p-5">
+                  <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                    <Settings2 className="h-3.5 w-3.5" /> Configuração do Dia
+                  </h3>
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <Label className="mb-1.5 block text-[10px] font-bold text-muted-foreground">
+                        Limite de colaboradores
+                      </Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={20}
+                        value={editLimit}
+                        onChange={(e) => setEditLimit(Number(e.target.value))}
+                        className="h-11 rounded-xl font-bold"
+                      />
+                    </div>
+                    <Button
+                      onClick={() => salvarLimite.mutate()}
+                      disabled={salvarLimite.isPending}
+                      className="mt-auto h-11 rounded-xl px-5"
+                    >
+                      <Save className="mr-2 h-4 w-4" />
+                      {salvarLimite.isPending ? "..." : "Salvar"}
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">0 = sem limite (livre).</p>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                  Escala do dia
+                </h3>
+                <div className="space-y-2">
+                  {selectedEvents.length === 0 ? (
+                    <div className="rounded-2xl border-2 border-dashed py-10 text-center text-sm text-muted-foreground">
+                      Ninguém escalado para este dia.
+                    </div>
+                  ) : (
+                    selectedEvents.map((ev) => {
+                      const isWeekly = ev.id.startsWith(WEEKLY_FOLGA_ID_PREFIX);
+                      const isEfetivada = ev.id.startsWith("folga:");
+                      return (
+                        <div
+                          key={ev.id}
+                          className="group flex items-center justify-between rounded-2xl border bg-card p-4 transition-all hover:shadow-md"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div
+                              className={cn(
+                                "h-3 w-3 rounded-full",
+                                isWeekly && "bg-blue-500",
+                                !isWeekly && ev.status === "pendente" && "bg-violet-500",
+                                !isWeekly && ev.status === "aprovada" && ev.tipo === "folga" && "bg-primary",
+                                !isWeekly && ev.tipo === "ferias" && "bg-amber-500",
+                              )}
+                            />
+                            <div>
+                              <div className="font-bold">{ev.dp_colaboradores?.nome ?? "—"}</div>
+                              <div className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                {isWeekly ? "Folga Semanal" : TIPO_LABEL[ev.tipo]}
+                                {ev.data_fim ? ` · até ${ev.data_fim}` : ""}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <DpStatusBadge tone={isWeekly ? "info" : statusToneFor(ev.status)}>
+                              {isWeekly ? "Semanal" : STATUS_LABEL[ev.status]}
+                            </DpStatusBadge>
+                            {isEfetivada && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 rounded-xl text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                                onClick={() => removerFolga.mutate(ev.id)}
+                                disabled={removerFolga.isPending}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
+
+              <div className="space-y-3 border-t pt-5">
+                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                  Atribuir folga manual
+                </h3>
+                <div className="flex gap-3">
+                  <Select value={quickColabId} onValueChange={setQuickColabId}>
+                    <SelectTrigger className="h-12 flex-1 rounded-2xl font-semibold">
+                      <SelectValue placeholder="Escolher colaborador..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl">
+                      {(colabs.data ?? [])
+                        .filter((c) => c.ativo !== false)
+                        .filter((c) =>
+                          unidadeFilter === "todas" ? true : c.unidade_id === unidadeFilter,
+                        )
+                        .map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.nome}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    onClick={() => quickAssign.mutate()}
+                    disabled={!quickColabId || quickAssign.isPending}
+                    className="h-12 rounded-2xl px-6 font-bold"
+                  >
+                    <Plus className="mr-1 h-4 w-4" />
+                    {quickAssign.isPending ? "Atribuindo..." : "Atribuir"}
+                  </Button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    openNew({ data_alvo: format(selectedDay, "yyyy-MM-dd") })
+                  }
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  Solicitar ausência avançada (férias, atestado, período)
+                </button>
+              </div>
             </div>
-          ) : undefined
-        }
-      />
+          )}
+
+          <DialogFooter className="sm:justify-center">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setSelectedDay(null);
+                setQuickColabId("");
+              }}
+              className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+            >
+              Fechar detalhes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
 
 
