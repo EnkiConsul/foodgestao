@@ -449,7 +449,7 @@ export default function DpBloqueios() {
           ) : (
             <div className="divide-y divide-border">
               {regrasFiltradas.map((r) => (
-                <RegraRow
+                <RegraRowUI
                   key={r.id}
                   regra={r}
                   onEdit={openEditRegra}
