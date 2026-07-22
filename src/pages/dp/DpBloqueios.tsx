@@ -356,6 +356,32 @@ export default function DpBloqueios() {
     onError: (e: any) => toast.error(e.message ?? "Erro"),
   });
 
+  const liberar = useMutation({
+    mutationFn: async (d: DataBloq) => {
+      const { data: userRes } = await supabase.auth.getUser();
+      const unidadeIdParaUpsert = d.unidade_id ?? null;
+      const { error } = await supabase
+        .from("dp_datas_bloqueadas")
+        .upsert(
+          {
+            company_id: selectedCompanyId!,
+            data: d.data,
+            unidade_id: unidadeIdParaUpsert,
+            liberada: true,
+            motivo: "Liberado manualmente pelo administrador",
+            criado_por: userRes.user?.id ?? null,
+          },
+          { onConflict: "company_id,unidade_id,data" },
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Data liberada");
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao liberar"),
+  });
+
   // ---- Handlers de abertura ----
   const openNovaRegra = () => {
     setEditRegraId(null);
