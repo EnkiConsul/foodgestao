@@ -35,7 +35,18 @@ import {
   Settings2,
   Save,
   Trash2,
+  MapPin,
+  Globe2,
+  ChevronDown,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { CalendarSkeleton } from "@/components/dp/DpSkeletons";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -255,6 +266,24 @@ export default function DpFolgas() {
     onError: (e: any) => toast.error("Erro ao liberar", { description: e?.message ?? e?.error_description ?? "Tente novamente." }),
   });
 
+  const rebloquearOverride = useMutation({
+    mutationFn: async (overrideId: string) => {
+      const { error } = await supabase
+        .from("dp_datas_bloqueadas")
+        .delete()
+        .eq("id", overrideId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Data bloqueada novamente para a unidade");
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_geral"] });
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas"] });
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
+    },
+    onError: (e: any) => toast.error("Erro ao bloquear novamente", { description: e?.message ?? "Tente novamente." }),
+  });
+
+
   const salvarLimite = useMutation({
     mutationFn: async () => {
       if (!selectedCompanyId || !selectedDay) return;
@@ -355,7 +384,7 @@ export default function DpFolgas() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_datas_bloqueadas")
-        .select("data, motivo, liberada, liberada_por_solicitacao, unidade_id, regra_id")
+        .select("id, data, motivo, liberada, liberada_por_solicitacao, unidade_id, regra_id")
         .eq("company_id", selectedCompanyId!)
         .gte("data", format(rangeStart, "yyyy-MM-dd"))
         .lte("data", format(rangeEnd, "yyyy-MM-dd"));
@@ -515,15 +544,40 @@ export default function DpFolgas() {
   }, [diaConfigQuery.data]);
 
   const blockedByDate = useMemo(() => {
-    const m = new Map<string, { reason: string; auto: boolean; hasGlobal: boolean; hasUnidade: boolean }>();
-    const liberadas = new Set<string>();
+    type BlockInfo = {
+      reason: string;
+      auto: boolean;
+      hasGlobal: boolean;
+      hasUnidade: boolean;
+      partials: Array<{ id: string; unidade_id: string; unidade_nome: string }>;
+    };
+    const m = new Map<string, BlockInfo>();
+    const liberadasGlobal = new Set<string>();
+    const partialsByIso = new Map<string, Array<{ id: string; unidade_id: string; unidade_nome: string }>>();
     const unidadeFilterId = unidadeFilter === "todas" ? null : unidadeFilter;
+    const unidadesList = unidadesQuery.data ?? [];
+    const unidadeNomeById = new Map<string, string>();
+    for (const u of unidadesList) unidadeNomeById.set(u.id, u.nome);
+
     for (const b of datasBloqueadasQuery.data ?? []) {
-      // Se o bloqueio é de uma unidade específica e o filtro é outra unidade, ignora.
+      // Escopo por unidade: bloqueio de outra unidade não afeta a visão filtrada
       if (b.unidade_id && unidadeFilterId && b.unidade_id !== unidadeFilterId) continue;
+
       const liberado = b.liberada === true || b.liberada_por_solicitacao != null;
       if (liberado) {
-        liberadas.add(b.data);
+        if (b.unidade_id == null) {
+          // Override global libera a data inteira
+          liberadasGlobal.add(b.data);
+        } else if (unidadeFilterId == null) {
+          // Filtro "todas": rastreia libração parcial por unidade
+          const nome = unidadeNomeById.get(b.unidade_id) ?? "Unidade";
+          const arr = partialsByIso.get(b.data) ?? [];
+          arr.push({ id: b.id, unidade_id: b.unidade_id, unidade_nome: nome });
+          partialsByIso.set(b.data, arr);
+        } else if (unidadeFilterId === b.unidade_id) {
+          // Filtro em uma unidade específica com override liberada dela → libera nesta visão
+          liberadasGlobal.add(b.data);
+        }
         continue;
       }
       m.set(b.data, {
@@ -531,6 +585,7 @@ export default function DpFolgas() {
         auto: !!b.regra_id,
         hasGlobal: b.unidade_id == null,
         hasUnidade: b.unidade_id != null,
+        partials: [],
       });
     }
     const regrasData = regrasBloqueioQuery.data;
@@ -543,14 +598,25 @@ export default function DpFolgas() {
         to: rangeEnd,
       });
       fromRegras.forEach((orig, iso) => {
-        if (liberadas.has(iso)) return;
+        if (liberadasGlobal.has(iso)) return;
         if (!m.has(iso)) {
-          m.set(iso, { reason: orig.motivo, auto: true, hasGlobal: orig.hasGlobal, hasUnidade: orig.hasUnidade });
+          m.set(iso, {
+            reason: orig.motivo,
+            auto: true,
+            hasGlobal: orig.hasGlobal,
+            hasUnidade: orig.hasUnidade,
+            partials: [],
+          });
         }
       });
     }
+    // Anexa partials a datas ainda bloqueadas
+    partialsByIso.forEach((partials, iso) => {
+      const info = m.get(iso);
+      if (info) info.partials = partials;
+    });
     return m;
-  }, [datasBloqueadasQuery.data, regrasBloqueioQuery.data, unidadeFilter, rangeStart, rangeEnd]);
+  }, [datasBloqueadasQuery.data, regrasBloqueioQuery.data, unidadeFilter, rangeStart, rangeEnd, unidadesQuery.data]);
 
   const defaultDailyCap = 1;
 
@@ -881,21 +947,70 @@ export default function DpFolgas() {
                     <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
                     {selectedBlock.reason}
                   </div>
-                  <Button
-                    variant="outline"
-                    className="h-11 w-full rounded-xl border-destructive/30 font-bold text-destructive hover:bg-destructive/10"
-                    onClick={() => {
-                      if (selectedBlock.auto && selectedBlock.hasGlobal) {
-                        setLiberarEscopoOpen(true);
-                      } else {
-                        const unidadeId = unidadeFilter === "todas" ? null : unidadeFilter;
-                        liberarData.mutate({ unidadeId });
-                      }
-                    }}
-                    disabled={liberarData.isPending}
-                  >
-                    <Unlock className="mr-2 h-4 w-4" /> Liberar Data
-                  </Button>
+                  {selectedBlock.partials.length > 0 && (
+                    <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 space-y-1.5">
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.15em] text-emerald-700">
+                        <MapPin className="h-3 w-3" />
+                        Liberada em {selectedBlock.partials.length} unidade
+                        {selectedBlock.partials.length > 1 ? "s" : ""}
+                      </div>
+                      <div className="text-xs text-emerald-800 space-y-0.5">
+                        {selectedBlock.partials.map((p) => (
+                          <div key={p.id}>• {p.unidade_nome}</div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {selectedBlock.partials.length > 0 && selectedBlock.auto ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="h-11 w-full rounded-xl border-emerald-500/40 font-bold text-emerald-700 hover:bg-emerald-500/10"
+                          disabled={liberarData.isPending || rebloquearOverride.isPending}
+                        >
+                          <Unlock className="mr-2 h-4 w-4" />
+                          Gerenciar liberações
+                          <ChevronDown className="ml-1 h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-64">
+                        <DropdownMenuLabel className="text-xs">Liberadas por unidade</DropdownMenuLabel>
+                        {selectedBlock.partials.map((p) => (
+                          <DropdownMenuItem
+                            key={p.id}
+                            onClick={() => rebloquearOverride.mutate(p.id)}
+                          >
+                            <Lock className="mr-2 h-4 w-4 text-rose-600" />
+                            Bloquear em {p.unidade_nome}
+                          </DropdownMenuItem>
+                        ))}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => liberarData.mutate({ unidadeId: null })}>
+                          <Globe2 className="mr-2 h-4 w-4 text-amber-600" />
+                          Liberar para todas as unidades
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      className="h-11 w-full rounded-xl border-destructive/30 font-bold text-destructive hover:bg-destructive/10"
+                      onClick={() => {
+                        if (selectedBlock.auto && selectedBlock.hasGlobal && unidadeFilter !== "todas") {
+                          setLiberarEscopoOpen(true);
+                        } else if (selectedBlock.auto && selectedBlock.hasGlobal) {
+                          liberarData.mutate({ unidadeId: null });
+                        } else {
+                          const unidadeId = unidadeFilter === "todas" ? null : unidadeFilter;
+                          liberarData.mutate({ unidadeId });
+                        }
+                      }}
+                      disabled={liberarData.isPending}
+                    >
+                      <Unlock className="mr-2 h-4 w-4" /> Liberar Data
+                    </Button>
+                  )}
                 </div>
               )}
 
