@@ -21,6 +21,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { cn } from "@/lib/utils";
 import { calculateDateStatus, type ColaboradorRecord, type FolgaRecord } from "@/lib/dp/folga-rules";
+import { buildBloqueiosDeRegras, type RegraRow } from "@/lib/dp/bloqueio-rules";
 
 const TIPOS = [
   { value: "folga", label: "Folga" },
