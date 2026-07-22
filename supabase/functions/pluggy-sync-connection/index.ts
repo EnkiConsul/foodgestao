@@ -354,9 +354,14 @@ Deno.serve(async (req) => {
 
       // Se pelo menos uma conta pediu update, deixa status como 'updating'
       // para o usuário saber que a Pluggy está trabalhando.
-      const finalStatus = itemUpdateTriggered
-        ? "updating"
-        : (item.status ?? "active").toLowerCase();
+      // Traduz item.status + executionStatus para status canônico e mensagem.
+      const resolved = resolvePluggyStatus(item.status, item.executionStatus ?? null);
+      if (resolved.needsReconnect) needsReconnect = true;
+
+      const finalStatus = itemUpdateTriggered ? "updating" : resolved.dbStatus;
+      const finalMessage = itemUpdateTriggered
+        ? "Coletando lançamentos na Pluggy — você será notificado quando terminar."
+        : resolved.message;
 
       await admin
         .from("bank_connections")
@@ -364,9 +369,7 @@ Deno.serve(async (req) => {
           status: finalStatus,
           consent_expires_at: item.consentExpiresAt ?? null,
           last_sync_at: new Date().toISOString(),
-          last_error: itemUpdateTriggered
-            ? "Coletando lançamentos na Pluggy — tente sincronizar novamente em alguns minutos."
-            : null,
+          last_error: finalMessage,
         })
         .eq("id", connectionId);
     } catch (e) {
