@@ -92,6 +92,8 @@ function resolvePluggyStatus(
 const BodySchema = z.object({
   connectionId: z.string().uuid(),
   fullResync: z.boolean().optional(),
+  source: z.enum(["user", "webhook", "admin"]).optional(),
+  skipItemUpdate: z.boolean().optional(),
 });
 
 Deno.serve(async (req) => {
@@ -106,19 +108,37 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const userClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-    const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(
-      authHeader.replace("Bearer ", ""),
-    );
-    if (claimsErr || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const bearer = authHeader.replace("Bearer ", "");
+    const isInternalCall = bearer === serviceRoleKey;
+
+    if (!isInternalCall) {
+      const userClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } },
+      );
+      const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(bearer);
+      if (claimsErr || !claimsData?.claims) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const parsedAuth = BodySchema.safeParse(await req.clone().json());
+      if (parsedAuth.success) {
+        const { data: canSync, error: canErr } = await userClient.rpc("can_sync_bank_connection", {
+          _connection_id: parsedAuth.data.connectionId,
+        });
+        if (canErr) throw canErr;
+        if (!canSync) {
+          return new Response(JSON.stringify({ error: "Sem permissão para sincronizar" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
     }
 
     const parsed = BodySchema.safeParse(await req.json());
@@ -128,19 +148,14 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { connectionId, fullResync } = parsed.data;
-
-    // Autorização — reaproveita a RPC existente
-    const { data: canSync, error: canErr } = await userClient.rpc("can_sync_bank_connection", {
-      _connection_id: connectionId,
-    });
-    if (canErr) throw canErr;
-    if (!canSync) {
-      return new Response(JSON.stringify({ error: "Sem permissão para sincronizar" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const { connectionId, fullResync, source, skipItemUpdate } = parsed.data;
+    console.log(JSON.stringify({
+      scope: "pluggy-sync",
+      step: "start",
+      connectionId,
+      source: source ?? (isInternalCall ? "internal" : "user"),
+      skipItemUpdate: !!skipItemUpdate,
+    }));
 
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -282,44 +297,48 @@ Deno.serve(async (req) => {
           }
         } catch (e) {
           if (e instanceof PluggyApiError && e.status === 410) {
-            // Produto TRANSACTIONS não coletado — dispara update do item na Pluggy.
-            acctError = "Pluggy ainda não coletou transações para esta conta. Iniciamos uma atualização; tente sincronizar novamente em alguns minutos.";
-            if (!itemUpdateTriggered) {
-              try {
-                await triggerItemUpdate(conn.provider_item_id, pluggyWebhookUrl());
-                itemUpdateTriggered = true;
-                console.log(JSON.stringify({
-                  scope: "pluggy-sync",
-                  step: "trigger_item_update",
-                  connectionId,
-                  itemId: conn.provider_item_id,
-                }));
-              } catch (upe) {
-                const msg = (upe as Error).message;
-                console.error(JSON.stringify({
-                  scope: "pluggy-sync",
-                  step: "trigger_item_update_failed",
-                  connectionId,
-                  error: msg,
-                }));
-                if (upe instanceof PluggyApiError && (upe.status === 401 || upe.status === 403)) {
-                  needsReconnect = true;
-                  acctError = "É necessário reconectar esta instituição para autorizar a coleta de lançamentos.";
-                } else if (upe instanceof PluggyApiError && upe.status === 409) {
-                  // Rate limit da Pluggy: no máximo 1 update por hora.
-                  let waitMin = 60;
-                  try {
-                    const parsed = JSON.parse(upe.body ?? "{}");
-                    const lastUpdatedAt: string | undefined =
-                      parsed?.data?.lastUpdatedAt ?? parsed?.lastUpdatedAt;
-                    const freqHours: number = parsed?.data?.minUpdateFrequencyAllowedInHours ?? 1;
-                    if (lastUpdatedAt) {
-                      const nextAllowed = new Date(lastUpdatedAt).getTime() + freqHours * 3600 * 1000;
-                      const diffMs = nextAllowed - Date.now();
-                      waitMin = Math.max(1, Math.ceil(diffMs / 60000));
-                    }
-                  } catch { /* noop */ }
-                  acctError = `A Pluggy só permite atualizar esta conexão a cada 1 hora. Aguarde ~${waitMin} minuto(s) e sincronize novamente.`;
+            if (skipItemUpdate) {
+              acctError = "Pluggy ainda não expôs transações desta conta neste ciclo.";
+            } else {
+              // Produto TRANSACTIONS não coletado — dispara update do item na Pluggy.
+              acctError = "Pluggy ainda não coletou transações para esta conta. Iniciamos uma atualização; tente sincronizar novamente em alguns minutos.";
+              if (!itemUpdateTriggered) {
+                try {
+                  await triggerItemUpdate(conn.provider_item_id, pluggyWebhookUrl());
+                  itemUpdateTriggered = true;
+                  console.log(JSON.stringify({
+                    scope: "pluggy-sync",
+                    step: "trigger_item_update",
+                    connectionId,
+                    itemId: conn.provider_item_id,
+                  }));
+                } catch (upe) {
+                  const msg = (upe as Error).message;
+                  console.error(JSON.stringify({
+                    scope: "pluggy-sync",
+                    step: "trigger_item_update_failed",
+                    connectionId,
+                    error: msg,
+                  }));
+                  if (upe instanceof PluggyApiError && (upe.status === 401 || upe.status === 403)) {
+                    needsReconnect = true;
+                    acctError = "É necessário reconectar esta instituição para autorizar a coleta de lançamentos.";
+                  } else if (upe instanceof PluggyApiError && upe.status === 409) {
+                    // Rate limit da Pluggy: no máximo 1 update por hora.
+                    let waitMin = 60;
+                    try {
+                      const parsed = JSON.parse(upe.body ?? "{}");
+                      const lastUpdatedAt: string | undefined =
+                        parsed?.data?.lastUpdatedAt ?? parsed?.lastUpdatedAt;
+                      const freqHours: number = parsed?.data?.minUpdateFrequencyAllowedInHours ?? 1;
+                      if (lastUpdatedAt) {
+                        const nextAllowed = new Date(lastUpdatedAt).getTime() + freqHours * 3600 * 1000;
+                        const diffMs = nextAllowed - Date.now();
+                        waitMin = Math.max(1, Math.ceil(diffMs / 60000));
+                      }
+                    } catch { /* noop */ }
+                    acctError = `A Pluggy só permite atualizar esta conexão a cada 1 hora. Aguarde ~${waitMin} minuto(s) e sincronize novamente.`;
+                  }
                 }
               }
             }

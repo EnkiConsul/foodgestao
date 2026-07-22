@@ -67,14 +67,34 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if (conn) {
         const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/pluggy-sync-connection`;
-        await fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-          },
-          body: JSON.stringify({ connectionId: conn.id }),
-        }).catch((e) => console.warn("[pluggy-webhook] sync trigger", e));
+        try {
+          const resp = await fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({
+              connectionId: conn.id,
+              source: "webhook",
+              skipItemUpdate: true,
+            }),
+          });
+          const body = await resp.json().catch(() => ({}));
+          console.log(JSON.stringify({
+            scope: "pluggy-webhook",
+            step: "trigger_sync",
+            eventType,
+            itemId,
+            connectionId: conn.id,
+            status: resp.status,
+            imported: body?.imported,
+            perAccount: body?.perAccount,
+            error: body?.error,
+          }));
+        } catch (e) {
+          console.warn("[pluggy-webhook] sync trigger", e);
+        }
       }
     } catch (e) {
       console.warn("[pluggy-webhook] lookup", e);

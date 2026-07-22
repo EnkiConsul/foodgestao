@@ -1,70 +1,52 @@
-## Diagnóstico
+# Corrigir importação Pluggy após webhook `transactions/*`
 
-Analisei conexões, webhooks e o fluxo de sync. O que está acontecendo com **Santander Empresas** e **C6 Bank Empresas**:
+## Diagnóstico confirmado
 
-1. Você clica em **Sincronizar** → `pluggy-sync-connection` chama `/transactions` → Pluggy responde **410 Gone** (produto `TRANSACTIONS` ainda não coletado nesse item).
-2. A função dispara `PATCH /items/:id` pedindo `["ACCOUNTS","TRANSACTIONS","IDENTITY"]` (`triggerItemUpdate`).
-3. Marca `status=updating` no banco e mostra "Coletando lançamentos na Pluggy…".
-4. **A Pluggy nunca notifica o fim da coleta.** Confirmei em `pluggy_webhook_events`: dos últimos 27 eventos, **25 são `connector/status_updated` (globais)**; nenhum `item/updated`, `transactions/updated` ou `item/waiting_user_input` chega para os itens Santander/C6.
-5. Sem callback, a UI fica presa em "Atualizando" para sempre. E ao sincronizar de novo, cai no rate-limit (1 update/hora) ou retorna 410 outra vez.
+- Ao clicar "Sincronizar", a Pluggy ainda estava coletando → devolveu 410 em `listTransactions` e 409/400 em `triggerItemUpdate` (rate-limit / já atualizando). Nada foi importado.
+- Logo em seguida, a Pluggy enviou `transactions/created` e `transactions/updated` (registrados em `pluggy_webhook_events` do item Santander), mas o auto-reimport disparado pelo `pluggy-webhook` chama `pluggy-sync-connection` com o `SUPABASE_SERVICE_ROLE_KEY` como Bearer. Essa função valida permissão via `can_sync_bank_connection`, que usa `auth.uid()`. Para service role, `auth.uid()` é `NULL` → retorna `false` → 403. O reimport nunca acontece.
+- Consequência: 0 linhas em `transactions` com `provider='pluggy'` mesmo após a Pluggy avisar que a coleta terminou. O usuário ficaria dependendo de clicar "Sincronizar" novamente — e, se estiver dentro da janela de 1h, cairia no 409 outra vez.
 
-### Causa raiz (duas coisas somadas)
+Sintoma secundário: entregas retentadas da Pluggy chegaram sem o header do token e foram rejeitadas (401). Não é fatal, mas indica config duplicada do webhook.
 
-**A) O `webhookUrl` não está sendo persistido no item Pluggy.**
-Em `pluggy-connect-token/index.ts` o `webhookUrl` é enviado só no `/connect_token`. A Pluggy só respeita esse campo se estiver **também** no PATCH/criação do item. Como usamos `POST /items` implicitamente (via Connect Widget) e depois `PATCH /items` sem `webhookUrl`, o item termina **sem webhook associado** → nenhum evento `item/*` chega.
+## Objetivo
 
-**B) `pluggy-sync-connection` sobrescreve o `status` real com `"updating"`.**
-No fim da função:
-```ts
-const finalStatus = itemUpdateTriggered ? "updating" : (item.status ?? "active").toLowerCase();
-```
-Se a Pluggy já reportou `WAITING_USER_INPUT` (MFA), `LOGIN_ERROR` (credencial inválida) ou `OUTDATED` (produto não suportado), perdemos essa informação e o usuário só vê "Atualizando". A verificação também não usa `executionStatus` (que traz o motivo específico: `USER_AUTHORIZATION_PENDING`, `USER_CREDENTIALS_INVALID`, `SITE_NOT_AVAILABLE`, etc.).
+Fazer com que, quando a Pluggy avisar `transactions/created` ou `transactions/updated`, o sistema **importe imediatamente** os lançamentos sem depender de novo clique do usuário, mantendo a proteção da rota manual.
 
-## Correções propostas
+## Escopo — 3 mudanças cirúrgicas
 
-### 1. Registrar webhook por item (backend)
+### 1. `pluggy-sync-connection` — aceitar chamadas internas (service role)
 
-- Em `_shared/pluggy.ts`, aceitar `webhookUrl` opcional em `triggerItemUpdate` e enviar no PATCH.
-- Em `pluggy-register-item`, logo após `getItem`, se `item.webhookUrl` for diferente do nosso, chamar `PATCH /items/:id` com `{ webhookUrl }` para vincular o webhook definitivo.
-- Em `pluggy-sync-connection`, ao chamar `triggerItemUpdate`, passar o mesmo `webhookUrl` para garantir amarração retroativa dos itens já criados.
+- Detectar quando a requisição vem com o **service role key** no `Authorization` (comparando com `Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")`).
+- Nesse caminho: pular `getClaims` e `can_sync_bank_connection`, considerar como "chamada de sistema" e prosseguir com o `admin` client (já em uso hoje).
+- Chamadas com JWT de usuário continuam passando pela mesma validação atual — nada muda para o front.
 
-### 2. Respeitar o status real da Pluggy (backend)
+### 2. `pluggy-webhook` — passar o motivo para o sync e evitar `triggerItemUpdate`
 
-Em `pluggy-sync-connection`:
-- Ler `item.status` **e** `item.executionStatus` de `getItem`.
-- Salvar `status` como o status da Pluggy em minúsculas (`updating`, `waiting_user_input`, `login_error`, `outdated`, `updated`).
-- Só marcar `updating` local quando `item.status` também for `UPDATING`.
-- Popular `last_error` com mensagem específica por `executionStatus`:
-  - `USER_AUTHORIZATION_PENDING` / `WAITING_USER_INPUT` → "Ação necessária: reconecte para completar a autenticação (MFA/token)."
-  - `USER_CREDENTIALS_INVALID` → "Credenciais inválidas — reconecte a instituição."
-  - `SITE_NOT_AVAILABLE` → "Instituição indisponível no momento na Pluggy. Tente mais tarde."
-  - `USER_NOT_SUPPORTED` → "Este tipo de conta não expõe extrato via Open Finance."
-  - 410 persistente após 2 tentativas → "A instituição ainda não liberou o produto TRANSACTIONS neste consentimento."
+- Ao chamar `pluggy-sync-connection` a partir do webhook, incluir `body: { connectionId, source: "webhook", skipItemUpdate: true }`.
+- O sync, quando `skipItemUpdate=true`, ao receber 410 em `listTransactions`, **não** dispara `triggerItemUpdate` (a coleta já foi concluída — o próprio webhook comprova). Apenas registra `perAccount[].error` e segue.
+- Registrar log estruturado (`scope:"pluggy-webhook", step:"trigger_sync"`) com o resultado devolvido pelo sync (`imported`, `perAccount`) para diagnóstico.
 
-### 3. UX no cartão de conexão (frontend `ContasBancarias.tsx`)
+### 3. Painel `/admin/open-finance` — botão "Reimportar (sem trigger)"
 
-- Quando `status ∈ {waiting_user_input, login_error, outdated}` → mostrar botão **Reconectar** (abre Connect Widget com `itemId` para MFA/refresh) em vez de só "Sincronizar".
-- Quando `status === "updating"` e `last_sync_at` for mais antigo que ~10 min → exibir aviso "Coleta demorou mais que o esperado — clique em Reconectar".
-- Adicionar auto-refresh (`refetchInterval: 15s`) enquanto qualquer conexão estiver `updating`, para pegar mudança via webhook sem F5.
+- Novo botão secundário ao lado de "Sincronizar" que chama `pluggy-sync-connection` com `skipItemUpdate=true`. Útil quando o item já foi atualizado recentemente e o usuário só quer puxar o que a Pluggy já tem, sem cair no 409 de rate-limit.
+- Mostrar toast com `imported` e `perAccount` (contagem por conta, erros individuais).
 
-### 4. Diagnóstico visível (opcional, admin)
+## Fora de escopo
 
-Mostrar `executionStatus` como tooltip no badge "Atualizando" para investigação futura.
+- Não mexer no dedupe/`pluggy_upsert_transaction` — já cobre reimport idempotente.
+- Não alterar o fluxo Connect Widget nem `pluggy-register-item`.
+- Não mudar a política do webhook token; apenas anotar que o usuário pode ter uma segunda configuração de webhook sem token na Pluggy (verificar depois).
+
+## Como validar depois do build
+
+1. Clicar "Reimportar (sem trigger)" no painel `/admin/open-finance` para a conexão Santander (990dc6c9…). Esperado: `imported > 0` no toast e novos registros em `transactions` com `provider='pluggy'`.
+2. Verificar em `bank_connection_accounts` que `last_synced_tx_date` avançou.
+3. Provocar novo webhook (uma sincronização real ou reenvio pela Pluggy) e checar em `pluggy_webhook_events` que `processed_at` foi preenchido **e** que os logs do `pluggy-sync-connection` mostram `source:"webhook"` com `imported > 0`.
 
 ## Detalhes técnicos
 
-**Arquivos afetados:**
-- `supabase/functions/_shared/pluggy.ts` — expõe `PluggyItem.executionStatus` e `webhookUrl`; `triggerItemUpdate` aceita `webhookUrl`.
-- `supabase/functions/pluggy-register-item/index.ts` — PATCH pós-registro para vincular webhook.
-- `supabase/functions/pluggy-sync-connection/index.ts` — status/executionStatus, mensagens dedicadas, mantém `updating` só quando aplicável.
-- `src/pages/ContasBancarias.tsx` (e/ou componente de card Pluggy) — botão Reconectar contextual + polling.
-- `src/hooks/usePluggy.ts` — `refetchInterval` condicional.
-
-**Sem migration nova** — os campos `status`, `last_error`, `consent_expires_at` já existem em `bank_connections`.
-
-## Verificação pós-correção
-
-1. Reconectar Santander/C6 (para re-emitir consent com webhook amarrado).
-2. Confirmar em `pluggy_webhook_events` a chegada de `item/updated` em minutos.
-3. Card sai de "Atualizando" automaticamente quando a coleta termina.
-4. Se banco pedir MFA, card mostra **Reconectar** com o motivo correto.
+- Arquivos: `supabase/functions/pluggy-sync-connection/index.ts`, `supabase/functions/pluggy-webhook/index.ts`, `src/pages/admin/OpenFinance.tsx`.
+- Reconhecimento service role: `authHeader === "Bearer " + Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")`. Como o header nunca sai do runtime, é seguro para autenticar chamadas internas.
+- `BodySchema` do sync ganha `source: z.enum(["user","webhook","admin"]).optional()` e `skipItemUpdate: z.boolean().optional()`. `fullResync` continua igual.
+- No caminho `410`, quando `skipItemUpdate=true`, apenas devolve `acctError` sem chamar `triggerItemUpdate`.
+- Logs continuam JSON estruturado (mesmo padrão atual).
