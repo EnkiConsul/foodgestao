@@ -645,16 +645,19 @@ export default function DpFolgas() {
               const isToday = isSameDay(day, new Date());
               const cap = capacityByDay.get(key) ?? defaultDailyCap;
               const aprov = events.filter((e) => e.status === "aprovada" && e.tipo === "folga").length;
-              const lotado = cap > 0 && aprov >= cap;
-              const parcial = aprov > 0 && !lotado;
+              const blocked = blockedByDate.get(key);
+              const lotado = !blocked && cap > 0 && aprov >= cap;
+              const parcial = !blocked && aprov > 0 && !lotado;
 
               return (
                 <button
                   key={key}
                   onClick={() => setSelectedDay(day)}
+                  title={blocked?.reason}
                   className={cn(
                     "min-h-[112px] bg-white p-2 text-left flex flex-col gap-1.5 transition-colors hover:bg-muted/30",
                     !inMonth && "bg-muted/10 text-muted-foreground",
+                    blocked && inMonth && "bg-destructive/15 border border-destructive/40",
                     lotado && inMonth && "bg-red-50/60",
                     parcial && inMonth && "bg-emerald-50/40",
                   )}
@@ -664,13 +667,19 @@ export default function DpFolgas() {
                       className={cn(
                         "text-sm font-semibold",
                         isToday && "text-primary",
+                        blocked && inMonth && "text-destructive",
                         lotado && inMonth && "text-red-700",
                         parcial && inMonth && "text-emerald-700",
                       )}
                     >
                       {format(day, "d")}
                     </span>
-                    {inMonth && (
+                    {inMonth && blocked && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-destructive/20 text-destructive uppercase tracking-wider">
+                        Bloqueado
+                      </span>
+                    )}
+                    {inMonth && !blocked && (
                       <span
                         className={cn(
                           "text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
@@ -683,6 +692,7 @@ export default function DpFolgas() {
                       </span>
                     )}
                   </div>
+
                   <div className="flex flex-col gap-1 overflow-hidden">
                     {events.slice(0, 3).map((ev) => {
                       const isWeekly = ev.id.startsWith(WEEKLY_FOLGA_ID_PREFIX);
