@@ -80,6 +80,34 @@ export function DataRow({ data: d, onEdit, onDelete, onRebloquear, onLiberar }: 
             </AlertDialogContent>
           </AlertDialog>
         )}
+        {auto && !liberada && onLiberar && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full border-emerald-500/40 text-emerald-700 hover:bg-emerald-500/10"
+              >
+                <LockOpen className="size-4 mr-2" />
+                Liberar Data
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Liberar esta data?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  A data ficará disponível para folgas, ignorando a regra automática.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={() => onLiberar(d)}>
+                  Liberar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
         {!auto && !liberada && (
           <>
             <Button variant="ghost" size="icon" className="size-8" onClick={() => onEdit(d)}>
