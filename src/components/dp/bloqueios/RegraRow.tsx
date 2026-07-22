@@ -5,7 +5,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Building2, CalendarCheck, Filter, Trash2 } from "lucide-react";
+import { Building2, CalendarCheck, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getMonthName, getTipoLabel, NOMES_ORDINAIS, NOMES_SEMANA, type Regra } from "@/lib/dp/bloqueios";
 
@@ -73,7 +73,7 @@ export function RegraRow({ regra: r, onEdit, onDelete }: Props) {
       </div>
       <div className="flex gap-2">
         <Button variant="ghost" size="icon" className="size-8" onClick={() => onEdit(r)}>
-          <Filter className="size-4" />
+          <Pencil className="size-4" />
         </Button>
         <AlertDialog>
           <AlertDialogTrigger asChild>

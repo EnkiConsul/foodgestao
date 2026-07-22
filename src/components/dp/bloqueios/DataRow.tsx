@@ -5,7 +5,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { CalendarCheck, CalendarX, Filter, Lock, LockOpen, Trash2 } from "lucide-react";
+import { CalendarCheck, CalendarX, Lock, LockOpen, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatBR, type DataBloq } from "@/lib/dp/bloqueios";
 
@@ -111,7 +111,7 @@ export function DataRow({ data: d, onEdit, onDelete, onRebloquear, onLiberar }: 
         {!auto && !liberada && (
           <>
             <Button variant="ghost" size="icon" className="size-8" onClick={() => onEdit(d)}>
-              <Filter className="size-4" />
+              <Pencil className="size-4" />
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
