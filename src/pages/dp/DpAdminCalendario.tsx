@@ -219,8 +219,22 @@ export default function DpAdminCalendario() {
     for (const b of bloqueios) {
       m.set(b.data, { reason: b.motivo, liberada: !!b.liberada_por_solicitacao });
     }
+    const regrasData = regrasBloqueioQuery.data;
+    if (regrasData) {
+      // Admin: mostra bloqueios de todas as regras (independente da unidade)
+      const fromRegras = buildBloqueiosDeRegras({
+        regras: regrasData.regras,
+        vinculos: [], // ignora filtro de unidade no painel admin
+        unidadeId: null,
+        from: range.startDate,
+        to: range.endDate,
+      });
+      fromRegras.forEach((motivo, iso) => {
+        if (!m.has(iso)) m.set(iso, { reason: motivo, liberada: false });
+      });
+    }
     return m;
-  }, [bloqueios]);
+  }, [bloqueios, regrasBloqueioQuery.data, range.startDate, range.endDate]);
 
   const blockedByDate = useMemo(() => {
     const m = new Map<string, { motivo: string; auto: boolean; id: string }>();
@@ -228,8 +242,21 @@ export default function DpAdminCalendario() {
       if (b.liberada_por_solicitacao) continue;
       m.set(b.data, { motivo: b.motivo, auto: !!b.regra_id, id: b.id });
     }
+    const regrasData = regrasBloqueioQuery.data;
+    if (regrasData) {
+      const fromRegras = buildBloqueiosDeRegras({
+        regras: regrasData.regras,
+        vinculos: [],
+        unidadeId: null,
+        from: range.startDate,
+        to: range.endDate,
+      });
+      fromRegras.forEach((motivo, iso) => {
+        if (!m.has(iso)) m.set(iso, { motivo, auto: true, id: `regra:${iso}` });
+      });
+    }
     return m;
-  }, [bloqueios]);
+  }, [bloqueios, regrasBloqueioQuery.data, range.startDate, range.endDate]);
 
   const colaboradores = (colabsQ.data ?? []) as any[];
   const filteredColabs = useMemo(() => {
