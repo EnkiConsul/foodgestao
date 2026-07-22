@@ -16,6 +16,7 @@ import {
   Landmark,
   Search,
   Brain,
+  Plug,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -55,6 +56,7 @@ const tenantItems = [
   { title: "Perfis de Acesso", url: "/admin/perfis-acesso", icon: Building2 },
   { title: "Módulos", url: "/admin/modulos", icon: Sparkles },
   { title: "Bancos", url: "/admin/bancos", icon: Landmark },
+  { title: "Open Finance", url: "/admin/open-finance", icon: Plug },
   { title: "Resetar Dados", url: "/admin/resetar-dados", icon: Database },
   { title: "Categorização IA", url: "/admin/categorizacao-ia", icon: Brain },
 ];
