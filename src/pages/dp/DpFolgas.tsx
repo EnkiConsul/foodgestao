@@ -249,6 +249,41 @@ export default function DpFolgas() {
     },
   });
 
+  const regrasBloqueioQuery = useQuery({
+    queryKey: ["dp_bloq_regras_geral", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const [{ data: regras }, { data: vinc }] = await Promise.all([
+        supabase
+          .from("dp_bloqueio_regras")
+          .select("id, company_id, nome, tipo, mes, dia, regra_json, ativo")
+          .eq("company_id", selectedCompanyId!)
+          .eq("ativo", true),
+        supabase.from("dp_bloqueio_regra_unidades").select("regra_id, unidade_id"),
+      ]);
+      return {
+        regras: (regras ?? []) as RegraRow[],
+        vinculos: (vinc ?? []) as { regra_id: string; unidade_id: string }[],
+      };
+    },
+  });
+
+  const datasBloqueadasQuery = useQuery({
+    queryKey: ["dp_datas_bloqueadas_geral", selectedCompanyId, format(cursor, "yyyy-MM")],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_datas_bloqueadas")
+        .select("data, motivo, liberada, liberada_por_solicitacao, unidade_id, regra_id")
+        .eq("company_id", selectedCompanyId!)
+        .gte("data", format(rangeStart, "yyyy-MM-dd"))
+        .lte("data", format(rangeEnd, "yyyy-MM-dd"));
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+
   const query = useQuery({
     queryKey: ["dp_folgas", selectedCompanyId, format(cursor, "yyyy-MM"), unidadeFilter, colabFilter, tipoFilter],
     enabled: !!selectedCompanyId,
