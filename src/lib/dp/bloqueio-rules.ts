@@ -142,10 +142,9 @@ export function buildBloqueiosDeRegras(params: {
   const out = new Map<string, string>();
   for (const r of regras) {
     const unidades = porRegra.get(r.id) ?? [];
-    if (unidades.length > 0) {
-      if (!unidadeId) continue;
-      if (!unidades.includes(unidadeId)) continue;
-    }
+    // unidadeId === null (admin visão global): inclui todas as regras.
+    // unidadeId setado: inclui globais (sem vínculo) + vinculadas àquela unidade.
+    if (unidades.length > 0 && unidadeId && !unidades.includes(unidadeId)) continue;
     const datas = expandRegraNoIntervalo(r, from, to);
     for (const iso of datas) if (!out.has(iso)) out.set(iso, r.nome);
   }
