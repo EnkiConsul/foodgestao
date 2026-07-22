@@ -565,6 +565,16 @@ export default function DpFolgas() {
   const selectedEvents = selectedDay
     ? eventsByDay.get(format(selectedDay, "yyyy-MM-dd")) ?? []
     : [];
+  const selectedIso = selectedDay ? format(selectedDay, "yyyy-MM-dd") : null;
+  const selectedBlock = selectedIso ? blockedByDate.get(selectedIso) ?? null : null;
+  const selectedIsWeekend = selectedDay ? isWeekend(selectedDay) : false;
+
+  const openDay = (day: Date) => {
+    setSelectedDay(day);
+    setQuickColabId("");
+    const iso = format(day, "yyyy-MM-dd");
+    setEditLimit(capacityByDay.get(iso) ?? 1);
+  };
 
   const clearFilters = () => {
     setUnidadeFilter("todas");
