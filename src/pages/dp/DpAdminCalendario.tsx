@@ -74,6 +74,8 @@ import {
   type FolgaRecord,
   type OccupantType,
 } from "@/lib/dp/folga-rules";
+import { buildBloqueiosDeRegras, type RegraRow } from "@/lib/dp/bloqueio-rules";
+import { useQuery } from "@tanstack/react-query";
 
 const isoWeekKey = (d: Date) => `${getISOWeekYear(d)}-${getISOWeek(d)}`;
 
