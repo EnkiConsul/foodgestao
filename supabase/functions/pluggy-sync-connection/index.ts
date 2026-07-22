@@ -174,6 +174,22 @@ Deno.serve(async (req) => {
 
     try {
       const item = await getItem(conn.provider_item_id);
+
+      // Garante que o webhook está registrado no item (idempotente).
+      const hook = pluggyWebhookUrl();
+      if (hook && item.webhookUrl !== hook) {
+        try {
+          await updateItemWebhook(conn.provider_item_id, hook);
+        } catch (whErr) {
+          console.warn(JSON.stringify({
+            scope: "pluggy-sync",
+            step: "update_webhook_failed",
+            connectionId,
+            error: (whErr as Error).message,
+          }));
+        }
+      }
+
       const providerAccounts = await listAccounts(conn.provider_item_id);
 
       const { data: connAccounts } = await admin
