@@ -106,6 +106,7 @@ const AdminAuditoria = lazy(() => import("./pages/admin/Auditoria"));
 const AdminResetarDados = lazy(() => import("./pages/admin/ResetarDados"));
 const AdminLandingPage = lazy(() => import("./pages/admin/LandingPage"));
 const AdminBancos = lazy(() => import("./pages/admin/Bancos"));
+const AdminOpenFinance = lazy(() => import("./pages/admin/OpenFinance"));
 const AdminSeoIndexacao = lazy(() => import("./pages/admin/SeoIndexacao"));
 
 const AdminDocumentosLegais = lazy(() => import("./pages/admin/DocumentosLegais"));
