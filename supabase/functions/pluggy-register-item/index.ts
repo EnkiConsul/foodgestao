@@ -74,6 +74,18 @@ Deno.serve(async (req) => {
     );
 
     const item = await getItem(itemId);
+
+    // Vincula webhookUrl ao item (idempotente) — necessário para receber
+    // notificações item/updated quando a Pluggy termina de coletar dados.
+    const hook = pluggyWebhookUrl();
+    if (hook && item.webhookUrl !== hook) {
+      try {
+        await updateItemWebhook(itemId, hook);
+      } catch (whErr) {
+        console.warn("[pluggy-register-item] falha ao registrar webhook:", (whErr as Error).message);
+      }
+    }
+
     const accounts = await listAccounts(itemId);
 
     // Upsert bank_connections (chave lógica: user + provider + provider_item_id)
