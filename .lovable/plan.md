@@ -1,39 +1,42 @@
-## Diagnóstico
+## Problema
 
-O dia **08/08/2026** aparece "disponível" porque a página que você está vendo — `/dp/folgas/calendario` (**Calendário Geral** → `src/pages/dp/DpFolgas.tsx`) — **não** consulta `dp_bloqueio_regras` nem `dp_datas_bloqueadas`. Ela mostra apenas folgas confirmadas/pendentes e ignora o motor de bloqueios.
+No Calendário Geral (`/dp/folgas/calendario` → `src/pages/dp/DpFolgas.tsx`), o dialog do dia usa o componente enxuto `DpCalendarDayDialog`, com o motivo do bloqueio apenas em `footerExtra`. Não há botão "Liberar Data", nem bloco "Configuração do dia" (limite de colaboradores para FDS), nem a apresentação em card vermelho com badge Automático/Manual conforme a versão do GitHub e o print enviado.
 
-O motor de regras que corrigimos na última etapa está aplicado apenas em `/dp/calendario` (`DpAdminCalendario.tsx`). Nele, o dia 08/08 aparece corretamente bloqueado (regra "Bloqueio Pós-Pagamento (FDS após dia 5)" + registro manual em `dp_datas_bloqueadas` com `liberada:false`).
+A versão correta já existe em `src/pages/dp/DpAdminCalendario.tsx` (linhas 702–840): card "DATA BLOQUEADA" com motivo + `Liberar Data`, "Configuração do Dia" com `Limite de colaboradores` + Salvar, "Escala do dia", "Atribuir folga manual" e "Fechar detalhes".
 
-Confirmado via banco:
-- Regra ativa `pos_pagamento` com `meses:[1..12]` → expande 08/08/2026 (sábado após dia 5).
-- Registro em `dp_datas_bloqueadas` para 2026-08-08, `liberada = false`.
-- Nenhuma requisição a `dp_datas_bloqueadas`/`dp_bloqueio_regras` na sessão atual — a página não busca esses dados.
+## Plano
 
-## O que fazer
+Alinhar o dialog do dia do Calendário Geral com o do Admin, reutilizando a mesma UI/comportamento.
 
-Integrar o mesmo motor de bloqueios ao Calendário Geral, mantendo a UI atual:
+1. **Trocar `DpCalendarDayDialog` por Dialog inline** em `src/pages/dp/DpFolgas.tsx`, replicando a estrutura de `DpAdminCalendario`:
+   - Header com ícone + `dd/MM/yyyy`.
+   - Bloco `DATA BLOQUEADA` (fundo `bg-destructive/10`, badge Automático/Manual, ícone `Lock`, `AlertTriangle`, motivo, botão `Liberar Data`) — só quando `blockedByDate.get(iso)` existir.
+   - Bloco `Configuração do Dia` — só quando o dia for fim de semana (mesma regra do admin), com input `Limite de colaboradores` + `Salvar`, alimentado por `dp_folga_dia_config`.
+   - Bloco `Escala do dia` reaproveitando `selectedEvents` já calculado (usar o mesmo layout do admin: bolinha colorida por tipo + nome + origem; remover folga mensal com botão `Trash2`).
+   - Bloco `Atribuir folga manual` com `Select` + `Atribuir` (usa `quickAssign` já existente) e link secundário "Solicitar ausência avançada".
+   - Rodapé `Fechar detalhes`.
 
-1. Em `src/pages/dp/DpFolgas.tsx`, adicionar duas queries paralelas (padrão idêntico ao `DpAdminCalendario`):
-   - `dp_bloqueio_regras` (ativas) + `dp_bloqueio_regra_unidades`.
-   - `dp_datas_bloqueadas` no intervalo visível.
-2. Construir um `Map<iso, { reason, auto }>` mesclando:
-   - Bloqueios manuais não liberados (`liberada = false` **e** `liberada_por_solicitacao IS NULL`).
-   - Regras expandidas via `buildBloqueiosDeRegras`, respeitando o filtro de unidade já existente na página (quando houver; senão `null` = visão global).
-   - Manual tem precedência sobre regra; datas com `liberada = true` são removidas do mapa.
-3. Na renderização de cada célula:
-   - Se `iso` estiver no mapa → aplicar estilo `blocked` (fundo `bg-destructive/15`, borda `border-destructive/40`), badge "Bloqueado", esconder chip de ocupação, `title`/tooltip com o motivo.
-   - Ordem de precedência: `past` > `blocked` > estados existentes (folga, pendente, disponível).
-4. Atualizar a legenda "Bloqueado" para refletir bloqueios manuais **e** de regra (texto/cor já existem).
-5. Se o dia bloqueado for clicado, manter o `DpCalendarDayDialog` atual, apenas exibindo o motivo do bloqueio no topo (sem ação de "Liberar" — essa fica restrita ao `/dp/calendario` do admin, para não duplicar fluxo).
+2. **Novas mutations/queries em `DpFolgas.tsx`** (espelhando `DpAdminCalendario`):
+   - `liberarData`: `upsert` em `dp_datas_bloqueadas` com `liberada: true` para `{company_id, data}` do dia selecionado; invalida `dp_datas_bloqueadas_geral` e `dp_bloq_regras_geral`.
+   - `diaConfigQuery` (se ainda não existir para o dia) + `salvarLimite`: `upsert` em `dp_folga_dia_config` com `{company_id, data, limite}`; invalida `dp_folga_dia_config_*` e recarrega `capacityByDay`.
+   - `removerFolga`: `delete` em `dp_folgas` por `id` (para o Trash2 na escala), com invalidação das queries de folgas do calendário.
+   - Reaproveita `quickAssign` (já implementado).
+
+3. **Manter escopo apenas no admin**: renderizar os blocos "Data Bloqueada" e "Configuração do Dia" somente quando o usuário for admin da empresa (checar flag já usada na página; se não existir, usar `useCompanyPermissions`). Colaboradores não devem ver "Liberar Data".
+
+4. **Estado local do dialog**: adicionar `editLimit` (número) sincronizado ao abrir o dia; `assignUser` já mapeado em `quickColabId`.
+
+5. **Sem alterações de banco**: schema e triggers já foram atualizados anteriormente (`dp_datas_bloqueadas.liberada`, `dp_folga_dia_config`, `dp_regra_bloqueia_data`).
 
 ## Verificação
 
-- Abrir `/dp/folgas/calendario` em agosto/2026 → 08/08 e 09/08 aparecem com fundo vermelho e badge "Bloqueado".
-- Hover mostra o motivo (regra Pós-Pagamento ou motivo manual).
-- Dias liberados manualmente pelo admin (`liberada=true`) voltam a aparecer disponíveis.
-- Paridade visual com `/dp/calendario`.
+- Abrir `/dp/folgas/calendario` como admin em agosto/2026 e clicar em **08/08**: dialog exibe card vermelho "DATA BLOQUEADA · AUTOMÁTICO" com motivo "Bloqueio Pós-Pagamento (FDS após dia 5) - Sábado" e botão "Liberar Data" (paridade com print anexo).
+- Clicar **Liberar Data**: célula deixa de aparecer bloqueada e o dia fica disponível (registro `liberada=true` em `dp_datas_bloqueadas`).
+- Em sábado/domingo, aparece bloco "Configuração do Dia" com limite editável e salvamento persistente.
+- "Escala do dia" e "Atribuir folga manual" continuam funcionando.
+- Em dias sem bloqueio nem fim de semana, o dialog mostra só escala + atribuição (como hoje).
 
 ## Arquivos
 
-- `src/pages/dp/DpFolgas.tsx` (única alteração).
-- Reuso: `src/lib/dp/bloqueio-rules.ts` (sem mudanças).
+- `src/pages/dp/DpFolgas.tsx` — única alteração.
+- Reuso: `src/pages/dp/DpAdminCalendario.tsx` (referência), `src/lib/dp/bloqueio-rules.ts` (sem mudanças).
