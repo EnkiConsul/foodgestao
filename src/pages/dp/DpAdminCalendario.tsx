@@ -931,6 +931,24 @@ export default function DpAdminCalendario() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <LiberarEscopoDialog
+        open={liberarEscopoOpen}
+        onOpenChange={setLiberarEscopoOpen}
+        dataLabel={dayOpen ? format(parseYMD(dayOpen), "dd/MM/yyyy") : ""}
+        unidadeNome={(() => {
+          if (filterUnidade === "all") return null;
+          const u = unidades.find((x: any) => x.id === filterUnidade);
+          return u?.nome ?? null;
+        })()}
+        motivo={currentBlock?.motivo}
+        loading={liberarData.isPending}
+        onLiberarUnidade={() => {
+          if (filterUnidade === "all") return;
+          liberarData.mutate({ unidadeId: filterUnidade });
+        }}
+        onLiberarGlobal={() => liberarData.mutate({ unidadeId: null })}
+      />
     </DpPage>
   );
 }
