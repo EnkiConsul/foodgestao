@@ -452,15 +452,27 @@ export default function DpAdminCalendario() {
   const liberarData = useMutation({
     mutationFn: async () => {
       if (!dayOpen) return;
-      const bloco = bloqueios.find((b) => b.data === dayOpen && !b.liberada_por_solicitacao);
-      if (bloco) {
-        const { error } = await supabase.from("dp_datas_bloqueadas").delete().eq("id", bloco.id);
-        if (error) throw error;
-      }
+      const { data: userRes } = await supabase.auth.getUser();
+      const unidadeIdParaUpsert = filterUnidade === "all" ? null : filterUnidade;
+      const { error } = await supabase
+        .from("dp_datas_bloqueadas")
+        .upsert(
+          {
+            company_id: selectedCompanyId!,
+            data: dayOpen,
+            unidade_id: unidadeIdParaUpsert,
+            liberada: true,
+            motivo: "Liberado manualmente pelo administrador",
+            criado_por: userRes.user?.id ?? null,
+          },
+          { onConflict: "company_id,unidade_id,data" },
+        );
+      if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Data liberada");
       qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas"] });
+      setDayOpen(null);
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao liberar"),
   });
