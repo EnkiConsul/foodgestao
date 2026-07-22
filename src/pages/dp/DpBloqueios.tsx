@@ -142,28 +142,24 @@ export default function DpBloqueios() {
       mes: r.mes, dia: r.dia, regra_json: (r.regra_json ?? null) as any, ativo: r.ativo,
     }));
 
-    const uidForExpand = unidadeAlvo === "__global__" ? "__global_only__" : unidadeAlvo;
-    const autoMap = buildBloqueiosDeRegras({
-      regras: regrasRow,
-      vinculos,
-      unidadeId: uidForExpand,
-      from,
-      to,
-    });
-
-    // regra_id por data (para inferir origem em linhas físicas que sejam apenas overrides)
-    const regraByIso = new Map<string, string>();
+    // Expande cada regra respeitando o filtro de unidade
+    const autoMap = new Map<string, string>(); // iso -> motivo
+    const regraByIso = new Map<string, string>(); // iso -> regra_id
     for (const r of regrasRow) {
-      const set = (() => {
-        // reaproveita a lógica de vínculo
-        const linked = vinculos.filter((v) => v.regra_id === r.id).map((v) => v.unidade_id);
-        if (linked.length > 0 && uidForExpand && !linked.includes(uidForExpand)) return new Set<string>();
-        if (uidForExpand === "__global_only__" && linked.length > 0) return new Set<string>();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { expandRegraNoIntervalo } = require("@/lib/dp/bloqueio-rules") as any;
-        return expandRegraNoIntervalo(r, from, to) as Set<string>;
-      })();
-      for (const iso of set) if (!regraByIso.has(iso)) regraByIso.set(iso, r.id);
+      const linked = vinculos.filter((v) => v.regra_id === r.id).map((v) => v.unidade_id);
+      // Filtro por unidade:
+      // - "__global__": apenas regras SEM vínculos
+      // - unidadeId específico: globais (sem vínculos) OU vinculadas àquela unidade
+      // - "all" (null): todas
+      if (unidadeAlvo === "__global__" && linked.length > 0) continue;
+      if (unidadeAlvo && unidadeAlvo !== "__global__" && linked.length > 0 && !linked.includes(unidadeAlvo)) continue;
+      const set = expandRegraNoIntervalo(r, from, to);
+      for (const iso of set) {
+        if (!autoMap.has(iso)) {
+          autoMap.set(iso, r.nome);
+          regraByIso.set(iso, r.id);
+        }
+      }
     }
 
     // 1) Overrides / manuais em `dp_datas_bloqueadas` no intervalo/unidade
@@ -185,14 +181,15 @@ export default function DpBloqueios() {
     const consumedKeys = new Set<string>();
     for (const [iso, motivo] of autoMap.entries()) {
       const regraId = regraByIso.get(iso) ?? null;
-      const key = `${iso}|`; // auto expandido sem unidade específica (global)
+      const key = `${iso}|`;
       const override = physicalByKey.get(key);
       if (override) {
         consumedKeys.add(key);
+        const isLiberada = override.liberada === true || !!override.liberada_por_solicitacao;
         result.push({
           ...override,
           regra_id: regraId,
-          motivo: override.liberada || override.liberada_por_solicitacao ? motivo : override.motivo,
+          motivo: isLiberada ? motivo : override.motivo,
         });
       } else {
         result.push({
