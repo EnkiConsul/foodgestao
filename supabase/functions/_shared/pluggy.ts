@@ -176,12 +176,14 @@ export async function listTransactions(opts: {
  * Dispara atualização do item pedindo produtos ACCOUNTS + TRANSACTIONS.
  * Usado quando /transactions retorna 410 (produto não coletado).
  */
-export async function triggerItemUpdate(itemId: string): Promise<PluggyItem> {
+export async function triggerItemUpdate(itemId: string, webhookUrl?: string | null): Promise<PluggyItem> {
+  const payload: Record<string, unknown> = {
+    products: ["ACCOUNTS", "TRANSACTIONS", "IDENTITY"],
+  };
+  if (webhookUrl) payload.webhookUrl = webhookUrl;
   const res = await pluggyFetch(`/items/${itemId}`, {
     method: "PATCH",
-    body: JSON.stringify({
-      products: ["ACCOUNTS", "TRANSACTIONS", "IDENTITY"],
-    }),
+    body: JSON.stringify(payload),
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
