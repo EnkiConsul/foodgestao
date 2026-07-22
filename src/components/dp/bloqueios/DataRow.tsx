@@ -5,7 +5,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { CalendarCheck, CalendarX, Filter, Lock, Trash2 } from "lucide-react";
+import { CalendarCheck, CalendarX, Filter, Lock, LockOpen, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatBR, type DataBloq } from "@/lib/dp/bloqueios";
 
@@ -14,9 +14,10 @@ type Props = {
   onEdit: (d: DataBloq) => void;
   onDelete: (id: string) => void;
   onRebloquear: (d: DataBloq) => void;
+  onLiberar?: (d: DataBloq) => void;
 };
 
-export function DataRow({ data: d, onEdit, onDelete, onRebloquear }: Props) {
+export function DataRow({ data: d, onEdit, onDelete, onRebloquear, onLiberar }: Props) {
   const auto = !!d.regra_id;
   const liberada = d.liberada === true || !!d.liberada_por_solicitacao;
   return (
