@@ -218,6 +218,73 @@ export default function DpFolgas() {
     onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
   });
 
+  const liberarData = useMutation({
+    mutationFn: async () => {
+      if (!selectedCompanyId || !selectedDay) return;
+      const unidadeIdParaUpsert = unidadeFilter === "todas" ? null : unidadeFilter;
+      const { error } = await supabase
+        .from("dp_datas_bloqueadas")
+        .upsert(
+          {
+            company_id: selectedCompanyId,
+            data: format(selectedDay, "yyyy-MM-dd"),
+            unidade_id: unidadeIdParaUpsert,
+            liberada: true,
+            motivo: "Liberado manualmente pelo administrador",
+            criado_por: user?.id ?? null,
+          },
+          { onConflict: "company_id,unidade_id,data" },
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Data liberada");
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_geral"] });
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas"] });
+      setSelectedDay(null);
+    },
+    onError: (e) => toast.error("Erro ao liberar", { description: e instanceof Error ? e.message : String(e) }),
+  });
+
+  const salvarLimite = useMutation({
+    mutationFn: async () => {
+      if (!selectedCompanyId || !selectedDay) return;
+      const { error } = await supabase
+        .from("dp_dia_config")
+        .upsert(
+          {
+            company_id: selectedCompanyId,
+            data: format(selectedDay, "yyyy-MM-dd"),
+            limite_folgas: editLimit,
+            criado_por: user?.id ?? null,
+          },
+          { onConflict: "company_id,unidade_id,data" },
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Limite atualizado");
+      qc.invalidateQueries({ queryKey: ["dp_dia_config"] });
+    },
+    onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
+  });
+
+  const removerFolga = useMutation({
+    mutationFn: async (folgaId: string) => {
+      const cleanId = folgaId.startsWith("folga:") ? folgaId.slice("folga:".length) : folgaId;
+      const { error } = await supabase.from("dp_folgas").delete().eq("id", cleanId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Folga removida");
+      qc.invalidateQueries({ queryKey: ["dp_folgas"] });
+      qc.invalidateQueries({ queryKey: ["dp_folgas_efetivadas"] });
+    },
+    onError: (e) => toast.error("Erro ao remover", { description: e instanceof Error ? e.message : String(e) }),
+  });
+
+
+
 
 
   const rangeStart = startOfWeek(startOfMonth(cursor), { weekStartsOn: 0 });
