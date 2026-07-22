@@ -1,42 +1,54 @@
-## Diagnóstico confirmado
 
-A liberação feita pelo Calendário está gravando a data como `liberada: true`, mas a tela **Datas Bloqueadas** não reflete isso porque há duas divergências no fluxo atual:
+# Desbloqueio com escopo explícito + visão consolidada em Datas Bloqueadas
 
-1. **Cache/query key diferente**
-   - Calendário Geral invalida `dp_datas_bloqueadas_geral` e `dp_datas_bloqueadas`.
-   - Datas Bloqueadas lê `dp_datas_bloqueadas_admin`.
-   - Resultado: ao liberar no calendário, a lista de Datas Bloqueadas pode continuar com dados antigos até recarregar/refetch específico.
+Hoje, ao clicar em "Liberar Data" no calendário, o override é gravado com um escopo fixo, sem considerar se a regra de origem é global ou por unidade. Isso gera conflito: uma regra global pode ficar parcialmente liberada sem o admin perceber, e a lista de `/dp/bloqueios` não reflete overrides por unidade quando a regra é global.
 
-2. **Escopo de unidade diferente**
-   - No Calendário, se o filtro estiver em uma unidade específica, o override é salvo com `unidade_id` daquela unidade.
-   - Em Datas Bloqueadas, a mesclagem de regras automáticas só procura override global com chave `data|`.
-   - Resultado: uma liberação por unidade pode não ser aplicada visualmente à linha automática global da lista.
+## O que vai mudar
 
-## Plano de correção
+### 1. Diálogo de escopo ao liberar data
 
-1. **Unificar invalidação de cache após liberar data no Calendário Geral**
-   - Em `src/pages/dp/DpFolgas.tsx`, após `liberarData`, invalidar também:
-     - `dp_datas_bloqueadas_admin`
-     - `dp_bloqueio_regras`
-   - Assim, ao abrir/voltar para Datas Bloqueadas, a lista já busca o estado atualizado.
+Ao clicar em **"Liberar Data"** no dia do calendário (tanto em `DpFolgas.tsx` quanto em `DpAdminCalendario.tsx`):
 
-2. **Unificar invalidação no Calendário Admin**
-   - Em `src/pages/dp/DpAdminCalendario.tsx`, após `liberarData`, invalidar também:
-     - `dp_datas_bloqueadas_admin`
-     - `dp_datas_bloqueadas_geral`
-   - Mantém os três pontos do módulo DP sincronizados.
+- Se a data vier de **regra por unidade** (ou bloqueio manual já com `unidade_id`): libera direto naquele escopo — sem diálogo.
+- Se a data vier de **regra global** (sem unidades vinculadas): abre um `AlertDialog` novo perguntando:
+  - **"Liberar apenas para [Unidade Atual]"** → grava override com `unidade_id = <ativa>`.
+  - **"Liberar para todas as unidades"** → grava override com `unidade_id = NULL`.
+  - Cancelar fecha sem fazer nada.
+- Se o admin não estiver com uma unidade selecionada no contexto, esconde a opção "só para esta unidade" e explica no texto.
 
-3. **Corrigir a leitura de overrides em Datas Bloqueadas**
-   - Em `src/pages/dp/DpBloqueios.tsx`, ajustar `datasFiltradas` para reconhecer override liberado tanto:
-     - global: `data + unidade_id null`
-     - por unidade: `data + unidade_id da unidade selecionada`
-   - Quando o filtro estiver em **Todas**, preservar a visualização correta sem misturar indevidamente escopos.
+Componente novo: `src/components/dp/bloqueios/LiberarEscopoDialog.tsx`. Reaproveitado pelas duas páginas.
 
-4. **Preservar comportamento esperado dos botões**
-   - Data automática liberada deve aparecer como liberada e exibir **Bloquear Novamente**.
-   - Data automática não liberada deve exibir **Liberar Data**.
-   - Bloqueio manual continua com editar/excluir.
+### 2. Motor de expansão: overrides parciais
 
-## Resultado esperado
+Em `src/lib/dp/bloqueios.ts`, ao anotar `liberada` numa data expandida:
 
-Ao liberar uma data bloqueada diretamente no Calendário, a tela **Datas Bloqueadas** passa a mostrar o status atualizado sem inconsistência de cache e respeitando o escopo correto da unidade/global.
+- Buscar **todos** os overrides daquela data (não só o do escopo consultado).
+- Retornar, junto com a data, dois campos novos: `liberadaGlobal: boolean` e `unidadesLiberadas: string[]` (ids).
+- Uma data global só é considerada "totalmente liberada" quando `liberadaGlobal = true` **ou** `unidadesLiberadas` cobre todas as unidades da empresa.
+
+### 3. Lista `/dp/bloqueios`: badge de overrides parciais
+
+Em `src/components/dp/bloqueios/DataRow.tsx`:
+
+- Data com override global → segue como hoje: badge "Liberada" + botão "Bloquear Novamente".
+- Data com override(s) só de unidade(s), regra ainda ativa para as demais → **uma única linha**, status "Bloqueada" + badge secundário **"Liberada em N unidade(s)"** com tooltip listando os nomes.
+- Botão de ação vira um **menu** (`DropdownMenu`) com:
+  - "Bloquear novamente em [Unidade X]" para cada override ativo.
+  - "Liberar em outras unidades" (abre o mesmo diálogo do item 1, pré-filtrado).
+- Data sem override permanece igual.
+
+### 4. Enforcement no banco
+
+O trigger `dp_regra_bloqueia_data` já consulta `dp_datas_bloqueadas` por `(company_id, unidade_id, data)`. Vou adicionar um teste na função para também respeitar override **global** (`unidade_id IS NULL`) mesmo quando a folga é solicitada com unidade específica — isso já é o comportamento hoje via `NULLS NOT DISTINCT`, mas quero confirmar com um `SELECT` antes de tocar; se estiver correto, esta etapa cai fora do plano.
+
+## Detalhes técnicos
+
+- Arquivos alterados: `src/lib/dp/bloqueios.ts`, `src/pages/dp/DpFolgas.tsx`, `src/pages/dp/DpAdminCalendario.tsx`, `src/pages/dp/DpBloqueios.tsx`, `src/components/dp/bloqueios/DataRow.tsx`.
+- Arquivo novo: `src/components/dp/bloqueios/LiberarEscopoDialog.tsx`.
+- Sem migração de schema (a constraint `UNIQUE NULLS NOT DISTINCT` já suporta os dois escopos). Antes de codar, rodo um `SELECT` rápido em `dp_datas_bloqueadas` + `dp_bloqueio_regras` do 08/08/2026 para validar o estado atual e confirmar que o trigger já cobre override global.
+- Cache: mantém as chaves `['dp-bloqueios', ...]`, `['dp-datas-bloqueadas', ...]` e `['dp-folgas-mes', ...]` invalidadas em todos os pontos (já feito na rodada anterior).
+
+## Fora de escopo
+
+- Alterar a semântica de "excluir regra" (segue igual: apaga todas as datas expandidas).
+- Overrides parciais de bloqueios manuais criados diretamente em `/dp/bloqueios` (fluxo de criação já pede unidade; sem ambiguidade).

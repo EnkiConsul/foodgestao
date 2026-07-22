@@ -37,6 +37,11 @@ export type DataBloq = {
   liberada_por_solicitacao: string | null;
   liberada?: boolean | null;
   unidade?: Unidade | null;
+  /**
+   * Overrides parciais por unidade (apenas usado nas visões consolidadas
+   * quando a regra de origem é global).
+   */
+  partialOverrides?: Array<{ id: string; unidade_id: string; unidade_nome: string }>;
 };
 
 export type RegraFormState = {

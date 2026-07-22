@@ -52,7 +52,12 @@ import { cn } from "@/lib/utils";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { DpStatusBadge, statusToneFor } from "@/components/dp/DpStatusBadge";
 import { normalizeWeekday } from "@/lib/dp/folga-rules";
-import { buildBloqueiosDeRegras, type RegraRow } from "@/lib/dp/bloqueio-rules";
+import {
+  buildBloqueiosDeRegras,
+  buildBloqueiosDeRegrasDetalhado,
+  type RegraRow,
+} from "@/lib/dp/bloqueio-rules";
+import { LiberarEscopoDialog } from "@/components/dp/bloqueios/LiberarEscopoDialog";
 import type { Database } from "@/integrations/supabase/types";
 
 type Row = Database["public"]["Tables"]["dp_solicitacoes"]["Row"] & {
@@ -218,17 +223,18 @@ export default function DpFolgas() {
     onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
   });
 
+  const [liberarEscopoOpen, setLiberarEscopoOpen] = useState(false);
+
   const liberarData = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (params: { unidadeId: string | null }) => {
       if (!selectedCompanyId || !selectedDay) return;
-      const unidadeIdParaUpsert = unidadeFilter === "todas" ? null : unidadeFilter;
       const { error } = await supabase
         .from("dp_datas_bloqueadas")
         .upsert(
           {
             company_id: selectedCompanyId,
             data: format(selectedDay, "yyyy-MM-dd"),
-            unidade_id: unidadeIdParaUpsert,
+            unidade_id: params.unidadeId,
             liberada: true,
             motivo: "Liberado manualmente pelo administrador",
             criado_por: user?.id ?? null,
@@ -243,6 +249,7 @@ export default function DpFolgas() {
       qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas"] });
       qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
       qc.invalidateQueries({ queryKey: ["dp_bloqueio_regras"] });
+      setLiberarEscopoOpen(false);
       setSelectedDay(null);
     },
     onError: (e: any) => toast.error("Erro ao liberar", { description: e?.message ?? e?.error_description ?? "Tente novamente." }),
@@ -508,7 +515,7 @@ export default function DpFolgas() {
   }, [diaConfigQuery.data]);
 
   const blockedByDate = useMemo(() => {
-    const m = new Map<string, { reason: string; auto: boolean }>();
+    const m = new Map<string, { reason: string; auto: boolean; hasGlobal: boolean; hasUnidade: boolean }>();
     const liberadas = new Set<string>();
     const unidadeFilterId = unidadeFilter === "todas" ? null : unidadeFilter;
     for (const b of datasBloqueadasQuery.data ?? []) {
@@ -519,20 +526,27 @@ export default function DpFolgas() {
         liberadas.add(b.data);
         continue;
       }
-      m.set(b.data, { reason: b.motivo ?? "Bloqueado", auto: !!b.regra_id });
+      m.set(b.data, {
+        reason: b.motivo ?? "Bloqueado",
+        auto: !!b.regra_id,
+        hasGlobal: b.unidade_id == null,
+        hasUnidade: b.unidade_id != null,
+      });
     }
     const regrasData = regrasBloqueioQuery.data;
     if (regrasData) {
-      const fromRegras = buildBloqueiosDeRegras({
+      const fromRegras = buildBloqueiosDeRegrasDetalhado({
         regras: regrasData.regras,
         vinculos: regrasData.vinculos,
         unidadeId: unidadeFilterId,
         from: rangeStart,
         to: rangeEnd,
       });
-      fromRegras.forEach((motivo, iso) => {
+      fromRegras.forEach((orig, iso) => {
         if (liberadas.has(iso)) return;
-        if (!m.has(iso)) m.set(iso, { reason: motivo, auto: true });
+        if (!m.has(iso)) {
+          m.set(iso, { reason: orig.motivo, auto: true, hasGlobal: orig.hasGlobal, hasUnidade: orig.hasUnidade });
+        }
       });
     }
     return m;
@@ -870,7 +884,14 @@ export default function DpFolgas() {
                   <Button
                     variant="outline"
                     className="h-11 w-full rounded-xl border-destructive/30 font-bold text-destructive hover:bg-destructive/10"
-                    onClick={() => liberarData.mutate()}
+                    onClick={() => {
+                      if (selectedBlock.auto && selectedBlock.hasGlobal) {
+                        setLiberarEscopoOpen(true);
+                      } else {
+                        const unidadeId = unidadeFilter === "todas" ? null : unidadeFilter;
+                        liberarData.mutate({ unidadeId });
+                      }
+                    }}
                     disabled={liberarData.isPending}
                   >
                     <Unlock className="mr-2 h-4 w-4" /> Liberar Data
@@ -1112,6 +1133,24 @@ export default function DpFolgas() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <LiberarEscopoDialog
+        open={liberarEscopoOpen}
+        onOpenChange={setLiberarEscopoOpen}
+        dataLabel={selectedDay ? format(selectedDay, "dd/MM/yyyy") : ""}
+        unidadeNome={(() => {
+          if (unidadeFilter === "todas") return null;
+          const u = (unidadesQuery.data ?? []).find((x: any) => x.id === unidadeFilter);
+          return u?.nome ?? null;
+        })()}
+        motivo={selectedBlock?.reason}
+        loading={liberarData.isPending}
+        onLiberarUnidade={() => {
+          if (unidadeFilter === "todas") return;
+          liberarData.mutate({ unidadeId: unidadeFilter });
+        }}
+        onLiberarGlobal={() => liberarData.mutate({ unidadeId: null })}
+      />
     </DpPage>
   );
 }

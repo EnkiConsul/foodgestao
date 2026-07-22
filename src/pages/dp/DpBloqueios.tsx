@@ -142,9 +142,14 @@ export default function DpBloqueios() {
       mes: r.mes, dia: r.dia, regra_json: (r.regra_json ?? null) as any, ativo: r.ativo,
     }));
 
+    // Nome das unidades para exibir nas badges de override parcial
+    const unidadeNomeById = new Map<string, string>();
+    for (const u of unidadesQ.data ?? []) unidadeNomeById.set(u.id, u.nome);
+
     // Expande cada regra respeitando o filtro de unidade
     const autoMap = new Map<string, string>(); // iso -> motivo
     const regraByIso = new Map<string, string>(); // iso -> regra_id
+    const globalRuleByIso = new Map<string, boolean>(); // iso -> alguma regra global cobre a data?
     for (const r of regrasRow) {
       const linked = vinculos.filter((v) => v.regra_id === r.id).map((v) => v.unidade_id);
       // Filtro por unidade:
@@ -153,12 +158,15 @@ export default function DpBloqueios() {
       // - "all" (null): todas
       if (unidadeAlvo === "__global__" && linked.length > 0) continue;
       if (unidadeAlvo && unidadeAlvo !== "__global__" && linked.length > 0 && !linked.includes(unidadeAlvo)) continue;
+      const isGlobal = linked.length === 0;
       const set = expandRegraNoIntervalo(r, from, to);
       for (const iso of set) {
         if (!autoMap.has(iso)) {
           autoMap.set(iso, r.nome);
           regraByIso.set(iso, r.id);
         }
+        if (isGlobal) globalRuleByIso.set(iso, true);
+        else if (!globalRuleByIso.has(iso)) globalRuleByIso.set(iso, false);
       }
     }
 
@@ -176,6 +184,22 @@ export default function DpBloqueios() {
       physicalByKey.set(`${d.data}|${d.unidade_id ?? ""}`, d);
     }
 
+    // Overrides parciais (com liberada=true) por iso, apenas quando o filtro
+    // é "all" — nas visões restritas por unidade não faz sentido consolidar.
+    const partialByIso = new Map<string, Array<{ id: string; unidade_id: string; unidade_nome: string }>>();
+    if (unidadeFiltro === "all") {
+      for (const d of physicalInScope) {
+        if (!d.unidade_id) continue;
+        const isLib = d.liberada === true || !!d.liberada_por_solicitacao;
+        if (!isLib) continue;
+        if (!autoMap.has(d.data)) continue; // só relevante quando há regra cobrindo
+        const nome = unidadeNomeById.get(d.unidade_id) ?? d.unidade?.nome ?? "Unidade";
+        const arr = partialByIso.get(d.data) ?? [];
+        arr.push({ id: d.id, unidade_id: d.unidade_id, unidade_nome: nome });
+        partialByIso.set(d.data, arr);
+      }
+    }
+
     const getOverrideForAuto = (iso: string) => {
       if (unidadeFiltro !== "all" && unidadeFiltro !== "__global__") {
         return physicalByKey.get(`${iso}|${unidadeFiltro}`) ?? physicalByKey.get(`${iso}|`);
@@ -188,8 +212,8 @@ export default function DpBloqueios() {
     const consumedKeys = new Set<string>();
     for (const [iso, motivo] of autoMap.entries()) {
       const regraId = regraByIso.get(iso) ?? null;
-      const key = `${iso}|`;
       const override = getOverrideForAuto(iso);
+      const partials = partialByIso.get(iso) ?? [];
       if (override) {
         consumedKeys.add(`${override.data}|${override.unidade_id ?? ""}`);
         const isLiberada = override.liberada === true || !!override.liberada_por_solicitacao;
@@ -197,6 +221,7 @@ export default function DpBloqueios() {
           ...override,
           regra_id: regraId,
           motivo: isLiberada ? motivo : override.motivo,
+          partialOverrides: partials.filter((p) => p.id !== override.id),
         });
       } else {
         result.push({
@@ -209,11 +234,14 @@ export default function DpBloqueios() {
           liberada: false,
           liberada_por_solicitacao: null,
           unidade: null,
+          partialOverrides: partials,
         });
       }
+      // Consumir chaves dos overrides parciais para não duplicar como linha "Liberada"
+      for (const p of partials) consumedKeys.add(`${iso}|${p.unidade_id}`);
     }
 
-    // 3) Linhas físicas não cobertas por regra: manuais reais (ou legadas com regra_id null que ainda não foi coberta — respeitar)
+    // 3) Linhas físicas não cobertas por regra: manuais reais
     for (const [key, d] of physicalByKey.entries()) {
       if (consumedKeys.has(key)) continue;
       const isLiberada = d.liberada === true || !!d.liberada_por_solicitacao;
@@ -226,8 +254,6 @@ export default function DpBloqueios() {
         });
         continue;
       }
-      // Descartar linhas legadas cujo motivo bate com nome de regra E a data está coberta pela mesma regra (evita duplicidade)
-      // Se a data está em autoMap, já foi tratada acima (override); caso contrário, é bloqueio manual real.
       if (autoMap.has(d.data)) continue;
       result.push(d);
     }
@@ -235,7 +261,7 @@ export default function DpBloqueios() {
     // 4) Ordenação
     result.sort((a, b) => a.data.localeCompare(b.data));
     return result;
-  }, [datasQ.data, regrasQ.data, anoFiltro, mesFiltro, unidadeFiltro, showPast, today, selectedCompanyId]);
+  }, [datasQ.data, regrasQ.data, unidadesQ.data, anoFiltro, mesFiltro, unidadeFiltro, showPast, today, selectedCompanyId]);
 
   const regrasFiltradas = useMemo(() => {
     const rows = regrasQ.data ?? [];

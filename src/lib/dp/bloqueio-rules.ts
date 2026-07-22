@@ -150,3 +150,54 @@ export function buildBloqueiosDeRegras(params: {
   }
   return out;
 }
+
+export type BloqueioOrigem = {
+  motivo: string;
+  /** true se pelo menos uma regra cobrindo a data é global (sem unidades vinculadas). */
+  hasGlobal: boolean;
+  /** true se pelo menos uma regra cobrindo a data é vinculada a alguma unidade. */
+  hasUnidade: boolean;
+};
+
+/**
+ * Igual a `buildBloqueiosDeRegras`, mas devolve metadados para permitir
+ * distinguir bloqueios de regra global x regra por unidade em cada data.
+ */
+export function buildBloqueiosDeRegrasDetalhado(params: {
+  regras: RegraRow[];
+  vinculos: RegraUnidadeLink[];
+  unidadeId: string | null;
+  from: Date;
+  to: Date;
+}): Map<string, BloqueioOrigem> {
+  const { regras, vinculos, unidadeId, from, to } = params;
+  const porRegra = new Map<string, string[]>();
+  for (const v of vinculos) {
+    const arr = porRegra.get(v.regra_id) ?? [];
+    arr.push(v.unidade_id);
+    porRegra.set(v.regra_id, arr);
+  }
+
+  const out = new Map<string, BloqueioOrigem>();
+  for (const r of regras) {
+    const unidades = porRegra.get(r.id) ?? [];
+    if (unidades.length > 0 && unidadeId && !unidades.includes(unidadeId)) continue;
+    const isGlobal = unidades.length === 0;
+    const datas = expandRegraNoIntervalo(r, from, to);
+    for (const iso of datas) {
+      const cur = out.get(iso);
+      if (!cur) {
+        out.set(iso, {
+          motivo: r.nome,
+          hasGlobal: isGlobal,
+          hasUnidade: !isGlobal,
+        });
+      } else {
+        cur.hasGlobal = cur.hasGlobal || isGlobal;
+        cur.hasUnidade = cur.hasUnidade || !isGlobal;
+      }
+    }
+  }
+  return out;
+}
+

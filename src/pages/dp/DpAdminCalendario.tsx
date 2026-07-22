@@ -74,7 +74,12 @@ import {
   type FolgaRecord,
   type OccupantType,
 } from "@/lib/dp/folga-rules";
-import { buildBloqueiosDeRegras, type RegraRow } from "@/lib/dp/bloqueio-rules";
+import {
+  buildBloqueiosDeRegras,
+  buildBloqueiosDeRegrasDetalhado,
+  type RegraRow,
+} from "@/lib/dp/bloqueio-rules";
+import { LiberarEscopoDialog } from "@/components/dp/bloqueios/LiberarEscopoDialog";
 
 const isoWeekKey = (d: Date) => `${getISOWeekYear(d)}-${getISOWeek(d)}`;
 
@@ -245,27 +250,33 @@ export default function DpAdminCalendario() {
   }, [bloqueios, regrasBloqueioQuery.data, unidadeFilterId, range.startDate, range.endDate]);
 
   const blockedByDate = useMemo(() => {
-    const m = new Map<string, { motivo: string; auto: boolean; id: string }>();
+    const m = new Map<string, { motivo: string; auto: boolean; id: string; hasGlobal: boolean; hasUnidade: boolean }>();
     const liberadasSet = new Set<string>();
     for (const b of bloqueios) {
       if (b.liberada_por_solicitacao || b.liberada === true) {
         liberadasSet.add(b.data);
         continue;
       }
-      m.set(b.data, { motivo: b.motivo, auto: !!b.regra_id, id: b.id });
+      m.set(b.data, {
+        motivo: b.motivo,
+        auto: !!b.regra_id,
+        id: b.id,
+        hasGlobal: b.unidade_id == null,
+        hasUnidade: b.unidade_id != null,
+      });
     }
     const regrasData = regrasBloqueioQuery.data;
     if (regrasData) {
-      const fromRegras = buildBloqueiosDeRegras({
+      const fromRegras = buildBloqueiosDeRegrasDetalhado({
         regras: regrasData.regras,
         vinculos: regrasData.vinculos,
         unidadeId: unidadeFilterId,
         from: range.startDate,
         to: range.endDate,
       });
-      fromRegras.forEach((motivo, iso) => {
+      fromRegras.forEach((orig, iso) => {
         if (liberadasSet.has(iso)) return;
-        if (!m.has(iso)) m.set(iso, { motivo, auto: true, id: `regra:${iso}` });
+        if (!m.has(iso)) m.set(iso, { motivo: orig.motivo, auto: true, id: `regra:${iso}`, hasGlobal: orig.hasGlobal, hasUnidade: orig.hasUnidade });
       });
     }
     return m;
@@ -449,18 +460,19 @@ export default function DpAdminCalendario() {
     onError: (e: any) => toast.error(e.message ?? "Erro"),
   });
 
+  const [liberarEscopoOpen, setLiberarEscopoOpen] = useState(false);
+
   const liberarData = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (params: { unidadeId: string | null }) => {
       if (!dayOpen) return;
       const { data: userRes } = await supabase.auth.getUser();
-      const unidadeIdParaUpsert = filterUnidade === "all" ? null : filterUnidade;
       const { error } = await supabase
         .from("dp_datas_bloqueadas")
         .upsert(
           {
             company_id: selectedCompanyId!,
             data: dayOpen,
-            unidade_id: unidadeIdParaUpsert,
+            unidade_id: params.unidadeId,
             liberada: true,
             motivo: "Liberado manualmente pelo administrador",
             criado_por: userRes.user?.id ?? null,
@@ -474,6 +486,7 @@ export default function DpAdminCalendario() {
       qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas"] });
       qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
       qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_geral"] });
+      setLiberarEscopoOpen(false);
       setDayOpen(null);
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao liberar"),
@@ -731,7 +744,14 @@ export default function DpAdminCalendario() {
                   <Button
                     variant="outline"
                     className="h-11 w-full rounded-xl border-destructive/30 font-bold text-destructive hover:bg-destructive/10"
-                    onClick={() => liberarData.mutate()}
+                    onClick={() => {
+                      if (currentBlock.auto && currentBlock.hasGlobal) {
+                        setLiberarEscopoOpen(true);
+                      } else {
+                        const unidadeId = filterUnidade === "all" ? null : filterUnidade;
+                        liberarData.mutate({ unidadeId });
+                      }
+                    }}
                     disabled={liberarData.isPending}
                   >
                     <Unlock className="mr-2 h-4 w-4" /> Liberar Data
@@ -911,6 +931,24 @@ export default function DpAdminCalendario() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <LiberarEscopoDialog
+        open={liberarEscopoOpen}
+        onOpenChange={setLiberarEscopoOpen}
+        dataLabel={dayOpen ? format(parseYMD(dayOpen), "dd/MM/yyyy") : ""}
+        unidadeNome={(() => {
+          if (filterUnidade === "all") return null;
+          const u = unidades.find((x: any) => x.id === filterUnidade);
+          return u?.nome ?? null;
+        })()}
+        motivo={currentBlock?.motivo}
+        loading={liberarData.isPending}
+        onLiberarUnidade={() => {
+          if (filterUnidade === "all") return;
+          liberarData.mutate({ unidadeId: filterUnidade });
+        }}
+        onLiberarGlobal={() => liberarData.mutate({ unidadeId: null })}
+      />
     </DpPage>
   );
 }
