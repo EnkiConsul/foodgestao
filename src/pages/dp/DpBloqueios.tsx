@@ -327,15 +327,7 @@ export default function DpBloqueios() {
       <DpPageHeader
         icon={CalendarX}
         title="Datas Bloqueadas"
-        description="Configure regras automáticas e bloqueios manuais. As alterações geram automaticamente os próximos 12 meses."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button onClick={regenerar12} disabled={reprocessando} variant="outline">
-              <Calendar className="size-4 mr-2" />
-              {reprocessando ? "Regenerando…" : "Regenerar 12 meses"}
-            </Button>
-          </div>
-        }
+        description="Configure regras automáticas e bloqueios manuais. Regras ativas passam a valer imediatamente em todo o sistema."
       />
 
       {/* Filtros */}
