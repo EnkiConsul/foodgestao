@@ -286,12 +286,8 @@ Deno.serve(async (req) => {
             acctError = "Pluggy ainda não coletou transações para esta conta. Iniciamos uma atualização; tente sincronizar novamente em alguns minutos.";
             if (!itemUpdateTriggered) {
               try {
-                await triggerItemUpdate(conn.provider_item_id);
+                await triggerItemUpdate(conn.provider_item_id, pluggyWebhookUrl());
                 itemUpdateTriggered = true;
-                console.log(JSON.stringify({
-                  scope: "pluggy-sync",
-                  step: "trigger_item_update",
-                  connectionId,
                   itemId: conn.provider_item_id,
                 }));
               } catch (upe) {
