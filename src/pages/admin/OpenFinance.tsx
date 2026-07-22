@@ -181,7 +181,6 @@ export default function AdminOpenFinance() {
   return (
     <div className="space-y-4">
       <AdminPageHeader
-        icon={Webhook}
         title="Diagnóstico Open Finance"
         description="Status, webhooks e tentativas de sincronização por conexão Pluggy."
       />
