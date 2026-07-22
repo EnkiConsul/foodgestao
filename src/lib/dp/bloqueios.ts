@@ -35,6 +35,7 @@ export type DataBloq = {
   regra_id: string | null;
   unidade_id: string | null;
   liberada_por_solicitacao: string | null;
+  liberada?: boolean | null;
   unidade?: Unidade | null;
 };
 

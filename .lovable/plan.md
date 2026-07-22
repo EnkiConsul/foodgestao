@@ -1,32 +1,31 @@
-## Causa
+## Objetivo
 
-O botão "Liberar Data" faz `upsert` em `dp_datas_bloqueadas` com `onConflict: "company_id,unidade_id,data"`, mas a tabela não tem esse índice único. O Postgres devolve `42P10 there is no unique or exclusion constraint matching the ON CONFLICT specification` e o `toast` renderiza `[object Object]`.
+Na página **Datas Bloqueadas** (`/dp/bloqueios`), quando uma data estiver **Liberada** (badge verde), exibir a ação **"Bloquear Novamente"** para restaurar o bloqueio original.
 
-Confirmado no banco: `dp_datas_bloqueadas` só possui PK em `id` e as FKs — nenhum UNIQUE em `(company_id, unidade_id, data)`.
+## Comportamento
 
-## Correção
+- Linha **Liberada** (`liberada = true` ou `liberada_por_solicitacao != null`):
+  - Mostrar botão **"Bloquear Novamente"** (ícone `Lock`, verde/rose).
+  - Ao clicar, abrir `AlertDialog` de confirmação.
+  - Se `regra_id` presente (override de regra automática): `DELETE` da linha em `dp_datas_bloqueadas` → a regra volta a valer em runtime.
+  - Se manual liberado: `UPDATE ... SET liberada = false, liberada_por_solicitacao = null`.
+  - Toast "Data bloqueada novamente" + invalidar `dp_datas_bloqueadas_admin`.
+- Linha **Bloqueada** automática (regra): sem ações (comportamento atual).
+- Linha **Bloqueada** manual: mantém Editar + Remover atuais.
 
-1. **Migração SQL** — criar dois índices únicos parciais (necessário porque `unidade_id` é NULL para bloqueios globais e NULL não deduplica em UNIQUE comum):
-   ```sql
-   CREATE UNIQUE INDEX dp_datas_bloqueadas_unique_global
-     ON public.dp_datas_bloqueadas (company_id, data)
-     WHERE unidade_id IS NULL;
-   CREATE UNIQUE INDEX dp_datas_bloqueadas_unique_unidade
-     ON public.dp_datas_bloqueadas (company_id, unidade_id, data)
-     WHERE unidade_id IS NOT NULL;
-   ```
-   Antes de criar, deduplicar linhas existentes que violem o índice (manter a mais recente por `(company_id, coalesce(unidade_id,'00000000-…'), data)`).
+## Alterações
 
-2. **Frontend** — `src/pages/dp/DpFolgas.tsx` e `src/pages/dp/DpAdminCalendario.tsx`: no `onError` do mutation `liberarData`, formatar a mensagem (`err?.message ?? String(err)`) para nunca cair em `[object Object]`. Ajustar o `upsert` a usar `onConflict` correspondente ao índice parcial ativo (mesmo target string funciona; PostgREST casa com o índice parcial se o `WHERE` for coberto pelo payload).
+1. **`src/lib/dp/bloqueios.ts`** — adicionar campo `liberada: boolean | null` em `DataBloq`.
+2. **`src/pages/dp/DpBloqueios.tsx`**
+   - Selecionar `liberada` na query `datasQ`.
+   - Nova mutation `rebloquear` (delete se `regra_id`, update caso contrário) com invalidate.
+   - Passar `onRebloquear` para `DataRow`.
+3. **`src/components/dp/bloqueios/DataRow.tsx`**
+   - Nova prop `onRebloquear(d: DataBloq)`.
+   - Considerar `liberada` também via `d.liberada === true`.
+   - Se `liberada`: renderizar botão "Bloquear Novamente" com `AlertDialog` de confirmação, no lugar de (ou junto de) editar/remover.
 
-## Verificação
+## Observações técnicas
 
-- Clicar em "Liberar Data" no dia 08/08/2026 → registro é upsertado com `liberada = true`, a célula volta a "disponível" e o dialog fecha.
-- Segundo clique em outra data já bloqueada não gera duplicata.
-- Erro simulado (ex.: remover permissão) mostra mensagem legível no toast.
-
-## Arquivos
-
-- `supabase/migrations/*` — novo arquivo com os dois índices únicos parciais + limpeza de duplicatas.
-- `src/pages/dp/DpFolgas.tsx` — melhorar mensagem de erro do `liberarData`.
-- `src/pages/dp/DpAdminCalendario.tsx` — mesma melhoria de mensagem (paridade).
+- O motor de bloqueios em runtime (`dp_regra_bloqueia_data`) trata ausência de linha em `dp_datas_bloqueadas` como bloqueada quando a regra se aplica, então `DELETE` restaura o bloqueio automático corretamente.
+- Nenhuma mudança de schema necessária (`liberada` já existe na tabela).
