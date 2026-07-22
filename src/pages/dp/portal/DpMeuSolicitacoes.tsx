@@ -111,16 +111,53 @@ export default function DpMeuSolicitacoes() {
     },
   });
 
+  const regrasBloqueio = useQuery({
+    queryKey: ["dp_bloq_regras_meu_sol", meRef.data?.company_id],
+    enabled: !!meRef.data?.company_id,
+    queryFn: async () => {
+      const [{ data: regras }, { data: vinc }] = await Promise.all([
+        supabase
+          .from("dp_bloqueio_regras")
+          .select("id, company_id, nome, tipo, mes, dia, regra_json, ativo")
+          .eq("company_id", meRef.data!.company_id!)
+          .eq("ativo", true),
+        supabase.from("dp_bloqueio_regra_unidades").select("regra_id, unidade_id"),
+      ]);
+      return {
+        regras: (regras ?? []) as RegraRow[],
+        vinculos: (vinc ?? []) as { regra_id: string; unidade_id: string }[],
+      };
+    },
+  });
+
   const dataAlvoIso = toIso(form.data_alvo);
   const bloqueioAtivo = useMemo(() => {
+    // 1) bloqueio pontual em dp_datas_bloqueadas
     const row = (bloqueios.data ?? []).find(
       (b: any) =>
         b.data === dataAlvoIso &&
         (b.unidade_id === null || b.unidade_id === meRef.data?.unidade_id) &&
         !b.liberada_por_solicitacao,
     );
-    return row ? ((row as any).motivo as string) ?? "" : null;
-  }, [bloqueios.data, dataAlvoIso, meRef.data?.unidade_id]);
+    if (row) return ((row as any).motivo as string) ?? "";
+    // 2) regra dinâmica (runtime), se houver liberação individual, não bloqueia
+    if (!dataAlvoIso || !form.data_alvo || !regrasBloqueio.data) return null;
+    const liberada = (bloqueios.data ?? []).some(
+      (b: any) =>
+        b.data === dataAlvoIso &&
+        (b.unidade_id === null || b.unidade_id === meRef.data?.unidade_id) &&
+        !!b.liberada_por_solicitacao,
+    );
+    if (liberada) return null;
+    const map = buildBloqueiosDeRegras({
+      regras: regrasBloqueio.data.regras,
+      vinculos: regrasBloqueio.data.vinculos,
+      unidadeId: meRef.data?.unidade_id ?? null,
+      from: form.data_alvo,
+      to: form.data_alvo,
+    });
+    return map.get(dataAlvoIso) ?? null;
+  }, [bloqueios.data, dataAlvoIso, form.data_alvo, meRef.data?.unidade_id, regrasBloqueio.data]);
 
   // Capacidade do dia (só relevante quando tipo = folga)
   const capacity = useQuery({
