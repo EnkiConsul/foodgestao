@@ -74,7 +74,12 @@ import {
   type FolgaRecord,
   type OccupantType,
 } from "@/lib/dp/folga-rules";
-import { buildBloqueiosDeRegras, type RegraRow } from "@/lib/dp/bloqueio-rules";
+import {
+  buildBloqueiosDeRegras,
+  buildBloqueiosDeRegrasDetalhado,
+  type RegraRow,
+} from "@/lib/dp/bloqueio-rules";
+import { LiberarEscopoDialog } from "@/components/dp/bloqueios/LiberarEscopoDialog";
 
 const isoWeekKey = (d: Date) => `${getISOWeekYear(d)}-${getISOWeek(d)}`;
 
