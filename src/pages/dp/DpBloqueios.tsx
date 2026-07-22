@@ -176,15 +176,22 @@ export default function DpBloqueios() {
       physicalByKey.set(`${d.data}|${d.unidade_id ?? ""}`, d);
     }
 
+    const getOverrideForAuto = (iso: string) => {
+      if (unidadeFiltro !== "all" && unidadeFiltro !== "__global__") {
+        return physicalByKey.get(`${iso}|${unidadeFiltro}`) ?? physicalByKey.get(`${iso}|`);
+      }
+      return physicalByKey.get(`${iso}|`);
+    };
+
     // 2) Monta linhas AUTO (a partir do runtime), aplicando override se existir
     const result: DataBloq[] = [];
     const consumedKeys = new Set<string>();
     for (const [iso, motivo] of autoMap.entries()) {
       const regraId = regraByIso.get(iso) ?? null;
       const key = `${iso}|`;
-      const override = physicalByKey.get(key);
+      const override = getOverrideForAuto(iso);
       if (override) {
-        consumedKeys.add(key);
+        consumedKeys.add(`${override.data}|${override.unidade_id ?? ""}`);
         const isLiberada = override.liberada === true || !!override.liberada_por_solicitacao;
         result.push({
           ...override,
@@ -209,6 +216,16 @@ export default function DpBloqueios() {
     // 3) Linhas físicas não cobertas por regra: manuais reais (ou legadas com regra_id null que ainda não foi coberta — respeitar)
     for (const [key, d] of physicalByKey.entries()) {
       if (consumedKeys.has(key)) continue;
+      const isLiberada = d.liberada === true || !!d.liberada_por_solicitacao;
+      if (isLiberada && autoMap.has(d.data)) {
+        const regraId = regraByIso.get(d.data) ?? null;
+        result.push({
+          ...d,
+          regra_id: regraId,
+          motivo: autoMap.get(d.data) ?? d.motivo,
+        });
+        continue;
+      }
       // Descartar linhas legadas cujo motivo bate com nome de regra E a data está coberta pela mesma regra (evita duplicidade)
       // Se a data está em autoMap, já foi tratada acima (override); caso contrário, é bloqueio manual real.
       if (autoMap.has(d.data)) continue;
@@ -378,6 +395,8 @@ export default function DpBloqueios() {
     onSuccess: () => {
       toast.success("Data liberada");
       qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas"] });
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_geral"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Erro ao liberar"),
   });
