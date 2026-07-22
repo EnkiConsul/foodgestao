@@ -175,6 +175,27 @@ export default function DpMeuCalendario() {
     },
   });
 
+  const regrasBloqueioQuery = useQuery({
+    queryKey: ["dp_bloq_regras_meu_cal", companyId],
+    enabled: !!companyId,
+    queryFn: async () => {
+      const [{ data: regras }, { data: vinc }] = await Promise.all([
+        supabase
+          .from("dp_bloqueio_regras")
+          .select("id, company_id, nome, tipo, mes, dia, regra_json, ativo")
+          .eq("company_id", companyId!)
+          .eq("ativo", true),
+        supabase
+          .from("dp_bloqueio_regra_unidades")
+          .select("regra_id, unidade_id"),
+      ]);
+      return {
+        regras: (regras ?? []) as RegraRow[],
+        vinculos: (vinc ?? []) as { regra_id: string; unidade_id: string }[],
+      };
+    },
+  });
+
   const diaConfigQuery = useQuery({
     queryKey: ["dp_dia_config_meu_cal", companyId, ano, mes],
     enabled: !!companyId,
