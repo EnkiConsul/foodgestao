@@ -190,7 +190,7 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
                     <span className={cn("text-sm font-bold", !wknd && "text-muted-foreground", past && "opacity-50")}>
                       {c.date.getDate()}
                     </span>
-                    {isAdmin && wknd && (
+                    {isAdmin && wknd && c.status !== "blocked" && (
                       <Badge
                         variant="outline"
                         className={cn(
@@ -213,6 +213,7 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
                         Bloqueado
                       </Badge>
                     )}
+
                     {c.status === "fixed" && !isAdmin && (
                       <Badge variant="outline" className="h-5 border-blue-500/30 bg-blue-500/10 px-1.5 py-0 text-[9px] text-blue-600">
                         Semanal
