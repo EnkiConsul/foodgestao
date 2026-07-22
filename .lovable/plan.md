@@ -1,31 +1,27 @@
-## Objetivo
+## Causa
 
-Na página **Datas Bloqueadas** (`/dp/bloqueios`), quando uma data estiver **Liberada** (badge verde), exibir a ação **"Bloquear Novamente"** para restaurar o bloqueio original.
+O CHECK `dp_bloqueio_regras_check` só permite `tipo = 'fixa_anual'` ou `'dinamica'`. O formulário salva `tipo = 'pos_pagamento'` (valor já existente no enum) → Postgres devolve `23514`.
 
-## Comportamento
+## Correção
 
-- Linha **Liberada** (`liberada = true` ou `liberada_por_solicitacao != null`):
-  - Mostrar botão **"Bloquear Novamente"** (ícone `Lock`, verde/rose).
-  - Ao clicar, abrir `AlertDialog` de confirmação.
-  - Se `regra_id` presente (override de regra automática): `DELETE` da linha em `dp_datas_bloqueadas` → a regra volta a valer em runtime.
-  - Se manual liberado: `UPDATE ... SET liberada = false, liberada_por_solicitacao = null`.
-  - Toast "Data bloqueada novamente" + invalidar `dp_datas_bloqueadas_admin`.
-- Linha **Bloqueada** automática (regra): sem ações (comportamento atual).
-- Linha **Bloqueada** manual: mantém Editar + Remover atuais.
+Migration única atualizando o CHECK para incluir o terceiro tipo:
 
-## Alterações
+```sql
+ALTER TABLE public.dp_bloqueio_regras DROP CONSTRAINT dp_bloqueio_regras_check;
+ALTER TABLE public.dp_bloqueio_regras
+  ADD CONSTRAINT dp_bloqueio_regras_check CHECK (
+    (tipo = 'fixa_anual'    AND mes IS NOT NULL AND dia IS NOT NULL)
+ OR (tipo = 'dinamica'      AND regra_json IS NOT NULL)
+ OR (tipo = 'pos_pagamento' AND regra_json IS NOT NULL)
+  );
+```
 
-1. **`src/lib/dp/bloqueios.ts`** — adicionar campo `liberada: boolean | null` em `DataBloq`.
-2. **`src/pages/dp/DpBloqueios.tsx`**
-   - Selecionar `liberada` na query `datasQ`.
-   - Nova mutation `rebloquear` (delete se `regra_id`, update caso contrário) com invalidate.
-   - Passar `onRebloquear` para `DataRow`.
-3. **`src/components/dp/bloqueios/DataRow.tsx`**
-   - Nova prop `onRebloquear(d: DataBloq)`.
-   - Considerar `liberada` também via `d.liberada === true`.
-   - Se `liberada`: renderizar botão "Bloquear Novamente" com `AlertDialog` de confirmação, no lugar de (ou junto de) editar/remover.
+## Geração de novas datas
 
-## Observações técnicas
+Não requer regeneração manual: o motor em runtime (`src/lib/dp/bloqueio-rules.ts` + triggers) já expande as regras ativas para todas as datas futuras disponíveis assim que a regra é salva. Datas passadas permanecem intactas; datas futuras ainda disponíveis passam a refletir a regra editada imediatamente.
 
-- O motor de bloqueios em runtime (`dp_regra_bloqueia_data`) trata ausência de linha em `dp_datas_bloqueadas` como bloqueada quando a regra se aplica, então `DELETE` restaura o bloqueio automático corretamente.
-- Nenhuma mudança de schema necessária (`liberada` já existe na tabela).
+## Verificação
+
+- Editar "Bloqueio Pós-Pagamento" → PATCH retorna 204.
+- Calendário Admin e Geral mostram as datas expandidas conforme a nova configuração.
+- Regras `fixa_anual` e `dinamica` continuam salvando (mesmas condições preservadas).
