@@ -250,27 +250,33 @@ export default function DpAdminCalendario() {
   }, [bloqueios, regrasBloqueioQuery.data, unidadeFilterId, range.startDate, range.endDate]);
 
   const blockedByDate = useMemo(() => {
-    const m = new Map<string, { motivo: string; auto: boolean; id: string }>();
+    const m = new Map<string, { motivo: string; auto: boolean; id: string; hasGlobal: boolean; hasUnidade: boolean }>();
     const liberadasSet = new Set<string>();
     for (const b of bloqueios) {
       if (b.liberada_por_solicitacao || b.liberada === true) {
         liberadasSet.add(b.data);
         continue;
       }
-      m.set(b.data, { motivo: b.motivo, auto: !!b.regra_id, id: b.id });
+      m.set(b.data, {
+        motivo: b.motivo,
+        auto: !!b.regra_id,
+        id: b.id,
+        hasGlobal: b.unidade_id == null,
+        hasUnidade: b.unidade_id != null,
+      });
     }
     const regrasData = regrasBloqueioQuery.data;
     if (regrasData) {
-      const fromRegras = buildBloqueiosDeRegras({
+      const fromRegras = buildBloqueiosDeRegrasDetalhado({
         regras: regrasData.regras,
         vinculos: regrasData.vinculos,
         unidadeId: unidadeFilterId,
         from: range.startDate,
         to: range.endDate,
       });
-      fromRegras.forEach((motivo, iso) => {
+      fromRegras.forEach((orig, iso) => {
         if (liberadasSet.has(iso)) return;
-        if (!m.has(iso)) m.set(iso, { motivo, auto: true, id: `regra:${iso}` });
+        if (!m.has(iso)) m.set(iso, { motivo: orig.motivo, auto: true, id: `regra:${iso}`, hasGlobal: orig.hasGlobal, hasUnidade: orig.hasUnidade });
       });
     }
     return m;
