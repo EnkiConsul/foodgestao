@@ -297,44 +297,48 @@ Deno.serve(async (req) => {
           }
         } catch (e) {
           if (e instanceof PluggyApiError && e.status === 410) {
-            // Produto TRANSACTIONS não coletado — dispara update do item na Pluggy.
-            acctError = "Pluggy ainda não coletou transações para esta conta. Iniciamos uma atualização; tente sincronizar novamente em alguns minutos.";
-            if (!itemUpdateTriggered) {
-              try {
-                await triggerItemUpdate(conn.provider_item_id, pluggyWebhookUrl());
-                itemUpdateTriggered = true;
-                console.log(JSON.stringify({
-                  scope: "pluggy-sync",
-                  step: "trigger_item_update",
-                  connectionId,
-                  itemId: conn.provider_item_id,
-                }));
-              } catch (upe) {
-                const msg = (upe as Error).message;
-                console.error(JSON.stringify({
-                  scope: "pluggy-sync",
-                  step: "trigger_item_update_failed",
-                  connectionId,
-                  error: msg,
-                }));
-                if (upe instanceof PluggyApiError && (upe.status === 401 || upe.status === 403)) {
-                  needsReconnect = true;
-                  acctError = "É necessário reconectar esta instituição para autorizar a coleta de lançamentos.";
-                } else if (upe instanceof PluggyApiError && upe.status === 409) {
-                  // Rate limit da Pluggy: no máximo 1 update por hora.
-                  let waitMin = 60;
-                  try {
-                    const parsed = JSON.parse(upe.body ?? "{}");
-                    const lastUpdatedAt: string | undefined =
-                      parsed?.data?.lastUpdatedAt ?? parsed?.lastUpdatedAt;
-                    const freqHours: number = parsed?.data?.minUpdateFrequencyAllowedInHours ?? 1;
-                    if (lastUpdatedAt) {
-                      const nextAllowed = new Date(lastUpdatedAt).getTime() + freqHours * 3600 * 1000;
-                      const diffMs = nextAllowed - Date.now();
-                      waitMin = Math.max(1, Math.ceil(diffMs / 60000));
-                    }
-                  } catch { /* noop */ }
-                  acctError = `A Pluggy só permite atualizar esta conexão a cada 1 hora. Aguarde ~${waitMin} minuto(s) e sincronize novamente.`;
+            if (skipItemUpdate) {
+              acctError = "Pluggy ainda não expôs transações desta conta neste ciclo.";
+            } else {
+              // Produto TRANSACTIONS não coletado — dispara update do item na Pluggy.
+              acctError = "Pluggy ainda não coletou transações para esta conta. Iniciamos uma atualização; tente sincronizar novamente em alguns minutos.";
+              if (!itemUpdateTriggered) {
+                try {
+                  await triggerItemUpdate(conn.provider_item_id, pluggyWebhookUrl());
+                  itemUpdateTriggered = true;
+                  console.log(JSON.stringify({
+                    scope: "pluggy-sync",
+                    step: "trigger_item_update",
+                    connectionId,
+                    itemId: conn.provider_item_id,
+                  }));
+                } catch (upe) {
+                  const msg = (upe as Error).message;
+                  console.error(JSON.stringify({
+                    scope: "pluggy-sync",
+                    step: "trigger_item_update_failed",
+                    connectionId,
+                    error: msg,
+                  }));
+                  if (upe instanceof PluggyApiError && (upe.status === 401 || upe.status === 403)) {
+                    needsReconnect = true;
+                    acctError = "É necessário reconectar esta instituição para autorizar a coleta de lançamentos.";
+                  } else if (upe instanceof PluggyApiError && upe.status === 409) {
+                    // Rate limit da Pluggy: no máximo 1 update por hora.
+                    let waitMin = 60;
+                    try {
+                      const parsed = JSON.parse(upe.body ?? "{}");
+                      const lastUpdatedAt: string | undefined =
+                        parsed?.data?.lastUpdatedAt ?? parsed?.lastUpdatedAt;
+                      const freqHours: number = parsed?.data?.minUpdateFrequencyAllowedInHours ?? 1;
+                      if (lastUpdatedAt) {
+                        const nextAllowed = new Date(lastUpdatedAt).getTime() + freqHours * 3600 * 1000;
+                        const diffMs = nextAllowed - Date.now();
+                        waitMin = Math.max(1, Math.ceil(diffMs / 60000));
+                      }
+                    } catch { /* noop */ }
+                    acctError = `A Pluggy só permite atualizar esta conexão a cada 1 hora. Aguarde ~${waitMin} minuto(s) e sincronize novamente.`;
+                  }
                 }
               }
             }
