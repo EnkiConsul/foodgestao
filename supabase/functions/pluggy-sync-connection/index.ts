@@ -92,6 +92,8 @@ function resolvePluggyStatus(
 const BodySchema = z.object({
   connectionId: z.string().uuid(),
   fullResync: z.boolean().optional(),
+  source: z.enum(["user", "webhook", "admin"]).optional(),
+  skipItemUpdate: z.boolean().optional(),
 });
 
 Deno.serve(async (req) => {
@@ -106,19 +108,37 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const userClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-    const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(
-      authHeader.replace("Bearer ", ""),
-    );
-    if (claimsErr || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const bearer = authHeader.replace("Bearer ", "");
+    const isInternalCall = bearer === serviceRoleKey;
+
+    if (!isInternalCall) {
+      const userClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } },
+      );
+      const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(bearer);
+      if (claimsErr || !claimsData?.claims) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const parsedAuth = BodySchema.safeParse(await req.clone().json());
+      if (parsedAuth.success) {
+        const { data: canSync, error: canErr } = await userClient.rpc("can_sync_bank_connection", {
+          _connection_id: parsedAuth.data.connectionId,
+        });
+        if (canErr) throw canErr;
+        if (!canSync) {
+          return new Response(JSON.stringify({ error: "Sem permissão para sincronizar" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
     }
 
     const parsed = BodySchema.safeParse(await req.json());
@@ -128,19 +148,14 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { connectionId, fullResync } = parsed.data;
-
-    // Autorização — reaproveita a RPC existente
-    const { data: canSync, error: canErr } = await userClient.rpc("can_sync_bank_connection", {
-      _connection_id: connectionId,
-    });
-    if (canErr) throw canErr;
-    if (!canSync) {
-      return new Response(JSON.stringify({ error: "Sem permissão para sincronizar" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const { connectionId, fullResync, source, skipItemUpdate } = parsed.data;
+    console.log(JSON.stringify({
+      scope: "pluggy-sync",
+      step: "start",
+      connectionId,
+      source: source ?? (isInternalCall ? "internal" : "user"),
+      skipItemUpdate: !!skipItemUpdate,
+    }));
 
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
