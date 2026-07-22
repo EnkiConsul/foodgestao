@@ -515,7 +515,7 @@ export default function DpFolgas() {
   }, [diaConfigQuery.data]);
 
   const blockedByDate = useMemo(() => {
-    const m = new Map<string, { reason: string; auto: boolean }>();
+    const m = new Map<string, { reason: string; auto: boolean; hasGlobal: boolean; hasUnidade: boolean }>();
     const liberadas = new Set<string>();
     const unidadeFilterId = unidadeFilter === "todas" ? null : unidadeFilter;
     for (const b of datasBloqueadasQuery.data ?? []) {
@@ -526,20 +526,27 @@ export default function DpFolgas() {
         liberadas.add(b.data);
         continue;
       }
-      m.set(b.data, { reason: b.motivo ?? "Bloqueado", auto: !!b.regra_id });
+      m.set(b.data, {
+        reason: b.motivo ?? "Bloqueado",
+        auto: !!b.regra_id,
+        hasGlobal: b.unidade_id == null,
+        hasUnidade: b.unidade_id != null,
+      });
     }
     const regrasData = regrasBloqueioQuery.data;
     if (regrasData) {
-      const fromRegras = buildBloqueiosDeRegras({
+      const fromRegras = buildBloqueiosDeRegrasDetalhado({
         regras: regrasData.regras,
         vinculos: regrasData.vinculos,
         unidadeId: unidadeFilterId,
         from: rangeStart,
         to: rangeEnd,
       });
-      fromRegras.forEach((motivo, iso) => {
+      fromRegras.forEach((orig, iso) => {
         if (liberadas.has(iso)) return;
-        if (!m.has(iso)) m.set(iso, { reason: motivo, auto: true });
+        if (!m.has(iso)) {
+          m.set(iso, { reason: orig.motivo, auto: true, hasGlobal: orig.hasGlobal, hasUnidade: orig.hasUnidade });
+        }
       });
     }
     return m;
