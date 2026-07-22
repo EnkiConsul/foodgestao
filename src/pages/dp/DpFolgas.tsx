@@ -223,17 +223,18 @@ export default function DpFolgas() {
     onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
   });
 
+  const [liberarEscopoOpen, setLiberarEscopoOpen] = useState(false);
+
   const liberarData = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (params: { unidadeId: string | null }) => {
       if (!selectedCompanyId || !selectedDay) return;
-      const unidadeIdParaUpsert = unidadeFilter === "todas" ? null : unidadeFilter;
       const { error } = await supabase
         .from("dp_datas_bloqueadas")
         .upsert(
           {
             company_id: selectedCompanyId,
             data: format(selectedDay, "yyyy-MM-dd"),
-            unidade_id: unidadeIdParaUpsert,
+            unidade_id: params.unidadeId,
             liberada: true,
             motivo: "Liberado manualmente pelo administrador",
             criado_por: user?.id ?? null,
@@ -248,6 +249,7 @@ export default function DpFolgas() {
       qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas"] });
       qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
       qc.invalidateQueries({ queryKey: ["dp_bloqueio_regras"] });
+      setLiberarEscopoOpen(false);
       setSelectedDay(null);
     },
     onError: (e: any) => toast.error("Erro ao liberar", { description: e?.message ?? e?.error_description ?? "Tente novamente." }),
