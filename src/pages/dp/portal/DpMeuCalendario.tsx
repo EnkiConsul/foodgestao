@@ -267,13 +267,28 @@ export default function DpMeuCalendario() {
 
   const manualBlocked = useMemo(() => {
     const m = new Map<string, { reason: string; liberada: boolean }>();
+    // 1) datas pontuais em dp_datas_bloqueadas
     for (const b of bloqueiosQuery.data ?? []) {
       const row = b as any;
       if (row.unidade_id !== null && row.unidade_id !== myUnidade) continue;
       m.set(row.data, { reason: row.motivo, liberada: !!row.liberada_por_solicitacao });
     }
+    // 2) regras dinâmicas expandidas em runtime — não sobrescreve liberação individual
+    const regrasData = regrasBloqueioQuery.data;
+    if (regrasData) {
+      const fromRegras = buildBloqueiosDeRegras({
+        regras: regrasData.regras,
+        vinculos: regrasData.vinculos,
+        unidadeId: myUnidade,
+        from: range.startDate,
+        to: range.endDate,
+      });
+      fromRegras.forEach((motivo, iso) => {
+        if (!m.has(iso)) m.set(iso, { reason: motivo, liberada: false });
+      });
+    }
     return m;
-  }, [bloqueiosQuery.data, myUnidade]);
+  }, [bloqueiosQuery.data, regrasBloqueioQuery.data, myUnidade, range.startDate, range.endDate]);
 
   const dayLimits = useMemo(() => {
     const m = new Map<string, number>();
