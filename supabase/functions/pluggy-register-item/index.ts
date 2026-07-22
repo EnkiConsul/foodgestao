@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3.23.8";
-import { corsHeaders, getItem, listAccounts } from "../_shared/pluggy.ts";
+import { corsHeaders, getItem, listAccounts, updateItemWebhook, pluggyWebhookUrl } from "../_shared/pluggy.ts";
 
 const BodySchema = z.object({
   itemId: z.string().min(1),
