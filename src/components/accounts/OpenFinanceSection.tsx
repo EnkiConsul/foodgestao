@@ -93,9 +93,9 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
 
   const summary = useMemo(() => {
     const total = connections.length;
-    const active = connections.filter((c) => c.status === "active" || c.status === "updating").length;
+    const active = connections.filter((c) => ["active", "updated", "updating", "creating"].includes(c.status)).length;
     const errors = connections.filter((c) => c.status === "login_error").length;
-    const outdated = connections.filter((c) => c.status === "outdated").length;
+    const outdated = connections.filter((c) => ["outdated", "waiting_user_input"].includes(c.status)).length;
     const linked = providerAccounts.filter((a) => !!a.account_id).length;
     const totalImported = Object.values(importedCounts).reduce((s, n) => s + n, 0);
     const lastSync = connections
