@@ -507,6 +507,7 @@ export default function DpBloqueios() {
                   onEdit={openEditData}
                   onDelete={(id) => delData.mutate(id)}
                   onRebloquear={(row) => rebloquear.mutate(row)}
+                  onLiberar={(row) => liberar.mutate(row)}
                 />
               ))}
             </div>
