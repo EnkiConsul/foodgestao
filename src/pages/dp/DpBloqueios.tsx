@@ -17,9 +17,10 @@ import {
   type Regra, type DataBloq, type Unidade,
   type RegraFormState, type DataFormState, type RegraJson,
 } from "@/lib/dp/bloqueios";
+import { expandRegraNoIntervalo, type RegraRow, type RegraUnidadeLink } from "@/lib/dp/bloqueio-rules";
 import { RegraDialog } from "@/components/dp/bloqueios/RegraDialog";
 import { DataDialog } from "@/components/dp/bloqueios/DataDialog";
-import { RegraRow } from "@/components/dp/bloqueios/RegraRow";
+import { RegraRow as RegraRowUI } from "@/components/dp/bloqueios/RegraRow";
 import { DataRow } from "@/components/dp/bloqueios/DataRow";
 
 export default function DpBloqueios() {
@@ -107,20 +108,117 @@ export default function DpBloqueios() {
     const t = new Date(); t.setHours(0, 0, 0, 0); return t;
   }, []);
 
-  const datasFiltradas = useMemo(() => {
-    const rows = datasQ.data ?? [];
-    return rows.filter((d) => {
-      const dt = parseYMD(d.data);
-      if (dt.getFullYear() !== anoFiltro) return false;
-      if (mesFiltro !== "all" && dt.getMonth() + 1 !== Number(mesFiltro)) return false;
-      if (!showPast && dt < today) return false;
-      if (unidadeFiltro !== "all") {
-        if (unidadeFiltro === "__global__") { if (d.unidade_id) return false; }
-        else if (d.unidade_id !== unidadeFiltro) return false;
+  // ---- Merge: expansão em runtime das regras + linhas físicas (overrides/manuais) ----
+  const datasFiltradas = useMemo<DataBloq[]>(() => {
+    const physical = datasQ.data ?? [];
+    const regras = regrasQ.data ?? [];
+
+    // Intervalo do filtro (ano + mês)
+    const mesNum = mesFiltro === "all" ? null : Number(mesFiltro);
+    const fromRaw = mesNum
+      ? new Date(anoFiltro, mesNum - 1, 1)
+      : new Date(anoFiltro, 0, 1);
+    const to = mesNum
+      ? new Date(anoFiltro, mesNum, 0)
+      : new Date(anoFiltro, 11, 31);
+    const from = !showPast && fromRaw < today ? today : fromRaw;
+    if (from > to) return [];
+
+    // Unidade alvo para expansão
+    const unidadeAlvo: string | null =
+      unidadeFiltro === "all" ? null
+      : unidadeFiltro === "__global__" ? "__global__"
+      : unidadeFiltro;
+
+    // Vínculos regra→unidades (a partir de regrasQ que já enriquece com unidades)
+    const vinculos: RegraUnidadeLink[] = [];
+    for (const r of regras) {
+      for (const u of r.unidades ?? []) {
+        vinculos.push({ regra_id: r.id, unidade_id: u.id });
       }
+    }
+    const regrasRow: RegraRow[] = regras.map((r) => ({
+      id: r.id, company_id: r.company_id, nome: r.nome, tipo: r.tipo,
+      mes: r.mes, dia: r.dia, regra_json: (r.regra_json ?? null) as any, ativo: r.ativo,
+    }));
+
+    // Expande cada regra respeitando o filtro de unidade
+    const autoMap = new Map<string, string>(); // iso -> motivo
+    const regraByIso = new Map<string, string>(); // iso -> regra_id
+    for (const r of regrasRow) {
+      const linked = vinculos.filter((v) => v.regra_id === r.id).map((v) => v.unidade_id);
+      // Filtro por unidade:
+      // - "__global__": apenas regras SEM vínculos
+      // - unidadeId específico: globais (sem vínculos) OU vinculadas àquela unidade
+      // - "all" (null): todas
+      if (unidadeAlvo === "__global__" && linked.length > 0) continue;
+      if (unidadeAlvo && unidadeAlvo !== "__global__" && linked.length > 0 && !linked.includes(unidadeAlvo)) continue;
+      const set = expandRegraNoIntervalo(r, from, to);
+      for (const iso of set) {
+        if (!autoMap.has(iso)) {
+          autoMap.set(iso, r.nome);
+          regraByIso.set(iso, r.id);
+        }
+      }
+    }
+
+    // 1) Overrides / manuais em `dp_datas_bloqueadas` no intervalo/unidade
+    const physicalInScope = physical.filter((d) => {
+      const dt = parseYMD(d.data);
+      if (dt < from || dt > to) return false;
+      if (unidadeFiltro === "__global__" && d.unidade_id) return false;
+      if (unidadeFiltro !== "all" && unidadeFiltro !== "__global__" && d.unidade_id && d.unidade_id !== unidadeFiltro) return false;
       return true;
     });
-  }, [datasQ.data, anoFiltro, mesFiltro, unidadeFiltro, showPast, today]);
+
+    const physicalByKey = new Map<string, DataBloq>();
+    for (const d of physicalInScope) {
+      physicalByKey.set(`${d.data}|${d.unidade_id ?? ""}`, d);
+    }
+
+    // 2) Monta linhas AUTO (a partir do runtime), aplicando override se existir
+    const result: DataBloq[] = [];
+    const consumedKeys = new Set<string>();
+    for (const [iso, motivo] of autoMap.entries()) {
+      const regraId = regraByIso.get(iso) ?? null;
+      const key = `${iso}|`;
+      const override = physicalByKey.get(key);
+      if (override) {
+        consumedKeys.add(key);
+        const isLiberada = override.liberada === true || !!override.liberada_por_solicitacao;
+        result.push({
+          ...override,
+          regra_id: regraId,
+          motivo: isLiberada ? motivo : override.motivo,
+        });
+      } else {
+        result.push({
+          id: `auto:${regraId ?? "x"}:${iso}`,
+          company_id: selectedCompanyId ?? "",
+          data: iso,
+          motivo,
+          regra_id: regraId,
+          unidade_id: null,
+          liberada: false,
+          liberada_por_solicitacao: null,
+          unidade: null,
+        });
+      }
+    }
+
+    // 3) Linhas físicas não cobertas por regra: manuais reais (ou legadas com regra_id null que ainda não foi coberta — respeitar)
+    for (const [key, d] of physicalByKey.entries()) {
+      if (consumedKeys.has(key)) continue;
+      // Descartar linhas legadas cujo motivo bate com nome de regra E a data está coberta pela mesma regra (evita duplicidade)
+      // Se a data está em autoMap, já foi tratada acima (override); caso contrário, é bloqueio manual real.
+      if (autoMap.has(d.data)) continue;
+      result.push(d);
+    }
+
+    // 4) Ordenação
+    result.sort((a, b) => a.data.localeCompare(b.data));
+    return result;
+  }, [datasQ.data, regrasQ.data, anoFiltro, mesFiltro, unidadeFiltro, showPast, today, selectedCompanyId]);
 
   const regrasFiltradas = useMemo(() => {
     const rows = regrasQ.data ?? [];
@@ -258,6 +356,32 @@ export default function DpBloqueios() {
     onError: (e: any) => toast.error(e.message ?? "Erro"),
   });
 
+  const liberar = useMutation({
+    mutationFn: async (d: DataBloq) => {
+      const { data: userRes } = await supabase.auth.getUser();
+      const unidadeIdParaUpsert = d.unidade_id ?? null;
+      const { error } = await supabase
+        .from("dp_datas_bloqueadas")
+        .upsert(
+          {
+            company_id: selectedCompanyId!,
+            data: d.data,
+            unidade_id: unidadeIdParaUpsert,
+            liberada: true,
+            motivo: "Liberado manualmente pelo administrador",
+            criado_por: userRes.user?.id ?? null,
+          },
+          { onConflict: "company_id,unidade_id,data" },
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Data liberada");
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao liberar"),
+  });
+
   // ---- Handlers de abertura ----
   const openNovaRegra = () => {
     setEditRegraId(null);
@@ -351,7 +475,7 @@ export default function DpBloqueios() {
           ) : (
             <div className="divide-y divide-border">
               {regrasFiltradas.map((r) => (
-                <RegraRow
+                <RegraRowUI
                   key={r.id}
                   regra={r}
                   onEdit={openEditRegra}
@@ -383,6 +507,7 @@ export default function DpBloqueios() {
                   onEdit={openEditData}
                   onDelete={(id) => delData.mutate(id)}
                   onRebloquear={(row) => rebloquear.mutate(row)}
+                  onLiberar={(row) => liberar.mutate(row)}
                 />
               ))}
             </div>

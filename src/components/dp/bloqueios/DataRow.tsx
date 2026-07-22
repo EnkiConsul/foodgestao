@@ -5,7 +5,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { CalendarCheck, CalendarX, Filter, Lock, Trash2 } from "lucide-react";
+import { CalendarCheck, CalendarX, Filter, Lock, LockOpen, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatBR, type DataBloq } from "@/lib/dp/bloqueios";
 
@@ -14,9 +14,10 @@ type Props = {
   onEdit: (d: DataBloq) => void;
   onDelete: (id: string) => void;
   onRebloquear: (d: DataBloq) => void;
+  onLiberar?: (d: DataBloq) => void;
 };
 
-export function DataRow({ data: d, onEdit, onDelete, onRebloquear }: Props) {
+export function DataRow({ data: d, onEdit, onDelete, onRebloquear, onLiberar }: Props) {
   const auto = !!d.regra_id;
   const liberada = d.liberada === true || !!d.liberada_por_solicitacao;
   return (
@@ -74,6 +75,34 @@ export function DataRow({ data: d, onEdit, onDelete, onRebloquear }: Props) {
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
                 <AlertDialogAction onClick={() => onRebloquear(d)}>
                   Bloquear novamente
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+        {auto && !liberada && onLiberar && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full border-emerald-500/40 text-emerald-700 hover:bg-emerald-500/10"
+              >
+                <LockOpen className="size-4 mr-2" />
+                Liberar Data
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Liberar esta data?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  A data ficará disponível para folgas, ignorando a regra automática.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={() => onLiberar(d)}>
+                  Liberar
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
