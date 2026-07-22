@@ -10,6 +10,7 @@ import {
   format,
   isSameDay,
   isSameMonth,
+  isWeekend,
   isWithinInterval,
   parseISO,
   startOfMonth,
@@ -29,6 +30,11 @@ import {
   Building2,
   User as UserIcon,
   Filter,
+  Lock,
+  Unlock,
+  Settings2,
+  Save,
+  Trash2,
 } from "lucide-react";
 import { CalendarSkeleton } from "@/components/dp/DpSkeletons";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,11 +50,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
-import { DpCalendarDayDialog, type DpDayScheduleEntry } from "@/components/dp/DpCalendarDayDialog";
 import { DpStatusBadge, statusToneFor } from "@/components/dp/DpStatusBadge";
 import { normalizeWeekday } from "@/lib/dp/folga-rules";
 import { buildBloqueiosDeRegras, type RegraRow } from "@/lib/dp/bloqueio-rules";
-import { Lock } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Row = Database["public"]["Tables"]["dp_solicitacoes"]["Row"] & {
