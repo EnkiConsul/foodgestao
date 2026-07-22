@@ -103,6 +103,27 @@ export default function DpAdminCalendario() {
 
   const enabled = !!selectedCompanyId;
 
+  const regrasBloqueioQuery = useQuery({
+    queryKey: ["dp_bloq_regras_admin_cal", selectedCompanyId],
+    enabled,
+    queryFn: async () => {
+      const [{ data: regras }, { data: vinc }] = await Promise.all([
+        supabase
+          .from("dp_bloqueio_regras")
+          .select("id, company_id, nome, tipo, mes, dia, regra_json, ativo")
+          .eq("company_id", selectedCompanyId!)
+          .eq("ativo", true),
+        supabase
+          .from("dp_bloqueio_regra_unidades")
+          .select("regra_id, unidade_id"),
+      ]);
+      return {
+        regras: (regras ?? []) as RegraRow[],
+        vinculos: (vinc ?? []) as { regra_id: string; unidade_id: string }[],
+      };
+    },
+  });
+
   const queries = useQueries({
     queries: [
       {
