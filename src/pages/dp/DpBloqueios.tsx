@@ -242,7 +242,6 @@ export default function DpBloqueios() {
       toast.success(editRegraId ? "Regra atualizada" : "Regra criada");
       setRegraOpen(false); setEditRegraId(null);
       await qc.invalidateQueries({ queryKey: ["dp_bloqueio_regras"] });
-      regenerar12();
     },
     onError: (e: any) => toast.error(e.message ?? "Erro"),
   });
@@ -255,7 +254,6 @@ export default function DpBloqueios() {
     onSuccess: async () => {
       toast.success("Regra excluída");
       await qc.invalidateQueries({ queryKey: ["dp_bloqueio_regras"] });
-      regenerar12();
     },
   });
 
