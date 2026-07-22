@@ -38,10 +38,15 @@ interface Props {
 
 const statusMeta: Record<string, { label: string; className: string }> = {
   active: { label: "Ativa", className: "bg-success/10 text-success border-success/20" },
+  updated: { label: "Ativa", className: "bg-success/10 text-success border-success/20" },
+  creating: { label: "Configurando", className: "bg-primary/10 text-primary border-primary/20" },
   updating: { label: "Atualizando", className: "bg-primary/10 text-primary border-primary/20" },
   outdated: { label: "Desatualizada", className: "bg-warning/10 text-warning border-warning/20" },
+  waiting_user_input: { label: "Ação necessária", className: "bg-warning/10 text-warning border-warning/20" },
   login_error: { label: "Credenciais expiradas", className: "bg-destructive/10 text-destructive border-destructive/20" },
 };
+
+const reconnectStatuses = new Set(["login_error", "outdated", "waiting_user_input"]);
 
 export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
   const { contextType, selectedCompanyId } = useCompanyContext();
