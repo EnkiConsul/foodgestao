@@ -526,15 +526,40 @@ export default function DpFolgas() {
   }, [diaConfigQuery.data]);
 
   const blockedByDate = useMemo(() => {
-    const m = new Map<string, { reason: string; auto: boolean; hasGlobal: boolean; hasUnidade: boolean }>();
-    const liberadas = new Set<string>();
+    type BlockInfo = {
+      reason: string;
+      auto: boolean;
+      hasGlobal: boolean;
+      hasUnidade: boolean;
+      partials: Array<{ id: string; unidade_id: string; unidade_nome: string }>;
+    };
+    const m = new Map<string, BlockInfo>();
+    const liberadasGlobal = new Set<string>();
+    const partialsByIso = new Map<string, Array<{ id: string; unidade_id: string; unidade_nome: string }>>();
     const unidadeFilterId = unidadeFilter === "todas" ? null : unidadeFilter;
+    const unidadesList = unidadesQuery.data ?? [];
+    const unidadeNomeById = new Map<string, string>();
+    for (const u of unidadesList) unidadeNomeById.set(u.id, u.nome);
+
     for (const b of datasBloqueadasQuery.data ?? []) {
-      // Se o bloqueio é de uma unidade específica e o filtro é outra unidade, ignora.
+      // Escopo por unidade: bloqueio de outra unidade não afeta a visão filtrada
       if (b.unidade_id && unidadeFilterId && b.unidade_id !== unidadeFilterId) continue;
+
       const liberado = b.liberada === true || b.liberada_por_solicitacao != null;
       if (liberado) {
-        liberadas.add(b.data);
+        if (b.unidade_id == null) {
+          // Override global libera a data inteira
+          liberadasGlobal.add(b.data);
+        } else if (unidadeFilterId == null) {
+          // Filtro "todas": rastreia libração parcial por unidade
+          const nome = unidadeNomeById.get(b.unidade_id) ?? "Unidade";
+          const arr = partialsByIso.get(b.data) ?? [];
+          arr.push({ id: b.id, unidade_id: b.unidade_id, unidade_nome: nome });
+          partialsByIso.set(b.data, arr);
+        } else if (unidadeFilterId === b.unidade_id) {
+          // Filtro em uma unidade específica com override liberada dela → libera nesta visão
+          liberadasGlobal.add(b.data);
+        }
         continue;
       }
       m.set(b.data, {
@@ -542,6 +567,7 @@ export default function DpFolgas() {
         auto: !!b.regra_id,
         hasGlobal: b.unidade_id == null,
         hasUnidade: b.unidade_id != null,
+        partials: [],
       });
     }
     const regrasData = regrasBloqueioQuery.data;
@@ -554,14 +580,25 @@ export default function DpFolgas() {
         to: rangeEnd,
       });
       fromRegras.forEach((orig, iso) => {
-        if (liberadas.has(iso)) return;
+        if (liberadasGlobal.has(iso)) return;
         if (!m.has(iso)) {
-          m.set(iso, { reason: orig.motivo, auto: true, hasGlobal: orig.hasGlobal, hasUnidade: orig.hasUnidade });
+          m.set(iso, {
+            reason: orig.motivo,
+            auto: true,
+            hasGlobal: orig.hasGlobal,
+            hasUnidade: orig.hasUnidade,
+            partials: [],
+          });
         }
       });
     }
+    // Anexa partials a datas ainda bloqueadas
+    partialsByIso.forEach((partials, iso) => {
+      const info = m.get(iso);
+      if (info) info.partials = partials;
+    });
     return m;
-  }, [datasBloqueadasQuery.data, regrasBloqueioQuery.data, unidadeFilter, rangeStart, rangeEnd]);
+  }, [datasBloqueadasQuery.data, regrasBloqueioQuery.data, unidadeFilter, rangeStart, rangeEnd, unidadesQuery.data]);
 
   const defaultDailyCap = 1;
 
