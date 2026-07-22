@@ -783,6 +783,20 @@ export default function DpFolgas() {
               }
             : undefined
         }
+        footerExtra={
+          selectedDay && blockedByDate.get(format(selectedDay, "yyyy-MM-dd")) ? (
+            <div className="flex items-start gap-2 rounded-2xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+              <Lock className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider">Data bloqueada</div>
+                <div className="text-xs opacity-90">
+                  {blockedByDate.get(format(selectedDay, "yyyy-MM-dd"))?.reason}
+                  {blockedByDate.get(format(selectedDay, "yyyy-MM-dd"))?.auto ? " · Automático" : ""}
+                </div>
+              </div>
+            </div>
+          ) : undefined
+        }
       />
 
 
