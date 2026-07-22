@@ -178,6 +178,7 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
               <button
                 key={c.iso}
                 type="button"
+                title={c.tooltip}
                 onClick={() => onSelectDay?.(c.iso, { status: c.status, reason: c.tooltip })}
                 className={cn(
                   "flex w-full items-start justify-between gap-2 px-4 py-3 text-left transition-colors hover:bg-muted/40",
