@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3.23.8";
-import { corsHeaders, getItem, listAccounts } from "../_shared/pluggy.ts";
+import { corsHeaders, getItem, listAccounts, updateItemWebhook, pluggyWebhookUrl } from "../_shared/pluggy.ts";
 
 const BodySchema = z.object({
   itemId: z.string().min(1),
@@ -74,6 +74,18 @@ Deno.serve(async (req) => {
     );
 
     const item = await getItem(itemId);
+
+    // Vincula webhookUrl ao item (idempotente) — necessário para receber
+    // notificações item/updated quando a Pluggy termina de coletar dados.
+    const hook = pluggyWebhookUrl();
+    if (hook && item.webhookUrl !== hook) {
+      try {
+        await updateItemWebhook(itemId, hook);
+      } catch (whErr) {
+        console.warn("[pluggy-register-item] falha ao registrar webhook:", (whErr as Error).message);
+      }
+    }
+
     const accounts = await listAccounts(itemId);
 
     // Upsert bank_connections (chave lógica: user + provider + provider_item_id)

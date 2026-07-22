@@ -43,10 +43,34 @@ async function pluggyFetch(path: string, init: RequestInit = {}): Promise<Respon
 export interface PluggyItem {
   id: string;
   status: string;
+  executionStatus?: string | null;
   connector: { id: number; name: string; imageUrl?: string; primaryColor?: string };
   createdAt: string;
   updatedAt: string;
   consentExpiresAt?: string | null;
+  webhookUrl?: string | null;
+}
+
+/** Vincula webhookUrl a um item existente (idempotente). */
+export async function updateItemWebhook(itemId: string, webhookUrl: string): Promise<void> {
+  const res = await pluggyFetch(`/items/${itemId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ webhookUrl }),
+  });
+  if (!res.ok && res.status !== 409) {
+    const body = await res.text().catch(() => "");
+    throw new PluggyApiError(res.status, body, `Pluggy updateItemWebhook: ${res.status} ${body}`);
+  }
+  if (res.body) await res.text().catch(() => "");
+}
+
+/** Deriva URL pública da edge function pluggy-webhook a partir de SUPABASE_URL. */
+export function pluggyWebhookUrl(): string | null {
+  const base = Deno.env.get("SUPABASE_URL");
+  if (!base) return null;
+  const token = Deno.env.get("PLUGGY_WEBHOOK_TOKEN");
+  const url = `${base.replace(/\/$/, "")}/functions/v1/pluggy-webhook`;
+  return token ? `${url}?token=${encodeURIComponent(token)}` : url;
 }
 
 export interface PluggyAccount {
@@ -152,12 +176,14 @@ export async function listTransactions(opts: {
  * Dispara atualização do item pedindo produtos ACCOUNTS + TRANSACTIONS.
  * Usado quando /transactions retorna 410 (produto não coletado).
  */
-export async function triggerItemUpdate(itemId: string): Promise<PluggyItem> {
+export async function triggerItemUpdate(itemId: string, webhookUrl?: string | null): Promise<PluggyItem> {
+  const payload: Record<string, unknown> = {
+    products: ["ACCOUNTS", "TRANSACTIONS", "IDENTITY"],
+  };
+  if (webhookUrl) payload.webhookUrl = webhookUrl;
   const res = await pluggyFetch(`/items/${itemId}`, {
     method: "PATCH",
-    body: JSON.stringify({
-      products: ["ACCOUNTS", "TRANSACTIONS", "IDENTITY"],
-    }),
+    body: JSON.stringify(payload),
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");

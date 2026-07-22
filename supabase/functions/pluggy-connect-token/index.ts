@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3.23.8";
-import { corsHeaders, createConnectToken } from "../_shared/pluggy.ts";
+import { corsHeaders, createConnectToken, pluggyWebhookUrl } from "../_shared/pluggy.ts";
 
 const BodySchema = z.object({
   itemId: z.string().min(1).optional(),
@@ -47,10 +47,7 @@ Deno.serve(async (req) => {
       parsedBody = parsed.data;
     }
 
-    const projectId = Deno.env.get("SUPABASE_URL")!.match(/https:\/\/([^.]+)/)?.[1];
-    const webhookUrl = projectId
-      ? `https://${projectId}.supabase.co/functions/v1/pluggy-webhook`
-      : undefined;
+    const webhookUrl = pluggyWebhookUrl() ?? undefined;
 
     const accessToken = await createConnectToken({
       clientUserId: userId,

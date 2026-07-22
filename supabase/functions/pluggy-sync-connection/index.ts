@@ -1,6 +1,93 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3.23.8";
-import { corsHeaders, getItem, listAccounts, listTransactions, triggerItemUpdate, PluggyApiError } from "../_shared/pluggy.ts";
+import {
+  corsHeaders,
+  getItem,
+  listAccounts,
+  listTransactions,
+  triggerItemUpdate,
+  updateItemWebhook,
+  pluggyWebhookUrl,
+  PluggyApiError,
+} from "../_shared/pluggy.ts";
+
+type StatusResolution = {
+  dbStatus: string;
+  message: string | null;
+  needsReconnect: boolean;
+};
+
+/**
+ * Traduz item.status + item.executionStatus da Pluggy em um status canônico
+ * armazenado em bank_connections.status e uma mensagem legível.
+ */
+function resolvePluggyStatus(
+  itemStatus: string | null | undefined,
+  execStatus: string | null | undefined,
+): StatusResolution {
+  const s = (itemStatus ?? "").toUpperCase();
+  const e = (execStatus ?? "").toUpperCase();
+
+  // Erros terminais que exigem reconexão
+  const reconnectExec = new Set([
+    "USER_AUTHORIZATION_PENDING",
+    "USER_AUTHORIZATION_NOT_GRANTED",
+    "USER_INPUT_TIMEOUT",
+    "USER_CREDENTIALS_INVALID",
+    "INVALID_CREDENTIALS",
+    "INVALID_CREDENTIALS_MFA",
+    "ACCOUNT_LOCKED",
+    "ACCOUNT_NEEDS_ACTION",
+    "ALREADY_LOGGED_IN",
+  ]);
+  const execMessages: Record<string, string> = {
+    USER_AUTHORIZATION_PENDING: "Ação necessária: reconecte para autorizar a coleta (MFA/token).",
+    USER_AUTHORIZATION_NOT_GRANTED: "O consentimento não foi concedido. Reconecte para autorizar.",
+    USER_INPUT_TIMEOUT: "Tempo esgotado aguardando entrada do usuário. Reconecte.",
+    USER_CREDENTIALS_INVALID: "Credenciais inválidas. Reconecte a instituição.",
+    INVALID_CREDENTIALS: "Credenciais inválidas. Reconecte a instituição.",
+    INVALID_CREDENTIALS_MFA: "MFA inválido. Reconecte a instituição.",
+    ACCOUNT_LOCKED: "Conta bloqueada pela instituição. Acesse o app do banco e reconecte.",
+    ACCOUNT_NEEDS_ACTION: "A instituição requer uma ação sua. Acesse o banco e reconecte.",
+    ALREADY_LOGGED_IN: "Sessão duplicada na instituição. Reconecte após sair do app do banco.",
+    SITE_NOT_AVAILABLE: "Instituição indisponível no momento. Tente novamente mais tarde.",
+    CONNECTION_ERROR: "Falha de conexão com a instituição. Tente novamente em instantes.",
+    USER_NOT_SUPPORTED: "Este tipo de conta não expõe extrato via Open Finance.",
+  };
+
+  if (s === "WAITING_USER_INPUT" || s === "WAITING_USER_ACTION") {
+    return {
+      dbStatus: "waiting_user_input",
+      message: execMessages[e] ?? "Ação necessária: reconecte para completar a autenticação.",
+      needsReconnect: true,
+    };
+  }
+  if (s === "LOGIN_ERROR" || reconnectExec.has(e)) {
+    return {
+      dbStatus: "login_error",
+      message: execMessages[e] ?? "Credenciais expiradas. Reconecte a instituição.",
+      needsReconnect: true,
+    };
+  }
+  if (s === "OUTDATED") {
+    return {
+      dbStatus: "outdated",
+      message: execMessages[e] ?? "Consentimento desatualizado. Reconecte para renovar.",
+      needsReconnect: true,
+    };
+  }
+  if (s === "UPDATING" || s === "CREATING") {
+    return { dbStatus: "updating", message: null, needsReconnect: false };
+  }
+  if (s === "UPDATED" || s === "" || s === "ACTIVE" || s === "PARTIAL_SUCCESS") {
+    return { dbStatus: "updated", message: null, needsReconnect: false };
+  }
+  return {
+    dbStatus: s.toLowerCase() || "updated",
+    message: execMessages[e] ?? null,
+    needsReconnect: false,
+  };
+}
 
 const BodySchema = z.object({
   connectionId: z.string().uuid(),
@@ -87,6 +174,22 @@ Deno.serve(async (req) => {
 
     try {
       const item = await getItem(conn.provider_item_id);
+
+      // Garante que o webhook está registrado no item (idempotente).
+      const hook = pluggyWebhookUrl();
+      if (hook && item.webhookUrl !== hook) {
+        try {
+          await updateItemWebhook(conn.provider_item_id, hook);
+        } catch (whErr) {
+          console.warn(JSON.stringify({
+            scope: "pluggy-sync",
+            step: "update_webhook_failed",
+            connectionId,
+            error: (whErr as Error).message,
+          }));
+        }
+      }
+
       const providerAccounts = await listAccounts(conn.provider_item_id);
 
       const { data: connAccounts } = await admin
@@ -183,7 +286,7 @@ Deno.serve(async (req) => {
             acctError = "Pluggy ainda não coletou transações para esta conta. Iniciamos uma atualização; tente sincronizar novamente em alguns minutos.";
             if (!itemUpdateTriggered) {
               try {
-                await triggerItemUpdate(conn.provider_item_id);
+                await triggerItemUpdate(conn.provider_item_id, pluggyWebhookUrl());
                 itemUpdateTriggered = true;
                 console.log(JSON.stringify({
                   scope: "pluggy-sync",
@@ -251,9 +354,14 @@ Deno.serve(async (req) => {
 
       // Se pelo menos uma conta pediu update, deixa status como 'updating'
       // para o usuário saber que a Pluggy está trabalhando.
-      const finalStatus = itemUpdateTriggered
-        ? "updating"
-        : (item.status ?? "active").toLowerCase();
+      // Traduz item.status + executionStatus para status canônico e mensagem.
+      const resolved = resolvePluggyStatus(item.status, item.executionStatus ?? null);
+      if (resolved.needsReconnect) needsReconnect = true;
+
+      const finalStatus = itemUpdateTriggered ? "updating" : resolved.dbStatus;
+      const finalMessage = itemUpdateTriggered
+        ? "Coletando lançamentos na Pluggy — você será notificado quando terminar."
+        : resolved.message;
 
       await admin
         .from("bank_connections")
@@ -261,9 +369,7 @@ Deno.serve(async (req) => {
           status: finalStatus,
           consent_expires_at: item.consentExpiresAt ?? null,
           last_sync_at: new Date().toISOString(),
-          last_error: itemUpdateTriggered
-            ? "Coletando lançamentos na Pluggy — tente sincronizar novamente em alguns minutos."
-            : null,
+          last_error: finalMessage,
         })
         .eq("id", connectionId);
     } catch (e) {

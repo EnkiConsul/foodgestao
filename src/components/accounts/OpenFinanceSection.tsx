@@ -38,10 +38,15 @@ interface Props {
 
 const statusMeta: Record<string, { label: string; className: string }> = {
   active: { label: "Ativa", className: "bg-success/10 text-success border-success/20" },
+  updated: { label: "Ativa", className: "bg-success/10 text-success border-success/20" },
+  creating: { label: "Configurando", className: "bg-primary/10 text-primary border-primary/20" },
   updating: { label: "Atualizando", className: "bg-primary/10 text-primary border-primary/20" },
   outdated: { label: "Desatualizada", className: "bg-warning/10 text-warning border-warning/20" },
+  waiting_user_input: { label: "Ação necessária", className: "bg-warning/10 text-warning border-warning/20" },
   login_error: { label: "Credenciais expiradas", className: "bg-destructive/10 text-destructive border-destructive/20" },
 };
+
+const reconnectStatuses = new Set(["login_error", "outdated", "waiting_user_input"]);
 
 export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
   const { contextType, selectedCompanyId } = useCompanyContext();
@@ -88,9 +93,9 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
 
   const summary = useMemo(() => {
     const total = connections.length;
-    const active = connections.filter((c) => c.status === "active" || c.status === "updating").length;
+    const active = connections.filter((c) => ["active", "updated", "updating", "creating"].includes(c.status)).length;
     const errors = connections.filter((c) => c.status === "login_error").length;
-    const outdated = connections.filter((c) => c.status === "outdated").length;
+    const outdated = connections.filter((c) => ["outdated", "waiting_user_input"].includes(c.status)).length;
     const linked = providerAccounts.filter((a) => !!a.account_id).length;
     const totalImported = Object.values(importedCounts).reduce((s, n) => s + n, 0);
     const lastSync = connections
@@ -297,7 +302,7 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
                         <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? "animate-spin" : ""}`} />
                         {isSyncing ? "Sincronizando" : "Sincronizar"}
                       </Button>
-                      {conn.status === "login_error" && (
+                      {reconnectStatuses.has(conn.status) && (
                         <Button
                           size="sm"
                           variant="outline"
