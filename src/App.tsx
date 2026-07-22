@@ -106,7 +106,7 @@ const AdminAuditoria = lazy(() => import("./pages/admin/Auditoria"));
 const AdminResetarDados = lazy(() => import("./pages/admin/ResetarDados"));
 const AdminLandingPage = lazy(() => import("./pages/admin/LandingPage"));
 const AdminBancos = lazy(() => import("./pages/admin/Bancos"));
-const AdminOpenFinance = lazy(() => import("./pages/admin/OpenFinance"));
+
 const AdminSeoIndexacao = lazy(() => import("./pages/admin/SeoIndexacao"));
 
 const AdminDocumentosLegais = lazy(() => import("./pages/admin/DocumentosLegais"));
@@ -394,7 +394,7 @@ const AppRoutes = () => (
         <Route path="/admin/landing-page" element={<AdminLandingPage />} />
         <Route path="/admin/documentos-legais" element={<AdminDocumentosLegais />} />
         <Route path="/admin/bancos" element={<AdminBancos />} />
-        <Route path="/admin/open-finance" element={<AdminOpenFinance />} />
+        
         <Route path="/admin/seo-indexacao" element={<AdminSeoIndexacao />} />
         <Route path="/admin/modulos" element={<AdminModulos />} />
         <Route path="/admin/categorizacao-ia" element={<CategorizacaoIA />} />
