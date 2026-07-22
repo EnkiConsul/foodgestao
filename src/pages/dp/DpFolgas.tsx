@@ -734,7 +734,7 @@ export default function DpFolgas() {
               return (
                 <button
                   key={key}
-                  onClick={() => setSelectedDay(day)}
+                  onClick={() => openDay(day)}
                   title={blocked?.reason}
                   className={cn(
                     "min-h-[112px] bg-white p-2 text-left flex flex-col gap-1.5 transition-colors hover:bg-muted/30",
