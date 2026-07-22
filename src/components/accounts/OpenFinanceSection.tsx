@@ -302,7 +302,7 @@ export function OpenFinanceSection({ accounts, onRefreshAccounts }: Props) {
                         <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? "animate-spin" : ""}`} />
                         {isSyncing ? "Sincronizando" : "Sincronizar"}
                       </Button>
-                      {conn.status === "login_error" && (
+                      {reconnectStatuses.has(conn.status) && (
                         <Button
                           size="sm"
                           variant="outline"
