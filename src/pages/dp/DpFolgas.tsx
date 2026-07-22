@@ -366,7 +366,7 @@ export default function DpFolgas() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_datas_bloqueadas")
-        .select("data, motivo, liberada, liberada_por_solicitacao, unidade_id, regra_id")
+        .select("id, data, motivo, liberada, liberada_por_solicitacao, unidade_id, regra_id")
         .eq("company_id", selectedCompanyId!)
         .gte("data", format(rangeStart, "yyyy-MM-dd"))
         .lte("data", format(rangeEnd, "yyyy-MM-dd"));
