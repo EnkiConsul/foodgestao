@@ -5,7 +5,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { CalendarCheck, CalendarX, Filter, Trash2 } from "lucide-react";
+import { CalendarCheck, CalendarX, Filter, Lock, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatBR, type DataBloq } from "@/lib/dp/bloqueios";
 
@@ -13,11 +13,12 @@ type Props = {
   data: DataBloq;
   onEdit: (d: DataBloq) => void;
   onDelete: (id: string) => void;
+  onRebloquear: (d: DataBloq) => void;
 };
 
-export function DataRow({ data: d, onEdit, onDelete }: Props) {
+export function DataRow({ data: d, onEdit, onDelete, onRebloquear }: Props) {
   const auto = !!d.regra_id;
-  const liberada = !!d.liberada_por_solicitacao;
+  const liberada = d.liberada === true || !!d.liberada_por_solicitacao;
   return (
     <div className="p-4 flex flex-wrap items-center justify-between gap-4 hover:bg-muted/20">
       <div className="flex items-center gap-4 flex-1 min-w-[300px]">
@@ -50,7 +51,35 @@ export function DataRow({ data: d, onEdit, onDelete }: Props) {
         </div>
       </div>
       <div className="flex gap-2">
-        {!auto && (
+        {liberada && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full border-rose-500/40 text-rose-700 hover:bg-rose-500/10"
+              >
+                <Lock className="size-4 mr-2" />
+                Bloquear Novamente
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Bloquear esta data novamente?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  A data voltará a ficar indisponível para folgas, seguindo a regra original.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={() => onRebloquear(d)}>
+                  Bloquear novamente
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+        {!auto && !liberada && (
           <>
             <Button variant="ghost" size="icon" className="size-8" onClick={() => onEdit(d)}>
               <Filter className="size-4" />

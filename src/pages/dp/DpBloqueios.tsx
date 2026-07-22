@@ -94,7 +94,7 @@ export default function DpBloqueios() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_datas_bloqueadas")
-        .select("*, unidade:dp_unidades(id, nome)")
+        .select("*, liberada, unidade:dp_unidades(id, nome)")
         .eq("company_id", selectedCompanyId!)
         .order("data", { ascending: true });
       if (error) throw error;
@@ -238,6 +238,26 @@ export default function DpBloqueios() {
     },
   });
 
+  const rebloquear = useMutation({
+    mutationFn: async (d: DataBloq) => {
+      if (d.regra_id) {
+        const { error } = await supabase.from("dp_datas_bloqueadas").delete().eq("id", d.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("dp_datas_bloqueadas")
+          .update({ liberada: false, liberada_por_solicitacao: null })
+          .eq("id", d.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success("Data bloqueada novamente");
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro"),
+  });
+
   // ---- Handlers de abertura ----
   const openNovaRegra = () => {
     setEditRegraId(null);
@@ -362,6 +382,7 @@ export default function DpBloqueios() {
                   data={d}
                   onEdit={openEditData}
                   onDelete={(id) => delData.mutate(id)}
+                  onRebloquear={(row) => rebloquear.mutate(row)}
                 />
               ))}
             </div>
