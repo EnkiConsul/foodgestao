@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import {
   MESES, getMonthName, parseYMD, toYMD,
-  gerarDatasParaRegra, emptyRegraForm, regraToFormState,
+  emptyRegraForm, regraToFormState,
   type Regra, type DataBloq, type Unidade,
   type RegraFormState, type DataFormState, type RegraJson,
 } from "@/lib/dp/bloqueios";
@@ -32,7 +32,7 @@ export default function DpBloqueios() {
   const [aplicacaoFiltro, setAplicacaoFiltro] = useState<string>("all");
   const [unidadeFiltro, setUnidadeFiltro] = useState<string>("all");
   const [showPast, setShowPast] = useState(false);
-  const [reprocessando, setReprocessando] = useState(false);
+  // (regeneração manual removida — regras valem em runtime)
 
   // Dialogs
   const [regraOpen, setRegraOpen] = useState(false);
@@ -128,67 +128,8 @@ export default function DpBloqueios() {
     return rows.filter((r) => (r.regra_json?.aplicacao ?? "anual") === aplicacaoFiltro);
   }, [regrasQ.data, aplicacaoFiltro]);
 
-  // ---- Regenerar próximos 12 meses ----
-  const regenerar12 = async () => {
-    if (!selectedCompanyId || reprocessando) return;
-    setReprocessando(true);
-    try {
-      const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-      const limite = new Date(hoje.getFullYear(), hoje.getMonth() + 13, 0);
+  // Regras dinâmicas passaram a valer em runtime — nenhuma regeneração manual é necessária.
 
-      const { error: delErr } = await supabase
-        .from("dp_datas_bloqueadas")
-        .delete()
-        .eq("company_id", selectedCompanyId)
-        .not("regra_id", "is", null)
-        .gte("data", toYMD(hoje))
-        .lte("data", toYMD(limite));
-      if (delErr) throw delErr;
-
-      const { data: regras, error: rErr } = await supabase
-        .from("dp_bloqueio_regras")
-        .select("*")
-        .eq("company_id", selectedCompanyId)
-        .eq("ativo", true);
-      if (rErr) throw rErr;
-
-      const { data: vinc } = await supabase
-        .from("dp_bloqueio_regra_unidades").select("regra_id, unidade_id");
-      const vincByRegra = new Map<string, string[]>();
-      (vinc ?? []).forEach((v: any) => {
-        const arr = vincByRegra.get(v.regra_id) ?? [];
-        arr.push(v.unidade_id); vincByRegra.set(v.regra_id, arr);
-      });
-
-      const inserts: any[] = [];
-      for (const r of (regras ?? []) as Regra[]) {
-        const datas = gerarDatasParaRegra(r, hoje);
-        const unidades = vincByRegra.get(r.id) ?? [];
-        if (unidades.length === 0) {
-          for (const d of datas) inserts.push({
-            company_id: selectedCompanyId, data: d, motivo: r.nome,
-            regra_id: r.id, unidade_id: null,
-          });
-        } else {
-          for (const d of datas) for (const u of unidades) inserts.push({
-            company_id: selectedCompanyId, data: d, motivo: r.nome,
-            regra_id: r.id, unidade_id: u,
-          });
-        }
-      }
-
-      if (inserts.length > 0) {
-        const { error } = await supabase.from("dp_datas_bloqueadas").insert(inserts);
-        if (error) throw error;
-      }
-      toast.success(`${inserts.length} datas bloqueadas geradas`);
-      await qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
-    } catch (e: any) {
-      toast.error("Erro ao gerar bloqueios", { description: e?.message });
-    } finally {
-      setReprocessando(false);
-    }
-  };
 
   // ---- Mutations ----
   const saveRegra = useMutation({
@@ -242,7 +183,6 @@ export default function DpBloqueios() {
       toast.success(editRegraId ? "Regra atualizada" : "Regra criada");
       setRegraOpen(false); setEditRegraId(null);
       await qc.invalidateQueries({ queryKey: ["dp_bloqueio_regras"] });
-      regenerar12();
     },
     onError: (e: any) => toast.error(e.message ?? "Erro"),
   });
@@ -255,7 +195,6 @@ export default function DpBloqueios() {
     onSuccess: async () => {
       toast.success("Regra excluída");
       await qc.invalidateQueries({ queryKey: ["dp_bloqueio_regras"] });
-      regenerar12();
     },
   });
 
@@ -327,15 +266,7 @@ export default function DpBloqueios() {
       <DpPageHeader
         icon={CalendarX}
         title="Datas Bloqueadas"
-        description="Configure regras automáticas e bloqueios manuais. As alterações geram automaticamente os próximos 12 meses."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button onClick={regenerar12} disabled={reprocessando} variant="outline">
-              <Calendar className="size-4 mr-2" />
-              {reprocessando ? "Regenerando…" : "Regenerar 12 meses"}
-            </Button>
-          </div>
-        }
+        description="Configure regras automáticas e bloqueios manuais. Regras ativas passam a valer imediatamente em todo o sistema."
       />
 
       {/* Filtros */}

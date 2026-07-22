@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   eachDayOfInterval,
@@ -74,6 +74,7 @@ import {
   type FolgaRecord,
   type OccupantType,
 } from "@/lib/dp/folga-rules";
+import { buildBloqueiosDeRegras, type RegraRow } from "@/lib/dp/bloqueio-rules";
 
 const isoWeekKey = (d: Date) => `${getISOWeekYear(d)}-${getISOWeek(d)}`;
 
@@ -101,6 +102,27 @@ export default function DpAdminCalendario() {
   }, [ano, mes]);
 
   const enabled = !!selectedCompanyId;
+
+  const regrasBloqueioQuery = useQuery({
+    queryKey: ["dp_bloq_regras_admin_cal", selectedCompanyId],
+    enabled,
+    queryFn: async () => {
+      const [{ data: regras }, { data: vinc }] = await Promise.all([
+        supabase
+          .from("dp_bloqueio_regras")
+          .select("id, company_id, nome, tipo, mes, dia, regra_json, ativo")
+          .eq("company_id", selectedCompanyId!)
+          .eq("ativo", true),
+        supabase
+          .from("dp_bloqueio_regra_unidades")
+          .select("regra_id, unidade_id"),
+      ]);
+      return {
+        regras: (regras ?? []) as RegraRow[],
+        vinculos: (vinc ?? []) as { regra_id: string; unidade_id: string }[],
+      };
+    },
+  });
 
   const queries = useQueries({
     queries: [
@@ -197,8 +219,22 @@ export default function DpAdminCalendario() {
     for (const b of bloqueios) {
       m.set(b.data, { reason: b.motivo, liberada: !!b.liberada_por_solicitacao });
     }
+    const regrasData = regrasBloqueioQuery.data;
+    if (regrasData) {
+      // Admin: mostra bloqueios de todas as regras (independente da unidade)
+      const fromRegras = buildBloqueiosDeRegras({
+        regras: regrasData.regras,
+        vinculos: [], // ignora filtro de unidade no painel admin
+        unidadeId: null,
+        from: range.startDate,
+        to: range.endDate,
+      });
+      fromRegras.forEach((motivo, iso) => {
+        if (!m.has(iso)) m.set(iso, { reason: motivo, liberada: false });
+      });
+    }
     return m;
-  }, [bloqueios]);
+  }, [bloqueios, regrasBloqueioQuery.data, range.startDate, range.endDate]);
 
   const blockedByDate = useMemo(() => {
     const m = new Map<string, { motivo: string; auto: boolean; id: string }>();
@@ -206,8 +242,21 @@ export default function DpAdminCalendario() {
       if (b.liberada_por_solicitacao) continue;
       m.set(b.data, { motivo: b.motivo, auto: !!b.regra_id, id: b.id });
     }
+    const regrasData = regrasBloqueioQuery.data;
+    if (regrasData) {
+      const fromRegras = buildBloqueiosDeRegras({
+        regras: regrasData.regras,
+        vinculos: [],
+        unidadeId: null,
+        from: range.startDate,
+        to: range.endDate,
+      });
+      fromRegras.forEach((motivo, iso) => {
+        if (!m.has(iso)) m.set(iso, { motivo, auto: true, id: `regra:${iso}` });
+      });
+    }
     return m;
-  }, [bloqueios]);
+  }, [bloqueios, regrasBloqueioQuery.data, range.startDate, range.endDate]);
 
   const colaboradores = (colabsQ.data ?? []) as any[];
   const filteredColabs = useMemo(() => {
@@ -243,6 +292,12 @@ export default function DpAdminCalendario() {
       )
       .on("postgres_changes", { event: "*", schema: "public", table: "dp_solicitacoes" }, () =>
         qc.invalidateQueries({ queryKey: ["dp_solicitacoes_pend"] }),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "dp_bloqueio_regras" }, () =>
+        qc.invalidateQueries({ queryKey: ["dp_bloq_regras_admin_cal"] }),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "dp_bloqueio_regra_unidades" }, () =>
+        qc.invalidateQueries({ queryKey: ["dp_bloq_regras_admin_cal"] }),
       )
       .subscribe();
     return () => {

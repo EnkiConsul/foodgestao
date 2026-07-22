@@ -46,6 +46,7 @@ import {
   type DateStatusKind,
   type FolgaRecord,
 } from "@/lib/dp/folga-rules";
+import { buildBloqueiosDeRegras, type RegraRow } from "@/lib/dp/bloqueio-rules";
 import { cn } from "@/lib/utils";
 
 const STATUS_LABEL: Record<DateStatusKind, string> = {
@@ -174,6 +175,27 @@ export default function DpMeuCalendario() {
     },
   });
 
+  const regrasBloqueioQuery = useQuery({
+    queryKey: ["dp_bloq_regras_meu_cal", companyId],
+    enabled: !!companyId,
+    queryFn: async () => {
+      const [{ data: regras }, { data: vinc }] = await Promise.all([
+        supabase
+          .from("dp_bloqueio_regras")
+          .select("id, company_id, nome, tipo, mes, dia, regra_json, ativo")
+          .eq("company_id", companyId!)
+          .eq("ativo", true),
+        supabase
+          .from("dp_bloqueio_regra_unidades")
+          .select("regra_id, unidade_id"),
+      ]);
+      return {
+        regras: (regras ?? []) as RegraRow[],
+        vinculos: (vinc ?? []) as { regra_id: string; unidade_id: string }[],
+      };
+    },
+  });
+
   const diaConfigQuery = useQuery({
     queryKey: ["dp_dia_config_meu_cal", companyId, ano, mes],
     enabled: !!companyId,
@@ -204,6 +226,12 @@ export default function DpMeuCalendario() {
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "dp_dia_config", filter: `company_id=eq.${companyId}` }, () => {
         qc.invalidateQueries({ queryKey: ["dp_dia_config_meu_cal"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "dp_bloqueio_regras", filter: `company_id=eq.${companyId}` }, () => {
+        qc.invalidateQueries({ queryKey: ["dp_bloq_regras_meu_cal"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "dp_bloqueio_regra_unidades" }, () => {
+        qc.invalidateQueries({ queryKey: ["dp_bloq_regras_meu_cal"] });
       })
       .subscribe();
     return () => {
@@ -239,13 +267,28 @@ export default function DpMeuCalendario() {
 
   const manualBlocked = useMemo(() => {
     const m = new Map<string, { reason: string; liberada: boolean }>();
+    // 1) datas pontuais em dp_datas_bloqueadas
     for (const b of bloqueiosQuery.data ?? []) {
       const row = b as any;
       if (row.unidade_id !== null && row.unidade_id !== myUnidade) continue;
       m.set(row.data, { reason: row.motivo, liberada: !!row.liberada_por_solicitacao });
     }
+    // 2) regras dinâmicas expandidas em runtime — não sobrescreve liberação individual
+    const regrasData = regrasBloqueioQuery.data;
+    if (regrasData) {
+      const fromRegras = buildBloqueiosDeRegras({
+        regras: regrasData.regras,
+        vinculos: regrasData.vinculos,
+        unidadeId: myUnidade,
+        from: range.startDate,
+        to: range.endDate,
+      });
+      fromRegras.forEach((motivo, iso) => {
+        if (!m.has(iso)) m.set(iso, { reason: motivo, liberada: false });
+      });
+    }
     return m;
-  }, [bloqueiosQuery.data, myUnidade]);
+  }, [bloqueiosQuery.data, regrasBloqueioQuery.data, myUnidade, range.startDate, range.endDate]);
 
   const dayLimits = useMemo(() => {
     const m = new Map<string, number>();

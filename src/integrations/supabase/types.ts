@@ -5569,6 +5569,10 @@ export type Database = {
       }
       dp_pascoa: { Args: { _ano: number }; Returns: string }
       dp_processar_troca: { Args: { _troca_id: string }; Returns: Json }
+      dp_regra_bloqueia_data: {
+        Args: { _company_id: string; _data: string; _unidade_id: string }
+        Returns: boolean
+      }
       dre_apply_default_mapping: {
         Args: { _company_id: string }
         Returns: number
