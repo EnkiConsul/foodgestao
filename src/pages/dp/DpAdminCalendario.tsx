@@ -146,7 +146,7 @@ export default function DpAdminCalendario() {
         queryFn: async () => {
           const { data, error } = await supabase
             .from("dp_datas_bloqueadas")
-            .select("id, data, motivo, liberada_por_solicitacao, regra_id, created_at")
+            .select("id, data, motivo, liberada_por_solicitacao, liberada, regra_id, unidade_id, created_at")
             .eq("company_id", selectedCompanyId!)
             .gte("data", range.start)
             .lte("data", range.end);
@@ -214,49 +214,62 @@ export default function DpAdminCalendario() {
     return m;
   }, [diaConfigQ.data]);
 
+  const unidadeFilterId = filterUnidade === "all" ? null : filterUnidade;
+
   const manualBlocked = useMemo(() => {
     const m = new Map<string, { reason: string; liberada: boolean }>();
+    const liberadasSet = new Set<string>();
     for (const b of bloqueios) {
-      m.set(b.data, { reason: b.motivo, liberada: !!b.liberada_por_solicitacao });
+      const liberado = !!b.liberada_por_solicitacao || b.liberada === true;
+      if (liberado) {
+        liberadasSet.add(b.data);
+        continue;
+      }
+      m.set(b.data, { reason: b.motivo, liberada: false });
     }
     const regrasData = regrasBloqueioQuery.data;
     if (regrasData) {
-      // Admin: mostra bloqueios de todas as regras (independente da unidade)
       const fromRegras = buildBloqueiosDeRegras({
         regras: regrasData.regras,
-        vinculos: [], // ignora filtro de unidade no painel admin
-        unidadeId: null,
+        vinculos: regrasData.vinculos,
+        unidadeId: unidadeFilterId,
         from: range.startDate,
         to: range.endDate,
       });
       fromRegras.forEach((motivo, iso) => {
+        if (liberadasSet.has(iso)) return;
         if (!m.has(iso)) m.set(iso, { reason: motivo, liberada: false });
       });
     }
     return m;
-  }, [bloqueios, regrasBloqueioQuery.data, range.startDate, range.endDate]);
+  }, [bloqueios, regrasBloqueioQuery.data, unidadeFilterId, range.startDate, range.endDate]);
 
   const blockedByDate = useMemo(() => {
     const m = new Map<string, { motivo: string; auto: boolean; id: string }>();
+    const liberadasSet = new Set<string>();
     for (const b of bloqueios) {
-      if (b.liberada_por_solicitacao) continue;
+      if (b.liberada_por_solicitacao || b.liberada === true) {
+        liberadasSet.add(b.data);
+        continue;
+      }
       m.set(b.data, { motivo: b.motivo, auto: !!b.regra_id, id: b.id });
     }
     const regrasData = regrasBloqueioQuery.data;
     if (regrasData) {
       const fromRegras = buildBloqueiosDeRegras({
         regras: regrasData.regras,
-        vinculos: [],
-        unidadeId: null,
+        vinculos: regrasData.vinculos,
+        unidadeId: unidadeFilterId,
         from: range.startDate,
         to: range.endDate,
       });
       fromRegras.forEach((motivo, iso) => {
+        if (liberadasSet.has(iso)) return;
         if (!m.has(iso)) m.set(iso, { motivo, auto: true, id: `regra:${iso}` });
       });
     }
     return m;
-  }, [bloqueios, regrasBloqueioQuery.data, range.startDate, range.endDate]);
+  }, [bloqueios, regrasBloqueioQuery.data, unidadeFilterId, range.startDate, range.endDate]);
 
   const colaboradores = (colabsQ.data ?? []) as any[];
   const filteredColabs = useMemo(() => {
@@ -439,15 +452,27 @@ export default function DpAdminCalendario() {
   const liberarData = useMutation({
     mutationFn: async () => {
       if (!dayOpen) return;
-      const bloco = bloqueios.find((b) => b.data === dayOpen && !b.liberada_por_solicitacao);
-      if (bloco) {
-        const { error } = await supabase.from("dp_datas_bloqueadas").delete().eq("id", bloco.id);
-        if (error) throw error;
-      }
+      const { data: userRes } = await supabase.auth.getUser();
+      const unidadeIdParaUpsert = filterUnidade === "all" ? null : filterUnidade;
+      const { error } = await supabase
+        .from("dp_datas_bloqueadas")
+        .upsert(
+          {
+            company_id: selectedCompanyId!,
+            data: dayOpen,
+            unidade_id: unidadeIdParaUpsert,
+            liberada: true,
+            motivo: "Liberado manualmente pelo administrador",
+            criado_por: userRes.user?.id ?? null,
+          },
+          { onConflict: "company_id,unidade_id,data" },
+        );
+      if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Data liberada");
       qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas"] });
+      setDayOpen(null);
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao liberar"),
   });

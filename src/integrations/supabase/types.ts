@@ -2663,6 +2663,7 @@ export type Database = {
           criado_por: string | null
           data: string
           id: string
+          liberada: boolean
           liberada_por_solicitacao: string | null
           motivo: string
           regra_id: string | null
@@ -2675,6 +2676,7 @@ export type Database = {
           criado_por?: string | null
           data: string
           id?: string
+          liberada?: boolean
           liberada_por_solicitacao?: string | null
           motivo: string
           regra_id?: string | null
@@ -2687,6 +2689,7 @@ export type Database = {
           criado_por?: string | null
           data?: string
           id?: string
+          liberada?: boolean
           liberada_por_solicitacao?: string | null
           motivo?: string
           regra_id?: string | null

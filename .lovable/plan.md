@@ -1,33 +1,78 @@
-## Problema
 
-No calendário de admin (`/dp/admin/calendario`), dias bloqueados por regras dinâmicas (ex.: 08/08/2026 pelo "Pós-Pagamento — FDS após dia 5") **aparecem como se estivessem disponíveis**.
+# Ajustar Calendário Admin: exibição e liberação de datas bloqueadas (v2)
 
-## Diagnóstico
+## Diagnóstico do estado atual (verificado)
 
-A engine de regras funciona: `DpAdminCalendario` carrega `dp_bloqueio_regras` + `dp_bloqueio_regra_unidades` da empresa selecionada e passa por `buildBloqueiosDeRegras` (com `vinculos: []` e `unidadeId: null`, aplicando as regras globalmente). `calculateDateStatus` retorna corretamente `status: "blocked"` para admin (`folga-rules.ts:264-267`).
+Já funciona em `src/pages/dp/DpAdminCalendario.tsx` + `src/components/dp/FolgaCalendarShared.tsx`:
 
-O bug está apenas no **render** em `src/components/dp/FolgaCalendarShared.tsx` (grid "chunky", linhas 264-336):
+- Regras (`dp_bloqueio_regras`) são expandidas via `buildBloqueiosDeRegras` e mescladas com bloqueios manuais em `manualBlocked` e `blockedByDate`.
+- A célula do calendário já aplica `bg-destructive/15 border-destructive/40`, badge **Bloqueado**, ícone `Lock` e oculta o chip de ocupação quando `status === "blocked"`.
+- O dialog do dia já mostra bloco vermelho com "Data Bloqueada", badge **Automático/Manual**, motivo e botão **Liberar Data** (é o que aparece no print anexo).
 
-1. **Sem etiqueta "Bloqueado" para admin.** O badge "Bloqueado" está atrás de `!isAdmin` (linha 307), então o admin só vê o ícone de cadeado — pequeno e discreto.
-2. **Chip de ocupação verde sobrepõe o estado bloqueado.** Nos dias de FDS, o admin sempre vê `0/1` em verde (linhas 293-306) porque `occupancy < limit`, mesmo quando o dia está bloqueado por regra. A cor verde do chip domina visualmente e faz o dia parecer disponível, ainda que o fundo da célula esteja em vermelho tênue (`bg-destructive/10`).
-3. **Mesmo problema no layout mobile** (linhas 193-215): admin só vê o chip verde `0/1`, sem "Bloqueado".
+Gaps reais:
 
-## Correção
+1. **Botão "Liberar Data" não libera bloqueios de regra.** `liberarData` só faz `DELETE` em `dp_datas_bloqueadas` — dia bloqueado só por regra dinâmica não tem linha lá, então o clique não faz nada.
+2. **Semântica de "liberado" está amarrada a solicitação.** `dp_datas_bloqueadas.liberada_por_solicitacao` é FK para `dp_solicitacoes(id)`; sem flag boolean o admin não consegue liberar manualmente.
+3. **Filtro de unidade não é honrado.** `buildBloqueiosDeRegras` recebe `unidadeId: null` fixo.
+4. **Tooltip** do dia bloqueado poderia mostrar o motivo (opcional).
 
-Editar apenas `src/components/dp/FolgaCalendarShared.tsx` (frontend/apresentação):
+## Alterações
 
-1. **Grid desktop (chunky):**
-   - Quando `c.status === "blocked"`, esconder o chip verde/amber `occupancy/limit` do admin e exibir uma etiqueta "Bloqueado" (mesmo estilo destrutivo já usado para colaborador) — vale para admin e colaborador.
-   - Reforçar o fundo bloqueado subindo a opacidade (`bg-destructive/15 border-destructive/40`) para o estado ficar inequívoco.
-   - Manter o ícone de cadeado no canto superior direito.
+### 1. Migração SQL
 
-2. **Layout mobile:**
-   - Se `c.status === "blocked"`, esconder o chip `occupancy/limit` do admin e mostrar a badge "Bloqueado" (que já existe, hoje só rendera para colaborador porque vem após `isAdmin && wknd`).
+- `ALTER TABLE public.dp_datas_bloqueadas ADD COLUMN liberada boolean NOT NULL DEFAULT false;`
+- Atualizar **três** funções para tratar `liberada = true` como equivalente a `liberada_por_solicitacao IS NOT NULL`:
+  - `public.dp_regra_bloqueia_data(company_id, unidade_id, data)` — retorna `false` (não bloqueia) quando existir linha em `dp_datas_bloqueadas` para a data com `liberada = true OR liberada_por_solicitacao IS NOT NULL`, cobrindo escopo `unidade_id IS NULL OR unidade_id = p_unidade_id`. Só depois avalia regras.
+  - `public.dp_folgas_validar_self()` — nos blocos 5a (manual) e 5b (regra), a checagem `IS NULL` vira `liberada_por_solicitacao IS NOT NULL OR liberada = true`.
+  - `public.dp_validar_solicitacao_folga()` — mesma alteração nos pontos equivalentes.
 
-3. **Sem mudanças em SQL, RLS, engine de regras ou lógica de negócio** — o cálculo já está correto; corrigimos só a apresentação.
+### 2. `src/pages/dp/DpAdminCalendario.tsx` — mutação `liberarData` correta
+
+```ts
+const unidadeIdParaUpsert = filterUnidade === "all" ? null : filterUnidade;
+await supabase.from("dp_datas_bloqueadas").upsert(
+  {
+    company_id: selectedCompanyId!,
+    data: dayOpen,
+    unidade_id: unidadeIdParaUpsert,
+    liberada: true,
+    motivo: "Liberado manualmente pelo administrador",
+    criado_por: userRes.user?.id ?? null,
+  },
+  { onConflict: "company_id,unidade_id,data" },
+);
+```
+
+- Se "Todas as unidades" → libera globalmente (`unidade_id = null`).
+- Se filtrando uma unidade → libera só para aquela unidade.
+- Após sucesso, invalida `["dp_datas_bloqueadas"]` (Realtime já cobre; força refresh imediato).
+
+### 3. `useMemo` de `manualBlocked` e `blockedByDate` (mesmo arquivo)
+
+- Ignorar linhas com `liberada === true` **e** com `liberada_por_solicitacao != null`. Ordem: manuais primeiro (com esse filtro), depois preencher com regras expandidas apenas onde ainda não há bloqueio válido.
+- Se existir linha manual com `liberada = true` para a data, ela **suprime** também o bloqueio de regra (a expansão só entra quando o Map ainda não tem a chave — precisamos adicionar um `Set` separado de "liberadas" para skipar regras nesses dias).
+
+### 4. Filtro de unidade no motor
+
+- Chamada de `buildBloqueiosDeRegras` passa:
+  - `vinculos: regrasData.vinculos`
+  - `unidadeId: filterUnidade === "all" ? null : filterUnidade`
+- Em `src/lib/dp/bloqueio-rules.ts`, ajustar o guard para: quando `unidadeId === null` incluir **todas** as regras (mesmo vinculadas); quando setado, incluir globais + vinculadas àquela unidade. Substitui o `continue` atual por `if (unidades.length > 0 && unidadeId && !unidades.includes(unidadeId)) continue;`.
+
+### 5. `src/components/dp/FolgaCalendarShared.tsx` — tooltip
+
+- Setar `tooltip = manualBlocked.get(iso)?.reason` nas células com `status === "blocked"` e usar `title={tooltip}` (ou o `TooltipProvider` já importado) para hover.
+
+## Fora de escopo
+
+- Layout do dialog, KPIs, filtros de colaborador/tipo, mutações de sorteio/atribuição/limite.
+- Nova UI para gerenciar override em massa.
 
 ## Verificação
 
-- Recarregar `/dp/admin/calendario` em agosto/2026 e confirmar 08 e 09 marcados como "Bloqueado" (fundo vermelho + label).
-- Confirmar que dias FDS **não bloqueados** continuam mostrando `occupancy/limit` normal.
-- Confirmar que o portal do colaborador segue idêntico (rota já validada).
+1. `08/08/2026` no admin: fundo vermelho + badge **Bloqueado**; dialog mostra motivo da regra Pós-Pagamento com badge **Automático**.
+2. Clicar **Liberar Data** insere linha em `dp_datas_bloqueadas` com `liberada = true`; célula perde vermelho e passa a mostrar chip de ocupação.
+3. Marcar folga naquele dia passa nas triggers (nenhum "bloqueada por regra" após liberação).
+4. Filtrando uma unidade específica: regras vinculadas a outras unidades **não** aparecem; regras globais continuam aparecendo; liberação fica escopada àquela unidade.
+5. Bloqueio manual criado em "Datas Bloqueadas" comporta-se igual (pode ser liberado e retomar bloqueio ao remover a liberação).
+6. Tooltip no hover mostra o motivo do bloqueio.
