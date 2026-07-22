@@ -697,134 +697,6 @@ export type Database = {
         }
         Relationships: []
       }
-      bank_connection_accounts: {
-        Row: {
-          account_id: string | null
-          auto_import: boolean
-          connection_id: string
-          created_at: string
-          currency_code: string | null
-          id: string
-          last_synced_at: string | null
-          last_synced_tx_date: string | null
-          provider_account_id: string
-          provider_balance: number | null
-          provider_name: string | null
-          provider_number: string | null
-          provider_subtype: string | null
-          provider_type: string | null
-          updated_at: string
-        }
-        Insert: {
-          account_id?: string | null
-          auto_import?: boolean
-          connection_id: string
-          created_at?: string
-          currency_code?: string | null
-          id?: string
-          last_synced_at?: string | null
-          last_synced_tx_date?: string | null
-          provider_account_id: string
-          provider_balance?: number | null
-          provider_name?: string | null
-          provider_number?: string | null
-          provider_subtype?: string | null
-          provider_type?: string | null
-          updated_at?: string
-        }
-        Update: {
-          account_id?: string | null
-          auto_import?: boolean
-          connection_id?: string
-          created_at?: string
-          currency_code?: string | null
-          id?: string
-          last_synced_at?: string | null
-          last_synced_tx_date?: string | null
-          provider_account_id?: string
-          provider_balance?: number | null
-          provider_name?: string | null
-          provider_number?: string | null
-          provider_subtype?: string | null
-          provider_type?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "bank_connection_accounts_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bank_connection_accounts_connection_id_fkey"
-            columns: ["connection_id"]
-            isOneToOne: false
-            referencedRelation: "bank_connections"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      bank_connections: {
-        Row: {
-          company_id: string | null
-          consent_expires_at: string | null
-          context: Database["public"]["Enums"]["context_type"]
-          created_at: string
-          id: string
-          institution_logo_url: string | null
-          institution_name: string | null
-          last_error: string | null
-          last_sync_at: string | null
-          provider: string
-          provider_item_id: string
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          company_id?: string | null
-          consent_expires_at?: string | null
-          context: Database["public"]["Enums"]["context_type"]
-          created_at?: string
-          id?: string
-          institution_logo_url?: string | null
-          institution_name?: string | null
-          last_error?: string | null
-          last_sync_at?: string | null
-          provider?: string
-          provider_item_id: string
-          status?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          company_id?: string | null
-          consent_expires_at?: string | null
-          context?: Database["public"]["Enums"]["context_type"]
-          created_at?: string
-          id?: string
-          institution_logo_url?: string | null
-          institution_name?: string | null
-          last_error?: string | null
-          last_sync_at?: string | null
-          provider?: string
-          provider_item_id?: string
-          status?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "bank_connections_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       banks: {
         Row: {
           created_at: string
@@ -4641,36 +4513,6 @@ export type Database = {
         }
         Relationships: []
       }
-      pluggy_webhook_events: {
-        Row: {
-          error: string | null
-          event_type: string
-          id: string
-          item_id: string | null
-          payload: Json
-          processed_at: string | null
-          received_at: string
-        }
-        Insert: {
-          error?: string | null
-          event_type: string
-          id?: string
-          item_id?: string | null
-          payload: Json
-          processed_at?: string | null
-          received_at?: string
-        }
-        Update: {
-          error?: string | null
-          event_type?: string
-          id?: string
-          item_id?: string | null
-          payload?: Json
-          processed_at?: string | null
-          received_at?: string
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           asaas_customer_id: string | null
@@ -5004,8 +4846,6 @@ export type Database = {
           parent_transaction_id: string | null
           payment_date: string | null
           payment_method_id: string | null
-          provider: string | null
-          provider_transaction_id: string | null
           recurrence_end_date: string | null
           recurrence_type: Database["public"]["Enums"]["recurrence_type"] | null
           status: Database["public"]["Enums"]["transaction_status"]
@@ -5046,8 +4886,6 @@ export type Database = {
           parent_transaction_id?: string | null
           payment_date?: string | null
           payment_method_id?: string | null
-          provider?: string | null
-          provider_transaction_id?: string | null
           recurrence_end_date?: string | null
           recurrence_type?:
             | Database["public"]["Enums"]["recurrence_type"]
@@ -5090,8 +4928,6 @@ export type Database = {
           parent_transaction_id?: string | null
           payment_date?: string | null
           payment_method_id?: string | null
-          provider?: string | null
-          provider_transaction_id?: string | null
           recurrence_end_date?: string | null
           recurrence_type?:
             | Database["public"]["Enums"]["recurrence_type"]
@@ -5164,13 +5000,6 @@ export type Database = {
             columns: ["payment_method_id"]
             isOneToOne: false
             referencedRelation: "payment_methods"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "transactions_connection_id_fkey"
-            columns: ["connection_id"]
-            isOneToOne: false
-            referencedRelation: "bank_connections"
             referencedColumns: ["id"]
           },
           {
@@ -5405,14 +5234,6 @@ export type Database = {
       assign_transaction_to_invoice: {
         Args: { _transaction_id: string }
         Returns: string
-      }
-      can_manage_bank_connection: {
-        Args: { _connection_id: string }
-        Returns: boolean
-      }
-      can_sync_bank_connection: {
-        Args: { _connection_id: string }
-        Returns: boolean
       }
       categorize_transaction: {
         Args: {
@@ -5762,31 +5583,6 @@ export type Database = {
       }
       is_dp_colaborador: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
-      list_active_bank_connections: {
-        Args: never
-        Returns: {
-          company_id: string | null
-          consent_expires_at: string | null
-          context: Database["public"]["Enums"]["context_type"]
-          created_at: string
-          id: string
-          institution_logo_url: string | null
-          institution_name: string | null
-          last_error: string | null
-          last_sync_at: string | null
-          provider: string
-          provider_item_id: string
-          status: string
-          updated_at: string
-          user_id: string
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "bank_connections"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -5951,21 +5747,6 @@ export type Database = {
           status: Database["public"]["Enums"]["transaction_status"]
           transaction_type: Database["public"]["Enums"]["transaction_type"]
         }[]
-      }
-      pluggy_link_provider_account: {
-        Args: { _account_id: string; _conn_account_id: string }
-        Returns: undefined
-      }
-      pluggy_upsert_transaction: {
-        Args: {
-          _account_id: string
-          _amount: number
-          _description: string
-          _provider_tx_id: string
-          _transaction_date: string
-          _transaction_type: Database["public"]["Enums"]["transaction_type"]
-        }
-        Returns: string
       }
       read_ai_categorization_queue: {
         Args: { p_batch?: number; p_vt?: number }
