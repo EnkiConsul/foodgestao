@@ -188,7 +188,7 @@ export default function EsqueciSenha() {
                 </AlertDescription>
               </Alert>
 
-              {!skLoading && siteKey && (
+              {siteKey && (
                 <TurnstileWidget
                   siteKey={siteKey}
                   onToken={(t) => { setTurnstileToken(t); setTurnstileError(null); }}
