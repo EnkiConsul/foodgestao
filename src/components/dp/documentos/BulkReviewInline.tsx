@@ -427,7 +427,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
                 ) : current.status === "rejected" ? (
                   <><X className="h-4 w-4 text-muted-foreground" /> <span>Ignorada</span></>
                 ) : current.status === "failed" ? (
-                  <><AlertTriangle className="h-4 w-4 text-destructive" /> <span>Falha no OCR</span></>
+                  <><AlertTriangle className="h-4 w-4 text-destructive" /> <span>{current.error_message ?? "Falha no processamento"}</span></>
                 ) : current.matched_colaborador_id ? (
                   <><CheckCircle2 className="h-4 w-4 text-green-600" />
                     <span>Vinculado {current.manual_override ? "manualmente" : "automaticamente"}
