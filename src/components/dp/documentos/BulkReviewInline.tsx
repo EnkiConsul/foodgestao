@@ -16,6 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { NovoColaboradorInlineDialog } from "./NovoColaboradorInlineDialog";
 import { BulkProgressBanner } from "./BulkProgressBanner";
+import { ConfirmarSubstituicaoDialog, type DuplicateCollision } from "./ConfirmarSubstituicaoDialog";
+import { detectDuplicates } from "@/lib/dp/bulk-duplicates";
 import { cn } from "@/lib/utils";
 
 // Setup pdfjs worker once (shared with BulkReviewDialog)
@@ -67,7 +69,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_bulk_import_batches" as any)
-        .select("id,status,total_pages,processed_pages,approved_count")
+        .select("id,status,total_pages,processed_pages,approved_count,company_id,tipo")
         .eq("id", batchId)
         .maybeSingle();
       if (error) throw error;
@@ -218,27 +220,33 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] }),
   });
 
-  const approveAll = useMutation({
-    mutationFn: async () => {
-      const ids = rows
-        .filter((r: any) => r.status === "pending" && r.matched_colaborador_id)
-        .map((r: any) => r.id);
-      if (ids.length === 0) throw new Error("Nenhuma página vinculada");
-      setSavingTotal(ids.length);
-      setIsSaving(true);
+  const [confirmDup, setConfirmDup] = useState<{
+    collisions: DuplicateCollision[];
+    allIds: string[];
+    nonDupIds: string[];
+  } | null>(null);
+  const [checkingDup, setCheckingDup] = useState(false);
+
+  async function runApprove(item_ids: string[], on_duplicate: "skip" | "replace") {
+    if (item_ids.length === 0) {
+      toast.error("Nenhuma página elegível");
+      return;
+    }
+    setSavingTotal(item_ids.length);
+    setIsSaving(true);
+    try {
       const { data, error } = await supabase.functions.invoke("dp-doc-bulk-approve", {
-        body: { item_ids: ids },
+        body: { item_ids, on_duplicate },
       });
       if (error) throw error;
-      return data;
-    },
-    onSuccess: (r: any) => {
-      const results = (r?.results ?? []) as Array<{ ok: boolean; error?: string }>;
-      const okc = results.filter((x) => x.ok).length;
+      const results = ((data as any)?.results ?? []) as Array<{ ok: boolean; error?: string; replaced?: boolean }>;
+      const okc = results.filter((x) => x.ok && !x.replaced).length;
+      const rep = results.filter((x) => x.ok && x.replaced).length;
       const dup = results.filter((x) => !x.ok && x.error === "duplicate").length;
       const other = results.filter((x) => !x.ok && x.error !== "duplicate").length;
       const parts = [`${okc} importado(s)`];
-      if (dup) parts.push(`${dup} duplicado(s)`);
+      if (rep) parts.push(`${rep} substituído(s)`);
+      if (dup) parts.push(`${dup} duplicado(s) ignorado(s)`);
       if (other) parts.push(`${other} falha(s)`);
       toast.success(parts.join(", "));
       qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] });
@@ -247,12 +255,56 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
       qc.invalidateQueries({ queryKey: ["dp_bulk_pending_counts"] });
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
       qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
-    },
-    onError: (e: any) => toast.error(e?.message ?? "Falha ao aprovar"),
-    onSettled: () => {
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao aprovar");
+    } finally {
       setIsSaving(false);
-    },
-  });
+    }
+  }
+
+  async function handleApproveClick() {
+    const eligible = rows.filter((r: any) => r.status === "pending" && r.matched_colaborador_id);
+    if (eligible.length === 0) {
+      toast.error("Nenhuma página vinculada");
+      return;
+    }
+    const bInfo = batchInfo.data as any;
+    if (!bInfo?.company_id || !bInfo?.tipo) {
+      toast.error("Lote incompleto — tente novamente em instantes");
+      return;
+    }
+    setCheckingDup(true);
+    try {
+      const hits = await detectDuplicates({
+        company_id: bInfo.company_id,
+        tipo: bInfo.tipo,
+        itens: eligible.map((r: any) => {
+          const colab = colaboradores.find((c: any) => c.id === r.matched_colaborador_id);
+          return {
+            item_id: r.id,
+            colaborador_id: r.matched_colaborador_id,
+            colaborador_nome: colab?.nome ?? "(colaborador)",
+            referencia_data: normalizeRefDate(r.detected_competencia) ?? bInfo?.referencia_data ?? null,
+          };
+        }),
+      });
+      const allIds = eligible.map((r: any) => r.id);
+      if (hits.length === 0) {
+        await runApprove(allIds, "skip");
+        return;
+      }
+      const dupIds = new Set(hits.map((h) => h.item_id));
+      setConfirmDup({
+        collisions: hits,
+        allIds,
+        nonDupIds: allIds.filter((id) => !dupIds.has(id)),
+      });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao verificar duplicidade");
+    } finally {
+      setCheckingDup(false);
+    }
+  }
 
   const stats = useMemo(() => {
     const vinc = rows.filter((r: any) => r.status === "pending" && r.matched_colaborador_id).length
