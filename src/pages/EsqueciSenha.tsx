@@ -255,14 +255,34 @@ export default function EsqueciSenha() {
                 {submitting ? "Verificando..." : "Verificar código"}
               </Button>
 
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full"
-                onClick={() => { setStep("identify"); setOtp(""); setChallengeId(null); setChallengeToken(null); }}
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" /> Solicitar novo código
-              </Button>
+              {resendAttempts < MAX_RESENDS ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  disabled={resendIn > 0}
+                  onClick={() => {
+                    setResendAttempts((n) => n + 1);
+                    setOtp("");
+                    setChallengeId(null);
+                    setChallengeToken(null);
+                    setTurnstileToken(null);
+                    setSecondsLeft(0);
+                    setResendIn(0);
+                    setStep("identify");
+                    toast.info("Complete a verificação de segurança para reenviar o código.");
+                  }}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  {resendIn > 0
+                    ? `Reenviar em ${resendIn}s`
+                    : `Reenviar código (${MAX_RESENDS - resendAttempts} restantes)`}
+                </Button>
+              ) : (
+                <p className="text-xs text-center text-muted-foreground">
+                  Limite de reenvios atingido. Tente novamente em alguns minutos.
+                </p>
+              )}
             </form>
           )}
 
