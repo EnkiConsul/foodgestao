@@ -20,6 +20,7 @@ import {
 import { DpFilterCard } from "@/components/dp/DpPage";
 import { cn } from "@/lib/utils";
 import { BulkReviewDialog } from "./BulkReviewDialog";
+import { BulkReviewInline } from "./BulkReviewInline";
 import { NovoColaboradorInlineDialog } from "./NovoColaboradorInlineDialog";
 
 const TIPO_OPTS = [
