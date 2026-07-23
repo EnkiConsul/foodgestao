@@ -469,6 +469,16 @@ export default function Auth() {
                 Informe o e-mail da sua conta. Enviaremos um link para você redefinir sua senha.
               </p>
             )}
+
+            {isLogin && turnstileSiteKey && (
+              <div className="pt-1">
+                <TurnstileWidget
+                  siteKey={turnstileSiteKey}
+                  onToken={setTurnstileToken}
+                  onExpire={() => setTurnstileToken("")}
+                />
+              </div>
+            )}
           </CardContent>
 
           <CardFooter className="flex flex-col gap-3">
