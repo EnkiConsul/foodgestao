@@ -69,7 +69,7 @@ export function BulkImportPanel({
     enabled: !!selectedCompanyId,
     refetchInterval: (q) => {
       const rows = (q.state.data as any[] | undefined) ?? [];
-      return rows.some((b) => b.status === "processing") ? 3000 : false;
+      return rows.some((b) => b.status === "processing") ? 1500 : false;
     },
     queryFn: async () => {
       let query = supabase
@@ -89,16 +89,20 @@ export function BulkImportPanel({
     return (batches.data ?? []).filter((b) => statusFilter === "all" ? true : b.status === statusFilter);
   }, [batches.data, statusFilter]);
 
+  const openedIds = Object.keys(expanded).filter((k) => expanded[k]);
+  const anyBatchProcessing = (batches.data ?? []).some(
+    (b) => b.status === "processing" && expanded[b.id],
+  );
   const items = useQuery({
-    queryKey: ["dp_bulk_items", Object.keys(expanded).filter((k) => expanded[k])],
-    enabled: Object.values(expanded).some(Boolean),
+    queryKey: ["dp_bulk_items", openedIds],
+    enabled: openedIds.length > 0,
+    refetchInterval: anyBatchProcessing ? 1500 : false,
     queryFn: async () => {
-      const ids = Object.keys(expanded).filter((k) => expanded[k]);
-      if (!ids.length) return [];
+      if (!openedIds.length) return [];
       const { data, error } = await supabase
         .from("dp_bulk_import_items" as any)
         .select("*")
-        .in("batch_id", ids)
+        .in("batch_id", openedIds)
         .order("page_index", { ascending: true });
       if (error) throw error;
       return data as any[];
@@ -147,29 +151,33 @@ export function BulkImportPanel({
       await (supabase.from("dp_bulk_import_batches" as any) as any)
         .update({ source_file_path: finalPath }).eq("id", batch.id);
 
-      // Auto-expande o lote novo para o usuário ver o progresso
+      // Auto-expande o lote novo para o usuário ver o progresso em tempo real
       setExpanded((s) => ({ ...s, [batch.id]: true }));
 
-      const { data: ing, error: iErr } = await supabase.functions.invoke("dp-doc-bulk-ingest", {
-        body: { batch_id: batch.id },
-      });
-      if (iErr) {
-        // Marca o batch como falho para não ficar preso em processing
-        await (supabase.from("dp_bulk_import_batches" as any) as any)
-          .update({ status: "failed", error_message: iErr.message ?? "Falha ao processar" })
-          .eq("id", batch.id);
-        throw iErr;
-      }
-      return ing;
+      // Dispara a Edge Function; ela retorna 202 imediatamente e processa em background.
+      // Não bloqueamos aqui — o polling atualiza a UI.
+      supabase.functions
+        .invoke("dp-doc-bulk-ingest", { body: { batch_id: batch.id } })
+        .then(({ error: iErr }) => {
+          if (iErr) {
+            (supabase.from("dp_bulk_import_batches" as any) as any)
+              .update({ status: "failed", error_message: iErr.message ?? "Falha ao processar" })
+              .eq("id", batch.id)
+              .then(() => {
+                qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
+              });
+          }
+        });
+
+      return { batch_id: batch.id };
     },
-    onSuccess: (r: any) => {
-      toast.success(`Lote processado: ${r?.processed ?? 0} páginas, ${r?.matched ?? 0} vinculadas`);
+    onSuccess: () => {
+      toast.success("PDF enviado — processando páginas em segundo plano");
       setFile(null);
       qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
-      qc.invalidateQueries({ queryKey: ["dp_bulk_items"] });
       qc.invalidateQueries({ queryKey: ["dp_bulk_pending_counts"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Falha ao processar"),
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao enviar"),
     onSettled: () => setUploading(false),
   });
 
@@ -283,15 +291,23 @@ export function BulkImportPanel({
             )}
             {!referenciaFixed && (
               <div className="space-y-1">
-                <Label>Referência (mês/ano)</Label>
-                <Input type="date" value={referencia} onChange={(e) => setReferencia(e.target.value)} />
+                <Label>Referência (mês/ano) — opcional</Label>
+                <Input
+                  type="date"
+                  value={referencia}
+                  placeholder="Detectada do PDF automaticamente"
+                  onChange={(e) => setReferencia(e.target.value)}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Se em branco, o sistema tenta detectar do próprio PDF.
+                </p>
               </div>
             )}
           </div>
 
           <Button onClick={() => upload.mutate()} disabled={!file || uploading} className="w-full">
             {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-            Processar em massa
+            Processar PDF
           </Button>
         </div>
       </DpFilterCard>
@@ -399,6 +415,21 @@ export function BulkImportPanel({
                             {it.status}
                           </Badge>
                           {!!it.matched_cpf && <span className="text-xs">CPF {it.matched_cpf}</span>}
+                          {!!it.detected_competencia && (
+                            <Badge variant="outline" className="text-[10px]">
+                              comp {it.detected_competencia}
+                            </Badge>
+                          )}
+                          {it.matched_colaborador_id && it.matched_colaborador_ativo === false && (
+                            <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40 text-[10px]">
+                              <AlertTriangle className="h-3 w-3 mr-1" /> Colaborador inativo
+                            </Badge>
+                          )}
+                          {it.duplicate_of && (
+                            <Badge variant="destructive" className="text-[10px]">
+                              Duplicado
+                            </Badge>
+                          )}
                           {!!it.confidence && (
                             <span className="text-xs text-muted-foreground">
                               conf {(Number(it.confidence) * 100).toFixed(0)}%
