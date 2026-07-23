@@ -407,13 +407,19 @@ export default function DpMeuDocumentos() {
   );
 }
 
-function StatusBadge({ d }: { d: UnifiedDoc }) {
-  const k = d.status_key;
+export function StatusBadge(props: { d?: UnifiedDoc; status?: string }) {
+  const k = (props.d?.status_key ?? props.status ?? "").toLowerCase();
+  const label = props.d?.status_label
+    ?? (k === "aprovado" || k === "aprovada" ? "Aprovado"
+      : k === "recusado" || k === "recusada" ? "Recusado"
+      : k === "pendente" ? "Pendente"
+      : k === "disponivel" ? "Disponível"
+      : k || "—");
   if (k === "aprovado" || k === "aprovada" || k === "disponivel")
-    return <Badge className="bg-green-500/15 text-green-700 border border-green-300"><CheckCircle2 className="h-3 w-3 mr-1" />{d.status_label}</Badge>;
+    return <Badge className="bg-green-500/15 text-green-700 border border-green-300"><CheckCircle2 className="h-3 w-3 mr-1" />{label}</Badge>;
   if (k === "recusado" || k === "recusada")
-    return <Badge className="bg-red-500/15 text-red-700 border border-red-300"><XCircle className="h-3 w-3 mr-1" />{d.status_label}</Badge>;
+    return <Badge className="bg-red-500/15 text-red-700 border border-red-300"><XCircle className="h-3 w-3 mr-1" />{label}</Badge>;
   if (k === "pendente")
-    return <Badge className="bg-amber-500/15 text-amber-700 border border-amber-300"><Clock className="h-3 w-3 mr-1" />{d.status_label}</Badge>;
-  return <Badge variant="outline">{d.status_label}</Badge>;
+    return <Badge className="bg-amber-500/15 text-amber-700 border border-amber-300"><Clock className="h-3 w-3 mr-1" />{label}</Badge>;
+  return <Badge variant="outline">{label}</Badge>;
 }
