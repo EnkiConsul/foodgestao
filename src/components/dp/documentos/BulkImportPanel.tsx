@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Upload, Loader2, Check, X, ChevronDown, ChevronRight, RefreshCw, ExternalLink, AlertTriangle,
+  Upload, Loader2, Check, X, ChevronDown, ChevronRight, RefreshCw, ExternalLink, AlertTriangle, Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { DpFilterCard } from "@/components/dp/DpPage";
 import { cn } from "@/lib/utils";
+import { BulkReviewDialog } from "./BulkReviewDialog";
+import { NovoColaboradorInlineDialog } from "./NovoColaboradorInlineDialog";
 
 const TIPO_OPTS = [
   { v: "contracheque", l: "Contracheque" },
@@ -60,6 +62,7 @@ export function BulkImportPanel({
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [batchLimit, setBatchLimit] = useState<number>(20);
+  const [reviewBatch, setReviewBatch] = useState<{ id: string; name?: string } | null>(null);
 
   useEffect(() => { if (tipoFixed) setTipo(tipoFixed); }, [tipoFixed]);
   useEffect(() => { if (referenciaFixed) setReferencia(referenciaFixed); }, [referenciaFixed]);
@@ -370,19 +373,40 @@ export function BulkImportPanel({
                       )}
                     </div>
                   </div>
-                  <Badge variant={
-                    b.status === "imported" ? "default"
-                    : b.status === "failed" ? "destructive"
-                    : "secondary"
-                  }>
-                    {isProcessing && <Loader2 className="h-3 w-3 mr-1 animate-spin inline" />}
-                    {b.status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {!isProcessing && totalPag > 0 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setReviewBatch({ id: b.id, name: b.source_file_name });
+                        }}
+                      >
+                        <Eye className="h-4 w-4 mr-1" /> Revisar
+                      </Button>
+                    )}
+                    <Badge variant={
+                      b.status === "imported" ? "default"
+                      : b.status === "failed" ? "destructive"
+                      : "secondary"
+                    }>
+                      {isProcessing && <Loader2 className="h-3 w-3 mr-1 animate-spin inline" />}
+                      {b.status}
+                    </Badge>
+                  </div>
                 </button>
 
                 {isOpen && (
                   <div className="border-t p-3 space-y-2">
-                    <div className="flex justify-end">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setReviewBatch({ id: b.id, name: b.source_file_name })}
+                      >
+                        <Eye className="h-4 w-4 mr-1" /> Revisar visualmente
+                      </Button>
                       <Button
                         size="sm"
                         disabled={pending.length === 0 || approve.isPending}
@@ -441,21 +465,32 @@ export function BulkImportPanel({
                             </span>
                           )}
                         </div>
-                        <Select
-                          value={it.matched_colaborador_id ?? "none"}
-                          onValueChange={(v) => setColab.mutate({ id: it.id, colaborador_id: v === "none" ? null : v })}
-                          disabled={it.status === "imported"}
-                        >
-                          <SelectTrigger><SelectValue placeholder="Selecionar colaborador" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">— Nenhum —</SelectItem>
-                            {colaboradores.map((c: any) => (
-                              <SelectItem key={c.id} value={c.id}>
-                                {c.nome}{c.cpf ? ` (${c.cpf})` : ""}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="flex items-center gap-1">
+                          <Select
+                            value={it.matched_colaborador_id ?? "none"}
+                            onValueChange={(v) => setColab.mutate({ id: it.id, colaborador_id: v === "none" ? null : v })}
+                            disabled={it.status === "imported"}
+                          >
+                            <SelectTrigger><SelectValue placeholder="Selecionar colaborador" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">— Nenhum —</SelectItem>
+                              {colaboradores.map((c: any) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                  {c.nome}{c.cpf ? ` (${c.cpf})` : ""}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <NovoColaboradorInlineDialog
+                            defaultCpf={it.matched_cpf ?? ""}
+                            onCreated={(id) => setColab.mutate({ id: it.id, colaborador_id: id })}
+                            trigger={
+                              <Button size="icon" variant="ghost" title="Cadastrar novo colaborador">
+                                <span className="text-lg leading-none">+</span>
+                              </Button>
+                            }
+                          />
+                        </div>
                         <div className="flex gap-1 justify-end">
                           <Button size="icon" variant="ghost" onClick={() => openPage(it.page_file_path)} title="Ver página">
                             <ExternalLink className="h-4 w-4" />
@@ -496,6 +531,15 @@ export function BulkImportPanel({
           )}
         </CardContent>
       </Card>
+
+      {reviewBatch && (
+        <BulkReviewDialog
+          open={!!reviewBatch}
+          onOpenChange={(o) => !o && setReviewBatch(null)}
+          batchId={reviewBatch.id}
+          batchName={reviewBatch.name}
+        />
+      )}
     </div>
   );
 }
