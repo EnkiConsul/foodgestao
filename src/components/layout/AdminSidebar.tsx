@@ -16,6 +16,8 @@ import {
   Landmark,
   Search,
   Brain,
+  UserCog,
+  
   
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
