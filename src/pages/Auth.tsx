@@ -481,18 +481,33 @@ export default function Auth() {
             )}
 
             {isLogin && turnstileSiteKey && (
-              <div className="pt-1">
+              <div className="pt-1 space-y-2">
                 <TurnstileWidget
                   siteKey={turnstileSiteKey}
-                  onToken={setTurnstileToken}
+                  hidden={!!turnstileError}
+                  onToken={(t) => { setTurnstileToken(t); setTurnstileError(null); }}
                   onExpire={() => setTurnstileToken("")}
+                  onError={(code) => { setTurnstileToken(""); setTurnstileError(code); }}
                 />
+                {turnstileError && (
+                  <div
+                    role="alert"
+                    className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+                  >
+                    <p className="font-medium">Verificação de segurança indisponível neste domínio.</p>
+                    <p className="mt-1 text-destructive/90">
+                      Não foi possível carregar o CAPTCHA (código {turnstileError}). Acesse pelo site oficial{" "}
+                      <span className="font-mono">gestor360food.com</span> ou peça ao administrador para autorizar este hostname no painel Cloudflare Turnstile.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
 
           <CardFooter className="flex flex-col gap-3">
-            <Button type="submit" className="w-full" disabled={submitting}>
+            <Button type="submit" className="w-full" disabled={submitting || (isLogin && !!turnstileError)}>
+
               {submitting
                 ? "Aguarde..."
                 : isForgot
