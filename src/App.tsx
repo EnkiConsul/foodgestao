@@ -278,9 +278,9 @@ const AppRoutes = () => (
         <Route path="solicitacoes" element={<DpMeuSolicitacoes />} />
         <Route path="trocas" element={<DpMeuTrocas />} />
         <Route path="calendario" element={<DpMeuCalendario />} />
-        <Route path="atestados" element={<DpMeuAtestados />} />
-        <Route path="disciplinar" element={<DpMeuDisciplinar />} />
-        <Route path="sindicato" element={<DpMeuSindicato />} />
+        <Route path="atestados" element={<Navigate to="/dp/meu/documentos?tipo=atestado" replace />} />
+        <Route path="disciplinar" element={<Navigate to="/dp/meu/documentos?tipo=disciplinar" replace />} />
+        <Route path="sindicato" element={<Navigate to="/dp/meu/documentos?tipo=act_cct" replace />} />
         <Route path="historico" element={<DpMeuHistorico />} />
       </Route>
       <Route
@@ -354,7 +354,7 @@ const AppRoutes = () => (
         <Route path="bloqueios" element={<DpBloqueios />} />
         <Route path="trocas" element={<DpTrocas />} />
         <Route path="aprovacoes" element={<DpAprovacoes />} />
-        <Route path="documentos/importar" element={<DpDocImportBulk />} />
+        <Route path="documentos/importar" element={<Navigate to="/dp/documentos" replace />} />
         <Route path="cadastros" element={<DpCadastrosHub />} />
         <Route path="cadastros/unidades" element={<DpUnidades />} />
         <Route path="cadastros/cargos" element={<DpCargos />} />
