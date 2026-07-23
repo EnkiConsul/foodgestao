@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
 
     const { data: items, error: iErr } = await userClient
       .from("dp_bulk_import_items")
-      .select("*, dp_bulk_import_batches!inner(id, company_id, tipo, referencia_data, source_file_name)")
+      .select("*, dp_bulk_import_batches!inner(id, company_id, tipo, referencia_data, source_file_name, source_file_path)")
       .in("id", parsed.data.item_ids);
     if (iErr) return json({ error: iErr.message }, 500);
     if (!items || items.length === 0) return json({ error: "Nenhum item encontrado" }, 404);
@@ -58,21 +58,23 @@ Deno.serve(async (req) => {
 
         const batch = it.dp_bulk_import_batches;
 
+        const referenciaData = normalizeReferenciaData(it.detected_competencia) ?? batch.referencia_data ?? null;
+
         // Duplicidade: já existe documento para (colaborador, tipo, referencia_data)?
-        if (batch.referencia_data) {
+        if (referenciaData) {
           const { data: dup } = await svc
             .from("dp_documentos")
             .select("id")
             .eq("company_id", batch.company_id)
             .eq("colaborador_id", it.matched_colaborador_id)
             .eq("tipo", batch.tipo)
-            .eq("referencia_data", batch.referencia_data)
+            .eq("referencia_data", referenciaData)
             .limit(1)
             .maybeSingle();
           if (dup?.id) {
             await svc.from("dp_bulk_import_items").update({
               status: "failed",
-              error_message: `Já existe documento para este colaborador em ${batch.referencia_data}`,
+              error_message: `Já existe documento para este colaborador em ${referenciaData}`,
             }).eq("id", it.id);
             results.push({ id: it.id, ok: false, error: "duplicate", documento_id: dup.id });
             continue;
@@ -99,7 +101,7 @@ Deno.serve(async (req) => {
           file_name: `${batch.id}_p${it.page_index}.pdf`,
           file_size: bytes.byteLength,
           mime_type: "application/pdf",
-          referencia_data: batch.referencia_data,
+          referencia_data: referenciaData,
           uploaded_by: uid,
         }).select("id").single();
         if (dErr) throw new Error(dErr.message);
@@ -129,6 +131,7 @@ Deno.serve(async (req) => {
       const all = remaining ?? [];
       const done = all.every((r) => r.status === "imported" || r.status === "rejected");
       const some = all.some((r) => r.status === "imported");
+      if (done) await cleanupBatchFiles(svc, bid, items as any[]);
       await svc.from("dp_bulk_import_batches")
         .update({ status: done ? "imported" : some ? "partially_imported" : "ready" })
         .eq("id", bid);
@@ -155,4 +158,31 @@ function prettyTipo(t: string) {
     adiantamento: "Adiantamento",
     outros: "Documento",
   } as Record<string, string>)[t] ?? "Documento";
+}
+
+function normalizeReferenciaData(value: unknown): string | null {
+  if (!value) return null;
+  const raw = String(value).trim();
+  const ym = raw.match(/^(20\d{2})-(0[1-9]|1[0-2])$/);
+  if (ym) return `${ym[1]}-${ym[2]}-01`;
+  const ymd = raw.match(/^(20\d{2})-(0[1-9]|1[0-2])-([0-2]\d|3[01])$/);
+  if (ymd) return raw;
+  return null;
+}
+
+async function cleanupBatchFiles(svc: any, batchId: string, items: any[]) {
+  const batch = items.find((i) => i.batch_id === batchId)?.dp_bulk_import_batches;
+  if (!batch?.company_id) return;
+  const prefix = `${batch.company_id}/${batchId}`;
+  const paths = new Set<string>();
+  if (batch.source_file_path) paths.add(batch.source_file_path);
+  for (const it of items) {
+    if (it.batch_id === batchId && it.page_file_path) paths.add(it.page_file_path);
+  }
+  const { data: files } = await svc.storage.from(SRC_BUCKET).list(prefix, { limit: 1000 });
+  for (const file of files ?? []) if (file?.name) paths.add(`${prefix}/${file.name}`);
+  const all = [...paths];
+  for (let i = 0; i < all.length; i += 100) {
+    await svc.storage.from(SRC_BUCKET).remove(all.slice(i, i + 100));
+  }
 }

@@ -157,7 +157,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
   const setCompetencia = useMutation({
     mutationFn: async ({ id, competencia }: { id: string; competencia: string | null }) => {
       const { error } = await supabase.from("dp_bulk_import_items" as any).update({
-        detected_competencia: competencia,
+        detected_competencia: normalizeCompetencia(competencia),
       }).eq("id", id);
       if (error) throw error;
     },
@@ -329,6 +329,11 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
                 {current.duplicate_of && (
                   <Badge variant="destructive" className="text-[10px]">Duplicado</Badge>
                 )}
+                {current.detected_competencia && (
+                  <Badge variant="outline" className="text-[10px]">
+                    Competência {formatCompetencia(current.detected_competencia)}
+                  </Badge>
+                )}
               </div>
               <div className="flex items-center gap-1">
                 <Button size="icon" variant="ghost" onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))} title="Diminuir zoom">
@@ -403,8 +408,8 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
                 <Label className="text-xs">Competência</Label>
                 <Input
                   className="h-9"
-                  type="date"
-                  value={current.detected_competencia ?? ""}
+                    type="month"
+                    value={normalizeCompetencia(current.detected_competencia) ?? ""}
                   onChange={(e) => setCompetencia.mutate({
                     id: current.id,
                     competencia: e.target.value || null,
@@ -451,4 +456,21 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
       )}
     </div>
   );
+}
+
+function normalizeCompetencia(value: unknown): string | null {
+  if (!value) return null;
+  const raw = String(value).trim();
+  const ym = raw.match(/^(20\d{2})-(0[1-9]|1[0-2])$/);
+  if (ym) return `${ym[1]}-${ym[2]}`;
+  const ymd = raw.match(/^(20\d{2})-(0[1-9]|1[0-2])-\d{2}$/);
+  if (ymd) return `${ymd[1]}-${ymd[2]}`;
+  return null;
+}
+
+function formatCompetencia(value: unknown): string {
+  const normalized = normalizeCompetencia(value);
+  if (!normalized) return "—";
+  const [year, month] = normalized.split("-");
+  return `${month}/${year}`;
 }

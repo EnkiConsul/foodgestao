@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Upload, Loader2, Check, X, ChevronDown, ChevronRight, RefreshCw, ExternalLink, AlertTriangle, Eye,
+  Upload, Loader2, Check, X, ChevronDown, ChevronRight, RefreshCw, ExternalLink, AlertTriangle, Eye, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,7 +37,7 @@ const MAX_SIZE_MB = 20;
 export interface BulkImportPanelProps {
   /** Fixa o tipo do lote e esconde o seletor. */
   tipoFixed?: string;
-  /** Fixa a referência (YYYY-MM-DD) e esconde o input. */
+  /** Fixa a referência (YYYY-MM-DD ou YYYY-MM) e esconde o input. */
   referenciaFixed?: string;
   /** Filtra os lotes listados por tipo (default: usa tipoFixed se houver). */
   filterByTipo?: boolean;
@@ -67,6 +67,14 @@ export function BulkImportPanel({
 
   useEffect(() => { if (tipoFixed) setTipo(tipoFixed); }, [tipoFixed]);
   useEffect(() => { if (referenciaFixed) setReferencia(referenciaFixed); }, [referenciaFixed]);
+  useEffect(() => {
+    if (!selectedCompanyId) return;
+    supabase.functions.invoke("dp-doc-bulk-discard", {
+      body: { cleanup_abandoned: true, company_id: selectedCompanyId },
+    }).then(({ data }) => {
+      if ((data as any)?.removed) qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
+    });
+  }, [selectedCompanyId, qc]);
 
   const batches = useQuery({
     queryKey: ["dp_bulk_batches", selectedCompanyId, batchLimit, filterByTipo ? tipoFixed : "all"],
@@ -137,7 +145,7 @@ export function BulkImportPanel({
           tipo,
           source_file_path: provisional,
           source_file_name: file.name,
-          referencia_data: referencia || null,
+          referencia_data: competenciaToDate(referencia),
           status: "processing",
           uploaded_by: uid,
         })
@@ -237,6 +245,24 @@ export function BulkImportPanel({
     onError: (e: any) => toast.error(e?.message ?? "Falha ao importar"),
   });
 
+  const discardBatch = useMutation({
+    mutationFn: async (batch_id: string) => {
+      const { data, error } = await supabase.functions.invoke("dp-doc-bulk-discard", {
+        body: { batch_id },
+      });
+      if (error) throw error;
+      const payload = data as { error?: string } | null;
+      if (payload?.error) throw new Error(payload.error);
+    },
+    onSuccess: () => {
+      toast.success("Lote descartado");
+      qc.invalidateQueries({ queryKey: ["dp_bulk_items"] });
+      qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
+      qc.invalidateQueries({ queryKey: ["dp_bulk_pending_counts"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao descartar lote"),
+  });
+
   const openPage = async (path: string) => {
     const { data } = await supabase.storage.from("dp-bulk-import").createSignedUrl(path, 300);
     if (!data?.signedUrl) return;
@@ -297,7 +323,7 @@ export function BulkImportPanel({
               <div className="space-y-1">
                 <Label>Referência (mês/ano) — opcional</Label>
                 <Input
-                  type="date"
+                  type="month"
                   value={referencia}
                   placeholder="Detectada do PDF automaticamente"
                   onChange={(e) => setReferencia(e.target.value)}
@@ -349,6 +375,7 @@ export function BulkImportPanel({
             const processed = b.processed_pages ?? 0;
             const importadas = bItems.filter((i) => i.status === "imported").length;
             const isProcessing = b.status === "processing";
+            const canDiscard = importadas === 0 && b.status !== "imported" && b.status !== "partially_imported";
             return (
               <div key={b.id} className="border rounded-md">
                 <button
@@ -386,6 +413,33 @@ export function BulkImportPanel({
                       >
                         <Eye className="h-4 w-4 mr-1" /> Revisar
                       </Button>
+                    )}
+                    {canDiscard && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" /> Descartar
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Descartar lote?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Este lote ainda não salvou documentos finais. Os arquivos temporários e páginas processadas serão removidos.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => discardBatch.mutate(b.id)}>
+                              Descartar lote
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     )}
                     <Badge variant={
                       b.status === "imported" ? "default"
@@ -430,4 +484,11 @@ export function BulkImportPanel({
       )}
     </div>
   );
+}
+
+function competenciaToDate(value: string): string | null {
+  if (!value) return null;
+  if (/^20\d{2}-(0[1-9]|1[0-2])$/.test(value)) return `${value}-01`;
+  if (/^20\d{2}-(0[1-9]|1[0-2])-\d{2}$/.test(value)) return value;
+  return null;
 }
