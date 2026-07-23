@@ -291,15 +291,23 @@ export function BulkImportPanel({
             )}
             {!referenciaFixed && (
               <div className="space-y-1">
-                <Label>Referência (mês/ano)</Label>
-                <Input type="date" value={referencia} onChange={(e) => setReferencia(e.target.value)} />
+                <Label>Referência (mês/ano) — opcional</Label>
+                <Input
+                  type="date"
+                  value={referencia}
+                  placeholder="Detectada do PDF automaticamente"
+                  onChange={(e) => setReferencia(e.target.value)}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Se em branco, o sistema tenta detectar do próprio PDF.
+                </p>
               </div>
             )}
           </div>
 
           <Button onClick={() => upload.mutate()} disabled={!file || uploading} className="w-full">
             {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-            Processar em massa
+            Processar PDF
           </Button>
         </div>
       </DpFilterCard>
