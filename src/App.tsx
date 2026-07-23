@@ -29,6 +29,7 @@ import { PageSpinner } from "@/components/PageSpinner";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 const PrimeiroAcesso = lazy(() => import("./pages/PrimeiroAcesso"));
+const EsqueciSenha = lazy(() => import("./pages/EsqueciSenha"));
 import Hub from "./pages/Hub";
 import Dashboard from "./pages/Dashboard";
 
@@ -270,6 +271,7 @@ const AppRoutes = () => (
       <Route path="/login" element={<Navigate to="/auth" replace />} />
       <Route path="/dp/login" element={<Navigate to="/auth" replace />} />
       <Route path="/primeiro-acesso" element={<PrimeiroAcesso />} />
+      <Route path="/esqueci-senha" element={<EsqueciSenha />} />
       <Route path="/dp/meu" element={<PortalProtected><ColaboradorShell /></PortalProtected>}>
         <Route index element={<DpMeuHome />} />
         <Route path="perfil" element={<DpMeuPerfil />} />
