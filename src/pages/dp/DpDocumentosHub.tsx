@@ -105,6 +105,27 @@ export default function DpDocumentosHub() {
     },
   });
 
+  const bulkPending = useQuery({
+    queryKey: ["dp_bulk_pending_counts", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_bulk_import_items" as any)
+        .select("batch_id, status, matched_colaborador_id, dp_bulk_import_batches!inner(company_id, tipo)")
+        .eq("status", "pending")
+        .eq("dp_bulk_import_batches.company_id", selectedCompanyId!)
+        .not("matched_colaborador_id", "is", null);
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      for (const row of (data ?? []) as any[]) {
+        const t = row.dp_bulk_import_batches?.tipo;
+        if (!t) continue;
+        map[t] = (map[t] ?? 0) + 1;
+      }
+      return map;
+    },
+  });
+
   return (
     <DpPage>
       <Helmet><title>Documentos — DP 360°</title></Helmet>
@@ -117,15 +138,23 @@ export default function DpDocumentosHub() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-5xl">
         {MODULOS.map((m) => {
           const pend = m.pendKey ? counts.data?.pend?.[m.pendKey] ?? 0 : 0;
+          const bulk = m.pendKey ? bulkPending.data?.[m.pendKey] ?? 0 : 0;
           const Icon = m.icon;
           return (
             <Link key={m.to} to={m.to} className="block group">
               <div className="relative bg-card border-2 border-border rounded-2xl p-6 shadow-sm hover:shadow-lg hover:border-primary/50 transition-all duration-200 h-full">
-                {pend > 0 && (
-                  <span className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-xs font-semibold px-2 py-0.5 border border-amber-500/40">
-                    ⚠ {pend} pendente{pend > 1 ? "s" : ""}
-                  </span>
-                )}
+                <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
+                  {pend > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-xs font-semibold px-2 py-0.5 border border-amber-500/40">
+                      ⚠ {pend} pendente{pend > 1 ? "s" : ""}
+                    </span>
+                  )}
+                  {bulk > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/15 text-blue-700 dark:text-blue-300 text-xs font-semibold px-2 py-0.5 border border-blue-500/40">
+                      {bulk} vínculo{bulk > 1 ? "s" : ""} p/ aprovar
+                    </span>
+                  )}
+                </div>
                 <div className={cn("size-12 rounded-xl flex items-center justify-center mb-4", m.bg, m.cor)}>
                   <Icon className="size-6" />
                 </div>
@@ -139,3 +168,4 @@ export default function DpDocumentosHub() {
     </DpPage>
   );
 }
+
