@@ -351,7 +351,6 @@ export default function DpDocumentosPorTipo({ tipo: tipoProp }: { tipo?: Tipo } 
                   <tr>
                     <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Colaborador</th>
                     <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Competência</th>
-                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Arquivo</th>
                     <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Unidade</th>
                     <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Status</th>
                     <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Aprovado em</th>
@@ -395,19 +394,21 @@ export default function DpDocumentosPorTipo({ tipo: tipoProp }: { tipo?: Tipo } 
                           )}
                         </td>
                         <td className="p-4 text-muted-foreground">
-                          {doc.file_name ?? "—"}
-                        </td>
-                        <td className="p-4 text-muted-foreground">
                           {colab?.unidade_nome ?? "—"}
                         </td>
                         <td className="p-4">
                           <StatusBadge status={doc.aprovacao_status} />
                         </td>
                         <td className="p-4 text-muted-foreground text-xs">
-                          {doc.revisado_em && doc.aprovacao_status === "aprovado"
-                            ? new Date(doc.revisado_em).toLocaleDateString("pt-BR") + " às " +
-                              new Date(doc.revisado_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-                            : "—"}
+                          {(() => {
+                            const when = doc.revisado_em ?? (doc as any).created_at;
+                            if (!when) return "—";
+                            const d = new Date(when);
+                            const label = doc.revisado_em && doc.aprovacao_status === "aprovado" ? "" : "Importado ";
+                            return label +
+                              d.toLocaleDateString("pt-BR") + " às " +
+                              d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+                          })()}
                         </td>
                         <td className="p-4 text-right whitespace-nowrap">
                           <div className="flex justify-end gap-1">

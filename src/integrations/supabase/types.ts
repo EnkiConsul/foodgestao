@@ -2141,6 +2141,7 @@ export type Database = {
       }
       dp_bulk_import_batches: {
         Row: {
+          approved_count: number
           company_id: string
           created_at: string
           error_message: string | null
@@ -2157,6 +2158,7 @@ export type Database = {
           uploaded_by: string | null
         }
         Insert: {
+          approved_count?: number
           company_id: string
           created_at?: string
           error_message?: string | null
@@ -2173,6 +2175,7 @@ export type Database = {
           uploaded_by?: string | null
         }
         Update: {
+          approved_count?: number
           company_id?: string
           created_at?: string
           error_message?: string | null

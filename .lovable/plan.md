@@ -1,48 +1,56 @@
-# Correção — Revisão só mostra 2 de 12 páginas
+# Melhorias — Histórico de Documentos + UX de Importação
 
-## Diagnóstico confirmado
+## 1. Histórico do tipo (`DpDocumentosPorTipo.tsx`)
 
-No banco (`dp_bulk_import_items`) o lote `Recibo de Pagamento 06.2026.pdf` tem **12 itens**, todos com `company_id` correto e 10 vinculados. A RLS permite acesso.
+- **Remover coluna "Arquivo"** (`doc.file_name`) da tabela e do cabeçalho. Nome do arquivo original não agrega valor ao usuário final — o preview já mostra o documento.
+- **Corrigir data/hora da aprovação**: hoje só mostra quando `revisado_em` existe. O trigger `dp-doc-bulk-approve` grava `aprovacao_status = 'aprovado'` mas não seta `revisado_em`. Ajustar a Edge Function para gravar `revisado_em = now()` e `revisado_por = uid` ao criar o documento aprovado via importação em massa. Para documentos legados sem `revisado_em`, cair para `created_at` como fallback exibindo "Importado em …".
+- Renomear cabeçalho da coluna de "Revisado em" para **"Aprovado em"** (mais claro).
 
-O problema está no cliente, em `src/components/dp/documentos/BulkReviewInline.tsx` (e igualmente em `BulkReviewDialog.tsx`):
+## 2. UX de importação em massa (`BulkImportPanel.tsx` + `BulkReviewInline.tsx`)
 
-```ts
-refetchInterval: (q) => {
-  const rows = q.state.data ?? [];
-  const anyPending = !rows.length
-    || rows.some(r => r.status === "pending"
-        && !r.matched_colaborador_id && !r.error_message);
-  return anyPending ? 2000 : false;
-}
-```
+### 2.1 Durante o OCR (processamento)
+Hoje o painel expandido tenta renderizar página a página conforme cada uma chega — dá a sensação de "só 1 página" quando ainda faltam 11. Alterar para:
 
-Quando o admin expande o lote enquanto o OCR ainda está em andamento, a primeira query traz só os itens já persistidos (ex: 2 páginas). Todas com `matched_colaborador_id` preenchido → `anyPending = false` → **polling para**. As páginas seguintes nunca aparecem, e o rodapé mostra "Página 1 de 2 / Aprovar 2 documentos".
+- **Estado "Processando"**: enquanto `batch.status !== 'ready'`, ocultar o preview do PDF e mostrar um card centralizado com:
+  - Ícone/animação sutil.
+  - Texto: **"Processando páginas — X de Y"**.
+  - **Barra de progresso** (`<Progress value={processed/total*100} />`) usando `processed_pages`/`total_pages` do batch.
+  - Sub-texto: "Aguarde, todas as páginas serão exibidas juntas ao final."
+- Só liberar o preview + navegação **quando `batch.status === 'ready'` E `rows.length === total_pages`**. Assim o usuário nunca vê "Página 1 de 2" e depois "Página 1 de 12".
+- Manter o polling atual (já corrigido no turno anterior).
 
-## Correção
+### 2.2 Durante o salvamento (aprovação)
+Hoje ao clicar "Aprovar N documentos" o botão fica em `Loader2` sem indicar progresso. A Edge Function `dp-doc-bulk-approve` processa em loop os `item_ids`. Melhorar em duas camadas:
 
-Fazer o polling depender do **progresso do lote**, não só do que já foi carregado.
+- **Frontend** (rápido, sem mudar backend):
+  - Trocar o botão por um estado com overlay/modal bloqueante: **"Salvando documentos — aguarde"** com barra indeterminada + contador otimista ("Enviando N documentos para o servidor…").
+  - Ao receber a resposta, mostrar toast detalhado (já existe) e um mini-resumo dentro do painel: "N aprovados, N duplicados, N com falha".
+- **Backend com progresso real** (recomendado):
+  - Alterar `dp-doc-bulk-approve` para, ao final de cada item processado, atualizar `dp_bulk_import_batches.processed_pages` (reaproveitar campo) ou um novo `approved_count`.
+  - Frontend faz polling do batch a cada 800ms enquanto a mutation está pendente e alimenta a mesma `<Progress />`: **"Salvando X de Y documentos"**.
+  - Vantagem: para lotes de 40+ páginas o usuário vê o avanço real, não trava sem feedback.
 
-### 1. `BulkReviewInline.tsx`
-- Adicionar um `useQuery` leve para o batch (`dp_bulk_import_batches` por id) — traz `status`, `total_pages`, `processed_pages`.
-- Novo critério de refetch (a cada 1.5s):
-  - `batch.status !== "ready"` **ou**
-  - `rows.length < (batch.total_pages ?? 0)` **ou**
-  - existe alguma linha `pending` sem match e sem erro.
-- Quando `batch.status === "ready"` e `rows.length === total_pages`, parar (`return false`).
-- Ao detectar que `batch.status` mudou para `ready`, chamar `qc.invalidateQueries(["dp_bulk_items_review", batchId])` para garantir refresh imediato.
+### 2.3 Ajustes visuais compartilhados
+- Componente novo `BulkProgressBanner` (interno ao módulo) reutilizado nos dois momentos (OCR e aprovação), com props `phase: 'ocr' | 'saving'`, `current`, `total`.
+- Cores/tokens do design system (`bg-primary/10`, `text-primary`), sem hardcode.
 
-### 2. `BulkReviewDialog.tsx`
-Aplicar a mesma lógica (mesmo bug, mesmo padrão).
+## 3. Fora de escopo
+- Não mudar match de colaborador, detecção de competência nem RLS.
+- Não mudar o layout do preview em si (já é o padrão Pakere).
+- Não alterar `DpHistoricoCompleto.tsx` (a coluna "arquivo" ali já não é problema, é um resumo por documento).
 
-### 3. `BulkImportPanel.tsx`
-Quando um lote passa de `processing` → `ready`, invalidar `["dp_bulk_items_review", batch.id]` além do que já é invalidado, para forçar o inline a atualizar.
+## Detalhes técnicos
 
-## Fora do escopo
-- Não mudar UI/layout do review (visual atual segue padrão Pakere, confirmado no print).
-- Não alterar Edge Functions (`dp-doc-bulk-ingest/approve/discard`).
-- Não alterar RLS.
+**Arquivos a editar:**
+- `src/pages/dp/DpDocumentosPorTipo.tsx` — remover coluna arquivo, ajustar título/fallback da coluna de data.
+- `src/components/dp/documentos/BulkReviewInline.tsx` — gate de preview até batch ready, banner de progresso OCR, banner de progresso de salvamento com polling.
+- `src/components/dp/documentos/BulkReviewDialog.tsx` — mesmos ajustes (modal fullscreen).
+- `src/components/dp/documentos/BulkImportPanel.tsx` — passar `batch` para o Inline via prop (evita segunda query).
+- `supabase/functions/dp-doc-bulk-approve/index.ts` — gravar `revisado_em`/`revisado_por` nos docs aprovados; atualizar `approved_count` (nova coluna) a cada iteração.
+- Migração: `ALTER TABLE dp_bulk_import_batches ADD COLUMN approved_count int NOT NULL DEFAULT 0;` (sem novas policies — herda as existentes).
 
-## Como validar
-1. Fazer upload de PDF com 12+ páginas.
-2. Expandir o lote **antes** do OCR terminar.
-3. Contador deve subir gradualmente até "Página 1 de 12" e "10 vinculados" assim que o batch ficar `ready`, sem exigir reload.
+**Como validar:**
+1. Importar PDF de 12 páginas: painel mostra "Processando 3 de 12" com barra, sem preview parcial.
+2. Ao chegar em 12/12, preview aparece já paginado corretamente.
+3. Clicar "Aprovar 10 documentos": barra "Salvando 4 de 10 documentos" avança até 10/10.
+4. Ir em Contracheques: coluna "Arquivo" sumiu; coluna "Aprovado em" mostra data + hora do momento da aprovação.
