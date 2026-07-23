@@ -468,10 +468,10 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
         <DialogFooter className="p-3 border-t bg-background">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
           <Button
-            onClick={() => approve.mutate()}
-            disabled={pendingCount === 0 || approve.isPending}
+            onClick={handleApproveClick}
+            disabled={pendingCount === 0 || checkingDup || isSaving}
           >
-            {approve.isPending
+            {(checkingDup || isSaving)
               ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
               : <Check className="h-4 w-4 mr-1" />}
             Aprovar e Salvar {pendingCount} Documento(s)
@@ -481,6 +481,24 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
           );
         })()}
       </DialogContent>
+      {confirmDup && (
+        <ConfirmarSubstituicaoDialog
+          open
+          onOpenChange={(o) => { if (!o) setConfirmDup(null); }}
+          collisions={confirmDup.collisions}
+          totalItems={confirmDup.allIds.length}
+          onSkip={() => {
+            const ids = confirmDup.nonDupIds;
+            setConfirmDup(null);
+            runApprove(ids, "skip");
+          }}
+          onReplace={() => {
+            const ids = confirmDup.allIds;
+            setConfirmDup(null);
+            runApprove(ids, "replace");
+          }}
+        />
+      )}
     </Dialog>
   );
 }
