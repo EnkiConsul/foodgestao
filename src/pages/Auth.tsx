@@ -333,22 +333,44 @@ export default function Auth() {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                  maxLength={255}
-                />
+            {isLogin ? (
+              <div className="space-y-2">
+                <Label htmlFor="identifier">E-mail ou CPF</Label>
+                <div className="relative">
+                  <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="identifier"
+                    type="text"
+                    placeholder="seu@email.com ou 000.000.000-00"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    className="pl-10"
+                    maxLength={255}
+                    autoComplete="username"
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                  />
+                </div>
+                {errors.identifier && <p className="text-xs text-destructive">{errors.identifier}</p>}
               </div>
-              {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
-            </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10"
+                    maxLength={255}
+                  />
+                </div>
+                {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+              </div>
+            )}
 
             {!isForgot && (
               <div className="space-y-2">
