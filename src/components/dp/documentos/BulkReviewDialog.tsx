@@ -18,6 +18,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { NovoColaboradorInlineDialog } from "./NovoColaboradorInlineDialog";
+import { BulkProgressBanner } from "./BulkProgressBanner";
 import { cn } from "@/lib/utils";
 
 // Setup pdfjs worker once
@@ -37,18 +38,21 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
   const [currentIdx, setCurrentIdx] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [rendering, setRendering] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [savingTotal, setSavingTotal] = useState(0);
 
   const batchInfo = useQuery({
     queryKey: ["dp_bulk_batch_info", batchId],
     enabled: open && !!batchId,
     refetchInterval: (q) => {
       const b = q.state.data as any;
-      return !b || b.status !== "ready" ? 1500 : false;
+      if (!b || b.status !== "ready" || isSaving) return 900;
+      return false;
     },
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_bulk_import_batches" as any)
-        .select("id,status,total_pages,processed_pages")
+        .select("id,status,total_pages,processed_pages,approved_count")
         .eq("id", batchId)
         .maybeSingle();
       if (error) throw error;
@@ -171,6 +175,8 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
         .filter((r) => r.status === "pending" && r.matched_colaborador_id)
         .map((r) => r.id);
       if (ids.length === 0) throw new Error("Nenhuma página vinculada");
+      setSavingTotal(ids.length);
+      setIsSaving(true);
       const { data, error } = await supabase.functions.invoke("dp-doc-bulk-approve", {
         body: { item_ids: ids },
       });
@@ -194,6 +200,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
       qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Falha ao aprovar"),
+    onSettled: () => setIsSaving(false),
   });
 
   const pendingCount = useMemo(
