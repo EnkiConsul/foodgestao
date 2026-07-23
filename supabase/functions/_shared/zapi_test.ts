@@ -6,6 +6,7 @@ import {
   assertStrictEquals,
 } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
+  checkZapiStatus,
   normalizeBRPhone,
   sendZapiText,
   timingSafeEqualHex,
@@ -161,6 +162,22 @@ Deno.test("sendZapiText: does NOT retry on 4xx (permanent)", async () => {
   }
 });
 
+Deno.test("sendZapiText: sanitizes credential-bearing Z-API 403 errors", async () => {
+  const stub = installFetchStub([
+    { status: 403, body: JSON.stringify({ error: "Client-Token secret-value not allowed" }) },
+    { status: 200, body: JSON.stringify({ messageId: "should-not-be-used" }) },
+  ]);
+  try {
+    const res = await sendZapiText("5562991250757", "hi");
+    assertEquals(res.ok, false);
+    assertEquals(res.error, "http_403");
+    assertEquals(res.httpStatus, 403);
+    assertStrictEquals(stub.count, 1);
+  } finally {
+    stub.restore();
+  }
+});
+
 Deno.test("sendZapiText: retries up to 3 times on persistent 5xx then gives up", async () => {
   const stub = installFetchStub([
     { status: 500, body: "boom" },
@@ -229,6 +246,39 @@ Deno.test("sendZapiText: non-JSON 200 response yields ok with no messageId", asy
     const res = await sendZapiText("5562991250757", "hi");
     assertEquals(res.ok, true);
     assertStrictEquals(res.messageId, undefined);
+  } finally {
+    stub.restore();
+  }
+});
+
+// ============================================================================
+// checkZapiStatus
+// ============================================================================
+
+Deno.test("checkZapiStatus: reads connected status", async () => {
+  const stub = installFetchStub([
+    { status: 200, body: JSON.stringify({ connected: true }) },
+  ]);
+  try {
+    const res = await checkZapiStatus();
+    assertEquals(res.connected, true);
+    assertEquals(stub.calls[0].url, "https://api.z-api.io/instances/test-instance/token/test-token/status");
+    const headers = new Headers(stub.calls[0].init?.headers);
+    assertEquals(headers.get("client-token"), "test-client-token");
+  } finally {
+    stub.restore();
+  }
+});
+
+Deno.test("checkZapiStatus: surfaces non-2xx as http status without body leakage", async () => {
+  const stub = installFetchStub([
+    { status: 403, body: JSON.stringify({ error: "Client-Token secret-value not allowed" }) },
+  ]);
+  try {
+    const res = await checkZapiStatus();
+    assertEquals(res.connected, false);
+    assertEquals(res.error, "http_403");
+    assertEquals(res.httpStatus, 403);
   } finally {
     stub.restore();
   }

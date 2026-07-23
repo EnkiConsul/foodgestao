@@ -1,44 +1,35 @@
-## Análise de conformidade — Integração Z-API (`supabase/functions/_shared/zapi.ts`)
+## Diagnóstico confirmado
 
-### ✅ Itens em conformidade
+- O backend está conseguindo encontrar o usuário em tentativas recentes: há registros `pending_otp` com `user_id` preenchido.
+- Também há telefone cadastrado para esse usuário: o cadastro tem telefone em `profiles.phone` e o formato bruto possui 11 dígitos, compatível com celular brasileiro com DDD.
+- Portanto, para as tentativas recentes, o problema não parece ser ausência de telefone nem formato inválido no cadastro.
+- O registro fica com `otp_sent_at` preenchido, mas sem `whatsapp_message_id` e sem `whatsapp_delivery_status = sent`, indicando que o sistema tentou enviar, mas a Z-API não confirmou o disparo.
+- Os logs recentes da função mostram rejeição da Z-API com `403 Client-Token ... not allowed`, o que aponta para credencial/header/instância Z-API não autorizada, não para busca de telefone.
 
-| Diretriz Z-API | Implementação atual | Status |
-|---|---|---|
-| Base URL `https://api.z-api.io/instances/{instanceId}/token/{token}` | `https://api.z-api.io/instances/${instance}/token/${token}/send-text` | ✅ |
-| `instanceId` via painel | Lido de `Z_API_INSTANCE_ID` (secret) | ✅ |
-| `token` via painel | Lido de `Z_API_TOKEN` (secret) | ✅ |
-| Header `Client-Token` obrigatório | Enviado a partir de `Z_API_CLIENT_TOKEN` | ✅ |
-| Header `Content-Type: application/json` | Presente em todas as requisições | ✅ |
-| Corpo em JSON | `JSON.stringify({ phone, message })` | ✅ |
-| Método HTTP correto (POST em `send-text`) | `method: "POST"` | ✅ |
-| Tratamento do código 200 | `resp.ok` → retorna `messageId` | ✅ |
-| Tratamento de 400/405/415 | Cai no branch `!resp.ok` com log do status e erro | ✅ |
-| Segurança dos segredos | Nunca hardcoded, sempre em `Deno.env` | ✅ |
-| Privacidade | Não loga corpo da mensagem nem telefone completo | ✅ |
+## Plano de correção
 
-### ⚠️ Pontos de atenção (não bloqueantes)
+1. **Melhorar a observabilidade sem vazar dados sensíveis**
+   - Registrar nos logs apenas: se encontrou usuário, se encontrou telefone, origem do telefone (`profiles.phone`, `dp_colaboradores.whatsapp` ou `dp_colaboradores.telefone`), quantidade de dígitos e status HTTP da Z-API.
+   - Não logar CPF, e-mail, telefone completo, OTP, token ou Client-Token.
 
-1. **Ausência de retry/backoff** em falhas transitórias (`5xx`, `network_error`). A Z-API pode responder com timeouts quando a instância está reiniciando — hoje o OTP simplesmente falha.
-2. **Não há verificação de status da instância** antes do envio. A Z-API oferece `GET /status` que retornaria se o WhatsApp está `connected`. Sem isso, um device desconectado gera falha silenciosa vista só no log.
-3. **Normalização de telefone permissiva demais**: a regra `if (d.length >= 11 && d.length <= 15) return d;` aceita números 11 dígitos sem `55` como internacionais (ex.: `11987654321` seria retornado sem country code). Deveria priorizar prefixo `55` para números BR.
-4. **Header `Content-Type` não é validado na resposta** — se a Z-API retornar HTML (ex.: manutenção), o `JSON.parse` falha silenciosamente e cai no branch de erro sem detalhe. Já é tratado com `try/catch`, mas o log poderia distinguir.
-5. **Falta suporte a `messageId` para tracking de entrega** — hoje o valor é capturado mas não persistido em `auth_recovery_challenges` para auditoria de entrega/leitura via webhook Z-API.
+2. **Persistir falha técnica de envio no lote de recuperação**
+   - Quando a Z-API retornar erro, atualizar `auth_recovery_challenges.whatsapp_delivery_status` com códigos seguros como `failed_http_403`, `failed_network_error`, `failed_not_configured`.
+   - Assim o histórico deixa claro se foi telefone ausente/formato inválido ou erro de integração.
 
-### 📋 Sugestões de melhoria (opcional, se aprovar)
+3. **Validar status da instância antes do envio**
+   - Chamar `checkZapiStatus()` antes de `sendZapiText()`.
+   - Se a instância estiver desconectada ou rejeitando credenciais, gravar status seguro e não tentar múltiplos envios desnecessários.
 
-- Adicionar função `checkZapiStatus()` que consulta `GET /status` e retorna se a instância está conectada. Chamar antes de enviar OTP e devolver erro claro (`zapi_disconnected`) se offline.
-- Implementar retry com backoff (2 tentativas, 500ms/1500ms) para erros `5xx` e `network_error`.
-- Corrigir `normalizeBRPhone`: se telefone tem 11 dígitos e começa com DDD válido (11–99), prepender `55` sempre.
-- Persistir `messageId` retornado em `auth_recovery_challenges.zapi_message_id` para correlacionar com webhooks de entrega.
-- Registrar um webhook em `/functions/v1/zapi-webhook` para receber status de entrega (`delivered`, `read`, `failed`) e atualizar telemetria.
+4. **Aprimorar fallback de telefone**
+   - Manter a ordem atual `profiles.phone -> dp_colaboradores.whatsapp -> dp_colaboradores.telefone`.
+   - Registrar apenas a origem usada e o resultado da normalização.
+   - Se nenhum número normalizar, manter resposta genérica para o usuário, mas gravar `no_valid_phone` internamente.
 
-### Conclusão
+5. **Ajustar retorno interno sem quebrar segurança**
+   - A tela continuará sem revelar se o identificador existe ou qual telefone foi usado.
+   - Para administradores/debug, a diferença ficará nos logs e no campo `whatsapp_delivery_status`.
 
-**A integração está em conformidade com as diretrizes básicas da API da Z-API** (base URL, autenticação por `Client-Token`, `Content-Type`, método HTTP e formato JSON). As oportunidades identificadas são de **robustez operacional**, não de conformidade.
+## O que provavelmente precisa ser corrigido fora do código
 
----
-
-**Deseja que eu prossiga aplicando as melhorias listadas?** Posso executar em três frentes independentes:
-1. **Robustez (retry + status check)** — evita falhas silenciosas quando a instância está reiniciando.
-2. **Correção da normalização BR** — garante que números de 11 dígitos ganhem `55` sempre.
-3. **Rastreamento de entrega (webhook + coluna `zapi_message_id`)** — auditoria de entrega/leitura do OTP.
+- Revisar o segredo/configuração `Z_API_CLIENT_TOKEN` no backend, porque o erro atual da Z-API é `403 Client-Token not allowed`.
+- Confirmar que o `Client-Token` pertence à mesma conta/instância dos valores `Z_API_INSTANCE_ID` e `Z_API_TOKEN`.

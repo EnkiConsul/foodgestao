@@ -9,7 +9,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
-import { sendZapiText, normalizeBRPhone } from "../_shared/zapi.ts";
+import { checkZapiStatus, sendZapiText, normalizeBRPhone } from "../_shared/zapi.ts";
 
 const BodySchema = z.object({
   identifier: z.string().trim().min(3).max(255),
@@ -19,6 +19,7 @@ const BodySchema = z.object({
 const OTP_TTL_SECONDS = 600; // 10 minutes
 const MAX_PER_IDENTIFIER_PER_HOUR = 3;
 const MAX_PER_IP_PER_HOUR = 10;
+type PhoneSource = "profiles.phone" | "dp_colaboradores.whatsapp" | "dp_colaboradores.telefone";
 
 function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
@@ -100,6 +101,28 @@ async function isRateLimited(
   return nextCount > max;
 }
 
+function countDigits(value: string | null | undefined): number {
+  return value?.replace(/\D+/g, "").length ?? 0;
+}
+
+function deliveryFailureStatus(error: string | undefined, httpStatus?: number): string {
+  if (typeof httpStatus === "number") return `failed_http_${httpStatus}`;
+  if (!error) return "failed_unknown";
+  if (/^[a-z0-9_\-]+$/i.test(error)) return `failed_${error}`.slice(0, 64);
+  return "failed_zapi_error";
+}
+
+async function updateDeliveryStatus(
+  admin: ReturnType<typeof createClient>,
+  challengeId: string,
+  status: string,
+  messageId?: string,
+) {
+  const payload: Record<string, string> = { whatsapp_delivery_status: status };
+  if (messageId) payload.whatsapp_message_id = messageId;
+  await admin.from("auth_recovery_challenges").update(payload).eq("id", challengeId);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json(405, { error: "Method not allowed" });
@@ -142,6 +165,8 @@ Deno.serve(async (req) => {
 
   let userId: string | null = (resolvedRow?.user_id as string | undefined) ?? null;
   let phone: string | null = null;
+  let phoneSource: PhoneSource | null = null;
+  let rawPhoneDigitCount = 0;
 
   if (userId) {
     // profiles.phone (filter by user_id, not id)
@@ -150,7 +175,12 @@ Deno.serve(async (req) => {
       .select("phone")
       .eq("user_id", userId)
       .maybeSingle();
-    phone = normalizeBRPhone(prof?.phone as string | null);
+    const profilePhone = prof?.phone as string | null;
+    phone = normalizeBRPhone(profilePhone);
+    if (phone) {
+      phoneSource = "profiles.phone";
+      rawPhoneDigitCount = countDigits(profilePhone);
+    }
 
     // Fallback: dp_colaboradores.whatsapp/telefone by user_id
     if (!phone) {
@@ -159,9 +189,31 @@ Deno.serve(async (req) => {
         .select("whatsapp, telefone")
         .eq("user_id", userId)
         .maybeSingle();
-      phone = normalizeBRPhone((colab?.whatsapp as string) ?? (colab?.telefone as string) ?? null);
+      const whatsapp = colab?.whatsapp as string | null;
+      phone = normalizeBRPhone(whatsapp);
+      if (phone) {
+        phoneSource = "dp_colaboradores.whatsapp";
+        rawPhoneDigitCount = countDigits(whatsapp);
+      }
+
+      if (!phone) {
+        const telefone = colab?.telefone as string | null;
+        phone = normalizeBRPhone(telefone);
+        if (phone) {
+          phoneSource = "dp_colaboradores.telefone";
+          rawPhoneDigitCount = countDigits(telefone);
+        }
+      }
     }
   }
+
+  console.info("[auth-recovery-request] identity lookup", {
+    has_user: Boolean(userId),
+    has_valid_phone: Boolean(phone),
+    phone_source: phoneSource,
+    raw_phone_digit_count: rawPhoneDigitCount,
+    normalized_digit_count: phone?.length ?? 0,
+  });
 
   // 4) Generate OTP + challenge_token
   const otp = randomOTP6();
@@ -192,6 +244,10 @@ Deno.serve(async (req) => {
     return json(500, { error: "Falha ao gerar código. Tente novamente." });
   }
 
+  if (userId && !phone) {
+    await updateDeliveryStatus(admin, inserted.id, "no_valid_phone");
+  }
+
   // 5) Send via Z-API only when a real user/phone is available
   if (userId && phone) {
     const msg = [
@@ -202,15 +258,29 @@ Deno.serve(async (req) => {
       "",
       "Se você não solicitou, ignore esta mensagem.",
     ].join("\n");
+
+    const status = await checkZapiStatus();
+    if (!status.connected) {
+      const failure = deliveryFailureStatus(status.error, status.httpStatus);
+      console.error("[auth-recovery-request] Z-API status failed:", failure);
+      await updateDeliveryStatus(admin, inserted.id, failure);
+      return json(200, {
+        challenge_id: inserted.id,
+        challenge_token: challengeToken,
+        expires_in: OTP_TTL_SECONDS,
+      });
+    }
+
     const send = await sendZapiText(phone, msg);
     if (!send.ok) {
-      console.error("[auth-recovery-request] Z-API send failed:", send.error);
+      const failure = deliveryFailureStatus(send.error, send.httpStatus);
+      console.error("[auth-recovery-request] Z-API send failed:", failure);
+      await updateDeliveryStatus(admin, inserted.id, failure);
       // Do not leak — still respond with same shape.
     } else if (send.messageId) {
-      await admin
-        .from("auth_recovery_challenges")
-        .update({ whatsapp_message_id: send.messageId, whatsapp_delivery_status: "sent" })
-        .eq("id", inserted.id);
+      await updateDeliveryStatus(admin, inserted.id, "sent", send.messageId);
+    } else {
+      await updateDeliveryStatus(admin, inserted.id, "sent_no_message_id");
     }
   }
 
