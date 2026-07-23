@@ -139,46 +139,27 @@ Deno.serve(async (req) => {
   // 3) Resolve identifier -> user (may be null; we still return a decoy)
   const { data: resolved } = await admin.rpc("resolve_login_identifier", { _identifier: body.identifier });
   const resolvedRow = Array.isArray(resolved) ? resolved[0] : resolved;
-  const email: string | undefined = resolvedRow?.email;
 
-  let userId: string | null = null;
+  let userId: string | null = (resolvedRow?.user_id as string | undefined) ?? null;
   let phone: string | null = null;
 
-  if (email) {
-    // Find auth user via admin API
-    const { data: byEmail } = await admin.auth.admin.listUsers({ page: 1, perPage: 1, email } as any);
-    // Fallback path: use rpc-less filter
-    let u = byEmail?.users?.find((x: any) => (x.email ?? "").toLowerCase() === email.toLowerCase());
-    if (!u) {
-      // Alternative: query auth_login_identifiers if the RPC returned it
-      const { data: ident } = await admin
-        .from("auth_login_identifiers")
-        .select("user_id")
-        .eq("email", email)
-        .maybeSingle();
-      if (ident?.user_id) userId = ident.user_id as string;
-    } else {
-      userId = u.id;
-    }
+  if (userId) {
+    // profiles.phone (filter by user_id, not id)
+    const { data: prof } = await admin
+      .from("profiles")
+      .select("phone")
+      .eq("user_id", userId)
+      .maybeSingle();
+    phone = normalizeBRPhone(prof?.phone as string | null);
 
-    if (userId) {
-      // profiles.phone
-      const { data: prof } = await admin
-        .from("profiles")
-        .select("phone")
-        .eq("id", userId)
+    // Fallback: dp_colaboradores.whatsapp/telefone by user_id
+    if (!phone) {
+      const { data: colab } = await admin
+        .from("dp_colaboradores")
+        .select("whatsapp, telefone")
+        .eq("user_id", userId)
         .maybeSingle();
-      phone = normalizeBRPhone(prof?.phone as string | null);
-
-      // Fallback: dp_colaboradores.whatsapp/telefone by user_id
-      if (!phone) {
-        const { data: colab } = await admin
-          .from("dp_colaboradores")
-          .select("whatsapp, telefone")
-          .eq("user_id", userId)
-          .maybeSingle();
-        phone = normalizeBRPhone((colab?.whatsapp as string) ?? (colab?.telefone as string) ?? null);
-      }
+      phone = normalizeBRPhone((colab?.whatsapp as string) ?? (colab?.telefone as string) ?? null);
     }
   }
 
