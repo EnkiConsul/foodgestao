@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import logoMarinho from "@/assets/360food-logo-marinho.png.asset.json";
 
 function formatCpfMask(v: string): string {
   const d = v.replace(/\D/g, "").slice(0, 11);
