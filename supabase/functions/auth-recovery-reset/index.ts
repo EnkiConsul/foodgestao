@@ -1,0 +1,95 @@
+// Recovery step 3: consume reset_token and set a new password via admin API.
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { z } from "https://esm.sh/zod@3.23.8";
+import { timingSafeEqualHex } from "../_shared/zapi.ts";
+
+const BodySchema = z.object({
+  challenge_id: z.string().uuid(),
+  reset_token: z.string().min(32).max(128),
+  new_password: z.string().min(12).max(128),
+});
+
+function json(status: number, body: unknown) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+async function sha256Hex(text: string): Promise<string> {
+  const buf = new TextEncoder().encode(text);
+  const d = await crypto.subtle.digest("SHA-256", buf);
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function isStrongPassword(pw: string): boolean {
+  if (pw.length < 12) return false;
+  const hasLower = /[a-z]/.test(pw);
+  const hasUpper = /[A-Z]/.test(pw);
+  const hasDigit = /\d/.test(pw);
+  const hasSymbol = /[^A-Za-z0-9]/.test(pw);
+  return hasLower && hasUpper && hasDigit && hasSymbol;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return json(405, { error: "Method not allowed" });
+
+  const url = Deno.env.get("SUPABASE_URL")!;
+  const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const admin = createClient(url, service, { auth: { persistSession: false } });
+
+  let body: z.infer<typeof BodySchema>;
+  try {
+    const parsed = BodySchema.safeParse(await req.json());
+    if (!parsed.success) return json(400, { error: "Dados inválidos" });
+    body = parsed.data;
+  } catch {
+    return json(400, { error: "JSON inválido" });
+  }
+
+  if (!isStrongPassword(body.new_password)) {
+    return json(400, {
+      error: "A senha deve ter no mínimo 12 caracteres, com maiúscula, minúscula, número e símbolo.",
+      code: "weak_password",
+    });
+  }
+
+  const { data: row } = await admin
+    .from("auth_recovery_challenges")
+    .select("id, user_id, status, reset_token_hash, reset_token_expires_at")
+    .eq("id", body.challenge_id)
+    .maybeSingle();
+
+  const invalid = () => json(400, { error: "Sessão de recuperação inválida ou expirada.", code: "invalid_reset" });
+
+  if (!row || row.status !== "verified" || !row.user_id) return invalid();
+  if (!row.reset_token_expires_at || new Date(row.reset_token_expires_at).getTime() < Date.now()) return invalid();
+
+  const providedHash = await sha256Hex(body.reset_token);
+  if (!timingSafeEqualHex(providedHash, row.reset_token_hash ?? "")) return invalid();
+
+  // Update password via admin API
+  const { error: updErr } = await admin.auth.admin.updateUserById(row.user_id, {
+    password: body.new_password,
+  });
+  if (updErr) {
+    console.error("[auth-recovery-reset] update error:", updErr.message);
+    return json(500, { error: "Não foi possível redefinir sua senha. Tente novamente." });
+  }
+
+  // Mark challenge completed and invalidate any first-access requirement
+  await admin
+    .from("auth_recovery_challenges")
+    .update({ status: "completed", completed_at: new Date().toISOString() })
+    .eq("id", row.id);
+
+  // Clear password_change_required flag if present
+  await admin
+    .from("auth_user_security_state")
+    .update({ must_change_password: false, password_changed_at: new Date().toISOString() })
+    .eq("user_id", row.user_id);
+
+  return json(200, { ok: true });
+});

@@ -390,7 +390,7 @@ export default function Auth() {
                     <button
                       type="button"
                       className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                      onClick={() => switchMode("forgot")}
+                      onClick={() => navigate("/esqueci-senha")}
                     >
                       Esqueci minha senha
                     </button>
