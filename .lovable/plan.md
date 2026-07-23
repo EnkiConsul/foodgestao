@@ -1,64 +1,144 @@
-## Diagnóstico
 
-O projeto tem duas rotas distintas e o usuário caiu na errada:
+## Objetivo
 
-- `/dp/documentos/contracheque` (e `ponto`, `adiantamento`) → `DpDocumentosPorTipo.tsx`: upload **individual** de 1 PDF já vinculado a 1 colaborador. Não divide páginas, não faz OCR, não gera fila de aprovação. Foi o que aconteceu ("importou o arquivo inteiro").
-- `/dp/documentos/importar` → `DpDocImportBulk.tsx`: upload de 1 PDF com N contracheques, divide páginas via `pdf-lib`, roda OCR via `dp-doc-bulk-ingest` (Gemini/Lovable AI), casa por CPF/nome, gera lote pendente e exibe UI de aprovação.
+Portar todo o módulo de **Documentos** do Pakere original (Admin + Colaborador), incluindo **ACT/CCT** e **Histórico Completo**, e reestruturar a visão do colaborador para que **Meus Documentos** concentre TODOS os documentos dele (contracheque, ponto, adiantamento, atestado, disciplinar, ACT/CCT da unidade e envios próprios) numa única página — exatamente como no Pakere.
 
-O bulk existe e funciona, mas está escondido em uma rota separada, sem link a partir das páginas por tipo — por isso o admin não encontra e não vê a etapa de aprovação.
+## 1. Admin — Importação unificada (Contracheque · Ponto · Adiantamento)
 
-## O que fazer
+### `src/pages/dp/DpDocumentosPorTipo.tsx`
+- Remover o bloco "Importar" antigo (upload individual + `processarPdf`).
+- Aba **Importar** passa a renderizar apenas `<BulkImportPanel tipoFixed={tipo} title={cfg.importTitle} />`.
+- Aba **Histórico** mantém filtros/preview/edição.
 
-### 1. Integrar bulk direto nas páginas por tipo
-Em `src/pages/dp/DpDocumentosPorTipo.tsx`, ao lado do upload individual, adicionar seção **"Importar em massa (PDF com várias páginas)"** que reaproveita a mesma mutação/UI do `DpDocImportBulk`. O `tipo` é fixado pelo contexto da página (contracheque/ponto/adiantamento), a **Referência** vem do `mesRef`/`anoRef` que já existem na página, e o campo Tipo do bulk fica oculto.
+### Remover página avulsa de "Importação em Massa"
+- Excluir `src/pages/dp/DpDocImportBulk.tsx`.
+- Remover rota `/dp/documentos/importar` de `src/App.tsx` e o card no `DpDocumentosHub.tsx`.
 
-Fluxo visível na mesma tela:
-1. Card "Novo lote" (dropzone + drag-and-drop + botão Processar).
-2. Card "Lotes pendentes de aprovação" listando apenas os lotes deste `tipo` + `company_id` com `status in ('processing','ready')`, expandindo direto para a lista de páginas com CPF detectado, colaborador sugerido, botão "Ver página" e ações Aprovar/Rejeitar (mesma lógica que já está no `DpDocImportBulk`).
+### `src/components/dp/documentos/BulkImportPanel.tsx` — UI Pakere-style
+Reescrever conforme prints:
+- Cabeçalho do lote: nome do PDF + contadores `N vinculados · N ignorados · N pendentes` + barra de progresso do OCR.
+- Navegador `< Anterior · Página X de N · Próximo >`.
+- Card por página com badge de status (verde/âmbar/vermelho) e preview do PDF renderizado no cliente (`pdfjs-dist`) com zoom `− 100% +`.
+- Metadados: Nome PDF, Período detectado, Unidade detectada (CNPJ), Colaborador identificado + CPF.
+- Ações por página: **Vincular manualmente** (select filtrado por unidade + toggle "todos"), **Cadastrar Novo Colaborador**, **Ignorar página**, **Desfazer vínculo**.
+- Lista "TODAS AS PÁGINAS" clicável com bullet por status.
+- Rodapé: **Aprovar e Salvar Documentos** (bloqueado enquanto houver pendentes), com `AlertDialog` de confirmação.
 
-### 2. Extrair componente reutilizável
-Mover a UI de lote/itens/aprovar/rejeitar de `DpDocImportBulk.tsx` para `src/components/dp/documentos/BulkImportPanel.tsx` com props `{ tipo, referencia, hideTipoSelect?, hideReferenciaInput? }`. `DpDocImportBulk` e as três páginas por tipo passam a consumir esse componente. Zero mudança de schema.
+### Dialog "Cadastrar Novo Colaborador"
+- Campos: nome*, CPF*, cargo*, matrícula, unidade*, data admissão, data nascimento, folga fixa semanal, perfil, WhatsApp, senha inicial (default = últimos 6 do CPF).
+- Pré-preenche nome/CPF vindos do OCR.
+- Validação Zod (`nome ≥ 3`, CPF via `validateCPF`).
+- Chama Edge Function `dp-criar-acesso-colaborador`; invalida cache; vincula à página atual e avança para a próxima pendente.
 
-### 3. Melhorias de robustez no fluxo atual
-- **Drag-and-drop** no input de PDF (aceita apenas `application/pdf`, valida `size ≤ 20MB`).
-- **Progresso visível durante OCR**: `DpDocImportBulk` hoje só mostra spinner até a Edge Function responder (pode levar 30-60s para 60 páginas). Fazer polling do batch por `id` a cada 3s enquanto `status='processing'` e exibir contador `processed_pages / total_pages` (a Edge Function já atualiza `total_pages` antes do loop — adicionar `processed_pages` incremental na tabela `dp_bulk_import_batches` via `update` dentro do loop de `dp-doc-bulk-ingest`).
-- **Timeout / erro claro**: se o invoke falhar, marcar o batch como `failed` com `error_message` e mostrar detalhes ao clicar no lote (hoje o toast some).
-- **Pré-extração local de mês/ano** com `pdfjs-dist` na primeira página do PDF (regex tipo "MARÇO/2026", "COMPETÊNCIA 03/2026") para pré-preencher a Referência antes do upload — reduz custo de OCR quando o usuário esquece de preencher a data.
-- **Validação de duplicidade** ao aprovar: `dp-doc-bulk-approve` deve rejeitar se já existe `dp_documentos` para o mesmo `(colaborador_id, tipo, mes, ano)` — retornar `{ok:false, reason:"duplicate"}` para o item, mostrado no toast final.
-- **Contador de "pendentes de aprovação"** no card da página de tipo: query em `dp_bulk_import_items` filtrando `status='pending' AND matched_colaborador_id IS NOT NULL` do tipo/empresa atual.
+### Motor de match (portado)
+- Novo `src/lib/dp/documentos/match.ts` com `normalizeNome`, `findExactMatchInText` e `extractPeriodo` (regex para Contracheque, Ponto e Adiantamento).
+- Match adicional por CNPJ da unidade para filtrar o select manual.
 
-### 4. Descoberta / navegação
-- Manter `/dp/documentos/importar` como página geral (multi-tipo), mas adicionar botão "Importar em massa" no header de cada `DpDocumentosPorTipo` que rola para a seção bulk (âncora `#bulk`).
-- No `DpDocumentosHub`, adicionar badge amarelo "⚠ N vínculos pendentes" nos cards de tipo quando houver itens `pending` no bulk (usar a mesma query do item 3, agregada por tipo).
+### Duplicidade por página
+- Antes de habilitar "Aprovar e Salvar", consultar `dp_documentos` por `(company_id, colaborador_id, tipo, referencia_data)`.
+- Página duplicada exibe **Substituir** / **Manter antigo**.
 
-## O que **não** vai ser feito (evitar retrabalho)
+## 2. Admin — Atestados
 
-- Não copiar os arquivos do Pakere (`DocumentImportForm.tsx`, `pdf-utils.ts`, `admin-api.ts`, `import-documentos/index.ts`). Eles usam schema incompatível (`documentos`, `profiles.possui_folha_ponto`, `auth-context`) e a Edge Function anexada só ecoa o arquivo — não persiste nada. Manter nossa `dp-doc-bulk-ingest` com OCR AI.
-- Não trocar `pdfjs-dist` (já usado em `nubankPdf.ts`) — reaproveitar a configuração de worker que já funciona.
+### `src/pages/dp/DpAtestados.tsx`
+- Aceitar imagem (JPG/PNG/WEBP) além de PDF.
+- Select **Unidade → Colaborador**.
+- Campo **Dias de afastamento** com **Data de retorno** calculada abaixo.
+- Edição rica: data, dias, status (pendente/aprovado/recusado — recusar via `RecusaDialog`), observações. Preencher `respondido_em`/`respondido_por`.
+- Filtro: status, unidade, colaborador, período.
 
-## Detalhes técnicos
+## 3. Admin — Registros Disciplinares
 
-**Arquivos criados**
-- `src/components/dp/documentos/BulkImportPanel.tsx` (~250 linhas, extraído de `DpDocImportBulk.tsx`)
-- `src/lib/dp/pdfPreextract.ts` — regex de mês/ano na página 1
+### `src/pages/dp/DpDisciplinar.tsx`
+- Aceitar imagem além de PDF.
+- Select **Unidade → Colaborador**.
+- Filtro por **Tipo** (advertência verbal/escrita, suspensão, elogio, observação).
+- Se `tipo === "suspensao"`, `dias` obrigatório.
+- Exclusão com `AlertDialog`.
 
-**Arquivos alterados**
-- `src/pages/dp/DpDocImportBulk.tsx` — passa a usar `BulkImportPanel`
-- `src/pages/dp/DpDocumentosPorTipo.tsx` — adiciona `<BulkImportPanel tipo={tipo} referencia={...} hideTipoSelect />`
-- `src/pages/dp/DpDocumentosHub.tsx` — inclui contagem de `dp_bulk_import_items` pendentes por tipo
-- `supabase/functions/dp-doc-bulk-ingest/index.ts` — atualiza `processed_pages` incremental
-- `supabase/functions/dp-doc-bulk-approve/index.ts` — checagem de duplicidade `(colaborador,tipo,mes,ano)`
+## 4. Admin — ACT/CCT
 
-**Migração SQL**
-```sql
-ALTER TABLE public.dp_bulk_import_batches
-  ADD COLUMN IF NOT EXISTS processed_pages int NOT NULL DEFAULT 0;
-```
+### `src/pages/dp/DpSindicatoNegociacoes.tsx`
+- Paridade com o legado: cadastro/edição com unidade, sindicato patronal, sindicato laboral, ano/mês (ou vigência início/fim), tipo (ACT/CCT), PDF.
+- Filtros: unidade, ano, sindicato, tipo.
+- Tabela com data, unidade, sindicatos, vigência, PDF (Visualizar/Baixar/Excluir).
+- Estado "vencido em ≤30d" já implementado permanece.
+- Card do Hub aponta para `/dp/documentos/act-cct`.
 
-## Como validar
+## 5. Admin — Histórico Completo
 
-1. `/dp/documentos/contracheque` → seção "Importar em massa" visível, com dropzone.
-2. Upload de PDF com 3 páginas de contracheques distintos → status vai `processing → ready`, contador `1/3, 2/3, 3/3`.
-3. Lista mostra 3 itens com CPF detectado e colaborador sugerido; botão "Aprovar 3 vinculado(s)" cria 3 registros em `dp_documentos` com `mes/ano` da referência.
-4. Reenviar o mesmo PDF → aprovação marca duplicados como `failed` com motivo visível.
-5. Badge amarelo aparece no card do Hub enquanto houver itens `pending`.
+### `src/pages/dp/DpHistoricoCompleto.tsx`
+Paridade com `DocumentosHistoricoCompleto` do Pakere:
+- Fontes: `dp_documentos` (contracheque/ponto/adiantamento/contrato/férias/outros), `dp_solicitacoes` (atestado), `dp_registros_disciplinares` (disciplinar), `dp_sindicato_negociacoes` (ACT/CCT).
+- Colunas: Colaborador (sufixo "(Inativo)"), Tipo, Competência (`MM/AAAA`), Unidade, Status, Data, Ações.
+- Filtros: Busca livre, Tipo, Unidade, Colaborador, Mês, Ano, Status.
+- Ordenação clicável + paginação.
+- Preview via `DocumentPreview` com bucket correto por tipo (`dp-documentos`, `dp-disciplinar`, `dp-sindicato`).
+- Download unificado.
+
+## 6. Colaborador — **Meus Documentos** (visão única — como no Pakere)
+
+Reestruturar `src/pages/dp/portal/DpMeuDocumentos.tsx` para concentrar **tudo** do colaborador em uma única página:
+
+### Estrutura
+- Header: **Enviar documento** + **Baixar todos (N)**.
+- **Abas de tipo** (paridade com Pakere):
+  - `Todos`
+  - `Contracheques`
+  - `Adiantamentos`
+  - `Folha de Ponto` (visível apenas se `dp_colaboradores.possui_folha_ponto = true`)
+  - `Atestados`
+  - `Disciplinar`
+  - `ACT/CCT`
+  - `Contratos`
+  - `Outros`
+- **Sub-abas por origem** dentro de cada tipo aplicável:
+  - **Recebidos do DP** (padrão)
+  - **Meus envios** (só onde faz sentido — Atestado, Outros)
+- **Filtros**: Mês, Ano, Status, Busca (título/tipo).
+- **Cards Pakere-style**: ícone do tipo, título, competência `MM/AAAA`, status colorido, botões **Visualizar** / **Baixar**; envios pendentes mostram **Cancelar envio** e motivo de recusa.
+- **ACT/CCT**: puxar `dp_sindicato_negociacoes` da(s) unidade(s) do colaborador (read-only, apenas download/preview).
+- **Disciplinar**: puxar `dp_registros_disciplinares` do colaborador logado (read-only).
+- **Atestados**: puxar `dp_solicitacoes` do colaborador (read/write — enviar novo).
+
+### Consolidação de dados
+Hook novo `src/hooks/portal/useMeusDocumentos.tsx` que:
+- Lê `dp_colaborador_of(user_id)`, unidade(s) associada(s), `possui_folha_ponto`.
+- Agrega em memória docs de 4 fontes com um shape `UnifiedDoc` idêntico ao usado no `DpHistoricoCompleto` (`tipo_key`, `tipo_label`, `competencia`, `status_key`, `status_label`, `bucket`, `file_path`, `mime_type`, `titulo`, `origem: "dp" | "meu_envio"`).
+- Aplica filtros por tab/sub-tab/mês/ano/status/busca.
+- Exposto para `DpMeuDocumentos`, `DpMeuHistorico` e widgets do `DpMeuHome`.
+
+### Rotas legadas do portal
+- `/dp/portal/atestados`, `/dp/portal/disciplinar`, `/dp/portal/sindicato` — passam a redirecionar (via `<Navigate replace>`) para `/dp/portal/documentos?tipo=atestado|disciplinar|act_cct` para não quebrar links salvos.
+- `/dp/portal/historico` mantém a timeline unificada com filtros por período e tipo (usando o mesmo hook).
+- Sidebar do colaborador: manter apenas **Meus documentos** e **Meu histórico**; remover itens duplicados de Atestados/Disciplinar/Sindicato (a página unificada substitui).
+
+## Portado do Pakere (mapa explícito)
+
+| Origem (Pakere) | Destino (360°FOOD) |
+| --- | --- |
+| `src/lib/pdf-utils.ts` | `src/lib/pdf/render.ts` (novo) |
+| `src/lib/documentos.ts::extractPeriodo` | `src/lib/dp/documentos/match.ts` |
+| `DocumentImportForm::normalizeNome/findExactMatchInText` | `src/lib/dp/documentos/match.ts` |
+| `DocumentImportForm::handleCriarColab` | Dialog em `BulkImportPanel.tsx` |
+| `DocumentImportForm::handleDecisaoDuplicata` | Fluxo de duplicidade em `BulkImportPanel.tsx` |
+| `DocumentosAdminBase` (atestados/disciplinar) | Ajustes em `DpAtestados.tsx` e `DpDisciplinar.tsx` |
+| `DocumentosHistoricoCompleto` | `DpHistoricoCompleto.tsx` |
+| `admin/DocumentosSindical` | `DpSindicatoNegociacoes.tsx` |
+| `src/pages/Documentos.tsx` (colaborador — página única) | `DpMeuDocumentos.tsx` (visão consolidada) + `useMeusDocumentos.tsx` |
+
+## Fora do escopo
+- Sem alterações de schema/buckets — tabelas destino já existem.
+- Edge Functions `dp-doc-bulk-ingest` / `dp-doc-bulk-approve` permanecem (já cobrem split, OCR e duplicidade). `dp-criar-acesso-colaborador` só será tocada se algum campo do formulário faltar (verificar antes).
+
+## Resultado esperado
+- **Admin**:
+  - `/dp/documentos/{contracheque,ponto,adiantamento}` — painel único Pakere-style com bulk + histórico.
+  - `/dp/documentos/atestados` e `/dp/disciplinar` — upload PDF+imagem, select unidade→colaborador, retorno calculado, edição rica.
+  - `/dp/documentos/act-cct` — cadastro/edição/preview/exclusão paritário.
+  - `/dp/documentos/historico` — timeline unificada com filtros.
+  - `/dp/documentos/importar` deixa de existir.
+- **Colaborador**:
+  - `/dp/portal/documentos` — **única página** com abas por tipo (Contracheque, Adiantamento, Ponto*, Atestado, Disciplinar, ACT/CCT, Contrato, Outros) e sub-abas Recebidos do DP / Meus envios, com filtros e ações de download/preview/envio.
+  - `/dp/portal/atestados|disciplinar|sindicato` → redirect para a aba correspondente em `/dp/portal/documentos`.
+  - `/dp/portal/historico` — timeline pessoal alimentada pelo mesmo hook.
