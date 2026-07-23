@@ -2146,6 +2146,7 @@ export type Database = {
           error_message: string | null
           id: string
           matched_count: number
+          processed_pages: number
           referencia_data: string | null
           source_file_name: string | null
           source_file_path: string
@@ -2161,6 +2162,7 @@ export type Database = {
           error_message?: string | null
           id?: string
           matched_count?: number
+          processed_pages?: number
           referencia_data?: string | null
           source_file_name?: string | null
           source_file_path: string
@@ -2176,6 +2178,7 @@ export type Database = {
           error_message?: string | null
           id?: string
           matched_count?: number
+          processed_pages?: number
           referencia_data?: string | null
           source_file_name?: string | null
           source_file_path?: string
