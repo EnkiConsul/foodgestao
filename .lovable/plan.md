@@ -1,27 +1,27 @@
-## Problema
+## Objetivo
+Quando o widget do Turnstile falhar por domínio não autorizado (código **110200**) ou por qualquer erro que impeça a geração do token, o usuário deve ver uma mensagem clara em português no lugar da caixa vermelha genérica da Cloudflare, e o botão **Entrar** deve ficar bloqueado (evitando a tentativa de submit que resultaria em falha silenciosa).
 
-O CAPTCHA (Cloudflare Turnstile) não aparece em `/auth` porque a Edge Function `auth-config`, que fornece a Site Key ao frontend, retorna erro "Failed to fetch". Isso deixa o hook `useTurnstileSiteKey` com string vazia e o widget não renderiza.
+## Mudanças
 
-## Causa raiz (confirmada)
+### 1. `src/components/auth/TurnstileWidget.tsx`
+- Adicionar prop `onError?: (code: string) => void` — repassa o código recebido em `error-callback` (ex.: `"110200"`).
+- Manter `onExpire` para expiração (diferente de erro).
+- Ocultar visualmente o iframe da Cloudflare via `.turnstile-hidden { display: none }` quando o pai passar `hidden={true}` (usado para esconder a mensagem de erro nativa após detectar 110200).
 
-Em `supabase/config.toml` estão declaradas apenas 10 funções. As funções `auth-config` e `auth-login` **não estão listadas**, então herdam o default `verify_jwt = true`. Como `/auth` é acessado sem sessão (usuário ainda não logou), a chamada é rejeitada antes de atingir o handler — daí o `TypeError: Failed to fetch` nos logs do console e nas network requests.
+### 2. `src/pages/Auth.tsx`
+- Novo estado `turnstileError: string | null`.
+- Passar `onError={(code) => setTurnstileError(code)}` e `onToken={(t) => { setTurnstileToken(t); setTurnstileError(null); }}`.
+- Quando `turnstileError` estiver setado:
+  - Renderizar um `Alert` (variant destructive) logo acima do botão, com texto:
+    > **Verificação de segurança indisponível neste domínio.** Não foi possível carregar o CAPTCHA (código {code}). Acesse pelo domínio oficial `gestor360food.com` ou peça ao administrador para autorizar este hostname no painel Cloudflare Turnstile.
+  - Ocultar o widget nativo (que mostra "Não foi possível conectar ao site").
+  - Desabilitar o botão **Entrar** (`disabled={submitting || !!turnstileError}`).
+- No `handleSubmit`, retornar cedo se `turnstileError` estiver definido.
+- Resetar `turnstileError` ao trocar de modo (login/signup/forgot).
 
-## Correção
+### 3. Nada muda no backend
+`auth-login` continua validando o token via `siteverify`. O fallback é apenas UX — não afrouxa segurança.
 
-Adicionar entradas explícitas em `supabase/config.toml` marcando as duas funções como públicas (o próprio código já valida Turnstile e rate limit):
-
-```toml
-[functions.auth-config]
-  verify_jwt = false
-[functions.auth-login]
-  verify_jwt = false
-```
-
-Nenhuma outra mudança é necessária: a função `auth-config` já está correta (retorna `TURNSTILE_SITE_KEY`), o secret está configurado, e o `TurnstileWidget` já reage à chegada da site key.
-
-## Validação
-
-Após o deploy automático:
-1. Recarregar `/auth` e confirmar que o widget do Turnstile aparece abaixo dos campos.
-2. Console deve deixar de mostrar `[useTurnstileSiteKey] falha ao carregar site key`.
-3. Network: `GET /functions/v1/auth-config` deve retornar 200 com `{ turnstile_site_key: "..." }`.
+## Fora de escopo
+- Não altera a configuração da Cloudflare (usuário adiciona os hostnames pelo painel).
+- Não introduz bypass do CAPTCHA.
