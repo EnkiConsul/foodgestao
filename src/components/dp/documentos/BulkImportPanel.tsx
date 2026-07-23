@@ -37,7 +37,7 @@ const MAX_SIZE_MB = 20;
 export interface BulkImportPanelProps {
   /** Fixa o tipo do lote e esconde o seletor. */
   tipoFixed?: string;
-  /** Fixa a referência (YYYY-MM-DD) e esconde o input. */
+  /** Fixa a referência (YYYY-MM-DD ou YYYY-MM) e esconde o input. */
   referenciaFixed?: string;
   /** Filtra os lotes listados por tipo (default: usa tipoFixed se houver). */
   filterByTipo?: boolean;
@@ -145,7 +145,7 @@ export function BulkImportPanel({
           tipo,
           source_file_path: provisional,
           source_file_name: file.name,
-          referencia_data: referencia || null,
+          referencia_data: competenciaToDate(referencia),
           status: "processing",
           uploaded_by: uid,
         })
@@ -323,7 +323,7 @@ export function BulkImportPanel({
               <div className="space-y-1">
                 <Label>Referência (mês/ano) — opcional</Label>
                 <Input
-                  type="date"
+                  type="month"
                   value={referencia}
                   placeholder="Detectada do PDF automaticamente"
                   onChange={(e) => setReferencia(e.target.value)}
@@ -484,4 +484,11 @@ export function BulkImportPanel({
       )}
     </div>
   );
+}
+
+function competenciaToDate(value: string): string | null {
+  if (!value) return null;
+  if (/^20\d{2}-(0[1-9]|1[0-2])$/.test(value)) return `${value}-01`;
+  if (/^20\d{2}-(0[1-9]|1[0-2])-\d{2}$/.test(value)) return value;
+  return null;
 }
