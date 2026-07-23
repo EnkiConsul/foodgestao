@@ -191,7 +191,9 @@ async function processPage(args: {
     // Extrações
     const cpfs = extractCPFs(ocr);
     const cnpjs = extractCNPJs(ocr);
-    const competencia = extractPeriodo(ocr); // "YYYY-MM" ou null
+    const competencia =
+      extractPeriodo(ocr) ??
+      extractPeriodoFromFilename(batch.source_file_name ?? ""); // "YYYY-MM" ou null
     const unidadeDetectada = cnpjs.map((c) => cnpjToUnidade.get(c)).find(Boolean) ?? null;
 
     // Restrição por unidade + possui_folha_ponto (para tipo=ponto)
