@@ -32,6 +32,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
+import { BulkImportPanel } from "@/components/dp/documentos/BulkImportPanel";
+
 
 type Tipo = "contracheque" | "ponto" | "adiantamento";
 type Aprov = Database["public"]["Enums"]["dp_documento_aprovacao_status"];
