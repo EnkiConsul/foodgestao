@@ -561,7 +561,8 @@ export default function Auth() {
           </CardFooter>
           </form>
         )}
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }
