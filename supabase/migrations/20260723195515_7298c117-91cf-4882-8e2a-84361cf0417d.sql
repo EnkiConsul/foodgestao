@@ -1,0 +1,1 @@
+DELETE FROM auth_rate_limits WHERE bucket IN ('recovery_request_ip','recovery_request_id');
