@@ -168,55 +168,6 @@ export default function DpDocumentosPorTipo({ tipo: tipoProp }: { tipo?: Tipo } 
     });
   }, [list.data, filtroColab, filtroMes, filtroAno, filtroStatus, filtroUnidade, colabMap]);
 
-  // ---- Upload
-  const pickFile = (f: File | null) => {
-    if (!f) return;
-    if (f.type !== "application/pdf") {
-      toast.error("Apenas arquivos PDF");
-      return;
-    }
-    setPendingFile(f);
-  };
-
-  const processarPdf = async () => {
-    if (!selectedCompanyId) return toast.error("Sem empresa selecionada");
-    if (!pendingFile) return toast.error("Selecione um PDF");
-    const now = new Date();
-    const mes = now.getMonth() + 1;
-    const ano = now.getFullYear();
-    setUploading(true);
-    try {
-      const refDate = `${ano}-${String(mes).padStart(2, "0")}-01`;
-      const path = `${selectedCompanyId}/${tipo}/geral/${Date.now()}-${sanitizeStorageFilename(pendingFile.name)}`;
-      const up = await supabase.storage.from(BUCKET).upload(path, pendingFile, {
-        contentType: pendingFile.type, upsert: false,
-      });
-      if (up.error) throw up.error;
-      const { error } = await supabase.from("dp_documentos").insert({
-        company_id: selectedCompanyId,
-        colaborador_id: null,
-        tipo,
-        titulo: `${cfg.titulo.slice(0, -1)} ${String(mes).padStart(2, "0")}/${ano}`,
-        file_path: path,
-        file_name: pendingFile.name,
-        file_size: pendingFile.size,
-        mime_type: pendingFile.type,
-        referencia_data: refDate,
-        uploaded_by: user?.id,
-      });
-      if (error) throw error;
-      toast.success("PDF processado com sucesso");
-      setPendingFile(null);
-      if (fileRef.current) fileRef.current.value = "";
-      qc.invalidateQueries({ queryKey: ["dp_documentos"] });
-      qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
-      setAba("historico");
-    } catch (e) {
-      toast.error("Erro ao processar", { description: e instanceof Error ? e.message : String(e) });
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const handleDownload = async (row: Row) => {
     const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(row.file_path, 60);
