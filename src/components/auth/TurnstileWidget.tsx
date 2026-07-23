@@ -33,10 +33,12 @@ interface Props {
   siteKey: string;
   onToken: (token: string) => void;
   onExpire?: () => void;
+  onError?: (code: string) => void;
+  hidden?: boolean;
   theme?: "light" | "dark" | "auto";
 }
 
-export function TurnstileWidget({ siteKey, onToken, onExpire, theme = "auto" }: Props) {
+export function TurnstileWidget({ siteKey, onToken, onExpire, onError, hidden = false, theme = "auto" }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<string | null>(null);
 
@@ -54,12 +56,16 @@ export function TurnstileWidget({ siteKey, onToken, onExpire, theme = "auto" }: 
           "expired-callback": () => {
             onExpire?.();
           },
-          "error-callback": () => {
-            onExpire?.();
+          "error-callback": (code: string) => {
+            if (onError) onError(String(code ?? "unknown"));
+            else onExpire?.();
           },
         });
       })
-      .catch((err) => console.error(err));
+      .catch((err) => {
+        console.error(err);
+        onError?.("script-load-failed");
+      });
     return () => {
       cancelled = true;
       if (widgetIdRef.current && window.turnstile) {
@@ -70,5 +76,12 @@ export function TurnstileWidget({ siteKey, onToken, onExpire, theme = "auto" }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [siteKey]);
 
-  return <div ref={containerRef} className="cf-turnstile flex justify-center" data-action="turnstile-spin-v2" />;
+  return (
+    <div
+      ref={containerRef}
+      className="cf-turnstile flex justify-center"
+      data-action="turnstile-spin-v2"
+      style={hidden ? { display: "none" } : undefined}
+    />
+  );
 }
