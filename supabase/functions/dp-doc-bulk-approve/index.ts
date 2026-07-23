@@ -45,6 +45,17 @@ Deno.serve(async (req) => {
 
     const results: Array<{ id: string; ok: boolean; documento_id?: string; error?: string }> = [];
 
+    // Zera contador de aprovação para os batches envolvidos (o progresso é
+    // atualizado incrementalmente enquanto o loop roda).
+    const batchIdsInvolved = [...new Set((items as any[]).map((i) => i.batch_id))];
+    const totalToProcess = (items as any[]).length;
+    for (const bid of batchIdsInvolved) {
+      await svc.from("dp_bulk_import_batches")
+        .update({ approved_count: 0, approved_total: totalToProcess })
+        .eq("id", bid);
+    }
+
+    let processedSoFar = 0;
     for (const it of items as any[]) {
       try {
         if (!it.matched_colaborador_id) {
@@ -91,6 +102,7 @@ Deno.serve(async (req) => {
         });
         if (up.error) throw new Error(up.error.message);
 
+        const nowIso = new Date().toISOString();
         const titulo = `${prettyTipo(batch.tipo)} p.${it.page_index} — ${batch.source_file_name ?? "lote"}`;
         const { data: doc, error: dErr } = await svc.from("dp_documentos").insert({
           company_id: batch.company_id,
@@ -103,13 +115,16 @@ Deno.serve(async (req) => {
           mime_type: "application/pdf",
           referencia_data: referenciaData,
           uploaded_by: uid,
+          aprovacao_status: "aprovado",
+          revisado_em: nowIso,
+          revisado_por: uid,
         }).select("id").single();
         if (dErr) throw new Error(dErr.message);
 
         await svc.from("dp_bulk_import_items").update({
           status: "imported",
           decided_by: uid,
-          decided_at: new Date().toISOString(),
+          decided_at: nowIso,
           imported_documento_id: doc.id,
           error_message: null,
         }).eq("id", it.id);
@@ -120,12 +135,23 @@ Deno.serve(async (req) => {
           status: "failed", error_message: (e as Error).message,
         }).eq("id", it.id);
         results.push({ id: it.id, ok: false, error: (e as Error).message });
+      } finally {
+        processedSoFar += 1;
+        // Atualização incremental do progresso — permite ao frontend mostrar
+        // uma barra "Salvando X de Y". Se falhar (coluna ausente em cache
+        // antigo), ignora silenciosamente.
+        for (const bid of batchIdsInvolved) {
+          try {
+            await svc.from("dp_bulk_import_batches")
+              .update({ approved_count: processedSoFar })
+              .eq("id", bid);
+          } catch { /* noop */ }
+        }
       }
     }
 
-    // Atualiza status do batch
-    const batchIds = [...new Set((items as any[]).map((i) => i.batch_id))];
-    for (const bid of batchIds) {
+    // Atualiza status final do batch
+    for (const bid of batchIdsInvolved) {
       const { data: remaining } = await svc.from("dp_bulk_import_items")
         .select("status").eq("batch_id", bid);
       const all = remaining ?? [];
