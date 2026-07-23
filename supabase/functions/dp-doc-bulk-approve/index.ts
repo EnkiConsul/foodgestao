@@ -13,6 +13,7 @@ const DST_BUCKET = "dp-documentos";
 
 const BodySchema = z.object({
   item_ids: z.array(z.string().uuid()).min(1).max(200),
+  on_duplicate: z.enum(["skip", "replace"]).default("skip"),
 });
 
 Deno.serve(async (req) => {
@@ -43,7 +44,8 @@ Deno.serve(async (req) => {
     if (iErr) return json({ error: iErr.message }, 500);
     if (!items || items.length === 0) return json({ error: "Nenhum item encontrado" }, 404);
 
-    const results: Array<{ id: string; ok: boolean; documento_id?: string; error?: string }> = [];
+    const onDuplicate = parsed.data.on_duplicate;
+    const results: Array<{ id: string; ok: boolean; documento_id?: string; error?: string; replaced?: boolean }> = [];
 
     // Zera contador de aprovação para os batches envolvidos (o progresso é
     // atualizado incrementalmente enquanto o loop roda).
@@ -71,10 +73,11 @@ Deno.serve(async (req) => {
         const referenciaData = normalizeReferenciaData(it.detected_competencia) ?? batch.referencia_data ?? null;
 
         // Duplicidade: já existe documento para (colaborador, tipo, referencia_data)?
+        let replacedFlag = false;
         if (referenciaData) {
           const { data: dup } = await svc
             .from("dp_documentos")
-            .select("id")
+            .select("id, file_path")
             .eq("company_id", batch.company_id)
             .eq("colaborador_id", it.matched_colaborador_id)
             .eq("tipo", batch.tipo)
@@ -82,12 +85,19 @@ Deno.serve(async (req) => {
             .limit(1)
             .maybeSingle();
           if (dup?.id) {
-            await svc.from("dp_bulk_import_items").update({
-              status: "failed",
-              error_message: `Já existe documento para este colaborador em ${referenciaData}`,
-            }).eq("id", it.id);
-            results.push({ id: it.id, ok: false, error: "duplicate", documento_id: dup.id });
-            continue;
+            if (onDuplicate === "replace") {
+              // Remove storage antigo (ignora falhas — o registro é a fonte da verdade)
+              if (dup.file_path) {
+                try { await svc.storage.from(DST_BUCKET).remove([dup.file_path]); } catch { /* noop */ }
+              }
+              const { error: delErr } = await svc.from("dp_documentos").delete().eq("id", dup.id);
+              if (delErr) throw new Error(`Falha ao substituir: ${delErr.message}`);
+              replacedFlag = true;
+            } else {
+              // Skip: NÃO marca como failed — deixa pending pra próxima decisão.
+              results.push({ id: it.id, ok: false, error: "duplicate", documento_id: dup.id });
+              continue;
+            }
           }
         }
 
@@ -128,7 +138,7 @@ Deno.serve(async (req) => {
           error_message: null,
         }).eq("id", it.id);
 
-        results.push({ id: it.id, ok: true, documento_id: doc.id });
+        results.push({ id: it.id, ok: true, documento_id: doc.id, replaced: replacedFlag });
       } catch (e) {
         await svc.from("dp_bulk_import_items").update({
           status: "failed", error_message: (e as Error).message,

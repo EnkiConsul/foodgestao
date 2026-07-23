@@ -19,6 +19,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { NovoColaboradorInlineDialog } from "./NovoColaboradorInlineDialog";
 import { BulkProgressBanner } from "./BulkProgressBanner";
+import { ConfirmarSubstituicaoDialog, type DuplicateCollision } from "./ConfirmarSubstituicaoDialog";
+import { detectDuplicates } from "@/lib/dp/bulk-duplicates";
 import { cn } from "@/lib/utils";
 
 // Setup pdfjs worker once
@@ -52,7 +54,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_bulk_import_batches" as any)
-        .select("id,status,total_pages,processed_pages,approved_count")
+        .select("id,status,total_pages,processed_pages,approved_count,company_id,tipo,referencia_data")
         .eq("id", batchId)
         .maybeSingle();
       if (error) throw error;
@@ -169,27 +171,33 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] }),
   });
 
-  const approve = useMutation({
-    mutationFn: async () => {
-      const ids = rows
-        .filter((r) => r.status === "pending" && r.matched_colaborador_id)
-        .map((r) => r.id);
-      if (ids.length === 0) throw new Error("Nenhuma página vinculada");
-      setSavingTotal(ids.length);
-      setIsSaving(true);
+  const [confirmDup, setConfirmDup] = useState<{
+    collisions: DuplicateCollision[];
+    allIds: string[];
+    nonDupIds: string[];
+  } | null>(null);
+  const [checkingDup, setCheckingDup] = useState(false);
+
+  async function runApprove(item_ids: string[], on_duplicate: "skip" | "replace") {
+    if (item_ids.length === 0) {
+      toast.error("Nenhuma página elegível");
+      return;
+    }
+    setSavingTotal(item_ids.length);
+    setIsSaving(true);
+    try {
       const { data, error } = await supabase.functions.invoke("dp-doc-bulk-approve", {
-        body: { item_ids: ids },
+        body: { item_ids, on_duplicate },
       });
       if (error) throw error;
-      return data;
-    },
-    onSuccess: (r: any) => {
-      const results = (r?.results ?? []) as Array<{ ok: boolean; error?: string }>;
-      const okc = results.filter((x) => x.ok).length;
+      const results = ((data as any)?.results ?? []) as Array<{ ok: boolean; error?: string; replaced?: boolean }>;
+      const okc = results.filter((x) => x.ok && !x.replaced).length;
+      const rep = results.filter((x) => x.ok && x.replaced).length;
       const dup = results.filter((x) => !x.ok && x.error === "duplicate").length;
       const other = results.filter((x) => !x.ok && x.error !== "duplicate").length;
       const parts = [`${okc} importado(s)`];
-      if (dup) parts.push(`${dup} duplicado(s)`);
+      if (rep) parts.push(`${rep} substituído(s)`);
+      if (dup) parts.push(`${dup} duplicado(s) ignorado(s)`);
       if (other) parts.push(`${other} falha(s)`);
       toast.success(parts.join(", "));
       qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] });
@@ -198,10 +206,58 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
       qc.invalidateQueries({ queryKey: ["dp_bulk_pending_counts"] });
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
       qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
-    },
-    onError: (e: any) => toast.error(e?.message ?? "Falha ao aprovar"),
-    onSettled: () => setIsSaving(false),
-  });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao aprovar");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleApproveClick() {
+    const eligible = rows.filter((r) => r.status === "pending" && r.matched_colaborador_id);
+    if (eligible.length === 0) {
+      toast.error("Nenhuma página vinculada");
+      return;
+    }
+    const b = batchInfo.data as any;
+    if (!b?.company_id || !b?.tipo) {
+      toast.error("Lote incompleto — tente novamente em instantes");
+      return;
+    }
+    setCheckingDup(true);
+    try {
+      const hits = await detectDuplicates({
+        company_id: b.company_id,
+        tipo: b.tipo,
+        itens: eligible.map((r: any) => {
+          const colab = colaboradores.find((c: any) => c.id === r.matched_colaborador_id);
+          const compYm = normalizeCompetencia(r.detected_competencia);
+          const ref = compYm ? `${compYm}-01` : (b.referencia_data ?? null);
+          return {
+            item_id: r.id,
+            colaborador_id: r.matched_colaborador_id,
+            colaborador_nome: colab?.nome ?? "(colaborador)",
+            referencia_data: ref,
+          };
+        }),
+      });
+      const allIds = eligible.map((r: any) => r.id);
+      if (hits.length === 0) {
+        await runApprove(allIds, "skip");
+        return;
+      }
+      const dupIds = new Set(hits.map((h) => h.item_id));
+      setConfirmDup({
+        collisions: hits,
+        allIds,
+        nonDupIds: allIds.filter((id) => !dupIds.has(id)),
+      });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao verificar duplicidade");
+    } finally {
+      setCheckingDup(false);
+    }
+  }
 
   const pendingCount = useMemo(
     () => rows.filter((r) => r.status === "pending" && r.matched_colaborador_id).length,
@@ -412,10 +468,10 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
         <DialogFooter className="p-3 border-t bg-background">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
           <Button
-            onClick={() => approve.mutate()}
-            disabled={pendingCount === 0 || approve.isPending}
+            onClick={handleApproveClick}
+            disabled={pendingCount === 0 || checkingDup || isSaving}
           >
-            {approve.isPending
+            {(checkingDup || isSaving)
               ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
               : <Check className="h-4 w-4 mr-1" />}
             Aprovar e Salvar {pendingCount} Documento(s)
@@ -425,6 +481,24 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
           );
         })()}
       </DialogContent>
+      {confirmDup && (
+        <ConfirmarSubstituicaoDialog
+          open
+          onOpenChange={(o) => { if (!o) setConfirmDup(null); }}
+          collisions={confirmDup.collisions}
+          totalItems={confirmDup.allIds.length}
+          onSkip={() => {
+            const ids = confirmDup.nonDupIds;
+            setConfirmDup(null);
+            runApprove(ids, "skip");
+          }}
+          onReplace={() => {
+            const ids = confirmDup.allIds;
+            setConfirmDup(null);
+            runApprove(ids, "replace");
+          }}
+        />
+      )}
     </Dialog>
   );
 }
