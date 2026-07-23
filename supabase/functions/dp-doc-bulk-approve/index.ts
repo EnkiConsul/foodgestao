@@ -48,10 +48,9 @@ Deno.serve(async (req) => {
     // Zera contador de aprovação para os batches envolvidos (o progresso é
     // atualizado incrementalmente enquanto o loop roda).
     const batchIdsInvolved = [...new Set((items as any[]).map((i) => i.batch_id))];
-    const totalToProcess = (items as any[]).length;
     for (const bid of batchIdsInvolved) {
       await svc.from("dp_bulk_import_batches")
-        .update({ approved_count: 0, approved_total: totalToProcess })
+        .update({ approved_count: 0 })
         .eq("id", bid);
     }
 
