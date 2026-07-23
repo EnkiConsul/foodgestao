@@ -415,6 +415,21 @@ export function BulkImportPanel({
                             {it.status}
                           </Badge>
                           {!!it.matched_cpf && <span className="text-xs">CPF {it.matched_cpf}</span>}
+                          {!!it.detected_competencia && (
+                            <Badge variant="outline" className="text-[10px]">
+                              comp {it.detected_competencia}
+                            </Badge>
+                          )}
+                          {it.matched_colaborador_id && it.matched_colaborador_ativo === false && (
+                            <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40 text-[10px]">
+                              <AlertTriangle className="h-3 w-3 mr-1" /> Colaborador inativo
+                            </Badge>
+                          )}
+                          {it.duplicate_of && (
+                            <Badge variant="destructive" className="text-[10px]">
+                              Duplicado
+                            </Badge>
+                          )}
                           {!!it.confidence && (
                             <span className="text-xs text-muted-foreground">
                               conf {(Number(it.confidence) * 100).toFixed(0)}%
