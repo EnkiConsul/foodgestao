@@ -1,17 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useParams } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  Upload, History, Download, Pencil, Loader2, Check, X, Trash2, Eye,
-  FileText, Clock, Coins,
+  Upload, History, Download, Pencil, Check, X, Trash2, Eye,
+  FileText, Clock, Loader2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { sanitizeStorageFilename } from "@/lib/storage";
-import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 
@@ -88,17 +86,10 @@ export default function DpDocumentosPorTipo({ tipo: tipoProp }: { tipo?: Tipo } 
   const Icon = cfg.icon;
 
   const { selectedCompanyId } = useCompanyContext();
-  const { user } = useAuth();
   const qc = useQueryClient();
   const { data: colaboradores = [] } = useDpColaboradores();
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const [aba, setAba] = useState<"importar" | "historico">("importar");
-
-  // Import (drag-drop simples)
-  const [dragOver, setDragOver] = useState(false);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
 
   // Filtros
   const [filtroColab, setFiltroColab] = useState("todos");
@@ -177,55 +168,6 @@ export default function DpDocumentosPorTipo({ tipo: tipoProp }: { tipo?: Tipo } 
     });
   }, [list.data, filtroColab, filtroMes, filtroAno, filtroStatus, filtroUnidade, colabMap]);
 
-  // ---- Upload
-  const pickFile = (f: File | null) => {
-    if (!f) return;
-    if (f.type !== "application/pdf") {
-      toast.error("Apenas arquivos PDF");
-      return;
-    }
-    setPendingFile(f);
-  };
-
-  const processarPdf = async () => {
-    if (!selectedCompanyId) return toast.error("Sem empresa selecionada");
-    if (!pendingFile) return toast.error("Selecione um PDF");
-    const now = new Date();
-    const mes = now.getMonth() + 1;
-    const ano = now.getFullYear();
-    setUploading(true);
-    try {
-      const refDate = `${ano}-${String(mes).padStart(2, "0")}-01`;
-      const path = `${selectedCompanyId}/${tipo}/geral/${Date.now()}-${sanitizeStorageFilename(pendingFile.name)}`;
-      const up = await supabase.storage.from(BUCKET).upload(path, pendingFile, {
-        contentType: pendingFile.type, upsert: false,
-      });
-      if (up.error) throw up.error;
-      const { error } = await supabase.from("dp_documentos").insert({
-        company_id: selectedCompanyId,
-        colaborador_id: null,
-        tipo,
-        titulo: `${cfg.titulo.slice(0, -1)} ${String(mes).padStart(2, "0")}/${ano}`,
-        file_path: path,
-        file_name: pendingFile.name,
-        file_size: pendingFile.size,
-        mime_type: pendingFile.type,
-        referencia_data: refDate,
-        uploaded_by: user?.id,
-      });
-      if (error) throw error;
-      toast.success("PDF processado com sucesso");
-      setPendingFile(null);
-      if (fileRef.current) fileRef.current.value = "";
-      qc.invalidateQueries({ queryKey: ["dp_documentos"] });
-      qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
-      setAba("historico");
-    } catch (e) {
-      toast.error("Erro ao processar", { description: e instanceof Error ? e.message : String(e) });
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const handleDownload = async (row: Row) => {
     const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(row.file_path, 60);
@@ -323,56 +265,9 @@ export default function DpDocumentosPorTipo({ tipo: tipoProp }: { tipo?: Tipo } 
       </div>
 
       {aba === "importar" && (
-        <div className="bg-card border border-border rounded-2xl p-6 space-y-4 shadow-sm">
-          <div className="flex items-center gap-2 font-semibold">
-            <Upload className="size-5 text-primary" />
-            {cfg.importTitle}
-          </div>
-
-          <label
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => {
-              e.preventDefault(); setDragOver(false);
-              pickFile(e.dataTransfer.files?.[0] ?? null);
-            }}
-            className={cn(
-              "block cursor-pointer rounded-xl border-2 border-dashed transition-colors",
-              "px-6 py-14 text-center",
-              dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
-            )}
-          >
-            <input
-              ref={fileRef}
-              type="file"
-              accept="application/pdf"
-              className="hidden"
-              onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
-            />
-            <Upload className="size-8 mx-auto text-muted-foreground" />
-            <div className="mt-3 text-sm text-foreground">
-              {pendingFile
-                ? <span className="font-medium">{pendingFile.name}</span>
-                : "Arraste um PDF ou clique para selecionar"}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Apenas arquivos PDF</div>
-          </label>
-
-          <Button
-            className="w-full"
-            size="lg"
-            onClick={processarPdf}
-            disabled={uploading || !pendingFile}
-          >
-            {uploading ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Upload className="size-4 mr-2" />}
-            {uploading ? "Processando..." : "Processar PDF"}
-          </Button>
-        </div>
+        <BulkImportPanel tipoFixed={tipo} title={cfg.importTitle} />
       )}
 
-      {aba === "importar" && (tipo === "contracheque" || tipo === "ponto" || tipo === "adiantamento") && (
-        <BulkImportPanel tipoFixed={tipo} title={`Importação em massa — ${cfg.titulo}`} />
-      )}
 
 
       {aba === "historico" && (

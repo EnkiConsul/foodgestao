@@ -51,7 +51,7 @@ export const FAVORITABLE_PAGES: FavoritablePage[] = [
   { pattern: "/dp/disciplinar", label: "Disciplinar", icon: ShieldAlert },
   { pattern: "/dp/bloqueios", label: "Datas Bloqueadas", icon: CalendarX },
   { pattern: "/dp/documentos", label: "Documentos", icon: FileText },
-  { pattern: "/dp/documentos/importar", label: "Importar docs", icon: Upload },
+  
   {
     pattern: "/dp/documentos/:categoria",
     label: "Documentos",
@@ -82,7 +82,6 @@ function capitalize(s: string) {
 
 /**
  * Prioriza patterns mais específicos (mais segmentos e menos placeholders).
- * `/dp/documentos/importar` deve ganhar de `/dp/documentos/:categoria`.
  */
 function specificity(pattern: string) {
   const segs = pattern.split("/").filter(Boolean);
