@@ -163,7 +163,15 @@ export default function EsqueciSenha() {
         <meta name="description" content="Recupere o acesso à sua conta 360°FOOD com verificação via WhatsApp." />
       </Helmet>
 
-      <Card className="w-full max-w-md">
+      <div className="w-full max-w-md space-y-3">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Voltar ao site
+        </Link>
+        <Card className="w-full">
         <CardHeader>
           <CardTitle className="text-2xl">Recuperar senha</CardTitle>
           <CardDescription>
@@ -363,7 +371,8 @@ export default function EsqueciSenha() {
             Voltar ao login
           </Link>
         </CardFooter>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

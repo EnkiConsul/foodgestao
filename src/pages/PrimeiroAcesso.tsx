@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Lock, Eye, EyeOff } from "lucide-react";
+import { Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -75,7 +75,15 @@ export default function PrimeiroAcesso() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Helmet><title>Primeiro acesso — 360°FOOD</title></Helmet>
-      <Card className="w-full max-w-md shadow-lg">
+      <div className="w-full max-w-md space-y-3">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Voltar ao site
+        </Link>
+        <Card className="w-full shadow-lg">
         <CardHeader className="text-center space-y-3">
           <CardTitle className="text-2xl font-bold">Defina sua senha</CardTitle>
           <CardDescription>
@@ -131,7 +139,8 @@ export default function PrimeiroAcesso() {
             </Button>
           </CardContent>
         </form>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

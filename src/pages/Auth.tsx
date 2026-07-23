@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Lock, User, Eye, EyeOff, IdCard } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, IdCard, ArrowLeft } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -302,7 +302,15 @@ export default function Auth() {
         <meta property="og:description" content="Acesse sua conta 360°FOOD ou crie um cadastro gratuito para gerenciar suas finanças." />
       </Helmet>
       <h1 className="sr-only">Acesse sua conta ou crie seu cadastro no 360°FOOD</h1>
-      <Card className="w-full max-w-md shadow-lg">
+      <div className="w-full max-w-md space-y-3">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Voltar ao site
+        </Link>
+        <Card className="w-full shadow-lg">
         <CardHeader className="text-center space-y-3">
           <CardTitle className="text-2xl font-bold">360°FOOD</CardTitle>
           <CardDescription>
@@ -553,7 +561,8 @@ export default function Auth() {
           </CardFooter>
           </form>
         )}
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }
