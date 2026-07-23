@@ -343,7 +343,7 @@ function extractPeriodo(text: string): string | null {
   const low = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
   // 1) "comp[etência]|referencia MM/YYYY" ou "MM-YYYY"
-  const r1 = /(?:comp\.?|competencia|referencia|periodo)[^\d]{0,10}(\d{1,2})[\/\-](\d{4})/i;
+  const r1 = /(?:comp\.?|competencia|referencia|periodo|mes)[^\d]{0,25}(\d{1,2})[\/\-.](\d{4})/i;
   const m1 = low.match(r1);
   if (m1) {
     const mm = Math.max(1, Math.min(12, Number(m1[1])));
@@ -351,8 +351,8 @@ function extractPeriodo(text: string): string | null {
     if (yy >= 2000 && yy <= 2100) return `${yy}-${String(mm).padStart(2, "0")}`;
   }
 
-  // 2) "MES/YYYY" nome do mês (tolera "Junho de 2026", "junho - 2026", etc.)
-  const r2 = new RegExp(`\\b(${Object.keys(MESES_MAP).join("|")})\\b[^\\d]{0,15}(\\d{4})`, "i");
+  // 2) "MES/YYYY" nome do mês (tolera "Junho de 2026", "JUNHO/2026", "competência: junho 2026", etc.)
+  const r2 = new RegExp(`\\b(${Object.keys(MESES_MAP).join("|")})\\b[^\\d]{0,25}(20\\d{2})`, "i");
   const m2 = low.match(r2);
   if (m2) {
     const mm = MESES_MAP[m2[1].toLowerCase()];

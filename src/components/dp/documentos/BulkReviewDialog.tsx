@@ -111,7 +111,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
   const setCompetencia = useMutation({
     mutationFn: async ({ id, competencia }: { id: string; competencia: string | null }) => {
       const { error } = await supabase.from("dp_bulk_import_items" as any).update({
-        detected_competencia: competencia,
+        detected_competencia: normalizeCompetencia(competencia),
       }).eq("id", id);
       if (error) throw error;
     },
@@ -269,7 +269,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
                       <div className="text-xs text-muted-foreground truncate">
                         {colab ? <span className="text-foreground font-medium">{colab.nome}</span> : "Sem vínculo"}
                         {it.matched_cpf ? ` · ${it.matched_cpf}` : ""}
-                        {it.detected_competencia ? ` · ${it.detected_competencia}` : ""}
+                        {it.detected_competencia ? ` · ${formatCompetencia(it.detected_competencia)}` : ""}
                       </div>
                       {it.matched_colaborador_ativo === false && (
                         <div className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-0.5">
@@ -322,8 +322,8 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
                   <Label className="text-xs">Competência</Label>
                   <Input
                     className="h-8"
-                    type="date"
-                    value={current.detected_competencia ?? ""}
+                    type="month"
+                    value={normalizeCompetencia(current.detected_competencia) ?? ""}
                     onChange={(e) => setCompetencia.mutate({
                       id: current.id,
                       competencia: e.target.value || null,
@@ -362,4 +362,21 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
       </DialogContent>
     </Dialog>
   );
+}
+
+function normalizeCompetencia(value: unknown): string | null {
+  if (!value) return null;
+  const raw = String(value).trim();
+  const ym = raw.match(/^(20\d{2})-(0[1-9]|1[0-2])$/);
+  if (ym) return `${ym[1]}-${ym[2]}`;
+  const ymd = raw.match(/^(20\d{2})-(0[1-9]|1[0-2])-\d{2}$/);
+  if (ymd) return `${ymd[1]}-${ymd[2]}`;
+  return null;
+}
+
+function formatCompetencia(value: unknown): string {
+  const normalized = normalizeCompetencia(value);
+  if (!normalized) return "—";
+  const [year, month] = normalized.split("-");
+  return `${month}/${year}`;
 }
