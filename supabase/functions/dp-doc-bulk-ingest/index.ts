@@ -59,8 +59,9 @@ Deno.serve(async (req) => {
     const totalPages = pdf.getPageCount();
 
     await svc.from("dp_bulk_import_batches")
-      .update({ total_pages: totalPages, status: "processing", error_message: null })
+      .update({ total_pages: totalPages, processed_pages: 0, status: "processing", error_message: null })
       .eq("id", batch_id);
+
 
     // 3) Carrega colaboradores da empresa (para match)
     const { data: colabs } = await svc
