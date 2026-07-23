@@ -351,7 +351,6 @@ export default function DpDocumentosPorTipo({ tipo: tipoProp }: { tipo?: Tipo } 
                   <tr>
                     <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Colaborador</th>
                     <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Competência</th>
-                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Arquivo</th>
                     <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Unidade</th>
                     <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Status</th>
                     <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Aprovado em</th>
