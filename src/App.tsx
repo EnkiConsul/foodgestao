@@ -101,6 +101,7 @@ const AdminWebhooksAsaasPage = lazy(() => import("./pages/admin/WebhooksAsaas"))
 const AdminPerfisAcesso = lazy(() => import("./pages/admin/PerfisAcesso"));
 const AdminAuditoria = lazy(() => import("./pages/admin/Auditoria"));
 const AdminResetarDados = lazy(() => import("./pages/admin/ResetarDados"));
+const AdminCadastros = lazy(() => import("./pages/admin/Cadastros"));
 const AdminLandingPage = lazy(() => import("./pages/admin/LandingPage"));
 const AdminBancos = lazy(() => import("./pages/admin/Bancos"));
 
@@ -379,6 +380,7 @@ const AppRoutes = () => (
         <Route path="/admin" element={<Navigate to="/admin/estatisticas" replace />} />
         <Route path="/admin/estatisticas" element={<AdminEstatisticas />} />
         <Route path="/admin/clientes" element={<AdminClientes />} />
+        <Route path="/admin/cadastros" element={<AdminCadastros />} />
         <Route path="/admin/planos" element={<AdminPlanosPage />} />
         <Route path="/admin/assinaturas" element={<AdminAssinaturas />} />
         <Route path="/admin/faturamento" element={<AdminFaturamento />} />
