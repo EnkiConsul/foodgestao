@@ -73,7 +73,7 @@ const DpTrocas = lazy(() => import("./pages/dp/DpTrocas"));
 const DpConfiguracoes = lazy(() => import("./pages/dp/DpConfiguracoes"));
 const DpAdminCalendario = lazy(() => import("./pages/dp/DpAdminCalendario"));
 const DpModelosMensagem = lazy(() => import("./pages/dp/DpModelosMensagem"));
-const DpDocImportBulk = lazy(() => import("./pages/dp/DpDocImportBulk"));
+
 const DpComunicacaoHub = lazy(() => import("./pages/dp/DpComunicacaoHub"));
 const DpAtestados = lazy(() => import("./pages/dp/DpAtestados"));
 const DpHistoricoCompleto = lazy(() => import("./pages/dp/DpHistoricoCompleto"));
@@ -86,9 +86,6 @@ const DpMeuDocumentos = lazy(() => import("./pages/dp/portal/DpMeuDocumentos"));
 const DpMeuSolicitacoes = lazy(() => import("./pages/dp/portal/DpMeuSolicitacoes"));
 const DpMeuTrocas = lazy(() => import("./pages/dp/portal/DpMeuTrocas"));
 const DpMeuCalendario = lazy(() => import("./pages/dp/portal/DpMeuCalendario"));
-const DpMeuAtestados = lazy(() => import("./pages/dp/portal/DpMeuAtestados"));
-const DpMeuDisciplinar = lazy(() => import("./pages/dp/portal/DpMeuDisciplinar"));
-const DpMeuSindicato = lazy(() => import("./pages/dp/portal/DpMeuSindicato"));
 const DpMeuHistorico = lazy(() => import("./pages/dp/portal/DpMeuHistorico"));
 
 // Admin
@@ -278,9 +275,9 @@ const AppRoutes = () => (
         <Route path="solicitacoes" element={<DpMeuSolicitacoes />} />
         <Route path="trocas" element={<DpMeuTrocas />} />
         <Route path="calendario" element={<DpMeuCalendario />} />
-        <Route path="atestados" element={<DpMeuAtestados />} />
-        <Route path="disciplinar" element={<DpMeuDisciplinar />} />
-        <Route path="sindicato" element={<DpMeuSindicato />} />
+        <Route path="atestados" element={<Navigate to="/dp/meu/documentos?tipo=atestado" replace />} />
+        <Route path="disciplinar" element={<Navigate to="/dp/meu/documentos?tipo=disciplinar" replace />} />
+        <Route path="sindicato" element={<Navigate to="/dp/meu/documentos?tipo=act_cct" replace />} />
         <Route path="historico" element={<DpMeuHistorico />} />
       </Route>
       <Route
@@ -354,7 +351,7 @@ const AppRoutes = () => (
         <Route path="bloqueios" element={<DpBloqueios />} />
         <Route path="trocas" element={<DpTrocas />} />
         <Route path="aprovacoes" element={<DpAprovacoes />} />
-        <Route path="documentos/importar" element={<DpDocImportBulk />} />
+        <Route path="documentos/importar" element={<Navigate to="/dp/documentos" replace />} />
         <Route path="cadastros" element={<DpCadastrosHub />} />
         <Route path="cadastros/unidades" element={<DpUnidades />} />
         <Route path="cadastros/cargos" element={<DpCargos />} />
