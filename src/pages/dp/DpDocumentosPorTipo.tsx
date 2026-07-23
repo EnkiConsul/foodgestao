@@ -265,56 +265,9 @@ export default function DpDocumentosPorTipo({ tipo: tipoProp }: { tipo?: Tipo } 
       </div>
 
       {aba === "importar" && (
-        <div className="bg-card border border-border rounded-2xl p-6 space-y-4 shadow-sm">
-          <div className="flex items-center gap-2 font-semibold">
-            <Upload className="size-5 text-primary" />
-            {cfg.importTitle}
-          </div>
-
-          <label
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => {
-              e.preventDefault(); setDragOver(false);
-              pickFile(e.dataTransfer.files?.[0] ?? null);
-            }}
-            className={cn(
-              "block cursor-pointer rounded-xl border-2 border-dashed transition-colors",
-              "px-6 py-14 text-center",
-              dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
-            )}
-          >
-            <input
-              ref={fileRef}
-              type="file"
-              accept="application/pdf"
-              className="hidden"
-              onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
-            />
-            <Upload className="size-8 mx-auto text-muted-foreground" />
-            <div className="mt-3 text-sm text-foreground">
-              {pendingFile
-                ? <span className="font-medium">{pendingFile.name}</span>
-                : "Arraste um PDF ou clique para selecionar"}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Apenas arquivos PDF</div>
-          </label>
-
-          <Button
-            className="w-full"
-            size="lg"
-            onClick={processarPdf}
-            disabled={uploading || !pendingFile}
-          >
-            {uploading ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Upload className="size-4 mr-2" />}
-            {uploading ? "Processando..." : "Processar PDF"}
-          </Button>
-        </div>
+        <BulkImportPanel tipoFixed={tipo} title={cfg.importTitle} />
       )}
 
-      {aba === "importar" && (tipo === "contracheque" || tipo === "ponto" || tipo === "adiantamento") && (
-        <BulkImportPanel tipoFixed={tipo} title={`Importação em massa — ${cfg.titulo}`} />
-      )}
 
 
       {aba === "historico" && (
