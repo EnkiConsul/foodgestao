@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Upload, Loader2, Check, X, ChevronDown, ChevronRight, RefreshCw, ExternalLink, AlertTriangle,
+  Upload, Loader2, Check, X, ChevronDown, ChevronRight, RefreshCw, ExternalLink, AlertTriangle, Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { DpFilterCard } from "@/components/dp/DpPage";
 import { cn } from "@/lib/utils";
+import { BulkReviewDialog } from "./BulkReviewDialog";
+import { NovoColaboradorInlineDialog } from "./NovoColaboradorInlineDialog";
 
 const TIPO_OPTS = [
   { v: "contracheque", l: "Contracheque" },
