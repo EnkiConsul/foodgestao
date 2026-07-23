@@ -606,6 +606,11 @@ function normalizeCompetencia(value: unknown): string | null {
   return null;
 }
 
+function normalizeRefDate(value: unknown): string | null {
+  const ym = normalizeCompetencia(value);
+  return ym ? `${ym}-01` : null;
+}
+
 function formatCompetencia(value: unknown): string {
   const normalized = normalizeCompetencia(value);
   if (!normalized) return "—";
