@@ -518,6 +518,8 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
           </Button>
         </div>
       )}
+      </>
+      )}
     </div>
   );
 }
