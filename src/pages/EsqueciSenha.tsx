@@ -371,7 +371,8 @@ export default function EsqueciSenha() {
             Voltar ao login
           </Link>
         </CardFooter>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }
