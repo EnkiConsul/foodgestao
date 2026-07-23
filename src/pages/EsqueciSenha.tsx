@@ -30,18 +30,31 @@ export default function EsqueciSenha() {
   const [otp, setOtp] = useState("");
   const [secondsLeft, setSecondsLeft] = useState(0);
 
+  // Resend control
+  const RESEND_COOLDOWN = 60;
+  const MAX_RESENDS = 3;
+  const [resendIn, setResendIn] = useState(0);
+  const [resendAttempts, setResendAttempts] = useState(0);
+
   // Password reset state
   const [resetToken, setResetToken] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
 
-  // OTP countdown
+  // OTP expiration countdown
   useEffect(() => {
     if (step !== "otp" || secondsLeft <= 0) return;
     const t = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(t);
   }, [step, secondsLeft]);
+
+  // Resend cooldown countdown
+  useEffect(() => {
+    if (step !== "otp" || resendIn <= 0) return;
+    const t = setInterval(() => setResendIn((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(t);
+  }, [step, resendIn]);
 
   async function handleRequest(e: React.FormEvent) {
     e.preventDefault();
