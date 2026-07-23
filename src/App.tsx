@@ -73,7 +73,7 @@ const DpTrocas = lazy(() => import("./pages/dp/DpTrocas"));
 const DpConfiguracoes = lazy(() => import("./pages/dp/DpConfiguracoes"));
 const DpAdminCalendario = lazy(() => import("./pages/dp/DpAdminCalendario"));
 const DpModelosMensagem = lazy(() => import("./pages/dp/DpModelosMensagem"));
-const DpDocImportBulk = lazy(() => import("./pages/dp/DpDocImportBulk"));
+
 const DpComunicacaoHub = lazy(() => import("./pages/dp/DpComunicacaoHub"));
 const DpAtestados = lazy(() => import("./pages/dp/DpAtestados"));
 const DpHistoricoCompleto = lazy(() => import("./pages/dp/DpHistoricoCompleto"));
@@ -86,9 +86,6 @@ const DpMeuDocumentos = lazy(() => import("./pages/dp/portal/DpMeuDocumentos"));
 const DpMeuSolicitacoes = lazy(() => import("./pages/dp/portal/DpMeuSolicitacoes"));
 const DpMeuTrocas = lazy(() => import("./pages/dp/portal/DpMeuTrocas"));
 const DpMeuCalendario = lazy(() => import("./pages/dp/portal/DpMeuCalendario"));
-const DpMeuAtestados = lazy(() => import("./pages/dp/portal/DpMeuAtestados"));
-const DpMeuDisciplinar = lazy(() => import("./pages/dp/portal/DpMeuDisciplinar"));
-const DpMeuSindicato = lazy(() => import("./pages/dp/portal/DpMeuSindicato"));
 const DpMeuHistorico = lazy(() => import("./pages/dp/portal/DpMeuHistorico"));
 
 // Admin
