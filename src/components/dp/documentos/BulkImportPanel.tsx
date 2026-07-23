@@ -465,21 +465,32 @@ export function BulkImportPanel({
                             </span>
                           )}
                         </div>
-                        <Select
-                          value={it.matched_colaborador_id ?? "none"}
-                          onValueChange={(v) => setColab.mutate({ id: it.id, colaborador_id: v === "none" ? null : v })}
-                          disabled={it.status === "imported"}
-                        >
-                          <SelectTrigger><SelectValue placeholder="Selecionar colaborador" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">— Nenhum —</SelectItem>
-                            {colaboradores.map((c: any) => (
-                              <SelectItem key={c.id} value={c.id}>
-                                {c.nome}{c.cpf ? ` (${c.cpf})` : ""}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="flex items-center gap-1">
+                          <Select
+                            value={it.matched_colaborador_id ?? "none"}
+                            onValueChange={(v) => setColab.mutate({ id: it.id, colaborador_id: v === "none" ? null : v })}
+                            disabled={it.status === "imported"}
+                          >
+                            <SelectTrigger><SelectValue placeholder="Selecionar colaborador" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">— Nenhum —</SelectItem>
+                              {colaboradores.map((c: any) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                  {c.nome}{c.cpf ? ` (${c.cpf})` : ""}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <NovoColaboradorInlineDialog
+                            defaultCpf={it.matched_cpf ?? ""}
+                            onCreated={(id) => setColab.mutate({ id: it.id, colaborador_id: id })}
+                            trigger={
+                              <Button size="icon" variant="ghost" title="Cadastrar novo colaborador">
+                                <span className="text-lg leading-none">+</span>
+                              </Button>
+                            }
+                          />
+                        </div>
                         <div className="flex gap-1 justify-end">
                           <Button size="icon" variant="ghost" onClick={() => openPage(it.page_file_path)} title="Ver página">
                             <ExternalLink className="h-4 w-4" />
