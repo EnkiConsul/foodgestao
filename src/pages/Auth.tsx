@@ -281,6 +281,8 @@ export default function Auth() {
     setErrors({});
     setPassword("");
     setConfirmPassword("");
+    setTurnstileError(null);
+    setTurnstileToken("");
   };
 
   return (
