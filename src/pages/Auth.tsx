@@ -6,23 +6,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, IdCard } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
-
+import { TurnstileWidget } from "@/components/auth/TurnstileWidget";
+import { useTurnstileSiteKey } from "@/hooks/useTurnstileSiteKey";
+import { unifiedSignIn } from "@/lib/authUnified";
 
 import { z } from "zod";
 import { toast } from "sonner";
 import { trackEvent, FunnelStep } from "@/lib/analytics";
 
+// Login identifier: e-mail OR CPF (11 digits with or without punctuation)
 const loginSchema = z.object({
-  email: z.string().trim().email("E-mail inválido").max(255),
+  identifier: z.string().trim().min(3, "Informe seu e-mail ou CPF").max(255).refine((v) => {
+    if (v.includes("@")) return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    return /^\d{11}$/.test(v.replace(/\D/g, ""));
+  }, { message: "Informe um e-mail válido ou um CPF com 11 dígitos" }),
   password: z.string().min(6, "Mínimo 6 caracteres").max(128),
 });
 
-const signupSchema = loginSchema.extend({
+const signupSchema = z.object({
+  email: z.string().trim().email("E-mail inválido").max(255),
+  password: z.string().min(6, "Mínimo 6 caracteres").max(128),
   fullName: z.string().trim().min(2, "Nome deve ter ao menos 2 caracteres").max(100),
   confirmPassword: z.string(),
   acceptTerms: z.literal(true, {
@@ -69,6 +77,7 @@ export default function Auth() {
   const [searchParams] = useSearchParams();
   const initialMode: Mode = searchParams.get("tab") === "signup" ? "signup" : "login";
   const [mode, setMode] = useState<Mode>(initialMode);
+  const [identifier, setIdentifier] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -79,7 +88,9 @@ export default function Auth() {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { signIn, signUp, user } = useAuth();
+  const [turnstileToken, setTurnstileToken] = useState<string>("");
+  const turnstileSiteKey = useTurnstileSiteKey();
+  const { signUp, user } = useAuth();
   const navigate = useNavigate();
 
   const checkMfaState = async () => {
