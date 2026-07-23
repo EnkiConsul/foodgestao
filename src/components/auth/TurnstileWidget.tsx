@@ -49,6 +49,7 @@ export function TurnstileWidget({ siteKey, onToken, onExpire, theme = "auto" }: 
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: siteKey,
           theme,
+          action: "turnstile-spin-v2",
           callback: (token: string) => onToken(token),
           "expired-callback": () => {
             onExpire?.();
