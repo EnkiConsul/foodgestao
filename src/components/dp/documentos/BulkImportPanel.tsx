@@ -62,6 +62,7 @@ export function BulkImportPanel({
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [batchLimit, setBatchLimit] = useState<number>(20);
+  const [reviewBatch, setReviewBatch] = useState<{ id: string; name?: string } | null>(null);
 
   useEffect(() => { if (tipoFixed) setTipo(tipoFixed); }, [tipoFixed]);
   useEffect(() => { if (referenciaFixed) setReferencia(referenciaFixed); }, [referenciaFixed]);
