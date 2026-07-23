@@ -90,6 +90,7 @@ export default function Auth() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string>("");
   const [turnstileError, setTurnstileError] = useState<string | null>(null);
+  const [turnstileNonce, setTurnstileNonce] = useState(0);
   const turnstileSiteKey = useTurnstileSiteKey();
   const { signUp, user } = useAuth();
   const navigate = useNavigate();
@@ -483,6 +484,7 @@ export default function Auth() {
             {isLogin && turnstileSiteKey && (
               <div className="pt-1 space-y-2">
                 <TurnstileWidget
+                  key={turnstileNonce}
                   siteKey={turnstileSiteKey}
                   hidden={!!turnstileError}
                   onToken={(t) => { setTurnstileToken(t); setTurnstileError(null); }}
@@ -492,13 +494,25 @@ export default function Auth() {
                 {turnstileError && (
                   <div
                     role="alert"
-                    className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+                    className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive space-y-2"
                   >
                     <p className="font-medium">Verificação de segurança indisponível neste domínio.</p>
-                    <p className="mt-1 text-destructive/90">
+                    <p className="text-destructive/90">
                       Não foi possível carregar o CAPTCHA (código {turnstileError}). Acesse pelo site oficial{" "}
                       <span className="font-mono">gestor360food.com</span> ou peça ao administrador para autorizar este hostname no painel Cloudflare Turnstile.
                     </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setTurnstileError(null);
+                        setTurnstileToken("");
+                        setTurnstileNonce((n) => n + 1);
+                      }}
+                    >
+                      Tentar novamente
+                    </Button>
                   </div>
                 )}
               </div>
