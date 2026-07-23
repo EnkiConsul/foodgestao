@@ -15,7 +15,7 @@ import { z } from "npm:zod@3";
 const BUCKET = "dp-bulk-import";
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const OCR_MODEL = "google/gemini-2.5-flash";
-const OCR_PARALLELISM = 5;
+const OCR_PARALLELISM = 8;
 const MAX_PAGES = 60;
 
 const BodySchema = z.object({ batch_id: z.string().uuid() });
