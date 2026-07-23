@@ -151,29 +151,33 @@ export function BulkImportPanel({
       await (supabase.from("dp_bulk_import_batches" as any) as any)
         .update({ source_file_path: finalPath }).eq("id", batch.id);
 
-      // Auto-expande o lote novo para o usuário ver o progresso
+      // Auto-expande o lote novo para o usuário ver o progresso em tempo real
       setExpanded((s) => ({ ...s, [batch.id]: true }));
 
-      const { data: ing, error: iErr } = await supabase.functions.invoke("dp-doc-bulk-ingest", {
-        body: { batch_id: batch.id },
-      });
-      if (iErr) {
-        // Marca o batch como falho para não ficar preso em processing
-        await (supabase.from("dp_bulk_import_batches" as any) as any)
-          .update({ status: "failed", error_message: iErr.message ?? "Falha ao processar" })
-          .eq("id", batch.id);
-        throw iErr;
-      }
-      return ing;
+      // Dispara a Edge Function; ela retorna 202 imediatamente e processa em background.
+      // Não bloqueamos aqui — o polling atualiza a UI.
+      supabase.functions
+        .invoke("dp-doc-bulk-ingest", { body: { batch_id: batch.id } })
+        .then(({ error: iErr }) => {
+          if (iErr) {
+            (supabase.from("dp_bulk_import_batches" as any) as any)
+              .update({ status: "failed", error_message: iErr.message ?? "Falha ao processar" })
+              .eq("id", batch.id)
+              .then(() => {
+                qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
+              });
+          }
+        });
+
+      return { batch_id: batch.id };
     },
-    onSuccess: (r: any) => {
-      toast.success(`Lote processado: ${r?.processed ?? 0} páginas, ${r?.matched ?? 0} vinculadas`);
+    onSuccess: () => {
+      toast.success("PDF enviado — processando páginas em segundo plano");
       setFile(null);
       qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
-      qc.invalidateQueries({ queryKey: ["dp_bulk_items"] });
       qc.invalidateQueries({ queryKey: ["dp_bulk_pending_counts"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Falha ao processar"),
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao enviar"),
     onSettled: () => setUploading(false),
   });
 
