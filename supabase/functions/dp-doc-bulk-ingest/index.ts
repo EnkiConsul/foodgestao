@@ -59,8 +59,9 @@ Deno.serve(async (req) => {
     const totalPages = pdf.getPageCount();
 
     await svc.from("dp_bulk_import_batches")
-      .update({ total_pages: totalPages, status: "processing", error_message: null })
+      .update({ total_pages: totalPages, processed_pages: 0, status: "processing", error_message: null })
       .eq("id", batch_id);
+
 
     // 3) Carrega colaboradores da empresa (para match)
     const { data: colabs } = await svc
@@ -141,7 +142,13 @@ Deno.serve(async (req) => {
           error_message: (pageErr as Error).message,
         }, { onConflict: "batch_id,page_index" });
       }
+
+      // Progresso ao vivo — permite polling do frontend
+      await svc.from("dp_bulk_import_batches")
+        .update({ processed_pages: i + 1 })
+        .eq("id", batch_id);
     }
+
 
     await svc.from("dp_bulk_import_batches")
       .update({ status: "ready", matched_count: matched })

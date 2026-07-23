@@ -32,6 +32,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
+import { BulkImportPanel } from "@/components/dp/documentos/BulkImportPanel";
+
 
 type Tipo = "contracheque" | "ponto" | "adiantamento";
 type Aprov = Database["public"]["Enums"]["dp_documento_aprovacao_status"];
@@ -367,6 +369,11 @@ export default function DpDocumentosPorTipo({ tipo: tipoProp }: { tipo?: Tipo } 
           </Button>
         </div>
       )}
+
+      {aba === "importar" && (tipo === "contracheque" || tipo === "ponto" || tipo === "adiantamento") && (
+        <BulkImportPanel tipoFixed={tipo} title={`Importação em massa — ${cfg.titulo}`} />
+      )}
+
 
       {aba === "historico" && (
         <div className="space-y-4">
