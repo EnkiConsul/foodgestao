@@ -1,11 +1,13 @@
-## Reabrir formulário seguro para recolar os 3 secrets da Z-API
+## Adicionar botão "Voltar" para a Landing Page em `/auth`
 
-Vou abrir o formulário de update dos três secrets. Cole exatamente:
+**Escopo:** apenas UI da página `src/pages/Auth.tsx`.
 
-- **`Z_API_INSTANCE_ID`** → `3F68F94F94845025C4D5363AE9828EBD` (ID da instância)
-- **`Z_API_INSTANCE_TOKEN`** → `8439B5409A75F83F042266B7` (Token da instância)
-- **`Z_API_CLIENT_TOKEN`** → valor do menu **Conta de Segurança / Account Security Token** no painel Z-API (⚠️ **não** é o Token da instância)
+### Mudança
+- Inserir um botão discreto no topo do card (ou acima dele) com ícone `ArrowLeft` + texto "Voltar ao site", usando `<Link to="/">` do `react-router-dom`.
+- Estilo: `variant="ghost"` do shadcn, alinhado à esquerda, cor `text-muted-foreground` com hover `text-primary` — coerente com o restante do design 360°FOOD (sem hardcode de cor).
+- Também aplicar o mesmo botão em `/primeiro-acesso` e `/esqueci-senha` para consistência de navegação nas telas públicas de auth.
 
-Após salvar, teste `/esqueci-senha` e verifico o `whatsapp_delivery_status` para confirmar se saiu do `failed_http_403`.
-
-Nenhum arquivo do projeto é alterado — apenas valores de secrets.
+### Detalhes técnicos
+- Nenhuma mudança de lógica, rotas, hooks, backend ou validação.
+- Import: `ArrowLeft` de `lucide-react`, `Link` de `react-router-dom` (já usados no projeto).
+- Sem alteração de layout responsivo — botão fica acima do `<Card>` centralizado.
