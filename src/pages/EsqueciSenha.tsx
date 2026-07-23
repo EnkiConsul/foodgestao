@@ -80,6 +80,7 @@ export default function EsqueciSenha() {
       setChallengeId(data.challenge_id);
       setChallengeToken(data.challenge_token);
       setSecondsLeft(data.expires_in ?? 600);
+      setResendIn(RESEND_COOLDOWN);
       setStep("otp");
     } catch (err: any) {
       const msg = err?.context?.error ?? err?.message ?? "Falha ao enviar código.";
