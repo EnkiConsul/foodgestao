@@ -1,17 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useParams } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  Upload, History, Download, Pencil, Loader2, Check, X, Trash2, Eye,
-  FileText, Clock, Coins,
+  Upload, History, Download, Pencil, Check, X, Trash2, Eye,
+  FileText, Clock,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { sanitizeStorageFilename } from "@/lib/storage";
-import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 
@@ -88,17 +86,10 @@ export default function DpDocumentosPorTipo({ tipo: tipoProp }: { tipo?: Tipo } 
   const Icon = cfg.icon;
 
   const { selectedCompanyId } = useCompanyContext();
-  const { user } = useAuth();
   const qc = useQueryClient();
   const { data: colaboradores = [] } = useDpColaboradores();
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const [aba, setAba] = useState<"importar" | "historico">("importar");
-
-  // Import (drag-drop simples)
-  const [dragOver, setDragOver] = useState(false);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
 
   // Filtros
   const [filtroColab, setFiltroColab] = useState("todos");
