@@ -1,35 +1,22 @@
-## Diagnóstico confirmado
+## Objetivo
+Reinserir as credenciais da Z-API para validar se o erro `403 Client-Token not allowed` é causado por token incorreto/expirado.
 
-- O backend está conseguindo encontrar o usuário em tentativas recentes: há registros `pending_otp` com `user_id` preenchido.
-- Também há telefone cadastrado para esse usuário: o cadastro tem telefone em `profiles.phone` e o formato bruto possui 11 dígitos, compatível com celular brasileiro com DDD.
-- Portanto, para as tentativas recentes, o problema não parece ser ausência de telefone nem formato inválido no cadastro.
-- O registro fica com `otp_sent_at` preenchido, mas sem `whatsapp_message_id` e sem `whatsapp_delivery_status = sent`, indicando que o sistema tentou enviar, mas a Z-API não confirmou o disparo.
-- Os logs recentes da função mostram rejeição da Z-API com `403 Client-Token ... not allowed`, o que aponta para credencial/header/instância Z-API não autorizada, não para busca de telefone.
+## Passos
 
-## Plano de correção
+1. **Reabrir o formulário seguro de secrets** para os 3 valores da Z-API:
+   - `Z_API_INSTANCE_ID` — ID da instância (dashboard Z-API → sua instância)
+   - `Z_API_INSTANCE_TOKEN` — Token da instância (mesma tela, campo "Token")
+   - `Z_API_CLIENT_TOKEN` — Account Security Token (Menu **Conta de Segurança** no painel Z-API; **não** é o token da instância)
 
-1. **Melhorar a observabilidade sem vazar dados sensíveis**
-   - Registrar nos logs apenas: se encontrou usuário, se encontrou telefone, origem do telefone (`profiles.phone`, `dp_colaboradores.whatsapp` ou `dp_colaboradores.telefone`), quantidade de dígitos e status HTTP da Z-API.
-   - Não logar CPF, e-mail, telefone completo, OTP, token ou Client-Token.
+   Observação: a causa mais comum do `403 Client-Token not allowed` é confundir o **Client-Token (Account Security Token)** com o token da instância. Confirme no painel qual valor pertence a cada campo antes de colar.
 
-2. **Persistir falha técnica de envio no lote de recuperação**
-   - Quando a Z-API retornar erro, atualizar `auth_recovery_challenges.whatsapp_delivery_status` com códigos seguros como `failed_http_403`, `failed_network_error`, `failed_not_configured`.
-   - Assim o histórico deixa claro se foi telefone ausente/formato inválido ou erro de integração.
+2. **Após salvar**, disparar um teste controlado:
+   - Chamar `checkZapiStatus()` via `/esqueci-senha` com um CPF válido.
+   - Conferir em `auth_recovery_challenges.whatsapp_delivery_status` se o valor deixa de ser `failed_http_403` e passa a `sent` (ou outro código).
 
-3. **Validar status da instância antes do envio**
-   - Chamar `checkZapiStatus()` antes de `sendZapiText()`.
-   - Se a instância estiver desconectada ou rejeitando credenciais, gravar status seguro e não tentar múltiplos envios desnecessários.
+3. **Se ainda falhar com 403**: sinal de que o Client-Token no painel Z-API está desativado ou foi rotacionado — orientar regeneração no painel e nova atualização do secret.
 
-4. **Aprimorar fallback de telefone**
-   - Manter a ordem atual `profiles.phone -> dp_colaboradores.whatsapp -> dp_colaboradores.telefone`.
-   - Registrar apenas a origem usada e o resultado da normalização.
-   - Se nenhum número normalizar, manter resposta genérica para o usuário, mas gravar `no_valid_phone` internamente.
+## Nada de código muda
+Nenhum arquivo do projeto será alterado — apenas os valores dos secrets no ambiente. A telemetria já implementada na última rodada é suficiente para diagnosticar o resultado.
 
-5. **Ajustar retorno interno sem quebrar segurança**
-   - A tela continuará sem revelar se o identificador existe ou qual telefone foi usado.
-   - Para administradores/debug, a diferença ficará nos logs e no campo `whatsapp_delivery_status`.
-
-## O que provavelmente precisa ser corrigido fora do código
-
-- Revisar o segredo/configuração `Z_API_CLIENT_TOKEN` no backend, porque o erro atual da Z-API é `403 Client-Token not allowed`.
-- Confirmar que o `Client-Token` pertence à mesma conta/instância dos valores `Z_API_INSTANCE_ID` e `Z_API_TOKEN`.
+Confirma que quer que eu abra o formulário para você recolar os três valores?
