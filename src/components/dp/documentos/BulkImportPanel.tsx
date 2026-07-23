@@ -531,6 +531,15 @@ export function BulkImportPanel({
           )}
         </CardContent>
       </Card>
+
+      {reviewBatch && (
+        <BulkReviewDialog
+          open={!!reviewBatch}
+          onOpenChange={(o) => !o && setReviewBatch(null)}
+          batchId={reviewBatch.id}
+          batchName={reviewBatch.name}
+        />
+      )}
     </div>
   );
 }
