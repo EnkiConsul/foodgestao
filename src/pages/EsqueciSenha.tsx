@@ -30,18 +30,31 @@ export default function EsqueciSenha() {
   const [otp, setOtp] = useState("");
   const [secondsLeft, setSecondsLeft] = useState(0);
 
+  // Resend control
+  const RESEND_COOLDOWN = 60;
+  const MAX_RESENDS = 3;
+  const [resendIn, setResendIn] = useState(0);
+  const [resendAttempts, setResendAttempts] = useState(0);
+
   // Password reset state
   const [resetToken, setResetToken] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
 
-  // OTP countdown
+  // OTP expiration countdown
   useEffect(() => {
     if (step !== "otp" || secondsLeft <= 0) return;
     const t = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(t);
   }, [step, secondsLeft]);
+
+  // Resend cooldown countdown
+  useEffect(() => {
+    if (step !== "otp" || resendIn <= 0) return;
+    const t = setInterval(() => setResendIn((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(t);
+  }, [step, resendIn]);
 
   async function handleRequest(e: React.FormEvent) {
     e.preventDefault();
@@ -67,6 +80,7 @@ export default function EsqueciSenha() {
       setChallengeId(data.challenge_id);
       setChallengeToken(data.challenge_token);
       setSecondsLeft(data.expires_in ?? 600);
+      setResendIn(RESEND_COOLDOWN);
       setStep("otp");
     } catch (err: any) {
       const msg = err?.context?.error ?? err?.message ?? "Falha ao enviar código.";
@@ -241,14 +255,34 @@ export default function EsqueciSenha() {
                 {submitting ? "Verificando..." : "Verificar código"}
               </Button>
 
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full"
-                onClick={() => { setStep("identify"); setOtp(""); setChallengeId(null); setChallengeToken(null); }}
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" /> Solicitar novo código
-              </Button>
+              {resendAttempts < MAX_RESENDS ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  disabled={resendIn > 0}
+                  onClick={() => {
+                    setResendAttempts((n) => n + 1);
+                    setOtp("");
+                    setChallengeId(null);
+                    setChallengeToken(null);
+                    setTurnstileToken(null);
+                    setSecondsLeft(0);
+                    setResendIn(0);
+                    setStep("identify");
+                    toast.info("Complete a verificação de segurança para reenviar o código.");
+                  }}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  {resendIn > 0
+                    ? `Reenviar em ${resendIn}s`
+                    : `Reenviar código (${MAX_RESENDS - resendAttempts} restantes)`}
+                </Button>
+              ) : (
+                <p className="text-xs text-center text-muted-foreground">
+                  Limite de reenvios atingido. Tente novamente em alguns minutos.
+                </p>
+              )}
             </form>
           )}
 
