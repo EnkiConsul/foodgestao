@@ -2206,16 +2206,21 @@ export type Database = {
           created_at: string
           decided_at: string | null
           decided_by: string | null
+          detected_cnpj: string | null
+          detected_competencia: string | null
+          duplicate_of: string | null
           error_message: string | null
           id: string
           imported_documento_id: string | null
           manual_override: boolean
+          matched_colaborador_ativo: boolean | null
           matched_colaborador_id: string | null
           matched_cpf: string | null
           matched_nome: string | null
           ocr_text: string | null
           page_file_path: string
           page_index: number
+          page_thumb_url: string | null
           status: string
           updated_at: string
         }
@@ -2226,16 +2231,21 @@ export type Database = {
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
+          detected_cnpj?: string | null
+          detected_competencia?: string | null
+          duplicate_of?: string | null
           error_message?: string | null
           id?: string
           imported_documento_id?: string | null
           manual_override?: boolean
+          matched_colaborador_ativo?: boolean | null
           matched_colaborador_id?: string | null
           matched_cpf?: string | null
           matched_nome?: string | null
           ocr_text?: string | null
           page_file_path: string
           page_index: number
+          page_thumb_url?: string | null
           status?: string
           updated_at?: string
         }
@@ -2246,16 +2256,21 @@ export type Database = {
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
+          detected_cnpj?: string | null
+          detected_competencia?: string | null
+          duplicate_of?: string | null
           error_message?: string | null
           id?: string
           imported_documento_id?: string | null
           manual_override?: boolean
+          matched_colaborador_ativo?: boolean | null
           matched_colaborador_id?: string | null
           matched_cpf?: string | null
           matched_nome?: string | null
           ocr_text?: string | null
           page_file_path?: string
           page_index?: number
+          page_thumb_url?: string | null
           status?: string
           updated_at?: string
         }
@@ -2272,6 +2287,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_bulk_import_items_duplicate_of_fkey"
+            columns: ["duplicate_of"]
+            isOneToOne: false
+            referencedRelation: "dp_documentos"
             referencedColumns: ["id"]
           },
           {
