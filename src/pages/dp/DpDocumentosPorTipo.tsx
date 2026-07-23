@@ -370,6 +370,11 @@ export default function DpDocumentosPorTipo({ tipo: tipoProp }: { tipo?: Tipo } 
         </div>
       )}
 
+      {aba === "importar" && (tipo === "contracheque" || tipo === "ponto" || tipo === "adiantamento") && (
+        <BulkImportPanel tipoFixed={tipo} title={`Importação em massa — ${cfg.titulo}`} />
+      )}
+
+
       {aba === "historico" && (
         <div className="space-y-4">
           {/* Filtros */}
