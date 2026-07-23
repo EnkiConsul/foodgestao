@@ -176,7 +176,7 @@ export default function Auth() {
     }
 
     const parsed = isLogin
-      ? loginSchema.safeParse({ email, password })
+      ? loginSchema.safeParse({ identifier, password })
       : signupSchema.safeParse({ email, password, confirmPassword, fullName, acceptTerms: acceptTerms as true });
 
     if (!parsed.success) {
@@ -204,9 +204,20 @@ export default function Auth() {
     setSubmitting(true);
     try {
       if (isLogin) {
-        const { error } = await signIn(email, password);
-        if (error) {
-          toast.error("Erro ao entrar", { description: error.message });
+        if (!turnstileToken) {
+          toast.error("Verificação de segurança", { description: "Aguarde ou complete o desafio antes de entrar." });
+          setSubmitting(false);
+          return;
+        }
+        const result = await unifiedSignIn(identifier, password, turnstileToken);
+        if (!result.ok) {
+          toast.error("Erro ao entrar", { description: result.errorMessage });
+          setTurnstileToken(""); // force re-solve
+          if (typeof window !== "undefined" && window.turnstile) {
+            try { window.turnstile.reset(); } catch { /* noop */ }
+          }
+        } else if (result.passwordChangeRequired) {
+          navigate("/primeiro-acesso", { replace: true });
         } else {
           await checkMfaAndRedirect();
         }
