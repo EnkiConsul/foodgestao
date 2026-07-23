@@ -13,6 +13,7 @@ export type ZapiSendResult = {
 export type ZapiStatusResult = {
   connected: boolean;
   error?: string;
+  httpStatus?: number;
 };
 
 const VALID_BR_DDDS = new Set<number>([
@@ -71,6 +72,22 @@ function baseUrl(): { url: string; clientToken: string } | null {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+function safeZapiError(raw: unknown, httpStatus?: number): string {
+  const fallback = typeof httpStatus === "number" ? `http_${httpStatus}` : "zapi_error";
+  if (typeof raw !== "string") return fallback;
+
+  const text = raw.trim();
+  if (!text) return fallback;
+
+  // Z-API can echo credentials in error bodies (for example "Client-Token ... not allowed").
+  // Never return or log those values; keep only compact, non-sensitive error codes.
+  if (/client[-_ ]?token|authorization|bearer|token|secret|key|jwt/i.test(text)) return fallback;
+  if (text.length > 80) return fallback;
+  if (!/^[a-z0-9_.:\- ]+$/i.test(text)) return fallback;
+
+  return text;
+}
+
 /**
  * Check whether the Z-API instance is connected (WhatsApp session active).
  * Uses GET /status per Z-API docs. Safe to skip on error (fail-open with warning).
@@ -88,12 +105,13 @@ export async function checkZapiStatus(): Promise<ZapiStatusResult> {
     try { parsed = JSON.parse(raw); } catch { /* text */ }
     if (!resp.ok) {
       console.error("[zapi] status non-2xx:", resp.status);
-      return { connected: false, error: `http_${resp.status}` };
+      return { connected: false, error: `http_${resp.status}`, httpStatus: resp.status };
     }
-    const connected = Boolean(parsed?.connected ?? parsed?.smartphoneConnected);
+    const connectedRaw = parsed?.connected ?? parsed?.smartphoneConnected;
+    const connected = typeof connectedRaw === "boolean" ? connectedRaw : true;
     return { connected };
   } catch (e) {
-    console.error("[zapi] status exception:", (e as Error).message);
+    console.error("[zapi] status exception: network_error");
     return { connected: false, error: "network_error" };
   }
 }
@@ -117,21 +135,20 @@ async function sendOnce(phoneE164: string, message: string): Promise<ZapiSendRes
       try { parsed = JSON.parse(raw); } catch { /* ignore */ }
     }
     if (!resp.ok) {
-      console.error(
-        "[zapi] send-text non-2xx:",
-        resp.status,
-        parsed?.error ?? (contentType.includes("json") ? "unknown" : `non_json(${contentType})`),
-      );
+      const safeError = contentType.includes("json")
+        ? safeZapiError(parsed?.error, resp.status)
+        : `http_${resp.status}`;
+      console.error("[zapi] send-text non-2xx:", resp.status, safeError);
       return {
         ok: false,
-        error: parsed?.error ?? `http_${resp.status}`,
+        error: safeError,
         httpStatus: resp.status,
       };
     }
     const messageId = parsed?.messageId ?? parsed?.id ?? parsed?.zaapId;
     return { ok: true, messageId, httpStatus: resp.status };
   } catch (e) {
-    console.error("[zapi] send-text exception:", (e as Error).message);
+    console.error("[zapi] send-text exception: network_error");
     return { ok: false, error: "network_error" };
   }
 }
