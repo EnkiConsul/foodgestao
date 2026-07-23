@@ -69,7 +69,7 @@ export function BulkImportPanel({
     enabled: !!selectedCompanyId,
     refetchInterval: (q) => {
       const rows = (q.state.data as any[] | undefined) ?? [];
-      return rows.some((b) => b.status === "processing") ? 3000 : false;
+      return rows.some((b) => b.status === "processing") ? 1500 : false;
     },
     queryFn: async () => {
       let query = supabase
