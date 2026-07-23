@@ -20,20 +20,17 @@ Deno.serve(async (req) => {
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    const userClient = createClient(SUPABASE_URL, ANON, {
-      global: { headers: { Authorization: authHeader } },
-    });
     const token = authHeader.replace(/^Bearer\s+/i, "");
-    const { data: claims, error: claimsErr } = await userClient.auth.getClaims(token);
-    if (claimsErr || !claims?.claims?.sub) {
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+    const { data: userData, error: userErr } = await admin.auth.getUser(token);
+    if (userErr || !userData?.user?.id) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const callerId = claims.claims.sub as string;
+    const callerId = userData.user.id;
 
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
     const { data: isSuper } = await admin.rpc("is_super_admin", { _user_id: callerId });
     if (!isSuper) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
