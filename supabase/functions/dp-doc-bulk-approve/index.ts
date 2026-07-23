@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
           error_message: null,
         }).eq("id", it.id);
 
-        results.push({ id: it.id, ok: true, documento_id: doc.id });
+        results.push({ id: it.id, ok: true, documento_id: doc.id, replaced: replacedFlag });
       } catch (e) {
         await svc.from("dp_bulk_import_items").update({
           status: "failed", error_message: (e as Error).message,
