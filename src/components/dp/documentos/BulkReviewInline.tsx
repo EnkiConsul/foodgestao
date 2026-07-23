@@ -280,6 +280,14 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
     : current.matched_colaborador_id ? "success"
     : "warning";
 
+  // OCR gating: só liberamos preview/navegação quando o batch está pronto
+  // E temos todas as linhas correspondentes.
+  const bInfo = batchInfo.data as any;
+  const totalPages = bInfo?.total_pages ?? 0;
+  const processedPages = bInfo?.processed_pages ?? 0;
+  const ocrInProgress = !bInfo || bInfo.status !== "ready" || (totalPages > 0 && rows.length < totalPages);
+  const approvedCount = Math.min(savingTotal, bInfo?.approved_count ?? 0);
+
   return (
     <div className="border rounded-md bg-background overflow-hidden">
       {/* Header: nome do arquivo + contadores + progresso */}
@@ -288,12 +296,14 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
           <div className="min-w-0">
             <div className="text-sm font-semibold truncate">{batchName ?? "Importação"}</div>
             <div className="text-xs text-muted-foreground">
-              {stats.total > 0
-                ? <>{stats.vinc} vinculados · {stats.ign} ignorados · {stats.pend} pendentes</>
-                : "Aguardando OCR…"}
+              {ocrInProgress
+                ? <>Processando OCR — {processedPages} de {totalPages || "?"} página(s)</>
+                : stats.total > 0
+                  ? <>{stats.vinc} vinculados · {stats.ign} ignorados · {stats.pend} pendentes</>
+                  : "Aguardando OCR…"}
             </div>
           </div>
-          {onOpenFullscreen && (
+          {onOpenFullscreen && !ocrInProgress && !isSaving && (
             <Button size="sm" variant="outline" onClick={onOpenFullscreen}>
               <ExternalLink className="h-4 w-4 mr-1" /> Tela cheia
             </Button>
@@ -307,6 +317,23 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
         </div>
       </div>
 
+      {/* Enquanto o OCR ainda não completou, mostramos apenas o banner de
+          progresso — nada de preview parcial nem navegação enganosa. */}
+      {ocrInProgress && (
+        <div className="p-4">
+          <BulkProgressBanner phase="ocr" current={processedPages} total={totalPages} />
+        </div>
+      )}
+
+      {/* Enquanto salvando, também bloqueamos a UI de revisão. */}
+      {!ocrInProgress && isSaving && (
+        <div className="p-4">
+          <BulkProgressBanner phase="saving" current={approvedCount} total={savingTotal} />
+        </div>
+      )}
+
+      {!ocrInProgress && !isSaving && (
+      <>
       {/* Navigation bar */}
       <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/20">
         <Button
@@ -330,11 +357,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
 
       {/* Card com preview */}
       <div className="p-3">
-        {rows.length === 0 && (
-          <div className="border rounded-md p-8 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" /> Processando OCR das páginas…
-          </div>
-        )}
+
 
         {current && (
           <div className={cn(
