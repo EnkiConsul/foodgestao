@@ -1,44 +1,38 @@
-# Fix — Detecção automática de competência
+Plano de correção
 
-## Problema
-No contracheque importado o cabeçalho traz "Folha Mensal — Junho de 2026", mas o campo Competência ficou vazio na revisão. A função `extractPeriodo` em `supabase/functions/dp-doc-bulk-ingest/index.ts` não capturou o padrão.
+1. Corrigir o vínculo automático da competência
+- Padronizar a competência detectada por página como mês (`YYYY-MM`) na revisão.
+- Trocar os campos de competência da revisão inline e tela cheia de `date` para `month`, porque hoje o valor detectado (`YYYY-MM`) não aparece em um input de data completa.
+- Na aprovação, gravar `dp_documentos.referencia_data` usando a competência do item (`detected_competencia + '-01'`) antes de usar o fallback do lote (`referencia_data`).
+- Ajustar a verificação de duplicidade para usar a competência por página, garantindo que contracheque/ponto/adiantamento de “Junho de 2026” seja salvo como `2026-06-01`.
+- Fortalecer a extração na função de OCR para aceitar variações comuns: `Junho de 2026`, `JUNHO/2026`, `06/2026`, `06.2026`, `Competência: Junho 2026`, `Referência: 06-2026` e mês/ano no nome do arquivo.
 
-## Causa provável
-1. `extractPeriodo` só reconhece:
-   - `comp/competencia/referencia/periodo` + `MM/YYYY|MM-YYYY`
-   - `MES YYYY` com até 10 caracteres não-numéricos entre nome e ano
-   - `MM/YYYY` ou `MM-YYYY` isolados
-   
-   Não cobre `MM.YYYY` (formato do nome do arquivo "Recibo de Pagamento 06.2026.pdf") nem variações onde o OCR pode retornar "Junho/2026" seguido de mais texto antes do ano. Também não usa o nome do arquivo original como fallback.
+2. Melhorar a visualização da competência detectada
+- Mostrar a competência detectada no painel de revisão como `06/2026` quando existir.
+- Manter edição manual por página para casos em que o OCR não encontrar a competência.
+- Ao selecionar manualmente a competência, salvar no item no mesmo padrão (`YYYY-MM`) para a aprovação usar corretamente.
 
-2. Não há fallback para o `original_filename` do batch, que quase sempre traz a competência.
+3. Não manter lotes não aprovados como histórico permanente
+- Tratar `dp_bulk_import_batches` e `dp_bulk_import_items` como área temporária de revisão, não como documento final.
+- Adicionar ação visível “Descartar lote” nos lotes que ainda não foram aprovados/importados.
+- Ao descartar, remover:
+  - itens do lote;
+  - registro do lote;
+  - arquivos temporários no bucket de importação (`source.pdf` e páginas separadas).
+- Após aprovar e salvar documentos, limpar automaticamente os arquivos temporários do lote aprovado, preservando apenas os documentos finais em `dp_documentos`.
 
-## Correções
+4. Limpeza automática de lotes abandonados
+- Criar rotina segura no backend para apagar lotes temporários sem nenhum documento importado após um período curto de abandono.
+- Critério sugerido: remover lotes `ready`, `failed` ou `processing` antigos sem itens importados, junto com arquivos temporários.
+- Isso evita que importações que o usuário não concluiu continuem aparecendo em “Lotes recentes”.
 
-### A. `supabase/functions/dp-doc-bulk-ingest/index.ts`
+5. Ajustes de lista e UX
+- Exibir em “Lotes recentes” apenas lotes em processamento/revisão recente ou com importação parcial/importada relevante.
+- Para lotes temporários pendentes, deixar claro que nada foi salvo como documento final até clicar em “Aprovar e Salvar”.
+- Atualizar os invalidates/refetches para a lista sumir imediatamente após descartar ou aprovar.
 
-1. **Ampliar `extractPeriodo(text)`**:
-   - Aceitar separador `.` em `MM.YYYY` (`r3` → `[\/\-\.]`).
-   - Após tentar o texto OCR, deixar a função retornar `null` normalmente.
-
-2. **Novo helper `extractPeriodoFromFilename(name)`** que reaproveita os mesmos padrões (`MM.YYYY`, `MM/YYYY`, `MM-YYYY`, `MES YYYY`) sobre o nome do arquivo.
-
-3. **Em `processPage`**, calcular competência como:
-   ```ts
-   const competencia =
-     extractPeriodo(ocr) ??
-     extractPeriodoFromFilename(batch.original_filename ?? "");
-   ```
-   Assim, quando o OCR falhar (documento com layout atípico), o nome do arquivo garante a competência.
-
-4. **Sanidade no regex `r2` (nome do mês)**: aumentar a janela `[^\d]{0,10}` para `[^\d]{0,15}` para tolerar `"Junho de 2026"` com espaços extras/pontuação do OCR.
-
-### B. Nada muda no frontend
-`BulkReviewInline` já mostra o campo Competência editável — a correção apenas garante que ele venha preenchido automaticamente na maioria dos casos.
-
-## Fora de escopo
-- Rechamar OCR em lotes já processados (usuário pode editar manualmente ou reprocessar o lote).
-- Detectar competência via layout/coordenadas do PDF.
-
-## Arquivos alterados
-- `supabase/functions/dp-doc-bulk-ingest/index.ts` (apenas `extractPeriodo`, novo helper de filename, uso no `processPage`).
+6. Validação
+- Testar com contracheque contendo “Junho de 2026”: a página deve abrir já com competência `06/2026` preenchida.
+- Aprovar o item e confirmar que o documento final fica com `referencia_data = 2026-06-01`.
+- Processar um lote e descartar: o lote deve desaparecer e não deixar itens/arquivos temporários acessíveis.
+- Aprovar um lote: documentos finais permanecem; staging temporário é limpo.
