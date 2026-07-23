@@ -57,6 +57,28 @@ Deno.serve(async (req) => {
         }
 
         const batch = it.dp_bulk_import_batches;
+
+        // Duplicidade: já existe documento para (colaborador, tipo, referencia_data)?
+        if (batch.referencia_data) {
+          const { data: dup } = await svc
+            .from("dp_documentos")
+            .select("id")
+            .eq("company_id", batch.company_id)
+            .eq("colaborador_id", it.matched_colaborador_id)
+            .eq("tipo", batch.tipo)
+            .eq("referencia_data", batch.referencia_data)
+            .limit(1)
+            .maybeSingle();
+          if (dup?.id) {
+            await svc.from("dp_bulk_import_items").update({
+              status: "failed",
+              error_message: `Já existe documento para este colaborador em ${batch.referencia_data}`,
+            }).eq("id", it.id);
+            results.push({ id: it.id, ok: false, error: "duplicate", documento_id: dup.id });
+            continue;
+          }
+        }
+
         const src = await svc.storage.from(SRC_BUCKET).download(it.page_file_path);
         if (src.error || !src.data) throw new Error(src.error?.message ?? "Falha ao ler página");
         const bytes = new Uint8Array(await src.data.arrayBuffer());
