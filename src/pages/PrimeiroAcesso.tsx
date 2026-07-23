@@ -75,7 +75,15 @@ export default function PrimeiroAcesso() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Helmet><title>Primeiro acesso — 360°FOOD</title></Helmet>
-      <Card className="w-full max-w-md shadow-lg">
+      <div className="w-full max-w-md space-y-3">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Voltar ao site
+        </Link>
+        <Card className="w-full shadow-lg">
         <CardHeader className="text-center space-y-3">
           <CardTitle className="text-2xl font-bold">Defina sua senha</CardTitle>
           <CardDescription>
