@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import logoMarinho from "@/assets/360food-logo-marinho.png.asset.json";
 
 function formatCpfMask(v: string): string {
   const d = v.replace(/\D/g, "").slice(0, 11);
@@ -69,14 +70,14 @@ export default function DpLogin() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Helmet><title>Portal do Colaborador — 360°FOOD</title></Helmet>
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <IdCard className="h-6 w-6 text-primary" />
-          </div>
-          <CardTitle className="text-2xl">
-            <span className="text-primary">360°</span>
-            <span>FOOD</span>
-          </CardTitle>
+        <CardHeader className="text-center space-y-3">
+          <img
+            src={logoMarinho.url}
+            alt="360°FOOD"
+            className="mx-auto h-16 w-auto select-none"
+            draggable={false}
+          />
+          <CardTitle className="sr-only">360°FOOD</CardTitle>
           <CardDescription>Portal do Colaborador — acesse com CPF e senha</CardDescription>
         </CardHeader>
         <CardContent>
