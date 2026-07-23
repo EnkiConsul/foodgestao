@@ -89,6 +89,7 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string>("");
+  const [turnstileError, setTurnstileError] = useState<string | null>(null);
   const turnstileSiteKey = useTurnstileSiteKey();
   const { signUp, user } = useAuth();
   const navigate = useNavigate();
