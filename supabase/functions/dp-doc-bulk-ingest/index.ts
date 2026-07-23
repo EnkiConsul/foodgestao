@@ -272,14 +272,18 @@ async function processPage(args: {
       error_message: (pageErr as Error).message,
     }, { onConflict: "batch_id,page_index" });
   } finally {
-    // Incrementa progresso de forma atômica
-    await svc.rpc("dp_bulk_increment_processed", { p_batch_id: batch_id }).catch(async () => {
-      // Fallback: leitura + escrita simples (best effort)
-      const { data } = await svc.from("dp_bulk_import_batches")
-        .select("processed_pages,total_pages").eq("id", batch_id).maybeSingle();
-      const next = Math.min((data?.total_pages ?? 0), (data?.processed_pages ?? 0) + 1);
-      await svc.from("dp_bulk_import_batches").update({ processed_pages: next }).eq("id", batch_id);
-    });
+    // Incrementa progresso de forma atômica (rpc não expõe .catch — usar await + error)
+    try {
+      const { error: incErr } = await svc.rpc("dp_bulk_increment_processed", { p_batch_id: batch_id });
+      if (incErr) {
+        const { data } = await svc.from("dp_bulk_import_batches")
+          .select("processed_pages,total_pages").eq("id", batch_id).maybeSingle();
+        const next = Math.min((data?.total_pages ?? 0), (data?.processed_pages ?? 0) + 1);
+        await svc.from("dp_bulk_import_batches").update({ processed_pages: next }).eq("id", batch_id);
+      }
+    } catch (e) {
+      console.error("[dp-doc-bulk-ingest] increment progress failed", e);
+    }
   }
 }
 
