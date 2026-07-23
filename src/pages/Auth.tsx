@@ -205,6 +205,13 @@ export default function Auth() {
     setSubmitting(true);
     try {
       if (isLogin) {
+        if (turnstileError) {
+          toast.error("Verificação de segurança indisponível", {
+            description: "Não foi possível carregar o CAPTCHA neste domínio. Acesse pelo site oficial ou avise o administrador.",
+          });
+          setSubmitting(false);
+          return;
+        }
         if (!turnstileToken) {
           toast.error("Verificação de segurança", { description: "Aguarde ou complete o desafio antes de entrar." });
           setSubmitting(false);
