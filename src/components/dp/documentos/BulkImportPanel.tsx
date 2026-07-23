@@ -373,19 +373,40 @@ export function BulkImportPanel({
                       )}
                     </div>
                   </div>
-                  <Badge variant={
-                    b.status === "imported" ? "default"
-                    : b.status === "failed" ? "destructive"
-                    : "secondary"
-                  }>
-                    {isProcessing && <Loader2 className="h-3 w-3 mr-1 animate-spin inline" />}
-                    {b.status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {!isProcessing && totalPag > 0 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setReviewBatch({ id: b.id, name: b.source_file_name });
+                        }}
+                      >
+                        <Eye className="h-4 w-4 mr-1" /> Revisar
+                      </Button>
+                    )}
+                    <Badge variant={
+                      b.status === "imported" ? "default"
+                      : b.status === "failed" ? "destructive"
+                      : "secondary"
+                    }>
+                      {isProcessing && <Loader2 className="h-3 w-3 mr-1 animate-spin inline" />}
+                      {b.status}
+                    </Badge>
+                  </div>
                 </button>
 
                 {isOpen && (
                   <div className="border-t p-3 space-y-2">
-                    <div className="flex justify-end">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setReviewBatch({ id: b.id, name: b.source_file_name })}
+                      >
+                        <Eye className="h-4 w-4 mr-1" /> Revisar visualmente
+                      </Button>
                       <Button
                         size="sm"
                         disabled={pending.length === 0 || approve.isPending}
