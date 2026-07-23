@@ -16,7 +16,7 @@ type Step = "identify" | "otp" | "password" | "done";
 
 export default function EsqueciSenha() {
   const navigate = useNavigate();
-  const { siteKey, loading: skLoading } = useTurnstileSiteKey();
+  const siteKey = useTurnstileSiteKey();
 
   const [step, setStep] = useState<Step>("identify");
   const [identifier, setIdentifier] = useState("");
