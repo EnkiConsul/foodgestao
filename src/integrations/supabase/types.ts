@@ -5786,6 +5786,10 @@ export type Database = {
         }[]
       }
       get_my_access_contexts: { Args: never; Returns: Json }
+      get_password_change_required: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       get_user_plan_features: { Args: { _user_id: string }; Returns: Json }
       has_role: {
         Args: {
@@ -5996,7 +6000,23 @@ export type Database = {
         Returns: number
       }
       recompute_all_account_balances: { Args: never; Returns: number }
+      record_login_attempt: {
+        Args: { _identifier_hash: string; _ip: string; _success: boolean }
+        Returns: {
+          attempts: number
+          blocked: boolean
+          retry_after_seconds: number
+        }[]
+      }
       resolve_cpf_login: { Args: { _cpf: string }; Returns: string }
+      resolve_login_identifier: {
+        Args: { _identifier: string }
+        Returns: {
+          email: string
+          source: string
+          user_id: string
+        }[]
+      }
       seed_default_categories: { Args: { _company_id: string }; Returns: Json }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
