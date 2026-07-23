@@ -38,12 +38,34 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [rendering, setRendering] = useState(false);
 
+  const batchInfo = useQuery({
+    queryKey: ["dp_bulk_batch_info", batchId],
+    enabled: open && !!batchId,
+    refetchInterval: (q) => {
+      const b = q.state.data as any;
+      return !b || b.status !== "ready" ? 1500 : false;
+    },
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_bulk_import_batches" as any)
+        .select("id,status,total_pages,processed_pages")
+        .eq("id", batchId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any;
+    },
+  });
+
   const items = useQuery({
     queryKey: ["dp_bulk_items_review", batchId],
     enabled: open && !!batchId,
     refetchInterval: (q) => {
       const rows = (q.state.data as any[] | undefined) ?? [];
-      return rows.length === 0 ? 1500 : false;
+      const b = batchInfo.data as any;
+      const total = b?.total_pages ?? 0;
+      const notReady = !b || b.status !== "ready";
+      const missingRows = total > 0 && rows.length < total;
+      return (notReady || missingRows || rows.length === 0) ? 1500 : false;
     },
     queryFn: async () => {
       const { data, error } = await supabase
@@ -55,6 +77,13 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
       return data as any[];
     },
   });
+
+  useEffect(() => {
+    if (batchInfo.data?.status === "ready") {
+      qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] });
+    }
+  }, [batchInfo.data?.status, batchId, qc]);
+
 
   useEffect(() => {
     if (!open) setCurrentIdx(0);

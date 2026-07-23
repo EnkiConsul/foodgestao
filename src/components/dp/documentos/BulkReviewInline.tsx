@@ -51,13 +51,35 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
   const [rendering, setRendering] = useState(false);
   const signedUrlsRef = useRef<Map<string, { url: string; exp: number }>>(new Map());
 
+  const batchInfo = useQuery({
+    queryKey: ["dp_bulk_batch_info", batchId],
+    enabled: !!batchId,
+    refetchInterval: (q) => {
+      const b = q.state.data as any;
+      return !b || b.status !== "ready" ? 1500 : false;
+    },
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_bulk_import_batches" as any)
+        .select("id,status,total_pages,processed_pages")
+        .eq("id", batchId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any;
+    },
+  });
+
   const items = useQuery({
     queryKey: ["dp_bulk_items_review", batchId],
     enabled: !!batchId,
     refetchInterval: (q) => {
       const rows = (q.state.data as any[] | undefined) ?? [];
-      const anyPending = !rows.length || rows.some((r: any) => r.status === "pending" && !r.matched_colaborador_id && !r.error_message);
-      return anyPending ? 2000 : false;
+      const b = batchInfo.data as any;
+      const total = b?.total_pages ?? 0;
+      const notReady = !b || b.status !== "ready";
+      const missingRows = total > 0 && rows.length < total;
+      const anyUnresolved = rows.some((r: any) => r.status === "pending" && !r.matched_colaborador_id && !r.error_message);
+      return (notReady || missingRows || anyUnresolved || !rows.length) ? 2000 : false;
     },
     queryFn: async () => {
       const { data, error } = await supabase
@@ -69,6 +91,14 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
       return data as any[];
     },
   });
+
+  // Quando o batch fica "ready", força um refetch dos itens para pegar tudo
+  useEffect(() => {
+    if (batchInfo.data?.status === "ready") {
+      qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] });
+    }
+  }, [batchInfo.data?.status, batchId, qc]);
+
 
   const rows = items.data ?? [];
   const current = rows[currentIdx];
