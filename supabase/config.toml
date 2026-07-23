@@ -21,3 +21,7 @@ project_id = "grtxmbffgmgnkawlvqhm"
     verify_jwt = true
   [functions.send-transactional-email]
     verify_jwt = true
+  [functions.auth-config]
+    verify_jwt = false
+  [functions.auth-login]
+    verify_jwt = false
