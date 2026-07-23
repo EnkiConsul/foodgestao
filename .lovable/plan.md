@@ -1,60 +1,44 @@
-## Diagnóstico
+## Análise de conformidade — Integração Z-API (`supabase/functions/_shared/zapi.ts`)
 
-Testei o fluxo com o e-mail `rcbruto77@gmail.com` e confirmei em `auth_recovery_challenges` que os dois desafios recentes ficaram como:
+### ✅ Itens em conformidade
 
-- `user_id = NULL`
-- `status = pending_identity`
-- `otp_channel = NULL`, `otp_sent_at = NULL`, `whatsapp_delivery_status = NULL`
+| Diretriz Z-API | Implementação atual | Status |
+|---|---|---|
+| Base URL `https://api.z-api.io/instances/{instanceId}/token/{token}` | `https://api.z-api.io/instances/${instance}/token/${token}/send-text` | ✅ |
+| `instanceId` via painel | Lido de `Z_API_INSTANCE_ID` (secret) | ✅ |
+| `token` via painel | Lido de `Z_API_TOKEN` (secret) | ✅ |
+| Header `Client-Token` obrigatório | Enviado a partir de `Z_API_CLIENT_TOKEN` | ✅ |
+| Header `Content-Type: application/json` | Presente em todas as requisições | ✅ |
+| Corpo em JSON | `JSON.stringify({ phone, message })` | ✅ |
+| Método HTTP correto (POST em `send-text`) | `method: "POST"` | ✅ |
+| Tratamento do código 200 | `resp.ok` → retorna `messageId` | ✅ |
+| Tratamento de 400/405/415 | Cai no branch `!resp.ok` com log do status e erro | ✅ |
+| Segurança dos segredos | Nunca hardcoded, sempre em `Deno.env` | ✅ |
+| Privacidade | Não loga corpo da mensagem nem telefone completo | ✅ |
 
-Ou seja, a Edge Function `auth-recovery-request` interpretou o identificador como "desconhecido" e caiu no caminho decoy — que, por design, **não chama a Z-API**. Por isso nenhuma mensagem é enviada, mesmo o cadastro existindo.
+### ⚠️ Pontos de atenção (não bloqueantes)
 
-Investigando o código da função (`supabase/functions/auth-recovery-request/index.ts`) contra o schema real, achei dois bugs encadeados que explicam o `user_id = NULL`:
+1. **Ausência de retry/backoff** em falhas transitórias (`5xx`, `network_error`). A Z-API pode responder com timeouts quando a instância está reiniciando — hoje o OTP simplesmente falha.
+2. **Não há verificação de status da instância** antes do envio. A Z-API oferece `GET /status` que retornaria se o WhatsApp está `connected`. Sem isso, um device desconectado gera falha silenciosa vista só no log.
+3. **Normalização de telefone permissiva demais**: a regra `if (d.length >= 11 && d.length <= 15) return d;` aceita números 11 dígitos sem `55` como internacionais (ex.: `11987654321` seria retornado sem country code). Deveria priorizar prefixo `55` para números BR.
+4. **Header `Content-Type` não é validado na resposta** — se a Z-API retornar HTML (ex.: manutenção), o `JSON.parse` falha silenciosamente e cai no branch de erro sem detalhe. Já é tratado com `try/catch`, mas o log poderia distinguir.
+5. **Falta suporte a `messageId` para tracking de entrega** — hoje o valor é capturado mas não persistido em `auth_recovery_challenges` para auditoria de entrega/leitura via webhook Z-API.
 
-### Bug 1 — `user_id` da RPC é descartado
+### 📋 Sugestões de melhoria (opcional, se aprovar)
 
-A RPC `resolve_login_identifier` já retorna `user_id` diretamente (verifiquei o `pg_get_functiondef`). A função, porém, ignora esse campo e tenta descobrir o usuário via `admin.auth.admin.listUsers({ email })`. Esse filtro por e-mail no `listUsers` não é suportado pelo GoTrue — ele devolve a primeira página independente do filtro, e o `find(x.email === email)` normalmente não bate.
+- Adicionar função `checkZapiStatus()` que consulta `GET /status` e retorna se a instância está conectada. Chamar antes de enviar OTP e devolver erro claro (`zapi_disconnected`) se offline.
+- Implementar retry com backoff (2 tentativas, 500ms/1500ms) para erros `5xx` e `network_error`.
+- Corrigir `normalizeBRPhone`: se telefone tem 11 dígitos e começa com DDD válido (11–99), prepender `55` sempre.
+- Persistir `messageId` retornado em `auth_recovery_challenges.zapi_message_id` para correlacionar com webhooks de entrega.
+- Registrar um webhook em `/functions/v1/zapi-webhook` para receber status de entrega (`delivered`, `read`, `failed`) e atualizar telemetria.
 
-### Bug 2 — fallback busca coluna inexistente
+### Conclusão
 
-Quando o `listUsers` falha, o código tenta:
+**A integração está em conformidade com as diretrizes básicas da API da Z-API** (base URL, autenticação por `Client-Token`, `Content-Type`, método HTTP e formato JSON). As oportunidades identificadas são de **robustez operacional**, não de conformidade.
 
-```ts
-admin.from("auth_login_identifiers").select("user_id").eq("email", email)
-```
+---
 
-Mas `auth_login_identifiers` **não tem a coluna `email`** (confirmado — erro `42703 column "email" does not exist`). O fallback nunca retorna nada.
-
-Resultado: `userId` permanece `null`, o `if (userId && phone)` na hora do envio nunca é verdadeiro, e nenhuma mensagem sai.
-
-### Bug 3 (correlato) — lookup do telefone em `profiles`
-
-Mesmo que o `userId` fosse recuperado, a leitura do telefone está errada:
-
-```ts
-admin.from("profiles").select("phone").eq("id", userId)
-```
-
-Em `profiles` o `id` é o PK da linha; a coluna que aponta para o usuário é `user_id`. Confirmei em banco que para `user_id = 7432cb5e-…-a541` o `id` é `835df338-…-cf4b6`. O filtro por `id = userId` nunca retorna o perfil, então o `phone` (`62991250757`) nunca é lido.
-
-## Correção proposta
-
-Editar apenas `supabase/functions/auth-recovery-request/index.ts`:
-
-1. **Usar o `user_id` que a RPC já devolve.** Após `resolve_login_identifier`, pegar `resolvedRow?.user_id` diretamente. Remover a chamada a `admin.auth.admin.listUsers({ email })` e o fallback quebrado em `auth_login_identifiers`.
-2. **Corrigir o lookup do telefone no `profiles`** para filtrar por `user_id` (não `id`). Manter o fallback existente para `dp_colaboradores.whatsapp/telefone`.
-3. Manter todo o resto igual: verificação Turnstile, rate limiting, insert do desafio, comportamento decoy quando não há `user_id`/telefone, e envio via `sendZapiText` só quando `userId && phone`.
-
-Nenhuma alteração de schema, RLS, frontend, secrets ou nas outras funções de recuperação (`auth-recovery-verify`, `auth-recovery-reset`). O contrato de resposta pública (`challenge_id`, `challenge_token`, `expires_in`) permanece idêntico, preservando a proteção anti-enumeração.
-
-## Validação
-
-1. Após o deploy, disparar de novo o `/esqueci-senha` com `rcbruto77@gmail.com`.
-2. Conferir em `auth_recovery_challenges` que o novo desafio agora tem `user_id` preenchido, `status = 'pending_otp'`, `otp_channel = 'whatsapp'`, `otp_sent_at` e (em caso de sucesso da Z-API) `whatsapp_delivery_status = 'sent'` + `whatsapp_message_id`.
-3. Checar os logs da função por `[zapi]` para confirmar 2xx da Z-API. Se a Z-API responder erro, o log agora indica o motivo real (as chaves `Z_API_*` já estão configuradas como secrets).
-4. Confirmar recebimento da mensagem no WhatsApp `55 62 99125-0757` e concluir o fluxo `verify` + `reset` com o OTP.
-
-## Fora do escopo
-
-- Reprocessar/limpar os desafios antigos com `user_id = NULL` (são inertes e expiram sozinhos em 10 min).
-- Alterar o comportamento de decoy quando o identificador realmente não existe.
-- Ajustes na página `/esqueci-senha` ou no fluxo de reenvio (já implementados).
+**Deseja que eu prossiga aplicando as melhorias listadas?** Posso executar em três frentes independentes:
+1. **Robustez (retry + status check)** — evita falhas silenciosas quando a instância está reiniciando.
+2. **Correção da normalização BR** — garante que números de 11 dígitos ganhem `55` sempre.
+3. **Rastreamento de entrega (webhook + coluna `zapi_message_id`)** — auditoria de entrega/leitura do OTP.
