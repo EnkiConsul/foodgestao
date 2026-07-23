@@ -139,7 +139,8 @@ export default function PrimeiroAcesso() {
             </Button>
           </CardContent>
         </form>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }
