@@ -22,9 +22,9 @@ function json(status: number, body: unknown) {
 }
 
 async function verifyTurnstile(token: string, ip: string | null): Promise<boolean> {
-  const secret = Deno.env.get("TURNSTILE_SECRET_KEY");
+  const secret = Deno.env.get("TURNSTILE_SECRET") ?? Deno.env.get("TURNSTILE_SECRET_KEY");
   if (!secret) {
-    console.error("[auth-login] TURNSTILE_SECRET_KEY not configured");
+    console.error("[auth-login] TURNSTILE_SECRET not configured");
     return false;
   }
   try {

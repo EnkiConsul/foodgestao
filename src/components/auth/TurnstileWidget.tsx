@@ -49,6 +49,7 @@ export function TurnstileWidget({ siteKey, onToken, onExpire, theme = "auto" }: 
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: siteKey,
           theme,
+          action: "turnstile-spin-v2",
           callback: (token: string) => onToken(token),
           "expired-callback": () => {
             onExpire?.();
@@ -69,5 +70,5 @@ export function TurnstileWidget({ siteKey, onToken, onExpire, theme = "auto" }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [siteKey]);
 
-  return <div ref={containerRef} className="flex justify-center" />;
+  return <div ref={containerRef} className="cf-turnstile flex justify-center" data-action="turnstile-spin-v2" />;
 }
