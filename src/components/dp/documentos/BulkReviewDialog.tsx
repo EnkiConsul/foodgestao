@@ -251,7 +251,6 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
             );
           }
           return (
-          return (
           <>
         <div className="flex-1 min-h-0 grid grid-cols-[1fr_420px] gap-0 overflow-hidden">
           {/* LEFT: PDF preview */}
