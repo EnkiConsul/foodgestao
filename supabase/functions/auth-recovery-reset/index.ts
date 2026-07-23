@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
   // Clear password_change_required flag if present
   await admin
     .from("auth_user_security_state")
-    .update({ password_change_required: false, password_changed_at: new Date().toISOString() })
+    .update({ must_change_password: false, password_changed_at: new Date().toISOString() })
     .eq("user_id", row.user_id);
 
   return json(200, { ok: true });
