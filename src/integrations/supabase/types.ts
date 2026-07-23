@@ -697,6 +697,195 @@ export type Database = {
         }
         Relationships: []
       }
+      auth_login_identifiers: {
+        Row: {
+          created_at: string
+          id: string
+          identifier_hash: string
+          identifier_last4: string | null
+          identifier_type: string
+          is_active: boolean
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          identifier_hash: string
+          identifier_last4?: string | null
+          identifier_type: string
+          is_active?: boolean
+          source: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          identifier_hash?: string
+          identifier_last4?: string | null
+          identifier_type?: string
+          is_active?: boolean
+          source?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      auth_rate_limits: {
+        Row: {
+          bucket: string
+          count: number
+          key_hash: string
+          last_seen_at: string
+          metadata: Json | null
+          window_start: string
+        }
+        Insert: {
+          bucket: string
+          count?: number
+          key_hash: string
+          last_seen_at?: string
+          metadata?: Json | null
+          window_start: string
+        }
+        Update: {
+          bucket?: string
+          count?: number
+          key_hash?: string
+          last_seen_at?: string
+          metadata?: Json | null
+          window_start?: string
+        }
+        Relationships: []
+      }
+      auth_recovery_challenges: {
+        Row: {
+          attempt_count: number
+          challenge_token_hash: string
+          completed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          identifier_hash: string
+          identity_verified_at: string | null
+          ip_hash: string | null
+          otp_attempt_count: number
+          otp_channel: string | null
+          otp_expires_at: string | null
+          otp_hash: string | null
+          otp_sent_at: string | null
+          otp_verified_at: string | null
+          reset_token_expires_at: string | null
+          reset_token_hash: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+          whatsapp_delivery_status: string | null
+          whatsapp_message_id: string | null
+        }
+        Insert: {
+          attempt_count?: number
+          challenge_token_hash: string
+          completed_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          identifier_hash: string
+          identity_verified_at?: string | null
+          ip_hash?: string | null
+          otp_attempt_count?: number
+          otp_channel?: string | null
+          otp_expires_at?: string | null
+          otp_hash?: string | null
+          otp_sent_at?: string | null
+          otp_verified_at?: string | null
+          reset_token_expires_at?: string | null
+          reset_token_hash?: string | null
+          status: string
+          updated_at?: string
+          user_id?: string | null
+          whatsapp_delivery_status?: string | null
+          whatsapp_message_id?: string | null
+        }
+        Update: {
+          attempt_count?: number
+          challenge_token_hash?: string
+          completed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          identifier_hash?: string
+          identity_verified_at?: string | null
+          ip_hash?: string | null
+          otp_attempt_count?: number
+          otp_channel?: string | null
+          otp_expires_at?: string | null
+          otp_hash?: string | null
+          otp_sent_at?: string | null
+          otp_verified_at?: string | null
+          reset_token_expires_at?: string | null
+          reset_token_hash?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          whatsapp_delivery_status?: string | null
+          whatsapp_message_id?: string | null
+        }
+        Relationships: []
+      }
+      auth_user_security_state: {
+        Row: {
+          access_blocked: boolean
+          block_reason: string | null
+          blocked_at: string | null
+          blocked_by: string | null
+          created_at: string
+          last_context: Json | null
+          must_change_password: boolean
+          password_changed_at: string | null
+          password_changed_by: string | null
+          provisional_password_expires_at: string | null
+          provisional_password_issued_at: string | null
+          sessions_revoked_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_blocked?: boolean
+          block_reason?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
+          created_at?: string
+          last_context?: Json | null
+          must_change_password?: boolean
+          password_changed_at?: string | null
+          password_changed_by?: string | null
+          provisional_password_expires_at?: string | null
+          provisional_password_issued_at?: string | null
+          sessions_revoked_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_blocked?: boolean
+          block_reason?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
+          created_at?: string
+          last_context?: Json | null
+          must_change_password?: boolean
+          password_changed_at?: string | null
+          password_changed_by?: string | null
+          provisional_password_expires_at?: string | null
+          provisional_password_issued_at?: string | null
+          sessions_revoked_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       banks: {
         Row: {
           created_at: string
@@ -5263,6 +5452,7 @@ export type Database = {
         Args: { _transaction_id: string }
         Returns: string
       }
+      auth_access_enabled: { Args: never; Returns: boolean }
       categorize_transaction: {
         Args: {
           p_company_id?: string
@@ -5595,6 +5785,7 @@ export type Database = {
           tokens_used: number
         }[]
       }
+      get_my_access_contexts: { Args: never; Returns: Json }
       get_user_plan_features: { Args: { _user_id: string }; Returns: Json }
       has_role: {
         Args: {
@@ -5614,6 +5805,7 @@ export type Database = {
         Returns: undefined
       }
       is_dp_colaborador: { Args: { _user_id: string }; Returns: boolean }
+      is_password_change_required: { Args: never; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       move_to_dlq: {
         Args: {
