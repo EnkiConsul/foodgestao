@@ -55,6 +55,7 @@ const billingItems = [
 
 const tenantItems = [
   { title: "Clientes", url: "/admin/clientes", icon: Users },
+  { title: "Cadastros", url: "/admin/cadastros", icon: UserCog },
   { title: "Perfis de Acesso", url: "/admin/perfis-acesso", icon: Building2 },
   { title: "Módulos", url: "/admin/modulos", icon: Sparkles },
   { title: "Bancos", url: "/admin/bancos", icon: Landmark },
