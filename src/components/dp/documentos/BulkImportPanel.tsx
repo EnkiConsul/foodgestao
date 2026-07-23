@@ -89,16 +89,20 @@ export function BulkImportPanel({
     return (batches.data ?? []).filter((b) => statusFilter === "all" ? true : b.status === statusFilter);
   }, [batches.data, statusFilter]);
 
+  const openedIds = Object.keys(expanded).filter((k) => expanded[k]);
+  const anyBatchProcessing = (batches.data ?? []).some(
+    (b) => b.status === "processing" && expanded[b.id],
+  );
   const items = useQuery({
-    queryKey: ["dp_bulk_items", Object.keys(expanded).filter((k) => expanded[k])],
-    enabled: Object.values(expanded).some(Boolean),
+    queryKey: ["dp_bulk_items", openedIds],
+    enabled: openedIds.length > 0,
+    refetchInterval: anyBatchProcessing ? 1500 : false,
     queryFn: async () => {
-      const ids = Object.keys(expanded).filter((k) => expanded[k]);
-      if (!ids.length) return [];
+      if (!openedIds.length) return [];
       const { data, error } = await supabase
         .from("dp_bulk_import_items" as any)
         .select("*")
-        .in("batch_id", ids)
+        .in("batch_id", openedIds)
         .order("page_index", { ascending: true });
       if (error) throw error;
       return data as any[];
