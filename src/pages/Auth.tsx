@@ -6,23 +6,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, IdCard } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
-
+import { TurnstileWidget } from "@/components/auth/TurnstileWidget";
+import { useTurnstileSiteKey } from "@/hooks/useTurnstileSiteKey";
+import { unifiedSignIn } from "@/lib/authUnified";
 
 import { z } from "zod";
 import { toast } from "sonner";
 import { trackEvent, FunnelStep } from "@/lib/analytics";
 
+// Login identifier: e-mail OR CPF (11 digits with or without punctuation)
 const loginSchema = z.object({
-  email: z.string().trim().email("E-mail inválido").max(255),
+  identifier: z.string().trim().min(3, "Informe seu e-mail ou CPF").max(255).refine((v) => {
+    if (v.includes("@")) return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    return /^\d{11}$/.test(v.replace(/\D/g, ""));
+  }, { message: "Informe um e-mail válido ou um CPF com 11 dígitos" }),
   password: z.string().min(6, "Mínimo 6 caracteres").max(128),
 });
 
-const signupSchema = loginSchema.extend({
+const signupSchema = z.object({
+  email: z.string().trim().email("E-mail inválido").max(255),
+  password: z.string().min(6, "Mínimo 6 caracteres").max(128),
   fullName: z.string().trim().min(2, "Nome deve ter ao menos 2 caracteres").max(100),
   confirmPassword: z.string(),
   acceptTerms: z.literal(true, {
@@ -69,6 +77,7 @@ export default function Auth() {
   const [searchParams] = useSearchParams();
   const initialMode: Mode = searchParams.get("tab") === "signup" ? "signup" : "login";
   const [mode, setMode] = useState<Mode>(initialMode);
+  const [identifier, setIdentifier] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -79,7 +88,9 @@ export default function Auth() {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { signIn, signUp, user } = useAuth();
+  const [turnstileToken, setTurnstileToken] = useState<string>("");
+  const turnstileSiteKey = useTurnstileSiteKey();
+  const { signUp, user } = useAuth();
   const navigate = useNavigate();
 
   const checkMfaState = async () => {
@@ -165,7 +176,7 @@ export default function Auth() {
     }
 
     const parsed = isLogin
-      ? loginSchema.safeParse({ email, password })
+      ? loginSchema.safeParse({ identifier, password })
       : signupSchema.safeParse({ email, password, confirmPassword, fullName, acceptTerms: acceptTerms as true });
 
     if (!parsed.success) {
@@ -193,9 +204,20 @@ export default function Auth() {
     setSubmitting(true);
     try {
       if (isLogin) {
-        const { error } = await signIn(email, password);
-        if (error) {
-          toast.error("Erro ao entrar", { description: error.message });
+        if (!turnstileToken) {
+          toast.error("Verificação de segurança", { description: "Aguarde ou complete o desafio antes de entrar." });
+          setSubmitting(false);
+          return;
+        }
+        const result = await unifiedSignIn(identifier, password, turnstileToken);
+        if (!result.ok) {
+          toast.error("Erro ao entrar", { description: result.errorMessage });
+          setTurnstileToken(""); // force re-solve
+          if (typeof window !== "undefined" && window.turnstile) {
+            try { window.turnstile.reset(); } catch { /* noop */ }
+          }
+        } else if (result.passwordChangeRequired) {
+          navigate("/primeiro-acesso", { replace: true });
         } else {
           await checkMfaAndRedirect();
         }
@@ -311,22 +333,44 @@ export default function Auth() {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                  maxLength={255}
-                />
+            {isLogin ? (
+              <div className="space-y-2">
+                <Label htmlFor="identifier">E-mail ou CPF</Label>
+                <div className="relative">
+                  <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="identifier"
+                    type="text"
+                    placeholder="seu@email.com ou 000.000.000-00"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    className="pl-10"
+                    maxLength={255}
+                    autoComplete="username"
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                  />
+                </div>
+                {errors.identifier && <p className="text-xs text-destructive">{errors.identifier}</p>}
               </div>
-              {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
-            </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10"
+                    maxLength={255}
+                  />
+                </div>
+                {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+              </div>
+            )}
 
             {!isForgot && (
               <div className="space-y-2">
@@ -425,6 +469,16 @@ export default function Auth() {
                 Informe o e-mail da sua conta. Enviaremos um link para você redefinir sua senha.
               </p>
             )}
+
+            {isLogin && turnstileSiteKey && (
+              <div className="pt-1">
+                <TurnstileWidget
+                  siteKey={turnstileSiteKey}
+                  onToken={setTurnstileToken}
+                  onExpire={() => setTurnstileToken("")}
+                />
+              </div>
+            )}
           </CardContent>
 
           <CardFooter className="flex flex-col gap-3">
@@ -454,12 +508,9 @@ export default function Auth() {
                 {isLogin ? "Não tem conta? Cadastre-se" : "Já tem conta? Entre"}
               </button>
             )}
-            <Link
-              to="/dp/login"
-              className="text-xs text-muted-foreground hover:text-primary transition-colors"
-            >
-              Sou colaborador — entrar com CPF
-            </Link>
+            <p className="text-xs text-muted-foreground text-center">
+              Colaboradores podem entrar com CPF neste mesmo formulário.
+            </p>
           </CardFooter>
           </form>
         )}
