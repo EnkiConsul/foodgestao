@@ -51,17 +51,22 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
   const [rendering, setRendering] = useState(false);
   const signedUrlsRef = useRef<Map<string, { url: string; exp: number }>>(new Map());
 
+  const [savingTotal, setSavingTotal] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+
   const batchInfo = useQuery({
     queryKey: ["dp_bulk_batch_info", batchId],
     enabled: !!batchId,
     refetchInterval: (q) => {
       const b = q.state.data as any;
-      return !b || b.status !== "ready" ? 1500 : false;
+      // Enquanto processando OCR OU enquanto salvamento em curso, poll rápido.
+      if (!b || b.status !== "ready" || isSaving) return 900;
+      return false;
     },
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_bulk_import_batches" as any)
-        .select("id,status,total_pages,processed_pages")
+        .select("id,status,total_pages,processed_pages,approved_count")
         .eq("id", batchId)
         .maybeSingle();
       if (error) throw error;
