@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { NovoColaboradorInlineDialog } from "./NovoColaboradorInlineDialog";
+import { BulkProgressBanner } from "./BulkProgressBanner";
 import { cn } from "@/lib/utils";
 
 // Setup pdfjs worker once (shared with BulkReviewDialog)
@@ -223,6 +224,8 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
         .filter((r: any) => r.status === "pending" && r.matched_colaborador_id)
         .map((r: any) => r.id);
       if (ids.length === 0) throw new Error("Nenhuma página vinculada");
+      setSavingTotal(ids.length);
+      setIsSaving(true);
       const { data, error } = await supabase.functions.invoke("dp-doc-bulk-approve", {
         body: { item_ids: ids },
       });
@@ -246,6 +249,9 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
       qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Falha ao aprovar"),
+    onSettled: () => {
+      setIsSaving(false);
+    },
   });
 
   const stats = useMemo(() => {
