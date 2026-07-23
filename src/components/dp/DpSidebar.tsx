@@ -62,7 +62,6 @@ const ADMIN_ITEMS: Item[] = [
       { title: "Registros Disciplinares", url: "/dp/disciplinar", icon: ShieldAlert },
       { title: "ACT-CCT", url: "/dp/documentos/act-cct", icon: FileSignature },
       { title: "Histórico Completo", url: "/dp/documentos/historico", icon: ListChecks },
-      { title: "Importar em massa", url: "/dp/documentos/importar", icon: FileText },
     ],
   },
   {
