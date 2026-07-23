@@ -351,8 +351,8 @@ function extractPeriodo(text: string): string | null {
     if (yy >= 2000 && yy <= 2100) return `${yy}-${String(mm).padStart(2, "0")}`;
   }
 
-  // 2) "MES/YYYY" nome do mês
-  const r2 = new RegExp(`\\b(${Object.keys(MESES_MAP).join("|")})\\b[^\\d]{0,10}(\\d{4})`, "i");
+  // 2) "MES/YYYY" nome do mês (tolera "Junho de 2026", "junho - 2026", etc.)
+  const r2 = new RegExp(`\\b(${Object.keys(MESES_MAP).join("|")})\\b[^\\d]{0,15}(\\d{4})`, "i");
   const m2 = low.match(r2);
   if (m2) {
     const mm = MESES_MAP[m2[1].toLowerCase()];
@@ -360,8 +360,8 @@ function extractPeriodo(text: string): string | null {
     if (mm && yy >= 2000 && yy <= 2100) return `${yy}-${String(mm).padStart(2, "0")}`;
   }
 
-  // 3) "MM/YYYY" isolado (menos confiável — pega o primeiro)
-  const r3 = /\b(0?[1-9]|1[0-2])[\/\-](20\d{2})\b/;
+  // 3) "MM/YYYY", "MM-YYYY" ou "MM.YYYY" isolado (menos confiável — pega o primeiro)
+  const r3 = /\b(0?[1-9]|1[0-2])[\/\-.](20\d{2})\b/;
   const m3 = low.match(r3);
   if (m3) {
     const mm = Number(m3[1]);
@@ -370,6 +370,13 @@ function extractPeriodo(text: string): string | null {
   }
 
   return null;
+}
+
+/** Tenta extrair "YYYY-MM" do nome do arquivo (ex.: "Recibo 06.2026.pdf"). */
+function extractPeriodoFromFilename(name: string): string | null {
+  if (!name) return null;
+  const base = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return extractPeriodo(base);
 }
 
 function base64Encode(bytes: Uint8Array): string {
