@@ -5391,6 +5391,10 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      dp_bulk_increment_processed: {
+        Args: { p_batch_id: string }
+        Returns: undefined
+      }
       dp_calc_data_regra: {
         Args: { _ano: number; _regra_id: string }
         Returns: string
