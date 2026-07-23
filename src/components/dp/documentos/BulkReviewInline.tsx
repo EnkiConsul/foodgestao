@@ -557,13 +557,14 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
             Use ← / → para navegar entre páginas
           </div>
           <Button
-            onClick={() => approveAll.mutate()}
+            onClick={handleApproveClick}
             disabled={
-              approveAll.isPending
+              checkingDup
+              || isSaving
               || rows.filter((r: any) => r.status === "pending" && r.matched_colaborador_id).length === 0
             }
           >
-            {approveAll.isPending
+            {(checkingDup || isSaving)
               ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
               : <Check className="h-4 w-4 mr-1" />}
             Aprovar e Salvar {rows.filter((r: any) => r.status === "pending" && r.matched_colaborador_id).length} Documento(s)
@@ -571,6 +572,25 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
         </div>
       )}
       </>
+      )}
+
+      {confirmDup && (
+        <ConfirmarSubstituicaoDialog
+          open
+          onOpenChange={(o) => { if (!o) setConfirmDup(null); }}
+          collisions={confirmDup.collisions}
+          totalItems={confirmDup.allIds.length}
+          onSkip={() => {
+            const ids = confirmDup.nonDupIds;
+            setConfirmDup(null);
+            runApprove(ids, "skip");
+          }}
+          onReplace={() => {
+            const ids = confirmDup.allIds;
+            setConfirmDup(null);
+            runApprove(ids, "replace");
+          }}
+        />
       )}
     </div>
   );
