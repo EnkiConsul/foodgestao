@@ -312,7 +312,13 @@ export default function Auth() {
         </Link>
         <Card className="w-full shadow-lg">
         <CardHeader className="text-center space-y-3">
-          <CardTitle className="text-2xl font-bold">360°FOOD</CardTitle>
+          <CardTitle className="sr-only">360°FOOD</CardTitle>
+          <img
+            src={logoMarinho.url}
+            alt="360°FOOD"
+            className="mx-auto h-16 w-auto select-none"
+            draggable={false}
+          />
           <CardDescription>
             {mfaRequired
               ? "Verificação em duas etapas"
