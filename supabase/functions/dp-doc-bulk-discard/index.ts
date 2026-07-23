@@ -9,7 +9,9 @@ import { z } from "npm:zod@3";
 const BUCKET = "dp-bulk-import";
 
 const BodySchema = z.object({
-  batch_id: z.string().uuid(),
+  batch_id: z.string().uuid().optional(),
+  company_id: z.string().uuid().optional(),
+  cleanup_abandoned: z.boolean().optional().default(false),
 });
 
 Deno.serve(async (req) => {
@@ -29,6 +31,30 @@ Deno.serve(async (req) => {
     const userClient = createClient(url, anon, { global: { headers: { Authorization: authHeader } } });
     const svc = createClient(url, service);
 
+    if (parsed.data.cleanup_abandoned) {
+      if (!parsed.data.company_id) return json({ error: "company_id obrigatório" }, 400);
+      const cutoff = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+
+      const { data: batches, error: listErr } = await userClient
+        .from("dp_bulk_import_batches")
+        .select("id, company_id, source_file_path, status, created_at")
+        .eq("company_id", parsed.data.company_id)
+        .in("status", ["ready", "failed", "processing"])
+        .lt("created_at", cutoff)
+        .limit(25);
+      if (listErr) return json({ error: listErr.message }, 500);
+
+      let removed = 0;
+      for (const batch of batches ?? []) {
+        const didRemove = await discardBatchIfTemporary(userClient, svc, batch);
+        if (didRemove) removed += 1;
+      }
+
+      return json({ ok: true, removed });
+    }
+
+    if (!parsed.data.batch_id) return json({ error: "batch_id obrigatório" }, 400);
+
     const { data: batch, error: bErr } = await userClient
       .from("dp_bulk_import_batches")
       .select("id, company_id, source_file_path, status")
@@ -37,24 +63,10 @@ Deno.serve(async (req) => {
     if (bErr) return json({ error: bErr.message }, 500);
     if (!batch) return json({ error: "Lote não encontrado" }, 404);
 
-    const { count: importedCount, error: countErr } = await userClient
-      .from("dp_bulk_import_items")
-      .select("id", { count: "exact", head: true })
-      .eq("batch_id", batch.id)
-      .eq("status", "imported");
-    if (countErr) return json({ error: countErr.message }, 500);
-
-    if ((importedCount ?? 0) > 0) {
+    const didRemove = await discardBatchIfTemporary(userClient, svc, batch);
+    if (!didRemove) {
       return json({ error: "Este lote já possui documentos salvos e não pode ser descartado." }, 409);
     }
-
-    await removeBatchFiles(svc, String(batch.company_id), String(batch.id), batch.source_file_path ?? null);
-
-    const { error: delErr } = await svc
-      .from("dp_bulk_import_batches")
-      .delete()
-      .eq("id", batch.id);
-    if (delErr) return json({ error: delErr.message }, 500);
 
     return json({ ok: true });
   } catch (e) {
@@ -67,6 +79,26 @@ function json(body: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+async function discardBatchIfTemporary(userClient: any, svc: any, batch: any): Promise<boolean> {
+  const { count: importedCount, error: countErr } = await userClient
+    .from("dp_bulk_import_items")
+    .select("id", { count: "exact", head: true })
+    .eq("batch_id", batch.id)
+    .eq("status", "imported");
+  if (countErr) throw new Error(countErr.message);
+
+  if ((importedCount ?? 0) > 0) return false;
+
+  await removeBatchFiles(svc, String(batch.company_id), String(batch.id), batch.source_file_path ?? null);
+
+  const { error: delErr } = await svc
+    .from("dp_bulk_import_batches")
+    .delete()
+    .eq("id", batch.id);
+  if (delErr) throw new Error(delErr.message);
+  return true;
 }
 
 async function removeBatchFiles(svc: any, companyId: string, batchId: string, sourcePath: string | null) {

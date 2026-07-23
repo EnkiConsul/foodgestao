@@ -67,6 +67,14 @@ export function BulkImportPanel({
 
   useEffect(() => { if (tipoFixed) setTipo(tipoFixed); }, [tipoFixed]);
   useEffect(() => { if (referenciaFixed) setReferencia(referenciaFixed); }, [referenciaFixed]);
+  useEffect(() => {
+    if (!selectedCompanyId) return;
+    supabase.functions.invoke("dp-doc-bulk-discard", {
+      body: { cleanup_abandoned: true, company_id: selectedCompanyId },
+    }).then(({ data }) => {
+      if ((data as any)?.removed) qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
+    });
+  }, [selectedCompanyId, qc]);
 
   const batches = useQuery({
     queryKey: ["dp_bulk_batches", selectedCompanyId, batchLimit, filterByTipo ? tipoFixed : "all"],
