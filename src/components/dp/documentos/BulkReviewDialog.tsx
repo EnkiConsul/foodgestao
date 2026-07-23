@@ -226,6 +226,31 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
           </DialogTitle>
         </DialogHeader>
 
+        {(() => {
+          const b = batchInfo.data as any;
+          const totalPages = b?.total_pages ?? 0;
+          const processedPages = b?.processed_pages ?? 0;
+          const ocrInProgress = !b || b.status !== "ready" || (totalPages > 0 && rows.length < totalPages);
+          const approvedCount = Math.min(savingTotal, b?.approved_count ?? 0);
+          if (ocrInProgress) {
+            return (
+              <div className="flex-1 flex items-center justify-center p-8">
+                <div className="w-full max-w-md">
+                  <BulkProgressBanner phase="ocr" current={processedPages} total={totalPages} />
+                </div>
+              </div>
+            );
+          }
+          if (isSaving) {
+            return (
+              <div className="flex-1 flex items-center justify-center p-8">
+                <div className="w-full max-w-md">
+                  <BulkProgressBanner phase="saving" current={approvedCount} total={savingTotal} />
+                </div>
+              </div>
+            );
+          }
+          return (
         <div className="flex-1 min-h-0 grid grid-cols-[1fr_420px] gap-0 overflow-hidden">
           {/* LEFT: PDF preview */}
           <div className="bg-muted/20 border-r flex flex-col min-h-0">
