@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CurrencyInput, formatCurrency, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { toast } from "sonner";
 import { BankSelect } from "./BankSelect";
+import { PluggyConnectLauncher } from "@/components/open-finance/PluggyConnectLauncher";
 import { accountSchema, validateWithToast } from "@/lib/validations";
+import { Landmark, Link2 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type AccountType = Database["public"]["Enums"]["account_type"];
@@ -25,6 +27,8 @@ const accountTypeLabels: Record<AccountType, string> = {
   outro: "Outro",
 };
 
+const BANK_TYPES: AccountType[] = ["corrente", "poupanca"];
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -32,11 +36,14 @@ interface Props {
   account?: Account | null;
 }
 
+type Step = "choose" | "manual" | "of";
+
 export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Props) {
   const { user } = useAuth();
   const { contextType, selectedCompanyId, companies } = useCompanyContext();
   const isEdit = !!account;
 
+  const [step, setStep] = useState<Step>("manual");
   const [name, setName] = useState("");
   const [accountType, setAccountType] = useState<AccountType>("corrente");
   const [initialBalance, setInitialBalance] = useState("");
@@ -45,29 +52,43 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
   const [ownerType, setOwnerType] = useState<"pf" | "pj">("pf");
   const [ownerCompanyId, setOwnerCompanyId] = useState<string | null>(null);
   const [bankSlug, setBankSlug] = useState<string | null>(null);
+  const [agency, setAgency] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (open) {
-      if (account) {
-        setBankSlug((account as Account & { bank_slug?: string | null }).bank_slug ?? null);
-        setName(account.name);
-        setAccountType(account.account_type);
-        setInitialBalance(formatCurrency(String(Math.round(account.initial_balance * 100))));
-        setCurrentBalance(formatCurrency(String(Math.round(account.current_balance * 100))));
-        setOriginalCurrentBalance(Number(account.current_balance));
-        setOwnerType(account.context as "pf" | "pj");
-        setOwnerCompanyId(account.company_id);
-      } else {
-        setName("");
-        setAccountType("corrente");
-        setInitialBalance("");
-        setCurrentBalance("");
-        setOriginalCurrentBalance(0);
-        setOwnerType(contextType);
-        setOwnerCompanyId(contextType === "pj" ? selectedCompanyId : null);
-        setBankSlug(null);
-      }
+    if (!open) return;
+    if (account) {
+      const a = account as Account & {
+        bank_slug?: string | null;
+        agency?: string | null;
+        account_number?: string | null;
+      };
+      setStep("manual");
+      setBankSlug(a.bank_slug ?? null);
+      setName(account.name);
+      setAccountType(account.account_type);
+      setInitialBalance(formatCurrency(String(Math.round(account.initial_balance * 100))));
+      setCurrentBalance(formatCurrency(String(Math.round(account.current_balance * 100))));
+      setOriginalCurrentBalance(Number(account.current_balance));
+      setOwnerType(account.context as "pf" | "pj");
+      setOwnerCompanyId(account.company_id);
+      setAgency(a.agency ?? "");
+      setAccountNumber(a.account_number ?? "");
+    } else {
+      // Nova conta: em PJ, oferecemos escolha Manual vs Open Finance.
+      // Em PF, Open Finance ainda não é suportado — vai direto ao manual.
+      setStep(contextType === "pj" && selectedCompanyId ? "choose" : "manual");
+      setName("");
+      setAccountType("corrente");
+      setInitialBalance("");
+      setCurrentBalance("");
+      setOriginalCurrentBalance(0);
+      setOwnerType(contextType);
+      setOwnerCompanyId(contextType === "pj" ? selectedCompanyId : null);
+      setBankSlug(null);
+      setAgency("");
+      setAccountNumber("");
     }
   }, [open, account, contextType, selectedCompanyId]);
 
@@ -76,10 +97,17 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
     if (!user) return;
     const balance = parseCurrencyToNumber(initialBalance);
 
-    const validated = validateWithToast(accountSchema, { name, account_type: accountType, initial_balance: balance }, toast.error);
+    const validated = validateWithToast(
+      accountSchema,
+      { name, account_type: accountType, initial_balance: balance },
+      toast.error,
+    );
     if (!validated) return;
 
     setSaving(true);
+    const showBankFields = BANK_TYPES.includes(accountType);
+    const agencyValue = showBankFields ? agency.trim() || null : null;
+    const accountNumberValue = showBankFields ? accountNumber.trim() || null : null;
 
     if (isEdit && account) {
       const newCurrent = parseCurrencyToNumber(currentBalance);
@@ -94,6 +122,8 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
           context: ownerType,
           company_id: ownerType === "pj" ? ownerCompanyId : null,
           bank_slug: bankSlug,
+          agency: agencyValue,
+          account_number: accountNumberValue,
         } as never)
         .eq("id", account.id);
       if (error) toast.error("Erro ao atualizar conta");
@@ -104,19 +134,27 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
           _entity_id: account.id,
           _details: { target_name: name.trim(), balance_adjusted: balanceAdjusted },
         });
-        toast.success("Conta atualizada"); onSaved(); onOpenChange(false);
+        toast.success("Conta atualizada");
+        onSaved();
+        onOpenChange(false);
       }
     } else {
-      const { data: inserted, error } = await supabase.from("accounts").insert({
-        user_id: user.id,
-        name: name.trim(),
-        account_type: accountType,
-        initial_balance: balance,
-        current_balance: balance,
-        context: ownerType,
-        company_id: ownerType === "pj" ? ownerCompanyId : null,
-        bank_slug: bankSlug,
-      } as never).select("id").single();
+      const { data: inserted, error } = await supabase
+        .from("accounts")
+        .insert({
+          user_id: user.id,
+          name: name.trim(),
+          account_type: accountType,
+          initial_balance: balance,
+          current_balance: balance,
+          context: ownerType,
+          company_id: ownerType === "pj" ? ownerCompanyId : null,
+          bank_slug: bankSlug,
+          agency: agencyValue,
+          account_number: accountNumberValue,
+        } as never)
+        .select("id")
+        .single();
       if (error || !inserted) toast.error("Erro ao criar conta");
       else {
         await supabase.rpc("insert_audit_log", {
@@ -125,12 +163,86 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
           _entity_id: inserted.id,
           _details: { target_name: name.trim() },
         });
-        toast.success("Conta criada"); onSaved(inserted.id); onOpenChange(false);
+        toast.success("Conta criada");
+        onSaved(inserted.id);
+        onOpenChange(false);
       }
     }
     setSaving(false);
   };
 
+  const showBankFields = BANK_TYPES.includes(accountType);
+
+  // Etapa 1 — escolha do modo (Manual vs Open Finance).
+  if (open && !isEdit && step === "choose") {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Como deseja cadastrar a conta?</DialogTitle>
+            <DialogDescription>
+              O Open Finance importa saldo e lançamentos automaticamente. O modo
+              manual é ideal para caixinha, contas antigas ou instituições fora do
+              Open Finance.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setStep("of")}
+              className="text-left rounded-lg border bg-card p-4 hover:border-primary hover:bg-primary/5 transition-colors group"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary mb-3">
+                <Link2 className="h-5 w-5" />
+              </div>
+              <p className="text-sm font-semibold">Open Finance</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Conecte seu banco e importe agência, conta, saldo e lançamentos
+                dos últimos 12 meses.
+              </p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setStep("manual")}
+              className="text-left rounded-lg border bg-card p-4 hover:border-primary hover:bg-primary/5 transition-colors group"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground mb-3">
+                <Landmark className="h-5 w-5" />
+              </div>
+              <p className="text-sm font-semibold">Cadastro manual</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Informe os dados da conta e registre lançamentos manualmente ou
+                via importação de OFX/CSV.
+              </p>
+            </button>
+          </div>
+          <div className="flex justify-end pt-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Etapa 2A — fluxo Open Finance: fecha o dialog e abre o launcher.
+  if (open && !isEdit && step === "of" && ownerCompanyId) {
+    return (
+      <PluggyConnectLauncher
+        companyId={ownerCompanyId}
+        open
+        onClose={() => onOpenChange(false)}
+        onSuccess={() => {
+          toast.success("Conexão registrada. As contas serão criadas em instantes.");
+          onSaved();
+          onOpenChange(false);
+        }}
+      />
+    );
+  }
+
+  // Etapa 2B — formulário manual (também usado no modo edição).
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -153,7 +265,6 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
             <Label htmlFor="name">Nome da Conta</Label>
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Nubank, Itaú..." required maxLength={100} />
           </div>
-
 
           <div className="space-y-2">
             <Label>Vinculado a</Label>
@@ -191,6 +302,31 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
             </Select>
           </div>
 
+          {showBankFields && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="agency">Agência</Label>
+                <Input
+                  id="agency"
+                  value={agency}
+                  onChange={(e) => setAgency(e.target.value)}
+                  placeholder="0001"
+                  maxLength={20}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="account_number">Conta</Label>
+                <Input
+                  id="account_number"
+                  value={accountNumber}
+                  onChange={(e) => setAccountNumber(e.target.value)}
+                  placeholder="12345-6"
+                  maxLength={30}
+                />
+              </div>
+            </div>
+          )}
+
           {!isEdit ? (
             <div className="space-y-2">
               <Label>Saldo Inicial</Label>
@@ -215,6 +351,11 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
           )}
 
           <div className="flex justify-end gap-2 pt-2">
+            {!isEdit && contextType === "pj" && (
+              <Button type="button" variant="ghost" onClick={() => setStep("choose")}>
+                Voltar
+              </Button>
+            )}
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={saving || !name.trim()}>
               {saving ? "Salvando..." : isEdit ? "Salvar" : "Criar Conta"}
