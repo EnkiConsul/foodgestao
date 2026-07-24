@@ -70,6 +70,7 @@ export default function OpenFinance() {
   const { data: connections, isLoading } = useOpenFinanceConnections(isPJ ? selectedCompanyId : null);
   const deleteItem = useDeletePluggyItem();
   const triggerSync = useTriggerPluggySync();
+  const reconcile = useReconcileConnections();
 
   const [launcher, setLauncher] = useState<{
     mode: "create" | "update" | "renew_consent";
