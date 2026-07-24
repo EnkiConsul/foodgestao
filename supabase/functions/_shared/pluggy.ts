@@ -200,6 +200,16 @@ export async function deleteItem(itemId: string): Promise<void> {
   await pluggyFetch<void>(`/items/${itemId}`, { method: "DELETE" });
 }
 
+// GET /items?clientUserId=... — used to reconcile items created via the
+// Connect widget when the frontend register callback never fires.
+export async function listItemsByClientUser(clientUserId: string): Promise<PluggyItem[]> {
+  const res = await pluggyFetch<{ results?: PluggyItem[] } | PluggyItem[]>("/items", {
+    query: { clientUserId },
+  });
+  if (Array.isArray(res)) return res;
+  return res.results ?? [];
+}
+
 export type PluggyAccount = {
   id: string;
   itemId: string;
