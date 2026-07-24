@@ -1,16 +1,9 @@
-## Problema
+## Substituir a tag do Google Analytics
 
-O RPC `link_open_finance_account` referencia `companies.owner_id`, mas a tabela `companies` usa `user_id` como coluna do dono. Isso quebra a vinculação da conta Open Finance à conta bancária local com erro `42703: column "owner_id" does not exist`.
+Trocar o ID antigo `G-3B98VTL39B` pelo novo `G-Z52R86F1JE`, mantendo apenas uma tag do Google por página conforme recomendação.
 
-## Correção
+### Alterações
+- `index.html`: atualizar o `<script src="...?id=...">` e a chamada `gtag('config', ...)` para `G-Z52R86F1JE`.
+- `src/hooks/usePageviewTracking.ts`: atualizar a constante `GA_ID` para `G-Z52R86F1JE` para que os pageviews em SPA sejam enviados ao novo container.
 
-Migração para recriar `public.link_open_finance_account` trocando a checagem:
-
-```sql
--- antes
-WHERE id = _company_id AND owner_id = _uid
--- depois
-WHERE id = _company_id AND user_id = _uid
-```
-
-Nada mais muda: assinatura, retorno, validações de tipo, `SECURITY DEFINER` e `search_path` permanecem iguais. Depois disso, o botão "Vincular" no `AccountMappingDialog` volta a funcionar para dono da empresa e para membros com papel admin/manager/owner (esse caminho já usa `company_members` corretamente).
+Nenhuma outra referência ao ID antigo precisa mudar.
