@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, Plug, RefreshCw, Trash2, AlertTriangle, CheckCircle2, Landmark, Link2, DownloadCloud, LifeBuoy } from "lucide-react";
+import { Loader2, Plug, RefreshCw, Trash2, AlertTriangle, CheckCircle2, Landmark, Link2, DownloadCloud, LifeBuoy, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
