@@ -6530,6 +6530,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      is_company_admin_or_owner: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_dp_colaborador: { Args: { _user_id: string }; Returns: boolean }
       is_password_change_required: { Args: never; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
