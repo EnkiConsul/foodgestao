@@ -118,6 +118,22 @@ async function processEvent(
     return { status: "retry", error: "connection_not_registered" };
   }
 
+  // Evento de consentimento revogado: desativa a conexão localmente sem
+  // depender de um próximo getItem retornar 404.
+  if (ev.event_type === "consent/revoked") {
+    await admin
+      .from("open_finance_connections")
+      .update({
+        is_active: false,
+        disconnected_at: new Date().toISOString(),
+        needs_reconnect: true,
+        item_status: "CONSENT_REVOKED",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", connectionId);
+    return { status: "processed" };
+  }
+
   // Busca metadados atualizados do item na Pluggy.
   let item: PluggyItem;
   try {
