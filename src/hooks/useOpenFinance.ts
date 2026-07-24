@@ -139,6 +139,45 @@ export function useDeletePluggyItem() {
   });
 }
 
+export function useTriggerPluggySync() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { connection_id: string; trigger?: string }) => {
+      const { data, error } = await supabase.functions.invoke("pluggy-sync", {
+        body: { connection_id: input.connection_id, trigger: input.trigger ?? "manual" },
+      });
+      if (error) throw new Error(error.message || "Falha ao sincronizar");
+      if (data?.error) throw new Error(data.error);
+      return data as {
+        ok: boolean;
+        run_id: string;
+        status: "success" | "partial" | "failed";
+        accounts_processed: number;
+        fetched: number;
+        ingested: number;
+        errors: number;
+      };
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["of-connections"] });
+      qc.invalidateQueries({ queryKey: ["of-accounts"] });
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+      const label =
+        data.status === "success"
+          ? "Sincronização concluída"
+          : data.status === "partial"
+          ? "Sincronização concluída com avisos"
+          : "Sincronização falhou";
+      toast.success(label, {
+        description: `${data.ingested} lançamentos importados · ${data.errors} erros`,
+      });
+    },
+    onError: (err: Error) => {
+      toast.error("Falha ao sincronizar", { description: err.message });
+    },
+  });
+}
+
 export type LocalBankAccountOption = {
   id: string;
   name: string;
