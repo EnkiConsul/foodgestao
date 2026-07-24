@@ -185,6 +185,60 @@ export function useDeletePluggyItem() {
   });
 }
 
+export function useReconcileConnections() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { company_id: string }) => {
+      const { data, error } = await supabase.functions.invoke("pluggy-reconcile", {
+        body: input,
+      });
+      if (error) await throwEdge(error, "Falha ao recuperar conexões");
+      if (data?.error) {
+        throw new EdgeFunctionError({
+          code: data.error,
+          status: null,
+          message: `Recuperação falhou (código: ${data.error}).`,
+          details: data.details,
+        });
+      }
+      return data as {
+        ok: boolean;
+        recovered: number;
+        item_ids: string[];
+        total_pluggy_items: number;
+        errors: Array<{ item_id: string; error: string }>;
+      };
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["of-connections"] });
+      qc.invalidateQueries({ queryKey: ["of-accounts"] });
+      if (data.recovered > 0) {
+        toast.success(
+          data.recovered === 1
+            ? "1 conexão recuperada"
+            : `${data.recovered} conexões recuperadas`,
+          {
+            description:
+              data.errors.length > 0
+                ? `${data.errors.length} item(ns) com erro — verifique os logs.`
+                : "Sincronize agora para importar os lançamentos.",
+          },
+        );
+      } else {
+        toast.info("Nenhuma conexão pendente encontrada", {
+          description:
+            data.total_pluggy_items > 0
+              ? "Todos os itens do Pluggy já estão registrados."
+              : "Nenhum item ativo no Pluggy para essa empresa.",
+        });
+      }
+    },
+    onError: (err: Error) => {
+      toast.error("Falha ao recuperar conexões", { description: describeEdgeError(err) });
+    },
+  });
+}
+
 export function useTriggerPluggySync() {
   const qc = useQueryClient();
   return useMutation({

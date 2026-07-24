@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, Plug, RefreshCw, Trash2, AlertTriangle, CheckCircle2, Landmark, Link2, DownloadCloud } from "lucide-react";
+import { Loader2, Plug, RefreshCw, Trash2, AlertTriangle, CheckCircle2, Landmark, Link2, DownloadCloud, LifeBuoy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import {
   useOpenFinanceConnections,
   useDeletePluggyItem,
   useTriggerPluggySync,
+  useReconcileConnections,
   type OpenFinanceConnection,
 } from "@/hooks/useOpenFinance";
 import { PluggyConnectLauncher } from "@/components/open-finance/PluggyConnectLauncher";
@@ -69,6 +70,7 @@ export default function OpenFinance() {
   const { data: connections, isLoading } = useOpenFinanceConnections(isPJ ? selectedCompanyId : null);
   const deleteItem = useDeletePluggyItem();
   const triggerSync = useTriggerPluggySync();
+  const reconcile = useReconcileConnections();
 
   const [launcher, setLauncher] = useState<{
     mode: "create" | "update" | "renew_consent";
@@ -96,9 +98,24 @@ export default function OpenFinance() {
         title="Open Finance"
         subtitle="Conecte seus bancos e cartões via Pluggy para importar lançamentos automaticamente."
         actions={
-          <Button onClick={() => setLauncher({ mode: "create" })}>
-            <Plug className="w-4 h-4 mr-2" /> Conectar banco
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              onClick={() => reconcile.mutate({ company_id: selectedCompanyId! })}
+              disabled={reconcile.isPending}
+              title="Busca no Pluggy conexões criadas pelo widget mas não registradas aqui"
+            >
+              {reconcile.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <LifeBuoy className="w-4 h-4 mr-2" />
+              )}
+              Recuperar conexão pendente
+            </Button>
+            <Button onClick={() => setLauncher({ mode: "create" })}>
+              <Plug className="w-4 h-4 mr-2" /> Conectar banco
+            </Button>
+          </>
         }
       />
 
