@@ -158,15 +158,32 @@ async function processEvent(
     ev.event_type === "transactions/updated" ||
     ev.event_type === "transactions/deleted";
 
-  // Registra um sync_run "pending" — o `pluggy-sync` (a ser criado no Bloco
-  // 5) fará o claim e executará. Aqui apenas enfileiramos.
+  // Dispara `pluggy-sync` (fire-and-forget) para essa conexão. O sync tem lock
+  // cooperativo próprio, então múltiplos eventos concorrentes convergem.
   if (scheduleSync && companyId) {
-    await admin.from("open_finance_sync_runs").insert({
-      company_id: companyId,
-      connection_id: connectionId,
-      trigger: `webhook:${ev.event_type}`,
-      status: "queued",
-    });
+    try {
+      const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/pluggy-sync`;
+      const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      // Fire-and-forget: não aguarda o término do sync para não travar o worker.
+      fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-internal-token": service,
+          Authorization: `Bearer ${service}`,
+        },
+        body: JSON.stringify({
+          connection_id: connectionId,
+          trigger: `webhook:${ev.event_type}`,
+        }),
+      }).catch((e) => console.error("[pluggy-worker] sync_dispatch_failed", {
+        msg: e instanceof Error ? e.message.slice(0, 120) : "unknown",
+      }));
+    } catch (e) {
+      console.error("[pluggy-worker] sync_dispatch_error", {
+        msg: e instanceof Error ? e.message.slice(0, 120) : "unknown",
+      });
+    }
   }
 
   return { status: "processed", scheduleSync };
