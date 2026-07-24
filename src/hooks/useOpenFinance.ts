@@ -188,7 +188,7 @@ export function useDeletePluggyItem() {
 export function useReconcileConnections() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { company_id: string }) => {
+    mutationFn: async (input: { company_id: string; item_id?: string }) => {
       const { data, error } = await supabase.functions.invoke("pluggy-reconcile", {
         body: input,
       });

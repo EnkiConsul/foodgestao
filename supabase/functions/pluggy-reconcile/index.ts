@@ -19,6 +19,9 @@ import { getItem, listAccounts, listItemsByClientUser, PluggyError } from "../_s
 
 const BodySchema = z.object({
   company_id: z.string().uuid(),
+  // Opcional: itemId específico do Pluggy (usar quando a listagem por
+  // clientUserId não estiver disponível no plano/ambiente Pluggy).
+  item_id: z.string().min(8).max(128).optional(),
 });
 
 function json(b: unknown, s = 200) {
@@ -51,7 +54,7 @@ Deno.serve(async (req) => {
 
     const parsed = BodySchema.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) return json({ error: "validation_failed" }, 400);
-    const { company_id } = parsed.data;
+    const { company_id, item_id: providedItemId } = parsed.data;
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
@@ -62,15 +65,32 @@ Deno.serve(async (req) => {
     if (roleErr) return json({ error: "authorization_check_failed", details: roleErr.message }, 500);
     if (!isAdmin) return json({ error: "forbidden_company_role" }, 403);
 
-    // Lista itens no Pluggy vinculados a essa company.
-    let pluggyItems;
-    try {
-      pluggyItems = await listItemsByClientUser(`company:${company_id}`);
-    } catch (err) {
-      if (err instanceof PluggyError) {
-        return json({ error: "pluggy_error", code: err.code, details: err.message }, 502);
+    // Estratégia:
+    //   1) Se um item_id específico foi passado, resolvemos direto via getItem.
+    //   2) Caso contrário, tentamos listar por clientUserId. O endpoint
+    //      /items?clientUserId=... não é público em todos os planos Pluggy —
+    //      se falhar com 401/400, retornamos orientação para o usuário
+    //      informar o Item ID (encontrado no dashboard Pluggy).
+    let pluggyItems: Array<{ id: string }> = [];
+    if (providedItemId) {
+      pluggyItems = [{ id: providedItemId }];
+    } else {
+      try {
+        pluggyItems = await listItemsByClientUser(`company:${company_id}`);
+      } catch (err) {
+        if (err instanceof PluggyError) {
+          return json(
+            {
+              error: "pluggy_list_unavailable",
+              code: err.code,
+              details:
+                "Sua conta Pluggy não permite listagem por clientUserId. Informe o Item ID do banco (Pluggy dashboard → Items) para reconciliar.",
+            },
+            400,
+          );
+        }
+        return json({ error: "pluggy_error" }, 502);
       }
-      return json({ error: "pluggy_error" }, 502);
     }
 
     if (!pluggyItems.length) {

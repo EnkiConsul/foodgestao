@@ -101,9 +101,17 @@ export default function OpenFinance() {
           <>
             <Button
               variant="outline"
-              onClick={() => reconcile.mutate({ company_id: selectedCompanyId! })}
+              onClick={() => {
+                const itemId = window.prompt(
+                  "Cole o Item ID do Pluggy (dashboard.pluggy.ai → Items).\nDeixe em branco para tentar listagem automática.",
+                )?.trim();
+                reconcile.mutate({
+                  company_id: selectedCompanyId!,
+                  item_id: itemId || undefined,
+                });
+              }}
               disabled={reconcile.isPending}
-              title="Busca no Pluggy conexões criadas pelo widget mas não registradas aqui"
+              title="Registra localmente um item Pluggy criado pelo widget"
             >
               {reconcile.isPending ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
