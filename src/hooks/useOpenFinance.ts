@@ -1,6 +1,36 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { parseEdgeFunctionError, formatEdgeFunctionError } from "@/lib/edgeFunctionError";
+
+export class EdgeFunctionError extends Error {
+  code: string;
+  status: number | null;
+  details?: unknown;
+  constructor(info: { code: string; status: number | null; message: string; details?: unknown }) {
+    super(info.message);
+    this.code = info.code;
+    this.status = info.status;
+    this.details = info.details;
+  }
+}
+
+async function throwEdge(err: unknown, fallback: string): Promise<never> {
+  const info = await parseEdgeFunctionError(err, fallback);
+  throw new EdgeFunctionError(info);
+}
+
+function describeEdgeError(err: Error): string {
+  if (err instanceof EdgeFunctionError) {
+    return formatEdgeFunctionError({
+      code: err.code,
+      status: err.status,
+      message: err.message,
+      details: err.details,
+    });
+  }
+  return err.message;
+}
 
 export type OpenFinanceConnection = {
   id: string;
