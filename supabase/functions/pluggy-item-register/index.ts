@@ -140,38 +140,103 @@ Deno.serve(async (req) => {
       })
       .eq("id", reqRow.id);
 
-    // Sincroniza contas (metadados apenas — ligação com contas locais é
-    // manual, no frontend, e transações vêm em Bloco 5+).
+    // Sincroniza contas + auto-cria contas bancárias / cartões locais e faz
+    // o vínculo em open_finance_accounts.local_account_id / local_credit_card_id.
+    // Isso permite que pluggy-sync ingira transações sem passo manual de mapeamento.
     let accountsSynced = 0;
+    let accountsLinkedAuto = 0;
     try {
       const accounts = await listAccounts(item.id);
       for (const acc of accounts) {
         const isCredit = String(acc.type ?? "").toUpperCase() === "CREDIT";
-        await admin.from("open_finance_accounts").upsert(
-          {
-            company_id: reqRow.company_id,
-            connection_id: connection.id,
-            provider: "pluggy",
-            provider_account_id: acc.id,
-            provider_type: acc.type,
-            provider_subtype: acc.subtype ?? null,
-            provider_name: acc.name,
-            provider_marketing_name: acc.marketingName ?? null,
-            provider_number_masked: acc.number ?? null,
-            currency_code: acc.currencyCode ?? null,
-            provider_balance: acc.balance ?? null,
-            available_balance: acc.bankData?.closingBalance ?? null,
-            credit_limit: isCredit ? acc.creditData?.creditLimit ?? null : null,
-            available_credit_limit: isCredit ? acc.creditData?.availableCreditLimit ?? null : null,
-            balance_close_date: isCredit ? acc.creditData?.balanceCloseDate ?? null : null,
-            balance_due_date: isCredit ? acc.creditData?.balanceDueDate ?? null : null,
-            card_brand: isCredit ? acc.creditData?.brand ?? null : null,
-            last_synced_at: now,
-            updated_at: now,
-          },
-          { onConflict: "connection_id,provider_account_id" },
-        );
+        const isBank = String(acc.type ?? "").toUpperCase() === "BANK";
+
+        // 1) Upsert em open_finance_accounts (idempotente).
+        const { data: ofAcc, error: ofAccErr } = await admin
+          .from("open_finance_accounts")
+          .upsert(
+            {
+              company_id: reqRow.company_id,
+              connection_id: connection.id,
+              provider: "pluggy",
+              provider_account_id: acc.id,
+              provider_type: acc.type,
+              provider_subtype: acc.subtype ?? null,
+              provider_name: acc.name,
+              provider_marketing_name: acc.marketingName ?? null,
+              provider_number_masked: acc.number ?? null,
+              currency_code: acc.currencyCode ?? null,
+              provider_balance: acc.balance ?? null,
+              available_balance: acc.bankData?.closingBalance ?? null,
+              credit_limit: isCredit ? acc.creditData?.creditLimit ?? null : null,
+              available_credit_limit: isCredit ? acc.creditData?.availableCreditLimit ?? null : null,
+              balance_close_date: isCredit ? acc.creditData?.balanceCloseDate ?? null : null,
+              balance_due_date: isCredit ? acc.creditData?.balanceDueDate ?? null : null,
+              card_brand: isCredit ? acc.creditData?.brand ?? null : null,
+              last_synced_at: now,
+              updated_at: now,
+            },
+            { onConflict: "connection_id,provider_account_id" },
+          )
+          .select("id, local_account_id, local_credit_card_id")
+          .single();
+
+        if (ofAccErr || !ofAcc) {
+          console.warn("[pluggy-item-register] of_account_upsert_failed", { code: ofAccErr?.code });
+          continue;
+        }
         accountsSynced++;
+
+        // 2) Auto-criação da conta/cartão local — apenas se ainda não vinculado.
+        try {
+          if (isBank && !ofAcc.local_account_id) {
+            const localAccountId = await createLocalBankAccount(admin, {
+              userId,
+              companyId: reqRow.company_id as string,
+              institutionName: item.connector?.name ?? "Banco",
+              institutionColor: item.connector?.primaryColor ?? null,
+              acc,
+              now,
+            });
+            if (localAccountId) {
+              await admin
+                .from("open_finance_accounts")
+                .update({
+                  local_account_id: localAccountId,
+                  auto_import: true,
+                  ownership_status: "linked_auto",
+                  updated_at: now,
+                })
+                .eq("id", ofAcc.id);
+              accountsLinkedAuto++;
+            }
+          } else if (isCredit && !ofAcc.local_credit_card_id) {
+            const localCardId = await createLocalCreditCard(admin, {
+              userId,
+              companyId: reqRow.company_id as string,
+              institutionName: item.connector?.name ?? "Banco",
+              acc,
+              now,
+            });
+            if (localCardId) {
+              await admin
+                .from("open_finance_accounts")
+                .update({
+                  local_credit_card_id: localCardId,
+                  auto_import: true,
+                  ownership_status: "linked_auto",
+                  updated_at: now,
+                })
+                .eq("id", ofAcc.id);
+              accountsLinkedAuto++;
+            }
+          }
+        } catch (linkErr) {
+          console.warn("[pluggy-item-register] auto_link_failed", {
+            provider_account_id: acc.id,
+            err: linkErr instanceof Error ? linkErr.message : String(linkErr),
+          });
+        }
       }
     } catch (err) {
       console.warn("[pluggy-item-register] accounts_sync_failed", err);
