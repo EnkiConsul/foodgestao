@@ -72,9 +72,6 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
       setAgency(a.agency ?? "");
       setAccountNumber(a.account_number ?? "");
     } else {
-      // Nova conta: em PJ, oferecemos escolha Manual vs Open Finance.
-      // Em PF, Open Finance ainda não é suportado — vai direto ao manual.
-      setStep(contextType === "pj" && selectedCompanyId ? "choose" : "manual");
       setName("");
       setAccountType("corrente");
       setInitialBalance("");
