@@ -6802,6 +6802,15 @@ export type Database = {
         Returns: number
       }
       recompute_all_account_balances: { Args: never; Returns: number }
+      reconcile_of_transactions: {
+        Args: { p_company_id: string; p_limit?: number }
+        Returns: {
+          categorized: number
+          enqueued_ai: number
+          linked_contact: number
+          scanned: number
+        }[]
+      }
       record_login_attempt: {
         Args: { _identifier_hash: string; _ip: string; _success: boolean }
         Returns: {
