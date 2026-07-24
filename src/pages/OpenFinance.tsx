@@ -220,6 +220,8 @@ export default function OpenFinance() {
         </div>
       )}
 
+      <PairingReviewSection companyId={selectedCompanyId!} />
+
       <PluggyConnectLauncher
         companyId={selectedCompanyId!}
         mode={launcher?.mode ?? "create"}
