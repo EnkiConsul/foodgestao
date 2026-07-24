@@ -316,6 +316,7 @@ const AppRoutes = () => (
         <Route path="/contas-contabeis" element={<ContasContabeis />} />
         <Route path="/contas-bancarias" element={<ContasBancarias />} />
         <Route path="/cartoes-credito" element={<CartoesCredito />} />
+        <Route path="/open-finance" element={<OpenFinance />} />
         <Route path="/configuracoes" element={<Configuracoes />} />
         <Route path="/gestao-usuarios" element={<GestaoUsuarios />} />
         <Route path="/empresas" element={<Empresas />} />
