@@ -11,10 +11,8 @@ export interface TemplateEntry {
 
 import { template as contactLead } from './contact-lead.tsx'
 import { template as companyInvite } from './company-invite.tsx'
-import { template as pluggyConsentExpiring } from './pluggy-consent-expiring.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'contact-lead': contactLead,
   'company-invite': companyInvite,
-  'pluggy-consent-expiring': pluggyConsentExpiring,
 }
