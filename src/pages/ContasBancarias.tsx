@@ -274,9 +274,8 @@ export default function ContasBancarias() {
                     {!a.is_active && (
                       <Badge variant="outline" className="text-[10px] h-4 px-1.5 shrink-0">Inativa</Badge>
                     )}
-                    {statusByAccountId[a.id] && (
-                      <OpenFinanceBadge info={statusByAccountId[a.id]} />
-                    )}
+                  </div>
+
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {a.context === "pj" && a.company_id
