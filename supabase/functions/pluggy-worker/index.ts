@@ -56,11 +56,15 @@ type WebhookRow = {
 // e para is_active/needs-reconnect quando aplicável.
 function mapConnectionUpdate(item: PluggyItem) {
   const status = String(item.status ?? "").toUpperCase();
+  const consentExpiresAt = item.consentExpiresAt ?? null;
+  const consentExpired =
+    !!consentExpiresAt && new Date(consentExpiresAt).getTime() < Date.now();
   const needsReconnect =
     status === "LOGIN_ERROR" ||
     status === "WAITING_USER_INPUT" ||
     status === "USER_INPUT_TIMEOUT" ||
-    status === "OUTDATED";
+    status === "OUTDATED" ||
+    consentExpired;
   const success = status === "UPDATED";
   return {
     connector_id: item.connector?.id != null ? String(item.connector.id) : null,
@@ -76,6 +80,7 @@ function mapConnectionUpdate(item: PluggyItem) {
       ? item.lastUpdatedAt ?? new Date().toISOString()
       : undefined,
     next_auto_sync_at: item.nextAutoSyncAt ?? null,
+    consent_expires_at: consentExpiresAt,
     needs_reconnect: needsReconnect,
   };
 }
@@ -111,6 +116,22 @@ async function processEvent(
   // seguida no Bloco 5). Isso NÃO é falha — apenas retry curto.
   if (!connectionId) {
     return { status: "retry", error: "connection_not_registered" };
+  }
+
+  // Evento de consentimento revogado: desativa a conexão localmente sem
+  // depender de um próximo getItem retornar 404.
+  if (ev.event_type === "consent/revoked") {
+    await admin
+      .from("open_finance_connections")
+      .update({
+        is_active: false,
+        disconnected_at: new Date().toISOString(),
+        needs_reconnect: true,
+        item_status: "CONSENT_REVOKED",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", connectionId);
+    return { status: "processed" };
   }
 
   // Busca metadados atualizados do item na Pluggy.

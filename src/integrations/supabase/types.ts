@@ -4795,6 +4795,7 @@ export type Database = {
           connection_request_id: string | null
           connector_id: string | null
           connector_status: string | null
+          consent_expires_at: string | null
           created_at: string
           disconnected_at: string | null
           execution_status: string | null
@@ -4826,6 +4827,7 @@ export type Database = {
           connection_request_id?: string | null
           connector_id?: string | null
           connector_status?: string | null
+          consent_expires_at?: string | null
           created_at?: string
           disconnected_at?: string | null
           execution_status?: string | null
@@ -4857,6 +4859,7 @@ export type Database = {
           connection_request_id?: string | null
           connector_id?: string | null
           connector_status?: string | null
+          consent_expires_at?: string | null
           created_at?: string
           disconnected_at?: string | null
           execution_status?: string | null

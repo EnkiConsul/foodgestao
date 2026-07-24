@@ -1,0 +1,2 @@
+ALTER TABLE public.open_finance_connections ADD COLUMN IF NOT EXISTS consent_expires_at timestamptz;
+CREATE INDEX IF NOT EXISTS idx_of_connections_consent_expires ON public.open_finance_connections(consent_expires_at) WHERE consent_expires_at IS NOT NULL;
