@@ -1,48 +1,71 @@
+
 ## Objetivo
 
-Conectar o projeto **360°FOOD** ao Google Search Console (GSC) usando o connector nativo da Lovable, permitindo:
+Remover toda a integração Open Finance (Pluggy) do projeto — código frontend, Edge Functions, tabelas, RPCs, templates, dependências e secrets — sem afetar contas bancárias manuais, cartões, lançamentos, layout, design nem quaisquer outros módulos.
 
-- Verificar automaticamente a propriedade `https://gestor360food.com` (método META tag)
-- Consultar dados de indexação, cliques, impressões e posição média
-- Inspecionar URLs específicas
-- Alimentar dashboards/relatórios internos (ex.: `/admin/seo-indexacao`)
+Verifiquei que as tabelas `transactions`, `accounts` e `credit_cards` **não têm colunas `of_*`** — o isolamento é limpo, basta remover os artefatos dedicados.
 
-## Passos
+## O que será removido
 
-1. **Abrir card de conexão do Google Search Console**
-   - Chamar o connector `google_search_console` para exibir o card in-chat.
-   - Você escolhe a conta Google (deve ser a mesma que administra a propriedade no GSC) e autoriza os escopos de leitura + verificação.
+### 1. Frontend
+- `src/pages/OpenFinance.tsx`
+- `src/components/open-finance/` (pasta inteira: `PluggyConnectLauncher.tsx`, `AccountMappingDialog.tsx`, `PairingReviewSection.tsx`)
+- `src/components/accounts/OpenFinanceBadge.tsx`
+- `src/hooks/useOpenFinance.ts`
+- `src/hooks/useAccountOpenFinanceStatus.ts`
+- Rota `/open-finance` em `src/App.tsx` (import + `<Route>`)
+- Item "Open Finance" em `src/components/layout/sidebar-menus/FinanceiroMenu.tsx`
+- Em `src/components/accounts/AccountFormDialog.tsx`: remover o wizard "Manual vs Open Finance" e voltar direto ao formulário manual (mantendo todos os campos manuais atuais)
+- Em `src/hooks/useRealtimeSync.tsx`: remover `open_finance_accounts` e `open_finance_connections` do tipo `RealtimeTable`
+- Em `src/lib/edgeFunctionError.ts`: remover a entrada `pluggy_error`
+- Em `package.json`: remover `react-pluggy-connect`
 
-2. **Verificar a propriedade `gestor360food.com`** (se ainda não estiver verificada)
-   - Solicitar token META via `siteVerification/v1/token`.
-   - Injetar `<meta name="google-site-verification" content="…" />` no `<head>` de `index.html`.
-   - Publicar o site para o Google conseguir ler a tag.
-   - Chamar `siteVerification/v1/webResource` para confirmar a propriedade.
-   - Registrar o site em `webmasters/v3/sites` para aparecer na listagem.
+### 2. Edge Functions (delete + remover de `supabase/config.toml`)
+- `pluggy-connect-token`
+- `pluggy-item-register`
+- `pluggy-item-delete`
+- `pluggy-webhook`
+- `pluggy-sync`
+- `pluggy-worker`
+- `pluggy-reconcile`
+- `pluggy-consent-notifier`
+- `supabase/functions/_shared/pluggy.ts`
+- Template `pluggy-consent-expiring.tsx` e sua entrada em `_shared/transactional-email-templates/registry.ts`
 
-3. **Testar leitura básica**
-   - Listar propriedades verificadas (`GET /webmasters/v3/sites`).
-   - Rodar uma URL Inspection na home (`gestor360food.com`) para validar credenciais e permissões.
+### 3. Banco de dados (uma única migration)
+Drop de tabelas (com `CASCADE` para políticas/índices/triggers):
+- `open_finance_connection_requests`
+- `open_finance_connections`
+- `open_finance_accounts`
+- `open_finance_consents`
+- `open_finance_transactions_raw`
+- `open_finance_webhook_events`
+- `open_finance_sync_runs`
 
-4. **(Opcional, se você quiser)** ligar o painel existente `/admin/seo-indexacao` aos dados reais do GSC via Edge Function que consome o gateway do connector, com cache curto para evitar quota.
+Drop de funções:
+- `ingest_of_transaction(jsonb)`
+- `auto_categorize_of_transaction()`
+- `reconcile_of_transactions(uuid, integer)`
+- `link_open_finance_account(uuid, uuid, uuid, boolean)`
+- `claim_pluggy_webhook_events(integer, timestamptz)`
+- `claim_open_finance_sync(...)` (se ainda existir)
 
-## Detalhes técnicos
+Nenhuma coluna precisa ser removida de `transactions`/`accounts`/`credit_cards` (já confirmado que não existem).
 
-- O connector expõe as credenciais como variáveis de ambiente do backend (nunca no frontend).
-- Todas as chamadas passam pelo gateway Lovable:
-  `https://connector-gateway.lovable.dev/google_search_console/…`
-  com headers `Authorization: Bearer $LOVABLE_API_KEY` e `X-Connection-Api-Key: $GOOGLE_SEARCH_CONSOLE_API_KEY`.
-- Método de verificação será **META tag** (único viável para app Lovable — DNS/arquivo exigem infra que não controlamos aqui).
-- A meta tag entra em `index.html` (SSR estático), não via `react-helmet`, para o Googlebot conseguir ler no primeiro fetch.
-- Domínio alvo: `https://gestor360food.com` (Published + Custom Domain ativo).
+### 4. Secrets (Lovable Cloud)
+Após o deploy, listarei os secrets e removerei apenas os que forem exclusivos do Pluggy (ex.: `PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET`, `PLUGGY_WEBHOOK_SECRET`). Secrets compartilhados (Z-API, Turnstile, e-mail) ficam intactos.
 
-## Pré-requisitos que preciso confirmar com você
+## O que NÃO será tocado
+- Design system, sidebar visual, tema, layouts.
+- Contas bancárias manuais, cartões, lançamentos, faturas, categorias, orçamento, DP, IA, Asaas, e-mail, auth.
+- Tipos regenerados do Supabase (`types.ts`) — o próprio processo pós-migration atualiza.
 
-- A conta Google que você vai autorizar **já é proprietária/administradora** da propriedade `gestor360food.com` no GSC? Se ainda não tem a propriedade lá, faremos a verificação META tag como parte deste plano.
-- Quer que eu já deixe o painel `/admin/seo-indexacao` puxando dados reais do GSC nesta mesma leva, ou apenas conectar por enquanto?
+## Ordem de execução (build mode)
+1. Migration única dropando tabelas + funções Open Finance.
+2. Após migration executada e types regenerados: apagar arquivos frontend, editar `App.tsx`, `FinanceiroMenu.tsx`, `AccountFormDialog.tsx`, `useRealtimeSync.tsx`, `edgeFunctionError.ts`, `registry.ts`.
+3. Remover Edge Functions e blocos correspondentes em `supabase/config.toml`; deploy das funções restantes.
+4. `bun remove react-pluggy-connect`.
+5. Rodar typecheck para garantir zero referências pendentes.
+6. Auditar secrets e remover os exclusivos do Pluggy.
 
-## O que NÃO faz parte deste plano
-
-- Configurar Bing Webmaster Tools ou outros mecanismos.
-- Enviar sitemap ao GSC (posso adicionar depois; o `public/sitemap.xml` já existe).
-- Alterar `robots.txt` ou estrutura de rotas.
+Resultado: sistema idêntico visualmente, cadastro de conta bancária volta a ser 100% manual, sem qualquer resíduo Pluggy.
