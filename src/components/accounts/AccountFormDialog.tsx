@@ -40,7 +40,7 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
   const isEdit = !!account;
 
 
-  const [step, setStep] = useState<Step>("manual");
+
   const [name, setName] = useState("");
   const [accountType, setAccountType] = useState<AccountType>("corrente");
   const [initialBalance, setInitialBalance] = useState("");
