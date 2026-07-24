@@ -6533,6 +6533,52 @@ export type Database = {
       is_dp_colaborador: { Args: { _user_id: string }; Returns: boolean }
       is_password_change_required: { Args: never; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      link_open_finance_account: {
+        Args: {
+          _auto_import?: boolean
+          _local_account_id?: string
+          _local_credit_card_id?: string
+          _of_account_id: string
+        }
+        Returns: {
+          auto_import: boolean
+          available_balance: number | null
+          available_credit_limit: number | null
+          balance_close_date: string | null
+          balance_due_date: string | null
+          card_brand: string | null
+          company_id: string
+          connection_id: string
+          created_at: string
+          credit_limit: number | null
+          currency_code: string | null
+          id: string
+          is_active: boolean
+          last_synced_at: string | null
+          last_transaction_date: string | null
+          local_account_id: string | null
+          local_credit_card_id: string | null
+          owner_document_hash: string | null
+          owner_document_last4: string | null
+          ownership_status: string
+          provider: string
+          provider_account_id: string
+          provider_balance: number | null
+          provider_marketing_name: string | null
+          provider_name: string | null
+          provider_number_masked: string | null
+          provider_subtype: string | null
+          provider_type: string
+          sync_cursor_created_at: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "open_finance_accounts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string

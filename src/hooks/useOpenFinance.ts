@@ -138,3 +138,92 @@ export function useDeletePluggyItem() {
     },
   });
 }
+
+export type LocalBankAccountOption = {
+  id: string;
+  name: string;
+  account_type: string;
+  bank_slug: string | null;
+};
+
+export type LocalCreditCardOption = {
+  id: string;
+  name: string;
+  brand: string | null;
+  last4: string | null;
+};
+
+export function useLocalBankAccounts(companyId: string | null) {
+  return useQuery({
+    queryKey: ["local-bank-accounts", companyId],
+    enabled: !!companyId,
+    queryFn: async (): Promise<LocalBankAccountOption[]> => {
+      const { data, error } = await supabase
+        .from("accounts")
+        .select("id, name, account_type, bank_slug")
+        .eq("company_id", companyId!)
+        .eq("context", "pj")
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return (data ?? []) as LocalBankAccountOption[];
+    },
+  });
+}
+
+export function useLocalCreditCards(companyId: string | null) {
+  return useQuery({
+    queryKey: ["local-credit-cards", companyId],
+    enabled: !!companyId,
+    queryFn: async (): Promise<LocalCreditCardOption[]> => {
+      const { data, error } = await supabase
+        .from("credit_cards")
+        .select("id, holder_name, brand, last4, issuer")
+        .eq("company_id", companyId!)
+        .eq("context", "pj")
+        .eq("is_active", true)
+        .order("holder_name");
+      if (error) throw error;
+      return ((data ?? []) as Array<{
+        id: string;
+        holder_name: string | null;
+        brand: string | null;
+        last4: string | null;
+        issuer: string | null;
+      }>).map((c) => ({
+        id: c.id,
+        name: [c.issuer, c.holder_name].filter(Boolean).join(" · ") || "Cartão",
+        brand: c.brand,
+        last4: c.last4,
+      }));
+    },
+  });
+}
+
+export function useLinkOpenFinanceAccount() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      of_account_id: string;
+      local_account_id?: string | null;
+      local_credit_card_id?: string | null;
+      auto_import?: boolean;
+    }) => {
+      const { data, error } = await supabase.rpc("link_open_finance_account", {
+        _of_account_id: input.of_account_id,
+        _local_account_id: input.local_account_id ?? null,
+        _local_credit_card_id: input.local_credit_card_id ?? null,
+        _auto_import: input.auto_import ?? null,
+      });
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["of-accounts"] });
+      toast.success("Vínculo atualizado");
+    },
+    onError: (err: Error) => {
+      toast.error("Falha ao vincular", { description: err.message });
+    },
+  });
+}
