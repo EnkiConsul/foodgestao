@@ -140,38 +140,283 @@ Deno.serve(async (req) => {
       })
       .eq("id", reqRow.id);
 
-    // Sincroniza contas (metadados apenas — ligação com contas locais é
-    // manual, no frontend, e transações vêm em Bloco 5+).
+    // Sincroniza contas + auto-cria contas bancárias / cartões locais e faz
+    // o vínculo em open_finance_accounts.local_account_id / local_credit_card_id.
+    // Isso permite que pluggy-sync ingira transações sem passo manual de mapeamento.
     let accountsSynced = 0;
+    let accountsLinkedAuto = 0;
     try {
       const accounts = await listAccounts(item.id);
       for (const acc of accounts) {
         const isCredit = String(acc.type ?? "").toUpperCase() === "CREDIT";
-        await admin.from("open_finance_accounts").upsert(
-          {
-            company_id: reqRow.company_id,
-            connection_id: connection.id,
-            provider: "pluggy",
-            provider_account_id: acc.id,
-            provider_type: acc.type,
-            provider_subtype: acc.subtype ?? null,
-            provider_name: acc.name,
-            provider_marketing_name: acc.marketingName ?? null,
-            provider_number_masked: acc.number ?? null,
-            currency_code: acc.currencyCode ?? null,
-            provider_balance: acc.balance ?? null,
-            available_balance: acc.bankData?.closingBalance ?? null,
-            credit_limit: isCredit ? acc.creditData?.creditLimit ?? null : null,
-            available_credit_limit: isCredit ? acc.creditData?.availableCreditLimit ?? null : null,
-            balance_close_date: isCredit ? acc.creditData?.balanceCloseDate ?? null : null,
-            balance_due_date: isCredit ? acc.creditData?.balanceDueDate ?? null : null,
-            card_brand: isCredit ? acc.creditData?.brand ?? null : null,
-            last_synced_at: now,
-            updated_at: now,
-          },
-          { onConflict: "connection_id,provider_account_id" },
-        );
+        const isBank = String(acc.type ?? "").toUpperCase() === "BANK";
+
+        // 1) Upsert em open_finance_accounts (idempotente).
+        const { data: ofAcc, error: ofAccErr } = await admin
+          .from("open_finance_accounts")
+          .upsert(
+            {
+              company_id: reqRow.company_id,
+              connection_id: connection.id,
+              provider: "pluggy",
+              provider_account_id: acc.id,
+              provider_type: acc.type,
+              provider_subtype: acc.subtype ?? null,
+              provider_name: acc.name,
+              provider_marketing_name: acc.marketingName ?? null,
+              provider_number_masked: acc.number ?? null,
+              currency_code: acc.currencyCode ?? null,
+              provider_balance: acc.balance ?? null,
+              available_balance: acc.bankData?.closingBalance ?? null,
+              credit_limit: isCredit ? acc.creditData?.creditLimit ?? null : null,
+              available_credit_limit: isCredit ? acc.creditData?.availableCreditLimit ?? null : null,
+              balance_close_date: isCredit ? acc.creditData?.balanceCloseDate ?? null : null,
+              balance_due_date: isCredit ? acc.creditData?.balanceDueDate ?? null : null,
+              card_brand: isCredit ? acc.creditData?.brand ?? null : null,
+              last_synced_at: now,
+              updated_at: now,
+            },
+            { onConflict: "connection_id,provider_account_id" },
+          )
+          .select("id, local_account_id, local_credit_card_id")
+          .single();
+
+        if (ofAccErr || !ofAcc) {
+          console.warn("[pluggy-item-register] of_account_upsert_failed", { code: ofAccErr?.code });
+          continue;
+        }
         accountsSynced++;
+
+        // 2) Auto-criação da conta/cartão local — apenas se ainda não vinculado.
+        try {
+          if (isBank && !ofAcc.local_account_id) {
+            const localAccountId = await createLocalBankAccount(admin, {
+              userId,
+              companyId: reqRow.company_id as string,
+              institutionName: item.connector?.name ?? "Banco",
+              institutionColor: item.connector?.primaryColor ?? null,
+              acc,
+              now,
+            });
+            if (localAccountId) {
+              await admin
+                .from("open_finance_accounts")
+                .update({
+                  local_account_id: localAccountId,
+                  auto_import: true,
+                  ownership_status: "linked_auto",
+                  updated_at: now,
+                })
+                .eq("id", ofAcc.id);
+              accountsLinkedAuto++;
+            }
+          } else if (isCredit && !ofAcc.local_credit_card_id) {
+            const localCardId = await createLocalCreditCard(admin, {
+              userId,
+              companyId: reqRow.company_id as string,
+              institutionName: item.connector?.name ?? "Banco",
+              acc,
+              now,
+            });
+            if (localCardId) {
+              await admin
+                .from("open_finance_accounts")
+                .update({
+                  local_credit_card_id: localCardId,
+                  auto_import: true,
+                  ownership_status: "linked_auto",
+                  updated_at: now,
+                })
+                .eq("id", ofAcc.id);
+              accountsLinkedAuto++;
+            }
+          }
+        } catch (linkErr) {
+          console.warn("[pluggy-item-register] auto_link_failed", {
+            provider_account_id: acc.id,
+            err: linkErr instanceof Error ? linkErr.message : String(linkErr),
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("[pluggy-item-register] accounts_sync_failed", err);
+    }
+
+    return json({
+      ok: true,
+      connection_id: connection.id,
+      accounts_synced: accountsSynced,
+      accounts_linked_auto: accountsLinkedAuto,
+      item_status: item.status,
+    });
+  } catch (e) {
+    console.error("[pluggy-item-register] fatal", e);
+    return json({ error: e instanceof Error ? e.message : "unknown" }, 500);
+  }
+});
+
+// ---------- helpers ---------------------------------------------------------
+
+function slugify(input: string): string {
+  return input
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+}
+
+function parseTransferNumber(raw: string | null | undefined): {
+  agency: string | null;
+  account: string | null;
+} {
+  if (!raw) return { agency: null, account: null };
+  // Formatos comuns Pluggy: "0001/12345-6" ou "0001-12345-6" ou "12345-6".
+  const parts = String(raw).split(/[\/\-\s]/).filter(Boolean);
+  if (parts.length >= 3) {
+    return {
+      agency: parts[0],
+      account: parts.slice(1).join("-"),
+    };
+  }
+  if (parts.length === 2) {
+    return { agency: null, account: parts.join("-") };
+  }
+  return { agency: null, account: raw };
+}
+
+function mapAccountType(subtype: string | null | undefined): "corrente" | "poupanca" {
+  const s = String(subtype ?? "").toUpperCase();
+  if (s === "SAVINGS_ACCOUNT") return "poupanca";
+  return "corrente";
+}
+
+function extractLast4(masked: string | null | undefined): string | null {
+  if (!masked) return null;
+  const digits = String(masked).replace(/\D+/g, "");
+  return digits.length >= 4 ? digits.slice(-4) : null;
+}
+
+function dayFromDate(iso: string | null | undefined, fallback: number): number {
+  if (!iso) return fallback;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return fallback;
+  const dd = d.getUTCDate();
+  return dd >= 1 && dd <= 31 ? dd : fallback;
+}
+
+async function createLocalBankAccount(
+  admin: ReturnType<typeof createClient>,
+  args: {
+    userId: string;
+    companyId: string;
+    institutionName: string;
+    institutionColor: string | null;
+    acc: {
+      name?: string;
+      subtype?: string;
+      balance?: number | null;
+      number?: string | null;
+      bankData?: { transferNumber?: string };
+    };
+    now: string;
+  },
+): Promise<string | null> {
+  const { userId, companyId, institutionName, institutionColor, acc, now } = args;
+  const rawName = `${institutionName} — ${acc.name ?? "Conta"}`;
+  const last4 = extractLast4(acc.number);
+  const nameWithSuffix = last4 ? `${rawName} (…${last4})` : rawName;
+  const name = nameWithSuffix.length > 60 ? nameWithSuffix.slice(0, 60) : nameWithSuffix;
+  const { agency, account } = parseTransferNumber(acc.bankData?.transferNumber ?? null);
+  const balance = typeof acc.balance === "number" ? acc.balance : 0;
+
+  const { data, error } = await admin
+    .from("accounts")
+    .insert({
+      user_id: userId,
+      company_id: companyId,
+      context: "pj",
+      name,
+      account_type: mapAccountType(acc.subtype),
+      initial_balance: balance,
+      current_balance: balance,
+      bank_slug: slugify(institutionName),
+      color: institutionColor ?? "#1B3A5C",
+      icon: "landmark",
+      agency,
+      account_number: account,
+      is_active: true,
+      created_at: now,
+      updated_at: now,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.warn("[pluggy-item-register] local_bank_insert_failed", { code: error.code });
+    return null;
+  }
+  return (data as { id: string }).id;
+}
+
+async function createLocalCreditCard(
+  admin: ReturnType<typeof createClient>,
+  args: {
+    userId: string;
+    companyId: string;
+    institutionName: string;
+    acc: {
+      name?: string;
+      number?: string | null;
+      creditData?: {
+        creditLimit?: number | null;
+        balanceCloseDate?: string | null;
+        balanceDueDate?: string | null;
+        brand?: string | null;
+      };
+    };
+    now: string;
+  },
+): Promise<string | null> {
+  const { userId, companyId, institutionName, acc, now } = args;
+  const brand = (acc.creditData?.brand ?? "other").toString().toLowerCase().slice(0, 40);
+  const last4 = extractLast4(acc.number);
+  const creditLimit = typeof acc.creditData?.creditLimit === "number"
+    ? acc.creditData.creditLimit
+    : 0;
+
+  const { data, error } = await admin
+    .from("credit_cards")
+    .insert({
+      user_id: userId,
+      company_id: companyId,
+      context: "pj",
+      brand,
+      last4,
+      holder_name: acc.name ?? null,
+      issuer: institutionName,
+      credit_limit: creditLimit,
+      closing_day: dayFromDate(acc.creditData?.balanceCloseDate, 1),
+      due_day: dayFromDate(acc.creditData?.balanceDueDate, 10),
+      autopay: false,
+      interest_rate_monthly: 0,
+      minimum_payment_percent: 0,
+      is_corporate: true,
+      is_active: true,
+      created_at: now,
+      updated_at: now,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.warn("[pluggy-item-register] local_card_insert_failed", { code: error.code });
+    return null;
+  }
+  return (data as { id: string }).id;
+}
+        }
       }
     } catch (err) {
       console.warn("[pluggy-item-register] accounts_sync_failed", err);

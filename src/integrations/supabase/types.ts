@@ -16,13 +16,16 @@ export type Database = {
     Tables: {
       accounts: {
         Row: {
+          account_number: string | null
           account_type: Database["public"]["Enums"]["account_type"]
+          agency: string | null
           bank_slug: string | null
           color: string | null
           company_id: string | null
           context: Database["public"]["Enums"]["context_type"]
           created_at: string
           current_balance: number
+          document_last4: string | null
           icon: string | null
           id: string
           initial_balance: number
@@ -32,13 +35,16 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          account_number?: string | null
           account_type?: Database["public"]["Enums"]["account_type"]
+          agency?: string | null
           bank_slug?: string | null
           color?: string | null
           company_id?: string | null
           context?: Database["public"]["Enums"]["context_type"]
           created_at?: string
           current_balance?: number
+          document_last4?: string | null
           icon?: string | null
           id?: string
           initial_balance?: number
@@ -48,13 +54,16 @@ export type Database = {
           user_id: string
         }
         Update: {
+          account_number?: string | null
           account_type?: Database["public"]["Enums"]["account_type"]
+          agency?: string | null
           bank_slug?: string | null
           color?: string | null
           company_id?: string | null
           context?: Database["public"]["Enums"]["context_type"]
           created_at?: string
           current_balance?: number
+          document_last4?: string | null
           icon?: string | null
           id?: string
           initial_balance?: number
@@ -4796,6 +4805,7 @@ export type Database = {
           connector_id: string | null
           connector_status: string | null
           consent_expires_at: string | null
+          consent_notified_at: string | null
           created_at: string
           disconnected_at: string | null
           execution_status: string | null
@@ -4828,6 +4838,7 @@ export type Database = {
           connector_id?: string | null
           connector_status?: string | null
           consent_expires_at?: string | null
+          consent_notified_at?: string | null
           created_at?: string
           disconnected_at?: string | null
           execution_status?: string | null
@@ -4860,6 +4871,7 @@ export type Database = {
           connector_id?: string | null
           connector_status?: string | null
           consent_expires_at?: string | null
+          consent_notified_at?: string | null
           created_at?: string
           disconnected_at?: string | null
           execution_status?: string | null
@@ -6411,13 +6423,16 @@ export type Database = {
           _include_inactive?: boolean
         }
         Returns: {
+          account_number: string | null
           account_type: Database["public"]["Enums"]["account_type"]
+          agency: string | null
           bank_slug: string | null
           color: string | null
           company_id: string | null
           context: Database["public"]["Enums"]["context_type"]
           created_at: string
           current_balance: number
+          document_last4: string | null
           icon: string | null
           id: string
           initial_balance: number
