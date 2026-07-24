@@ -103,6 +103,19 @@ export default function OpenFinance() {
           <>
             <Button
               variant="outline"
+              onClick={() => reconcileTx.mutate({ company_id: selectedCompanyId! })}
+              disabled={reconcileTx.isPending}
+              title="Aplica regras e vincula contatos aos lançamentos já importados"
+            >
+              {reconcileTx.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4 mr-2" />
+              )}
+              Reprocessar categorias
+            </Button>
+            <Button
+              variant="outline"
               onClick={() => {
                 const itemId = window.prompt(
                   "Cole o Item ID do Pluggy (dashboard.pluggy.ai → Items).\nDeixe em branco para tentar listagem automática.",
