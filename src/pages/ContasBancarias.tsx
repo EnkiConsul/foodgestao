@@ -276,7 +276,6 @@ export default function ContasBancarias() {
                     )}
                   </div>
 
-                  </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {a.context === "pj" && a.company_id
                       ? companies.find((c) => c.id === a.company_id)?.trade_name || companies.find((c) => c.id === a.company_id)?.name || "Empresa"
