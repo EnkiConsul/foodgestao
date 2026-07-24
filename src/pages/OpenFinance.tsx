@@ -19,6 +19,7 @@ import {
 } from "@/hooks/useOpenFinance";
 import { PluggyConnectLauncher } from "@/components/open-finance/PluggyConnectLauncher";
 import { AccountMappingDialog } from "@/components/open-finance/AccountMappingDialog";
+import { PairingReviewSection } from "@/components/open-finance/PairingReviewSection";
 
 function PageHeader({
   title, subtitle, actions,
