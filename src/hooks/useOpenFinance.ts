@@ -274,3 +274,73 @@ export function useLinkOpenFinanceAccount() {
     },
   });
 }
+
+// ============================================================================
+// Bloco 8/9 — Revisão de transferências expiradas (pairing_status='expired_review')
+// ============================================================================
+
+export type PairingReviewRow = {
+  id: string;
+  description: string;
+  amount: number;
+  transaction_date: string;
+  transaction_type: "receita" | "despesa" | "transferencia";
+  counterparty_name: string | null;
+  counterparty_cnpj: string | null;
+  account_id: string | null;
+  connection_account_id: string | null;
+};
+
+export function usePairingReview(companyId: string | null) {
+  return useQuery({
+    queryKey: ["of-pairing-review", companyId],
+    enabled: !!companyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("id, description, amount, transaction_date, transaction_type, counterparty_name, counterparty_cnpj, account_id, connection_account_id")
+        .eq("company_id", companyId!)
+        .eq("pairing_status", "expired_review")
+        .order("transaction_date", { ascending: false })
+        .limit(100);
+      if (error) throw new Error(error.message);
+      return (data ?? []) as PairingReviewRow[];
+    },
+  });
+}
+
+export function useResolvePairingReview() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { transaction_id: string; action: "keep" | "exclude" }) => {
+      const patch =
+        input.action === "keep"
+          ? {
+              pairing_status: "expired_finalized",
+              exclude_from_results: false,
+              needs_review: false,
+              review_reason: null,
+            }
+          : {
+              pairing_status: "expired_finalized",
+              exclude_from_results: true,
+              needs_review: false,
+              review_reason: "confirmado_transferencia_sem_par",
+            };
+      const { error } = await supabase
+        .from("transactions")
+        .update({ ...patch, updated_at: new Date().toISOString() })
+        .eq("id", input.transaction_id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["of-pairing-review"] });
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+      toast.success("Lançamento atualizado");
+    },
+    onError: (err: Error) => {
+      toast.error("Falha ao atualizar", { description: err.message });
+    },
+  });
+}
+
