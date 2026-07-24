@@ -37,6 +37,7 @@ export default function ContasBancarias() {
   const { user } = useAuth();
   const { contextType, selectedCompanyId, companies } = useCompanyContext();
   const { maskBRL } = usePrivacy();
+  const { statusByAccountId } = useAccountOpenFinanceStatus();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
