@@ -235,6 +235,13 @@ Deno.serve(async (req) => {
           console.warn("[pluggy-item-register] auto_link_failed", {
             provider_account_id: acc.id,
             err: linkErr instanceof Error ? linkErr.message : String(linkErr),
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("[pluggy-item-register] accounts_sync_failed", err);
+    }
+
     return json({
       ok: true,
       connection_id: connection.id,
