@@ -153,7 +153,7 @@ async function syncAccount(
 
   const fromDate = acc.sync_cursor_created_at
     ? new Date(acc.sync_cursor_created_at)
-    : daysAgo(DEFAULT_LOOKBACK_DAYS);
+    : daysAgo(INITIAL_BACKFILL_DAYS);
   const from = ymd(fromDate);
   const to = ymd(new Date());
 
