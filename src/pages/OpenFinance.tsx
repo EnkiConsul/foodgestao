@@ -98,9 +98,24 @@ export default function OpenFinance() {
         title="Open Finance"
         subtitle="Conecte seus bancos e cartões via Pluggy para importar lançamentos automaticamente."
         actions={
-          <Button onClick={() => setLauncher({ mode: "create" })}>
-            <Plug className="w-4 h-4 mr-2" /> Conectar banco
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              onClick={() => reconcile.mutate({ company_id: selectedCompanyId! })}
+              disabled={reconcile.isPending}
+              title="Busca no Pluggy conexões criadas pelo widget mas não registradas aqui"
+            >
+              {reconcile.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <LifeBuoy className="w-4 h-4 mr-2" />
+              )}
+              Recuperar conexão pendente
+            </Button>
+            <Button onClick={() => setLauncher({ mode: "create" })}>
+              <Plug className="w-4 h-4 mr-2" /> Conectar banco
+            </Button>
+          </>
         }
       />
 
