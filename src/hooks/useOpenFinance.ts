@@ -118,12 +118,20 @@ export function useCreateConnectToken() {
       const { data, error } = await supabase.functions.invoke("pluggy-connect-token", {
         body: input,
       });
-      if (error) throw new Error(error.message || "Falha ao criar token Pluggy");
-      if (!data?.access_token) throw new Error(data?.error || "Token Pluggy indisponível");
+      if (error) await throwEdge(error, "Falha ao criar token Pluggy");
+      if (!data?.access_token) {
+        throw new EdgeFunctionError({
+          code: data?.error || "no_access_token",
+          status: null,
+          message: data?.error
+            ? `Token Pluggy indisponível (código: ${data.error}).`
+            : "Token Pluggy indisponível.",
+        });
+      }
       return data as { access_token: string; request_id: string; expires_at: string };
     },
     onError: (err: Error) => {
-      toast.error("Não foi possível iniciar a conexão", { description: err.message });
+      toast.error("Não foi possível iniciar a conexão", { description: describeEdgeError(err) });
     },
   });
 }
@@ -135,8 +143,16 @@ export function useRegisterPluggyItem() {
       const { data, error } = await supabase.functions.invoke("pluggy-item-register", {
         body: input,
       });
-      if (error) throw new Error(error.message || "Falha ao registrar conexão");
-      if (!data?.ok) throw new Error(data?.error || "Registro recusado");
+      if (error) await throwEdge(error, "Falha ao registrar conexão");
+      if (!data?.ok) {
+        throw new EdgeFunctionError({
+          code: data?.error || "register_refused",
+          status: null,
+          message: data?.error
+            ? `Registro recusado (código: ${data.error}).`
+            : "Registro recusado.",
+        });
+      }
       return data as { connection_id: string; accounts_synced: number; item_status: string };
     },
     onSuccess: () => {
@@ -144,7 +160,7 @@ export function useRegisterPluggyItem() {
       toast.success("Banco conectado com sucesso");
     },
     onError: (err: Error) => {
-      toast.error("Falha ao registrar conexão", { description: err.message });
+      toast.error("Falha ao registrar conexão", { description: describeEdgeError(err) });
     },
   });
 }
@@ -156,7 +172,7 @@ export function useDeletePluggyItem() {
       const { data, error } = await supabase.functions.invoke("pluggy-item-delete", {
         body: input,
       });
-      if (error) throw new Error(error.message || "Falha ao desconectar");
+      if (error) await throwEdge(error, "Falha ao desconectar");
       return data;
     },
     onSuccess: () => {
@@ -164,7 +180,7 @@ export function useDeletePluggyItem() {
       toast.success("Banco desconectado");
     },
     onError: (err: Error) => {
-      toast.error("Falha ao desconectar", { description: err.message });
+      toast.error("Falha ao desconectar", { description: describeEdgeError(err) });
     },
   });
 }
@@ -176,8 +192,14 @@ export function useTriggerPluggySync() {
       const { data, error } = await supabase.functions.invoke("pluggy-sync", {
         body: { connection_id: input.connection_id, trigger: input.trigger ?? "manual" },
       });
-      if (error) throw new Error(error.message || "Falha ao sincronizar");
-      if (data?.error) throw new Error(data.error);
+      if (error) await throwEdge(error, "Falha ao sincronizar");
+      if (data?.error) {
+        throw new EdgeFunctionError({
+          code: data.error,
+          status: null,
+          message: `Sincronização falhou (código: ${data.error}).`,
+        });
+      }
       return data as {
         ok: boolean;
         run_id: string;
@@ -211,7 +233,7 @@ export function useTriggerPluggySync() {
       });
     },
     onError: (err: Error) => {
-      toast.error("Falha ao sincronizar", { description: err.message });
+      toast.error("Falha ao sincronizar", { description: describeEdgeError(err) });
     },
   });
 }
