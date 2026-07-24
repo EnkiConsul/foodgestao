@@ -61,7 +61,6 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
         agency?: string | null;
         account_number?: string | null;
       };
-      setStep("manual");
       setBankSlug(a.bank_slug ?? null);
       setName(account.name);
       setAccountType(account.account_type);
