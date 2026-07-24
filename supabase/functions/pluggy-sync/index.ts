@@ -345,6 +345,21 @@ async function runSync(
     errorSummary = err instanceof Error ? err.message.slice(0, 200) : "unknown";
     console.error("[pluggy-sync] fatal_run", { runId, msg: errorSummary });
   } finally {
+    // Pareamento retroativo de transferências entre contas próprias (janela 5d).
+    if (summary.ingested > 0) {
+      try {
+        const { data: paired } = await admin.rpc("pair_retro_transfers", {
+          _company_id: conn.company_id,
+          _connection_id: connectionId,
+        });
+        if (typeof paired === "number") summary.paired = paired;
+      } catch (err) {
+        console.error("[pluggy-sync] pair_error", {
+          msg: err instanceof Error ? err.message.slice(0, 120) : "unknown",
+        });
+      }
+    }
+
     // Persiste sync_run
     await admin
       .from("open_finance_sync_runs")
