@@ -277,11 +277,6 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
           )}
 
           <div className="flex justify-end gap-2 pt-2">
-            {!isEdit && contextType === "pj" && (
-              <Button type="button" variant="ghost" onClick={() => setStep("choose")}>
-                Voltar
-              </Button>
-            )}
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={saving || !name.trim()}>
               {saving ? "Salvando..." : isEdit ? "Salvar" : "Criar Conta"}
