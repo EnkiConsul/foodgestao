@@ -17,6 +17,7 @@ import {
   type OpenFinanceConnection,
 } from "@/hooks/useOpenFinance";
 import { PluggyConnectLauncher } from "@/components/open-finance/PluggyConnectLauncher";
+import { AccountMappingDialog } from "@/components/open-finance/AccountMappingDialog";
 
 function PageHeader({
   title, subtitle, actions,
@@ -70,6 +71,7 @@ export default function OpenFinance() {
     mode: "create" | "update" | "renew_consent";
     connectionId?: string;
   } | null>(null);
+  const [mapping, setMapping] = useState<{ connectionId: string; institutionName: string | null } | null>(null);
 
   if (!isPJ) {
     return (
@@ -149,6 +151,14 @@ export default function OpenFinance() {
                   </div>
                 )}
                 <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setMapping({ connectionId: c.id, institutionName: c.institution_name })}
+                    disabled={!c.is_active}
+                  >
+                    <Link2 className="w-4 h-4 mr-2" /> Vincular contas
+                  </Button>
                   <Button
                     size="sm"
                     variant={c.needs_reconnect ? "default" : "outline"}
