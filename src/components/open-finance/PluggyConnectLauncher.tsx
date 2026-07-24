@@ -51,6 +51,18 @@ export function PluggyConnectLauncher({
 
   if (!open || !session) return null;
 
+  const registerFromEvent = async (itemId: string) => {
+    try {
+      await registerItem.mutateAsync({
+        request_id: session.requestId,
+        item_id: itemId,
+      });
+      onSuccess?.();
+    } catch {
+      // toast já foi disparado pelo hook; deixa a UI reagir
+    }
+  };
+
   return (
     <Suspense fallback={null}>
       <PluggyConnect
@@ -62,14 +74,20 @@ export function PluggyConnectLauncher({
         }}
         onSuccess={async (itemData: { item: { id: string } }) => {
           try {
-            await registerItem.mutateAsync({
-              request_id: session.requestId,
-              item_id: itemData.item.id,
-            });
-            onSuccess?.();
+            await registerFromEvent(itemData.item.id);
           } finally {
             setSession(null);
             onClose();
+          }
+        }}
+        // Fallback: alguns eventos do widget (item criado, mas modal fechado
+        // antes do onSuccess) chegam apenas pelo onEvent. Registramos assim
+        // que temos o itemId para evitar itens órfãos.
+        onEvent={(event: { event?: string; itemId?: string; item?: { id?: string } }) => {
+          const itemId = event?.itemId ?? event?.item?.id;
+          const name = String(event?.event ?? "").toUpperCase();
+          if (itemId && (name === "ITEM_CREATED" || name === "ITEM_UPDATED" || name === "LOGIN_SUCCESS")) {
+            void registerFromEvent(itemId);
           }
         }}
         onError={() => {
