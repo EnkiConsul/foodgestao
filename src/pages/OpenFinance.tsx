@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, Plug, RefreshCw, Trash2, AlertTriangle, CheckCircle2, Landmark, Link2 } from "lucide-react";
+import { Loader2, Plug, RefreshCw, Trash2, AlertTriangle, CheckCircle2, Landmark, Link2, DownloadCloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import {
   useOpenFinanceConnections,
   useDeletePluggyItem,
+  useTriggerPluggySync,
   type OpenFinanceConnection,
 } from "@/hooks/useOpenFinance";
 import { PluggyConnectLauncher } from "@/components/open-finance/PluggyConnectLauncher";
@@ -66,6 +67,7 @@ export default function OpenFinance() {
   const isPJ = contextType === "pj" && !!selectedCompanyId;
   const { data: connections, isLoading } = useOpenFinanceConnections(isPJ ? selectedCompanyId : null);
   const deleteItem = useDeletePluggyItem();
+  const triggerSync = useTriggerPluggySync();
 
   const [launcher, setLauncher] = useState<{
     mode: "create" | "update" | "renew_consent";
