@@ -450,3 +450,34 @@ export function useResolvePairingReview() {
   });
 }
 
+export function useReconcileOfTransactions() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { company_id: string; limit?: number }) => {
+      const { data, error } = await supabase.rpc("reconcile_of_transactions", {
+        p_company_id: input.company_id,
+        p_limit: input.limit ?? 500,
+      });
+      if (error) throw new Error(error.message);
+      const row = Array.isArray(data) ? data[0] : data;
+      return row as {
+        scanned: number;
+        categorized: number;
+        linked_contact: number;
+        enqueued_ai: number;
+      };
+    },
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+      qc.invalidateQueries({ queryKey: ["of-pairing-review"] });
+      toast.success("Reprocessamento concluído", {
+        description: `${r.scanned} analisados • ${r.categorized} categorizados • ${r.linked_contact} com contato vinculado${r.enqueued_ai ? ` • ${r.enqueued_ai} enviados para IA` : ""}.`,
+      });
+    },
+    onError: (err: Error) => {
+      toast.error("Falha ao reprocessar", { description: err.message });
+    },
+  });
+}
+
+
