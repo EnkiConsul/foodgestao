@@ -212,6 +212,14 @@ export default function OpenFinance() {
         open={!!launcher}
         onClose={() => setLauncher(null)}
       />
+
+      <AccountMappingDialog
+        open={!!mapping}
+        onClose={() => setMapping(null)}
+        connectionId={mapping?.connectionId ?? null}
+        companyId={selectedCompanyId!}
+        institutionName={mapping?.institutionName ?? null}
+      />
     </div>
   );
 }
