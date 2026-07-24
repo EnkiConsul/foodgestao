@@ -155,6 +155,18 @@ export default function OpenFinance() {
                 <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
+                    onClick={() => triggerSync.mutate({ connection_id: c.id })}
+                    disabled={!c.is_active || c.needs_reconnect || triggerSync.isPending}
+                  >
+                    {triggerSync.isPending && triggerSync.variables?.connection_id === c.id ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <DownloadCloud className="w-4 h-4 mr-2" />
+                    )}
+                    Sincronizar agora
+                  </Button>
+                  <Button
+                    size="sm"
                     variant="outline"
                     onClick={() => setMapping({ connectionId: c.id, institutionName: c.institution_name })}
                     disabled={!c.is_active}
