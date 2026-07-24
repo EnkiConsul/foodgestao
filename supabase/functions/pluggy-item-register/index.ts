@@ -235,7 +235,180 @@ Deno.serve(async (req) => {
           console.warn("[pluggy-item-register] auto_link_failed", {
             provider_account_id: acc.id,
             err: linkErr instanceof Error ? linkErr.message : String(linkErr),
-          });
+    return json({
+      ok: true,
+      connection_id: connection.id,
+      accounts_synced: accountsSynced,
+      accounts_linked_auto: accountsLinkedAuto,
+      item_status: item.status,
+    });
+  } catch (e) {
+    console.error("[pluggy-item-register] fatal", e);
+    return json({ error: e instanceof Error ? e.message : "unknown" }, 500);
+  }
+});
+
+// ---------- helpers ---------------------------------------------------------
+
+function slugify(input: string): string {
+  return input
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+}
+
+function parseTransferNumber(raw: string | null | undefined): {
+  agency: string | null;
+  account: string | null;
+} {
+  if (!raw) return { agency: null, account: null };
+  // Formatos comuns Pluggy: "0001/12345-6" ou "0001-12345-6" ou "12345-6".
+  const parts = String(raw).split(/[\/\-\s]/).filter(Boolean);
+  if (parts.length >= 3) {
+    return {
+      agency: parts[0],
+      account: parts.slice(1).join("-"),
+    };
+  }
+  if (parts.length === 2) {
+    return { agency: null, account: parts.join("-") };
+  }
+  return { agency: null, account: raw };
+}
+
+function mapAccountType(subtype: string | null | undefined): "corrente" | "poupanca" {
+  const s = String(subtype ?? "").toUpperCase();
+  if (s === "SAVINGS_ACCOUNT") return "poupanca";
+  return "corrente";
+}
+
+function extractLast4(masked: string | null | undefined): string | null {
+  if (!masked) return null;
+  const digits = String(masked).replace(/\D+/g, "");
+  return digits.length >= 4 ? digits.slice(-4) : null;
+}
+
+function dayFromDate(iso: string | null | undefined, fallback: number): number {
+  if (!iso) return fallback;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return fallback;
+  const dd = d.getUTCDate();
+  return dd >= 1 && dd <= 31 ? dd : fallback;
+}
+
+async function createLocalBankAccount(
+  admin: ReturnType<typeof createClient>,
+  args: {
+    userId: string;
+    companyId: string;
+    institutionName: string;
+    institutionColor: string | null;
+    acc: {
+      name?: string;
+      subtype?: string;
+      balance?: number | null;
+      number?: string | null;
+      bankData?: { transferNumber?: string };
+    };
+    now: string;
+  },
+): Promise<string | null> {
+  const { userId, companyId, institutionName, institutionColor, acc, now } = args;
+  const rawName = `${institutionName} — ${acc.name ?? "Conta"}`;
+  const last4 = extractLast4(acc.number);
+  const nameWithSuffix = last4 ? `${rawName} (…${last4})` : rawName;
+  const name = nameWithSuffix.length > 60 ? nameWithSuffix.slice(0, 60) : nameWithSuffix;
+  const { agency, account } = parseTransferNumber(acc.bankData?.transferNumber ?? null);
+  const balance = typeof acc.balance === "number" ? acc.balance : 0;
+
+  const { data, error } = await admin
+    .from("accounts")
+    .insert({
+      user_id: userId,
+      company_id: companyId,
+      context: "pj",
+      name,
+      account_type: mapAccountType(acc.subtype),
+      initial_balance: balance,
+      current_balance: balance,
+      bank_slug: slugify(institutionName),
+      color: institutionColor ?? "#1B3A5C",
+      icon: "landmark",
+      agency,
+      account_number: account,
+      is_active: true,
+      created_at: now,
+      updated_at: now,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.warn("[pluggy-item-register] local_bank_insert_failed", { code: error.code });
+    return null;
+  }
+  return (data as { id: string }).id;
+}
+
+async function createLocalCreditCard(
+  admin: ReturnType<typeof createClient>,
+  args: {
+    userId: string;
+    companyId: string;
+    institutionName: string;
+    acc: {
+      name?: string;
+      number?: string | null;
+      creditData?: {
+        creditLimit?: number | null;
+        balanceCloseDate?: string | null;
+        balanceDueDate?: string | null;
+        brand?: string | null;
+      };
+    };
+    now: string;
+  },
+): Promise<string | null> {
+  const { userId, companyId, institutionName, acc, now } = args;
+  const brand = (acc.creditData?.brand ?? "other").toString().toLowerCase().slice(0, 40);
+  const last4 = extractLast4(acc.number);
+  const creditLimit = typeof acc.creditData?.creditLimit === "number"
+    ? acc.creditData.creditLimit
+    : 0;
+
+  const { data, error } = await admin
+    .from("credit_cards")
+    .insert({
+      user_id: userId,
+      company_id: companyId,
+      context: "pj",
+      brand,
+      last4,
+      holder_name: acc.name ?? null,
+      issuer: institutionName,
+      credit_limit: creditLimit,
+      closing_day: dayFromDate(acc.creditData?.balanceCloseDate, 1),
+      due_day: dayFromDate(acc.creditData?.balanceDueDate, 10),
+      autopay: false,
+      interest_rate_monthly: 0,
+      minimum_payment_percent: 0,
+      is_corporate: true,
+      is_active: true,
+      created_at: now,
+      updated_at: now,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.warn("[pluggy-item-register] local_card_insert_failed", { code: error.code });
+    return null;
+  }
+  return (data as { id: string }).id;
+}
         }
       }
     } catch (err) {
