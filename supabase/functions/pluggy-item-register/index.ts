@@ -204,7 +204,7 @@ Deno.serve(async (req) => {
                 .update({
                   local_account_id: localAccountId,
                   auto_import: true,
-                  ownership_status: "linked_auto",
+                  ownership_status: "matched",
                   updated_at: now,
                 })
                 .eq("id", ofAcc.id);
@@ -224,7 +224,7 @@ Deno.serve(async (req) => {
                 .update({
                   local_credit_card_id: localCardId,
                   auto_import: true,
-                  ownership_status: "linked_auto",
+                  ownership_status: "matched",
                   updated_at: now,
                 })
                 .eq("id", ofAcc.id);
