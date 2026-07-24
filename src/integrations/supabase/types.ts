@@ -4807,6 +4807,7 @@ export type Database = {
           item_status: string | null
           last_successful_sync_at: string | null
           last_sync_at: string | null
+          needs_reconnect: boolean
           next_auto_sync_at: string | null
           products: Json
           provider: string
@@ -4837,6 +4838,7 @@ export type Database = {
           item_status?: string | null
           last_successful_sync_at?: string | null
           last_sync_at?: string | null
+          needs_reconnect?: boolean
           next_auto_sync_at?: string | null
           products?: Json
           provider?: string
@@ -4867,6 +4869,7 @@ export type Database = {
           item_status?: string | null
           last_successful_sync_at?: string | null
           last_sync_at?: string | null
+          needs_reconnect?: boolean
           next_auto_sync_at?: string | null
           products?: Json
           provider?: string
@@ -6276,6 +6279,19 @@ export type Database = {
           _ttl_seconds?: number
         }
         Returns: string
+      }
+      claim_pluggy_webhook_events: {
+        Args: { _batch?: number; _now?: string }
+        Returns: {
+          attempt_count: number
+          company_id: string
+          connection_id: string
+          event_type: string
+          id: string
+          payload: Json
+          provider_account_id: string
+          provider_item_id: string
+        }[]
       }
       delete_ai_categorization_message: {
         Args: { p_msg_id: number }
