@@ -10,9 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CurrencyInput, formatCurrency, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { toast } from "sonner";
 import { BankSelect } from "./BankSelect";
-import { PluggyConnectLauncher } from "@/components/open-finance/PluggyConnectLauncher";
 import { accountSchema, validateWithToast } from "@/lib/validations";
-import { Landmark, Link2 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type AccountType = Database["public"]["Enums"]["account_type"];
