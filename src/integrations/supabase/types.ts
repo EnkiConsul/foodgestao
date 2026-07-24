@@ -4610,6 +4610,624 @@ export type Database = {
         }
         Relationships: []
       }
+      open_finance_accounts: {
+        Row: {
+          auto_import: boolean
+          available_balance: number | null
+          available_credit_limit: number | null
+          balance_close_date: string | null
+          balance_due_date: string | null
+          card_brand: string | null
+          company_id: string
+          connection_id: string
+          created_at: string
+          credit_limit: number | null
+          currency_code: string | null
+          id: string
+          is_active: boolean
+          last_synced_at: string | null
+          last_transaction_date: string | null
+          local_account_id: string | null
+          local_credit_card_id: string | null
+          owner_document_hash: string | null
+          owner_document_last4: string | null
+          ownership_status: string
+          provider: string
+          provider_account_id: string
+          provider_balance: number | null
+          provider_marketing_name: string | null
+          provider_name: string | null
+          provider_number_masked: string | null
+          provider_subtype: string | null
+          provider_type: string
+          sync_cursor_created_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          auto_import?: boolean
+          available_balance?: number | null
+          available_credit_limit?: number | null
+          balance_close_date?: string | null
+          balance_due_date?: string | null
+          card_brand?: string | null
+          company_id: string
+          connection_id: string
+          created_at?: string
+          credit_limit?: number | null
+          currency_code?: string | null
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          last_transaction_date?: string | null
+          local_account_id?: string | null
+          local_credit_card_id?: string | null
+          owner_document_hash?: string | null
+          owner_document_last4?: string | null
+          ownership_status?: string
+          provider?: string
+          provider_account_id: string
+          provider_balance?: number | null
+          provider_marketing_name?: string | null
+          provider_name?: string | null
+          provider_number_masked?: string | null
+          provider_subtype?: string | null
+          provider_type: string
+          sync_cursor_created_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          auto_import?: boolean
+          available_balance?: number | null
+          available_credit_limit?: number | null
+          balance_close_date?: string | null
+          balance_due_date?: string | null
+          card_brand?: string | null
+          company_id?: string
+          connection_id?: string
+          created_at?: string
+          credit_limit?: number | null
+          currency_code?: string | null
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          last_transaction_date?: string | null
+          local_account_id?: string | null
+          local_credit_card_id?: string | null
+          owner_document_hash?: string | null
+          owner_document_last4?: string | null
+          ownership_status?: string
+          provider?: string
+          provider_account_id?: string
+          provider_balance?: number | null
+          provider_marketing_name?: string | null
+          provider_name?: string | null
+          provider_number_masked?: string | null
+          provider_subtype?: string | null
+          provider_type?: string
+          sync_cursor_created_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "open_finance_accounts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "open_finance_accounts_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "open_finance_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "open_finance_accounts_local_account_id_fkey"
+            columns: ["local_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "open_finance_accounts_local_credit_card_id_fkey"
+            columns: ["local_credit_card_id"]
+            isOneToOne: false
+            referencedRelation: "credit_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      open_finance_connection_requests: {
+        Row: {
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          existing_connection_id: string | null
+          expires_at: string
+          id: string
+          mode: string
+          provider: string
+          requested_by: string
+          status: string
+          used_at: string | null
+        }
+        Insert: {
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          existing_connection_id?: string | null
+          expires_at: string
+          id?: string
+          mode: string
+          provider?: string
+          requested_by: string
+          status?: string
+          used_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          existing_connection_id?: string | null
+          expires_at?: string
+          id?: string
+          mode?: string
+          provider?: string
+          requested_by?: string
+          status?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "open_finance_connection_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      open_finance_connections: {
+        Row: {
+          company_id: string
+          connected_by_user_id: string
+          connection_request_id: string | null
+          connector_id: string | null
+          connector_status: string | null
+          created_at: string
+          disconnected_at: string | null
+          execution_status: string | null
+          id: string
+          institution_logo_url: string | null
+          institution_name: string | null
+          institution_primary_color: string | null
+          is_active: boolean
+          is_open_finance: boolean
+          item_status: string | null
+          last_successful_sync_at: string | null
+          last_sync_at: string | null
+          next_auto_sync_at: string | null
+          products: Json
+          provider: string
+          provider_error_code: string | null
+          provider_error_message: string | null
+          provider_item_id: string
+          sync_lock_token: string | null
+          sync_locked_at: string | null
+          sync_locked_by: string | null
+          sync_locked_until: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          connected_by_user_id: string
+          connection_request_id?: string | null
+          connector_id?: string | null
+          connector_status?: string | null
+          created_at?: string
+          disconnected_at?: string | null
+          execution_status?: string | null
+          id?: string
+          institution_logo_url?: string | null
+          institution_name?: string | null
+          institution_primary_color?: string | null
+          is_active?: boolean
+          is_open_finance?: boolean
+          item_status?: string | null
+          last_successful_sync_at?: string | null
+          last_sync_at?: string | null
+          next_auto_sync_at?: string | null
+          products?: Json
+          provider?: string
+          provider_error_code?: string | null
+          provider_error_message?: string | null
+          provider_item_id: string
+          sync_lock_token?: string | null
+          sync_locked_at?: string | null
+          sync_locked_by?: string | null
+          sync_locked_until?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          connected_by_user_id?: string
+          connection_request_id?: string | null
+          connector_id?: string | null
+          connector_status?: string | null
+          created_at?: string
+          disconnected_at?: string | null
+          execution_status?: string | null
+          id?: string
+          institution_logo_url?: string | null
+          institution_name?: string | null
+          institution_primary_color?: string | null
+          is_active?: boolean
+          is_open_finance?: boolean
+          item_status?: string | null
+          last_successful_sync_at?: string | null
+          last_sync_at?: string | null
+          next_auto_sync_at?: string | null
+          products?: Json
+          provider?: string
+          provider_error_code?: string | null
+          provider_error_message?: string | null
+          provider_item_id?: string
+          sync_lock_token?: string | null
+          sync_locked_at?: string | null
+          sync_locked_by?: string | null
+          sync_locked_until?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "open_finance_connections_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "open_finance_connections_connection_request_id_fkey"
+            columns: ["connection_request_id"]
+            isOneToOne: false
+            referencedRelation: "open_finance_connection_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      open_finance_consents: {
+        Row: {
+          company_id: string
+          connection_id: string
+          created_at: string
+          created_at_provider: string | null
+          expires_at: string | null
+          id: string
+          permissions: Json
+          products: Json
+          provider: string
+          provider_consent_id: string
+          raw_metadata: Json | null
+          revoked_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          connection_id: string
+          created_at?: string
+          created_at_provider?: string | null
+          expires_at?: string | null
+          id?: string
+          permissions?: Json
+          products?: Json
+          provider?: string
+          provider_consent_id: string
+          raw_metadata?: Json | null
+          revoked_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          connection_id?: string
+          created_at?: string
+          created_at_provider?: string | null
+          expires_at?: string | null
+          id?: string
+          permissions?: Json
+          products?: Json
+          provider?: string
+          provider_consent_id?: string
+          raw_metadata?: Json | null
+          revoked_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "open_finance_consents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "open_finance_consents_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "open_finance_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      open_finance_sync_runs: {
+        Row: {
+          accounts_created: number
+          accounts_found: number
+          accounts_updated: number
+          company_id: string
+          connection_id: string
+          created_at: string
+          error_count: number
+          error_summary: Json | null
+          finished_at: string | null
+          id: string
+          per_account: Json | null
+          started_at: string
+          status: string
+          transactions_canceled: number
+          transactions_created: number
+          transactions_found: number
+          transactions_ignored: number
+          transactions_review: number
+          transactions_updated: number
+          trigger: string
+        }
+        Insert: {
+          accounts_created?: number
+          accounts_found?: number
+          accounts_updated?: number
+          company_id: string
+          connection_id: string
+          created_at?: string
+          error_count?: number
+          error_summary?: Json | null
+          finished_at?: string | null
+          id?: string
+          per_account?: Json | null
+          started_at?: string
+          status?: string
+          transactions_canceled?: number
+          transactions_created?: number
+          transactions_found?: number
+          transactions_ignored?: number
+          transactions_review?: number
+          transactions_updated?: number
+          trigger: string
+        }
+        Update: {
+          accounts_created?: number
+          accounts_found?: number
+          accounts_updated?: number
+          company_id?: string
+          connection_id?: string
+          created_at?: string
+          error_count?: number
+          error_summary?: Json | null
+          finished_at?: string | null
+          id?: string
+          per_account?: Json | null
+          started_at?: string
+          status?: string
+          transactions_canceled?: number
+          transactions_created?: number
+          transactions_found?: number
+          transactions_ignored?: number
+          transactions_review?: number
+          transactions_updated?: number
+          trigger?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "open_finance_sync_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "open_finance_sync_runs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "open_finance_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      open_finance_transactions_raw: {
+        Row: {
+          amount: number
+          company_id: string
+          connection_id: string
+          created_at: string
+          credit_card_metadata: Json | null
+          currency_code: string | null
+          description: string | null
+          description_raw: string | null
+          first_received_at: string
+          id: string
+          last_received_at: string
+          mapped_transaction_id: string | null
+          mapping_error: string | null
+          mapping_status: string
+          merchant: Json | null
+          open_finance_account_id: string
+          operation_type: string | null
+          payment_data: Json | null
+          provider: string
+          provider_category_id: string | null
+          provider_category_name: string | null
+          provider_code: string | null
+          provider_created_at: string | null
+          provider_deleted_at: string | null
+          provider_status: string | null
+          provider_transaction_id: string
+          provider_type: string | null
+          raw_payload: Json
+          transaction_date: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          company_id: string
+          connection_id: string
+          created_at?: string
+          credit_card_metadata?: Json | null
+          currency_code?: string | null
+          description?: string | null
+          description_raw?: string | null
+          first_received_at?: string
+          id?: string
+          last_received_at?: string
+          mapped_transaction_id?: string | null
+          mapping_error?: string | null
+          mapping_status?: string
+          merchant?: Json | null
+          open_finance_account_id: string
+          operation_type?: string | null
+          payment_data?: Json | null
+          provider?: string
+          provider_category_id?: string | null
+          provider_category_name?: string | null
+          provider_code?: string | null
+          provider_created_at?: string | null
+          provider_deleted_at?: string | null
+          provider_status?: string | null
+          provider_transaction_id: string
+          provider_type?: string | null
+          raw_payload: Json
+          transaction_date: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          connection_id?: string
+          created_at?: string
+          credit_card_metadata?: Json | null
+          currency_code?: string | null
+          description?: string | null
+          description_raw?: string | null
+          first_received_at?: string
+          id?: string
+          last_received_at?: string
+          mapped_transaction_id?: string | null
+          mapping_error?: string | null
+          mapping_status?: string
+          merchant?: Json | null
+          open_finance_account_id?: string
+          operation_type?: string | null
+          payment_data?: Json | null
+          provider?: string
+          provider_category_id?: string | null
+          provider_category_name?: string | null
+          provider_code?: string | null
+          provider_created_at?: string | null
+          provider_deleted_at?: string | null
+          provider_status?: string | null
+          provider_transaction_id?: string
+          provider_type?: string | null
+          raw_payload?: Json
+          transaction_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "open_finance_transactions_raw_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "open_finance_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "open_finance_transactions_raw_open_finance_account_id_fkey"
+            columns: ["open_finance_account_id"]
+            isOneToOne: false
+            referencedRelation: "open_finance_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      open_finance_webhook_events: {
+        Row: {
+          attempt_count: number
+          client_user_id: string | null
+          company_id: string | null
+          connection_id: string | null
+          error: string | null
+          event_id: string
+          event_type: string
+          id: string
+          next_attempt_at: string | null
+          payload: Json
+          processed_at: string | null
+          processing_started_at: string | null
+          provider: string
+          provider_account_id: string | null
+          provider_item_id: string | null
+          received_at: string
+          status: string
+          triggered_by: string | null
+        }
+        Insert: {
+          attempt_count?: number
+          client_user_id?: string | null
+          company_id?: string | null
+          connection_id?: string | null
+          error?: string | null
+          event_id: string
+          event_type: string
+          id?: string
+          next_attempt_at?: string | null
+          payload: Json
+          processed_at?: string | null
+          processing_started_at?: string | null
+          provider?: string
+          provider_account_id?: string | null
+          provider_item_id?: string | null
+          received_at?: string
+          status?: string
+          triggered_by?: string | null
+        }
+        Update: {
+          attempt_count?: number
+          client_user_id?: string | null
+          company_id?: string | null
+          connection_id?: string | null
+          error?: string | null
+          event_id?: string
+          event_type?: string
+          id?: string
+          next_attempt_at?: string | null
+          payload?: Json
+          processed_at?: string | null
+          processing_started_at?: string | null
+          provider?: string
+          provider_account_id?: string | null
+          provider_item_id?: string | null
+          received_at?: string
+          status?: string
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "open_finance_webhook_events_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "open_finance_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_method_companies: {
         Row: {
           company_id: string
@@ -5037,18 +5655,26 @@ export type Database = {
           amount_paid: number
           attachment_url: string | null
           bill_status: Database["public"]["Enums"]["bill_status"] | null
+          cancel_reason: string | null
+          canceled_at: string | null
           category_id: string | null
           company_id: string | null
+          connection_account_id: string | null
           connection_id: string | null
           contact_id: string | null
           context: Database["public"]["Enums"]["context_type"]
           cost_center_id: string | null
+          counterparty_cnpj: string | null
+          counterparty_document_hash: string | null
+          counterparty_document_last4: string | null
+          counterparty_name: string | null
           created_at: string
           credit_card_id: string | null
           credit_card_invoice_id: string | null
           description: string
           destination_account_id: string | null
           due_date: string | null
+          exclude_from_results: boolean
           external_id: string | null
           id: string
           import_hash: string | null
@@ -5056,16 +5682,26 @@ export type Database = {
           installment_total: number | null
           is_invoice_payment: boolean
           is_recurring: boolean
+          needs_review: boolean
           notes: string | null
+          pairing_expires_at: string | null
+          pairing_started_at: string | null
+          pairing_status: string | null
           parcel_direction:
             | Database["public"]["Enums"]["parcel_direction"]
             | null
           parent_transaction_id: string | null
           payment_date: string | null
           payment_method_id: string | null
+          payment_method_provider: string | null
+          provider_category: string | null
+          provider_last_updated_at: string | null
+          provider_status: string | null
           recurrence_end_date: string | null
           recurrence_type: Database["public"]["Enums"]["recurrence_type"] | null
+          review_reason: string | null
           status: Database["public"]["Enums"]["transaction_status"]
+          superseded_by_transaction_id: string | null
           transaction_date: string
           transaction_type: Database["public"]["Enums"]["transaction_type"]
           updated_at: string
@@ -5077,18 +5713,26 @@ export type Database = {
           amount_paid?: number
           attachment_url?: string | null
           bill_status?: Database["public"]["Enums"]["bill_status"] | null
+          cancel_reason?: string | null
+          canceled_at?: string | null
           category_id?: string | null
           company_id?: string | null
+          connection_account_id?: string | null
           connection_id?: string | null
           contact_id?: string | null
           context?: Database["public"]["Enums"]["context_type"]
           cost_center_id?: string | null
+          counterparty_cnpj?: string | null
+          counterparty_document_hash?: string | null
+          counterparty_document_last4?: string | null
+          counterparty_name?: string | null
           created_at?: string
           credit_card_id?: string | null
           credit_card_invoice_id?: string | null
           description: string
           destination_account_id?: string | null
           due_date?: string | null
+          exclude_from_results?: boolean
           external_id?: string | null
           id?: string
           import_hash?: string | null
@@ -5096,18 +5740,28 @@ export type Database = {
           installment_total?: number | null
           is_invoice_payment?: boolean
           is_recurring?: boolean
+          needs_review?: boolean
           notes?: string | null
+          pairing_expires_at?: string | null
+          pairing_started_at?: string | null
+          pairing_status?: string | null
           parcel_direction?:
             | Database["public"]["Enums"]["parcel_direction"]
             | null
           parent_transaction_id?: string | null
           payment_date?: string | null
           payment_method_id?: string | null
+          payment_method_provider?: string | null
+          provider_category?: string | null
+          provider_last_updated_at?: string | null
+          provider_status?: string | null
           recurrence_end_date?: string | null
           recurrence_type?:
             | Database["public"]["Enums"]["recurrence_type"]
             | null
+          review_reason?: string | null
           status?: Database["public"]["Enums"]["transaction_status"]
+          superseded_by_transaction_id?: string | null
           transaction_date?: string
           transaction_type: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
@@ -5119,18 +5773,26 @@ export type Database = {
           amount_paid?: number
           attachment_url?: string | null
           bill_status?: Database["public"]["Enums"]["bill_status"] | null
+          cancel_reason?: string | null
+          canceled_at?: string | null
           category_id?: string | null
           company_id?: string | null
+          connection_account_id?: string | null
           connection_id?: string | null
           contact_id?: string | null
           context?: Database["public"]["Enums"]["context_type"]
           cost_center_id?: string | null
+          counterparty_cnpj?: string | null
+          counterparty_document_hash?: string | null
+          counterparty_document_last4?: string | null
+          counterparty_name?: string | null
           created_at?: string
           credit_card_id?: string | null
           credit_card_invoice_id?: string | null
           description?: string
           destination_account_id?: string | null
           due_date?: string | null
+          exclude_from_results?: boolean
           external_id?: string | null
           id?: string
           import_hash?: string | null
@@ -5138,18 +5800,28 @@ export type Database = {
           installment_total?: number | null
           is_invoice_payment?: boolean
           is_recurring?: boolean
+          needs_review?: boolean
           notes?: string | null
+          pairing_expires_at?: string | null
+          pairing_started_at?: string | null
+          pairing_status?: string | null
           parcel_direction?:
             | Database["public"]["Enums"]["parcel_direction"]
             | null
           parent_transaction_id?: string | null
           payment_date?: string | null
           payment_method_id?: string | null
+          payment_method_provider?: string | null
+          provider_category?: string | null
+          provider_last_updated_at?: string | null
+          provider_status?: string | null
           recurrence_end_date?: string | null
           recurrence_type?:
             | Database["public"]["Enums"]["recurrence_type"]
             | null
+          review_reason?: string | null
           status?: Database["public"]["Enums"]["transaction_status"]
+          superseded_by_transaction_id?: string | null
           transaction_date?: string
           transaction_type?: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
@@ -5220,6 +5892,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "transactions_connection_account_id_fkey"
+            columns: ["connection_account_id"]
+            isOneToOne: false
+            referencedRelation: "open_finance_accounts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "transactions_credit_card_id_fkey"
             columns: ["credit_card_id"]
             isOneToOne: false
@@ -5231,6 +5910,20 @@ export type Database = {
             columns: ["credit_card_invoice_id"]
             isOneToOne: false
             referencedRelation: "credit_card_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_superseded_by_transaction_id_fkey"
+            columns: ["superseded_by_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_sources"
+            referencedColumns: ["transaction_id"]
+          },
+          {
+            foreignKeyName: "transactions_superseded_by_transaction_id_fkey"
+            columns: ["superseded_by_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
         ]
@@ -5576,6 +6269,14 @@ export type Database = {
         Args: { _company_id: string; _user_id: string }
         Returns: number
       }
+      claim_open_finance_sync: {
+        Args: {
+          _connection_id: string
+          _locked_by: string
+          _ttl_seconds?: number
+        }
+        Returns: string
+      }
       delete_ai_categorization_message: {
         Args: { p_msg_id: number }
         Returns: boolean
@@ -5655,6 +6356,10 @@ export type Database = {
         Returns: {
           enqueued: number
         }[]
+      }
+      expire_transfer_candidates: {
+        Args: { _company_id?: string }
+        Returns: number
       }
       fn_cadastrar_empresa_onboarding: {
         Args: {
@@ -5799,6 +6504,7 @@ export type Database = {
         Returns: boolean
       }
       increment_rule_hit: { Args: { p_rule_id: string }; Returns: undefined }
+      ingest_of_transaction: { Args: { _payload: Json }; Returns: string }
       insert_audit_log: {
         Args: {
           _action: string
@@ -5818,6 +6524,10 @@ export type Database = {
           payload: Json
           source_queue: string
         }
+        Returns: number
+      }
+      pair_retro_transfers: {
+        Args: { _company_id: string; _connection_id?: string }
         Returns: number
       }
       pay_credit_card_invoice: {
@@ -5976,6 +6686,14 @@ export type Database = {
           transaction_type: Database["public"]["Enums"]["transaction_type"]
         }[]
       }
+      promote_to_transfer: {
+        Args: {
+          _destination_account_id: string
+          _inbound_tx_id: string
+          _outbound_tx_id: string
+        }
+        Returns: string
+      }
       read_ai_categorization_queue: {
         Args: { p_batch?: number; p_vt?: number }
         Returns: {
@@ -6007,6 +6725,10 @@ export type Database = {
           blocked: boolean
           retry_after_seconds: number
         }[]
+      }
+      release_open_finance_sync: {
+        Args: { _connection_id: string; _token: string }
+        Returns: boolean
       }
       resolve_cpf_login: { Args: { _cpf: string }; Returns: string }
       resolve_login_identifier: {
