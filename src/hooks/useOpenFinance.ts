@@ -156,6 +156,8 @@ export function useTriggerPluggySync() {
         fetched: number;
         ingested: number;
         errors: number;
+        expired?: number;
+        paired?: number;
       };
     },
     onSuccess: (data) => {
@@ -168,8 +170,14 @@ export function useTriggerPluggySync() {
           : data.status === "partial"
           ? "Sincronização concluída com avisos"
           : "Sincronização falhou";
+      const extras: string[] = [];
+      if (data.paired && data.paired > 0) extras.push(`${data.paired} transferências pareadas`);
+      if (data.expired && data.expired > 0) extras.push(`${data.expired} candidatos expirados`);
       toast.success(label, {
-        description: `${data.ingested} lançamentos importados · ${data.errors} erros`,
+        description: [
+          `${data.ingested} lançamentos importados · ${data.errors} erros`,
+          ...extras,
+        ].join(" · "),
       });
     },
     onError: (err: Error) => {
