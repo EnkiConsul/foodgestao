@@ -56,11 +56,15 @@ type WebhookRow = {
 // e para is_active/needs-reconnect quando aplicável.
 function mapConnectionUpdate(item: PluggyItem) {
   const status = String(item.status ?? "").toUpperCase();
+  const consentExpiresAt = item.consentExpiresAt ?? null;
+  const consentExpired =
+    !!consentExpiresAt && new Date(consentExpiresAt).getTime() < Date.now();
   const needsReconnect =
     status === "LOGIN_ERROR" ||
     status === "WAITING_USER_INPUT" ||
     status === "USER_INPUT_TIMEOUT" ||
-    status === "OUTDATED";
+    status === "OUTDATED" ||
+    consentExpired;
   const success = status === "UPDATED";
   return {
     connector_id: item.connector?.id != null ? String(item.connector.id) : null,
@@ -76,6 +80,7 @@ function mapConnectionUpdate(item: PluggyItem) {
       ? item.lastUpdatedAt ?? new Date().toISOString()
       : undefined,
     next_auto_sync_at: item.nextAutoSyncAt ?? null,
+    consent_expires_at: consentExpiresAt,
     needs_reconnect: needsReconnect,
   };
 }
