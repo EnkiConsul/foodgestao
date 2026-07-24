@@ -31,3 +31,5 @@ project_id = "grtxmbffgmgnkawlvqhm"
     verify_jwt = false
   [functions.auth-recovery-reset]
     verify_jwt = false
+  [functions.pluggy-webhook]
+    verify_jwt = false
