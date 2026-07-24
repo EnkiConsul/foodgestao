@@ -36,8 +36,7 @@ function json(b: unknown, s = 200) {
 }
 
 const BATCH_SIZE = 500;
-const DEFAULT_LOOKBACK_DAYS = 90;
-const INITIAL_BACKFILL_DAYS = 365; // usado quando a conta nunca sincronizou
+const INITIAL_BACKFILL_DAYS = 365; // primeira sync (Pluggy suporta até 365 dias)
 const LOCK_TTL_SECONDS = 300;
 const MAX_CONCURRENCY = 8; // ingest_of_transaction chamadas paralelas por lote
 
