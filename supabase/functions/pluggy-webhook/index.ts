@@ -70,7 +70,9 @@ Deno.serve(async (req) => {
 
   try {
     const secret = Deno.env.get("PLUGGY_WEBHOOK_SECRET") ?? "";
-    if (!secret) {
+    const allowUnsigned =
+      (Deno.env.get("PLUGGY_WEBHOOK_ALLOW_UNSIGNED") ?? "").toLowerCase() === "true";
+    if (!secret && !allowUnsigned) {
       console.error("[pluggy-webhook] missing_secret");
       return json({ error: "server_misconfigured" }, 500);
     }
@@ -78,11 +80,29 @@ Deno.serve(async (req) => {
     const rawBody = await req.text();
     if (!rawBody) return json({ error: "empty_body" }, 400);
 
-    const providedSig = normalizeSignature(req.headers.get("x-pluggy-signature"));
-    const expectedSig = await hmacSha256Hex(secret, rawBody);
-    if (!providedSig || !timingSafeEqualHex(providedSig, expectedSig)) {
-      console.warn("[pluggy-webhook] signature_mismatch");
-      return json({ error: "invalid_signature" }, 401);
+    // Pluggy may send the signature under different header names depending on
+    // the account/config. Accept the first non-empty candidate.
+    const providedSig =
+      normalizeSignature(req.headers.get("x-pluggy-signature")) ??
+      normalizeSignature(req.headers.get("x-signature")) ??
+      normalizeSignature(req.headers.get("signature"));
+
+    if (secret) {
+      const expectedSig = await hmacSha256Hex(secret, rawBody);
+      const valid = !!providedSig && timingSafeEqualHex(providedSig, expectedSig);
+      if (!valid && !allowUnsigned) {
+        console.warn("[pluggy-webhook] signature_mismatch", {
+          header_present: !!providedSig,
+          header_length: providedSig?.length ?? 0,
+          expected_length: expectedSig.length,
+        });
+        return json({ error: "invalid_signature" }, 401);
+      }
+      if (!valid && allowUnsigned) {
+        console.warn("[pluggy-webhook] unsigned_accepted_by_flag");
+      }
+    } else {
+      console.warn("[pluggy-webhook] unsigned_accepted_no_secret");
     }
 
     let event: Record<string, unknown>;
