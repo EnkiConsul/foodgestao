@@ -34,12 +34,11 @@ interface Props {
   account?: Account | null;
 }
 
-type Step = "choose" | "manual" | "of";
-
 export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Props) {
   const { user } = useAuth();
   const { contextType, selectedCompanyId, companies } = useCompanyContext();
   const isEdit = !!account;
+
 
   const [step, setStep] = useState<Step>("manual");
   const [name, setName] = useState("");
