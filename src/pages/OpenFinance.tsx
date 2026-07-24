@@ -16,6 +16,7 @@ import {
   useDeletePluggyItem,
   useTriggerPluggySync,
   useReconcileConnections,
+  useReconcileOfTransactions,
   type OpenFinanceConnection,
 } from "@/hooks/useOpenFinance";
 import { PluggyConnectLauncher } from "@/components/open-finance/PluggyConnectLauncher";
