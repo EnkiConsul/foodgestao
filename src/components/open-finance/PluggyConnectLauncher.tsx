@@ -39,6 +39,8 @@ export function PluggyConnectLauncher({
         if (!cancelled) setSession({ token: res.access_token, requestId: res.request_id });
       })
       .catch(() => {
+        // O toast com mensagem/código já foi disparado pelo hook (onError).
+        // Fecha o modal para o usuário reagir à orientação exibida.
         if (!cancelled) onClose();
       });
     return () => {
