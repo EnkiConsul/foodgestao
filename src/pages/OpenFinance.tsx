@@ -72,6 +72,7 @@ export default function OpenFinance() {
   const deleteItem = useDeletePluggyItem();
   const triggerSync = useTriggerPluggySync();
   const reconcile = useReconcileConnections();
+  const reconcileTx = useReconcileOfTransactions();
 
   const [launcher, setLauncher] = useState<{
     mode: "create" | "update" | "renew_consent";
