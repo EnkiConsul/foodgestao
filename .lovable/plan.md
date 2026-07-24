@@ -1,45 +1,55 @@
+# Por que o Santander não apareceu
 
-## Contexto
+Investigação dos dados atuais:
 
-A página Open Finance já está implementada e roteada em `/open-finance` (registrada em `src/App.tsx` linha 319), mas **não existe link para ela em nenhum menu** — nem na sidebar principal, nem em Configurações, nem em Contas Bancárias. Único acesso hoje é digitando a URL manualmente.
+- `open_finance_connections`: **vazio** — nenhuma conexão foi persistida.
+- `open_finance_connection_requests`: 2 requests recentes do usuário com `status = 'token_created'` e `used_at = NULL` → o widget do Pluggy abriu, mas o passo de registro (`pluggy-item-register`) **nunca foi chamado**.
+- Logs de `pluggy-item-register`: **sem invocações**. Confirma que o `onSuccess` do `PluggyConnect` não disparou (usuário fechou o widget antes do "Concluir", ou o SDK caiu num erro silencioso e roteou por `onError`).
+- Logs de `pluggy-webhook`: recebeu chamada e devolveu `signature_mismatch` → o webhook do Pluggy está batendo, mas o HMAC não bate com `PLUGGY_WEBHOOK_SECRET`. Como o webhook é hoje o único caminho de fallback e ele está rejeitando tudo com 401, nada é persistido.
 
-## Objetivo
+Resultado: o item foi criado no Pluggy, mas ficou órfão do nosso lado. Nem o fluxo primário (frontend → `item-register`) nem o fallback (webhook → worker) chegaram a gravar `open_finance_connections`.
 
-Tornar Open Finance descobrível adicionando o link no menu lateral, próximo aos módulos financeiros.
+# O que corrigir
 
-## Onde adicionar
+## 1. Destravar o webhook (raiz do fallback)
 
-Sidebar principal (`src/components/AppSidebar*` — a ser confirmado durante a implementação), seção **FINANCEIRO 360°**, logo após "Fluxo de Caixa" e antes de "Orçamento":
+O Pluggy manda `x-signature` (não `x-pluggy-signature`) e, em algumas contas, envia o HMAC sobre um payload canônico (não sobre o rawBody). Ajustar `supabase/functions/pluggy-webhook/index.ts`:
 
-```text
-FINANCEIRO 360°
-  Dashboard
-  Lançamentos
-  Fluxo de Caixa
-  Open Finance      ← novo
-  Orçamento
-  Relatórios
-```
+- Aceitar os headers `x-signature`, `x-pluggy-signature` e `signature` (primeiro não-vazio).
+- Manter a validação HMAC constante, mas logar (sem segredo/payload) `header_present`, `header_length`, `expected_length` quando der mismatch para diagnóstico.
+- Adicionar um modo de tolerância explícito via secret `PLUGGY_WEBHOOK_ALLOW_UNSIGNED=true` (opcional, só para destravar hoje enquanto validamos o secret correto no painel do Pluggy). Padrão continua exigindo assinatura.
+- Não mexer no restante do fluxo (upsert idempotente, sem log de payload).
 
-Ícone: `Landmark` ou `Building2` do lucide-react (coerente com o ícone de banco já usado no empty state da página).
+## 2. Reconciliar o item órfão do Santander
 
-## Visibilidade
+Criar Edge Function `pluggy-reconcile` (POST, autenticada, `is_company_admin_or_owner`) que:
 
-- Exibir apenas para contexto **PJ** (empresa ativa) — Open Finance opera sobre `open_finance_connections` escopadas a `company_id`. No contexto PF, o item fica oculto.
-- Não requer papel especial: qualquer usuário membro da empresa que já vê "Lançamentos" verá "Open Finance".
+- Recebe `{ company_id }`.
+- Lê `open_finance_connection_requests` recentes (`status = 'token_created'`, últimas 24h, sem `used_at`).
+- Chama `GET https://api.pluggy.ai/items?clientUserId=<company_id>` com API-KEY do Pluggy.
+- Para cada item retornado sem `open_finance_connections` correspondente, chama o mesmo caminho interno de `pluggy-item-register` (mode `create`) e agenda um `pluggy-sync`.
+- Retorna `{ recovered: N, item_ids: [...] }`.
 
-## Alternativa complementar (opcional)
+## 3. Botão "Recuperar conexões" na UI
 
-Adicionar também um botão/CTA "Conectar via Open Finance" na página **Contas Bancárias**, já que é ali que o usuário pensa primeiro em vincular um banco. Ficaria como botão secundário ao lado de "Nova conta bancária", navegando para `/open-finance`.
+Em `src/pages/OpenFinance.tsx`, quando não houver conexões e existirem requests recentes com `status = 'token_created'`, mostrar CTA secundária "Recuperar conexão pendente" que chama `pluggy-reconcile`. Feedback via toast e invalidação de `["of-connections"]`.
 
-## Detalhes técnicos
+## 4. Fechar o furo no fluxo primário
 
-1. Ler o componente de sidebar em uso (`src/components/AppSidebar.tsx` ou equivalente) para identificar o padrão exato de item (label, ícone, `to`, permissões).
-2. Inserir a nova entrada respeitando o padrão de `translate-x-1` + transição 200ms já memorizado.
-3. Envolver a entrada em condicional de contexto PJ (padrão já usado por outros itens exclusivos PJ na sidebar — confirmar durante a implementação).
-4. Opcional: adicionar `<Button variant="outline">` em `src/pages/ContasBancarias.tsx` que faz `navigate('/open-finance')`.
+Em `src/components/open-finance/PluggyConnectLauncher.tsx`:
 
-## Fora do escopo
+- Adicionar callback `onEvent` do SDK do Pluggy: quando `event === "ITEM_CREATED"` ou `"ITEM_UPDATED"` e `onSuccess` não tiver rodado até `onClose`, disparar `registerItem.mutateAsync` com o `itemId` capturado do evento antes de fechar.
+- No `onError`, exibir toast específico ("Não foi possível concluir a conexão — use 'Recuperar conexão pendente'").
 
-- Nenhuma mudança em rotas, RPCs, edge functions ou lógica da página `/open-finance`.
-- Nenhuma mudança visual dentro da própria página Open Finance.
+# Como testar
+
+1. Deploy das mudanças.
+2. Na UI, clicar em "Recuperar conexão pendente" → conexão Santander deve aparecer no grid.
+3. Nova conexão Sandbox de ponta a ponta: verificar que `open_finance_connection_requests.used_at` fica preenchido e que a conexão aparece sem depender do webhook.
+4. Enviar um webhook de teste do Pluggy: confirmar `open_finance_webhook_events` recebe status `pending` (fim do `signature_mismatch`).
+
+# Detalhes técnicos
+
+- Secret `PLUGGY_WEBHOOK_SECRET` deve ser exatamente o valor exibido no dashboard do Pluggy em "Webhooks → Signing secret". Se você quiser, no próximo turno confirmo o valor atual via `fetch_secrets` (apenas nome, sem valor) e oriento como atualizar.
+- Nenhum schema muda; só código de Edge Functions e frontend.
+- Nenhuma mudança em RLS.
