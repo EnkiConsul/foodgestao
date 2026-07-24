@@ -10,9 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CurrencyInput, formatCurrency, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { toast } from "sonner";
 import { BankSelect } from "./BankSelect";
-import { PluggyConnectLauncher } from "@/components/open-finance/PluggyConnectLauncher";
 import { accountSchema, validateWithToast } from "@/lib/validations";
-import { Landmark, Link2 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type AccountType = Database["public"]["Enums"]["account_type"];
@@ -36,14 +34,13 @@ interface Props {
   account?: Account | null;
 }
 
-type Step = "choose" | "manual" | "of";
-
 export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Props) {
   const { user } = useAuth();
   const { contextType, selectedCompanyId, companies } = useCompanyContext();
   const isEdit = !!account;
 
-  const [step, setStep] = useState<Step>("manual");
+
+
   const [name, setName] = useState("");
   const [accountType, setAccountType] = useState<AccountType>("corrente");
   const [initialBalance, setInitialBalance] = useState("");
@@ -64,7 +61,6 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
         agency?: string | null;
         account_number?: string | null;
       };
-      setStep("manual");
       setBankSlug(a.bank_slug ?? null);
       setName(account.name);
       setAccountType(account.account_type);
@@ -76,9 +72,6 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
       setAgency(a.agency ?? "");
       setAccountNumber(a.account_number ?? "");
     } else {
-      // Nova conta: em PJ, oferecemos escolha Manual vs Open Finance.
-      // Em PF, Open Finance ainda não é suportado — vai direto ao manual.
-      setStep(contextType === "pj" && selectedCompanyId ? "choose" : "manual");
       setName("");
       setAccountType("corrente");
       setInitialBalance("");
@@ -173,74 +166,7 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
 
   const showBankFields = BANK_TYPES.includes(accountType);
 
-  // Etapa 1 — escolha do modo (Manual vs Open Finance).
-  if (open && !isEdit && step === "choose") {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Como deseja cadastrar a conta?</DialogTitle>
-            <DialogDescription>
-              O Open Finance importa saldo e lançamentos automaticamente. O modo
-              manual é ideal para caixinha, contas antigas ou instituições fora do
-              Open Finance.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setStep("of")}
-              className="text-left rounded-lg border bg-card p-4 hover:border-primary hover:bg-primary/5 transition-colors group"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary mb-3">
-                <Link2 className="h-5 w-5" />
-              </div>
-              <p className="text-sm font-semibold">Open Finance</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Conecte seu banco e importe agência, conta, saldo e lançamentos
-                dos últimos 12 meses.
-              </p>
-            </button>
-            <button
-              type="button"
-              onClick={() => setStep("manual")}
-              className="text-left rounded-lg border bg-card p-4 hover:border-primary hover:bg-primary/5 transition-colors group"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground mb-3">
-                <Landmark className="h-5 w-5" />
-              </div>
-              <p className="text-sm font-semibold">Cadastro manual</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Informe os dados da conta e registre lançamentos manualmente ou
-                via importação de OFX/CSV.
-              </p>
-            </button>
-          </div>
-          <div className="flex justify-end pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
-  // Etapa 2A — fluxo Open Finance: fecha o dialog e abre o launcher.
-  if (open && !isEdit && step === "of" && ownerCompanyId) {
-    return (
-      <PluggyConnectLauncher
-        companyId={ownerCompanyId}
-        open
-        onClose={() => onOpenChange(false)}
-        onSuccess={() => {
-          toast.success("Conexão registrada. As contas serão criadas em instantes.");
-          onSaved();
-          onOpenChange(false);
-        }}
-      />
-    );
-  }
 
   // Etapa 2B — formulário manual (também usado no modo edição).
   return (
@@ -351,11 +277,6 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
           )}
 
           <div className="flex justify-end gap-2 pt-2">
-            {!isEdit && contextType === "pj" && (
-              <Button type="button" variant="ghost" onClick={() => setStep("choose")}>
-                Voltar
-              </Button>
-            )}
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={saving || !name.trim()}>
               {saving ? "Salvando..." : isEdit ? "Salvar" : "Criar Conta"}

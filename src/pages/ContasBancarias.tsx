@@ -13,8 +13,8 @@ import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
-import { OpenFinanceBadge } from "@/components/accounts/OpenFinanceBadge";
-import { useAccountOpenFinanceStatus } from "@/hooks/useAccountOpenFinanceStatus";
+
+
 
 import { BankLogo } from "@/components/accounts/BankLogo";
 import { Plus, Search, Landmark, Pencil, Trash2, Wallet, RefreshCw, AlertTriangle } from "lucide-react";
@@ -37,7 +37,7 @@ export default function ContasBancarias() {
   const { user } = useAuth();
   const { contextType, selectedCompanyId, companies } = useCompanyContext();
   const { maskBRL } = usePrivacy();
-  const { statusByAccountId } = useAccountOpenFinanceStatus();
+  
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -274,10 +274,8 @@ export default function ContasBancarias() {
                     {!a.is_active && (
                       <Badge variant="outline" className="text-[10px] h-4 px-1.5 shrink-0">Inativa</Badge>
                     )}
-                    {statusByAccountId[a.id] && (
-                      <OpenFinanceBadge info={statusByAccountId[a.id]} />
-                    )}
                   </div>
+
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {a.context === "pj" && a.company_id
                       ? companies.find((c) => c.id === a.company_id)?.trade_name || companies.find((c) => c.id === a.company_id)?.name || "Empresa"

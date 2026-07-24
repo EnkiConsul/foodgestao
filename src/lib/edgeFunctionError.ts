@@ -26,8 +26,6 @@ const FRIENDLY_MESSAGES: Record<string, string> = {
   connection_lookup_failed: "Falha ao carregar a conexão. Tente novamente.",
   connection_not_found: "Conexão não encontrada ou não pertence a esta empresa.",
   request_persist_failed: "Não foi possível registrar a solicitação. Tente novamente.",
-  pluggy_error:
-    "O provedor (Pluggy) recusou a solicitação. Verifique credenciais/consentimento e tente novamente.",
   unexpected_error: "Erro inesperado no servidor. Tente novamente em instantes.",
   method_not_allowed: "Método HTTP inválido.",
 };

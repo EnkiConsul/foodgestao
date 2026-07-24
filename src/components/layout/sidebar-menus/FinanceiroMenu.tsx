@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, ArrowLeftRight, TrendingUp, Target, FileBarChart,
-  Landmark, CreditCard, Users, FolderTree, BookOpen, Building2,
+  Landmark, CreditCard, Users, FolderTree, BookOpen,
 } from "lucide-react";
 import { SidebarSection, SidebarNavItem, SidebarCollapsibleGroup, type MenuItem } from "./shared";
 
@@ -8,7 +8,6 @@ const items: MenuItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, end: true },
   { title: "Lançamentos", url: "/lancamentos", icon: ArrowLeftRight, end: true },
   { title: "Fluxo de Caixa", url: "/fluxo-caixa", icon: TrendingUp, end: true },
-  { title: "Open Finance", url: "/open-finance", icon: Building2, end: true },
   { title: "Orçamento", url: "/orcamento", icon: Target, end: true },
 ];
 
