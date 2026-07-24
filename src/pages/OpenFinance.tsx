@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, Plug, RefreshCw, Trash2, AlertTriangle, CheckCircle2, Landmark, Link2, DownloadCloud, LifeBuoy } from "lucide-react";
+import { Loader2, Plug, RefreshCw, Trash2, AlertTriangle, CheckCircle2, Landmark, Link2, DownloadCloud, LifeBuoy, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ import {
   useDeletePluggyItem,
   useTriggerPluggySync,
   useReconcileConnections,
+  useReconcileOfTransactions,
   type OpenFinanceConnection,
 } from "@/hooks/useOpenFinance";
 import { PluggyConnectLauncher } from "@/components/open-finance/PluggyConnectLauncher";
@@ -71,6 +72,7 @@ export default function OpenFinance() {
   const deleteItem = useDeletePluggyItem();
   const triggerSync = useTriggerPluggySync();
   const reconcile = useReconcileConnections();
+  const reconcileTx = useReconcileOfTransactions();
 
   const [launcher, setLauncher] = useState<{
     mode: "create" | "update" | "renew_consent";
@@ -99,6 +101,19 @@ export default function OpenFinance() {
         subtitle="Conecte seus bancos e cartões via Pluggy para importar lançamentos automaticamente."
         actions={
           <>
+            <Button
+              variant="outline"
+              onClick={() => reconcileTx.mutate({ company_id: selectedCompanyId! })}
+              disabled={reconcileTx.isPending}
+              title="Aplica regras e vincula contatos aos lançamentos já importados"
+            >
+              {reconcileTx.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4 mr-2" />
+              )}
+              Reprocessar categorias
+            </Button>
             <Button
               variant="outline"
               onClick={() => {
