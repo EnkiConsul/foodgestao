@@ -19,6 +19,9 @@ import { getItem, listAccounts, listItemsByClientUser, PluggyError } from "../_s
 
 const BodySchema = z.object({
   company_id: z.string().uuid(),
+  // Opcional: itemId específico do Pluggy (usar quando a listagem por
+  // clientUserId não estiver disponível no plano/ambiente Pluggy).
+  item_id: z.string().min(8).max(128).optional(),
 });
 
 function json(b: unknown, s = 200) {
