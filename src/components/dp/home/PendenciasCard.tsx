@@ -103,17 +103,13 @@ export function PendenciasCard() {
                 <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setDetail(p)}>
                   <Info className="h-3 w-3 mr-1" /> Detalhes
                 </Button>
-                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => adiar(p, 1)}>
-                  Adiar 1d
-                </Button>
-                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => adiar(p, 7)}>
-                  Adiar 7d
-                </Button>
+                <AdiarPopover onAdiar={(dias) => adiar(p, dias)} />
               </div>
             </div>
           </div>
         ))}
       </div>
+
 
       <Dialog open={!!detail} onOpenChange={(v) => { if (!v) setDetail(null); }}>
         <DialogContent className="max-w-md">
