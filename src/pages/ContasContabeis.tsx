@@ -116,35 +116,40 @@ export default function ContasContabeis() {
       <div key={node.id}>
         <div
           className="flex items-center gap-2 py-2 px-2 rounded hover:bg-muted/50 group border-b"
-          style={{ paddingLeft: `${depth * 20 + 8}px` }}
+          style={{ paddingLeft: `${depth * 16 + 8}px` }}
         >
           <button
             type="button"
             onClick={() => hasChildren && toggleExpand(node.id)}
-            className={`h-5 w-5 flex items-center justify-center ${hasChildren ? "" : "invisible"}`}
+            className={`h-5 w-5 flex items-center justify-center shrink-0 ${hasChildren ? "" : "invisible"}`}
           >
             {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </button>
-          <span className="font-mono text-xs text-muted-foreground w-24 shrink-0">{node.code}</span>
-          <span className="flex-1 text-sm truncate">{node.name}</span>
-          {node.short_code && <Badge variant="outline" className="text-[10px] font-mono">{node.short_code}</Badge>}
-          {node.is_tax && <Badge variant="secondary" className="text-[10px]">Imposto</Badge>}
-          <Badge variant={node.allow_transactions ? "default" : "outline"} className="text-[10px]">
-            {node.allow_transactions ? "Analítica" : "Sintética"}
-          </Badge>
-          <Badge variant={node.is_active ? "default" : "destructive"} className="text-[10px]">
-            {node.is_active ? "Ativa" : "Inativa"}
-          </Badge>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <span className="font-mono text-[10px] md:text-xs text-muted-foreground w-14 md:w-24 shrink-0 truncate">{node.code}</span>
+          <span className="flex-1 text-xs md:text-sm truncate">{node.name}</span>
+          <div className="hidden md:flex items-center gap-1">
+            {node.short_code && <Badge variant="outline" className="text-[10px] font-mono">{node.short_code}</Badge>}
+            {node.is_tax && <Badge variant="secondary" className="text-[10px]">Imposto</Badge>}
+            <Badge variant={node.allow_transactions ? "default" : "outline"} className="text-[10px]">
+              {node.allow_transactions ? "Analítica" : "Sintética"}
+            </Badge>
+            <Badge variant={node.is_active ? "default" : "destructive"} className="text-[10px]">
+              {node.is_active ? "Ativa" : "Inativa"}
+            </Badge>
+          </div>
+          {!node.is_active && (
+            <Badge variant="destructive" className="md:hidden text-[9px] px-1 h-4">Inativa</Badge>
+          )}
+          <div className="flex items-center gap-0.5 md:gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
             {!node.allow_transactions && (
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openNew(node.id)} title="Adicionar filha">
+              <Button variant="ghost" size="icon" className="h-8 w-8 md:h-7 md:w-7" onClick={() => openNew(node.id)} title="Adicionar filha">
                 <PlusCircle className="h-4 w-4" />
               </Button>
             )}
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(node)} title="Editar">
+            <Button variant="ghost" size="icon" className="h-8 w-8 md:h-7 md:w-7" onClick={() => openEdit(node)} title="Editar">
               <Pencil className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteTarget(node)} title="Excluir">
+            <Button variant="ghost" size="icon" className="h-8 w-8 md:h-7 md:w-7 text-destructive" onClick={() => setDeleteTarget(node)} title="Excluir">
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
@@ -170,20 +175,20 @@ export default function ContasContabeis() {
   const canRestore = contextType === "pj" && !!selectedCompanyId;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <Helmet><title>Contas Contábeis | 360°FOOD</title></Helmet>
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Contas Contábeis</h1>
-          <p className="text-sm text-muted-foreground">Plano de contas hierárquico. Contas Sintéticas agrupam; Analíticas recebem lançamentos.</p>
+          <h1 className="text-xl md:text-2xl font-bold">Contas Contábeis</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Plano de contas hierárquico. Sintéticas agrupam; Analíticas recebem lançamentos.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {canRestore && (
-            <Button variant="outline" onClick={handleRestoreDefault} disabled={restoring} title="Adiciona contas do modelo padrão que ainda não existem">
-              <Sparkles className="h-4 w-4 mr-2" /> {restoring ? "Restaurando..." : "Restaurar Modelo Padrão"}
+            <Button variant="outline" size="sm" onClick={handleRestoreDefault} disabled={restoring} className="flex-1 md:flex-none min-h-9" title="Adiciona contas do modelo padrão que ainda não existem">
+              <Sparkles className="h-4 w-4 mr-2" /> {restoring ? "Restaurando..." : "Restaurar Modelo"}
             </Button>
           )}
-          <Button onClick={() => openNew(null)}>
+          <Button size="sm" onClick={() => openNew(null)} className="flex-1 md:flex-none min-h-9">
             <Plus className="h-4 w-4 mr-2" /> Nova Conta
           </Button>
         </div>
