@@ -57,9 +57,9 @@ export function AdminSubscriptions() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
         <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-48"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os status</SelectItem>
             {Object.entries(SUBSCRIPTION_STATUS_LABELS).map(([k, v]) => (
@@ -70,7 +70,8 @@ export function AdminSubscriptions() {
         <p className="text-sm text-muted-foreground">{filtered.length} assinaturas</p>
       </div>
 
-      <div className="rounded-md border">
+      {/* Desktop */}
+      <div className="hidden md:block rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -184,6 +185,85 @@ export function AdminSubscriptions() {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Mobile */}
+      <div className="md:hidden space-y-2">
+        {isLoading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-md border p-3"><Skeleton className="h-20 w-full" /></div>
+          ))
+        ) : filtered.length === 0 ? (
+          <p className="text-center text-sm text-muted-foreground py-8">Nenhuma assinatura</p>
+        ) : (
+          sortedFiltered.map((s: any) => {
+            const exempt = isExempt(s);
+            return (
+              <div key={s.id} className="rounded-md border p-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 text-sm font-medium truncate">
+                    <ClientCell userId={s.user_id} />
+                  </div>
+                  <Badge variant={SUBSCRIPTION_STATUS_VARIANT[s.status]} className="shrink-0 text-[10px]">
+                    {SUBSCRIPTION_STATUS_LABELS[s.status]}
+                  </Badge>
+                </div>
+                <Select
+                  value={s.plan_id}
+                  onValueChange={(plan_id) => update.mutate({ id: s.id, plan_id })}
+                >
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {plans.map((p: any) => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
+                  <div><div className="text-[10px] opacity-70">Início</div>{formatDate(s.started_at, "dd/MM/yy")}</div>
+                  <div><div className="text-[10px] opacity-70">Vence</div>{formatDate(s.current_period_end, "dd/MM/yy")}</div>
+                  <div><div className="text-[10px] opacity-70">Trial</div>{formatDate(s.trial_ends_at, "dd/MM/yy")}</div>
+                </div>
+                {exempt && <Badge variant="secondary" className="text-[10px]">{exemptionLabel(s)}</Badge>}
+                <div className="flex flex-wrap gap-1 pt-1 border-t">
+                  {s.status !== "canceled" && !exempt && (
+                    <Button size="sm" variant="outline" className="flex-1 min-h-9"
+                      onClick={() => update.mutate({ id: s.id, status: "canceled", canceled_at: new Date().toISOString() })}>
+                      Cancelar
+                    </Button>
+                  )}
+                  {s.status === "canceled" && (
+                    <Button size="sm" variant="outline" className="flex-1 min-h-9"
+                      onClick={() => update.mutate({ id: s.id, status: "active", canceled_at: null })}>
+                      Reativar
+                    </Button>
+                  )}
+                  {s.status === "trialing" && (
+                    <Button size="sm" variant="outline" className="flex-1 min-h-9"
+                      onClick={() => {
+                        const cur = s.trial_ends_at ? new Date(s.trial_ends_at) : new Date();
+                        cur.setDate(cur.getDate() + 7);
+                        update.mutate({ id: s.id, trial_ends_at: cur.toISOString() });
+                      }}>
+                      +7d trial
+                    </Button>
+                  )}
+                  {exempt ? (
+                    <Button size="sm" variant="outline" className="flex-1 min-h-9"
+                      onClick={() => { if (confirm("Remover isenção?")) removeExemption.mutate(s.id); }}>
+                      Remover isenção
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="outline" className="flex-1 min-h-9"
+                      onClick={() => setExemptTarget({ id: s.id, planId: s.plan_id })}>
+                      Isentar
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       <ExemptSubscriptionDialog
