@@ -4,7 +4,7 @@ import {
   Home, Users, Briefcase, Building2, Scale, FileSignature,
   Calendar, ClipboardList, UserCheck, ArrowLeftRight, Ban,
   FileText, Coins, Clock, HeartPulse, ShieldAlert, ListChecks,
-  MessageSquare, Bell, ChevronDown, LogOut, ArrowLeft, Settings, Repeat,
+  MessageSquare, Bell, BellRing, ChevronDown, LogOut, ArrowLeft, Settings, Repeat,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import assinatura360 from "@/assets/360food-assinatura.png.asset.json";
