@@ -42,8 +42,8 @@ export function AdminCompanies() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-3">
-        <div className="relative max-w-sm flex-1">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3">
+        <div className="relative sm:max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por nome, fantasia ou CNPJ..."
@@ -52,29 +52,32 @@ export function AdminCompanies() {
             className="pl-9"
           />
         </div>
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os tipos</SelectItem>
-            <SelectItem value="pessoal">Pessoal</SelectItem>
-            <SelectItem value="empresarial">Empresarial</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="active">Ativo</SelectItem>
-            <SelectItem value="inactive">Inativo</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex gap-2">
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="flex-1 sm:w-[160px]">
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os tipos</SelectItem>
+              <SelectItem value="pessoal">Pessoal</SelectItem>
+              <SelectItem value="empresarial">Empresarial</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="flex-1 sm:w-[140px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="active">Ativo</SelectItem>
+              <SelectItem value="inactive">Inativo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      <div className="rounded-md border">
+      {/* Desktop */}
+      <div className="hidden md:block rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -121,6 +124,35 @@ export function AdminCompanies() {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Mobile */}
+      <div className="md:hidden space-y-2">
+        {isLoading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-md border p-3"><Skeleton className="h-12 w-full" /></div>
+          ))
+        ) : filtered.length === 0 ? (
+          <p className="text-center text-sm text-muted-foreground py-8">Nenhum perfil encontrado</p>
+        ) : (
+          filtered.map((company) => (
+            <div key={company.id} className="rounded-md border p-3 space-y-1.5">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-medium truncate">{company.name}</p>
+                  {company.trade_name && <p className="text-xs text-muted-foreground truncate">{company.trade_name}</p>}
+                </div>
+                <Badge variant={company.is_active ? "default" : "secondary"} className="shrink-0 text-[10px]">
+                  {company.is_active ? "Ativo" : "Inativo"}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <Badge variant="outline" className="capitalize text-[10px]">{company.profile_type}</Badge>
+                <span>{formatDate(company.created_at, "dd/MM/yyyy")}</span>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
