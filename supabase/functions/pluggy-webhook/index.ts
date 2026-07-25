@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
   if (pluggyItemId && (eventType === "item/updated" || eventType === "item/error" || eventType === "item/waiting_user_input")) {
     const patch: Record<string, unknown> = {
       status: payload?.item?.status ?? payload?.status ?? undefined,
-      execution_status: payload?.item?.executionStatus ?? undefined,
+      status_detail: payload?.item?.executionStatus ?? undefined,
       consent_expires_at: payload?.item?.consentExpiresAt ?? undefined,
     };
     // remove undefined
