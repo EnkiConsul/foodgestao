@@ -33,7 +33,8 @@ Deno.serve(async (req) => {
 
   const notified: string[] = [];
   for (const c of connections ?? []) {
-    // send transactional email via existing send-transactional-email function
+    const meta = (c.metadata ?? {}) as Record<string, unknown>;
+    if (meta.consent_notified_at) continue; // already notified
     try {
       await fetch(`${url}/functions/v1/send-transactional-email`, {
         method: "POST",
@@ -52,7 +53,7 @@ Deno.serve(async (req) => {
       });
       await supabase
         .from("open_finance_connections")
-        .update({ consent_notified_at: new Date().toISOString() })
+        .update({ metadata: { ...meta, consent_notified_at: new Date().toISOString() } })
         .eq("id", c.id);
       notified.push(c.id);
     } catch (e) {
