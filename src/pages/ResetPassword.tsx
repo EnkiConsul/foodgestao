@@ -92,8 +92,8 @@ export default function ResetPassword() {
               </p>
             </CardContent>
             <CardFooter>
-              <Button className="w-full" onClick={() => navigate("/auth", { replace: true })}>
-                Voltar para o login
+              <Button className="w-full min-h-11" onClick={() => navigate("/auth", { replace: true })}>
+                Voltar para o Login
               </Button>
             </CardFooter>
           </>
@@ -139,9 +139,9 @@ export default function ResetPassword() {
             </CardContent>
 
             <CardFooter>
-              <Button type="submit" className="w-full" disabled={submitting}>
+              <Button type="submit" className="w-full min-h-11" disabled={submitting}>
                 {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Redefinir senha
+                Redefinir Senha
               </Button>
             </CardFooter>
           </form>

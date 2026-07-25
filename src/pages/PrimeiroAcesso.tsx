@@ -134,8 +134,8 @@ export default function PrimeiroAcesso() {
               </div>
               {errors.confirm && <p className="text-xs text-destructive">{errors.confirm}</p>}
             </div>
-            <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? "Salvando..." : "Salvar nova senha"}
+            <Button type="submit" className="w-full min-h-11" disabled={submitting}>
+              {submitting ? "Salvando..." : "Salvar Nova Senha"}
             </Button>
           </CardContent>
         </form>

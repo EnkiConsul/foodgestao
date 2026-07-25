@@ -87,15 +87,15 @@ export default function AcceptInvite() {
                 Você recebeu um convite para se juntar a uma empresa no 360°FOOD.
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col items-center gap-4">
-              <Button onClick={handleAccept} disabled={accepting} className="w-full">
+            <CardContent className="flex flex-col items-center gap-3">
+              <Button onClick={handleAccept} disabled={accepting} className="w-full min-h-11">
                 {accepting ? (
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Aceitando...</>
                 ) : (
                   <><CheckCircle className="h-4 w-4 mr-2" />Aceitar Convite</>
                 )}
               </Button>
-              <Button variant="outline" onClick={() => navigate("/")} className="w-full">
+              <Button variant="outline" onClick={() => navigate("/")} className="w-full min-h-10">
                 Cancelar
               </Button>
             </CardContent>
