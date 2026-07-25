@@ -124,10 +124,10 @@ export default function Configuracoes() {
   }
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-4 md:space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Configurações</h1>
-        <p className="text-sm text-muted-foreground">Gerencie seu perfil e preferências</p>
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Configurações</h1>
+        <p className="text-xs md:text-sm text-muted-foreground">Gerencie seu perfil e preferências</p>
       </div>
 
       {/* Profile */}
