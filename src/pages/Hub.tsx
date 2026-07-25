@@ -90,10 +90,10 @@ export default function Hub() {
         <meta name="description" content="Acesse os módulos contratados: Financeiro, DP, CRM, RH e Pedidos." />
       </Helmet>
 
-      <div className="mb-8">
-        <p className="text-sm text-muted-foreground mb-1">{contextLabel}</p>
-        <h1 className="text-3xl font-bold">Hub de Módulos</h1>
-        <p className="text-muted-foreground mt-2">
+      <div className="mb-6 md:mb-8">
+        <p className="text-xs md:text-sm text-muted-foreground mb-1">{contextLabel}</p>
+        <h1 className="text-xl md:text-3xl font-bold">Hub de Módulos</h1>
+        <p className="text-xs md:text-base text-muted-foreground mt-1 md:mt-2">
           Selecione um módulo para começar. Cada módulo é uma contratação independente.
         </p>
       </div>
