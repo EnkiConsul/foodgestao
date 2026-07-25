@@ -1,82 +1,44 @@
-# Plano final — Revisão do Quadro de Pendências
+## Objetivo
 
-Escopo: corrigir a inconsistência global (cache) + as 4 inconsistências específicas + decisões de produto.
+Criar uma tela dedicada em **Cadastro → Pendências** onde o admin da empresa configura os prazos usados pelo quadro de pendências. Hoje o form vive em `/dp/configuracoes`; ele será movido para o novo caminho, evitando duplicação.
 
-## 1. Invalidação do cache de pendências (causa raiz do sintoma "troca aprovada não some")
+## O que vai ser feito
 
-Adicionar `queryClient.invalidateQueries({ queryKey: ["dp_pendencias"] })` no `onSuccess` de cada mutação que resolve uma pendência:
+1. **Nova página** `src/pages/dp/cadastros/DpCadastroPendencias.tsx`
+   - Header padrão `DpPageHeader` (ícone `BellRing`, título "Prazos de pendências", descrição curta).
+   - Card com o mesmo formulário já existente (`PrazosLembretesCard`) — 6 campos:
+     - Solicitações (dias para responder)
+     - Trocas (dias para aprovação do gestor)
+     - Contracheque (dia limite do mês)
+     - Adiantamento (dias após o dia de pagamento)
+     - Folha de ponto (dia limite do mês)
+     - Negociação coletiva (dias antes do vencimento)
+   - Usa `useDpPendenciasConfig` (já criado). Salvar invalida `["dp_pendencias"]` e mostra toast.
+   - Bloco de ajuda explicando que os prazos se aplicam **por empresa** (respeitando o contexto ativo PF/PJ) e afetam o quadro de pendências da home do DP.
 
-- `src/pages/dp/DpTrocas.tsx` — aprovação/recusa de gestor e colega
-- `src/pages/dp/DpMeuTrocas.tsx` — aprovação/recusa de colega
-- `src/pages/dp/DpSolicitacoes.tsx` — `respond`
-- `src/pages/dp/DpAtestados.tsx` — aprovar/recusar atestado
-- `src/pages/dp/DpDocumentosPorTipo.tsx` — importação e aprovação bulk
-- `src/pages/dp/DpSindicatoNegociacoes.tsx` — insert/update de negociação
+2. **Rota** em `src/App.tsx`
+   - Adicionar `<Route path="cadastros/pendencias" element={<DpCadastroPendencias />} />` dentro do bloco DP.
 
-E robustecer o hook:
-- `src/hooks/useDpPendencias.tsx` — `staleTime: 30_000`, `refetchOnWindowFocus: true`.
+3. **Hub de Cadastro** (`src/pages/dp/DpCadastrosHub.tsx`)
+   - Adicionar card **"Pendências"** com ícone `BellRing`, descrição "Prazos e lembretes do quadro de pendências.", `url: /dp/cadastros/pendencias`.
 
-## 2. Contracheque/Adiantamento — remover código morto (decisão: b)
+4. **Sidebar do módulo DP** (`src/config/dpNav.ts` ou equivalente)
+   - Adicionar item "Pendências" como filho de "Cadastro", apontando para a nova rota.
 
-Em `src/hooks/useDpPendencias.tsx` blocos 3 e 4:
-- Remover a checagem em `dp_folha_periodos.status = 'fechado'`.
-- Manter apenas a checagem por `dp_documentos` importados por unidade (comportamento efetivo hoje).
+5. **Atalho a partir do quadro de pendências**
+   - No `PendenciasCard` (home do DP), adicionar um pequeno botão de engrenagem no header linkando para `/dp/cadastros/pendencias` (visível apenas para admins).
 
-## 3. Negociação ACT/CCT — sem UI extra (decisão: a)
+6. **Remoção da duplicação em `/dp/configuracoes`**
+   - Excluir o card `PrazosLembretesCard` de `src/pages/dp/DpConfiguracoes.tsx` e todos os imports órfãos (`useDpPendenciasConfig`, `BellRing`, `useEffect`, `PRAZO_FIELDS`).
+   - Deixar em Configurações apenas os módulos que já existiam antes (regras de bloqueio, limites, etc.), preservando o resto da tela.
 
-Resolução continua sendo "cadastrar nova negociação com ano/mês mais recente". Ajuste mínimo:
-- No card do bloco 6, incluir no `subtitulo` a instrução `"Cadastre nova negociação para renovar"` para o usuário entender que editar a última não resolve.
+## Detalhes técnicos
 
-## 4. Janela de alerta configurável por empresa
-
-### 4.1. Migration
-Criar tabela `dp_pendencias_config` com campos por empresa:
-
-| coluna | tipo | default |
-|---|---|---|
-| `company_id` | uuid (PK) | — |
-| `alerta_solicitacao_dias` | int | 3 |
-| `alerta_troca_dias` | int | 3 |
-| `alerta_contracheque_dia_mes` | int | 10 |
-| `alerta_adiantamento_offset` | int | 5 |
-| `alerta_folha_ponto_dia_mes` | int | 10 |
-| `alerta_negociacao_dias` | int | 30 |
-
-Grants padrão para `authenticated`+`service_role`, RLS: ler/escrever apenas membros da empresa (via `has_role`/associação em `company_members`).
-
-### 4.2. Hook novo `useDpPendenciasConfig`
-Lê a configuração da empresa (com defaults) e retorna os valores acima.
-
-### 4.3. Consumir no `useDpPendencias.tsx`
-Substituir todos os literais (`3`, `10`, `5`, `30`) pelos valores do hook.
-
-### 4.4. UI em `/dp/configuracoes`
-Novo card "Prazos de lembrete das pendências" com um input numérico por tipo de atividade e botão "Salvar". Layout consistente com os cards já existentes de `DpConfiguracoes.tsx`.
-
-## 5. Botão "Adiar" unificado
-
-Trocar os dois botões "Adiar 1d" / "Adiar 7d" em `src/components/dp/home/PendenciasCard.tsx` por um único botão "Adiar" que abre um `Popover` com opções rápidas + campo de dias customizado:
-
-- Opções rápidas: `1 dia`, `3 dias`, `7 dias`, `15 dias`, `30 dias`
-- Campo "Personalizado (dias)" com input numérico + botão "Aplicar"
-
-O comportamento persistente continua o mesmo (grava em `dp_user_prefs.pendencias_adiadas`). Também aplicar a mesma unificação no `Dialog` de detalhes (`DialogFooter`).
-
-## 6. Correção de shift UTC nas datas (baixo custo)
-
-Trocar `ymd()` em `useDpPendencias.tsx` por `format(d, "yyyy-MM-dd")` do `date-fns` — evita off-by-one em bordas de mês no fuso do Brasil.
+- A tabela `dp_pendencias_config` e o hook `useDpPendenciasConfig` já existem — nenhuma migration nova é necessária.
+- A permissão de acesso segue o mesmo padrão das demais páginas de Cadastro (admin/gestor da empresa). Colaborador comum não vê o item na sidebar nem no hub.
+- Validação client-side reutiliza a lista `PRAZO_FIELDS` (mín/máx por campo) já presente em `DpConfiguracoes.tsx`; ela é movida para dentro da nova página.
 
 ## Fora de escopo
 
-- Não vou criar botão "Fechar folha" nem tocar em `/dp/folha` (decidido: b).
-- Não vou criar coluna `renovada_em` em negociações (decidido: a).
-- Não vou mexer nos textos/enum de `dp_folha_periodos.status`.
-
-## Arquivos afetados
-
-- Migration nova: `dp_pendencias_config`.
-- `src/hooks/useDpPendencias.tsx` — remove branch morto, consome config, `staleTime`/`refetchOnWindowFocus`, corrige `ymd`.
-- `src/hooks/useDpPendenciasConfig.tsx` (novo).
-- `src/pages/dp/DpConfiguracoes.tsx` — novo card de prazos.
-- `src/components/dp/home/PendenciasCard.tsx` — botão "Adiar" unificado com popover.
-- `src/pages/dp/DpTrocas.tsx`, `DpMeuTrocas.tsx`, `DpSolicitacoes.tsx`, `DpAtestados.tsx`, `DpDocumentosPorTipo.tsx`, `DpSindicatoNegociacoes.tsx` — invalidação de `["dp_pendencias"]`.
+- Nenhuma alteração de schema, RLS ou lógica do `useDpPendencias`.
+- Sem novos tipos de prazo — apenas UI/rota/organização.
