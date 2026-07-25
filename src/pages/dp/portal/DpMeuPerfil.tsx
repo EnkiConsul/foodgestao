@@ -82,7 +82,7 @@ export default function DpMeuPerfil() {
         icon={User}
         title="Meu Cadastro"
         actions={p && !editing ? (
-          <Button variant="outline" onClick={() => setEditing(true)}>
+          <Button variant="outline" onClick={() => setEditing(true)} className="min-h-10 w-full sm:w-auto">
             <Pencil className="h-4 w-4 mr-1" /> Editar contato/endereço
           </Button>
         ) : undefined}
