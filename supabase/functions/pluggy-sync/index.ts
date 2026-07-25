@@ -62,7 +62,7 @@ async function runSync(
       .from("open_finance_connections")
       .update({
         status: itemResp.data.status,
-        execution_status: itemResp.data.executionStatus ?? null,
+        status_detail: itemResp.data.executionStatus ?? null,
         consent_expires_at: itemResp.data.consentExpiresAt ?? null,
       })
       .eq("id", connectionId);
@@ -89,12 +89,10 @@ async function runSync(
           name: a.name ?? a.marketingName ?? null,
           number: a.number ?? null,
           balance: a.balance ?? null,
-          currency_code: a.currencyCode ?? "BRL",
-          owner: a.owner ?? null,
-          tax_number: a.taxNumber ?? null,
+          currency: a.currencyCode ?? "BRL",
           raw: a as any,
         })),
-        { onConflict: "pluggy_account_id" },
+        { onConflict: "connection_id,pluggy_account_id" },
       );
   }
 
