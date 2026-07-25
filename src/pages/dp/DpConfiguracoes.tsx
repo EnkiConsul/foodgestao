@@ -208,8 +208,8 @@ export default function DpConfiguracoes() {
           </CardContent>
         </Card>
 
-        <PrazosLembretesCard />
       </div>
+
 
 
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
