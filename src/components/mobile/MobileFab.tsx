@@ -8,6 +8,12 @@ type Props = {
   className?: string;
 };
 
+function haptic(ms = 12) {
+  if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+    try { navigator.vibrate(ms); } catch { /* noop */ }
+  }
+}
+
 export function MobileFab({ config, className }: Props) {
   const navigate = useNavigate();
   const registered = useMobileFabState();
@@ -18,6 +24,7 @@ export function MobileFab({ config, className }: Props) {
   const Icon = config.icon;
 
   const handlePress = () => {
+    haptic(12);
     if (registered?.onPress) {
       registered.onPress();
       return;
@@ -32,10 +39,10 @@ export function MobileFab({ config, className }: Props) {
       aria-label={label}
       className={cn(
         "flex items-center justify-center rounded-full",
-        "h-14 w-14 -mt-6",
+        "h-14 w-14 -mt-7",
         "bg-primary text-primary-foreground",
-        "shadow-lg shadow-primary/30 ring-4 ring-card",
-        "active:scale-95 transition-transform",
+        "shadow-[0_10px_24px_-6px_hsl(var(--primary)/0.5)] ring-4 ring-background",
+        "active:scale-90 transition-transform duration-150",
         className,
       )}
     >
