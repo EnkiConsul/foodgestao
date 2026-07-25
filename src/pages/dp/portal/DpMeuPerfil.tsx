@@ -131,9 +131,9 @@ export default function DpMeuPerfil() {
                       <div><Label>CEP</Label><Input value={form.endereco.cep} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, cep: e.target.value } })} /></div>
                     </div>
                   </div>
-                  <div className="flex gap-2 justify-end pt-2">
-                    <Button variant="outline" onClick={() => setEditing(false)}><X className="h-4 w-4 mr-1" /> Cancelar</Button>
-                    <Button disabled={save.isPending} onClick={() => save.mutate()}><Save className="h-4 w-4 mr-1" /> Salvar</Button>
+                  <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end pt-2">
+                    <Button variant="outline" onClick={() => setEditing(false)} className="min-h-10 w-full sm:w-auto"><X className="h-4 w-4 mr-1" /> Cancelar</Button>
+                    <Button disabled={save.isPending} onClick={() => save.mutate()} className="min-h-10 w-full sm:w-auto"><Save className="h-4 w-4 mr-1" /> Salvar</Button>
                   </div>
                 </>
               ) : (
