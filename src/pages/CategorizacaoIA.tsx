@@ -174,24 +174,24 @@ export default function CategorizacaoIA() {
   }, [rules]);
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Brain className="h-6 w-6 text-primary" />
-            Categorização Automática
+    <div className="p-3 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+            <Brain className="h-5 w-5 md:h-6 md:w-6 text-primary shrink-0" />
+            <span className="truncate">Categorização Automática</span>
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <p className="text-muted-foreground text-xs md:text-sm mt-1">
             Regras aprendidas pelo sistema, IA e por você. Quanto mais lançamentos, mais preciso.
           </p>
         </div>
-        <Button onClick={runBatch} disabled={runningBatch}>
+        <Button onClick={runBatch} disabled={runningBatch} size="sm" className="w-full md:w-auto min-h-10">
           <Sparkles className="h-4 w-4 mr-2" />
-          {runningBatch ? "Processando..." : "Auto-categorizar pendentes"}
+          {runningBatch ? "Processando..." : "Auto-categorizar Pendentes"}
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
         <StatCard label="Regras ativas" value={stats.total} />
         <StatCard label="Acertos totais" value={stats.totalHits} />
         <StatCard label="Aprendidas do usuário" value={(stats.bySource.user_manual ?? 0) + (stats.bySource.user_correction ?? 0)} />
