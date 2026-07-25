@@ -170,20 +170,20 @@ export default function ContasContabeis() {
   const canRestore = contextType === "pj" && !!selectedCompanyId;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <Helmet><title>Contas Contábeis | 360°FOOD</title></Helmet>
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Contas Contábeis</h1>
-          <p className="text-sm text-muted-foreground">Plano de contas hierárquico. Contas Sintéticas agrupam; Analíticas recebem lançamentos.</p>
+          <h1 className="text-xl md:text-2xl font-bold">Contas Contábeis</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Plano de contas hierárquico. Sintéticas agrupam; Analíticas recebem lançamentos.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {canRestore && (
-            <Button variant="outline" onClick={handleRestoreDefault} disabled={restoring} title="Adiciona contas do modelo padrão que ainda não existem">
-              <Sparkles className="h-4 w-4 mr-2" /> {restoring ? "Restaurando..." : "Restaurar Modelo Padrão"}
+            <Button variant="outline" size="sm" onClick={handleRestoreDefault} disabled={restoring} className="flex-1 md:flex-none min-h-9" title="Adiciona contas do modelo padrão que ainda não existem">
+              <Sparkles className="h-4 w-4 mr-2" /> {restoring ? "Restaurando..." : "Restaurar Modelo"}
             </Button>
           )}
-          <Button onClick={() => openNew(null)}>
+          <Button size="sm" onClick={() => openNew(null)} className="flex-1 md:flex-none min-h-9">
             <Plus className="h-4 w-4 mr-2" /> Nova Conta
           </Button>
         </div>
