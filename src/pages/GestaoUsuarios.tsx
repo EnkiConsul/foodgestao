@@ -179,16 +179,16 @@ export default function GestaoUsuarios() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Gestão de Usuários</h1>
-          <p className="text-sm text-muted-foreground">Gerencie os membros da sua empresa</p>
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Gestão de Usuários</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Gerencie os membros da sua empresa</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
           {companies.length > 1 && (
             <Select value={activeCompanyId} onValueChange={setSelectedCompanyId}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Selecione a empresa" />
               </SelectTrigger>
               <SelectContent>
@@ -199,7 +199,7 @@ export default function GestaoUsuarios() {
             </Select>
           )}
           {isAdminOrOwner && (
-            <Button onClick={() => setInviteOpen(true)}>
+            <Button onClick={() => setInviteOpen(true)} className="min-h-10">
               <UserPlus className="h-4 w-4 mr-2" />
               Convidar
             </Button>
@@ -212,79 +212,144 @@ export default function GestaoUsuarios() {
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" />
-            <CardTitle className="text-lg">Membros</CardTitle>
+            <CardTitle className="text-base md:text-lg">Membros</CardTitle>
           </div>
-          <CardDescription>{members.length} membro(s) na empresa</CardDescription>
+          <CardDescription className="text-xs">{members.length} membro(s) na empresa</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Papel</TableHead>
-                <TableHead className="hidden sm:table-cell">Desde</TableHead>
-                {isAdminOrOwner && <TableHead className="text-right">Ações</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loadingMembers ? (
+          {/* Desktop */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">Carregando...</TableCell>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Papel</TableHead>
+                  <TableHead className="hidden sm:table-cell">Desde</TableHead>
+                  {isAdminOrOwner && <TableHead className="text-right">Ações</TableHead>}
                 </TableRow>
-              ) : members.map((member: any) => (
-                <TableRow key={member.id}>
-                  <TableCell className="font-medium">{member.full_name}</TableCell>
-                  <TableCell>{roleBadge(member.role)}</TableCell>
-                  <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
-                    {formatDate(member.created_at, "dd/MM/yyyy")}
-                  </TableCell>
-                  {isAdminOrOwner && (
-                    <TableCell className="text-right">
-                      {member.role !== "owner" && member.user_id !== user?.id && (
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            title="Editar permissões"
-                            onClick={() =>
-                              setEditingMember({
-                                id: member.id,
-                                full_name: member.full_name,
-                                role: member.role,
-                                permissions: member.permissions ?? {},
-                              })
-                            }
-                          >
-                            <Settings2 className="h-4 w-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Remover membro</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Tem certeza que deseja remover <strong>{member.full_name}</strong> da empresa? Esta ação não pode ser desfeita.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleRemoveMember(member.id)}>Remover</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      )}
+              </TableHeader>
+              <TableBody>
+                {loadingMembers ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground">Carregando...</TableCell>
+                  </TableRow>
+                ) : members.map((member: any) => (
+                  <TableRow key={member.id}>
+                    <TableCell className="font-medium">{member.full_name}</TableCell>
+                    <TableCell>{roleBadge(member.role)}</TableCell>
+                    <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
+                      {formatDate(member.created_at, "dd/MM/yyyy")}
                     </TableCell>
-                  )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                    {isAdminOrOwner && (
+                      <TableCell className="text-right">
+                        {member.role !== "owner" && member.user_id !== user?.id && (
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              title="Editar permissões"
+                              onClick={() =>
+                                setEditingMember({
+                                  id: member.id,
+                                  full_name: member.full_name,
+                                  role: member.role,
+                                  permissions: member.permissions ?? {},
+                                })
+                              }
+                            >
+                              <Settings2 className="h-4 w-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Remover membro</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tem certeza que deseja remover <strong>{member.full_name}</strong> da empresa? Esta ação não pode ser desfeita.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleRemoveMember(member.id)}>Remover</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        )}
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile */}
+          <div className="md:hidden space-y-2">
+            {loadingMembers ? (
+              <p className="text-sm text-muted-foreground text-center py-4">Carregando...</p>
+            ) : members.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">Nenhum membro</p>
+            ) : (
+              members.map((member: any) => {
+                const canManage = isAdminOrOwner && member.role !== "owner" && member.user_id !== user?.id;
+                return (
+                  <div key={member.id} className="rounded-md border p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{member.full_name}</p>
+                        <p className="text-[11px] text-muted-foreground">Desde {formatDate(member.created_at, "dd/MM/yyyy")}</p>
+                      </div>
+                      {roleBadge(member.role)}
+                    </div>
+                    {canManage && (
+                      <div className="flex gap-2 pt-1 border-t">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 min-h-9"
+                          onClick={() =>
+                            setEditingMember({
+                              id: member.id,
+                              full_name: member.full_name,
+                              role: member.role,
+                              permissions: member.permissions ?? {},
+                            })
+                          }
+                        >
+                          <Settings2 className="h-4 w-4 mr-1" /> Permissões
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="flex-1 min-h-9 text-destructive hover:text-destructive">
+                              <Trash2 className="h-4 w-4 mr-1" /> Remover
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Remover membro</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja remover <strong>{member.full_name}</strong> da empresa?
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleRemoveMember(member.id)}>Remover</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -294,56 +359,82 @@ export default function GestaoUsuarios() {
           <CardHeader className="pb-4">
             <div className="flex items-center gap-2">
               <UserPlus className="h-5 w-5 text-primary" />
-              <CardTitle className="text-lg">Convites</CardTitle>
+              <CardTitle className="text-base md:text-lg">Convites</CardTitle>
             </div>
-            <CardDescription>Convites enviados para novos membros</CardDescription>
+            <CardDescription className="text-xs">Convites enviados para novos membros</CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>E-mail</TableHead>
-                  <TableHead>Papel</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {invites.map((invite: any) => (
-                  <TableRow key={invite.id}>
-                    <TableCell className="font-medium">{invite.invited_email}</TableCell>
-                    <TableCell>{roleBadge(invite.role)}</TableCell>
-                    <TableCell>{statusBadge(invite.status)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {invite.status === "pending" && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleCopyLink(invite.token)}
-                              title="Copiar link"
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() => handleCancelInvite(invite.id)}
-                              title="Cancelar convite"
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
+            {/* Desktop */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>E-mail</TableHead>
+                    <TableHead>Papel</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {invites.map((invite: any) => (
+                    <TableRow key={invite.id}>
+                      <TableCell className="font-medium">{invite.invited_email}</TableCell>
+                      <TableCell>{roleBadge(invite.role)}</TableCell>
+                      <TableCell>{statusBadge(invite.status)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {invite.status === "pending" && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleCopyLink(invite.token)}
+                                title="Copiar link"
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                                onClick={() => handleCancelInvite(invite.id)}
+                                title="Cancelar convite"
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile */}
+            <div className="md:hidden space-y-2">
+              {invites.map((invite: any) => (
+                <div key={invite.id} className="rounded-md border p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-medium truncate min-w-0">{invite.invited_email}</p>
+                    {statusBadge(invite.status)}
+                  </div>
+                  <div>{roleBadge(invite.role)}</div>
+                  {invite.status === "pending" && (
+                    <div className="flex gap-2 pt-1 border-t">
+                      <Button variant="outline" size="sm" className="flex-1 min-h-9" onClick={() => handleCopyLink(invite.token)}>
+                        <Copy className="h-4 w-4 mr-1" /> Copiar link
+                      </Button>
+                      <Button variant="outline" size="sm" className="flex-1 min-h-9 text-destructive hover:text-destructive" onClick={() => handleCancelInvite(invite.id)}>
+                        <XCircle className="h-4 w-4 mr-1" /> Cancelar
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
