@@ -378,13 +378,15 @@ export default function DpMeuSolicitacoes() {
       />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as StatusTab)}>
-        <TabsList>
-          {STATUS_TABS.map((s) => (
-            <TabsTrigger key={s} value={s} className="capitalize">
-              {s} <span className="ml-1 text-[10px] opacity-70">({counts[s] ?? 0})</span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="-mx-1 overflow-x-auto">
+          <TabsList className="w-max">
+            {STATUS_TABS.map((s) => (
+              <TabsTrigger key={s} value={s} className="capitalize whitespace-nowrap">
+                {s} <span className="ml-1 text-[10px] opacity-70">({counts[s] ?? 0})</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
       </Tabs>
 
       {filtered.length === 0 ? (
