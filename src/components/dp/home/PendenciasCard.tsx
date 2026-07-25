@@ -144,9 +144,11 @@ export function PendenciasCard() {
                 )}
               </div>
               <DialogFooter className="gap-2">
-                <Button variant="ghost" onClick={() => { if (detail) { adiar(detail, 7); setDetail(null); } }}>
-                  Adiar 7d
-                </Button>
+                <AdiarPopover
+                  onAdiar={(dias) => { if (detail) { adiar(detail, dias); setDetail(null); } }}
+                  triggerVariant="ghost"
+                  triggerSize="default"
+                />
                 <Button asChild onClick={() => setDetail(null)}>
                   <Link to={detail.url}>
                     Resolver <ArrowRight className="h-4 w-4 ml-1" />
@@ -175,3 +177,76 @@ function UrgencyChip({
     </div>
   );
 }
+
+const PRESETS = [1, 3, 7, 15, 30];
+
+function AdiarPopover({
+  onAdiar,
+  triggerVariant = "ghost",
+  triggerSize = "sm",
+}: {
+  onAdiar: (dias: number) => void;
+  triggerVariant?: "ghost" | "outline" | "default";
+  triggerSize?: "sm" | "default";
+}) {
+  const [open, setOpen] = useState(false);
+  const [custom, setCustom] = useState("");
+
+  const applyCustom = () => {
+    const n = Number(custom);
+    if (!Number.isFinite(n) || n < 1) {
+      toast.error("Informe um número de dias válido");
+      return;
+    }
+    onAdiar(Math.round(n));
+    setCustom("");
+    setOpen(false);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          size={triggerSize}
+          variant={triggerVariant}
+          className={triggerSize === "sm" ? "h-7 text-xs" : ""}
+        >
+          <CalendarPlus className={triggerSize === "sm" ? "h-3 w-3 mr-1" : "h-4 w-4 mr-1"} />
+          Adiar
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-56 p-3 space-y-2">
+        <p className="text-xs font-medium text-muted-foreground">Adiar pendência por</p>
+        <div className="flex flex-wrap gap-1">
+          {PRESETS.map((d) => (
+            <Button
+              key={d}
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs flex-1 min-w-0"
+              onClick={() => { onAdiar(d); setOpen(false); }}
+            >
+              {d}d
+            </Button>
+          ))}
+        </div>
+        <div className="pt-1 border-t space-y-1.5">
+          <p className="text-[11px] text-muted-foreground">Personalizado</p>
+          <div className="flex gap-1">
+            <Input
+              type="number"
+              min={1}
+              value={custom}
+              onChange={(e) => setCustom(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") applyCustom(); }}
+              placeholder="dias"
+              className="h-7 text-xs"
+            />
+            <Button size="sm" className="h-7 text-xs" onClick={applyCustom}>OK</Button>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
