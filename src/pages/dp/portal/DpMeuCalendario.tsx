@@ -579,7 +579,7 @@ export default function DpMeuCalendario() {
 
       {/* Dialog do dia */}
       <Dialog open={!!selectedDay} onOpenChange={(o) => !o && setSelectedDay(null)}>
-        <DialogContent className="max-w-md rounded-[2rem] border-none shadow-2xl p-8">
+        <DialogContent className="max-w-md rounded-2xl sm:rounded-[2rem] border-none shadow-2xl p-5 sm:p-8">
           <DialogHeader>
             <DialogTitle className="text-2xl font-black flex items-center gap-3">
               <CalendarDays className="size-6 text-primary" />
@@ -706,11 +706,11 @@ export default function DpMeuCalendario() {
             </div>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
             <Button
               variant="ghost"
               onClick={() => setSelectedDay(null)}
-              className="uppercase tracking-[0.2em] text-[11px] font-black text-muted-foreground hover:text-foreground"
+              className="uppercase tracking-[0.2em] text-[11px] font-black text-muted-foreground hover:text-foreground min-h-10 w-full sm:w-auto"
             >
               Fechar
             </Button>
@@ -720,7 +720,7 @@ export default function DpMeuCalendario() {
 
       {/* Dialog exceção */}
       <Dialog open={exceptionOpen} onOpenChange={(o) => !o && setExceptionOpen(false)}>
-        <DialogContent className="max-w-md rounded-[2rem] border-none shadow-2xl p-8">
+        <DialogContent className="max-w-md rounded-2xl sm:rounded-[2rem] border-none shadow-2xl p-5 sm:p-8">
           <DialogHeader>
             <DialogTitle className="text-2xl font-black flex items-center gap-3">
               <AlertCircle className="size-6 text-amber-500" />
@@ -745,11 +745,11 @@ export default function DpMeuCalendario() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setExceptionOpen(false)}>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+            <Button variant="ghost" onClick={() => setExceptionOpen(false)} className="min-h-10 w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button onClick={() => enviarExcecao.mutate()} disabled={enviarExcecao.isPending}>
+            <Button onClick={() => enviarExcecao.mutate()} disabled={enviarExcecao.isPending} className="min-h-10 w-full sm:w-auto">
               {enviarExcecao.isPending ? (
                 "Enviando..."
               ) : (
@@ -764,7 +764,7 @@ export default function DpMeuCalendario() {
 
       {/* Dialog troca */}
       <Dialog open={!!tradeOpen} onOpenChange={(o) => !o && setTradeOpen(null)}>
-        <DialogContent className="max-w-md rounded-[2rem] border-none shadow-2xl p-8">
+        <DialogContent className="max-w-md rounded-2xl sm:rounded-[2rem] border-none shadow-2xl p-5 sm:p-8">
           <DialogHeader>
             <DialogTitle className="text-2xl font-black flex items-center gap-3">
               <ArrowLeftRight className="size-6 text-primary" />
@@ -810,13 +810,14 @@ export default function DpMeuCalendario() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setTradeOpen(null)}>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+            <Button variant="ghost" onClick={() => setTradeOpen(null)} className="min-h-10 w-full sm:w-auto">
               Cancelar
             </Button>
             <Button
               onClick={() => solicitarTroca.mutate()}
               disabled={solicitarTroca.isPending || !tradeMyDate}
+              className="min-h-10 w-full sm:w-auto"
             >
               {solicitarTroca.isPending ? "Enviando..." : "Enviar troca"}
             </Button>
