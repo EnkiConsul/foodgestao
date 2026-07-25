@@ -158,30 +158,28 @@ export default function DpTrocas() {
           filtered.map((r: any) => {
             const meta = statusMeta[r.status] ?? { label: r.status, className: "bg-muted text-muted-foreground border-border" };
             return (
-              <div key={r.id} className="bg-card border border-border rounded-2xl p-5 space-y-4 hover:shadow-md transition-shadow">
-                <div className="flex flex-wrap items-center justify-between gap-6">
-                  <div className="flex items-center gap-8 flex-1 min-w-[300px]">
-                    <div className="space-y-1">
+              <div key={r.id} className="bg-card border border-border rounded-2xl p-4 sm:p-5 space-y-4 hover:shadow-md transition-shadow">
+                <div className="flex flex-col md:flex-row md:flex-wrap md:items-center md:justify-between gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 md:gap-8 flex-1 min-w-0">
+                    <div className="space-y-1 min-w-0">
                       <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">
                         <User className="size-3" /> Solicitante
                       </div>
-                      <div className="font-bold">{r.solicitante?.nome ?? "—"}</div>
+                      <div className="font-bold truncate">{r.solicitante?.nome ?? "—"}</div>
                     </div>
 
-                    <ArrowLeftRight className="size-5 text-primary/40 shrink-0" />
-
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0">
                       <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">
                         <User className="size-3" /> Destinatário
                       </div>
-                      <div className="font-bold">{r.destino?.nome ?? "Aguardando..."}</div>
+                      <div className="font-bold truncate">{r.destino?.nome ?? "Aguardando..."}</div>
                     </div>
 
-                    <div className="space-y-1 ml-auto">
+                    <div className="space-y-1 min-w-0">
                       <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">
                         <Calendar className="size-3" /> Data da Troca
                       </div>
-                      <div className="font-bold text-primary">
+                      <div className="font-bold text-primary text-sm">
                         {r.data_original ? format(new Date(r.data_original), "dd/MM/yyyy") : "—"}
                         {r.data_proposta && (
                           <span className="text-muted-foreground font-normal"> ↔ {format(new Date(r.data_proposta), "dd/MM/yyyy")}</span>
@@ -190,14 +188,14 @@ export default function DpTrocas() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
+                  <div className="flex items-center justify-between md:justify-end gap-3 md:gap-3 w-full md:w-auto">
+                    <div className="text-left md:text-right">
                       <Badge className={cn("border", meta.className)}>{meta.label}</Badge>
                       <div className="text-[10px] text-muted-foreground mt-1">
                         Solicitada em {new Date(r.created_at).toLocaleDateString("pt-BR")}
                       </div>
                     </div>
-                    <Button size="icon" variant="ghost" onClick={() => setConfirmDel(r.id)} title="Excluir">
+                    <Button size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => setConfirmDel(r.id)} title="Excluir">
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -214,28 +212,28 @@ export default function DpTrocas() {
                 )}
 
                 {(r.colega_resposta || r.gestor_resposta) && (
-                  <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     {r.colega_resposta && <span><b>Colega:</b> {r.colega_resposta}</span>}
                     {r.gestor_resposta && <span><b>Gestor:</b> {r.gestor_resposta}</span>}
                   </div>
                 )}
 
                 {r.status === "pendente_colega" && (
-                  <div className="flex gap-2 pt-1">
-                    <Button size="sm" variant="outline" onClick={() => responder.mutate({ id: r.id, etapa: "colega", aceito: true })}>
+                  <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 pt-1">
+                    <Button size="sm" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={() => responder.mutate({ id: r.id, etapa: "colega", aceito: true })}>
                       <Check className="h-4 w-4 mr-1" /> Colega aceita
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setRecusa({ id: r.id, etapa: "colega" })}>
+                    <Button size="sm" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={() => setRecusa({ id: r.id, etapa: "colega" })}>
                       <X className="h-4 w-4 mr-1" /> Colega recusa
                     </Button>
                   </div>
                 )}
                 {r.status === "pendente_gestor" && (
-                  <div className="flex gap-2 pt-1">
-                    <Button size="sm" onClick={() => responder.mutate({ id: r.id, etapa: "gestor", aceito: true })}>
+                  <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 pt-1">
+                    <Button size="sm" className="min-h-11 w-full sm:w-auto" onClick={() => responder.mutate({ id: r.id, etapa: "gestor", aceito: true })}>
                       <Check className="h-4 w-4 mr-1" /> Gestor aprova
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setRecusa({ id: r.id, etapa: "gestor" })}>
+                    <Button size="sm" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={() => setRecusa({ id: r.id, etapa: "gestor" })}>
                       <X className="h-4 w-4 mr-1" /> Gestor recusa
                     </Button>
                   </div>
