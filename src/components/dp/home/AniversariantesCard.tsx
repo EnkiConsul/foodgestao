@@ -13,10 +13,10 @@ export function AniversariantesCard() {
 
   return (
     <div className="rounded-2xl border-2 border-[hsl(var(--dp-birthday-border))] bg-[hsl(var(--dp-birthday-bg))] p-5">
-      <div className="flex items-center gap-2 mb-1">
-        <Cake className="h-5 w-5 text-primary" />
-        <h2 className="text-lg font-semibold">Aniversariantes dos Próximos 30 Dias</h2>
-        <Badge className="ml-1 bg-primary text-primary-foreground rounded-full h-6 min-w-6 px-2">
+      <div className="flex items-center gap-2 mb-1 flex-wrap">
+        <Cake className="h-5 w-5 text-primary shrink-0" />
+        <h2 className="text-base sm:text-lg font-semibold min-w-0 break-words">Aniversariantes dos Próximos 30 Dias</h2>
+        <Badge className="ml-1 bg-primary text-primary-foreground rounded-full h-6 min-w-6 px-2 shrink-0">
           {data.length}
         </Badge>
       </div>
