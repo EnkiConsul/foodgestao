@@ -137,7 +137,7 @@ export default function CheckoutPagamento() {
                         <img
                           src={`data:image/png;base64,${(invoice as any).pix_qrcode_image}`}
                           alt="QR Code Pix"
-                          className="w-64 h-64 border rounded-md bg-white p-2"
+                          className="w-56 h-56 md:w-64 md:h-64 border rounded-md bg-white p-2"
                         />
                       ) : refreshError ? (
                         refreshErrorCode === "NO_EXTERNAL_PAYMENT" ? (
