@@ -118,8 +118,8 @@ export default function Orcamento() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Orçamento</h1>
-          <p className="text-sm text-muted-foreground">Planeje e acompanhe seus limites por categoria</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Orçamento</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Planeje e Acompanhe seus Limites por Categoria</p>
         </div>
         <Button onClick={() => setDialogOpen(true)} className="hidden md:flex">
           <Plus className="h-4 w-4 mr-2" /> Novo Orçamento
