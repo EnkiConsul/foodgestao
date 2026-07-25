@@ -1,0 +1,212 @@
+// Pluggy REST client — Open Finance Brasil
+// Docs: https://docs.pluggy.ai
+// Follows the same pattern as _shared/zapi.ts: retry/backoff, safe errors (never leak secrets).
+// Auth flow: POST /auth with { clientId, clientSecret } -> { apiKey } (short lived, ~2h).
+
+const PLUGGY_BASE = "https://api.pluggy.ai";
+const AUTH_TTL_MS = 90 * 60 * 1000; // renew ~30min before expiry
+
+type Cached = { apiKey: string; expiresAt: number };
+let cached: Cached | null = null;
+
+export interface PluggyAccount {
+  id: string;
+  type: "BANK" | "CREDIT";
+  subtype?: string;
+  name?: string;
+  marketingName?: string;
+  number?: string;
+  balance?: number;
+  currencyCode?: string;
+  itemId: string;
+  taxNumber?: string;
+  owner?: string;
+  bankData?: { transferNumber?: string; closingBalance?: number };
+  creditData?: {
+    level?: string;
+    brand?: string;
+    balanceCloseDate?: string;
+    balanceDueDate?: string;
+    availableCreditLimit?: number;
+    creditLimit?: number;
+  };
+}
+
+export interface PluggyTransaction {
+  id: string;
+  accountId: string;
+  amount: number;
+  balance?: number | null;
+  currencyCode?: string;
+  date: string;
+  description: string;
+  descriptionRaw?: string;
+  category?: string;
+  categoryId?: string;
+  type: "DEBIT" | "CREDIT";
+  status?: "POSTED" | "PENDING";
+  merchant?: { name?: string; cnpj?: string; businessName?: string };
+  paymentData?: {
+    payer?: { name?: string; taxNumber?: string };
+    receiver?: { name?: string; taxNumber?: string };
+    reason?: string;
+  };
+}
+
+export interface PluggyItem {
+  id: string;
+  connector: { id: number; name: string; imageUrl?: string; primaryColor?: string };
+  status: string;
+  executionStatus?: string;
+  createdAt: string;
+  updatedAt: string;
+  consentExpiresAt?: string;
+  lastUpdatedAt?: string;
+  clientUserId?: string;
+  webhookUrl?: string;
+  error?: { code?: string; message?: string };
+}
+
+function creds(): { clientId: string; clientSecret: string } | null {
+  const clientId = Deno.env.get("PLUGGY_CLIENT_ID");
+  const clientSecret = Deno.env.get("PLUGGY_CLIENT_SECRET");
+  if (!clientId || !clientSecret) {
+    console.error("[pluggy] Missing PLUGGY_CLIENT_ID / PLUGGY_CLIENT_SECRET");
+    return null;
+  }
+  return { clientId, clientSecret };
+}
+
+export function safePluggyError(raw: unknown, httpStatus?: number): string {
+  const fallback = typeof httpStatus === "number" ? `http_${httpStatus}` : "pluggy_error";
+  if (!raw) return fallback;
+  const text = typeof raw === "string" ? raw : (raw as any)?.message ?? JSON.stringify(raw);
+  if (typeof text !== "string") return fallback;
+  const t = text.trim();
+  if (!t) return fallback;
+  if (/api[-_ ]?key|client[-_ ]?(id|secret)|authorization|bearer|token|secret/i.test(t)) return fallback;
+  if (t.length > 120) return fallback;
+  return t;
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function authenticate(): Promise<string | null> {
+  const c = creds();
+  if (!c) return null;
+  const resp = await fetch(`${PLUGGY_BASE}/auth`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ clientId: c.clientId, clientSecret: c.clientSecret }),
+  });
+  if (!resp.ok) {
+    const raw = await resp.text().catch(() => "");
+    console.error("[pluggy] /auth failed:", resp.status, safePluggyError(raw, resp.status));
+    return null;
+  }
+  const data = await resp.json().catch(() => null);
+  const apiKey = data?.apiKey;
+  if (!apiKey) return null;
+  cached = { apiKey, expiresAt: Date.now() + AUTH_TTL_MS };
+  return apiKey;
+}
+
+async function getApiKey(force = false): Promise<string | null> {
+  if (!force && cached && cached.expiresAt > Date.now()) return cached.apiKey;
+  return await authenticate();
+}
+
+async function requestOnce<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  retryOn401 = true,
+): Promise<{ ok: true; data: T } | { ok: false; error: string; httpStatus?: number }> {
+  const apiKey = await getApiKey();
+  if (!apiKey) return { ok: false, error: "pluggy_not_configured" };
+  try {
+    const resp = await fetch(`${PLUGGY_BASE}${path}`, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-KEY": apiKey,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (resp.status === 401 && retryOn401) {
+      cached = null;
+      return await requestOnce<T>(method, path, body, false);
+    }
+    const raw = await resp.text();
+    let parsed: any = null;
+    try { parsed = raw ? JSON.parse(raw) : null; } catch { /* text */ }
+    if (!resp.ok) {
+      const err = safePluggyError(parsed?.message ?? parsed?.error ?? raw, resp.status);
+      console.error(`[pluggy] ${method} ${path} non-2xx:`, resp.status, err);
+      return { ok: false, error: err, httpStatus: resp.status };
+    }
+    return { ok: true, data: parsed as T };
+  } catch (e) {
+    console.error(`[pluggy] ${method} ${path} exception: network_error`);
+    return { ok: false, error: "network_error" };
+  }
+}
+
+async function request<T>(method: string, path: string, body?: unknown) {
+  const delays = [0, 500, 1500];
+  let last: any = { ok: false, error: "unknown" };
+  for (let i = 0; i < delays.length; i++) {
+    if (delays[i] > 0) await sleep(delays[i]);
+    last = await requestOnce<T>(method, path, body);
+    if (last.ok) return last as { ok: true; data: T };
+    const transient = last.error === "network_error"
+      || (typeof last.httpStatus === "number" && last.httpStatus >= 500);
+    if (!transient) return last as { ok: false; error: string; httpStatus?: number };
+  }
+  return last as { ok: false; error: string; httpStatus?: number };
+}
+
+/** Create a short-lived connect token for the widget. */
+export async function createConnectToken(options: {
+  clientUserId: string;
+  webhookUrl?: string;
+  itemId?: string; // for update/reconnect flows
+}) {
+  return await request<{ accessToken: string }>("POST", "/connect_token", options);
+}
+
+export async function getItem(itemId: string) {
+  return await request<PluggyItem>("GET", `/items/${itemId}`);
+}
+
+export async function listAccounts(itemId: string) {
+  return await request<{ results: PluggyAccount[] }>(
+    "GET",
+    `/accounts?itemId=${encodeURIComponent(itemId)}`,
+  );
+}
+
+export async function listTransactions(params: {
+  accountId: string;
+  from?: string; // YYYY-MM-DD
+  to?: string;
+  pageSize?: number;
+  page?: number;
+}) {
+  const qs = new URLSearchParams();
+  qs.set("accountId", params.accountId);
+  if (params.from) qs.set("from", params.from);
+  if (params.to) qs.set("to", params.to);
+  qs.set("pageSize", String(params.pageSize ?? 500));
+  qs.set("page", String(params.page ?? 1));
+  return await request<{
+    total: number;
+    page: number;
+    totalPages: number;
+    results: PluggyTransaction[];
+  }>("GET", `/transactions?${qs.toString()}`);
+}
+
+export async function deleteItem(itemId: string) {
+  return await request<{ id: string }>("DELETE", `/items/${itemId}`);
+}
