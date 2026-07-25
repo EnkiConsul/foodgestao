@@ -113,8 +113,8 @@ export function AdminAuditLogs() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="relative w-full max-w-xs">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-2 sm:gap-3">
+        <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar..."
@@ -125,7 +125,7 @@ export function AdminAuditLogs() {
         </div>
 
         <Select value={actionFilter} onValueChange={(v) => { setActionFilter(v); setPage(0); }}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Tipo de ação" />
           </SelectTrigger>
           <SelectContent>
@@ -138,38 +138,41 @@ export function AdminAuditLogs() {
           </SelectContent>
         </Select>
 
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal", !dateFrom && "text-muted-foreground")}>
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateFrom ? format(dateFrom, "dd/MM/yyyy") : "Data início"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar mode="single" selected={dateFrom} onSelect={(v) => { setDateFrom(v); setPage(0); }} initialFocus className={cn("p-3 pointer-events-auto")} locale={ptBR} />
-          </PopoverContent>
-        </Popover>
+        <div className="flex gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className={cn("flex-1 sm:w-[150px] justify-start text-left font-normal", !dateFrom && "text-muted-foreground")}>
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateFrom ? format(dateFrom, "dd/MM/yyyy") : "Data início"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={dateFrom} onSelect={(v) => { setDateFrom(v); setPage(0); }} initialFocus className={cn("p-3 pointer-events-auto")} locale={ptBR} />
+            </PopoverContent>
+          </Popover>
 
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal", !dateTo && "text-muted-foreground")}>
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateTo ? format(dateTo, "dd/MM/yyyy") : "Data fim"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar mode="single" selected={dateTo} onSelect={(v) => { setDateTo(v); setPage(0); }} initialFocus className={cn("p-3 pointer-events-auto")} locale={ptBR} />
-          </PopoverContent>
-        </Popover>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className={cn("flex-1 sm:w-[150px] justify-start text-left font-normal", !dateTo && "text-muted-foreground")}>
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateTo ? format(dateTo, "dd/MM/yyyy") : "Data fim"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={dateTo} onSelect={(v) => { setDateTo(v); setPage(0); }} initialFocus className={cn("p-3 pointer-events-auto")} locale={ptBR} />
+            </PopoverContent>
+          </Popover>
+        </div>
 
         {hasFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters}>
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="min-h-9">
             <X className="mr-1 h-4 w-4" /> Limpar
           </Button>
         )}
       </div>
 
-      <div className={cn("rounded-md border transition-opacity", isFetching && !isLoading && "opacity-60")}>
+      {/* Desktop */}
+      <div className={cn("hidden md:block rounded-md border transition-opacity", isFetching && !isLoading && "opacity-60")}>
         <Table>
           <TableHeader>
             <TableRow>
@@ -220,20 +223,51 @@ export function AdminAuditLogs() {
         </Table>
       </div>
 
+      {/* Mobile */}
+      <div className={cn("md:hidden space-y-2 transition-opacity", isFetching && !isLoading && "opacity-60")}>
+        {isLoading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-md border p-3"><Skeleton className="h-16 w-full" /></div>
+          ))
+        ) : rows.length === 0 ? (
+          <p className="text-center text-sm text-muted-foreground py-8">Nenhum log encontrado</p>
+        ) : (
+          rows.map((log) => {
+            const actionInfo = actionLabels[log.action] ?? { label: log.action, variant: "outline" as const };
+            const details = log.details as Record<string, string> | null;
+            return (
+              <div key={log.id} className="rounded-md border p-3 space-y-1.5">
+                <div className="flex items-start justify-between gap-2">
+                  <Badge variant={actionInfo.variant} className="text-[10px]">{actionInfo.label}</Badge>
+                  <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                    {formatDate(log.created_at, "dd/MM/yy HH:mm")}
+                  </span>
+                </div>
+                <p className="text-sm font-medium truncate">{log.user_name || "—"}</p>
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span className="capitalize">{log.entity_type}</span>
+                  <span className="truncate ml-2 max-w-[60%] text-right">{details?.target_name || log.entity_id || "—"}</span>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
       {/* Pagination */}
       {total > PAGE_SIZE && (
         <div className="flex items-center justify-between pt-2">
-          <p className="text-xs text-muted-foreground">
-            {safePage * PAGE_SIZE + 1}–{Math.min((safePage + 1) * PAGE_SIZE, total)} de {total} registros
+          <p className="text-[11px] sm:text-xs text-muted-foreground">
+            {safePage * PAGE_SIZE + 1}–{Math.min((safePage + 1) * PAGE_SIZE, total)} de {total}
           </p>
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}>
+            <Button variant="outline" size="icon" className="h-9 w-9" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="text-xs px-2 text-muted-foreground">
               {safePage + 1} / {totalPages}
             </span>
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={safePage >= totalPages - 1} onClick={() => setPage(safePage + 1)}>
+            <Button variant="outline" size="icon" className="h-9 w-9" disabled={safePage >= totalPages - 1} onClick={() => setPage(safePage + 1)}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>

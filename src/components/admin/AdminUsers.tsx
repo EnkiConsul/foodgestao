@@ -92,7 +92,7 @@ export function AdminUsers() {
 
   return (
     <div className="space-y-4">
-      <div className="relative max-w-sm">
+      <div className="relative w-full sm:max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Buscar por nome, documento ou telefone..."
@@ -102,7 +102,8 @@ export function AdminUsers() {
         />
       </div>
 
-      <div className="rounded-md border">
+      {/* Desktop */}
+      <div className="hidden md:block rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -203,6 +204,70 @@ export function AdminUsers() {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Mobile */}
+      <div className="md:hidden space-y-2">
+        {isLoading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-md border p-3"><Skeleton className="h-16 w-full" /></div>
+          ))
+        ) : filtered.length === 0 ? (
+          <p className="text-center text-sm text-muted-foreground py-8">Nenhum usuário encontrado</p>
+        ) : (
+          filtered.map((user) => {
+            const sub = subByUser.get(user.user_id);
+            const exempt = isExempt(sub);
+            return (
+              <div key={user.id} className={`rounded-md border p-3 space-y-2 ${!user.is_active ? "opacity-60" : ""}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{user.full_name || "—"}</p>
+                    <p className="text-[11px] text-muted-foreground">{formatDate(user.created_at, "dd/MM/yyyy")}</p>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {exempt ? (
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (confirm("Remover isenção?")) removeExemption.mutate(sub.id);
+                          }}
+                        >Remover isenção</DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem
+                          disabled={!sub}
+                          onClick={() => setExemptTarget({ userId: user.user_id, planId: sub?.plan_id ?? null })}
+                        >Isentar mensalidade</DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <Badge variant="outline" className="capitalize text-[10px]">{user.profile_type}</Badge>
+                  <Badge variant={user.onboarding_completed ? "default" : "secondary"} className="text-[10px]">
+                    {user.onboarding_completed ? "Onboarding OK" : "Onboarding pendente"}
+                  </Badge>
+                  {sub?.plan?.name && <Badge variant="outline" className="text-[10px]">{sub.plan.name}</Badge>}
+                  {exempt && <Badge variant="secondary" className="text-[10px]">{exemptionLabel(sub)}</Badge>}
+                </div>
+                <div className="flex items-center justify-between pt-1 border-t">
+                  <span className="text-xs text-muted-foreground">{user.is_active ? "Ativo" : "Inativo"}</span>
+                  <Switch
+                    checked={user.is_active}
+                    onCheckedChange={(checked) =>
+                      toggleActive.mutate({ id: user.id, is_active: checked, full_name: user.full_name })
+                    }
+                  />
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       <ExemptSubscriptionDialog
