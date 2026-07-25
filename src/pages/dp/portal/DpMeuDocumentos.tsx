@@ -273,11 +273,13 @@ export default function DpMeuDocumentos() {
       {/* Tabs por tipo */}
       <Tabs value={tab} onValueChange={changeTab}>
         <DpFilterCard>
-          <TabsList className="flex-wrap h-auto">
-            {visibleTabs.map((t) => (
-              <TabsTrigger key={t.key} value={t.key}>{t.label}</TabsTrigger>
-            ))}
-          </TabsList>
+          <div className="-mx-1 overflow-x-auto">
+            <TabsList className="flex-wrap md:flex-nowrap h-auto w-max md:w-auto">
+              {visibleTabs.map((t) => (
+                <TabsTrigger key={t.key} value={t.key} className="whitespace-nowrap">{t.label}</TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
         </DpFilterCard>
       </Tabs>
 
