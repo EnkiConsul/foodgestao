@@ -115,6 +115,39 @@ export function useDpPendencias() {
         console.warn("pendencias/unidades:", e);
       }
 
+      // Helper: colaboradores por unidade (cache local)
+      const colabsByUnidade = new Map<string, string[]>();
+      const getColabsByUnidade = async (unidadeId: string): Promise<string[]> => {
+        if (colabsByUnidade.has(unidadeId)) return colabsByUnidade.get(unidadeId)!;
+        const { data } = await supabase
+          .from("dp_colaboradores")
+          .select("id")
+          .eq("company_id", selectedCompanyId!)
+          .eq("unidade_id", unidadeId);
+        const ids = (data ?? []).map((c: any) => c.id);
+        colabsByUnidade.set(unidadeId, ids);
+        return ids;
+      };
+
+      const hasDocsForUnidade = async (
+        tipo: "contracheque" | "adiantamento" | "ponto",
+        unidadeId: string,
+        inicio: string,
+        fim: string,
+      ): Promise<boolean> => {
+        const colabIds = await getColabsByUnidade(unidadeId);
+        if (colabIds.length === 0) return false;
+        const { count } = await supabase
+          .from("dp_documentos")
+          .select("id", { count: "exact", head: true })
+          .eq("company_id", selectedCompanyId!)
+          .eq("tipo", tipo)
+          .in("colaborador_id", colabIds)
+          .gte("referencia_data", inicio)
+          .lte("referencia_data", fim);
+        return (count ?? 0) > 0;
+      };
+
       // 3. Contracheque não fechado (mês anterior) — company-level, mas mostramos por unidade
       if (diaHoje >= 10) {
         try {
@@ -134,6 +167,8 @@ export function useDpPendencias() {
             const vencimento = new Date(anoVigente, mesVigente - 1, 10);
             const dias = differenceInCalendarDays(today, vencimento);
             for (const u of unidades) {
+              const importado = await hasDocsForUnidade("contracheque", u.id, compIni, compFim);
+              if (importado) continue;
               results.push({
                 id: `contracheque-${u.id}-${anoAnterior}-${mesAnterior}`,
                 icon: FileText,
@@ -170,6 +205,8 @@ export function useDpPendencias() {
             if (!u.tem_adiantamento || !u.dia_adiantamento) continue;
             const diaLimite = u.dia_adiantamento + 5;
             if (diaHoje < diaLimite) continue;
+            const importado = await hasDocsForUnidade("adiantamento", u.id, compIni, compFim);
+            if (importado) continue;
             const vencimento = new Date(anoVigente, mesVigente - 1, diaLimite);
             const dias = differenceInCalendarDays(today, vencimento);
             results.push({
@@ -187,6 +224,7 @@ export function useDpPendencias() {
       } catch (e) {
         console.warn("pendencias/adiantamento:", e);
       }
+
 
       // 5. Folha de ponto não importada (mês anterior) — por unidade com relógio
       if (diaHoje >= 10) {
