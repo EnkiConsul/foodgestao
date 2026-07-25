@@ -320,7 +320,7 @@ export default function DpColaboradores() {
           </div>
       </DpFilterCard>
 
-      <DpContentCard contentClassName="overflow-x-auto">
+      <DpContentCard contentClassName="overflow-x-auto hidden md:block">
           {list.isLoading ? (
             <TableSkeleton
               columns={9}
@@ -441,6 +441,92 @@ export default function DpColaboradores() {
             </Table>
           )}
       </DpContentCard>
+
+      {/* Mobile: lista de cards */}
+      <div className="md:hidden space-y-3">
+        {list.isLoading && (
+          <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+            Carregando…
+          </div>
+        )}
+        {!list.isLoading && filtered.length === 0 && (
+          <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+            Nenhum colaborador encontrado.
+          </div>
+        )}
+        {!list.isLoading && filtered.map((c) => {
+          const perfil = (c as any).perfil_acesso as string | null;
+          const folha = (c as any).possui_folha_ponto as boolean | null;
+          return (
+            <div key={c.id} className="rounded-2xl border border-border bg-card p-4 space-y-3 active:scale-[0.98] transition-transform">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="font-semibold uppercase truncate">{c.nome}</div>
+                  <div className="font-mono text-xs text-muted-foreground mt-0.5">{c.cpf ?? "—"}</div>
+                  <div className="text-sm text-muted-foreground mt-1">
+                    {c.cargo_nome ?? c.cargo ?? "—"}
+                    {c.unidade_nome ? <span> • {c.unidade_nome}</span> : null}
+                  </div>
+                </div>
+                <Switch
+                  checked={!!c.ativo}
+                  onCheckedChange={(v) => handleToggle(c, v)}
+                  disabled={toggle.isPending}
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-1.5">
+                <Badge variant="outline" className="uppercase border-primary/30 text-primary bg-primary/5 text-[11px]">
+                  {REGIME_LABEL[c.regime ?? ""] ?? c.regime ?? "—"}
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className={
+                    "text-[11px] " + (perfil === "admin" ? "bg-destructive/10 text-destructive border-destructive/30"
+                    : perfil === "gestor" ? "bg-primary/10 text-primary border-primary/30"
+                    : "")
+                  }
+                >
+                  {PERFIL_LABEL[perfil ?? "colaborador"]}
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className={"text-[11px] " + (folha
+                    ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400"
+                    : "text-muted-foreground")}
+                >
+                  Folha: {folha ? "Sim" : "Não"}
+                </Badge>
+              </div>
+
+              <div className="flex flex-wrap gap-1 pt-1 border-t border-border/60">
+                <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => { setEditing(c); setDialogOpen(true); }}>
+                  <Pencil className="h-4 w-4 mr-1" /> Editar
+                </Button>
+                {c.user_id && (
+                  <>
+                    <Button size="sm" variant="ghost" className="min-h-11 flex-1" disabled={resetting === c.id} onClick={() => handleReset(c)}>
+                      <KeyRound className="h-4 w-4 mr-1" /> Resetar
+                    </Button>
+                    <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => openSetPwd(c)}>
+                      <Lock className="h-4 w-4 mr-1" /> Senha
+                    </Button>
+                  </>
+                )}
+                {!c.user_id && (
+                  <Button size="sm" variant="ghost" className="min-h-11 flex-1 text-primary" disabled={granting === c.id} onClick={() => handleGrantAccess(c)}>
+                    <UserPlus className="h-4 w-4 mr-1" /> Acesso
+                  </Button>
+                )}
+                <Button size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => setToDelete(c)} title="Remover">
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
 
       <ColaboradorFormDialog open={dialogOpen} onOpenChange={setDialogOpen} colaborador={editing} />
 
