@@ -347,7 +347,8 @@ export default function DpDocumentosPorTipo({ tipo: tipoProp }: { tipo?: Tipo } 
               Nenhum documento encontrado com os filtros selecionados.
             </div>
           ) : (
-            <div className="bg-card border border-border rounded-2xl overflow-x-auto">
+            <>
+            <div className="bg-card border border-border rounded-2xl overflow-x-auto hidden md:block">
               <table className="w-full text-sm">
                 <thead className="border-b border-border">
                   <tr>
@@ -438,7 +439,72 @@ export default function DpDocumentosPorTipo({ tipo: tipoProp }: { tipo?: Tipo } 
                 </tbody>
               </table>
             </div>
+
+            {/* Mobile: lista de cards */}
+            <div className="md:hidden space-y-3">
+              {filtrados.map((doc) => {
+                const colab = doc.colaborador_id ? colabMap.get(doc.colaborador_id) : null;
+                const ma = parseMesAno(doc);
+                const isEditing = editando === doc.id;
+                const when = doc.revisado_em ?? (doc as any).created_at;
+                return (
+                  <div key={doc.id} className="rounded-2xl border border-border bg-card p-4 space-y-2 active:scale-[0.98] transition-transform">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-semibold truncate">{colab?.nome ?? "—"}</div>
+                        {colab?.unidade_nome && <div className="text-[11px] text-muted-foreground truncate">{colab.unidade_nome}</div>}
+                      </div>
+                      <StatusBadge status={doc.aprovacao_status} />
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">
+                      Competência: <span className="font-mono">{ma ? `${String(ma.mes).padStart(2, "0")}/${ma.ano}` : "—"}</span>
+                      {when && (
+                        <> · {doc.revisado_em && doc.aprovacao_status === "aprovado" ? "Aprovado em " : "Importado "}
+                          {new Date(when).toLocaleDateString("pt-BR")}
+                        </>
+                      )}
+                    </div>
+                    {isEditing && (
+                      <div className="flex items-center gap-2 pt-1">
+                        <Select value={editMes} onValueChange={setEditMes}>
+                          <SelectTrigger className="w-[100px] h-9"><SelectValue placeholder="Mês" /></SelectTrigger>
+                          <SelectContent>
+                            {MESES.map((m, i) => (
+                              <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input className="w-[90px] h-9" placeholder="Ano" value={editAno}
+                          onChange={(e) => setEditAno(e.target.value.replace(/\D/g, ""))} maxLength={4} />
+                        <Button size="icon" className="size-9" onClick={() => saveEdit(doc.id)} disabled={busy}>
+                          {busy ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+                        </Button>
+                        <Button size="icon" variant="ghost" className="size-9" onClick={() => setEditando(null)}>
+                          <X className="size-4" />
+                        </Button>
+                      </div>
+                    )}
+                    <div className="flex gap-1 pt-1 border-t border-border/60">
+                      <Button size="sm" variant="ghost" className="min-h-11 flex-1 text-blue-600" onClick={() => handlePreview(doc)}>
+                        <Eye className="size-4 mr-1" /> Ver
+                      </Button>
+                      <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => startEditing(doc)}>
+                        <Pencil className="size-4 mr-1" /> Editar
+                      </Button>
+                      <Button size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => handleDownload(doc)} title="Baixar">
+                        <Download className="size-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="min-h-11 min-w-11 text-destructive" onClick={() => setToDelete(doc)} title="Excluir">
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            </>
           )}
+
         </div>
       )}
 
