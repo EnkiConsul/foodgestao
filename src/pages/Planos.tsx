@@ -24,10 +24,10 @@ export default function Planos() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-12">
-        <div className="text-center mb-10">
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Escolha seu plano</h1>
-          <p className="text-muted-foreground mt-2">
+      <main className="max-w-6xl mx-auto px-4 py-8 md:py-12">
+        <div className="text-center mb-6 md:mb-10">
+          <h1 className="text-2xl md:text-4xl font-bold tracking-tight">Escolha Seu Plano</h1>
+          <p className="text-sm md:text-base text-muted-foreground mt-2">
             Comece grátis e evolua conforme sua necessidade
           </p>
         </div>

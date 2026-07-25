@@ -107,22 +107,22 @@ export default function CheckoutPagamento() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-10 space-y-4">
+      <main className="max-w-2xl mx-auto px-4 py-6 md:py-10 space-y-4">
         {paid ? (
           <Card>
-            <CardContent className="py-10 flex flex-col items-center gap-3 text-center">
-              <CheckCircle2 className="h-14 w-14 text-emerald-500" />
-              <h2 className="text-xl font-bold">Pagamento confirmado!</h2>
-              <p className="text-muted-foreground">Sua assinatura está ativa.</p>
-              <Button onClick={() => navigate("/")}>Ir para o app</Button>
+            <CardContent className="py-8 md:py-10 flex flex-col items-center gap-3 text-center">
+              <CheckCircle2 className="h-12 w-12 md:h-14 md:w-14 text-emerald-500" />
+              <h2 className="text-lg md:text-xl font-bold">Pagamento Confirmado!</h2>
+              <p className="text-sm text-muted-foreground">Sua assinatura está ativa.</p>
+              <Button onClick={() => navigate("/")} className="min-h-10">Ir para o App</Button>
             </CardContent>
           </Card>
         ) : (
           <>
             <Card>
               <CardHeader>
-                <CardTitle>
-                  Aguardando pagamento — {formatCents(invoice.amount_cents - invoice.discount_cents)}
+                <CardTitle className="text-base md:text-lg">
+                  Aguardando Pagamento — {formatCents(invoice.amount_cents - invoice.discount_cents)}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -137,7 +137,7 @@ export default function CheckoutPagamento() {
                         <img
                           src={`data:image/png;base64,${(invoice as any).pix_qrcode_image}`}
                           alt="QR Code Pix"
-                          className="w-64 h-64 border rounded-md bg-white p-2"
+                          className="w-56 h-56 md:w-64 md:h-64 border rounded-md bg-white p-2"
                         />
                       ) : refreshError ? (
                         refreshErrorCode === "NO_EXTERNAL_PAYMENT" ? (
@@ -206,11 +206,11 @@ export default function CheckoutPagamento() {
                   </Button>
                 )}
 
-                <div className="flex items-center justify-between pt-4 border-t">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-4 border-t">
                   <span className="text-xs text-muted-foreground flex items-center gap-2">
                     <Loader2 className="h-3 w-3 animate-spin" /> Verificando pagamento automaticamente…
                   </span>
-                  <Button size="sm" variant="ghost" onClick={() => refetch()}>Atualizar</Button>
+                  <Button size="sm" variant="ghost" onClick={() => refetch()} className="min-h-9 w-full sm:w-auto">Atualizar</Button>
                 </div>
               </CardContent>
             </Card>
