@@ -191,16 +191,16 @@ export default function DpSolicitacoes() {
                   rows={2}
                 />
 
-                <div className="flex flex-wrap gap-2 justify-end">
+                <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 sm:justify-end">
                   {arquivo && (
-                    <Button variant="ghost" size="sm" onClick={() => openArquivo(arquivo)}>
+                    <Button variant="ghost" size="sm" className="min-h-11 w-full sm:w-auto" onClick={() => openArquivo(arquivo)}>
                       <FileText className="size-4 mr-1" /> Ver arquivo
                     </Button>
                   )}
-                  <Button variant="outline" onClick={() => decide(s, false)} disabled={respond.isPending}>
+                  <Button variant="outline" className="min-h-11 w-full sm:w-auto" onClick={() => decide(s, false)} disabled={respond.isPending}>
                     <X className="size-4 mr-1" /> Recusar
                   </Button>
-                  <Button onClick={() => decide(s, true)} disabled={respond.isPending}>
+                  <Button className="min-h-11 w-full sm:w-auto" onClick={() => decide(s, true)} disabled={respond.isPending}>
                     <Check className="size-4 mr-1" /> Aprovar
                   </Button>
                 </div>
