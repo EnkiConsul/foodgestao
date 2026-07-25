@@ -31,7 +31,7 @@ export function AppHeader() {
         >
           <Link to="/hub">
             <LayoutGrid className="h-4 w-4" />
-            <span className="hidden xs:inline sm:inline">Hub</span>
+            <span className="hidden sm:inline">Hub</span>
           </Link>
         </Button>
       )}
