@@ -3,7 +3,8 @@ import { useLocation } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
-import { BottomNav } from "./BottomNav";
+import { MobileBottomNav } from "@/components/mobile/MobileBottomNav";
+import { MobileFabProvider } from "@/providers/MobileFabProvider";
 import { SubscriptionBanner } from "@/components/billing/SubscriptionBanner";
 import { useBillingRealtime } from "@/hooks/useBillingRealtime";
 import { Outlet } from "react-router-dom";
@@ -24,24 +25,23 @@ export function AppLayout() {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <AppSidebar />
-        <div className="flex flex-1 flex-col min-w-0">
-          <SubscriptionBanner />
-          <AppHeader />
-          <main className="flex-1 p-3 md:p-6 pb-24 md:pb-6">
-            <Profiler id={`route:${location.pathname}`} onRender={profilerOnRender}>
-              <Outlet />
-            </Profiler>
-          </main>
+      <MobileFabProvider>
+        <div className="flex min-h-screen w-full">
+          <AppSidebar />
+          <div className="flex flex-1 flex-col min-w-0">
+            <SubscriptionBanner />
+            <AppHeader />
+            <main className="flex-1 p-3 md:p-6 pb-24 md:pb-6">
+              <Profiler id={`route:${location.pathname}`} onRender={profilerOnRender}>
+                <Outlet />
+              </Profiler>
+            </main>
+          </div>
         </div>
-      </div>
-      <BottomNav />
-      <InstallPrompt />
-      <PerfOverlay />
-      
-      
-      
+        <MobileBottomNav />
+        <InstallPrompt />
+        <PerfOverlay />
+      </MobileFabProvider>
     </SidebarProvider>
   );
 }
