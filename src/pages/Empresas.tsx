@@ -154,11 +154,11 @@ export default function Empresas() {
 
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Perfis de Acesso</h1>
-          <p className="text-sm text-muted-foreground">Gerencie seus perfis de acesso cadastrados</p>
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Perfis de Acesso</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Gerencie seus perfis de acesso cadastrados</p>
         </div>
         <Button onClick={requestNewCompany} className="hidden md:flex">
           <Plus className="h-4 w-4 mr-2" /> Novo Perfil
