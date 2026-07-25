@@ -780,7 +780,7 @@ export default function Lancamentos() {
     <div className="space-y-4">
       {/* Top action bar */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button onClick={() => { setEditTransaction(null); setDuplicateSource(null); setDialogInitialType(undefined); setDialogOpen(true); }} size="sm">
             <Plus className="h-4 w-4 mr-1" /> Lançamento
           </Button>
@@ -839,7 +839,7 @@ export default function Lancamentos() {
             </PopoverContent>
           </Popover>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-[140px] h-9 text-xs">
               <SlidersHorizontal className="h-3.5 w-3.5 mr-1" />

@@ -46,17 +46,17 @@ export function PendenciasCard() {
 
   return (
     <div className="rounded-2xl border-2 border-[hsl(var(--dp-pending-border))] bg-[hsl(var(--dp-pending-bg))] p-5">
-      <div className="flex items-center gap-2 mb-3">
-        <Bell className="h-5 w-5 text-primary" />
-        <h2 className="text-lg font-semibold">Pendências do Sistema</h2>
-        <Badge className="ml-1 bg-primary text-primary-foreground rounded-full h-6 min-w-6 px-2">
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <Bell className="h-5 w-5 text-primary shrink-0" />
+        <h2 className="text-base sm:text-lg font-semibold min-w-0 break-words">Pendências do Sistema</h2>
+        <Badge className="ml-1 bg-primary text-primary-foreground rounded-full h-6 min-w-6 px-2 shrink-0">
           {visible.length}
         </Badge>
         <Button
           asChild
           variant="ghost"
           size="icon"
-          className="ml-auto h-7 w-7 text-muted-foreground hover:text-foreground"
+          className="ml-auto h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
           title="Configurar prazos das pendências"
         >
           <Link to="/dp/cadastros/pendencias" aria-label="Configurar prazos das pendências">
