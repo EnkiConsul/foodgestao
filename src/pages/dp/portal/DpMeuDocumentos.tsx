@@ -369,11 +369,11 @@ export default function DpMeuDocumentos() {
                       {d.observacao && !d.motivo_recusao && (
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{d.observacao}</p>
                       )}
-                      <div className="flex gap-2 mt-3">
-                        <Button size="sm" variant="outline" onClick={() => setPreview(d)} disabled={!d.file_path}>
+                      <div className="flex gap-2 mt-3 flex-wrap">
+                        <Button size="sm" variant="outline" onClick={() => setPreview(d)} disabled={!d.file_path} className="min-h-9 flex-1 sm:flex-none">
                           <Eye className="h-4 w-4 mr-1" /> Visualizar
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => download(d)} disabled={!d.file_path}>
+                        <Button size="sm" variant="outline" onClick={() => download(d)} disabled={!d.file_path} className="min-h-9 flex-1 sm:flex-none">
                           <Download className="h-4 w-4 mr-1" /> Baixar
                         </Button>
                         {d.origem === "meu_envio" && d.status_key === "pendente" && (
@@ -382,7 +382,7 @@ export default function DpMeuDocumentos() {
                             variant="ghost"
                             onClick={() => cancelar.mutate(d)}
                             disabled={cancelar.isPending}
-                            className="text-destructive"
+                            className="text-destructive min-h-9 flex-1 sm:flex-none"
                           >
                             <Ban className="h-4 w-4 mr-1" /> Cancelar
                           </Button>
