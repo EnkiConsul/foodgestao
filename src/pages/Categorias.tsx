@@ -373,7 +373,7 @@ export default function Categorias() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Categorias</h1>
+        <h1 className="text-2xl sm:text-2xl font-bold tracking-tight">Categorias</h1>
       </div>
 
       {/* Toolbar */}
@@ -412,8 +412,8 @@ export default function Categorias() {
           <span className="hidden sm:inline">{collapsed.size > 0 ? "Expandir" : "Colapsar"}</span>
         </Button>
 
-        <Tabs value={filterType} onValueChange={setFilterType}>
-          <TabsList className="h-8">
+        <Tabs value={filterType} onValueChange={setFilterType} className="max-w-full">
+          <TabsList className="h-8 overflow-x-auto flex w-auto">
             <TabsTrigger value="all" className="text-xs px-2.5 h-7">Todas</TabsTrigger>
             <TabsTrigger value="despesa" className="text-xs px-2.5 h-7">Despesas</TabsTrigger>
             <TabsTrigger value="receita" className="text-xs px-2.5 h-7">Receitas</TabsTrigger>
@@ -470,7 +470,7 @@ export default function Categorias() {
           </Button>
         </div>
       ) : (
-        <div className="border rounded-lg overflow-hidden">
+        <div className="border rounded-lg overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">

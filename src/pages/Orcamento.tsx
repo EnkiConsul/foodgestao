@@ -118,8 +118,8 @@ export default function Orcamento() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Orçamento</h1>
-          <p className="text-sm text-muted-foreground">Planeje e acompanhe seus limites por categoria</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Orçamento</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Planeje e Acompanhe seus Limites por Categoria</p>
         </div>
         <Button onClick={() => setDialogOpen(true)} className="hidden md:flex">
           <Plus className="h-4 w-4 mr-2" /> Novo Orçamento
@@ -189,13 +189,13 @@ export default function Orcamento() {
             return (
               <Card key={b.id} className="shadow-sm">
                 <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-wrap min-w-0">
                       <div
                         className="h-3 w-3 rounded-full shrink-0"
                         style={{ backgroundColor: cat?.color ?? "hsl(var(--primary))" }}
                       />
-                      <span className="font-medium text-sm">{cat?.name ?? "Categoria"}</span>
+                      <span className="font-medium text-sm truncate">{cat?.name ?? "Categoria"}</span>
                       <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
                         {b.period === "mensal" ? "Mensal" : "Anual"}
                       </Badge>
@@ -209,10 +209,11 @@ export default function Orcamento() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      className="h-10 w-10 sm:h-7 sm:w-7 text-muted-foreground hover:text-destructive shrink-0"
                       onClick={() => handleDelete(b.id)}
+                      aria-label="Excluir orçamento"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                     </Button>
                   </div>
 

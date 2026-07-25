@@ -29,6 +29,7 @@ import { PaymentDialog } from "@/components/bills/PaymentDialog";
 import { BulkEditDialog } from "@/components/lancamentos/BulkEditDialog";
 import { FilterPanel, SaldosCard } from "@/components/lancamentos/LancamentosSidebar";
 import { LancamentoRow } from "@/components/lancamentos/LancamentoRow";
+import { LancamentoCard } from "@/components/lancamentos/LancamentoCard";
 import { SummaryCards } from "@/components/lancamentos/SummaryCards";
 import { RecurringEditScopeDialog } from "@/components/lancamentos/RecurringEditScopeDialog";
 import { DeleteTransactionDialog } from "@/components/lancamentos/DeleteTransactionDialog";
@@ -919,6 +920,70 @@ export default function Lancamentos() {
           {loading ? (
             <div className="flex justify-center py-12">
               <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
+            </div>
+          ) : isMobile ? (
+            <div className="p-2 space-y-2">
+              {displayRows.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  Nenhum registro neste mês
+                </div>
+              ) : (
+                displayRows.map((r) => (
+                  <LancamentoCard
+                    key={r.id}
+                    row={r}
+                    isSelected={selectedIds.has(r.id)}
+                    formatBRL={formatBRL}
+                    callbacks={{
+                      onToggleSelected: toggleSelected,
+                      onOpenAttachments: (attachments) => {
+                        setPreviewAttachments(attachments);
+                        setPreviewOpen(true);
+                      },
+                      onUpdateStatus: updateTransactionStatus,
+                      onRequestCancelStatus: setCancelStatusId,
+                      onRegisterPayment: setPaymentTx,
+                      onEdit: (tx) => {
+                        setDialogInitialType(undefined);
+                        if (tx.is_recurring || tx.parent_transaction_id) {
+                          setEditScopeChoice("single");
+                          setEditScopePrompt(tx);
+                        } else {
+                          setPendingEditScope("single");
+                          setEditTransaction(tx);
+                          setDialogOpen(true);
+                        }
+                      },
+                      onDuplicate: (tx) => {
+                        setEditTransaction(null);
+                        setDialogInitialType(undefined);
+                        setDuplicateSource({
+                          id: "",
+                          description: `${tx.description} (cópia)`,
+                          amount: tx.amount,
+                          transaction_type: tx.transaction_type,
+                          transaction_date: tx.transaction_date,
+                          due_date: tx.due_date ?? null,
+                          account_id: tx.account_id,
+                          destination_account_id: tx.destination_account_id ?? null,
+                          category_id: tx.category_id ?? null,
+                          contact_id: tx.contact_id ?? null,
+                          payment_method_id: tx.payment_method_id ?? null,
+                          notes: tx.notes ?? null,
+                          status: "pendente",
+                          amount_paid: 0,
+                          payment_date: null,
+                          is_recurring: false,
+                          parent_transaction_id: null,
+                          attachment_url: null,
+                        } as Transaction);
+                        setDialogOpen(true);
+                      },
+                      onRequestDelete: setDeleteId,
+                    }}
+                  />
+                ))
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
