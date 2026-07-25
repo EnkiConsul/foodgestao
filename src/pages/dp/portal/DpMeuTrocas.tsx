@@ -221,11 +221,13 @@ export default function DpMeuTrocas() {
       />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-        <TabsList>
-          <TabsTrigger value="todas">Todas ({counts.todas})</TabsTrigger>
-          <TabsTrigger value="recebidas"><Users className="h-3.5 w-3.5 mr-1" /> Recebidas ({counts.recebidas})</TabsTrigger>
-          <TabsTrigger value="enviadas"><User className="h-3.5 w-3.5 mr-1" /> Enviadas ({counts.enviadas})</TabsTrigger>
-        </TabsList>
+        <div className="-mx-1 overflow-x-auto">
+          <TabsList className="w-max">
+            <TabsTrigger value="todas" className="whitespace-nowrap">Todas ({counts.todas})</TabsTrigger>
+            <TabsTrigger value="recebidas" className="whitespace-nowrap"><Users className="h-3.5 w-3.5 mr-1" /> Recebidas ({counts.recebidas})</TabsTrigger>
+            <TabsTrigger value="enviadas" className="whitespace-nowrap"><User className="h-3.5 w-3.5 mr-1" /> Enviadas ({counts.enviadas})</TabsTrigger>
+          </TabsList>
+        </div>
       </Tabs>
 
       {filtered.length === 0 ? (
