@@ -133,17 +133,13 @@ async function runSync(
           company_id: companyId,
           pluggy_transaction_id: t.id,
           import_hash: await importHash(companyId, t.id),
-          amount: t.amount,
-          type: t.type,
-          date: t.date,
-          description: t.description,
           raw: t as any,
         })),
       );
 
       const { error } = await supabase
         .from("open_finance_transactions_raw")
-        .upsert(rows, { onConflict: "import_hash", ignoreDuplicates: true });
+        .upsert(rows, { onConflict: "company_id,import_hash", ignoreDuplicates: true });
       if (error) console.error("[pluggy-sync] upsert raw error:", error.message);
       stats.transactions_raw += rows.length;
 
@@ -241,7 +237,7 @@ Deno.serve(async (req) => {
       connection_id: conn.id,
       company_id: conn.company_id,
       status: "running",
-      trigger: "manual",
+      triggered_by: "manual",
       claimed_by: WORKER_ID,
       started_at: new Date().toISOString(),
     })
