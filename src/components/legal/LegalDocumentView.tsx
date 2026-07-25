@@ -40,13 +40,13 @@ export function LegalDocumentView({ title, lastUpdated, body, metaDescription, c
         </div>
       </header>
 
-      <main className="container mx-auto max-w-3xl px-4 py-10 sm:py-14">
+      <main className="container mx-auto max-w-3xl px-4 py-6 sm:py-14">
         {lastUpdated && (
-          <p className="mb-6 text-xs uppercase tracking-wider text-muted-foreground">
+          <p className="mb-4 sm:mb-6 text-xs uppercase tracking-wider text-muted-foreground">
             Última atualização: {new Date(lastUpdated).toLocaleDateString("pt-BR")}
           </p>
         )}
-        <article className="prose prose-slate max-w-none dark:prose-invert prose-headings:tracking-tight prose-h1:text-3xl prose-h1:font-bold prose-h2:text-xl prose-h2:mt-8 prose-h3:text-base prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-li:my-1">
+        <article className="prose prose-sm sm:prose-base prose-slate max-w-none dark:prose-invert prose-headings:tracking-tight prose-h1:text-xl sm:prose-h1:text-3xl prose-h1:font-bold prose-h2:text-lg sm:prose-h2:text-xl prose-h2:mt-6 sm:prose-h2:mt-8 prose-h3:text-base prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-li:my-1 prose-p:my-2 sm:prose-p:my-3">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
         </article>
       </main>
