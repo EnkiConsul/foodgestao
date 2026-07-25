@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { differenceInCalendarDays } from "date-fns";
+import { useDpPendenciasConfig, type DpPendenciasConfig } from "@/hooks/useDpPendenciasConfig";
+import { differenceInCalendarDays, format } from "date-fns";
 import type { LucideIcon } from "lucide-react";
-import { ClipboardList, FileText, Wallet, Users, Coins, Clock, Scale } from "lucide-react";
+import { ClipboardList, FileText, Users, Coins, Clock, Scale } from "lucide-react";
 
 export type Pendencia = {
   id: string;
@@ -22,16 +23,20 @@ const MES_NOME = [
 ];
 
 function ymd(d: Date) {
-  return d.toISOString().slice(0, 10);
+  return format(d, "yyyy-MM-dd");
 }
 
 export function useDpPendencias() {
   const { selectedCompanyId } = useCompanyContext();
+  const { config } = useDpPendenciasConfig();
 
   return useQuery({
-    queryKey: ["dp_pendencias", selectedCompanyId],
+    queryKey: ["dp_pendencias", selectedCompanyId, config],
     enabled: !!selectedCompanyId,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
     queryFn: async (): Promise<Pendencia[]> => {
+      const cfg: DpPendenciasConfig = config;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const diaHoje = today.getDate();
@@ -53,7 +58,7 @@ export function useDpPendencias() {
           .limit(20);
         (sols ?? []).forEach((s: any) => {
           const vencimento = new Date(s.created_at);
-          vencimento.setDate(vencimento.getDate() + 3);
+          vencimento.setDate(vencimento.getDate() + cfg.alerta_solicitacao_dias);
           const dias = differenceInCalendarDays(today, vencimento);
           results.push({
             id: `sol-${s.id}`,
@@ -80,14 +85,16 @@ export function useDpPendencias() {
           .order("created_at", { ascending: true })
           .limit(10);
         (trocas ?? []).forEach((t: any) => {
-          const dias = differenceInCalendarDays(today, new Date(t.created_at));
+          const vencimento = new Date(t.created_at);
+          vencimento.setDate(vencimento.getDate() + cfg.alerta_troca_dias);
+          const dias = differenceInCalendarDays(today, vencimento);
           results.push({
             id: `troca-${t.id}`,
             icon: Users,
             titulo: "Troca aguardando aprovação",
             subtitulo: t.solicitante?.nome ?? "Colaborador",
             tipo: "Troca",
-            vencimento: t.created_at,
+            vencimento: ymd(vencimento),
             atrasoDias: dias,
             url: "/dp/trocas",
           });
@@ -148,112 +155,70 @@ export function useDpPendencias() {
         return (count ?? 0) > 0;
       };
 
-      // 3. Contracheque não fechado (mês anterior) — company-level, mas mostramos por unidade
-      if (diaHoje >= 10) {
+      // 3. Contracheque não importado (mês anterior) — por unidade
+      if (diaHoje >= cfg.alerta_contracheque_dia_mes) {
         try {
           const compIni = `${anoAnterior}-${String(mesAnterior).padStart(2, "0")}-01`;
-          const compFimDate = new Date(anoAnterior, mesAnterior, 0);
-          const compFim = ymd(compFimDate);
-          const { data: periodos } = await supabase
-            .from("dp_folha_periodos")
-            .select("id, status")
-            .eq("company_id", selectedCompanyId!)
-            .eq("tipo", "contracheque_mensal")
-            .gte("competencia", compIni)
-            .lte("competencia", compFim)
-            .limit(1);
-          const fechado = (periodos ?? []).some((p: any) => p.status === "fechado");
-          if (!fechado) {
-            const vencimento = new Date(anoVigente, mesVigente - 1, 10);
-            const dias = differenceInCalendarDays(today, vencimento);
-            for (const u of unidades) {
-              const importado = await hasDocsForUnidade("contracheque", u.id, compIni, compFim);
-              if (importado) continue;
-              results.push({
-                id: `contracheque-${u.id}-${anoAnterior}-${mesAnterior}`,
-                icon: FileText,
-                titulo: "Contracheque não fechado",
-                subtitulo: `${u.nome} — ${MES_NOME[mesAnterior - 1]}/${anoAnterior}`,
-                tipo: "Contracheque",
-                vencimento: ymd(vencimento),
-                atrasoDias: dias,
-                url: "/dp/documentos/contracheque",
-              });
-            }
+          const compFim = ymd(new Date(anoAnterior, mesAnterior, 0));
+          const vencimento = new Date(anoVigente, mesVigente - 1, cfg.alerta_contracheque_dia_mes);
+          const dias = differenceInCalendarDays(today, vencimento);
+          for (const u of unidades) {
+            const importado = await hasDocsForUnidade("contracheque", u.id, compIni, compFim);
+            if (importado) continue;
+            results.push({
+              id: `contracheque-${u.id}-${anoAnterior}-${mesAnterior}`,
+              icon: FileText,
+              titulo: "Contracheque não importado",
+              subtitulo: `${u.nome} — ${MES_NOME[mesAnterior - 1]}/${anoAnterior}`,
+              tipo: "Contracheque",
+              vencimento: ymd(vencimento),
+              atrasoDias: dias,
+              url: "/dp/documentos/contracheque",
+            });
           }
         } catch (e) {
           console.warn("pendencias/contracheque:", e);
         }
       }
 
-      // 4. Adiantamento não fechado (mês vigente) — por unidade que exige adiantamento
+      // 4. Adiantamento não importado (mês vigente) — por unidade que exige adiantamento
       try {
         const compIni = `${anoVigente}-${String(mesVigente).padStart(2, "0")}-01`;
-        const compFimDate = new Date(anoVigente, mesVigente, 0);
-        const compFim = ymd(compFimDate);
-        const { data: periodos } = await supabase
-          .from("dp_folha_periodos")
-          .select("id, status")
-          .eq("company_id", selectedCompanyId!)
-          .eq("tipo", "adiantamento")
-          .gte("competencia", compIni)
-          .lte("competencia", compFim)
-          .limit(1);
-        const fechado = (periodos ?? []).some((p: any) => p.status === "fechado");
-        if (!fechado) {
-          for (const u of unidades) {
-            if (!u.tem_adiantamento || !u.dia_adiantamento) continue;
-            const diaLimite = u.dia_adiantamento + 5;
-            if (diaHoje < diaLimite) continue;
-            const importado = await hasDocsForUnidade("adiantamento", u.id, compIni, compFim);
-            if (importado) continue;
-            const vencimento = new Date(anoVigente, mesVigente - 1, diaLimite);
-            const dias = differenceInCalendarDays(today, vencimento);
-            results.push({
-              id: `adiantamento-${u.id}-${anoVigente}-${mesVigente}`,
-              icon: Coins,
-              titulo: "Adiantamento não fechado",
-              subtitulo: `${u.nome} — ${MES_NOME[mesVigente - 1]}/${anoVigente}`,
-              tipo: "Adiantamento",
-              vencimento: ymd(vencimento),
-              atrasoDias: dias,
-              url: "/dp/documentos/adiantamento",
-            });
-          }
+        const compFim = ymd(new Date(anoVigente, mesVigente, 0));
+        for (const u of unidades) {
+          if (!u.tem_adiantamento || !u.dia_adiantamento) continue;
+          const diaLimite = u.dia_adiantamento + cfg.alerta_adiantamento_offset;
+          if (diaHoje < diaLimite) continue;
+          const importado = await hasDocsForUnidade("adiantamento", u.id, compIni, compFim);
+          if (importado) continue;
+          const vencimento = new Date(anoVigente, mesVigente - 1, diaLimite);
+          const dias = differenceInCalendarDays(today, vencimento);
+          results.push({
+            id: `adiantamento-${u.id}-${anoVigente}-${mesVigente}`,
+            icon: Coins,
+            titulo: "Adiantamento não importado",
+            subtitulo: `${u.nome} — ${MES_NOME[mesVigente - 1]}/${anoVigente}`,
+            tipo: "Adiantamento",
+            vencimento: ymd(vencimento),
+            atrasoDias: dias,
+            url: "/dp/documentos/adiantamento",
+          });
         }
       } catch (e) {
         console.warn("pendencias/adiantamento:", e);
       }
 
-
       // 5. Folha de ponto não importada (mês anterior) — por unidade com relógio
-      if (diaHoje >= 10) {
+      if (diaHoje >= cfg.alerta_folha_ponto_dia_mes) {
         try {
           const inicio = `${anoAnterior}-${String(mesAnterior).padStart(2, "0")}-01`;
           const fim = ymd(new Date(anoAnterior, mesAnterior, 0));
+          const vencimento = new Date(anoVigente, mesVigente - 1, cfg.alerta_folha_ponto_dia_mes);
+          const dias = differenceInCalendarDays(today, vencimento);
           for (const u of unidades) {
             if (!u.possui_relogio_ponto) continue;
-
-            const { data: colabs } = await supabase
-              .from("dp_colaboradores")
-              .select("id")
-              .eq("company_id", selectedCompanyId!)
-              .eq("unidade_id", u.id);
-            const colabIds = (colabs ?? []).map((c: any) => c.id);
-            if (colabIds.length === 0) continue;
-
-            const { count } = await supabase
-              .from("dp_documentos")
-              .select("id", { count: "exact", head: true })
-              .eq("company_id", selectedCompanyId!)
-              .eq("tipo", "ponto")
-              .in("colaborador_id", colabIds)
-              .gte("referencia_data", inicio)
-              .lte("referencia_data", fim);
-            if ((count ?? 0) > 0) continue;
-
-            const vencimento = new Date(anoVigente, mesVigente - 1, 10);
-            const dias = differenceInCalendarDays(today, vencimento);
+            const importado = await hasDocsForUnidade("ponto", u.id, inicio, fim);
+            if (importado) continue;
             results.push({
               id: `folha_ponto-${u.id}-${anoAnterior}-${mesAnterior}`,
               icon: Clock,
@@ -272,7 +237,6 @@ export function useDpPendencias() {
 
       // 6. Negociação coletiva pendente — por unidade + sindicato laboral
       try {
-        // Sindicatos laborais ativos da empresa
         const { data: sinds } = await supabase
           .from("dp_sindicatos")
           .select("id, nome")
@@ -294,7 +258,6 @@ export function useDpPendencias() {
         };
 
         if (sindIds.length > 0 && unidadeIdsAtivas.length > 0) {
-          // 6.a — Vínculo via cargos: unidade_cargos × sindicato_cargos
           const { data: uc } = await supabase
             .from("dp_unidade_cargos")
             .select("unidade_id, cargo_id")
@@ -316,7 +279,6 @@ export function useDpPendencias() {
             });
           }
 
-          // 6.b — Fallback: pares já presentes em negociações
           const { data: negPairs } = await supabase
             .from("dp_sindicato_negociacoes")
             .select("unidade_id, sindicato_id, sindicato_laboral_id")
@@ -328,13 +290,11 @@ export function useDpPendencias() {
           });
         }
 
-
-
         const unidadeMap = new Map(unidades.map((u) => [u.id, u.nome]));
 
         for (const [unidadeId, sindSet] of parByUnidade.entries()) {
           const unidadeNome = unidadeMap.get(unidadeId);
-          if (!unidadeNome) continue; // unidade inativa/fora do escopo
+          if (!unidadeNome) continue;
           for (const sindId of sindSet) {
             const nomeSind = sindicatoNome.get(sindId) ?? "Sindicato";
             const { data: negs } = await supabase
@@ -349,17 +309,16 @@ export function useDpPendencias() {
               .order("mes", { ascending: false })
               .limit(1);
 
-
             const id = `negociacao-${unidadeId}-${sindId}`;
             if (!negs || negs.length === 0) {
               results.push({
                 id,
                 icon: Scale,
                 titulo: `Negociação coletiva pendente — ${nomeSind}`,
-                subtitulo: `${unidadeNome} — nenhuma negociação cadastrada`,
+                subtitulo: `${unidadeNome} — nenhuma negociação cadastrada. Cadastre uma nova para renovar.`,
                 tipo: "Negociação",
                 vencimento: ymd(today),
-                atrasoDias: differenceInCalendarDays(today, today),
+                atrasoDias: 0,
                 url: "/dp/documentos/act-cct",
               });
               continue;
@@ -372,16 +331,15 @@ export function useDpPendencias() {
             const inicioAtraso = new Date(vencimento);
             inicioAtraso.setDate(inicioAtraso.getDate() + 1);
             const dias = differenceInCalendarDays(today, inicioAtraso);
-            // Só entra como pendência quando está próxima do vencimento (≤30d) ou já venceu
             const diasAteVencimento = differenceInCalendarDays(vencimento, today);
-            if (diasAteVencimento <= 30) {
+            if (diasAteVencimento <= cfg.alerta_negociacao_dias) {
               const mesVenc = String(mesUltimo).padStart(2, "0");
               const jaVenceu = diasAteVencimento < 0;
               results.push({
                 id,
                 icon: Scale,
                 titulo: `Negociação coletiva pendente — ${nomeSind}`,
-                subtitulo: `${unidadeNome} — última ${String(mesUltimo).padStart(2, "0")}/${anoUltimo} · ${jaVenceu ? "venceu" : "vence"} em ${mesVenc}/${anoUltimo + 1}`,
+                subtitulo: `${unidadeNome} — última ${String(mesUltimo).padStart(2, "0")}/${anoUltimo} · ${jaVenceu ? "venceu" : "vence"} em ${mesVenc}/${anoUltimo + 1}. Cadastre nova negociação para renovar.`,
                 tipo: "Negociação",
                 vencimento: ymd(vencimento),
                 atrasoDias: dias,
