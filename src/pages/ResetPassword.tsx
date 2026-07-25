@@ -92,8 +92,8 @@ export default function ResetPassword() {
               </p>
             </CardContent>
             <CardFooter>
-              <Button className="w-full" onClick={() => navigate("/auth", { replace: true })}>
-                Voltar para o login
+              <Button className="w-full min-h-11" onClick={() => navigate("/auth", { replace: true })}>
+                Voltar para o Login
               </Button>
             </CardFooter>
           </>
