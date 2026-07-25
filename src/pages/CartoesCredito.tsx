@@ -114,8 +114,8 @@ export default function CartoesCredito() {
           <h1 className="text-xl font-bold text-foreground">Cartões de Crédito</h1>
           <p className="text-xs text-muted-foreground">Gerencie limites, faturas e pagamentos.</p>
         </div>
-        <Button onClick={() => { setEditing(null); setFormOpen(true); }} className="gap-2">
-          <Plus className="h-4 w-4" /> Novo cartão
+        <Button onClick={() => { setEditing(null); setFormOpen(true); }} className="gap-2 min-h-[40px]">
+          <Plus className="h-4 w-4" /> Novo Cartão
         </Button>
       </div>
 
