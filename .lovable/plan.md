@@ -1,120 +1,143 @@
 
-# Experiência Mobile Impecável — 360°FOOD (todos os módulos)
+# Plano — Nova Navegação Mobile 360°FOOD
 
-## Diagnóstico
+Padrão inspirado no iFood Gestor: **BottomNav de 5 slots com FAB central elevado**, **Sheet "Mais"** para itens secundários, **switcher de módulo** no header e **Hub** como centro de gravidade. Escalável para CRM, RH e Pedidos sem refatoração.
 
-### Bug crítico reportado
-No celular, logado como Pakerê, o usuário só vê a **landing page** e o **módulo financeiro**. Não consegue chegar ao **Hub de Módulos** nem ao **módulo DP**.
+## Anatomia da tela mobile
 
-Causa provável (a confirmar antes de corrigir): a sidebar do financeiro (`src/components/layout/AppSidebar.tsx`) contém o link "Hub de Módulos" mas depende do `SidebarTrigger` para abrir no mobile — e o header pode não estar mostrando esse gatilho de forma consistente. Sem forma visível de acionar a sidebar, o usuário fica preso ao módulo em que caiu no login. A fase 0 confirma o caminho exato antes de qualquer ajuste.
+```text
+┌─────────────────────────────────────┐
+│ [☰] [DP 360° ▾]         [🔔] [👤]  │  Header (56px)
+├─────────────────────────────────────┤
+│                                     │
+│         Conteúdo da rota            │
+│                                     │
+│                                     │
+├─────────────────────────────────────┤
+│  🏠      📋     ⊕     ✓      ⋯     │  BottomNav (64px + safe-area)
+│ Início Colab.  FAB  Aprov.  Mais   │
+└─────────────────────────────────────┘
+             ↑
+      FAB elevado -20px,
+      cor primária, 56×56,
+      ação primária do módulo
+```
 
-### Auditoria contra o Pakerê (arquivos enviados)
+## 1. Configuração declarativa por módulo
 
-Padrões do Pakerê que ainda não estão no 360°FOOD:
+Criar `src/config/mobileNav.ts` com um objeto por módulo. Adicionar módulo novo = adicionar entrada nova, zero mudança em componentes.
 
-1. **Tabela ↔ Cards duplo**: `hidden md:block` + `md:hidden space-y-4`. Hoje quase todas as listagens usam `overflow-x-auto` (tabela rola de lado).
-2. **Diálogos que viram Sheet no mobile** (Colaborador, Documento, Atestado, Adiar Pendência, etc.).
-3. **Botões e cards com `active:scale-[0.98]` e `min-h-11 min-w-11`** para tap targets.
-4. **Header mobile compacto** com `SidebarTrigger` sempre visível.
-5. **Filtros em grid responsivo** (empilham em 1-2 colunas no mobile) em vez de flex-row.
-6. **Widget de pendências mobile-first**: card inteiro clicável, botões `w-full h-11` empilhados.
+```ts
+type MobileNavConfig = {
+  bottom: [NavSlot, NavSlot, FabSlot, NavSlot, MoreSlot];
+  moreGroups: { label: string; items: NavItem[] }[];
+};
 
-## Regra transversal de conteúdo — Title Case nos títulos
+export const MOBILE_NAV: Record<Module, MobileNavConfig> = {
+  financeiro: {
+    bottom: [
+      { icon: Home, label: "Início", to: "/dashboard" },
+      { icon: List, label: "Lançamentos", to: "/lancamentos" },
+      { type: "fab", icon: Plus, label: "Novo", action: "new-transaction" },
+      { icon: Wallet, label: "Contas", to: "/contas" },
+      { type: "more" },
+    ],
+    moreGroups: [
+      { label: "Operar", items: [Transferências, Cartões, Recorrências] },
+      { label: "Cadastros", items: [Categorias, Contatos, Métodos] },
+      { label: "Relatórios", items: [Fluxo, DRE, Orçamento] },
+      { label: "Conta", items: [Empresa, Plano, Configurações, Sair] },
+    ],
+  },
+  dp: {
+    bottom: [
+      { icon: Home, label: "Início", to: "/dp" },
+      { icon: Users, label: "Colab.", to: "/dp/colaboradores" },
+      { type: "fab", icon: Plus, label: "Novo", action: "new-dp" },
+      { icon: CheckSquare, label: "Aprov.", to: "/dp/aprovacoes" },
+      { type: "more" },
+    ],
+    moreGroups: [ /* Folha, Documentos, Cadastros, Relatórios, Conta */ ],
+  },
+  // Futuro: crm, rh, pedidos — mesmo shape
+};
+```
 
-Aplicar em **toda** a UI enquanto tocarmos as páginas nas fases abaixo:
+## 2. Componentes novos
 
-- Títulos de página, cards, seções, diálogos, botões primários e itens de menu escritos com **Primeira Letra De Cada Palavra Em Maiúscula**.
-- Exceções (ficam em minúsculas, salvo quando são a primeira palavra do título):
-  - Artigos: **a, o, as, os, um, uma, uns, umas**
-  - Preposições: **de, da, do, das, dos, em, na, no, nas, nos, por, para, com, sem, sob, sobre, entre, até, ante, após**
-  - Conjunções curtas: **e, ou, mas, nem, se, que**
-- Substantivos, verbos, adjetivos, advérbios e pronomes ficam capitalizados mesmo se curtos ("É", "Ao", "Se" reflexivo em imperativos).
-- Siglas mantêm o formato original: **PF, PJ, DP, CNPJ, CPF, CCT, ACT, PIX, IA**.
-- Marcas mantêm a grafia oficial: **360°FOOD**, **Pakerê**, **Lovable**.
+- `src/components/mobile/MobileBottomNav.tsx` — 5 slots, slot central renderiza `MobileFab`, item ativo com `translate-y-[-2px]` + cor primária.
+- `src/components/mobile/MobileFab.tsx` — Botão 56×56 elevado (`-mt-6`), sombra, cor primária, ícone `Plus`. Ao clicar dispara ação do módulo (abrir dialog de novo lançamento / nova solicitação / etc). Ação registrada num `MobileFabProvider`.
+- `src/components/mobile/MobileMoreSheet.tsx` — `Sheet` full-height que abre de baixo, mostra grupos em cards, cada item com `min-h-11`. Header do sheet tem "Acompanhar módulos → Hub".
+- `src/components/mobile/MobileHeader.tsx` — Header enxuto (56px): `SidebarTrigger` esquerdo (só desktop), **ModuleSwitcher chip** ("DP 360° ▾") centro-esquerda, notificações + avatar à direita.
+- `src/components/mobile/ModuleSwitcherChip.tsx` — Chip com nome do módulo ativo; ao tocar abre `Popover`/`Sheet` pequeno listando módulos disponíveis da empresa (Financeiro, DP, futuros). 1 toque para trocar. Também tem "Voltar ao Hub".
+- `src/providers/MobileFabProvider.tsx` — Context que permite cada página registrar/sobrescrever a ação do FAB (ex.: em `/lancamentos` o FAB abre modal de novo lançamento; em `/contas` abre nova conta).
 
-Exemplos:
-- "cadastro de colaboradores" → **Cadastro de Colaboradores**
-- "trocas e solicitações" → **Trocas e Solicitações**
-- "histórico completo de documentos" → **Histórico Completo de Documentos**
-- "voltar ao hub" → **Voltar ao Hub**
-- "novo lançamento" → **Novo Lançamento**
+## 3. Portal do colaborador (simplificado)
 
-Fora do escopo desta regra: textos corridos, descrições, tooltips, placeholders, mensagens de toast, legendas de gráfico — permanecem em capitalização normal de frase.
+Config própria com **4 slots + FAB** (sem "Mais"):
 
-## Escopo — Mobile-first em todo o sistema
+```ts
+portalColaborador: {
+  bottom: [
+    { icon: Home, label: "Início", to: "/dp/meu" },
+    { icon: Calendar, label: "Calendário", to: "/dp/meu/calendario" },
+    { type: "fab", icon: Plus, label: "Solicitar", action: "new-solicitacao" },
+    { icon: Inbox, label: "Solicitações", to: "/dp/meu/solicitacoes" },
+    { icon: User, label: "Perfil", to: "/dp/meu/perfil" },
+  ],
+}
+```
 
-### Fase 0 — Correção do bug de navegação mobile (prioridade)
-- Investigar layout do financeiro e confirmar por que a sidebar não é acessível no mobile.
-- `SidebarTrigger` sempre visível no header de todos os módulos.
-- Adicionar botão explícito **Voltar ao Hub** no header mobile de cada módulo.
-- Validar com Playwright em 375×812 no papel do usuário Pakerê.
+Sem Sheet "Mais". Documentos e Trocas acessados por dentro do Início/Perfil. Header do portal não tem module switcher (colaborador vê só o portal dele).
 
-### Fase 1 — Shells e headers responsivos
-- Header sticky `h-14 px-3 md:px-4` com `SidebarTrigger`, `ContextSelector` compacto (bandeira + iniciais no `< sm`), botão **Hub** e sinos.
-- `main` com `p-3 md:p-6 lg:p-8`.
-- Sidebar fecha ao clicar em link no mobile (`setOpenMobile(false)`).
-- **Hub de Módulos**: grid `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`, cards com `min-h-[180px]`.
+## 4. Integração com o app existente
 
-### Fase 2 — Utilitários compartilhados
-- `src/components/ui/responsive-data-table.tsx` — tabela desktop + cards mobile (`active:scale-[0.98]`).
-- `src/components/ui/responsive-dialog.tsx` — `Dialog` no desktop, `Sheet side="bottom"` no mobile (`max-h-[92vh] overflow-y-auto`), API igual.
-- Reusa `useIsMobile()` de `src/hooks/use-mobile.ts`.
+- `src/components/layout/AppLayout.tsx` (ou equivalente): substituir `BottomNav.tsx` atual pelo novo `MobileBottomNav`. Envolver com `MobileFabProvider`.
+- Header mobile atual (que hoje tem hamburger à esquerda) recebe o novo `MobileHeader` com o `ModuleSwitcherChip`.
+- Sidebar desktop existente **permanece intocada** — plano é mobile-only. Em `md:` para cima, `MobileBottomNav` some (`md:hidden`) e a sidebar volta.
+- Rota de "Hub" (`/`) permanece como está; o switcher chip e o botão dentro do Sheet Mais levam pra ela.
+- Deletar `src/components/layout/BottomNav.tsx` antigo depois que o novo estiver plugado.
 
-### Fase 3 — Módulo Financeiro mobile
-Aplicar tabela↔card, `ResponsiveDialog` e regra de Title Case nos títulos em: `Lancamentos`, `Faturas`, `ContasBancarias`, `CartoesCredito`, `Contatos`, `Categorias`, `FormasPagamento`, `Orcamento`, `Relatorios`, `FluxoCaixa`, `ContasContabeis`, `Dashboard`, `Buscar`.
-Toolbars viram `grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-2`.
+## 5. Ações do FAB por rota
 
-### Fase 4 — Módulo DP mobile
-- `DpHome`, `PendenciasCard` (card clicável → Sheet, botões `w-full h-11`).
-- Listagens com card mobile: `DpColaboradores`, `DpUnidades`, `DpCargos`, `DpDocumentos`, `DpDocumentosPorTipo`, `DpAtestados`, `DpDisciplinar`, `DpHistoricoCompleto`, `DpSindicatoNegociacoes`, `DpModelosMensagem`, `DpNotificacoes`, `DpTrocas`, `DpSolicitacoes`, `DpAprovacoes`, `DpBloqueios`.
-- Diálogos → `ResponsiveDialog`: `ColaboradorFormDialog`, `DpCalendarDayDialog`, `RecusaDialog`, `WhatsappComposerDialog`, `ConfirmarSubstituicaoDialog`, `LiberarEscopoDialog` e inline dialogs de atestado/disciplinar/troca/solicitação/modelo.
-- `FolgaCalendarShared`: tap targets `min-h-14` nos itens da lista mobile.
+Cada página relevante registra sua ação via `useMobileFab({ label, onPress })`:
 
-### Fase 5 — Módulo Admin / Configurações
-- `/admin/cadastros`, `Planos`, `Empresas`, `GestaoUsuarios`, `Configuracoes`, `Onboarding` recebem `ResponsiveDataTable` e `ResponsiveDialog`.
-- Wizards: cada step cabe em 360 px, botões âncoras em `sticky bottom-0`.
+- `/lancamentos` → abre `LancamentoDialog` novo
+- `/dashboard` (financeiro) → mesma ação
+- `/contas` → abre `ContaDialog`
+- `/dp` e `/dp/colaboradores` → abre menu rápido (Novo colaborador / Nova folha / Novo comunicado)
+- `/dp/aprovacoes` → some (não faz sentido criar aqui) — FAB desregistrado
+- Portal `/dp/meu/*` → abre `NovaSolicitacaoDialog`
 
-### Fase 6 — Auth, Landing e Checkout
-- Landing: contraste e CTAs ≥ 48 px no mobile.
-- `Auth`, `PrimeiroAcesso`, `EsqueciSenha`, `ResetPassword`, `AcceptInvite`: inputs `h-11`, botões full-width, `inputMode` numérico em CPF/CNPJ.
-- `Checkout` e `CheckoutPagamento`: stepper vertical e resumo em sticky footer.
+Se a página não registra ação, FAB **não é renderizado** e o slot central vira espaço vazio (grid ajusta pra 4 itens equidistantes).
 
-### Fase 7 — Polimento transversal
-- **Tap targets**: `size="icon"` em listas → `min-h-11 min-w-11 md:min-h-9 md:min-w-9`.
-- 3+ ações por linha → `DropdownMenu` com `MoreVertical`.
-- Badges: `text-[9px]` → `text-[11px]` no mobile.
-- `sonner` position `top-center` no mobile.
-- Safe area: `pb-[env(safe-area-inset-bottom)]` em elementos sticky-bottom.
-- Buscar e remover `w-screen` / `min-w-` fixos que causam overflow.
-- Passar Title Case em todos os títulos tocados nas fases anteriores (mais varredura final em `src/pages/**/*.tsx` para pegar títulos remanescentes).
+## 6. Acessibilidade e ergonomia
 
-### Fase 8 — Validação
-- Playwright em 375×812, 414×896 e 768×1024: fluxo Landing → Login → Hub → Financeiro → DP → Configurações → Logout + cadastro de lançamento, cadastro de colaborador, aprovação de solicitação, adiar pendência.
-- Lighthouse mobile em `/`, `/hub`, `/lancamentos`, `/dp` — meta: Best Practices ≥ 95, Accessibility ≥ 95.
+- Todos os alvos ≥ 44×44 (WCAG).
+- Safe-area: `pb-[env(safe-area-inset-bottom)]` no BottomNav.
+- FAB `aria-label` dinâmico ("Novo lançamento", "Nova solicitação").
+- `role="tablist"` na BottomNav; item ativo com `aria-current="page"`.
+- Sheet "Mais" fecha com swipe-down (padrão shadcn) e tem foco inicial no primeiro item.
 
-## Ordem de execução
+## 7. Escalabilidade (CRM/RH/Pedidos)
 
-1. **Fase 0** — Corrigir navegação mobile (bloqueador).
-2. **Fase 1** — Shells e headers.
-3. **Fase 2** — `ResponsiveDataTable` e `ResponsiveDialog`.
-4. **Fase 3** — Financeiro.
-5. **Fase 4** — DP.
-6. **Fase 5** — Admin.
-7. **Fase 6** — Auth/Landing/Checkout.
-8. **Fase 7** — Polimento + varredura de Title Case.
-9. **Fase 8** — Validação Playwright + Lighthouse.
+Ao adicionar CRM:
+1. Adicionar `crm:` em `MOBILE_NAV`
+2. Adicionar CRM ao `ModuleSwitcherChip`
+3. Registrar ações de FAB nas páginas novas via `useMobileFab`
 
-Cada fase entrega screenshots antes/depois em 375×812.
+Zero refactor em `MobileBottomNav`, `MobileFab`, `MobileMoreSheet`, `MobileHeader`.
 
-## Fora do escopo
+## 8. Validação
 
-- Sem mudança de RLS, RPC, migração ou regra de negócio.
-- Sem redesign de identidade visual (paleta, logo e tipografia permanecem).
-- Sem PWA offline / service worker (o app já é instalável via manifest).
-- Sem Capacitor/app nativo agora — foco em web mobile impecável. Publicação em app stores é outro projeto que discutiremos depois.
+Playwright em 375×812, 414×896, 768×1024:
+- Fluxo Financeiro: Início → FAB → novo lançamento → Contas → Mais → Cadastros
+- Fluxo DP admin: DP → FAB → Aprovações → Mais → Relatórios
+- Fluxo Portal colaborador: Início → Calendário → FAB → nova solicitação → Perfil
+- Switcher: DP → chip → Financeiro (1 toque)
+- Zero overflow horizontal, zero erros de console
 
-## Detalhes técnicos
+## Escopo fora deste plano
 
-- Detecção mobile só via `useIsMobile()` (breakpoint 768 px).
-- `ResponsiveDialog` e `ResponsiveDataTable` são puramente apresentacionais — não alteram fetch/mutations/estado.
-- Uso apenas de shadcn já instalado (`Sheet`, `Dialog`, `DropdownMenu`). Sem libs novas.
+- Push notifications, gestos avançados (swipe entre abas), personalização pelo usuário dos 4 slots — fica para uma fase futura se surgir demanda.
+- Sidebar desktop, layouts `md:` e acima permanecem exatamente como estão hoje.
