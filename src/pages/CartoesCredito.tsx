@@ -243,8 +243,8 @@ export default function CartoesCredito() {
                         const remaining = Number(inv.total_amount) - Number(inv.paid_amount);
                         const canPay = inv.status === "fechada" || inv.status === "parcial" || inv.status === "vencida" || inv.status === "atrasada";
                         return (
-                          <div key={inv.id} className="flex items-center justify-between gap-3 rounded-md border bg-card p-3">
-                            <div className="min-w-0">
+                          <div key={inv.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-card p-3">
+                            <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <p className="text-sm font-medium">
                                   {new Date(inv.reference_month + "T00:00:00").toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
@@ -266,14 +266,12 @@ export default function CartoesCredito() {
                               )}
                             </div>
                             {canPay ? (
-                              <Button size="sm" variant="default" onClick={() => setPayInvoice(inv)}>Pagar</Button>
+                              <Button size="sm" variant="default" className="min-h-[40px]" onClick={() => setPayInvoice(inv)}>Pagar</Button>
                             ) : inv.status === "aberta" ? (
                               <Badge variant="outline" className="text-[10px] gap-1">
                                 <AlertCircle className="h-3 w-3" /> aguarda fechamento
                               </Badge>
-                            ) : (
-                              <span className="w-[74px]" />
-                            )}
+                            ) : null}
                           </div>
                         );
                       })
