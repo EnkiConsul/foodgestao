@@ -114,8 +114,8 @@ export default function CartoesCredito() {
           <h1 className="text-xl font-bold text-foreground">Cartões de Crédito</h1>
           <p className="text-xs text-muted-foreground">Gerencie limites, faturas e pagamentos.</p>
         </div>
-        <Button onClick={() => { setEditing(null); setFormOpen(true); }} className="gap-2">
-          <Plus className="h-4 w-4" /> Novo cartão
+        <Button onClick={() => { setEditing(null); setFormOpen(true); }} className="gap-2 min-h-[40px]">
+          <Plus className="h-4 w-4" /> Novo Cartão
         </Button>
       </div>
 
@@ -215,12 +215,12 @@ export default function CartoesCredito() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditing(card); setFormOpen(true); }}>
-                        <Pencil className="h-3.5 w-3.5" />
+                    <div className="flex gap-1 shrink-0">
+                      <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => { setEditing(card); setFormOpen(true); }} aria-label="Editar cartão">
+                        <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8 hover:text-destructive" onClick={() => setDeleteCard(card)}>
-                        <Trash2 className="h-3.5 w-3.5" />
+                      <Button size="icon" variant="ghost" className="h-10 w-10 hover:text-destructive" onClick={() => setDeleteCard(card)} aria-label="Excluir cartão">
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -243,8 +243,8 @@ export default function CartoesCredito() {
                         const remaining = Number(inv.total_amount) - Number(inv.paid_amount);
                         const canPay = inv.status === "fechada" || inv.status === "parcial" || inv.status === "vencida" || inv.status === "atrasada";
                         return (
-                          <div key={inv.id} className="flex items-center justify-between gap-3 rounded-md border bg-card p-3">
-                            <div className="min-w-0">
+                          <div key={inv.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-card p-3">
+                            <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <p className="text-sm font-medium">
                                   {new Date(inv.reference_month + "T00:00:00").toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
@@ -266,14 +266,12 @@ export default function CartoesCredito() {
                               )}
                             </div>
                             {canPay ? (
-                              <Button size="sm" variant="default" onClick={() => setPayInvoice(inv)}>Pagar</Button>
+                              <Button size="sm" variant="default" className="min-h-[40px]" onClick={() => setPayInvoice(inv)}>Pagar</Button>
                             ) : inv.status === "aberta" ? (
                               <Badge variant="outline" className="text-[10px] gap-1">
                                 <AlertCircle className="h-3 w-3" /> aguarda fechamento
                               </Badge>
-                            ) : (
-                              <span className="w-[74px]" />
-                            )}
+                            ) : null}
                           </div>
                         );
                       })

@@ -254,66 +254,80 @@ export default function ContasBancarias() {
               className={`shadow-sm hover:shadow-md transition-shadow border-l-4 ${!a.is_active ? "opacity-60" : ""}`}
               style={{ borderLeftColor: a.color || "hsl(var(--primary))" }}
             >
-              <CardContent className="flex items-center gap-3 p-4">
-                <BankLogo
-                  slug={(a as typeof a & { bank_slug?: string | null }).bank_slug}
-                  fallbackName={a.name}
-                  size={40}
-                  fallbackColor={a.color || undefined}
-                  className="shrink-0"
-                />
+              <CardContent className="p-3 sm:p-4">
+                {/* Linha principal */}
+                <div className="flex items-start gap-3">
+                  <BankLogo
+                    slug={(a as typeof a & { bank_slug?: string | null }).bank_slug}
+                    fallbackName={a.name}
+                    size={40}
+                    fallbackColor={a.color || undefined}
+                    className="shrink-0"
+                  />
 
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <p className="text-sm font-semibold truncate">{a.name}</p>
+                      <Badge className="text-[10px] h-4 px-1.5 shrink-0 bg-primary/10 text-primary border-0 hover:bg-primary/15">
+                        {accountTypeLabels[a.account_type]}
+                      </Badge>
+                      {!a.is_active && (
+                        <Badge variant="outline" className="text-[10px] h-4 px-1.5 shrink-0">Inativa</Badge>
+                      )}
+                    </div>
 
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold truncate">{a.name}</p>
-                    <Badge className="text-[10px] h-4 px-1.5 shrink-0 bg-primary/10 text-primary border-0 hover:bg-primary/15">
-                      {accountTypeLabels[a.account_type]}
-                    </Badge>
-                    {!a.is_active && (
-                      <Badge variant="outline" className="text-[10px] h-4 px-1.5 shrink-0">Inativa</Badge>
-                    )}
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                      {a.context === "pj" && a.company_id
+                        ? companies.find((c) => c.id === a.company_id)?.trade_name || companies.find((c) => c.id === a.company_id)?.name || "Empresa"
+                        : "Pessoal"}
+                      {" · "}Saldo inicial: {maskBRL(Number(a.initial_balance))}
+                    </p>
                   </div>
 
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {a.context === "pj" && a.company_id
-                      ? companies.find((c) => c.id === a.company_id)?.trade_name || companies.find((c) => c.id === a.company_id)?.name || "Empresa"
-                      : "Pessoal"}
-                    {" · "}Saldo inicial: {maskBRL(Number(a.initial_balance))}
-                  </p>
+                  <div className="text-right shrink-0">
+                    <p className="text-[10px] text-muted-foreground">Saldo Atual</p>
+                    <p className={`text-sm font-bold ${Number(a.current_balance) >= 0 ? "text-success" : "text-destructive"}`}>
+                      {maskBRL(Number(a.current_balance))}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="text-right shrink-0">
-                  <p className="text-[10px] text-muted-foreground">Saldo Atual</p>
-                  <p className={`text-sm font-bold ${Number(a.current_balance) >= 0 ? "text-success" : "text-destructive"}`}>
-                    {maskBRL(Number(a.current_balance))}
-                  </p>
+                {/* Ações — quebra abaixo no mobile, inline no desktop */}
+                <div className="mt-3 flex items-center justify-between gap-2 sm:mt-2 sm:justify-end">
+                  <div className="flex items-center gap-2 sm:hidden text-xs text-muted-foreground">
+                    <Switch
+                      checked={a.is_active}
+                      onCheckedChange={() => handleToggleActive(a)}
+                    />
+                    <span>{a.is_active ? "Ativa" : "Inativa"}</span>
+                  </div>
+                  <div className="hidden sm:block">
+                    <Switch
+                      checked={a.is_active}
+                      onCheckedChange={() => handleToggleActive(a)}
+                    />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                      onClick={() => { setEditAccount(a); setDialogOpen(true); }}
+                      aria-label="Editar conta"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => setDeleteAccount(a)}
+                      aria-label="Excluir conta"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-
-                <Switch
-                  checked={a.is_active}
-                  onCheckedChange={() => handleToggleActive(a)}
-                  className="shrink-0"
-                />
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 shrink-0"
-                  onClick={() => { setEditAccount(a); setDialogOpen(true); }}
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
-                  onClick={() => setDeleteAccount(a)}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
               </CardContent>
             </Card>
           ))
