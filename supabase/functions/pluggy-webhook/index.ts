@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
         connection_id: conn.id,
         company_id: conn.company_id,
         status: "queued",
-        trigger: `webhook:${eventType}`,
+        triggered_by: `webhook:${eventType}`,
       });
     }
   }
