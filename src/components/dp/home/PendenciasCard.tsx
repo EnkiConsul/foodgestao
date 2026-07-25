@@ -52,7 +52,19 @@ export function PendenciasCard() {
         <Badge className="ml-1 bg-primary text-primary-foreground rounded-full h-6 min-w-6 px-2">
           {visible.length}
         </Badge>
+        <Button
+          asChild
+          variant="ghost"
+          size="icon"
+          className="ml-auto h-7 w-7 text-muted-foreground hover:text-foreground"
+          title="Configurar prazos das pendências"
+        >
+          <Link to="/dp/cadastros/pendencias" aria-label="Configurar prazos das pendências">
+            <Settings className="h-4 w-4" />
+          </Link>
+        </Button>
       </div>
+
 
       <div className="flex flex-wrap gap-2 mb-4">
         <UrgencyChip icon={AlarmClockOff} label="Atrasado" count={counters.atrasado} tone="destructive" />
