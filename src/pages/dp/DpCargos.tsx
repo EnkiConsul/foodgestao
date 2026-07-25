@@ -118,7 +118,7 @@ export default function DpCargos() {
         <Input className="pl-9" placeholder="Buscar cargo por nome..." value={busca} onChange={(e) => setBusca(e.target.value)} />
       </div>
 
-      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-muted-foreground border-b border-border">
@@ -182,6 +182,47 @@ export default function DpCargos() {
           </table>
         </div>
       </div>
+
+      {/* Mobile: lista de cards */}
+      <div className="md:hidden space-y-3">
+        {list.isLoading && (
+          <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">Carregando…</div>
+        )}
+        {!list.isLoading && rows.length === 0 && (
+          <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+            {(list.data ?? []).length === 0 ? "Nenhum cargo cadastrado." : "Nenhum cargo encontrado."}
+          </div>
+        )}
+        {!list.isLoading && rows.map((c) => {
+          const descricao = (c as DpCargo & { descricao?: string | null }).descricao ?? null;
+          return (
+            <div
+              key={c.id}
+              onClick={() => setViewCargo(c)}
+              className="rounded-2xl border border-border bg-card p-4 space-y-2 active:scale-[0.98] transition-transform"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold uppercase truncate">{c.nome}</div>
+                  {descricao && <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{descricao}</div>}
+                </div>
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary shrink-0">
+                  <Users className="size-3" /> {c.colaboradores_count}
+                </span>
+              </div>
+              <div className="flex gap-1 pt-1 border-t border-border/60" onClick={(e) => e.stopPropagation()}>
+                <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => openEdit(c)}>
+                  <Pencil className="size-4 mr-1" /> Editar
+                </Button>
+                <Button size="sm" variant="ghost" className="min-h-11 flex-1 text-destructive hover:bg-destructive/10" onClick={() => setToDelete(c)}>
+                  <Trash2 className="size-4 mr-1" /> Excluir
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
 
       {/* Criar / Editar */}
       <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditing(null); setForm(blankForm); } }}>
