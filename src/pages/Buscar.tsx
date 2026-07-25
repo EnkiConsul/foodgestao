@@ -52,12 +52,12 @@ export default function Buscar() {
         </div>
       </header>
 
-      <main className="container mx-auto max-w-3xl px-4 py-10 sm:py-14">
-        <h1 className="mb-6 text-2xl font-bold tracking-tight sm:text-3xl">
-          Buscar no 360°FOOD
+      <main className="container mx-auto max-w-3xl px-4 py-6 sm:py-14">
+        <h1 className="mb-4 sm:mb-6 text-xl sm:text-3xl font-bold tracking-tight">
+          Buscar No 360°FOOD
         </h1>
 
-        <form onSubmit={onSubmit} role="search" className="mb-8 flex gap-2">
+        <form onSubmit={onSubmit} role="search" className="mb-6 sm:mb-8 flex flex-col sm:flex-row gap-2">
           <label htmlFor="site-search" className="sr-only">
             Termo de busca
           </label>
@@ -71,10 +71,10 @@ export default function Buscar() {
               placeholder="Ex.: das mei, planos, privacidade..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="pl-9"
+              className="pl-9 h-10"
             />
           </div>
-          <Button type="submit">Buscar</Button>
+          <Button type="submit" className="w-full sm:w-auto min-h-10">Buscar</Button>
         </form>
 
         {trimmed ? (
