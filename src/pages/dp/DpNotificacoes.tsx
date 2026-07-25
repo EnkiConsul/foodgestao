@@ -84,7 +84,8 @@ export default function DpNotificacoes() {
       ) : filtered.length === 0 ? (
         <DpContentCard><DpEmptyState icon={Bell}>Nenhuma notificação encontrada.</DpEmptyState></DpContentCard>
       ) : (
-        <DpContentCard contentClassName="overflow-x-auto">
+        <>
+        <DpContentCard contentClassName="overflow-x-auto hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -122,6 +123,33 @@ export default function DpNotificacoes() {
             </TableBody>
           </Table>
         </DpContentCard>
+
+        {/* Mobile: lista de cards */}
+        <div className="md:hidden space-y-3">
+          {filtered.map((n) => {
+            const path = REF_TO_PATH[n.ref_table] ?? "/dp/aprovacoes";
+            return (
+              <div key={n.id} className={"rounded-2xl border border-border bg-card p-4 space-y-2 active:scale-[0.98] transition-transform " + (n.lida_em ? "opacity-70" : "")}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium">{n.titulo}</div>
+                    {n.descricao && <div className="text-xs text-muted-foreground">{n.descricao}</div>}
+                  </div>
+                  {n.lida_em ? <Badge variant="outline" className="text-[10px]">Lida</Badge> : <Badge className="text-[10px]">Nova</Badge>}
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <Badge variant="outline" className="text-[10px]">{n.ref_table}</Badge>
+                  <span>{format(new Date(n.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
+                </div>
+                <Button asChild size="sm" variant="outline" className="w-full min-h-11" onClick={() => { if (!n.lida_em) markRead.mutate([n.id]); }}>
+                  <Link to={path}>Abrir</Link>
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+        </>
+
       )}
     </DpPage>
   );
