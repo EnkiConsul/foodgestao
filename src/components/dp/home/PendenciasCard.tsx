@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bell, ArrowRight, Clock, Clock3, CalendarClock, AlarmClockOff, Info, CalendarPlus } from "lucide-react";
+import { Bell, ArrowRight, Clock, Clock3, CalendarClock, AlarmClockOff, Info, CalendarPlus, Settings } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
