@@ -412,8 +412,8 @@ export default function Categorias() {
           <span className="hidden sm:inline">{collapsed.size > 0 ? "Expandir" : "Colapsar"}</span>
         </Button>
 
-        <Tabs value={filterType} onValueChange={setFilterType}>
-          <TabsList className="h-8">
+        <Tabs value={filterType} onValueChange={setFilterType} className="max-w-full">
+          <TabsList className="h-8 overflow-x-auto flex w-auto">
             <TabsTrigger value="all" className="text-xs px-2.5 h-7">Todas</TabsTrigger>
             <TabsTrigger value="despesa" className="text-xs px-2.5 h-7">Despesas</TabsTrigger>
             <TabsTrigger value="receita" className="text-xs px-2.5 h-7">Receitas</TabsTrigger>
