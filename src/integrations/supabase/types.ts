@@ -3593,6 +3593,50 @@ export type Database = {
           },
         ]
       }
+      dp_pendencias_config: {
+        Row: {
+          alerta_adiantamento_offset: number
+          alerta_contracheque_dia_mes: number
+          alerta_folha_ponto_dia_mes: number
+          alerta_negociacao_dias: number
+          alerta_solicitacao_dias: number
+          alerta_troca_dias: number
+          company_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          alerta_adiantamento_offset?: number
+          alerta_contracheque_dia_mes?: number
+          alerta_folha_ponto_dia_mes?: number
+          alerta_negociacao_dias?: number
+          alerta_solicitacao_dias?: number
+          alerta_troca_dias?: number
+          company_id: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          alerta_adiantamento_offset?: number
+          alerta_contracheque_dia_mes?: number
+          alerta_folha_ponto_dia_mes?: number
+          alerta_negociacao_dias?: number
+          alerta_solicitacao_dias?: number
+          alerta_troca_dias?: number
+          company_id?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_pendencias_config_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_prioridade_aniversario: {
         Row: {
           aniversariante: boolean
