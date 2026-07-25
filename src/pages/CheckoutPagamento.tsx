@@ -206,11 +206,11 @@ export default function CheckoutPagamento() {
                   </Button>
                 )}
 
-                <div className="flex items-center justify-between pt-4 border-t">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-4 border-t">
                   <span className="text-xs text-muted-foreground flex items-center gap-2">
                     <Loader2 className="h-3 w-3 animate-spin" /> Verificando pagamento automaticamente…
                   </span>
-                  <Button size="sm" variant="ghost" onClick={() => refetch()}>Atualizar</Button>
+                  <Button size="sm" variant="ghost" onClick={() => refetch()} className="min-h-9 w-full sm:w-auto">Atualizar</Button>
                 </div>
               </CardContent>
             </Card>
