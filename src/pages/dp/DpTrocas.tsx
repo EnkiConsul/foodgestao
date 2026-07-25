@@ -100,6 +100,7 @@ export default function DpTrocas() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dp_trocas"] });
+      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
       toast.success("Resposta registrada");
       setRecusa(null);
     },
@@ -113,6 +114,7 @@ export default function DpTrocas() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dp_trocas"] });
+      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
       toast.success("Removido");
       setConfirmDel(null);
     },

@@ -1,39 +1,82 @@
-# Diagnóstico
+# Plano final — Revisão do Quadro de Pendências
 
-A pendência "Contracheque não fechado" (`useDpPendencias.tsx`, bloco 3, linhas 118-152) só é resolvida quando existe `dp_folha_periodos` com `status='fechado'` para o mês anterior. Como importar contracheques em `/dp/documentos/contracheque` grava em `dp_documentos` (não em `dp_folha_periodos`), a Unidade Garavelo continua listada mesmo após a importação de 06/2026.
+Escopo: corrigir a inconsistência global (cache) + as 4 inconsistências específicas + decisões de produto.
 
-O bloco 5 (Folha de ponto, linhas 191-233) já usa a lógica correta: verifica `dp_documentos` por unidade → colaboradores da unidade → `referencia_data` no mês.
+## 1. Invalidação do cache de pendências (causa raiz do sintoma "troca aprovada não some")
 
-O bloco 4 (Adiantamento, linhas 154-189) tem o mesmo problema do bloco 3.
+Adicionar `queryClient.invalidateQueries({ queryKey: ["dp_pendencias"] })` no `onSuccess` de cada mutação que resolve uma pendência:
 
-# Correção
+- `src/pages/dp/DpTrocas.tsx` — aprovação/recusa de gestor e colega
+- `src/pages/dp/DpMeuTrocas.tsx` — aprovação/recusa de colega
+- `src/pages/dp/DpSolicitacoes.tsx` — `respond`
+- `src/pages/dp/DpAtestados.tsx` — aprovar/recusar atestado
+- `src/pages/dp/DpDocumentosPorTipo.tsx` — importação e aprovação bulk
+- `src/pages/dp/DpSindicatoNegociacoes.tsx` — insert/update de negociação
 
-Ajustar **blocos 3 e 4** de `src/hooks/useDpPendencias.tsx` para espelhar a lógica do bloco 5.
+E robustecer o hook:
+- `src/hooks/useDpPendencias.tsx` — `staleTime: 30_000`, `refetchOnWindowFocus: true`.
 
-Para cada unidade ativa, considerar a pendência resolvida se **qualquer** das condições for verdadeira:
+## 2. Contracheque/Adiantamento — remover código morto (decisão: b)
 
-**Bloco 3 — Contracheque (mês anterior):**
-1. Existe `dp_folha_periodos` da empresa com `tipo='contracheque_mensal'`, competência no mês anterior e `status='fechado'` (comportamento atual, mantido a nível empresa).
-2. Existe pelo menos 1 `dp_documentos` com:
-   - `company_id = selectedCompanyId`
-   - `tipo = 'contracheque'`
-   - `colaborador_id` pertencente a colaboradores daquela unidade
-   - `referencia_data` entre o 1º e último dia do mês anterior
+Em `src/hooks/useDpPendencias.tsx` blocos 3 e 4:
+- Remover a checagem em `dp_folha_periodos.status = 'fechado'`.
+- Manter apenas a checagem por `dp_documentos` importados por unidade (comportamento efetivo hoje).
 
-**Bloco 4 — Adiantamento (mês vigente):**
-1. Existe `dp_folha_periodos` da empresa com `tipo='adiantamento'`, competência no mês vigente e `status='fechado'` (mantido).
-2. Existe pelo menos 1 `dp_documentos` com `tipo='adiantamento'`, colaboradores da unidade e `referencia_data` no mês vigente.
+## 3. Negociação ACT/CCT — sem UI extra (decisão: a)
 
-Mantidas as demais condições de disparo (dia do mês ≥ 10 para contracheque; dia ≥ `dia_adiantamento + 5` para adiantamento).
+Resolução continua sendo "cadastrar nova negociação com ano/mês mais recente". Ajuste mínimo:
+- No card do bloco 6, incluir no `subtitulo` a instrução `"Cadastre nova negociação para renovar"` para o usuário entender que editar a última não resolve.
 
-Reaproveita a mesma query de colaboradores por unidade já usada no bloco 5.
+## 4. Janela de alerta configurável por empresa
 
-# Escopo
+### 4.1. Migration
+Criar tabela `dp_pendencias_config` com campos por empresa:
 
-- Arquivo único: `src/hooks/useDpPendencias.tsx` (blocos 3 e 4).
-- Sem migrations, sem mudanças de UI, sem mudanças nos demais blocos.
+| coluna | tipo | default |
+|---|---|---|
+| `company_id` | uuid (PK) | — |
+| `alerta_solicitacao_dias` | int | 3 |
+| `alerta_troca_dias` | int | 3 |
+| `alerta_contracheque_dia_mes` | int | 10 |
+| `alerta_adiantamento_offset` | int | 5 |
+| `alerta_folha_ponto_dia_mes` | int | 10 |
+| `alerta_negociacao_dias` | int | 30 |
 
-# Fora de escopo
+Grants padrão para `authenticated`+`service_role`, RLS: ler/escrever apenas membros da empresa (via `has_role`/associação em `company_members`).
 
-- Alterações em `/dp/folha` ou no significado de "fechar folha".
-- Bloco 5 (Folha de ponto) — já usa a lógica correta.
+### 4.2. Hook novo `useDpPendenciasConfig`
+Lê a configuração da empresa (com defaults) e retorna os valores acima.
+
+### 4.3. Consumir no `useDpPendencias.tsx`
+Substituir todos os literais (`3`, `10`, `5`, `30`) pelos valores do hook.
+
+### 4.4. UI em `/dp/configuracoes`
+Novo card "Prazos de lembrete das pendências" com um input numérico por tipo de atividade e botão "Salvar". Layout consistente com os cards já existentes de `DpConfiguracoes.tsx`.
+
+## 5. Botão "Adiar" unificado
+
+Trocar os dois botões "Adiar 1d" / "Adiar 7d" em `src/components/dp/home/PendenciasCard.tsx` por um único botão "Adiar" que abre um `Popover` com opções rápidas + campo de dias customizado:
+
+- Opções rápidas: `1 dia`, `3 dias`, `7 dias`, `15 dias`, `30 dias`
+- Campo "Personalizado (dias)" com input numérico + botão "Aplicar"
+
+O comportamento persistente continua o mesmo (grava em `dp_user_prefs.pendencias_adiadas`). Também aplicar a mesma unificação no `Dialog` de detalhes (`DialogFooter`).
+
+## 6. Correção de shift UTC nas datas (baixo custo)
+
+Trocar `ymd()` em `useDpPendencias.tsx` por `format(d, "yyyy-MM-dd")` do `date-fns` — evita off-by-one em bordas de mês no fuso do Brasil.
+
+## Fora de escopo
+
+- Não vou criar botão "Fechar folha" nem tocar em `/dp/folha` (decidido: b).
+- Não vou criar coluna `renovada_em` em negociações (decidido: a).
+- Não vou mexer nos textos/enum de `dp_folha_periodos.status`.
+
+## Arquivos afetados
+
+- Migration nova: `dp_pendencias_config`.
+- `src/hooks/useDpPendencias.tsx` — remove branch morto, consome config, `staleTime`/`refetchOnWindowFocus`, corrige `ymd`.
+- `src/hooks/useDpPendenciasConfig.tsx` (novo).
+- `src/pages/dp/DpConfiguracoes.tsx` — novo card de prazos.
+- `src/components/dp/home/PendenciasCard.tsx` — botão "Adiar" unificado com popover.
+- `src/pages/dp/DpTrocas.tsx`, `DpMeuTrocas.tsx`, `DpSolicitacoes.tsx`, `DpAtestados.tsx`, `DpDocumentosPorTipo.tsx`, `DpSindicatoNegociacoes.tsx` — invalidação de `["dp_pendencias"]`.

@@ -207,6 +207,7 @@ export default function DpDocumentosPorTipo({ tipo: tipoProp }: { tipo?: Tipo } 
     toast.success("Competência atualizada");
     setEditando(null);
     qc.invalidateQueries({ queryKey: ["dp_documentos"] });
+    qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
   };
 
   const confirmDelete = async () => {
@@ -220,6 +221,7 @@ export default function DpDocumentosPorTipo({ tipo: tipoProp }: { tipo?: Tipo } 
       setToDelete(null);
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
       qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
+      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
     } catch (e) {
       toast.error("Erro ao excluir", { description: e instanceof Error ? e.message : String(e) });
     } finally {

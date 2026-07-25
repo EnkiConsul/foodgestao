@@ -1,11 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Settings, CalendarClock, ShieldAlert, Info, Save, Trash2 } from "lucide-react";
+import { Settings, CalendarClock, ShieldAlert, Info, Save, Trash2, BellRing } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useDpPendenciasConfig, DP_PENDENCIAS_CONFIG_DEFAULT, type DpPendenciasConfig } from "@/hooks/useDpPendenciasConfig";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -208,16 +209,9 @@ export default function DpConfiguracoes() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><Info className="size-5 text-primary" /> Prazos e SLAs</CardTitle>
-            <CardDescription>
-              SLAs de aprovação (solicitações, atestados, trocas) ainda utilizam as regras padrão do sistema.
-              Regras customizadas serão liberadas em versões futuras.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+        <PrazosLembretesCard />
       </div>
+
 
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <AlertDialogContent>
@@ -237,5 +231,77 @@ export default function DpConfiguracoes() {
         </AlertDialogContent>
       </AlertDialog>
     </DpPage>
+  );
+}
+
+const PRAZO_FIELDS: Array<{
+  key: keyof DpPendenciasConfig;
+  label: string;
+  helper: string;
+  min: number;
+  max: number;
+}> = [
+  { key: "alerta_solicitacao_dias", label: "Solicitações (dias para responder)", helper: "Dias após a criação da solicitação até virar pendência atrasada.", min: 1, max: 30 },
+  { key: "alerta_troca_dias", label: "Trocas (dias para aprovação do gestor)", helper: "Dias após a criação da troca até virar pendência atrasada.", min: 1, max: 30 },
+  { key: "alerta_contracheque_dia_mes", label: "Contracheque (dia limite do mês)", helper: "A partir desse dia do mês, cobra o contracheque do mês anterior por unidade.", min: 1, max: 31 },
+  { key: "alerta_adiantamento_offset", label: "Adiantamento (dias após o dia de pagamento)", helper: "Somado ao 'dia_adiantamento' da unidade. Ex.: 5 → cobra 5 dias após.", min: 1, max: 31 },
+  { key: "alerta_folha_ponto_dia_mes", label: "Folha de ponto (dia limite do mês)", helper: "A partir desse dia do mês, cobra a folha de ponto do mês anterior por unidade com relógio.", min: 1, max: 31 },
+  { key: "alerta_negociacao_dias", label: "Negociação coletiva (dias antes do vencimento)", helper: "Janela para começar a alertar antes do vencimento anual da última negociação.", min: 1, max: 180 },
+];
+
+function PrazosLembretesCard() {
+  const { config, save, saving, isLoading } = useDpPendenciasConfig();
+  const [form, setForm] = useState<DpPendenciasConfig>(DP_PENDENCIAS_CONFIG_DEFAULT);
+
+  useEffect(() => {
+    if (!isLoading) setForm(config);
+  }, [isLoading, config]);
+
+  const handleSave = () => {
+    for (const f of PRAZO_FIELDS) {
+      const v = Number(form[f.key]);
+      if (!Number.isFinite(v) || v < f.min || v > f.max) {
+        return toast.error(`Valor inválido em "${f.label}"`, {
+          description: `Use um número entre ${f.min} e ${f.max}.`,
+        });
+      }
+    }
+    save(form, {
+      onSuccess: () => toast.success("Prazos de lembrete atualizados"),
+      onError: (e: any) => toast.error("Erro ao salvar", { description: e?.message ?? String(e) }),
+    } as any);
+  };
+
+  return (
+    <Card className="md:col-span-2">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <BellRing className="size-5 text-primary" /> Prazos de lembrete das pendências
+        </CardTitle>
+        <CardDescription>
+          Configure, por tipo de atividade, o prazo usado no Painel Administrativo para gerar as pendências do sistema.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4 md:grid-cols-2">
+        {PRAZO_FIELDS.map((f) => (
+          <div key={f.key} className="space-y-1.5">
+            <Label className="text-xs">{f.label}</Label>
+            <Input
+              type="number"
+              min={f.min}
+              max={f.max}
+              value={form[f.key] ?? ""}
+              onChange={(e) => setForm({ ...form, [f.key]: Number(e.target.value) })}
+            />
+            <p className="text-[11px] text-muted-foreground">{f.helper}</p>
+          </div>
+        ))}
+        <div className="md:col-span-2 flex justify-end">
+          <Button onClick={handleSave} disabled={saving || isLoading}>
+            <Save className="size-4 mr-2" /> Salvar prazos
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

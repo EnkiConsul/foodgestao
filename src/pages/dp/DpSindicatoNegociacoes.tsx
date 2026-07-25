@@ -174,6 +174,7 @@ export default function DpSindicatoNegociacoes() {
     onSuccess: () => {
       toast.success(form.id ? "Negociação atualizada" : "Negociação cadastrada");
       qc.invalidateQueries({ queryKey: ["dp_sindicato_negociacoes"] });
+      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
       setOpen(false);
     },
     onError: (e) => toast.error("Erro ao salvar", { description: e instanceof Error ? e.message : String(e) }),
@@ -187,6 +188,7 @@ export default function DpSindicatoNegociacoes() {
     onSuccess: () => {
       toast.success("Negociação removida");
       qc.invalidateQueries({ queryKey: ["dp_sindicato_negociacoes"] });
+      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
     },
     onError: (e) => toast.error("Erro ao remover", { description: e instanceof Error ? e.message : String(e) }),
   });

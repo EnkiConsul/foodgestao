@@ -182,6 +182,7 @@ export default function DpAtestados() {
       setUnidadeId(""); setColaboradorId(""); setDataDoc(""); setDias(""); setObservacao(""); setPendingFile(null);
       if (fileRef.current) fileRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["dp_atestados_admin"] });
+      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
       setTab("historico");
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao importar"),
@@ -201,6 +202,7 @@ export default function DpAtestados() {
       toast.success(vars.status === "aprovada" ? "Atestado aprovado" : "Atestado recusado");
       qc.invalidateQueries({ queryKey: ["dp_atestados_admin"] });
       qc.invalidateQueries({ queryKey: ["dp_atestados_pendentes"] });
+      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
       setRecusaId(null);
     },
     onError: (e: any) => toast.error(e.message ?? "Erro"),
@@ -215,6 +217,7 @@ export default function DpAtestados() {
     onSuccess: () => {
       toast.success("Atestado excluído");
       qc.invalidateQueries({ queryKey: ["dp_atestados_admin"] });
+      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
       setToDelete(null);
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao excluir"),
@@ -238,6 +241,7 @@ export default function DpAtestados() {
     onSuccess: () => {
       toast.success("Atestado atualizado");
       qc.invalidateQueries({ queryKey: ["dp_atestados_admin"] });
+      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
       setEditing(null);
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao atualizar"),

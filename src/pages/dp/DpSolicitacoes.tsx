@@ -92,6 +92,7 @@ export default function DpSolicitacoes() {
       toast.success("Solicitação criada");
       qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
       qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
+      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
       setDialogOpen(false);
       setForm({ colaborador_id: "", tipo: "folga", data_alvo: "", data_fim: "", motivo: "" });
     },
@@ -112,6 +113,7 @@ export default function DpSolicitacoes() {
       toast.success(vars.status === "aprovada" ? "Solicitação aprovada" : "Solicitação recusada");
       qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
       qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
+      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
       setRespostas((prev) => {
         const n = { ...prev };
         delete n[vars.id];
