@@ -91,7 +91,6 @@ export default function DpSolicitacoes() {
     onSuccess: () => {
       toast.success("Solicitação criada");
       qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
-      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
       qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
       qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
       setDialogOpen(false);
@@ -113,7 +112,6 @@ export default function DpSolicitacoes() {
     onSuccess: (_data, vars) => {
       toast.success(vars.status === "aprovada" ? "Solicitação aprovada" : "Solicitação recusada");
       qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
-      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
       qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
       qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
       setRespostas((prev) => {

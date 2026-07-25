@@ -220,7 +220,6 @@ export default function DpDocumentosPorTipo({ tipo: tipoProp }: { tipo?: Tipo } 
       toast.success("Documento excluído");
       setToDelete(null);
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
-      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
       qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
       qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
     } catch (e) {

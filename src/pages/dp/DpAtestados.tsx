@@ -201,7 +201,6 @@ export default function DpAtestados() {
     onSuccess: (_d, vars) => {
       toast.success(vars.status === "aprovada" ? "Atestado aprovado" : "Atestado recusado");
       qc.invalidateQueries({ queryKey: ["dp_atestados_admin"] });
-      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
       qc.invalidateQueries({ queryKey: ["dp_atestados_pendentes"] });
       qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
       setRecusaId(null);
