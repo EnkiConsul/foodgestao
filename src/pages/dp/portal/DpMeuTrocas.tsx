@@ -105,6 +105,7 @@ export default function DpMeuTrocas() {
     onSuccess: () => {
       toast.success("Resposta registrada");
       qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
+      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
     },
     onError: (e: any) => toast.error(e.message ?? "Erro"),
   });
@@ -117,6 +118,7 @@ export default function DpMeuTrocas() {
     onSuccess: () => {
       toast.success("Troca cancelada");
       qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
+      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
     },
     onError: (e: any) => toast.error(e.message ?? "Erro"),
   });
@@ -149,6 +151,7 @@ export default function DpMeuTrocas() {
     onSuccess: () => {
       toast.success("Troca proposta enviada");
       qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
+      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
       setOpen(false);
       setForm({ destino_id: "", data_original: undefined, data_proposta: undefined, motivo: "" });
     },
