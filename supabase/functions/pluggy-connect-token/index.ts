@@ -70,10 +70,9 @@ Deno.serve(async (req) => {
     .from("open_finance_connection_requests")
     .insert({
       company_id: parsed.company_id,
-      user_id: userId,
+      requested_by_user_id: userId,
       status: "pending",
-      connect_token: result.data.accessToken.slice(0, 32) + "…", // truncated for audit only
-      item_id: parsed.item_id ?? null,
+      pluggy_item_id: parsed.item_id ?? null,
     })
     .select("id")
     .maybeSingle();

@@ -63,14 +63,13 @@ Deno.serve(async (req) => {
         connected_by_user_id: userId,
         pluggy_item_id: item.id,
         institution_name: item.connector?.name ?? null,
-        institution_logo: item.connector?.imageUrl ?? null,
+        institution_logo_url: item.connector?.imageUrl ?? null,
         connector_id: item.connector?.id ?? null,
         status: item.status ?? "UPDATED",
-        execution_status: item.executionStatus ?? null,
+        status_detail: item.executionStatus ?? null,
         consent_expires_at: item.consentExpiresAt ?? null,
-        last_synced_at: null,
       },
-      { onConflict: "pluggy_item_id" },
+      { onConflict: "company_id,pluggy_item_id" },
     )
     .select("id")
     .maybeSingle();
@@ -92,16 +91,14 @@ Deno.serve(async (req) => {
     name: a.name ?? a.marketingName ?? null,
     number: a.number ?? null,
     balance: a.balance ?? null,
-    currency_code: a.currencyCode ?? "BRL",
-    owner: a.owner ?? null,
-    tax_number: a.taxNumber ?? null,
+    currency: a.currencyCode ?? "BRL",
     raw: a as any,
   }));
 
   if (rows.length) {
     const { error: accErr } = await supabase
       .from("open_finance_accounts")
-      .upsert(rows, { onConflict: "pluggy_account_id" });
+      .upsert(rows, { onConflict: "connection_id,pluggy_account_id" });
     if (accErr) {
       console.error("[pluggy-item-register] upsert accounts failed:", accErr);
     }
@@ -112,13 +109,13 @@ Deno.serve(async (req) => {
     connection_id: conn.id,
     company_id: body.company_id,
     status: "queued",
-    trigger: "item_register",
+    triggered_by: "item_register",
   });
 
   if (body.request_id) {
     await supabase
       .from("open_finance_connection_requests")
-      .update({ status: "connected", item_id: item.id })
+      .update({ status: "connected", pluggy_item_id: item.id })
       .eq("id", body.request_id);
   }
 
