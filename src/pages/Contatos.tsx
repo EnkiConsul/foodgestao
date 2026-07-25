@@ -145,8 +145,8 @@ export default function Contatos() {
             maxLength={50}
           />
         </div>
-        <Tabs value={filterType} onValueChange={setFilterType}>
-          <TabsList>
+        <Tabs value={filterType} onValueChange={setFilterType} className="w-full sm:w-auto">
+          <TabsList className="w-full sm:w-auto overflow-x-auto flex justify-start">
             <TabsTrigger value="all">Todos</TabsTrigger>
             <TabsTrigger value="cliente">Clientes</TabsTrigger>
             <TabsTrigger value="fornecedor">Fornecedores</TabsTrigger>
