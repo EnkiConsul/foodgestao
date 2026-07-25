@@ -328,41 +328,41 @@ export default function FluxoCaixa() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
         <Card className="shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Saldo Atual</CardTitle>
-            <Wallet className="h-4 w-4 text-primary" />
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 p-3 md:p-4">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Saldo Atual</CardTitle>
+            <Wallet className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
           </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold">{formatBRL(currentBalance)}</div>
+          <CardContent className="p-3 md:p-4 pt-0">
+            <div className="text-base md:text-xl font-bold">{formatBRL(currentBalance)}</div>
           </CardContent>
         </Card>
         <Card className="shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Entradas Previstas</CardTitle>
-            <TrendingUp className="h-4 w-4 text-success" />
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 p-3 md:p-4">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Entradas Previstas</CardTitle>
+            <TrendingUp className="h-3.5 w-3.5 md:h-4 md:w-4 text-success" />
           </CardHeader>
-          <CardContent>
-            <div className={`text-xl font-bold ${amountColorClass(projectedTotals.totalReceitas)}`}>{formatBRL(projectedTotals.totalReceitas)}</div>
+          <CardContent className="p-3 md:p-4 pt-0">
+            <div className={`text-base md:text-xl font-bold ${amountColorClass(projectedTotals.totalReceitas)}`}>{formatBRL(projectedTotals.totalReceitas)}</div>
           </CardContent>
         </Card>
         <Card className="shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Saídas Previstas</CardTitle>
-            <TrendingDown className="h-4 w-4 text-destructive" />
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 p-3 md:p-4">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Saídas Previstas</CardTitle>
+            <TrendingDown className="h-3.5 w-3.5 md:h-4 md:w-4 text-destructive" />
           </CardHeader>
-          <CardContent>
-            <div className={`text-xl font-bold ${amountColorClass(-projectedTotals.totalDespesas)}`}>{formatBRL(projectedTotals.totalDespesas)}</div>
+          <CardContent className="p-3 md:p-4 pt-0">
+            <div className={`text-base md:text-xl font-bold ${amountColorClass(-projectedTotals.totalDespesas)}`}>{formatBRL(projectedTotals.totalDespesas)}</div>
           </CardContent>
         </Card>
         <Card className="shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Saldo Projetado</CardTitle>
-            <CalendarDays className="h-4 w-4 text-primary" />
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 p-3 md:p-4">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Saldo Projetado</CardTitle>
+            <CalendarDays className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
           </CardHeader>
-          <CardContent>
-            <div className={`text-xl font-bold ${projectedTotals.projectedBalance >= 0 ? "text-success" : "text-destructive"}`}>
+          <CardContent className="p-3 md:p-4 pt-0">
+            <div className={`text-base md:text-xl font-bold ${projectedTotals.projectedBalance >= 0 ? "text-success" : "text-destructive"}`}>
               {formatBRL(projectedTotals.projectedBalance)}
             </div>
           </CardContent>
