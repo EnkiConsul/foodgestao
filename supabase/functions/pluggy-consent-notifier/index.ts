@@ -27,10 +27,9 @@ Deno.serve(async (req) => {
 
   const { data: connections } = await supabase
     .from("open_finance_connections")
-    .select("id, company_id, connected_by_user_id, institution_name, consent_expires_at, consent_notified_at")
+    .select("id, company_id, connected_by_user_id, institution_name, consent_expires_at, metadata")
     .not("consent_expires_at", "is", null)
-    .lte("consent_expires_at", soon)
-    .is("consent_notified_at", null);
+    .lte("consent_expires_at", soon);
 
   const notified: string[] = [];
   for (const c of connections ?? []) {
