@@ -215,12 +215,12 @@ export default function CartoesCredito() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditing(card); setFormOpen(true); }}>
-                        <Pencil className="h-3.5 w-3.5" />
+                    <div className="flex gap-1 shrink-0">
+                      <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => { setEditing(card); setFormOpen(true); }} aria-label="Editar cartão">
+                        <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8 hover:text-destructive" onClick={() => setDeleteCard(card)}>
-                        <Trash2 className="h-3.5 w-3.5" />
+                      <Button size="icon" variant="ghost" className="h-10 w-10 hover:text-destructive" onClick={() => setDeleteCard(card)} aria-label="Excluir cartão">
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
