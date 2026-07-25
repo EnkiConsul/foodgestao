@@ -122,15 +122,17 @@ export default function DpAprovacoes() {
                     Solicitado em {new Date(p.created_at).toLocaleString("pt-BR")}
                   </div>
                 </div>
-                <div className="flex shrink-0 gap-2">
+                <div className="flex shrink-0 flex-col sm:flex-row gap-2 w-full md:w-auto">
                   <Button
                     variant="outline"
+                    className="min-h-11 w-full sm:w-auto"
                     disabled={busyId === p.id || decide.isPending}
                     onClick={() => setRecusarId(p.id)}
                   >
                     <X className="h-4 w-4 mr-1" /> Recusar
                   </Button>
                   <Button
+                    className="min-h-11 w-full sm:w-auto"
                     disabled={busyId === p.id || decide.isPending}
                     onClick={() => { setBusyId(p.id); decide.mutate({ id: p.id, approve: true }); }}
                   >

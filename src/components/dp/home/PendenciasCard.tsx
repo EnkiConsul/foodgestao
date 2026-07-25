@@ -106,13 +106,13 @@ export function PendenciasCard() {
                 )}
               </div>
               <p className="text-xs text-muted-foreground">{p.subtitulo}</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <Button asChild size="sm" variant="default" className="h-7 text-xs">
+              <div className="mt-2 grid grid-cols-1 sm:flex sm:flex-wrap gap-2">
+                <Button asChild size="sm" variant="default" className="h-9 sm:h-7 text-xs w-full sm:w-auto">
                   <Link to={p.url}>
                     Resolver <ArrowRight className="h-3 w-3 ml-1" />
                   </Link>
                 </Button>
-                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setDetail(p)}>
+                <Button size="sm" variant="outline" className="h-9 sm:h-7 text-xs w-full sm:w-auto" onClick={() => setDetail(p)}>
                   <Info className="h-3 w-3 mr-1" /> Detalhes
                 </Button>
                 <AdiarPopover onAdiar={(dias) => adiar(p, dias)} />
@@ -221,7 +221,7 @@ function AdiarPopover({
         <Button
           size={triggerSize}
           variant={triggerVariant}
-          className={triggerSize === "sm" ? "h-7 text-xs" : ""}
+          className={triggerSize === "sm" ? "h-9 sm:h-7 text-xs w-full sm:w-auto" : ""}
         >
           <CalendarPlus className={triggerSize === "sm" ? "h-3 w-3 mr-1" : "h-4 w-4 mr-1"} />
           Adiar
