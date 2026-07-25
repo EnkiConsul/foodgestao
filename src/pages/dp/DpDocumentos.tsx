@@ -254,7 +254,7 @@ export default function DpDocumentos() {
       </div>
 
 
-      <DpContentCard contentClassName="overflow-x-auto">
+      <DpContentCard contentClassName="overflow-x-auto hidden md:block">
           {list.isLoading ? (
             <TableSkeleton columns={filterTipo ? 6 : 7} headers={filterTipo ? ["Título", "Colaborador", "Status", "Referência", "Arquivo", ""] : ["Título", "Tipo", "Colaborador", "Status", "Referência", "Arquivo", ""]} />
           ) : (
@@ -332,6 +332,58 @@ export default function DpDocumentos() {
             </Table>
           )}
       </DpContentCard>
+
+      {/* Mobile: lista de cards */}
+      <div className="md:hidden space-y-3">
+        {list.isLoading && (
+          <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">Carregando…</div>
+        )}
+        {!list.isLoading && filteredRows.length === 0 && (
+          <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">Nenhum documento.</div>
+        )}
+        {!list.isLoading && filteredRows.map((r) => {
+          const status = (r as any).aprovacao_status as Aprov;
+          const submetido = (r as any).submetido_por_colaborador as boolean;
+          const motivo = (r as any).motivo_recusao as string | null;
+          return (
+            <div key={r.id} className="rounded-2xl border border-border bg-card p-4 space-y-2 active:scale-[0.98] transition-transform">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium truncate">{r.titulo}</div>
+                  {r.dp_colaboradores?.nome && <div className="text-[11px] text-muted-foreground truncate">{r.dp_colaboradores.nome}</div>}
+                  {submetido && <div className="text-[10px] text-primary mt-0.5">↑ Enviado pelo colaborador</div>}
+                </div>
+                <StatusBadge status={status} />
+              </div>
+              <div className="flex flex-wrap gap-1.5 text-[11px] text-muted-foreground pt-1 border-t border-border/60">
+                {!filterTipo && <Badge variant="outline" className="capitalize text-[10px]">{r.tipo}</Badge>}
+                {r.referencia_data && <span>Ref: {r.referencia_data}</span>}
+                <span className="inline-flex items-center gap-1 truncate max-w-full">
+                  <FileText className="h-3 w-3" /> {r.file_name ?? r.file_path}
+                </span>
+              </div>
+              {status === "recusado" && motivo && (
+                <div className="text-xs text-destructive">Motivo: {motivo}</div>
+              )}
+              <div className="flex gap-1 pt-1 border-t border-border/60 flex-wrap">
+                {status === "pendente" && (
+                  <>
+                    <Button size="sm" variant="outline" className="min-h-11 flex-1 border-primary/40 text-primary hover:bg-primary/10" onClick={() => aprovar.mutate(r)} disabled={aprovar.isPending}>
+                      <Check className="h-4 w-4 mr-1" /> Aprovar
+                    </Button>
+                    <Button size="sm" variant="outline" className="min-h-11 flex-1 border-destructive/40 text-destructive hover:bg-destructive/10" onClick={() => { setRejectRow(r); setRejectMotivo(""); }}>
+                      <X className="h-4 w-4 mr-1" /> Recusar
+                    </Button>
+                  </>
+                )}
+                <Button size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => download(r)}><Download className="h-4 w-4" /></Button>
+                <Button size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => setToDelete(r)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
 
       {/* Dialog de recusa */}
       <Dialog open={!!rejectRow} onOpenChange={(v) => { if (!v) { setRejectRow(null); setRejectMotivo(""); } }}>
