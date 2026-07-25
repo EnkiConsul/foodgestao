@@ -373,7 +373,7 @@ export default function Categorias() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Categorias</h1>
+        <h1 className="text-2xl sm:text-2xl font-bold tracking-tight">Categorias</h1>
       </div>
 
       {/* Toolbar */}
