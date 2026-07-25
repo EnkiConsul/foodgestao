@@ -1,6 +1,6 @@
 import { NavLink } from "@/components/NavLink";
 import { useActiveModule } from "@/hooks/useActiveModule";
-import { MOBILE_NAV, MODULES_WITHOUT_BOTTOM_NAV, type NavSlot } from "@/config/mobileNav";
+import { MOBILE_NAV, MODULES_WITHOUT_BOTTOM_NAV, type NavSlot, type MoreGroup } from "@/config/mobileNav";
 import { MobileFab } from "./MobileFab";
 import { MobileMoreSheet } from "./MobileMoreSheet";
 import { cn } from "@/lib/utils";
@@ -27,7 +27,7 @@ export function MobileBottomNav() {
   );
 }
 
-function SlotRenderer({ slot, moreGroups }: { slot: NavSlot; moreGroups: ReturnType<typeof groupsRef> }) {
+function SlotRenderer({ slot, moreGroups }: { slot: NavSlot; moreGroups: MoreGroup[] }) {
   if (slot.type === "fab") {
     return (
       <div className="flex-1 flex items-start justify-center pt-1">
@@ -71,9 +71,4 @@ function SlotRenderer({ slot, moreGroups }: { slot: NavSlot; moreGroups: ReturnT
       <span className="text-[10px] font-medium leading-none text-center px-0.5">{slot.label}</span>
     </NavLink>
   );
-}
-
-// helper type only
-function groupsRef() {
-  return [] as never;
 }
