@@ -139,7 +139,7 @@ export function LancamentoCard({ row: r, isSelected, formatBRL, callbacks }: Lan
             <Button
               variant="ghost"
               size="icon"
-              className="h-10 w-10 text-success hover:text-success"
+              className="h-11 w-11 text-success hover:text-success"
               onClick={() => callbacks.onRegisterPayment(r.original)}
               aria-label="Registrar pagamento"
             >
@@ -149,7 +149,7 @@ export function LancamentoCard({ row: r, isSelected, formatBRL, callbacks }: Lan
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10"
+            className="h-11 w-11"
             onClick={() => callbacks.onEdit(r.original)}
             aria-label="Editar"
           >
@@ -158,7 +158,7 @@ export function LancamentoCard({ row: r, isSelected, formatBRL, callbacks }: Lan
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10"
+            className="h-11 w-11"
             onClick={() => callbacks.onDuplicate(r.original)}
             aria-label="Duplicar"
           >
@@ -167,7 +167,7 @@ export function LancamentoCard({ row: r, isSelected, formatBRL, callbacks }: Lan
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 hover:text-destructive"
+            className="h-11 w-11 hover:text-destructive"
             onClick={() => callbacks.onRequestDelete(r.id)}
             aria-label="Excluir"
           >
