@@ -213,11 +213,11 @@ export default function Onboarding() {
               cnpjInactive={cnpjInactive}
               setCnpjInactive={setCnpjInactive}
             />
-            <div className="mt-8 flex items-center justify-between gap-3">
-              <Button variant="ghost" onClick={requestExit}>
+            <div className="mt-6 md:mt-8 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3">
+              <Button variant="ghost" onClick={requestExit} className="w-full sm:w-auto min-h-10">
                 Sair
               </Button>
-              <Button onClick={handleAvancar} disabled={cnpjPending} size="lg">
+              <Button onClick={handleAvancar} disabled={cnpjPending} size="lg" className="w-full sm:w-auto min-h-11">
                 Avançar
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
