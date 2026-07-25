@@ -41,14 +41,15 @@ export function AdminCoupons() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
         <p className="text-sm text-muted-foreground">Cupons de desconto para checkout.</p>
-        <Button onClick={() => { setForm(DEFAULTS); setOpen(true); }}>
+        <Button onClick={() => { setForm(DEFAULTS); setOpen(true); }} className="w-full sm:w-auto min-h-10">
           <Plus className="h-4 w-4 mr-2" /> Novo cupom
         </Button>
       </div>
 
-      <div className="rounded-md border">
+      {/* Desktop */}
+      <div className="hidden md:block rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -94,6 +95,45 @@ export function AdminCoupons() {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Mobile */}
+      <div className="md:hidden space-y-2">
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground">Carregando...</p>
+        ) : coupons.length === 0 ? (
+          <p className="text-center text-sm text-muted-foreground py-8">Nenhum cupom</p>
+        ) : (
+          coupons.map((c: any) => (
+            <div key={c.id} className="rounded-md border p-3 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-mono font-semibold truncate">{c.code}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {c.discount_type === "percent"
+                      ? `${c.discount_value}% de desconto`
+                      : `${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(c.discount_value)} de desconto`}
+                  </p>
+                </div>
+                <Badge variant={c.is_active ? "default" : "outline"} className="shrink-0 text-[10px]">
+                  {c.is_active ? "Ativo" : "Inativo"}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>Usos: {c.times_redeemed}{c.max_redemptions ? `/${c.max_redemptions}` : ""}</span>
+                <span>Até {formatDate(c.valid_until, "dd/MM/yy")}</span>
+              </div>
+              <div className="flex gap-1 pt-1 border-t">
+                <Button size="sm" variant="outline" className="flex-1 min-h-9" onClick={() => { setForm(c); setOpen(true); }}>
+                  <Pencil className="h-4 w-4 mr-1" /> Editar
+                </Button>
+                <Button size="sm" variant="outline" className="flex-1 min-h-9" onClick={() => del.mutate(c.id)}>
+                  <Trash2 className="h-4 w-4 mr-1" /> Excluir
+                </Button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
