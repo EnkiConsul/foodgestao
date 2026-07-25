@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { Users, Users2, Briefcase, Building2, FileText, Handshake, Settings } from "lucide-react";
+import { Users, Users2, Briefcase, Building2, FileText, Handshake, Settings, BellRing } from "lucide-react";
 import { NavigationCard } from "@/components/dp/NavigationCard";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 
@@ -9,8 +9,10 @@ const items = [
   { title: "Unidades", desc: "Gerencie as unidades da loja.", url: "/dp/cadastros/unidades", icon: Building2 },
   { title: "Sindicatos", desc: "Gerencie sindicatos patronais e laborais.", url: "/dp/cadastros/sindicatos", icon: FileText },
   { title: "Negociações sindicais", desc: "Acordos ACT/CCT, reajustes e cláusulas.", url: "/dp/documentos/act-cct", icon: Handshake },
+  { title: "Pendências", desc: "Prazos e lembretes do quadro de pendências.", url: "/dp/cadastros/pendencias", icon: BellRing },
   { title: "Configurações do DP", desc: "Limites de folga, bloqueios e regras gerais.", url: "/dp/configuracoes", icon: Settings },
 ];
+
 
 export default function DpCadastrosHub() {
   return (

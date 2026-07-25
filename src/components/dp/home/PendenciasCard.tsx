@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bell, ArrowRight, Clock, Clock3, CalendarClock, AlarmClockOff, Info, CalendarPlus } from "lucide-react";
+import { Bell, ArrowRight, Clock, Clock3, CalendarClock, AlarmClockOff, Info, CalendarPlus, Settings } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -52,7 +52,19 @@ export function PendenciasCard() {
         <Badge className="ml-1 bg-primary text-primary-foreground rounded-full h-6 min-w-6 px-2">
           {visible.length}
         </Badge>
+        <Button
+          asChild
+          variant="ghost"
+          size="icon"
+          className="ml-auto h-7 w-7 text-muted-foreground hover:text-foreground"
+          title="Configurar prazos das pendências"
+        >
+          <Link to="/dp/cadastros/pendencias" aria-label="Configurar prazos das pendências">
+            <Settings className="h-4 w-4" />
+          </Link>
+        </Button>
       </div>
+
 
       <div className="flex flex-wrap gap-2 mb-4">
         <UrgencyChip icon={AlarmClockOff} label="Atrasado" count={counters.atrasado} tone="destructive" />

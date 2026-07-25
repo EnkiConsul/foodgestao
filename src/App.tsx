@@ -62,6 +62,7 @@ const DpDocumentosPorTipo = lazy(() => import("./pages/dp/DpDocumentosPorTipo"))
 const DpFolgas = lazy(() => import("./pages/dp/DpFolgas"));
 const DpFolgasHub = lazy(() => import("./pages/dp/DpFolgasHub"));
 const DpCadastrosHub = lazy(() => import("./pages/dp/DpCadastrosHub"));
+const DpCadastroPendencias = lazy(() => import("./pages/dp/cadastros/DpCadastroPendencias"));
 const DpUnidades = lazy(() => import("./pages/dp/DpUnidades"));
 const DpCargos = lazy(() => import("./pages/dp/DpCargos"));
 const DpSindicatos = lazy(() => import("./pages/dp/DpSindicatos"));
@@ -363,6 +364,7 @@ const AppRoutes = () => (
         <Route path="cadastros/unidades" element={<DpUnidades />} />
         <Route path="cadastros/cargos" element={<DpCargos />} />
         <Route path="cadastros/sindicatos" element={<DpSindicatos />} />
+        <Route path="cadastros/pendencias" element={<DpCadastroPendencias />} />
         <Route path="documentos/act-cct" element={<DpSindicatoNegociacoes />} />
         <Route path="configuracoes" element={<DpConfiguracoes />} />
         <Route path="sindicatos" element={<Navigate to="/dp/cadastros/sindicatos" replace />} />
