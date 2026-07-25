@@ -1,3 +1,5 @@
+import { toTitleCase } from "@/lib/titleCase";
+
 interface AdminPageHeaderProps {
   title: string;
   description?: string;
@@ -6,8 +8,8 @@ interface AdminPageHeaderProps {
 export function AdminPageHeader({ title, description }: AdminPageHeaderProps) {
   return (
     <div>
-      <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-      {description && <p className="text-muted-foreground text-sm">{description}</p>}
+      <h1 className="text-xl md:text-2xl font-bold tracking-tight">{toTitleCase(title)}</h1>
+      {description && <p className="text-muted-foreground text-xs md:text-sm">{description}</p>}
     </div>
   );
 }
