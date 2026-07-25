@@ -438,7 +438,7 @@ export default function DpHistoricoCompleto() {
         </div>
       </DpFilterCard>
 
-      <DpContentCard contentClassName="overflow-x-auto p-0">
+      <DpContentCard contentClassName="overflow-x-auto p-0 hidden md:block">
         {query.isLoading ? (
           <div className="p-4">
             <TableSkeleton
@@ -499,6 +499,45 @@ export default function DpHistoricoCompleto() {
           </Table>
         )}
       </DpContentCard>
+
+      {/* Mobile: lista de cards */}
+      <div className="md:hidden space-y-3">
+        {query.isLoading && (
+          <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">Carregando…</div>
+        )}
+        {!query.isLoading && paged.length === 0 && (
+          <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+            Nenhum documento encontrado com esses filtros.
+          </div>
+        )}
+        {!query.isLoading && paged.map((r) => (
+          <div key={r.id} className="rounded-2xl border border-border bg-card p-4 space-y-2 active:scale-[0.98] transition-transform">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="font-semibold truncate">{r.colaborador_nome}</div>
+                <div className="text-[11px] text-muted-foreground truncate">{r.unidade_nome}</div>
+              </div>
+              <Badge variant="outline" className={statusBadgeClass(r.status_key) + " shrink-0 text-[10px]"}>
+                {r.status_label}
+              </Badge>
+            </div>
+            <div className="flex flex-wrap gap-1.5 text-[11px]">
+              <Badge variant="outline" className={tipoBadgeClass(r.tipo_key) + " text-[10px]"}>{r.tipo_label}</Badge>
+              <span className="font-mono text-muted-foreground">Comp. {r.competencia}</span>
+              <span className="font-mono text-muted-foreground">· {new Date(r.data).toLocaleDateString("pt-BR")}</span>
+            </div>
+            <div className="flex gap-1 pt-1 border-t border-border/60">
+              <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => setPreview(r)} disabled={!r.file_path}>
+                <Eye className="h-4 w-4 mr-1 text-primary" /> Ver
+              </Button>
+              <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => download(r)} disabled={!r.file_path}>
+                <Download className="h-4 w-4 mr-1" /> Baixar
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
