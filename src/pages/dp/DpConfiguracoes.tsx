@@ -1,11 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Settings, CalendarClock, ShieldAlert, Info, Save, Trash2 } from "lucide-react";
+import { Settings, CalendarClock, ShieldAlert, Info, Save, Trash2, BellRing } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useDpPendenciasConfig, DP_PENDENCIAS_CONFIG_DEFAULT, type DpPendenciasConfig } from "@/hooks/useDpPendenciasConfig";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
