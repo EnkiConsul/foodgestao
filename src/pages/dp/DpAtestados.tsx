@@ -417,7 +417,7 @@ export default function DpAtestados() {
             </div>
           </DpFilterCard>
 
-          <DpContentCard contentClassName="overflow-x-auto">
+          <DpContentCard contentClassName="overflow-x-auto hidden md:block">
             {list.isLoading ? (
               <TableSkeleton columns={9} headers={["Colaborador", "Unidade", "Data", "Data Retorno", "Observações", "Status", "Detalhes", "Arquivo", "Ações"]} />
             ) : (
@@ -498,6 +498,65 @@ export default function DpAtestados() {
               </Table>
             )}
           </DpContentCard>
+
+          {/* Mobile: lista de cards */}
+          <div className="md:hidden space-y-3">
+            {list.isLoading && (
+              <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">Carregando…</div>
+            )}
+            {!list.isLoading && filtered.length === 0 && (
+              <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+                <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                Nenhum atestado encontrado.
+              </div>
+            )}
+            {!list.isLoading && filtered.map((r) => {
+              const d = diffDays(r.data_alvo, r.data_fim);
+              const unitName = r.dp_colaboradores?.unidade_id ? unidadeNameById.get(r.dp_colaboradores.unidade_id) : null;
+              const fileKind = getFileKind(r.arquivo_path);
+              const FileIcon = fileKind.icon;
+              return (
+                <div key={r.id} className="rounded-2xl border border-border bg-card p-4 space-y-2 active:scale-[0.98] transition-transform">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold uppercase truncate">{r.dp_colaboradores?.nome ?? "—"}</div>
+                      {unitName && <div className="text-[11px] text-muted-foreground truncate">{unitName}</div>}
+                    </div>
+                    <Badge variant="outline" className={STATUS_BADGE[r.status].className + " shrink-0"}>{STATUS_BADGE[r.status].label}</Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-[11px] pt-1 border-t border-border/60">
+                    <div><span className="text-muted-foreground">Data:</span> {formatDate(r.data_alvo)}</div>
+                    <div><span className="text-muted-foreground">Retorno:</span> {formatDate(r.data_fim)}</div>
+                    <div><span className="text-muted-foreground">Dias:</span> {d}</div>
+                    {r.arquivo_path && (
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 text-primary hover:underline text-left"
+                        onClick={() => setPreview({ title: `Atestado — ${r.dp_colaboradores?.nome ?? ""}`, path: r.arquivo_path! })}
+                      >
+                        <FileIcon className="h-3 w-3" /> {fileKind.label}
+                      </button>
+                    )}
+                  </div>
+                  {r.motivo && <div className="text-xs text-muted-foreground line-clamp-2">{r.motivo}</div>}
+                  <div className="flex gap-1 pt-1 border-t border-border/60">
+                    <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => setEditing(r)}>
+                      <Pencil className="h-4 w-4 mr-1" /> Editar
+                    </Button>
+                    {r.arquivo_path && (
+                      <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => handleDownload(r)}>
+                        <Download className="h-4 w-4 mr-1" /> Baixar
+                      </Button>
+                    )}
+                    <Button size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => setToDelete(r)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
         </TabsContent>
       </Tabs>
 
