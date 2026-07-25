@@ -221,7 +221,7 @@ function AdiarPopover({
         <Button
           size={triggerSize}
           variant={triggerVariant}
-          className={triggerSize === "sm" ? "h-7 text-xs" : ""}
+          className={triggerSize === "sm" ? "h-9 sm:h-7 text-xs w-full sm:w-auto" : ""}
         >
           <CalendarPlus className={triggerSize === "sm" ? "h-3 w-3 mr-1" : "h-4 w-4 mr-1"} />
           Adiar
