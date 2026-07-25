@@ -1,0 +1,274 @@
+// Worker: claims a queued sync run, fetches accounts + transactions from Pluggy,
+// upserts open_finance_accounts, and stages transactions into open_finance_transactions_raw.
+// Actual promotion into `transactions` happens in the reconciliation block.
+//
+// Two invocation modes:
+//   - Manual per-connection: POST { connection_id, from?, to? } as authenticated user (admin/owner of company)
+//   - Cron drain: POST { drain: true, secret: PLUGGY_SYNC_ALL_SECRET } — pulls next queued run(s)
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { z } from "https://esm.sh/zod@3.23.8";
+import {
+  listAccounts,
+  listTransactions,
+  safePluggyError,
+  getItem,
+  type PluggyTransaction,
+} from "../_shared/pluggy-client.ts";
+
+const WORKER_ID = `pluggy-sync-${crypto.randomUUID()}`;
+
+const BodySchema = z.union([
+  z.object({
+    connection_id: z.string().uuid(),
+    from: z.string().optional(),
+    to: z.string().optional(),
+  }),
+  z.object({
+    drain: z.literal(true),
+    secret: z.string().min(8),
+    max_runs: z.number().int().min(1).max(20).optional(),
+  }),
+]);
+
+function json(status: number, body: unknown) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+async function importHash(companyId: string, pluggyTxId: string): Promise<string> {
+  const buf = new TextEncoder().encode(`${companyId}:${pluggyTxId}`);
+  const d = await crypto.subtle.digest("SHA-256", buf);
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function runSync(
+  supabase: ReturnType<typeof createClient>,
+  runId: string,
+  connectionId: string,
+  companyId: string,
+  itemId: string,
+  from?: string,
+  to?: string,
+): Promise<{ ok: boolean; stats: Record<string, number>; error?: string }> {
+  const stats = { accounts: 0, transactions_raw: 0, pages: 0 };
+
+  // refresh item (status + consent)
+  const itemResp = await getItem(itemId);
+  if (itemResp.ok) {
+    await supabase
+      .from("open_finance_connections")
+      .update({
+        status: itemResp.data.status,
+        execution_status: itemResp.data.executionStatus ?? null,
+        consent_expires_at: itemResp.data.consentExpiresAt ?? null,
+      })
+      .eq("id", connectionId);
+  }
+
+  const accResp = await listAccounts(itemId);
+  if (!accResp.ok) {
+    return { ok: false, stats, error: safePluggyError(accResp.error, accResp.httpStatus) };
+  }
+
+  const accounts = accResp.data.results ?? [];
+  stats.accounts = accounts.length;
+
+  if (accounts.length) {
+    await supabase
+      .from("open_finance_accounts")
+      .upsert(
+        accounts.map((a) => ({
+          connection_id: connectionId,
+          company_id: companyId,
+          pluggy_account_id: a.id,
+          type: a.type,
+          subtype: a.subtype ?? null,
+          name: a.name ?? a.marketingName ?? null,
+          number: a.number ?? null,
+          balance: a.balance ?? null,
+          currency_code: a.currencyCode ?? "BRL",
+          owner: a.owner ?? null,
+          tax_number: a.taxNumber ?? null,
+          raw: a as any,
+        })),
+        { onConflict: "pluggy_account_id" },
+      );
+  }
+
+  // Resolve internal OF account ids
+  const { data: ofAccts } = await supabase
+    .from("open_finance_accounts")
+    .select("id, pluggy_account_id")
+    .eq("connection_id", connectionId);
+  const idByPluggy = new Map<string, string>((ofAccts ?? []).map((r: any) => [r.pluggy_account_id, r.id]));
+
+  const defaultFrom = from ?? new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+  const defaultTo = to ?? new Date().toISOString().slice(0, 10);
+
+  for (const acc of accounts) {
+    const ofAccountId = idByPluggy.get(acc.id);
+    if (!ofAccountId) continue;
+
+    let page = 1;
+    while (true) {
+      const txResp = await listTransactions({
+        accountId: acc.id,
+        from: defaultFrom,
+        to: defaultTo,
+        pageSize: 500,
+        page,
+      });
+      if (!txResp.ok) {
+        return { ok: false, stats, error: safePluggyError(txResp.error, txResp.httpStatus) };
+      }
+      stats.pages += 1;
+      const results = txResp.data.results ?? [];
+      if (!results.length) break;
+
+      const rows = await Promise.all(
+        results.map(async (t: PluggyTransaction) => ({
+          connection_id: connectionId,
+          of_account_id: ofAccountId,
+          company_id: companyId,
+          pluggy_transaction_id: t.id,
+          import_hash: await importHash(companyId, t.id),
+          amount: t.amount,
+          type: t.type,
+          date: t.date,
+          description: t.description,
+          raw: t as any,
+        })),
+      );
+
+      const { error } = await supabase
+        .from("open_finance_transactions_raw")
+        .upsert(rows, { onConflict: "import_hash", ignoreDuplicates: true });
+      if (error) console.error("[pluggy-sync] upsert raw error:", error.message);
+      stats.transactions_raw += rows.length;
+
+      if (page >= (txResp.data.totalPages ?? page)) break;
+      page += 1;
+    }
+  }
+
+  await supabase
+    .from("open_finance_connections")
+    .update({ last_synced_at: new Date().toISOString() })
+    .eq("id", connectionId);
+
+  return { ok: true, stats };
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return json(405, { error: "Method not allowed" });
+
+  const url = Deno.env.get("SUPABASE_URL")!;
+  const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const supabase = createClient(url, service);
+
+  let body;
+  try { body = BodySchema.parse(await req.json()); }
+  catch { return json(400, { error: "invalid_body" }); }
+
+  // Drain mode (cron / internal)
+  if ("drain" in body) {
+    const expected = Deno.env.get("PLUGGY_SYNC_ALL_SECRET");
+    if (!expected || body.secret !== expected) return json(401, { error: "forbidden" });
+
+    const max = body.max_runs ?? 5;
+    const processed: any[] = [];
+    for (let i = 0; i < max; i++) {
+      const { data: runId } = await supabase.rpc("claim_open_finance_sync", {
+        _worker_id: WORKER_ID,
+        _lock_seconds: 300,
+      });
+      if (!runId) break;
+
+      const { data: run } = await supabase
+        .from("open_finance_sync_runs")
+        .select("id, connection_id, company_id, open_finance_connections!inner(pluggy_item_id)")
+        .eq("id", runId as string)
+        .maybeSingle();
+
+      if (!run) {
+        await supabase.rpc("release_open_finance_sync", {
+          _run_id: runId, _status: "error", _stats: {}, _error: "run_not_found",
+        });
+        continue;
+      }
+
+      const pluggyItemId = (run as any).open_finance_connections?.pluggy_item_id as string;
+      const result = await runSync(supabase, run.id, run.connection_id, run.company_id, pluggyItemId);
+      await supabase.rpc("release_open_finance_sync", {
+        _run_id: run.id,
+        _status: result.ok ? "success" : "error",
+        _stats: result.stats,
+        _error: result.error ?? null,
+      });
+      processed.push({ run_id: run.id, ok: result.ok, stats: result.stats });
+    }
+    return json(200, { processed });
+  }
+
+  // User-triggered sync
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (!authHeader.startsWith("Bearer ")) return json(401, { error: "unauthenticated" });
+  const supabaseUser = createClient(url, anon, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: userData } = await supabaseUser.auth.getUser();
+  if (!userData?.user) return json(401, { error: "unauthenticated" });
+
+  const { data: conn } = await supabase
+    .from("open_finance_connections")
+    .select("id, company_id, pluggy_item_id")
+    .eq("id", body.connection_id)
+    .maybeSingle();
+  if (!conn) return json(404, { error: "connection_not_found" });
+
+  const { data: allowed } = await supabase.rpc("is_company_admin_or_owner", {
+    _user_id: userData.user.id,
+    _company_id: conn.company_id,
+  });
+  if (!allowed) return json(403, { error: "forbidden" });
+
+  const { data: runRow } = await supabase
+    .from("open_finance_sync_runs")
+    .insert({
+      connection_id: conn.id,
+      company_id: conn.company_id,
+      status: "running",
+      trigger: "manual",
+      claimed_by: WORKER_ID,
+      started_at: new Date().toISOString(),
+    })
+    .select("id")
+    .maybeSingle();
+
+  const result = await runSync(
+    supabase,
+    runRow?.id ?? "",
+    conn.id,
+    conn.company_id,
+    conn.pluggy_item_id,
+    body.from,
+    body.to,
+  );
+
+  if (runRow?.id) {
+    await supabase.rpc("release_open_finance_sync", {
+      _run_id: runRow.id,
+      _status: result.ok ? "success" : "error",
+      _stats: result.stats,
+      _error: result.error ?? null,
+    });
+  }
+
+  if (!result.ok) return json(502, { error: result.error, stats: result.stats });
+  return json(200, { ok: true, stats: result.stats });
+});
