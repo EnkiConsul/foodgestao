@@ -209,16 +209,9 @@ export default function DpConfiguracoes() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><Info className="size-5 text-primary" /> Prazos e SLAs</CardTitle>
-            <CardDescription>
-              SLAs de aprovação (solicitações, atestados, trocas) ainda utilizam as regras padrão do sistema.
-              Regras customizadas serão liberadas em versões futuras.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+        <PrazosLembretesCard />
       </div>
+
 
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <AlertDialogContent>
