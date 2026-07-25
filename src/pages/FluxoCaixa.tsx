@@ -264,17 +264,17 @@ export default function FluxoCaixa() {
   }, [chartData, currentBalance]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 md:gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Fluxo de Caixa</h1>
-          <p className="text-sm text-muted-foreground">Acompanhe entradas, saídas e projeções</p>
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Fluxo de Caixa</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Acompanhe Entradas, Saídas e Projeções</p>
         </div>
-        <Tabs value={granularity} onValueChange={(v) => setGranularity(v as Granularity)}>
-          <TabsList>
-            <TabsTrigger value="diario">Diário</TabsTrigger>
-            <TabsTrigger value="semanal">Semanal</TabsTrigger>
-            <TabsTrigger value="mensal">Mensal</TabsTrigger>
+        <Tabs value={granularity} onValueChange={(v) => setGranularity(v as Granularity)} className="w-full sm:w-auto">
+          <TabsList className="w-full sm:w-auto overflow-x-auto">
+            <TabsTrigger value="diario" className="flex-1 sm:flex-none">Diário</TabsTrigger>
+            <TabsTrigger value="semanal" className="flex-1 sm:flex-none">Semanal</TabsTrigger>
+            <TabsTrigger value="mensal" className="flex-1 sm:flex-none">Mensal</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
