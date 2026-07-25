@@ -810,13 +810,14 @@ export default function DpMeuCalendario() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setTradeOpen(null)}>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+            <Button variant="ghost" onClick={() => setTradeOpen(null)} className="min-h-10 w-full sm:w-auto">
               Cancelar
             </Button>
             <Button
               onClick={() => solicitarTroca.mutate()}
               disabled={solicitarTroca.isPending || !tradeMyDate}
+              className="min-h-10 w-full sm:w-auto"
             >
               {solicitarTroca.isPending ? "Enviando..." : "Enviar troca"}
             </Button>
