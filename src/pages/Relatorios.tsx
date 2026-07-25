@@ -221,11 +221,11 @@ export default function Relatorios() {
   };
 
   return (
-    <div className="space-y-6" ref={reportRef}>
-      <div className="flex flex-col gap-4">
+    <div className="space-y-4 md:space-y-6" ref={reportRef}>
+      <div className="flex flex-col gap-3 md:gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Relatórios</h1>
-          <p className="text-sm text-muted-foreground">Analise suas finanças com relatórios detalhados</p>
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Relatórios</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Analise Suas Finanças com Relatórios Detalhados</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1">
