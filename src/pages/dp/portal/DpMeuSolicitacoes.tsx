@@ -363,11 +363,12 @@ export default function DpMeuSolicitacoes() {
                   <p className="text-xs text-destructive">{validation[0]}</p>
                 )}
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+              <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+                <Button variant="outline" onClick={() => setOpen(false)} className="min-h-10 w-full sm:w-auto">Cancelar</Button>
                 <Button
                   disabled={create.isPending || validation.length > 0}
                   onClick={() => create.mutate()}
+                  className="min-h-10 w-full sm:w-auto"
                 >
                   Enviar
                 </Button>
@@ -378,13 +379,15 @@ export default function DpMeuSolicitacoes() {
       />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as StatusTab)}>
-        <TabsList>
-          {STATUS_TABS.map((s) => (
-            <TabsTrigger key={s} value={s} className="capitalize">
-              {s} <span className="ml-1 text-[10px] opacity-70">({counts[s] ?? 0})</span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="-mx-1 overflow-x-auto">
+          <TabsList className="w-max">
+            {STATUS_TABS.map((s) => (
+              <TabsTrigger key={s} value={s} className="capitalize whitespace-nowrap">
+                {s} <span className="ml-1 text-[10px] opacity-70">({counts[s] ?? 0})</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
       </Tabs>
 
       {filtered.length === 0 ? (

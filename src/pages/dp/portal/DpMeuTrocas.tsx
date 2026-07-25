@@ -211,9 +211,9 @@ export default function DpMeuTrocas() {
                 </div>
                 {validation && <p className="text-xs text-destructive">{validation}</p>}
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-                <Button disabled={criar.isPending || !!validation} onClick={() => criar.mutate()}>Enviar</Button>
+              <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+                <Button variant="outline" onClick={() => setOpen(false)} className="min-h-10 w-full sm:w-auto">Cancelar</Button>
+                <Button disabled={criar.isPending || !!validation} onClick={() => criar.mutate()} className="min-h-10 w-full sm:w-auto">Enviar</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -221,11 +221,13 @@ export default function DpMeuTrocas() {
       />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-        <TabsList>
-          <TabsTrigger value="todas">Todas ({counts.todas})</TabsTrigger>
-          <TabsTrigger value="recebidas"><Users className="h-3.5 w-3.5 mr-1" /> Recebidas ({counts.recebidas})</TabsTrigger>
-          <TabsTrigger value="enviadas"><User className="h-3.5 w-3.5 mr-1" /> Enviadas ({counts.enviadas})</TabsTrigger>
-        </TabsList>
+        <div className="-mx-1 overflow-x-auto">
+          <TabsList className="w-max">
+            <TabsTrigger value="todas" className="whitespace-nowrap">Todas ({counts.todas})</TabsTrigger>
+            <TabsTrigger value="recebidas" className="whitespace-nowrap"><Users className="h-3.5 w-3.5 mr-1" /> Recebidas ({counts.recebidas})</TabsTrigger>
+            <TabsTrigger value="enviadas" className="whitespace-nowrap"><User className="h-3.5 w-3.5 mr-1" /> Enviadas ({counts.enviadas})</TabsTrigger>
+          </TabsList>
+        </div>
       </Tabs>
 
       {filtered.length === 0 ? (
