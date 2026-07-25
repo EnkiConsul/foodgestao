@@ -315,41 +315,41 @@ export default function Relatorios() {
       )}
 
       <Card className="shadow-sm">
-        <CardHeader className="flex flex-row items-start justify-between gap-3 pb-4">
+        <CardHeader className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 pb-4">
           <div className="space-y-1.5 min-w-0">
-            <CardTitle className="text-base flex items-center gap-2 flex-wrap">
+            <CardTitle className="text-sm md:text-base flex items-center gap-2 flex-wrap">
               <span>Fluxo de Caixa</span>
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-2 py-0.5 text-xs font-medium text-primary">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-2 py-0.5 text-[11px] md:text-xs font-medium text-primary">
                 <CalendarIcon className="h-3 w-3" />
-                {format(activeRange.from, "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
+                {format(activeRange.from, "dd/MM/yy", { locale: ptBR })}
                 <span className="opacity-60">→</span>
-                {format(activeRange.to, "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
+                {format(activeRange.to, "dd/MM/yy", { locale: ptBR })}
               </span>
-              <span className="text-xs font-normal text-muted-foreground">
+              <span className="text-[11px] md:text-xs font-normal text-muted-foreground">
                 ({fluxoCaixaData.MONTH_LABELS.length} {fluxoCaixaData.MONTH_LABELS.length === 1 ? "mês" : "meses"})
               </span>
             </CardTitle>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[11px] md:text-xs text-muted-foreground line-clamp-2 md:line-clamp-none">
               Meses incluídos no recorte:{" "}
               <span className="font-medium text-foreground/80">
                 {fluxoCaixaData.MONTH_LABELS.join(" · ")}
               </span>
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-1" onClick={expandAll}>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="outline" size="sm" className="gap-1 flex-1 md:flex-none min-h-9" onClick={expandAll}>
               <ChevronsUpDown className="h-3.5 w-3.5" /> Expandir
             </Button>
-            <Button variant="outline" size="sm" className="gap-1" onClick={collapseAll}>
+            <Button variant="outline" size="sm" className="gap-1 flex-1 md:flex-none min-h-9" onClick={collapseAll}>
               <ChevronsUpDown className="h-3.5 w-3.5 rotate-90" /> Colapsar
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="gap-1"
+              className="gap-1 flex-1 md:flex-none min-h-9"
               onClick={() => exportFluxoCaixaPdf(activeRange)}
             >
-              <Download className="h-3.5 w-3.5" /> Exportar PDF
+              <Download className="h-3.5 w-3.5" /> PDF
             </Button>
           </div>
         </CardHeader>
