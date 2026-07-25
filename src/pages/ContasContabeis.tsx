@@ -116,35 +116,40 @@ export default function ContasContabeis() {
       <div key={node.id}>
         <div
           className="flex items-center gap-2 py-2 px-2 rounded hover:bg-muted/50 group border-b"
-          style={{ paddingLeft: `${depth * 20 + 8}px` }}
+          style={{ paddingLeft: `${depth * 16 + 8}px` }}
         >
           <button
             type="button"
             onClick={() => hasChildren && toggleExpand(node.id)}
-            className={`h-5 w-5 flex items-center justify-center ${hasChildren ? "" : "invisible"}`}
+            className={`h-5 w-5 flex items-center justify-center shrink-0 ${hasChildren ? "" : "invisible"}`}
           >
             {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </button>
-          <span className="font-mono text-xs text-muted-foreground w-24 shrink-0">{node.code}</span>
-          <span className="flex-1 text-sm truncate">{node.name}</span>
-          {node.short_code && <Badge variant="outline" className="text-[10px] font-mono">{node.short_code}</Badge>}
-          {node.is_tax && <Badge variant="secondary" className="text-[10px]">Imposto</Badge>}
-          <Badge variant={node.allow_transactions ? "default" : "outline"} className="text-[10px]">
-            {node.allow_transactions ? "Analítica" : "Sintética"}
-          </Badge>
-          <Badge variant={node.is_active ? "default" : "destructive"} className="text-[10px]">
-            {node.is_active ? "Ativa" : "Inativa"}
-          </Badge>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <span className="font-mono text-[10px] md:text-xs text-muted-foreground w-14 md:w-24 shrink-0 truncate">{node.code}</span>
+          <span className="flex-1 text-xs md:text-sm truncate">{node.name}</span>
+          <div className="hidden md:flex items-center gap-1">
+            {node.short_code && <Badge variant="outline" className="text-[10px] font-mono">{node.short_code}</Badge>}
+            {node.is_tax && <Badge variant="secondary" className="text-[10px]">Imposto</Badge>}
+            <Badge variant={node.allow_transactions ? "default" : "outline"} className="text-[10px]">
+              {node.allow_transactions ? "Analítica" : "Sintética"}
+            </Badge>
+            <Badge variant={node.is_active ? "default" : "destructive"} className="text-[10px]">
+              {node.is_active ? "Ativa" : "Inativa"}
+            </Badge>
+          </div>
+          {!node.is_active && (
+            <Badge variant="destructive" className="md:hidden text-[9px] px-1 h-4">Inativa</Badge>
+          )}
+          <div className="flex items-center gap-0.5 md:gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
             {!node.allow_transactions && (
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openNew(node.id)} title="Adicionar filha">
+              <Button variant="ghost" size="icon" className="h-8 w-8 md:h-7 md:w-7" onClick={() => openNew(node.id)} title="Adicionar filha">
                 <PlusCircle className="h-4 w-4" />
               </Button>
             )}
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(node)} title="Editar">
+            <Button variant="ghost" size="icon" className="h-8 w-8 md:h-7 md:w-7" onClick={() => openEdit(node)} title="Editar">
               <Pencil className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteTarget(node)} title="Excluir">
+            <Button variant="ghost" size="icon" className="h-8 w-8 md:h-7 md:w-7 text-destructive" onClick={() => setDeleteTarget(node)} title="Excluir">
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
