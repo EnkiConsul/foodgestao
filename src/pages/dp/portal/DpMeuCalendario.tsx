@@ -745,11 +745,11 @@ export default function DpMeuCalendario() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setExceptionOpen(false)}>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+            <Button variant="ghost" onClick={() => setExceptionOpen(false)} className="min-h-10 w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button onClick={() => enviarExcecao.mutate()} disabled={enviarExcecao.isPending}>
+            <Button onClick={() => enviarExcecao.mutate()} disabled={enviarExcecao.isPending} className="min-h-10 w-full sm:w-auto">
               {enviarExcecao.isPending ? (
                 "Enviando..."
               ) : (
