@@ -228,8 +228,8 @@ export default function Onboarding() {
         {step === 2 && (
           <>
             <StepModulos selectedSlugs={modulos} onToggle={toggleModulo} />
-            <div className="mt-8 flex items-center justify-between gap-3">
-              <Button variant="ghost" onClick={() => setStep(1)} disabled={submit.isPending}>
+            <div className="mt-6 md:mt-8 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3">
+              <Button variant="ghost" onClick={() => setStep(1)} disabled={submit.isPending} className="w-full sm:w-auto min-h-10">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Voltar
               </Button>
@@ -237,6 +237,7 @@ export default function Onboarding() {
                 onClick={handleConcluir}
                 disabled={modulos.length === 0 || submit.isPending}
                 size="lg"
+                className="w-full sm:w-auto min-h-11"
               >
                 {submit.isPending ? (
                   <>
