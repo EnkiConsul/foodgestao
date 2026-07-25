@@ -189,13 +189,13 @@ export default function Orcamento() {
             return (
               <Card key={b.id} className="shadow-sm">
                 <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-wrap min-w-0">
                       <div
                         className="h-3 w-3 rounded-full shrink-0"
                         style={{ backgroundColor: cat?.color ?? "hsl(var(--primary))" }}
                       />
-                      <span className="font-medium text-sm">{cat?.name ?? "Categoria"}</span>
+                      <span className="font-medium text-sm truncate">{cat?.name ?? "Categoria"}</span>
                       <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
                         {b.period === "mensal" ? "Mensal" : "Anual"}
                       </Badge>
