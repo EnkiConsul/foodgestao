@@ -1,40 +1,18 @@
-## Objetivo
+## Problema
 
-Fazer com que os atalhos personalizados (slots A, B e C do Hub) que **eu** configurar no preview virem os **defaults globais** para todos os usuários. Cada usuário ainda poderá personalizar depois via long-press — só muda o *ponto de partida*.
-
-## Como está hoje
-
-- `src/config/mobileNav.tsx` define `defaultShortcutA/B/C` em cada módulo, apontando para os primeiros itens da lista (`financeiroShortcuts[0]`, etc.).
-- `src/hooks/useModuleShortcut.ts` resolve o atalho efetivo: usa a escolha do usuário se existir em `dp_user_prefs.extras.mobile_shortcuts` ou `localStorage`; caso contrário, cai nesse default hard-coded.
-- Ou seja, para mudar o default global basta trocar o `NavLeaf` referenciado em `defaultShortcutA/B/C` de cada módulo.
+Na lista vertical do calendário mobile (`src/components/dp/CalendarioMobileLista.tsx`), o rótulo do dia da semana + número do dia estão dentro de um único flex com `min-w-[64px]`. Como o número muda de 1 dígito (1–9) para 2 dígitos (10–31), o bloco inteiro fica mais largo em dias de 2 dígitos, empurrando os chips (1/1, nomes) para a direita e criando o efeito "cobra" ao rolar.
 
 ## Correção
 
-1. **Adicionar um bloco de "Defaults globais dos atalhos"** no topo de `src/config/mobileNav.tsx`, explícito e fácil de editar, no formato:
-   ```ts
-   const GLOBAL_SHORTCUT_DEFAULTS = {
-     financeiro: { A: "/rota-a", B: "/rota-b" },
-     dp:         { A: "/rota-a", B: "/rota-b" },
-     portal:     { A: "/rota-a", B: "/rota-b" },
-     hub:        { A: "/rota-a", B: "/rota-b", C: "/rota-c" },
-     admin:      { A: "/rota-a", B: "/rota-b" },
-     conta:      { A: "/rota-a", B: "/rota-b" },
-   };
-   ```
-   Cada valor é a rota (`to`) do `NavLeaf` desejado dentro daquela lista de atalhos do módulo.
+Ajustar somente o bloco de cabeçalho de cada linha em `CalendarioMobileLista.tsx` (linhas 141-159) para usar **duas colunas de largura fixa**:
 
-2. **Ajustar cada `MODULE_NAV[modulo]`** para resolver `defaultShortcutA/B/C` a partir desse mapa (procurando na lista de shortcuts do módulo pelo `to`), com fallback para o primeiro item se a rota for inválida.
+1. Weekday (`SÁB`, `DOM`, …): largura fixa (`w-10`, `text-left`).
+2. Número do dia: largura fixa (`w-6`, `text-right`, `tabular-nums`).
+3. Remover `min-w-[64px]` do wrapper e usar `w-16 shrink-0` para travar a coluna inteira.
 
-3. **Preencher inicialmente** com os atalhos que já estão em uso hoje (paridade — nenhuma mudança visual imediata). Assim que você me informar quais rotas devem ser os defaults por módulo, eu substituo os valores.
+Resultado: o início da coluna de chips fica **exatamente** no mesmo x em todos os dias, independentemente de o número ter 1 ou 2 dígitos.
 
-4. **Não** vou mexer em `useModuleShortcut.ts`, `useDpUserPrefs`, RLS, banco, nem no `ShortcutCustomizer`. A personalização por usuário continua funcionando exatamente como está — só o *default inicial* muda.
+## Fora de escopo
 
-## Fluxo depois da mudança
-
-- Você me diz (ou edita direto) os atalhos desejados para cada módulo em `GLOBAL_SHORTCUT_DEFAULTS`.
-- Ao publicar, qualquer usuário novo (ou sem personalização salva) verá esses atalhos como padrão.
-- Usuários que já personalizaram mantêm sua escolha (comportamento atual preservado).
-
-## Perguntas antes de aplicar
-
-Se quiser, já me passe as rotas desejadas por módulo (ex.: "Hub → A: /lancamentos, B: /dp, C: /buscar"). Se preferir, aplico o refactor mantendo os defaults atuais e depois você indica os novos.
+- Não altero tipografia, cores, espaçamento vertical, ícones ou lógica de renderização de chips/bloqueios.
+- Não mexo na versão desktop (grid) nem em outras telas.
