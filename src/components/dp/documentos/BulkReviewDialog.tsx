@@ -39,6 +39,9 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
   const { data: colaboradores = [] } = useDpColaboradores();
   const [currentIdx, setCurrentIdx] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const previewBoxRef = useRef<HTMLDivElement | null>(null);
+  const [boxWidth, setBoxWidth] = useState(0);
+
   const [rendering, setRendering] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [savingTotal, setSavingTotal] = useState(0);
