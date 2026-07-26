@@ -27,7 +27,7 @@ export function MobileBottomNav() {
   const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
 
   const config = MODULE_NAV[activeModule] ?? MODULE_NAV.financeiro;
-  const { shortcutA, shortcutB, setShortcut, options } = useModuleShortcuts(activeModule);
+  const { shortcutA, shortcutB, shortcutC, hasSlotC, setShortcut, options } = useModuleShortcuts(activeModule);
 
   const [customizerSlot, setCustomizerSlot] = useState<ShortcutSlot | null>(null);
 
@@ -43,24 +43,24 @@ export function MobileBottomNav() {
 
   const isHubModule = activeModule === "hub";
 
-  // Slot 1: Hub em geral; no módulo Hub, vira Financeiro (primeiro atalho fixo).
-  const slot1: NavLeaf = useMemo(
+  // Slot 1: no Hub vira o 3º atalho personalizável (C); fora do Hub, botão "Hub".
+  const slot1Def: SlotDef = useMemo(
     () =>
-      isHubModule
-        ? { icon: options[0]?.icon ?? LayoutGrid, label: options[0]?.label ?? "Financeiro", to: options[0]?.to ?? "/dashboard" }
-        : { icon: LayoutGrid, label: "Hub", to: config.hubTo, end: true },
-    [isHubModule, options, config.hubTo],
+      isHubModule && hasSlotC
+        ? { kind: "link", item: shortcutC, longPressSlot: "c" }
+        : { kind: "link", item: { icon: LayoutGrid, label: "Hub", to: config.hubTo, end: true } },
+    [isHubModule, hasSlotC, shortcutC, config.hubTo],
   );
 
   const slots: SlotDef[] = useMemo(
     () => [
-      { kind: "link", item: slot1 },
+      slot1Def,
       { kind: "link", item: shortcutA, longPressSlot: "a" },
       { kind: "home", item: config.home },
       { kind: "link", item: shortcutB, longPressSlot: "b" },
       { kind: "more" },
     ],
-    [slot1, shortcutA, shortcutB, config.home],
+    [slot1Def, shortcutA, shortcutB, config.home],
   );
 
   const isHomeActive = config.home.end
