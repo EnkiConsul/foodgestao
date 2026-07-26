@@ -68,6 +68,7 @@ const ADMIN_ITEMS: Item[] = [
   },
   { kind: "link", title: "Conformidade", url: "/dp/conformidade", icon: ShieldCheck },
   { kind: "link", title: "Benefícios", url: "/dp/beneficios", icon: Gift },
+  { kind: "link", title: "Analytics de RH", url: "/dp/analytics", icon: BarChart3 },
   {
     kind: "group", title: "Comunicação", icon: MessageSquare,
     prefixes: ["/dp/comunicacao", "/dp/mensagens", "/dp/avisos"],
