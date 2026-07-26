@@ -148,6 +148,29 @@ function AvisoDialog({
               </p>
             )}
           </div>
+          <div className="space-y-3 rounded-md border p-3">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <Label className="text-sm">Leitura obrigatória</Label>
+                <p className="text-xs text-muted-foreground">Exibe o aviso em pop-up até a confirmação.</p>
+              </div>
+              <Switch checked={leituraObrigatoria} onCheckedChange={setLeituraObrigatoria} />
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <Label className="text-sm">Permitir reações</Label>
+                <p className="text-xs text-muted-foreground">Colaboradores podem reagir com emojis.</p>
+              </div>
+              <Switch checked={permitirReacoes} onCheckedChange={setPermitirReacoes} />
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <Label className="text-sm">Permitir comentários</Label>
+                <p className="text-xs text-muted-foreground">Comentários passam por moderação do admin.</p>
+              </div>
+              <Switch checked={permitirComentarios} onCheckedChange={setPermitirComentarios} />
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
@@ -166,7 +189,16 @@ function AvisoDialog({
                 ...dest,
                 arquivo_path: arquivoPath || null,
                 arquivo_mime: arquivoMime || null,
+                leitura_obrigatoria: leituraObrigatoria,
+                permitir_reacoes: permitirReacoes,
+                permitir_comentarios: permitirComentarios,
               } as any);
+              onOpenChange(false);
+            }}
+          >
+            Salvar
+          </Button>
+        </DialogFooter>
               onOpenChange(false);
             }}
           >
