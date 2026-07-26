@@ -253,20 +253,27 @@ export default function DpSolicitacoes() {
           {historico.map((s) => {
             const meta = STATUS_META[s.status];
             return (
-              <div key={s.id} className="p-4 text-sm flex items-start justify-between gap-3 flex-wrap">
-                <div className="min-w-0">
-                  <div className="font-medium">
+              <div
+                key={s.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => setDetailsRow(s)}
+                onKeyDown={(e) => { if (e.key === "Enter") setDetailsRow(s); }}
+                className="p-4 text-sm flex items-start justify-between gap-3 cursor-pointer hover:bg-muted/30 transition-colors"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium truncate">
                     {s.dp_colaboradores?.nome ?? "—"} <span className="text-muted-foreground">• {formatBR(s.data_alvo)}</span>
                     <span className="capitalize text-muted-foreground"> • {s.tipo}</span>
                   </div>
-                  {s.motivo && <div className="text-muted-foreground mt-0.5">{s.motivo}</div>}
+                  {s.motivo && <div className="text-muted-foreground mt-0.5 line-clamp-1 md:line-clamp-none">{s.motivo}</div>}
                   {s.resposta_admin && (
-                    <div className="text-xs text-muted-foreground mt-1">
+                    <div className="text-xs text-muted-foreground mt-1 line-clamp-1 md:line-clamp-none">
                       <b>Resposta:</b> {s.resposta_admin}
                     </div>
                   )}
                 </div>
-                <span className={`text-xs px-2 py-1 rounded-md whitespace-nowrap ${meta.className}`}>
+                <span className={`text-xs px-2 py-1 rounded-md whitespace-nowrap shrink-0 ${meta.className}`}>
                   {meta.label}
                 </span>
               </div>
