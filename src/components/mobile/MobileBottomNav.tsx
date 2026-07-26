@@ -9,13 +9,40 @@ import { cn } from "@/lib/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
+import { haptic } from "@/lib/haptics";
 
 const NAV_HEIGHT = 64;
 
-function haptic(ms = 8) {
-  if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
-    try { navigator.vibrate(ms); } catch { /* noop */ }
-  }
+/** Detecta direção do scroll para esconder a BottomNav ao rolar para baixo. */
+function useHideOnScroll(disabled = false) {
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    if (disabled) return;
+    let lastY = window.scrollY;
+    let ticking = false;
+    const update = () => {
+      const y = window.scrollY;
+      const dy = y - lastY;
+      if (y < 24) {
+        setHidden(false);
+      } else if (dy > 8) {
+        setHidden(true);
+      } else if (dy < -6) {
+        setHidden(false);
+      }
+      lastY = y;
+      ticking = false;
+    };
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(update);
+        ticking = true;
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [disabled]);
+  return hidden;
 }
 
 type SlotDef =
