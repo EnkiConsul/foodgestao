@@ -111,7 +111,7 @@ export default function DpBloqueios() {
             className="bg-background border border-border rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary w-[180px]">
             <option value="all">Todas</option>
             <option value="__global__">Global</option>
-            {(unidadesQ.data ?? []).map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
+            {(unidades).map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
           </select>
         </div>
         <Button variant="ghost" size="sm" onClick={() => setShowPast(!showPast)} className="flex items-center gap-2">
@@ -137,7 +137,7 @@ export default function DpBloqueios() {
         </div>
 
         <div className="bg-card border border-border rounded-2xl overflow-hidden">
-          {regrasQ.isLoading ? (
+          {regrasLoading ? (
             <div className="p-8 text-center text-muted-foreground">Carregando…</div>
           ) : regrasFiltradas.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">Nenhuma regra configurada.</div>
@@ -163,7 +163,7 @@ export default function DpBloqueios() {
           <span className="text-sm font-normal text-muted-foreground">({datasFiltradas.length} datas)</span>
         </h2>
         <div className="bg-card border border-border rounded-2xl overflow-hidden">
-          {datasQ.isLoading ? (
+          {datasLoading ? (
             <div className="p-8 text-center text-muted-foreground">Carregando…</div>
           ) : datasFiltradas.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">Nenhuma data bloqueada neste período.</div>
@@ -188,7 +188,7 @@ export default function DpBloqueios() {
         open={regraOpen}
         isEditing={!!editRegraId}
         form={regraForm}
-        unidades={unidadesQ.data ?? []}
+        unidades={unidades}
         saving={saveRegra.isPending}
         onChange={(updater) => setRegraForm(updater)}
         onCancel={() => { setRegraOpen(false); setEditRegraId(null); }}
@@ -199,7 +199,7 @@ export default function DpBloqueios() {
         open={dataOpen}
         isEditing={!!editDataId}
         form={dataForm}
-        unidades={unidadesQ.data ?? []}
+        unidades={unidades}
         saving={saveData.isPending}
         onChange={(updater) => setDataForm(updater)}
         onCancel={() => { setDataOpen(false); setEditDataId(null); }}
