@@ -287,6 +287,7 @@ const AppRoutes = () => (
         <Route path="disciplinar" element={<Navigate to="/dp/meu/documentos?tipo=disciplinar" replace />} />
         <Route path="sindicato" element={<Navigate to="/dp/meu/documentos?tipo=act_cct" replace />} />
         <Route path="historico" element={<DpMeuHistorico />} />
+        <Route path="mais" element={<Mais />} />
       </Route>
       <Route
         path="/onboarding"
@@ -326,6 +327,7 @@ const AppRoutes = () => (
         <Route path="/crm" element={<ModuleGuard module="crm"><ModulePlaceholder module="crm" /></ModuleGuard>} />
         <Route path="/rh" element={<ModuleGuard module="rh"><ModulePlaceholder module="rh" /></ModuleGuard>} />
         <Route path="/pedidos" element={<ModuleGuard module="pedidos"><ModulePlaceholder module="pedidos" /></ModuleGuard>} />
+        <Route path="/mais" element={<Mais />} />
       </Route>
       <Route
         path="/dp"
@@ -376,6 +378,7 @@ const AppRoutes = () => (
         <Route path="documentos/sindicato" element={<Navigate to="/dp/documentos/act-cct" replace />} />
         <Route path="comunicacao/avisos" element={<Navigate to="/dp/avisos" replace />} />
         <Route path="comunicacao/mensagens" element={<Navigate to="/dp/mensagens" replace />} />
+        <Route path="mais" element={<Mais />} />
       </Route>
       <Route
         element={
