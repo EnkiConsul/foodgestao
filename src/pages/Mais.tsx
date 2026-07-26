@@ -24,6 +24,7 @@ export default function Mais() {
   const [query, setQuery] = useState("");
 
   const config = MODULE_NAV[activeModule] ?? MODULE_NAV.financeiro;
+  const moduleLabel = MODULE_LABEL[activeModule];
 
   const allItems: NavLeaf[] = useMemo(
     () =>
