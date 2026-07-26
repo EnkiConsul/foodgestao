@@ -247,7 +247,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
       {
         label: "DP 360°",
         accent: "primary",
-        items: [{ icon: Home, label: "Início", to: "/dp", end: true }],
+        items: [],
         subgroups: [
           {
             kind: "collapsible",
