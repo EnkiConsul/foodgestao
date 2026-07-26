@@ -380,7 +380,7 @@ export default function ContasBancarias() {
       <AccountCreationMethodDialog
         open={methodOpen}
         onOpenChange={setMethodOpen}
-        onSelectManual={() => { setMethodOpen(false); setDialogOpen(true); }}
+        onSelectManual={() => { setMethodOpen(false); setEditAccount(null); setDialogOpen(true); }}
         onSelectOpenFinance={() => {
           setMethodOpen(false);
           if (contextType !== "pj" || !selectedCompanyId) {
