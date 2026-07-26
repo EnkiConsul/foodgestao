@@ -348,43 +348,110 @@ export default function DpDocumentos() {
           const submetido = (r as any).submetido_por_colaborador as boolean;
           const motivo = (r as any).motivo_recusao as string | null;
           return (
-            <div key={r.id} className="rounded-2xl border border-border bg-card p-4 space-y-2 active:scale-[0.98] transition-transform">
+            <div
+              key={r.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => setDetailsRow(r)}
+              onKeyDown={(e) => { if (e.key === "Enter") setDetailsRow(r); }}
+              className="rounded-2xl border border-border bg-card p-4 space-y-2 cursor-pointer hover:bg-muted/30 transition-colors"
+            >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="font-medium truncate">{r.titulo}</div>
                   {r.dp_colaboradores?.nome && <div className="text-[11px] text-muted-foreground truncate">{r.dp_colaboradores.nome}</div>}
-                  {submetido && <div className="text-[10px] text-primary mt-0.5">↑ Enviado pelo colaborador</div>}
                 </div>
                 <StatusBadge status={status} />
               </div>
-              <div className="flex flex-wrap gap-1.5 text-[11px] text-muted-foreground pt-1 border-t border-border/60">
+              <div className="flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
                 {!filterTipo && <Badge variant="outline" className="capitalize text-[10px]">{r.tipo}</Badge>}
                 {r.referencia_data && <span>Ref: {r.referencia_data}</span>}
-                <span className="inline-flex items-center gap-1 truncate max-w-full">
-                  <FileText className="h-3 w-3" /> {r.file_name ?? r.file_path}
-                </span>
+                {submetido && <span className="text-primary">↑ Colab.</span>}
               </div>
-              {status === "recusado" && motivo && (
-                <div className="text-xs text-destructive">Motivo: {motivo}</div>
-              )}
-              <div className="flex gap-1 pt-1 border-t border-border/60 flex-wrap">
+              <div
+                className="flex gap-1 pt-2 border-t border-border/60"
+                onClick={(e) => e.stopPropagation()}
+              >
                 {status === "pendente" && (
                   <>
-                    <Button size="sm" variant="outline" className="min-h-11 flex-1 border-primary/40 text-primary hover:bg-primary/10" onClick={() => aprovar.mutate(r)} disabled={aprovar.isPending}>
-                      <Check className="h-4 w-4 mr-1" /> Aprovar
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      aria-label="Aprovar documento"
+                      title="Aprovar"
+                      className="h-11 w-11 border-primary/40 text-primary hover:bg-primary/10"
+                      onClick={() => aprovar.mutate(r)}
+                      disabled={aprovar.isPending}
+                    >
+                      <Check className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="outline" className="min-h-11 flex-1 border-destructive/40 text-destructive hover:bg-destructive/10" onClick={() => { setRejectRow(r); setRejectMotivo(""); }}>
-                      <X className="h-4 w-4 mr-1" /> Recusar
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      aria-label="Recusar documento"
+                      title="Recusar"
+                      className="h-11 w-11 border-destructive/40 text-destructive hover:bg-destructive/10"
+                      onClick={() => { setRejectRow(r); setRejectMotivo(""); }}
+                    >
+                      <X className="h-4 w-4" />
                     </Button>
                   </>
                 )}
-                <Button size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => download(r)}><Download className="h-4 w-4" /></Button>
-                <Button size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => setToDelete(r)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                <Button size="icon" variant="ghost" aria-label="Baixar" title="Baixar" className="h-11 w-11" onClick={() => download(r)}>
+                  <Download className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="ghost" aria-label="Excluir" title="Excluir" className="h-11 w-11" onClick={() => setToDelete(r)}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
               </div>
             </div>
           );
         })}
       </div>
+
+      <MobileDetailsSheet
+        open={!!detailsRow}
+        onOpenChange={(o) => !o && setDetailsRow(null)}
+        title={detailsRow?.titulo ?? "Documento"}
+        description={detailsRow ? TIPOS.find(t => t.value === detailsRow.tipo)?.label : undefined}
+        meta={detailsRow ? [
+          { label: "Colaborador", value: detailsRow.dp_colaboradores?.nome ?? "—" },
+          { label: "Status", value: <StatusBadge status={(detailsRow as any).aprovacao_status} /> },
+          ...(detailsRow.referencia_data ? [{ label: "Referência", value: detailsRow.referencia_data }] : []),
+          ...(detailsRow.descricao ? [{ label: "Descrição", value: detailsRow.descricao }] : []),
+          { label: "Arquivo", value: <span className="truncate inline-flex items-center gap-1"><FileText className="h-3 w-3" />{detailsRow.file_name ?? detailsRow.file_path}</span> },
+          ...(((detailsRow as any).motivo_recusao) ? [{ label: "Motivo", value: <span className="text-destructive">{(detailsRow as any).motivo_recusao}</span> }] : []),
+        ] : []}
+        footer={detailsRow ? (
+          <div className="flex gap-2 w-full flex-wrap">
+            {(detailsRow as any).aprovacao_status === "pendente" && (
+              <>
+                <Button
+                  variant="outline"
+                  className="flex-1 border-primary/40 text-primary hover:bg-primary/10"
+                  onClick={() => { aprovar.mutate(detailsRow); setDetailsRow(null); }}
+                  disabled={aprovar.isPending}
+                >
+                  <Check className="h-4 w-4 mr-1" /> Aprovar
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 border-destructive/40 text-destructive hover:bg-destructive/10"
+                  onClick={() => { setRejectRow(detailsRow); setRejectMotivo(""); setDetailsRow(null); }}
+                >
+                  <X className="h-4 w-4 mr-1" /> Recusar
+                </Button>
+              </>
+            )}
+            <Button variant="outline" className="flex-1" onClick={() => download(detailsRow)}>
+              <Download className="h-4 w-4 mr-1" /> Baixar
+            </Button>
+            <Button variant="outline" className="flex-1" onClick={() => { setToDelete(detailsRow); setDetailsRow(null); }}>
+              <Trash2 className="h-4 w-4 mr-1 text-destructive" /> Excluir
+            </Button>
+          </div>
+        ) : null}
+      />
 
 
       {/* Dialog de recusa */}
