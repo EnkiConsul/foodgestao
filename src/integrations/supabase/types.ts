@@ -3798,6 +3798,7 @@ export type Database = {
         Row: {
           alerta_adiantamento_offset: number
           alerta_contracheque_dia_mes: number
+          alerta_ferias_dias: number
           alerta_folha_ponto_dia_mes: number
           alerta_negociacao_dias: number
           alerta_solicitacao_dias: number
@@ -3810,6 +3811,7 @@ export type Database = {
         Insert: {
           alerta_adiantamento_offset?: number
           alerta_contracheque_dia_mes?: number
+          alerta_ferias_dias?: number
           alerta_folha_ponto_dia_mes?: number
           alerta_negociacao_dias?: number
           alerta_solicitacao_dias?: number
@@ -3822,6 +3824,7 @@ export type Database = {
         Update: {
           alerta_adiantamento_offset?: number
           alerta_contracheque_dia_mes?: number
+          alerta_ferias_dias?: number
           alerta_folha_ponto_dia_mes?: number
           alerta_negociacao_dias?: number
           alerta_solicitacao_dias?: number

@@ -9,6 +9,7 @@ export type DpPendenciasConfig = {
   alerta_adiantamento_offset: number;
   alerta_folha_ponto_dia_mes: number;
   alerta_negociacao_dias: number;
+  alerta_ferias_dias: number;
   dias_carencia_portal: number;
 };
 
@@ -19,6 +20,7 @@ export const DP_PENDENCIAS_CONFIG_DEFAULT: DpPendenciasConfig = {
   alerta_adiantamento_offset: 5,
   alerta_folha_ponto_dia_mes: 10,
   alerta_negociacao_dias: 30,
+  alerta_ferias_dias: 60,
   dias_carencia_portal: 30,
 };
 
@@ -34,7 +36,7 @@ export function useDpPendenciasConfig() {
       const { data, error } = await supabase
         .from("dp_pendencias_config")
         .select(
-          "alerta_solicitacao_dias, alerta_troca_dias, alerta_contracheque_dia_mes, alerta_adiantamento_offset, alerta_folha_ponto_dia_mes, alerta_negociacao_dias, dias_carencia_portal",
+          "alerta_solicitacao_dias, alerta_troca_dias, alerta_contracheque_dia_mes, alerta_adiantamento_offset, alerta_folha_ponto_dia_mes, alerta_negociacao_dias, alerta_ferias_dias, dias_carencia_portal",
         )
         .eq("company_id", selectedCompanyId!)
         .maybeSingle();
@@ -50,6 +52,7 @@ export function useDpPendenciasConfig() {
         alerta_folha_ponto_dia_mes:
           data.alerta_folha_ponto_dia_mes ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_folha_ponto_dia_mes,
         alerta_negociacao_dias: data.alerta_negociacao_dias ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_negociacao_dias,
+      alerta_ferias_dias: (data as any).alerta_ferias_dias ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_ferias_dias,
         dias_carencia_portal:
           (data as any).dias_carencia_portal ?? DP_PENDENCIAS_CONFIG_DEFAULT.dias_carencia_portal,
       };
