@@ -344,6 +344,18 @@ export default function ContasBancarias() {
         <Plus className="h-6 w-6" />
       </button>
 
+      <AccountCreationMethodDialog
+        open={methodOpen}
+        onOpenChange={setMethodOpen}
+        onSelectManual={() => { setMethodOpen(false); setDialogOpen(true); }}
+        onSelectOpenFinance={() => {
+          setMethodOpen(false);
+          toast.info("Em breve", {
+            description: "A conexão via Open Finance será liberada no próximo bloco.",
+          });
+        }}
+      />
+
       <AccountFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
