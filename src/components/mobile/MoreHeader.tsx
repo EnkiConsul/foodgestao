@@ -1,6 +1,7 @@
 import { Search, X } from "lucide-react";
 import { MODULE_LABEL, useActiveModule } from "@/hooks/useActiveModule";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 type Props = {
   query: string;
@@ -20,18 +21,18 @@ export function MoreHeader({ query, onQueryChange }: Props) {
           {moduleLabel}
         </h1>
 
-        <div className="relative ml-auto flex-1 max-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="relative ml-auto w-[116px] shrink-0">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder="Buscar"
-            className="pl-9 pr-9 h-9 rounded-xl"
+            className={cn("pl-8 h-9 rounded-xl text-sm", query ? "pr-8" : "pr-2")}
           />
           {query && (
             <button
               onClick={() => onQueryChange("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:bg-muted"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:bg-muted"
               aria-label="Limpar busca"
               type="button"
             >

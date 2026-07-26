@@ -105,7 +105,7 @@ export function MobileBottomNav() {
     setIndicator({ left: er.left - pr.left + er.width / 2 - 14, width: 28 });
   }, [activeIdx, pathname, isHomeActive]);
 
-  const usedRoutes = new Set([shortcutA.to, shortcutB.to]);
+  
 
   return (
     <>
@@ -146,13 +146,13 @@ export function MobileBottomNav() {
 
       <ShortcutCustomizer
         slot={customizerSlot}
+        onSlotChange={(s) => setCustomizerSlot(s)}
         onOpenChange={(open) => { if (!open) setCustomizerSlot(null); }}
-        currentTo={customizerSlot === "a" ? shortcutA.to : shortcutB.to}
+        currentA={shortcutA.to}
+        currentB={shortcutB.to}
         options={options}
-        disabledRoutes={usedRoutes}
-        onPick={(to) => {
-          if (!customizerSlot) return;
-          setShortcut(customizerSlot, to);
+        onPick={(s, to) => {
+          setShortcut(s, to);
           const picked = options.find((o) => o.to === to);
           if (picked) toast.success(`Atalho: ${picked.label}`);
           haptic(15);
@@ -290,42 +290,70 @@ function LeafSlot({ leaf, onLongPress }: { leaf: NavLeaf; onLongPress?: () => vo
 
 function ShortcutCustomizer({
   slot,
+  onSlotChange,
   onOpenChange,
-  currentTo,
+  currentA,
+  currentB,
   options,
-  disabledRoutes,
   onPick,
 }: {
   slot: ShortcutSlot | null;
+  onSlotChange: (s: ShortcutSlot) => void;
   onOpenChange: (o: boolean) => void;
-  currentTo: string;
+  currentA: string;
+  currentB: string;
   options: NavLeaf[];
-  disabledRoutes: Set<string>;
-  onPick: (to: string) => void;
+  onPick: (slot: ShortcutSlot, to: string) => void;
 }) {
   const open = slot !== null;
+  const activeSlot: ShortcutSlot = slot ?? "a";
+  const currentTo = activeSlot === "a" ? currentA : currentB;
+  const otherTo = activeSlot === "a" ? currentB : currentA;
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="rounded-t-2xl p-0 md:hidden">
         <SheetHeader className="px-5 pt-5 pb-3 border-b">
           <SheetTitle className="flex items-center gap-2 text-left">
             <Sliders className="h-4 w-4" />
-            Personalizar atalho {slot === "a" ? "esquerdo" : "direito"}
+            Personalizar Barra Inferior
           </SheetTitle>
           <p className="text-xs text-muted-foreground text-left">
-            Escolha qual funcionalidade fica no {slot === "a" ? "2º" : "4º"} slot da barra inferior.
+            Escolha qual funcionalidade fica no {activeSlot === "a" ? "2º" : "4º"} slot da barra inferior.
           </p>
+          <div className="mt-2 inline-flex rounded-lg border p-0.5 bg-muted/40 self-start">
+            <button
+              type="button"
+              onClick={() => onSlotChange("a")}
+              className={cn(
+                "px-3 h-8 rounded-md text-xs font-medium transition-colors",
+                activeSlot === "a" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground",
+              )}
+            >
+              Atalho esquerdo (2º)
+            </button>
+            <button
+              type="button"
+              onClick={() => onSlotChange("b")}
+              className={cn(
+                "px-3 h-8 rounded-md text-xs font-medium transition-colors",
+                activeSlot === "b" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground",
+              )}
+            >
+              Atalho direito (4º)
+            </button>
+          </div>
         </SheetHeader>
         <div className="p-4 max-h-[60vh] overflow-y-auto">
           <div className="rounded-xl border bg-card overflow-hidden">
             {options.map((opt, i) => {
               const Icon = opt.icon;
               const active = opt.to === currentTo;
-              const disabled = !active && disabledRoutes.has(opt.to);
+              const disabled = !active && opt.to === otherTo;
               return (
                 <button
                   key={opt.to}
-                  onClick={() => !disabled && onPick(opt.to)}
+                  onClick={() => !disabled && onPick(activeSlot, opt.to)}
                   disabled={disabled}
                   className={cn(
                     "w-full min-h-11 flex items-center gap-3 px-4 py-3 text-left transition-all",
@@ -342,7 +370,7 @@ function ShortcutCustomizer({
                   )}
                   {disabled && (
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Em uso
+                      No outro slot
                     </span>
                   )}
                 </button>
