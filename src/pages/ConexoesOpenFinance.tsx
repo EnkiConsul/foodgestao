@@ -650,6 +650,32 @@ export default function ConexoesOpenFinance() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!confirmAdjust} onOpenChange={(o) => !o && setConfirmAdjust(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ajustar saldo local?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Um lançamento de conciliação será criado hoje para alinhar o saldo local ao saldo
+              informado pelo banco (
+              {confirmAdjust?.balance != null
+                ? Number(confirmAdjust.balance).toLocaleString("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
+                  })
+                : "—"}
+              ). Use esta opção apenas quando não houver mais transações pendentes para promover.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={doAdjust} disabled={busy}>
+              {busy && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Ajustar saldo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+
   );
 }
