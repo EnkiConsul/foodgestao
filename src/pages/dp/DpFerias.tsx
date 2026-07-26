@@ -190,7 +190,11 @@ export default function DpFerias() {
 
       {/* Períodos */}
       <DpContentCard>
-        {periodosLoading ? (
+        {periodosError ? (
+          <div className="p-4">
+            <DpErrorState onRetry={refetchAll} />
+          </div>
+        ) : periodosLoading ? (
           <div className="p-8 text-center text-muted-foreground">Carregando…</div>
         ) : periodosFiltrados.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">

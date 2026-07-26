@@ -19,6 +19,7 @@ import {
 import { useDpAnalytics } from "@/hooks/useDpAnalytics";
 import { MOTIVO_DESLIGAMENTO_LABEL } from "@/lib/dp/desligamento";
 import type { Database } from "@/integrations/supabase/types";
+import { DpErrorState } from "@/components/dp/DpErrorState";
 
 type MotivoDesligamento = Database["public"]["Enums"]["dp_motivo_desligamento"];
 
