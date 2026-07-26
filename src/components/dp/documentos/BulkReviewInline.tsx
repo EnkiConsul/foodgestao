@@ -51,8 +51,11 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
   const [currentIdx, setCurrentIdx] = useState(0);
   const [zoom, setZoom] = useState(1);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const previewBoxRef = useRef<HTMLDivElement | null>(null);
+  const [boxWidth, setBoxWidth] = useState(0);
   const [rendering, setRendering] = useState(false);
   const signedUrlsRef = useRef<Map<string, { url: string; exp: number }>>(new Map());
+
 
   const [savingTotal, setSavingTotal] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
