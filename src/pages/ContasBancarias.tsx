@@ -79,6 +79,15 @@ export default function ContasBancarias() {
 
   useEffect(() => { fetchAccounts(); }, [fetchAccounts]);
 
+  // Auto-open Open Finance wizard from ?openFinance=1 (e.g., voltando da tela de Conexões)
+  useEffect(() => {
+    if (searchParams.get("openFinance") === "1" && contextType === "pj" && selectedCompanyId) {
+      setOfWizardOpen(true);
+      searchParams.delete("openFinance");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams, contextType, selectedCompanyId]);
+
   // Reset detector quando muda o perfil de acesso
   useEffect(() => {
     setStaleBalance(false);
