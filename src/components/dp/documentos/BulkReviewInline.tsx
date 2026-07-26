@@ -130,9 +130,20 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
     return data.signedUrl;
   }
 
+  // Observa a largura disponível do contêiner da prévia (fit-to-width)
+  useEffect(() => {
+    const el = previewBoxRef.current;
+    if (!el) return;
+    const update = () => setBoxWidth(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [current?.id, ocrInProgress, isSaving]);
+
   // Render página atual
   useEffect(() => {
-    if (!current?.page_file_path || !canvasRef.current) return;
+    if (!current?.page_file_path || !canvasRef.current || boxWidth <= 0) return;
     let cancelled = false;
     (async () => {
       try {
@@ -142,7 +153,11 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
         const doc = await loadPdfCached(current.page_file_path, signed);
         const page = await doc.getPage(1);
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        const viewport = page.getViewport({ scale: 1.5 * zoom * dpr });
+        // largura base da página (scale 1) para calcular o "fit to width"
+        const base = page.getViewport({ scale: 1 });
+        const available = Math.max(160, boxWidth - 16);
+        const fitScale = available / base.width;
+        const viewport = page.getViewport({ scale: fitScale * zoom * dpr });
         const canvas = canvasRef.current;
         if (!canvas || cancelled) return;
         canvas.width = viewport.width;
@@ -159,7 +174,8 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
       }
     })();
     return () => { cancelled = true; };
-  }, [current?.page_file_path, current?.id, zoom]);
+  }, [current?.page_file_path, current?.id, zoom, boxWidth]);
+
 
   // Pré-carrega páginas vizinhas (próxima e anterior)
   useEffect(() => {
