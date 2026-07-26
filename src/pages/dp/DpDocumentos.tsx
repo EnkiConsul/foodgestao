@@ -53,9 +53,6 @@ export default function DpDocumentos() {
   const filterTipo = TIPOS.find((t) => t.value === categoria)?.value;
   const currentLabel = TIPOS.find((t) => t.value === filterTipo)?.label;
 
-  const { selectedCompanyId } = useCompanyContext();
-  const { user } = useAuth();
-  const qc = useQueryClient();
   const colabs = useDpColaboradores();
   const fileRef = useRef<HTMLInputElement>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -72,42 +69,27 @@ export default function DpDocumentos() {
   const [periodoFim, setPeriodoFim] = useState("");
   const [detailsRow, setDetailsRow] = useState<Row | null>(null);
 
-  const list = useQuery({
-    queryKey: ["dp_documentos", selectedCompanyId, filterTipo ?? "all"],
-    enabled: !!selectedCompanyId,
-    queryFn: async () => {
-      let q = supabase
-        .from("dp_documentos")
-        .select("*, dp_colaboradores(nome)")
-        .eq("company_id", selectedCompanyId!)
-        .order("created_at", { ascending: false });
-      if (filterTipo) q = q.eq("tipo", filterTipo);
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data ?? []) as (Row & { dp_colaboradores: { nome: string } | null })[];
-    },
-  });
+  const {
+    isLoading,
+    filteredRows,
+    counts,
+    enviar,
+    download,
+    remover,
+    aprovar,
+    recusar: recusarMut,
+  } = useDpDocumentos(filterTipo, { statusFilter, search, periodoInicio, periodoFim });
 
-  const filteredRows = useMemo(() => {
-    const all = list.data ?? [];
-    const s = search.toLowerCase();
-    return all.filter((r) => {
-      if (statusFilter !== "todos" && (r as any).aprovacao_status !== statusFilter) return false;
-      if (s) {
-        const hay = `${r.titulo ?? ""} ${r.descricao ?? ""} ${r.dp_colaboradores?.nome ?? ""}`.toLowerCase();
-        if (!hay.includes(s)) return false;
-      }
-      if (periodoInicio && r.referencia_data && r.referencia_data < periodoInicio) return false;
-      if (periodoFim && r.referencia_data && r.referencia_data > periodoFim) return false;
-      return true;
-    });
-  }, [list.data, statusFilter, search, periodoInicio, periodoFim]);
+  const list = { isLoading };
+  const del = remover;
 
-  const counts = useMemo(() => {
-    const c: Record<string, number> = { todos: list.data?.length ?? 0, pendente: 0, aprovado: 0, recusado: 0 };
-    for (const r of list.data ?? []) c[(r as any).aprovacao_status] = (c[(r as any).aprovacao_status] ?? 0) + 1;
-    return c;
-  }, [list.data]);
+  const recusar = {
+    isPending: recusarMut.isPending,
+    mutate: (vars: { row: Row; motivo: string }) =>
+      recusarMut.mutate(vars, {
+        onSuccess: () => { setRejectRow(null); setRejectMotivo(""); },
+      }),
+  };
 
   const openDialog = () => {
     setForm({ colaborador_id: "", tipo: (filterTipo ?? "outros") as Tipo, titulo: "", descricao: "", referencia_data: "" });
@@ -116,37 +98,12 @@ export default function DpDocumentos() {
 
   const submit = async () => {
     const files = fileRef.current?.files;
-    if (!selectedCompanyId) return toast.error("Sem empresa selecionada");
     if (!files || files.length === 0) return toast.error("Selecione ao menos um arquivo");
     if (files.length === 1 && !form.titulo.trim()) return toast.error("Título é obrigatório");
     setUploading(true);
     try {
-      let ok = 0;
-      for (const file of Array.from(files)) {
-        const path = `${selectedCompanyId}/${form.colaborador_id || "geral"}/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
-        const up = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
-        if (up.error) throw up.error;
-        const titulo = files.length > 1 ? file.name.replace(/\.[^.]+$/, "") : form.titulo.trim();
-        const { error } = await supabase.from("dp_documentos").insert({
-          company_id: selectedCompanyId,
-          colaborador_id: form.colaborador_id || null,
-          tipo: form.tipo,
-          titulo,
-          descricao: form.descricao.trim() || null,
-          file_path: path,
-          file_name: file.name,
-          file_size: file.size,
-          mime_type: file.type,
-          referencia_data: form.referencia_data || null,
-          uploaded_by: user?.id,
-        });
-        if (error) throw error;
-        ok++;
-      }
+      const ok = await enviar({ files: Array.from(files), ...form });
       toast.success(`${ok} documento(s) enviado(s)`);
-      qc.invalidateQueries({ queryKey: ["dp_documentos"] });
-      qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
-      qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
       setDialogOpen(false);
       if (fileRef.current) fileRef.current.value = "";
     } catch (e) {
@@ -156,70 +113,6 @@ export default function DpDocumentos() {
     }
   };
 
-  const download = async (row: Row) => {
-    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(row.file_path, 60);
-    if (error || !data) return toast.error("Erro ao gerar link");
-    // Usa <a> clicado programaticamente para evitar bloqueio de pop-up no iOS Safari.
-    const a = document.createElement("a");
-    a.href = data.signedUrl;
-    a.target = "_blank";
-    a.rel = "noopener";
-    a.download = row.file_name ?? "";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  };
-
-  const del = useMutation({
-    mutationFn: async (row: Row) => {
-      await supabase.storage.from(BUCKET).remove([row.file_path]);
-      const { error } = await supabase.from("dp_documentos").delete().eq("id", row.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Removido");
-      qc.invalidateQueries({ queryKey: ["dp_documentos"] });
-      qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
-      qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
-    },
-    onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
-  });
-
-  const aprovar = useMutation({
-    mutationFn: async (row: Row) => {
-      const { error } = await supabase.from("dp_documentos").update({
-        aprovacao_status: "aprovado",
-        revisado_por: user?.id,
-        revisado_em: new Date().toISOString(),
-        motivo_recusao: null,
-      } as any).eq("id", row.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Documento aprovado");
-      qc.invalidateQueries({ queryKey: ["dp_documentos"] });
-    },
-    onError: (e: any) => toast.error(e.message ?? "Erro"),
-  });
-
-  const recusar = useMutation({
-    mutationFn: async ({ row, motivo }: { row: Row; motivo: string }) => {
-      const { error } = await supabase.from("dp_documentos").update({
-        aprovacao_status: "recusado",
-        revisado_por: user?.id,
-        revisado_em: new Date().toISOString(),
-        motivo_recusao: motivo,
-      } as any).eq("id", row.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Documento recusado");
-      qc.invalidateQueries({ queryKey: ["dp_documentos"] });
-      setRejectRow(null);
-      setRejectMotivo("");
-    },
-    onError: (e: any) => toast.error(e.message ?? "Erro"),
-  });
 
   const title = currentLabel ? `${currentLabel} — Documentos` : "Documentos";
 
