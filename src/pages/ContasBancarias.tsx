@@ -363,9 +363,53 @@ export default function ContasBancarias() {
       <AccountFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        onSaved={fetchAccounts}
+        onSaved={(newId) => {
+          fetchAccounts();
+          if (newId && !editAccount) setPostCreateAccountId(newId);
+        }}
         account={editAccount}
       />
+
+      <ImportStatementDialog
+        open={importOpen}
+        onOpenChange={(open) => {
+          setImportOpen(open);
+          if (!open) setImportAccountId(null);
+        }}
+        onImported={fetchAccounts}
+        defaultAccountId={importAccountId}
+      />
+
+      <AlertDialog
+        open={!!postCreateAccountId}
+        onOpenChange={(open) => { if (!open) setPostCreateAccountId(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Importar extrato agora?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sua conta foi criada. Você pode importar o extrato (PDF Nubank ou OFX) agora
+              para popular os lançamentos e o saldo automaticamente, ou fazer isso mais tarde.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPostCreateAccountId(null)}>Agora não</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const id = postCreateAccountId;
+                setPostCreateAccountId(null);
+                if (id) {
+                  setImportAccountId(id);
+                  setImportOpen(true);
+                }
+              }}
+            >
+              <Upload className="h-4 w-4 mr-2" /> Importar extrato
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       <AlertDialog open={!!deleteAccount} onOpenChange={(open) => { if (!open) setDeleteAccount(null); }}>
         <AlertDialogContent>
