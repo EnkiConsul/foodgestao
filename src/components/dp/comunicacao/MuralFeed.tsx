@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useDpMural, MURAL_EMOJIS, type MuralAviso } from "@/hooks/useDpMural";
+import { DpErrorState } from "@/components/dp/DpErrorState";
 
 function AvisoCard({
   aviso,
@@ -162,6 +163,10 @@ export function MuralFeed() {
   const mural = useDpMural();
   const avisos = mural.avisos.data ?? [];
 
+  if (mural.avisos.isError) {
+    return <DpErrorState onRetry={() => mural.avisos.refetch()} />;
+  }
+
   if (mural.avisos.isLoading) {
     return (
       <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
@@ -169,6 +174,7 @@ export function MuralFeed() {
       </div>
     );
   }
+
 
   if (avisos.length === 0) {
     return (
