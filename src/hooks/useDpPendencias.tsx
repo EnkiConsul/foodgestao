@@ -4,7 +4,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpPendenciasConfig, type DpPendenciasConfig } from "@/hooks/useDpPendenciasConfig";
 import { differenceInCalendarDays, format } from "date-fns";
 import type { LucideIcon } from "lucide-react";
-import { ClipboardList, FileText, Users, Coins, Clock, Scale, Palmtree } from "lucide-react";
+import { ClipboardList, FileText, Users, Coins, Clock, Scale, Palmtree, ShieldCheck, HardHat, GraduationCap } from "lucide-react";
 
 export type Pendencia = {
   id: string;
@@ -381,6 +381,87 @@ export function useDpPendencias() {
         });
       } catch (e) {
         console.warn("pendencias/ferias:", e);
+      }
+
+      // 8. Conformidade — ASO, EPIs e treinamentos vencendo
+      try {
+        const limiteAso = new Date(today);
+        limiteAso.setDate(limiteAso.getDate() + cfg.alerta_aso_dias);
+        const { data: exames } = await supabase
+          .from("dp_exames_aso")
+          .select("id, data_vencimento, tipo, dp_colaboradores(nome)")
+          .eq("company_id", selectedCompanyId!)
+          .not("data_vencimento", "is", null)
+          .lte("data_vencimento", ymd(limiteAso))
+          .order("data_vencimento", { ascending: true })
+          .limit(30);
+        (exames ?? []).forEach((e: any) => {
+          const vencimento = new Date(`${e.data_vencimento}T00:00:00`);
+          const dias = differenceInCalendarDays(today, vencimento);
+          results.push({
+            id: `aso-${e.id}`,
+            icon: ShieldCheck,
+            titulo: dias > 0 ? "Exame ocupacional vencido" : "Exame ocupacional a vencer",
+            subtitulo: `${e.dp_colaboradores?.nome ?? "Colaborador"} — vence ${format(vencimento, "dd/MM/yyyy")}`,
+            tipo: "ASO",
+            vencimento: ymd(vencimento),
+            atrasoDias: dias,
+            url: "/dp/conformidade",
+          });
+        });
+
+        const limiteEpi = new Date(today);
+        limiteEpi.setDate(limiteEpi.getDate() + cfg.alerta_epi_dias);
+        const { data: entregas } = await supabase
+          .from("dp_epis_entregas")
+          .select("id, data_troca_prevista, dp_colaboradores(nome), dp_epis(nome)")
+          .eq("company_id", selectedCompanyId!)
+          .is("data_devolucao", null)
+          .not("data_troca_prevista", "is", null)
+          .lte("data_troca_prevista", ymd(limiteEpi))
+          .order("data_troca_prevista", { ascending: true })
+          .limit(30);
+        (entregas ?? []).forEach((e: any) => {
+          const vencimento = new Date(`${e.data_troca_prevista}T00:00:00`);
+          const dias = differenceInCalendarDays(today, vencimento);
+          results.push({
+            id: `epi-${e.id}`,
+            icon: HardHat,
+            titulo: "Troca de EPI",
+            subtitulo: `${e.dp_colaboradores?.nome ?? "Colaborador"} — ${e.dp_epis?.nome ?? "EPI"} · previsto ${format(vencimento, "dd/MM/yyyy")}`,
+            tipo: "EPI",
+            vencimento: ymd(vencimento),
+            atrasoDias: dias,
+            url: "/dp/conformidade",
+          });
+        });
+
+        const limiteTre = new Date(today);
+        limiteTre.setDate(limiteTre.getDate() + cfg.alerta_treinamento_dias);
+        const { data: parts } = await supabase
+          .from("dp_treinamentos_participacoes")
+          .select("id, data_vencimento, dp_colaboradores(nome), dp_treinamentos(nome)")
+          .eq("company_id", selectedCompanyId!)
+          .not("data_vencimento", "is", null)
+          .lte("data_vencimento", ymd(limiteTre))
+          .order("data_vencimento", { ascending: true })
+          .limit(30);
+        (parts ?? []).forEach((p: any) => {
+          const vencimento = new Date(`${p.data_vencimento}T00:00:00`);
+          const dias = differenceInCalendarDays(today, vencimento);
+          results.push({
+            id: `treino-${p.id}`,
+            icon: GraduationCap,
+            titulo: dias > 0 ? "Treinamento vencido" : "Treinamento a renovar",
+            subtitulo: `${p.dp_colaboradores?.nome ?? "Colaborador"} — ${p.dp_treinamentos?.nome ?? "Treinamento"} · vence ${format(vencimento, "dd/MM/yyyy")}`,
+            tipo: "Treinamento",
+            vencimento: ymd(vencimento),
+            atrasoDias: dias,
+            url: "/dp/conformidade",
+          });
+        });
+      } catch (e) {
+        console.warn("pendencias/conformidade:", e);
       }
 
       // Ordenar: mais atrasado primeiro; empate → vencimento mais próximo

@@ -66,6 +66,7 @@ const ADMIN_ITEMS: Item[] = [
       { title: "Histórico Completo", url: "/dp/documentos/historico", icon: ListChecks },
     ],
   },
+  { kind: "link", title: "Conformidade", url: "/dp/conformidade", icon: ShieldCheck },
   {
     kind: "group", title: "Comunicação", icon: MessageSquare,
     prefixes: ["/dp/comunicacao", "/dp/mensagens", "/dp/avisos"],
