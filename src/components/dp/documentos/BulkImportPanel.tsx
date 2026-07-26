@@ -510,6 +510,49 @@ export function BulkImportPanel({
           batchName={reviewBatch.name}
         />
       )}
+
+      <MobileDetailsSheet
+        open={!!detailsBatch}
+        onOpenChange={(o) => !o && setDetailsBatch(null)}
+        title={detailsBatch?.source_file_name ?? detailsBatch?.id?.slice(0, 8) ?? "Lote"}
+        description="Detalhes do lote de importação"
+        meta={detailsBatch ? [
+          { label: "Tipo", value: detailsBatch.tipo ?? "—" },
+          { label: "Status", value: statusLabel(detailsBatch.status) },
+          { label: "Páginas", value: `${detailsBatch.processed_pages ?? 0}/${detailsBatch.total_pages ?? 0}` },
+          { label: "Vinculadas", value: detailsBatch.matched_count ?? 0 },
+          { label: "Criado em", value: new Date(detailsBatch.created_at).toLocaleString("pt-BR") },
+          ...(detailsBatch.error_message ? [{ label: "Erro", value: detailsBatch.error_message }] : []),
+        ] : []}
+        footer={detailsBatch ? (
+          <div className="flex gap-2 w-full">
+            {detailsBatch.total_pages > 0 && detailsBatch.status !== "processing" && (
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setReviewBatch({ id: detailsBatch.id, name: detailsBatch.source_file_name });
+                  setDetailsBatch(null);
+                }}
+              >
+                <Eye className="h-4 w-4 mr-1" /> Revisar
+              </Button>
+            )}
+            {(detailsBatch.status !== "imported" && detailsBatch.status !== "partially_imported") && (
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  discardBatch.mutate(detailsBatch.id);
+                  setDetailsBatch(null);
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-1" /> Descartar
+              </Button>
+            )}
+          </div>
+        ) : null}
+      />
     </div>
   );
 }
