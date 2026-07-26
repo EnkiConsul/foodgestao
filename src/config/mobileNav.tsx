@@ -274,8 +274,8 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
     hubTo: "/hub",
     moreTo: "/dp/mais",
     home: dpHome,
-    defaultShortcutA: dpShortcuts[0],
-    defaultShortcutB: dpShortcuts[1],
+    defaultShortcutA: pickShortcut(dpShortcuts, GLOBAL_SHORTCUT_DEFAULTS.dp.A, 0),
+    defaultShortcutB: pickShortcut(dpShortcuts, GLOBAL_SHORTCUT_DEFAULTS.dp.B, 1),
     shortcutOptions: dpShortcuts,
     moreGroups: [
       {
