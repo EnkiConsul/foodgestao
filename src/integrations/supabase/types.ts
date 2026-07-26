@@ -2634,6 +2634,7 @@ export type Database = {
       }
       dp_colaboradores: {
         Row: {
+          acesso_portal_ate: string | null
           aprovacao_status: Database["public"]["Enums"]["dp_aprovacao_status"]
           ativo: boolean
           cargo: string | null
@@ -2644,7 +2645,12 @@ export type Database = {
           data_admissao: string | null
           data_desligamento: string | null
           data_nascimento: string | null
+          desligado_em: string | null
+          desligado_por: string | null
           dp_permissions: Json
+          elegivel_recontratacao:
+            | Database["public"]["Enums"]["dp_elegibilidade_recontratacao"]
+            | null
           email: string | null
           email_contato: string | null
           email_portal: string | null
@@ -2652,7 +2658,11 @@ export type Database = {
           folga_fixa_semana: number | null
           id: string
           matricula: string | null
+          motivo_desligamento:
+            | Database["public"]["Enums"]["dp_motivo_desligamento"]
+            | null
           nome: string
+          observacao_desligamento: string | null
           observacoes: string | null
           optante_adiantamento: boolean
           perfil_acesso: Database["public"]["Enums"]["dp_perfil_acesso"]
@@ -2666,6 +2676,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          acesso_portal_ate?: string | null
           aprovacao_status?: Database["public"]["Enums"]["dp_aprovacao_status"]
           ativo?: boolean
           cargo?: string | null
@@ -2676,7 +2687,12 @@ export type Database = {
           data_admissao?: string | null
           data_desligamento?: string | null
           data_nascimento?: string | null
+          desligado_em?: string | null
+          desligado_por?: string | null
           dp_permissions?: Json
+          elegivel_recontratacao?:
+            | Database["public"]["Enums"]["dp_elegibilidade_recontratacao"]
+            | null
           email?: string | null
           email_contato?: string | null
           email_portal?: string | null
@@ -2684,7 +2700,11 @@ export type Database = {
           folga_fixa_semana?: number | null
           id?: string
           matricula?: string | null
+          motivo_desligamento?:
+            | Database["public"]["Enums"]["dp_motivo_desligamento"]
+            | null
           nome: string
+          observacao_desligamento?: string | null
           observacoes?: string | null
           optante_adiantamento?: boolean
           perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"]
@@ -2698,6 +2718,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          acesso_portal_ate?: string | null
           aprovacao_status?: Database["public"]["Enums"]["dp_aprovacao_status"]
           ativo?: boolean
           cargo?: string | null
@@ -2708,7 +2729,12 @@ export type Database = {
           data_admissao?: string | null
           data_desligamento?: string | null
           data_nascimento?: string | null
+          desligado_em?: string | null
+          desligado_por?: string | null
           dp_permissions?: Json
+          elegivel_recontratacao?:
+            | Database["public"]["Enums"]["dp_elegibilidade_recontratacao"]
+            | null
           email?: string | null
           email_contato?: string | null
           email_portal?: string | null
@@ -2716,7 +2742,11 @@ export type Database = {
           folga_fixa_semana?: number | null
           id?: string
           matricula?: string | null
+          motivo_desligamento?:
+            | Database["public"]["Enums"]["dp_motivo_desligamento"]
+            | null
           nome?: string
+          observacao_desligamento?: string | null
           observacoes?: string | null
           optante_adiantamento?: boolean
           perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"]
@@ -3609,6 +3639,7 @@ export type Database = {
           alerta_troca_dias: number
           company_id: string
           created_at: string
+          dias_carencia_portal: number
           updated_at: string
         }
         Insert: {
@@ -3620,6 +3651,7 @@ export type Database = {
           alerta_troca_dias?: number
           company_id: string
           created_at?: string
+          dias_carencia_portal?: number
           updated_at?: string
         }
         Update: {
@@ -3631,6 +3663,7 @@ export type Database = {
           alerta_troca_dias?: number
           company_id?: string
           created_at?: string
+          dias_carencia_portal?: number
           updated_at?: string
         }
         Relationships: [
@@ -6136,7 +6169,18 @@ export type Database = {
         Args: { _ano: number; _regra_id: string }
         Returns: string
       }
+      dp_colaborador_ativo_of: { Args: { _user_id: string }; Returns: string }
       dp_colaborador_of: { Args: { _user_id: string }; Returns: string }
+      dp_desligar_colaborador: {
+        Args: {
+          p_colaborador_id: string
+          p_data_desligamento: string
+          p_elegibilidade?: Database["public"]["Enums"]["dp_elegibilidade_recontratacao"]
+          p_motivo?: Database["public"]["Enums"]["dp_motivo_desligamento"]
+          p_observacao?: string
+        }
+        Returns: Json
+      }
       dp_folha_enviar_financeiro: {
         Args: { _periodo_id: string }
         Returns: undefined
@@ -6162,6 +6206,10 @@ export type Database = {
       dp_regra_bloqueia_data: {
         Args: { _company_id: string; _data: string; _unidade_id: string }
         Returns: boolean
+      }
+      dp_reintegrar_colaborador: {
+        Args: { p_colaborador_id: string }
+        Returns: undefined
       }
       dre_apply_default_mapping: {
         Args: { _company_id: string }
@@ -6676,6 +6724,7 @@ export type Database = {
         | "outros"
         | "sindicato"
         | "ferias"
+      dp_elegibilidade_recontratacao: "sim" | "nao" | "com_ressalvas"
       dp_folga_origem:
         | "fixa_semana"
         | "sorteio"
@@ -6706,6 +6755,16 @@ export type Database = {
         | "vale_alimentacao"
         | "vale_transporte"
       dp_mensagem_canal: "whatsapp" | "email" | "sms"
+      dp_motivo_desligamento:
+        | "pedido_demissao"
+        | "dispensa_sem_justa_causa"
+        | "dispensa_com_justa_causa"
+        | "termino_contrato"
+        | "acordo_mutuo"
+        | "abandono_emprego"
+        | "aposentadoria"
+        | "falecimento"
+        | "outro"
       dp_negociacao_tipo_doc: "act" | "cct" | "aditivo" | "outro"
       dp_notificacao_tipo:
         | "solicitacao_nova"
@@ -6948,6 +7007,7 @@ export const Constants = {
         "sindicato",
         "ferias",
       ],
+      dp_elegibilidade_recontratacao: ["sim", "nao", "com_ressalvas"],
       dp_folga_origem: [
         "fixa_semana",
         "sorteio",
@@ -6982,6 +7042,17 @@ export const Constants = {
         "vale_transporte",
       ],
       dp_mensagem_canal: ["whatsapp", "email", "sms"],
+      dp_motivo_desligamento: [
+        "pedido_demissao",
+        "dispensa_sem_justa_causa",
+        "dispensa_com_justa_causa",
+        "termino_contrato",
+        "acordo_mutuo",
+        "abandono_emprego",
+        "aposentadoria",
+        "falecimento",
+        "outro",
+      ],
       dp_negociacao_tipo_doc: ["act", "cct", "aditivo", "outro"],
       dp_notificacao_tipo: [
         "solicitacao_nova",

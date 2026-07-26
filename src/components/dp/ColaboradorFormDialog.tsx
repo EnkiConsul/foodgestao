@@ -141,21 +141,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       if (diffDias > 90) { toast.error("Data de admissão muito distante no futuro (máx. 90 dias)"); return; }
     }
 
-    if (!form.ativo && form.data_desligamento) {
-      const desligamento = new Date(form.data_desligamento + "T00:00:00");
-      if (desligamento < admissao) {
-        toast.error("Data de demissão não pode ser anterior à admissão");
-        return;
-      }
-      if (desligamento > hoje) {
-        toast.error("Data de demissão não pode ser futura");
-        return;
-      }
-    }
-    if (!form.ativo && !form.data_desligamento) {
-      toast.error("Informe a data de demissão para colaboradores inativos");
-      return;
-    }
+
+
 
     // Duplicidade de CPF na empresa
     try {
@@ -184,10 +171,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         regime: VINCULO_TO_REGIME[form.tipo_vinculo] ?? "clt",
         data_admissao: form.data_admissao || null,
         data_nascimento: form.data_nascimento || null,
-        data_desligamento: !form.ativo && form.data_desligamento ? form.data_desligamento : null,
         email: form.email.trim() || null,
         whatsapp: form.whatsapp.trim() || null,
-        ativo: form.ativo,
+
         perfil_acesso: form.perfil_acesso,
         folga_fixa_semana: form.folga_fixa_semana !== "none" ? Number(form.folga_fixa_semana) : null,
         possui_folha_ponto: form.possui_folha_ponto,
@@ -344,15 +330,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             </Select>
           </div>
 
-          {/* Ativo */}
-          <div className="col-span-2 flex items-center gap-3 rounded-xl border border-border p-3">
-            <Switch
-              id="ativo"
-              checked={form.ativo}
-              onCheckedChange={(v) => setForm({ ...form, ativo: v, data_desligamento: v ? "" : form.data_desligamento })}
-            />
-            <Label htmlFor="ativo" className="cursor-pointer">Ativo</Label>
-          </div>
+
+
 
           {/* Folha de ponto (condicional) */}
           {unidadeSelecionada?.possui_relogio_ponto && (
@@ -381,17 +360,18 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             )}
           </div>
 
-          {/* Data de demissão (se inativo) */}
-          {!form.ativo && (
-            <div className="col-span-2 space-y-2">
-              <Label>Data de Demissão</Label>
-              <Input
-                type="date"
-                value={form.data_desligamento}
-                onChange={(e) => setForm({ ...form, data_desligamento: e.target.value })}
-              />
+          {/* Situação (somente leitura — desligamento é feito pela ação "Desligar") */}
+          {isEdit && !form.ativo && (
+            <div className="col-span-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">
+              <div className="font-semibold text-destructive">Colaborador desligado</div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                Data da demissão: {form.data_desligamento
+                  ? new Date(`${form.data_desligamento}T12:00:00`).toLocaleDateString("pt-BR")
+                  : "—"}. Use a ação “Reintegrar” na lista de colaboradores para reativar.
+              </div>
             </div>
           )}
+
 
           {/* Senha Inicial */}
           {!isEdit && (

@@ -1,12 +1,11 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles, UserMinus, RotateCcw } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,14 +17,19 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  useDpColaboradores, useDeleteDpColaborador, useToggleDpColaboradorAtivo,
+  useDpColaboradores, useDeleteDpColaborador, useReintegrarDpColaborador,
   type DpColaborador,
 } from "@/hooks/useDpColaboradores";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
+import { DesligamentoDialog } from "@/components/dp/DesligamentoDialog";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { supabase } from "@/integrations/supabase/client";
+import { MOTIVO_DESLIGAMENTO_LABEL, ELEGIBILIDADE_LABEL, acessoPortalAtivo, diasRestantesCarencia } from "@/lib/dp/desligamento";
+
+const fmtDate = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "—");
+
 
 const REGIME_LABEL: Record<string, string> = {
   clt: "CLT",
@@ -46,7 +50,7 @@ export default function DpColaboradores() {
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
   const del = useDeleteDpColaborador();
-  const toggle = useToggleDpColaboradorAtivo();
+  const reintegrar = useReintegrarDpColaborador();
 
   const [search, setSearch] = useState("");
   const [unidadeFilter, setUnidadeFilter] = useState<string>("all");
@@ -57,6 +61,8 @@ export default function DpColaboradores() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<DpColaborador | null>(null);
   const [toDelete, setToDelete] = useState<DpColaborador | null>(null);
+  const [toDesligar, setToDesligar] = useState<DpColaborador | null>(null);
+  const [toReintegrar, setToReintegrar] = useState<DpColaborador | null>(null);
   const [resetting, setResetting] = useState<string | null>(null);
   const [granting, setGranting] = useState<string | null>(null);
   const [accessResult, setAccessResult] = useState<{ nome: string; cpf: string; password: string; kind: "created" | "reset" } | null>(null);
@@ -72,7 +78,7 @@ export default function DpColaboradores() {
     return {
       todos: all.length,
       ativos: all.filter((c) => c.ativo).length,
-      inativos: all.filter((c) => !c.ativo).length,
+      desligados: all.filter((c) => !c.ativo).length,
     };
   }, [list.data]);
 
@@ -90,7 +96,7 @@ export default function DpColaboradores() {
       if (cargoFilter !== "all" && c.cargo_id !== cargoFilter) return false;
       if (perfilFilter !== "all" && (c as any).perfil_acesso !== perfilFilter) return false;
       if (statusFilter === "ativos" && !c.ativo) return false;
-      if (statusFilter === "inativos" && c.ativo) return false;
+      if (statusFilter === "desligados" && c.ativo) return false;
       return true;
     });
   }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, statusFilter]);
@@ -106,14 +112,17 @@ export default function DpColaboradores() {
     setToDelete(null);
   };
 
-  const handleToggle = async (c: DpColaborador, ativo: boolean) => {
+  const handleReintegrar = async () => {
+    if (!toReintegrar) return;
     try {
-      await toggle.mutateAsync({ id: c.id, ativo });
-      toast.success(ativo ? "Colaborador ativado" : "Colaborador inativado");
+      await reintegrar.mutateAsync(toReintegrar.id);
+      toast.success(`${toReintegrar.nome} foi reintegrado(a)`);
     } catch (e) {
-      toast.error("Erro ao atualizar status", { description: e instanceof Error ? e.message : String(e) });
+      toast.error("Erro ao reintegrar", { description: e instanceof Error ? e.message : String(e) });
     }
+    setToReintegrar(null);
   };
+
 
   const handleReset = async (c: DpColaborador) => {
     if (!c.user_id) {
@@ -263,7 +272,7 @@ export default function DpColaboradores() {
         <TabsList>
           <TabsTrigger value="all">Todos ({counts.todos})</TabsTrigger>
           <TabsTrigger value="ativos">Ativos ({counts.ativos})</TabsTrigger>
-          <TabsTrigger value="inativos">Inativos ({counts.inativos})</TabsTrigger>
+          <TabsTrigger value="desligados">Desligados ({counts.desligados})</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -357,12 +366,32 @@ export default function DpColaboradores() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Switch
-                          checked={!!c.ativo}
-                          onCheckedChange={(v) => handleToggle(c, v)}
-                          disabled={toggle.isPending}
-                        />
+                        {c.ativo ? (
+                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
+                            Ativo
+                          </Badge>
+                        ) : (
+                          <div className="space-y-0.5">
+                            <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
+                              Desligado em {fmtDate(c.data_desligamento)}
+                            </Badge>
+                            <div className="text-[11px] text-muted-foreground whitespace-nowrap">
+                              {(c as any).motivo_desligamento
+                                ? MOTIVO_DESLIGAMENTO_LABEL[(c as any).motivo_desligamento as keyof typeof MOTIVO_DESLIGAMENTO_LABEL]
+                                : "Motivo não informado"}
+                              {(c as any).elegivel_recontratacao
+                                ? ` • ${ELEGIBILIDADE_LABEL[(c as any).elegivel_recontratacao as keyof typeof ELEGIBILIDADE_LABEL]}`
+                                : ""}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground whitespace-nowrap">
+                              {acessoPortalAtivo((c as any).acesso_portal_ate)
+                                ? `Portal até ${fmtDate((c as any).acesso_portal_ate)} (${diasRestantesCarencia((c as any).acesso_portal_ate)} d)`
+                                : "Portal encerrado"}
+                            </div>
+                          </div>
+                        )}
                       </TableCell>
+
                       <TableCell>
                         <Badge
                           variant="outline"
@@ -422,9 +451,19 @@ export default function DpColaboradores() {
                               <UserPlus className="h-4 w-4 text-primary" />
                             </Button>
                           )}
+                          {c.ativo ? (
+                            <Button size="icon" variant="ghost" onClick={() => setToDesligar(c)} title="Desligar colaborador">
+                              <UserMinus className="h-4 w-4 text-destructive" />
+                            </Button>
+                          ) : (
+                            <Button size="icon" variant="ghost" onClick={() => setToReintegrar(c)} title="Reintegrar colaborador">
+                              <RotateCcw className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button size="icon" variant="ghost" onClick={() => setToDelete(c)} title="Remover">
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
+
                         </div>
                       </TableCell>
                     </TableRow>
@@ -468,11 +507,16 @@ export default function DpColaboradores() {
                     {c.unidade_nome ? <span> • {c.unidade_nome}</span> : null}
                   </div>
                 </div>
-                <Switch
-                  checked={!!c.ativo}
-                  onCheckedChange={(v) => handleToggle(c, v)}
-                  disabled={toggle.isPending}
-                />
+                {c.ativo ? (
+                  <Badge variant="outline" className="text-[11px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
+                    Ativo
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[11px] bg-destructive/10 text-destructive border-destructive/30">
+                    Desligado {fmtDate(c.data_desligamento)}
+                  </Badge>
+                )}
+
               </div>
 
               <div className="flex flex-wrap gap-1.5">
@@ -518,9 +562,19 @@ export default function DpColaboradores() {
                     <UserPlus className="h-4 w-4 mr-1" /> Acesso
                   </Button>
                 )}
+                {c.ativo ? (
+                  <Button size="sm" variant="ghost" className="min-h-11 flex-1 text-destructive" onClick={() => setToDesligar(c)}>
+                    <UserMinus className="h-4 w-4 mr-1" /> Desligar
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => setToReintegrar(c)}>
+                    <RotateCcw className="h-4 w-4 mr-1" /> Reintegrar
+                  </Button>
+                )}
                 <Button size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => setToDelete(c)} title="Remover">
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
+
               </div>
             </div>
           );
@@ -529,6 +583,25 @@ export default function DpColaboradores() {
 
 
       <ColaboradorFormDialog open={dialogOpen} onOpenChange={setDialogOpen} colaborador={editing} />
+
+      <DesligamentoDialog colaborador={toDesligar} onOpenChange={(o) => !o && setToDesligar(null)} />
+
+      <AlertDialog open={!!toReintegrar} onOpenChange={(o) => !o && setToReintegrar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reintegrar colaborador?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{toReintegrar?.nome}</strong> voltará a ficar ativo, com acesso completo ao portal.
+              Os dados do desligamento (data, motivo e observações) serão apagados do cadastro.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReintegrar}>Reintegrar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <AlertDialogContent>
