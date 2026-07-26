@@ -16,7 +16,7 @@ export function ContextSelector() {
 
   return (
     <Select value={currentValue} onValueChange={handleChange}>
-      <SelectTrigger className="h-8 w-[180px] text-xs gap-1.5 border-dashed">
+      <SelectTrigger className="h-9 w-auto min-w-0 max-w-[42vw] shrink text-xs gap-1.5 border-dashed md:h-8 md:w-[180px] md:max-w-none">
         {contextType === "pf" ? (
           <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         ) : (
