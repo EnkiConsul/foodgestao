@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { usePrivacy } from "@/hooks/usePrivacy";
@@ -20,7 +21,7 @@ import { ImportStatementDialog } from "@/components/transactions/ImportStatement
 
 
 import { BankLogo } from "@/components/accounts/BankLogo";
-import { Plus, Search, Landmark, Pencil, Trash2, Wallet, RefreshCw, AlertTriangle, Upload } from "lucide-react";
+import { Plus, Search, Landmark, Pencil, Trash2, Wallet, RefreshCw, AlertTriangle, Upload, Zap } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -40,6 +41,8 @@ export default function ContasBancarias() {
   const { user } = useAuth();
   const { contextType, selectedCompanyId, companies } = useCompanyContext();
   const { maskBRL } = usePrivacy();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,6 +78,15 @@ export default function ContasBancarias() {
   }, [user, contextType, selectedCompanyId]);
 
   useEffect(() => { fetchAccounts(); }, [fetchAccounts]);
+
+  // Auto-open Open Finance wizard from ?openFinance=1 (e.g., voltando da tela de Conexões)
+  useEffect(() => {
+    if (searchParams.get("openFinance") === "1" && contextType === "pj" && selectedCompanyId) {
+      setOfWizardOpen(true);
+      searchParams.delete("openFinance");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams, contextType, selectedCompanyId]);
 
   // Reset detector quando muda o perfil de acesso
   useEffect(() => {
@@ -163,6 +175,15 @@ export default function ContasBancarias() {
           <p className="text-sm text-muted-foreground">Gerencie suas contas e saldos</p>
         </div>
         <div className="flex items-center gap-2">
+          {contextType === "pj" && selectedCompanyId && (
+            <Button
+              variant="outline"
+              onClick={() => navigate("/contas-bancarias/conexoes")}
+              className="hidden md:flex"
+            >
+              <Zap className="h-4 w-4 mr-2" /> Conexões Open Finance
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={handleResync}
