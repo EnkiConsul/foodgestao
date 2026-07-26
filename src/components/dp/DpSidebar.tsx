@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { NavLink, useLocation, Link, useNavigate } from "react-router-dom";
 import {
   Home, Users, Briefcase, Building2, Scale, FileSignature,
-  Calendar, ClipboardList, UserCheck, ArrowLeftRight, Ban, Palmtree,
+  Calendar, ClipboardList, UserCheck, ArrowLeftRight, Ban, Palmtree, ShieldCheck,
   FileText, Coins, Clock, HeartPulse, ShieldAlert, ListChecks,
   MessageSquare, Bell, BellRing, ChevronDown, LogOut, ArrowLeft, Settings, Repeat,
 } from "lucide-react";
@@ -66,6 +66,7 @@ const ADMIN_ITEMS: Item[] = [
       { title: "Histórico Completo", url: "/dp/documentos/historico", icon: ListChecks },
     ],
   },
+  { kind: "link", title: "Conformidade", url: "/dp/conformidade", icon: ShieldCheck },
   {
     kind: "group", title: "Comunicação", icon: MessageSquare,
     prefixes: ["/dp/comunicacao", "/dp/mensagens", "/dp/avisos"],

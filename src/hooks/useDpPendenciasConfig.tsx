@@ -10,6 +10,9 @@ export type DpPendenciasConfig = {
   alerta_folha_ponto_dia_mes: number;
   alerta_negociacao_dias: number;
   alerta_ferias_dias: number;
+  alerta_aso_dias: number;
+  alerta_epi_dias: number;
+  alerta_treinamento_dias: number;
   dias_carencia_portal: number;
 };
 
@@ -21,6 +24,9 @@ export const DP_PENDENCIAS_CONFIG_DEFAULT: DpPendenciasConfig = {
   alerta_folha_ponto_dia_mes: 10,
   alerta_negociacao_dias: 30,
   alerta_ferias_dias: 60,
+  alerta_aso_dias: 30,
+  alerta_epi_dias: 15,
+  alerta_treinamento_dias: 30,
   dias_carencia_portal: 30,
 };
 
@@ -36,7 +42,7 @@ export function useDpPendenciasConfig() {
       const { data, error } = await supabase
         .from("dp_pendencias_config")
         .select(
-          "alerta_solicitacao_dias, alerta_troca_dias, alerta_contracheque_dia_mes, alerta_adiantamento_offset, alerta_folha_ponto_dia_mes, alerta_negociacao_dias, alerta_ferias_dias, dias_carencia_portal",
+          "alerta_solicitacao_dias, alerta_troca_dias, alerta_contracheque_dia_mes, alerta_adiantamento_offset, alerta_folha_ponto_dia_mes, alerta_negociacao_dias, alerta_ferias_dias, alerta_aso_dias, alerta_epi_dias, alerta_treinamento_dias, dias_carencia_portal",
         )
         .eq("company_id", selectedCompanyId!)
         .maybeSingle();
@@ -53,6 +59,10 @@ export function useDpPendenciasConfig() {
           data.alerta_folha_ponto_dia_mes ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_folha_ponto_dia_mes,
         alerta_negociacao_dias: data.alerta_negociacao_dias ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_negociacao_dias,
       alerta_ferias_dias: (data as any).alerta_ferias_dias ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_ferias_dias,
+        alerta_aso_dias: (data as any).alerta_aso_dias ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_aso_dias,
+        alerta_epi_dias: (data as any).alerta_epi_dias ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_epi_dias,
+        alerta_treinamento_dias:
+          (data as any).alerta_treinamento_dias ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_treinamento_dias,
         dias_carencia_portal:
           (data as any).dias_carencia_portal ?? DP_PENDENCIAS_CONFIG_DEFAULT.dias_carencia_portal,
       };
