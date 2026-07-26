@@ -168,23 +168,7 @@ function SlotRenderer({
   }
 
   if (slot.kind === "more") {
-    return (
-      <MobileMoreSheet
-        groups={config.moreGroups}
-        onCustomizeShortcut={() => onOpenCustomizer("a")}
-        trigger={
-          <button
-            type="button"
-            onClick={() => haptic(6)}
-            className="flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] py-1.5 text-muted-foreground hover:text-foreground active:scale-95 transition-all"
-            aria-label="Mais opções"
-          >
-            <MoreHorizontal className="h-5 w-5" />
-            <span className="text-[10px] font-medium leading-none">Mais</span>
-          </button>
-        }
-      />
-    );
+    return <MoreSlot to={config.moreTo} />;
   }
 
   return (
