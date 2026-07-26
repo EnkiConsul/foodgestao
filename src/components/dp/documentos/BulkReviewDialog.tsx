@@ -487,18 +487,23 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
           </div>
         </div>
 
-        <DialogFooter className="p-3 border-t bg-background">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
+        <DialogFooter className="p-3 border-t bg-background gap-2">
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>Fechar</Button>
           <Button
+            className="w-full sm:w-auto h-11 sm:h-10"
             onClick={handleApproveClick}
             disabled={pendingCount === 0 || checkingDup || isSaving}
           >
             {(checkingDup || isSaving)
-              ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              : <Check className="h-4 w-4 mr-1" />}
-            Aprovar e Salvar {pendingCount} Documento(s)
+              ? <Loader2 className="h-4 w-4 mr-1 animate-spin shrink-0" />
+              : <Check className="h-4 w-4 mr-1 shrink-0" />}
+            <span className="truncate">
+              <span className="sm:hidden">Aprovar {pendingCount} documento(s)</span>
+              <span className="hidden sm:inline">Aprovar e Salvar {pendingCount} Documento(s)</span>
+            </span>
           </Button>
         </DialogFooter>
+
           </>
           );
         })()}
