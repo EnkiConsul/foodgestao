@@ -130,7 +130,7 @@ export default function DpBeneficios() {
           </div>
           <DpContentCard>
             {b.atribuicoes.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
+              <p className="p-6 text-center text-sm text-muted-foreground">
                 Nenhum benefício atribuído.
               </p>
             ) : (
@@ -175,7 +175,7 @@ export default function DpBeneficios() {
           </div>
           <DpContentCard>
             {b.beneficios.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
+              <p className="p-6 text-center text-sm text-muted-foreground">
                 Nenhum benefício cadastrado.
               </p>
             ) : (

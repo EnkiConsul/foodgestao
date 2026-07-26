@@ -150,7 +150,7 @@ export default function DpAnalytics() {
               hint={`${brl(kpis.custoMedioColaborador)} por colaborador`} />
           </div>
 
-          <DpContentCard>
+          <DpContentCard contentClassName="p-4 md:p-5">
             <h2 className="mb-3 text-sm font-semibold">Headcount e movimentação</h2>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -169,7 +169,7 @@ export default function DpAnalytics() {
           </DpContentCard>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <DpContentCard>
+            <DpContentCard contentClassName="p-4 md:p-5">
               <h2 className="mb-3 text-sm font-semibold">Turnover mensal (%)</h2>
               <div className="h-56">
                 <ResponsiveContainer width="100%" height="100%">
@@ -184,7 +184,7 @@ export default function DpAnalytics() {
               </div>
             </DpContentCard>
 
-            <DpContentCard>
+            <DpContentCard contentClassName="p-4 md:p-5">
               <h2 className="mb-3 text-sm font-semibold">Custo de folha por mês</h2>
               <div className="h-56">
                 <ResponsiveContainer width="100%" height="100%">
@@ -200,7 +200,7 @@ export default function DpAnalytics() {
             </DpContentCard>
           </div>
 
-          <DpContentCard>
+          <DpContentCard contentClassName="p-4 md:p-5">
             <h2 className="mb-3 text-sm font-semibold">Resumo por unidade</h2>
             <div className="overflow-x-auto">
               <Table>
@@ -236,7 +236,7 @@ export default function DpAnalytics() {
             </div>
           </DpContentCard>
 
-          <DpContentCard>
+          <DpContentCard contentClassName="p-4 md:p-5">
             <h2 className="mb-3 text-sm font-semibold">Motivos de desligamento</h2>
             {motivos.length === 0 ? (
               <p className="text-sm text-muted-foreground">Nenhum desligamento no período.</p>
