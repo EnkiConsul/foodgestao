@@ -158,15 +158,17 @@ const noopShortcut: NavLeaf = { icon: LayoutGrid, label: "Hub", to: "/hub" };
 export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
   financeiro: {
     hubTo: "/hub",
+    moreTo: "/mais",
     home: financeiroHome,
-    defaultShortcutA: financeiroShortcuts[0], // Lançamentos
-    defaultShortcutB: financeiroShortcuts[1], // Contas
+    defaultShortcutA: financeiroShortcuts[0],
+    defaultShortcutB: financeiroShortcuts[1],
     shortcutOptions: financeiroShortcuts,
     moreGroups: [
       {
         label: "Operar",
+        accent: "primary",
         items: [
-          { icon: List, label: "Lançamentos", to: "/lancamentos" },
+          { icon: List, label: "Lançamentos", to: "/lancamentos", featured: true },
           { icon: ArrowLeftRight, label: "Transferências", to: "/transferencias" },
           { icon: CreditCard, label: "Cartões", to: "/cartoes-credito" },
           { icon: Repeat, label: "Recorrências", to: "/recorrencias" },
@@ -174,6 +176,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
       },
       {
         label: "Cadastros",
+        accent: "navy",
         items: [
           { icon: Tags, label: "Categorias", to: "/categorias" },
           { icon: Contact, label: "Contatos", to: "/contatos" },
@@ -183,8 +186,9 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
       },
       {
         label: "Relatórios",
+        accent: "amber",
         items: [
-          { icon: TrendingUp, label: "Fluxo de caixa", to: "/fluxo-caixa" },
+          { icon: TrendingUp, label: "Fluxo de caixa", to: "/fluxo-caixa", featured: true },
           { icon: FileBarChart, label: "Relatórios", to: "/relatorios" },
           { icon: PiggyBank, label: "Orçamento", to: "/orcamento" },
         ],
@@ -195,15 +199,17 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
 
   dp: {
     hubTo: "/hub",
+    moreTo: "/dp/mais",
     home: dpHome,
-    defaultShortcutA: dpShortcuts[0], // Calendário
-    defaultShortcutB: dpShortcuts[1], // Documentos
+    defaultShortcutA: dpShortcuts[0],
+    defaultShortcutB: dpShortcuts[1],
     shortcutOptions: dpShortcuts,
     moreGroups: [
       {
         label: "Operar",
+        accent: "primary",
         items: [
-          { icon: CheckSquare, label: "Aprovações", to: "/dp/aprovacoes" },
+          { icon: CheckSquare, label: "Aprovações", to: "/dp/aprovacoes", featured: true },
           { icon: Inbox, label: "Solicitações", to: "/dp/solicitacoes" },
           { icon: Calendar, label: "Folgas", to: "/dp/folgas" },
           { icon: ArrowLeftRight, label: "Trocas", to: "/dp/trocas" },
@@ -213,8 +219,9 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
       },
       {
         label: "Cadastros",
+        accent: "navy",
         items: [
-          { icon: Users, label: "Colaboradores", to: "/dp/colaboradores" },
+          { icon: Users, label: "Colaboradores", to: "/dp/colaboradores", featured: true },
           { icon: BookOpen, label: "Cargos", to: "/dp/cadastros/cargos" },
           { icon: Building2, label: "Unidades", to: "/dp/cadastros/unidades" },
           { icon: Calendar, label: "Datas bloqueadas", to: "/dp/bloqueios" },
@@ -223,6 +230,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
       },
       {
         label: "Relatórios",
+        accent: "amber",
         items: [{ icon: FileBarChart, label: "Histórico", to: "/dp/documentos/historico" }],
       },
       contaGroup,
@@ -231,15 +239,17 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
 
   portal_colaborador: {
     hubTo: "/hub",
+    moreTo: "/dp/meu/mais",
     home: portalHome,
-    defaultShortcutA: portalShortcuts[0], // Financeiro
-    defaultShortcutB: portalShortcuts[1], // DP
+    defaultShortcutA: portalShortcuts[0],
+    defaultShortcutB: portalShortcuts[1],
     shortcutOptions: portalShortcuts,
     moreGroups: [
       {
         label: "Meu portal",
+        accent: "navy",
         items: [
-          { icon: Calendar, label: "Meu calendário", to: "/dp/meu/calendario" },
+          { icon: Calendar, label: "Meu calendário", to: "/dp/meu/calendario", featured: true },
           { icon: Inbox, label: "Solicitações", to: "/dp/meu/solicitacoes" },
           { icon: ArrowLeftRight, label: "Trocas", to: "/dp/meu/trocas" },
           { icon: FileText, label: "Documentos", to: "/dp/meu/documentos" },
@@ -252,15 +262,17 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
 
   hub: {
     hubTo: "/hub",
+    moreTo: "/mais",
     home: hubHome,
-    defaultShortcutA: hubShortcuts[0], // Financeiro
-    defaultShortcutB: hubShortcuts[1], // DP
+    defaultShortcutA: hubShortcuts[0],
+    defaultShortcutB: hubShortcuts[1],
     shortcutOptions: hubShortcuts,
     moreGroups: [
       {
         label: "Ir para",
+        accent: "primary",
         items: [
-          { icon: Home, label: "Financeiro", to: "/dashboard" },
+          { icon: Home, label: "Financeiro", to: "/dashboard", featured: true },
           { icon: Users, label: "DP 360°", to: "/dp" },
           { icon: Search, label: "Buscar", to: "/buscar" },
         ],
@@ -271,15 +283,17 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
 
   admin: {
     hubTo: "/hub",
+    moreTo: "/admin/mais",
     home: adminHome,
-    defaultShortcutA: adminShortcuts[0], // Clientes
-    defaultShortcutB: adminShortcuts[1], // Assinaturas
+    defaultShortcutA: adminShortcuts[0],
+    defaultShortcutB: adminShortcuts[1],
     shortcutOptions: adminShortcuts,
     moreGroups: [
       {
         label: "Backoffice",
+        accent: "primary",
         items: [
-          { icon: BarChart3, label: "Estatísticas", to: "/admin/estatisticas" },
+          { icon: BarChart3, label: "Estatísticas", to: "/admin/estatisticas", featured: true },
           { icon: Users, label: "Clientes", to: "/admin/clientes" },
           { icon: Package, label: "Assinaturas", to: "/admin/assinaturas" },
           { icon: FileText, label: "Faturas", to: "/admin/faturas" },
@@ -289,6 +303,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
       },
       {
         label: "Configuração",
+        accent: "slate",
         items: [
           { icon: Package, label: "Planos", to: "/admin/planos" },
           { icon: Package, label: "Módulos", to: "/admin/modulos" },
@@ -304,6 +319,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
 
   conta: {
     hubTo: "/hub",
+    moreTo: "/mais",
     home: contaHome,
     defaultShortcutA: contaShortcuts[0],
     defaultShortcutB: contaShortcuts[1],
@@ -313,6 +329,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
 
   crm: {
     hubTo: "/hub",
+    moreTo: "/mais",
     home: { icon: Home, label: "Início", to: "/crm", end: true },
     defaultShortcutA: noopShortcut,
     defaultShortcutB: noopShortcut,
@@ -321,6 +338,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
   },
   rh: {
     hubTo: "/hub",
+    moreTo: "/mais",
     home: { icon: Home, label: "Início", to: "/rh", end: true },
     defaultShortcutA: noopShortcut,
     defaultShortcutB: noopShortcut,
@@ -329,10 +347,12 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
   },
   pedidos: {
     hubTo: "/hub",
+    moreTo: "/mais",
     home: { icon: Home, label: "Início", to: "/pedidos", end: true },
     defaultShortcutA: noopShortcut,
     defaultShortcutB: noopShortcut,
     shortcutOptions: [noopShortcut],
     moreGroups: [contaGroup],
   },
+};
 };
