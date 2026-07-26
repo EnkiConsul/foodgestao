@@ -61,6 +61,8 @@ export default function DpColaboradores() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<DpColaborador | null>(null);
   const [toDelete, setToDelete] = useState<DpColaborador | null>(null);
+  const [toDesligar, setToDesligar] = useState<DpColaborador | null>(null);
+  const [toReintegrar, setToReintegrar] = useState<DpColaborador | null>(null);
   const [resetting, setResetting] = useState<string | null>(null);
   const [granting, setGranting] = useState<string | null>(null);
   const [accessResult, setAccessResult] = useState<{ nome: string; cpf: string; password: string; kind: "created" | "reset" } | null>(null);
@@ -76,7 +78,7 @@ export default function DpColaboradores() {
     return {
       todos: all.length,
       ativos: all.filter((c) => c.ativo).length,
-      inativos: all.filter((c) => !c.ativo).length,
+      desligados: all.filter((c) => !c.ativo).length,
     };
   }, [list.data]);
 
@@ -94,7 +96,7 @@ export default function DpColaboradores() {
       if (cargoFilter !== "all" && c.cargo_id !== cargoFilter) return false;
       if (perfilFilter !== "all" && (c as any).perfil_acesso !== perfilFilter) return false;
       if (statusFilter === "ativos" && !c.ativo) return false;
-      if (statusFilter === "inativos" && c.ativo) return false;
+      if (statusFilter === "desligados" && c.ativo) return false;
       return true;
     });
   }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, statusFilter]);
@@ -110,14 +112,17 @@ export default function DpColaboradores() {
     setToDelete(null);
   };
 
-  const handleToggle = async (c: DpColaborador, ativo: boolean) => {
+  const handleReintegrar = async () => {
+    if (!toReintegrar) return;
     try {
-      await toggle.mutateAsync({ id: c.id, ativo });
-      toast.success(ativo ? "Colaborador ativado" : "Colaborador inativado");
+      await reintegrar.mutateAsync(toReintegrar.id);
+      toast.success(`${toReintegrar.nome} foi reintegrado(a)`);
     } catch (e) {
-      toast.error("Erro ao atualizar status", { description: e instanceof Error ? e.message : String(e) });
+      toast.error("Erro ao reintegrar", { description: e instanceof Error ? e.message : String(e) });
     }
+    setToReintegrar(null);
   };
+
 
   const handleReset = async (c: DpColaborador) => {
     if (!c.user_id) {
