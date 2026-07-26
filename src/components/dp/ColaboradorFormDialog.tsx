@@ -171,10 +171,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         regime: VINCULO_TO_REGIME[form.tipo_vinculo] ?? "clt",
         data_admissao: form.data_admissao || null,
         data_nascimento: form.data_nascimento || null,
-        data_desligamento: !form.ativo && form.data_desligamento ? form.data_desligamento : null,
         email: form.email.trim() || null,
         whatsapp: form.whatsapp.trim() || null,
-        ativo: form.ativo,
+
         perfil_acesso: form.perfil_acesso,
         folga_fixa_semana: form.folga_fixa_semana !== "none" ? Number(form.folga_fixa_semana) : null,
         possui_folha_ponto: form.possui_folha_ponto,
