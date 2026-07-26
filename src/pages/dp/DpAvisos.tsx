@@ -211,6 +211,9 @@ export default function DpAvisos() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<DpAviso | null>(null);
   const [toDelete, setToDelete] = useState<DpAviso | null>(null);
+  const [engajamento, setEngajamento] = useState<DpAviso | null>(null);
+  const colaboradoresAdmin = useDpColaboradores();
+  const totalColaboradores = (colaboradoresAdmin.data ?? []).filter((c: any) => c.ativo !== false).length;
 
   const sorted = useMemo(() => {
     return [...avisos].sort((a, b) => new Date(b.publicado_em).getTime() - new Date(a.publicado_em).getTime());
