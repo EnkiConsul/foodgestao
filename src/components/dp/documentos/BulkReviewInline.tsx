@@ -412,7 +412,16 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
             style={{ width: `${progressPct}%` }}
           />
         </div>
+        {!ocrInProgress && !isSaving && (
+          <ColaboradoresFaltantesPanel
+            className="mt-2"
+            faltantes={coverage.faltantes}
+            totalEsperados={coverage.esperados.length}
+            competencia={competenciaLote}
+          />
+        )}
       </div>
+
 
       {/* Enquanto o OCR ainda não completou, mostramos apenas o banner de
           progresso — nada de preview parcial nem navegação enganosa. */}
