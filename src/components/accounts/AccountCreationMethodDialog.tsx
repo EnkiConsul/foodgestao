@@ -1,6 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Zap, Pencil, Check } from "lucide-react";
 
 interface Props {
@@ -34,10 +33,9 @@ export function AccountCreationMethodDialog({ open, onOpenChange, onSelectManual
           {/* Open Finance */}
           <button
             type="button"
-            role="button"
             aria-label="Conectar por Open Finance"
             onClick={onSelectOpenFinance}
-            className="group relative flex flex-col text-left rounded-lg border bg-card p-4 transition-all hover:border-primary hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="group relative flex flex-col text-left cursor-pointer rounded-lg border bg-card p-4 transition-all hover:border-primary hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -54,18 +52,20 @@ export function AccountCreationMethodDialog({ open, onOpenChange, onSelectManual
               <Bullet>Atualização diária dos saldos</Bullet>
               <Bullet>Menos digitação e menos erros</Bullet>
             </ul>
-            <Button className="mt-4 w-full" tabIndex={-1}>
+            <span
+              aria-hidden="true"
+              className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors group-hover:bg-primary/90"
+            >
               Conectar com Open Finance
-            </Button>
+            </span>
           </button>
 
           {/* Manual */}
           <button
             type="button"
-            role="button"
             aria-label="Cadastrar conta manualmente"
             onClick={onSelectManual}
-            className="group relative flex flex-col text-left rounded-lg border bg-card p-4 transition-all hover:border-primary hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="group relative flex flex-col text-left cursor-pointer rounded-lg border bg-card p-4 transition-all hover:border-primary hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
@@ -81,9 +81,12 @@ export function AccountCreationMethodDialog({ open, onOpenChange, onSelectManual
               <Bullet>Suporte a importação de extrato</Bullet>
               <Bullet>Sem necessidade de conexão bancária</Bullet>
             </ul>
-            <Button variant="outline" className="mt-4 w-full" tabIndex={-1}>
+            <span
+              aria-hidden="true"
+              className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium text-foreground transition-colors group-hover:bg-accent group-hover:text-accent-foreground"
+            >
               Cadastrar manualmente
-            </Button>
+            </span>
           </button>
         </div>
       </DialogContent>
