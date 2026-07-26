@@ -20,10 +20,10 @@ export function AppHeader() {
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b bg-card px-3 md:px-4">
-      <SidebarTrigger className="h-10 w-10 md:h-9 md:w-9" />
+      <SidebarTrigger className="h-10 w-10 shrink-0 md:h-9 md:w-9" />
 
       {/* Module switcher (mobile only) — quick jump between modules */}
-      <div className="md:hidden">
+      <div className="min-w-0 shrink md:hidden">
         <ModuleSwitcherChip />
       </div>
 
@@ -50,7 +50,7 @@ export function AppHeader() {
       <Button
         variant="ghost"
         size="icon"
-        className="h-10 w-10 text-muted-foreground md:h-9 md:w-9"
+        className="h-10 w-10 shrink-0 text-muted-foreground md:h-9 md:w-9"
         onClick={togglePrivacy}
         title={privacyMode ? "Mostrar valores" : "Ocultar valores"}
         aria-label={privacyMode ? "Mostrar valores" : "Ocultar valores"}
