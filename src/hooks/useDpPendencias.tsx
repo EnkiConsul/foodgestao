@@ -4,7 +4,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpPendenciasConfig, type DpPendenciasConfig } from "@/hooks/useDpPendenciasConfig";
 import { differenceInCalendarDays, format } from "date-fns";
 import type { LucideIcon } from "lucide-react";
-import { ClipboardList, FileText, Users, Coins, Clock, Scale } from "lucide-react";
+import { ClipboardList, FileText, Users, Coins, Clock, Scale, Palmtree } from "lucide-react";
 
 export type Pendencia = {
   id: string;
@@ -350,6 +350,37 @@ export function useDpPendencias() {
         }
       } catch (e) {
         console.warn("pendencias/negociacoes:", e);
+      }
+
+      // 7. Férias — períodos aquisitivos com saldo perto do limite concessivo
+      try {
+        const limite = new Date(today);
+        limite.setDate(limite.getDate() + cfg.alerta_ferias_dias);
+        const { data: periodos } = await supabase
+          .from("dp_ferias_periodos")
+          .select("id, colaborador_id, limite_concessivo, dias_saldo, dp_colaboradores(nome)")
+          .eq("company_id", selectedCompanyId!)
+          .gt("dias_saldo", 0)
+          .lte("limite_concessivo", ymd(limite))
+          .order("limite_concessivo", { ascending: true })
+          .limit(30);
+        (periodos ?? []).forEach((p: any) => {
+          const vencimento = new Date(`${p.limite_concessivo}T00:00:00`);
+          const dias = differenceInCalendarDays(today, vencimento);
+          const jaVenceu = dias > 0;
+          results.push({
+            id: `ferias-${p.id}`,
+            icon: Palmtree,
+            titulo: jaVenceu ? "Férias vencidas" : "Férias a vencer",
+            subtitulo: `${p.dp_colaboradores?.nome ?? "Colaborador"} — ${p.dias_saldo} dia(s) de saldo · limite ${format(vencimento, "dd/MM/yyyy")}`,
+            tipo: "Férias",
+            vencimento: ymd(vencimento),
+            atrasoDias: dias,
+            url: "/dp/ferias",
+          });
+        });
+      } catch (e) {
+        console.warn("pendencias/ferias:", e);
       }
 
       // Ordenar: mais atrasado primeiro; empate → vencimento mais próximo
