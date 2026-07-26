@@ -1,50 +1,67 @@
-## Bloco 2 — Modal de método de cadastro de conta
+# Finalização da base de dados Open Finance
 
-Interpor um passo de escolha entre **Open Finance** e **Manual** antes do formulário atual. Sem alterar o `AccountFormDialog` existente e sem tocar em RPCs, RLS ou edge functions (isso é dos blocos seguintes).
+## Diagnóstico (auditoria)
 
-### Escopo
+Já existe:
+- Tabelas `open_finance_connections`, `open_finance_accounts`, `open_finance_connection_requests`, `open_finance_sync_runs`, `open_finance_transactions_raw`, `open_finance_webhook_events` com índices, uniques (`company_id+import_hash`, `connection_id+pluggy_account_id`) e RLS.
+- RPCs `create_and_link_open_finance_account`, `link_open_finance_account`, `claim_open_finance_sync`, `release_open_finance_sync`.
+- Edge functions `pluggy-connect-token`, `pluggy-item-register`, `pluggy-sync`, `pluggy-webhook`, `pluggy-consent-notifier`.
 
-- Novo componente `AccountCreationMethodDialog`.
-- Refator do trigger em `src/pages/ContasBancarias.tsx` para abrir o novo modal em vez do formulário direto (apenas no caminho "criar"; "editar" continua indo direto ao `AccountFormDialog`).
-- Nenhuma migração, RPC, policy, hook ou edge function neste bloco.
+Faltam no DB para fechar Blocos 5, 7 (leitura), 8, 9:
+- Não há RPCs para **ignorar / desvincular / (des)ativar importação / desconectar / promover raw→transactions / ajustar saldo / soft delete**.
+- `open_finance_transactions_raw` e `open_finance_sync_runs` estão *deny-all* para o cliente — a Central de Conciliação e os cards de conta precisam leitura por membros da empresa.
+- `accounts` não tem **data de referência do saldo**, **soft_deleted_at**, nem *guard* que impeça editar `current_balance` de conta conectada nem *hard delete* de conta com histórico.
 
-### Fora do escopo (blocos 3–8)
+Esta fase entrega **apenas a base de dados**. Nada de UI/edge nova (permanecem para Blocos 6/7 front e Bloco 8/9 de UX).
 
-- Refino do fluxo manual (Bloco 3).
-- `OpenFinanceAccountWizard` e integração Pluggy no front (Bloco 4).
-- Criação/vínculo, cards/estados, conciliação, segurança/testes (5–8).
+## Mudanças no schema
 
-### Arquivos
+Colunas em `public.accounts`:
+- `reference_balance_date date` — data de referência do saldo inicial (fluxo manual, Bloco 6).
+- `soft_deleted_at timestamptz` — soft delete (Bloco 9).
 
-**Novo**
-- `src/components/accounts/AccountCreationMethodDialog.tsx`
-  - Props: `open`, `onOpenChange`, `onSelectManual()`, `onSelectOpenFinance()`.
-  - Layout: `Dialog` shadcn, título "Adicionar conta financeira", dois cards lado a lado (empilhados no mobile via `grid gap-3 md:grid-cols-2`).
-  - Card Open Finance: badge `Recomendado` (variant secondary laranja `bg-primary/10 text-primary`), ícone `Link2`/`Zap`, título "Conectar por Open Finance", descrição curta ("Sincronize saldos e extratos automaticamente com seu banco"), bullets de benefícios (automação, atualização diária, menos digitação), botão primário "Conectar com Open Finance".
-  - Card Manual: ícone `Pencil`, título "Cadastrar manualmente", descrição ("Informe os dados da conta e lance/importe extratos por conta própria"), bullets (controle total, importação de extrato, sem conexão bancária), botão outline "Cadastrar manualmente".
-  - Sem cores/textos/logos de terceiros; usa tokens de `index.css` (`primary`, `muted`, `card`). Cards clicáveis inteiros (`role="button"`, `aria-label`, foco visível).
-  - Acessibilidade: `DialogTitle`, `DialogDescription`, botão de fechar padrão.
+Índice: `idx_accounts_soft_deleted` parcial (`WHERE soft_deleted_at IS NOT NULL`).
 
-**Alterado**
-- `src/pages/ContasBancarias.tsx`
-  - Novo estado `methodOpen`.
-  - Trocar cada handler de "criar nova" (header desktop L166–167, empty-state L245, FAB mobile L339) para `setEditAccount(null); setMethodOpen(true)`.
-  - Manter os handlers de "editar" (L315) apontando direto ao `AccountFormDialog`.
-  - Callbacks do novo modal:
-    - `onSelectManual`: fecha o método, abre `AccountFormDialog` (`setDialogOpen(true)`).
-    - `onSelectOpenFinance`: fecha o método e chama `toast({ title: "Em breve", description: "A conexão via Open Finance será liberada no próximo bloco." })` — placeholder até o Bloco 4. Não navega, não cria conexão.
-  - Renderizar `<AccountCreationMethodDialog />` ao lado do `AccountFormDialog` existente.
+Índice em `open_finance_transactions_raw`: `idx_of_raw_of_account_unprocessed (of_account_id) WHERE processed_at IS NULL` para o promotor.
 
-### Notas de UX
+## Triggers de proteção em `accounts`
 
-- Mobile: cards em coluna única, botões `h-11`, hierarquia primária/outline mantida.
-- Identidade 360°FOOD: laranja `#EB6119` no badge/primary, marinho no texto forte; sem gradientes/copywriting de concorrentes.
-- Nenhuma alteração em cards de listagem (Bloco 6).
+- `guard_of_current_balance` (BEFORE UPDATE): se `EXISTS (open_finance_accounts WHERE local_account_id = NEW.id)` e `NEW.current_balance <> OLD.current_balance`, rejeita com mensagem instruindo uso de `adjust_account_balance`.
+- `prevent_hard_delete_account_with_history` (BEFORE DELETE): se existirem `transactions`, `open_finance_accounts` vinculadas ou `credit_card_invoices` referenciando a conta, bloqueia e sugere `soft_delete_account`.
 
-### Entregáveis do bloco
+## Novos RPCs (todos `SECURITY DEFINER`, `search_path = public`, gate `is_company_admin_or_owner`, com `insert_audit_log`)
 
-- Arquivos criados: `AccountCreationMethodDialog.tsx`.
-- Arquivos alterados: `ContasBancarias.tsx`.
-- Migrations/RPCs/Policies/Testes: nenhum.
-- Resultado esperado: clicar em "Nova Conta" (desktop, FAB mobile, empty-state) abre o modal de escolha; "Manual" segue para o formulário atual; "Open Finance" mostra toast placeholder.
-- Pendências: Blocos 3–8 conforme prompt.
+- `set_open_finance_auto_import(_of_account_id uuid, _enabled boolean) RETURNS void`.
+- `ignore_open_finance_account(_of_account_id uuid, _ignored boolean default true) RETURNS void` — usa flag `ignored` já existente.
+- `unlink_open_finance_account(_of_account_id uuid) RETURNS void` — zera `local_account_id`, desativa `auto_import`.
+- `disconnect_open_finance_connection(_connection_id uuid) RETURNS void` — marca `status='disconnected'`, `disconnected_at=now()`, desativa `auto_import` em todas as OF accounts da conexão. Chamada à Pluggy `deleteItem` fica com a edge function existente (Bloco 4).
+- `soft_delete_account(_account_id uuid) RETURNS void` — `is_active=false, soft_deleted_at=now()`; falha se a conta ainda tiver `open_finance_accounts.local_account_id` apontando para ela (usuário precisa desconectar antes).
+- `adjust_account_balance(_account_id uuid, _target_balance numeric, _adjust_date date, _note text) RETURNS uuid` — calcula delta contra `current_balance`, cria uma `transactions` de tipo `receita`/`despesa` com `status='confirmado'`, `description = 'Ajuste de saldo — <note>'`, retornando o id. Trigger financeiro existente atualiza o saldo; audit log registra `previous`, `target`, `delta`.
+- `promote_open_finance_transactions(_connection_id uuid, _max_rows int default 500) RETURNS jsonb` — para raw não processados de OF accounts com `local_account_id IS NOT NULL AND auto_import=true AND ignored=false`, insere em `transactions` (mapeando `amount`, `date`, `description`, `direction`, `import_hash`) evitando duplicatas (`transactions.import_hash` já usado no importador manual), grava `raw.transaction_id` e `raw.processed_at`. Retorna `{inserted, duplicates, skipped_no_local, errors}`. Não substitui a Central de Conciliação (Bloco 7); serve para importação automática pós-sync.
+
+## RLS complementar
+
+- `open_finance_transactions_raw`: nova policy `of_raw_select_members` — SELECT para membros da company (`EXISTS company_members`). Mantém deny de INSERT/UPDATE/DELETE (worker usa service role).
+- `open_finance_sync_runs`: nova policy `of_sync_runs_select_members` — SELECT para membros da company. INSERT/UPDATE seguem service role.
+
+## GRANTs
+
+- `GRANT EXECUTE ON FUNCTION public.<cada_novo_rpc> TO authenticated`.
+- `GRANT SELECT ON public.open_finance_transactions_raw, public.open_finance_sync_runs TO authenticated` (RLS já filtra).
+
+## Fora do escopo desta fase
+
+- UI (Wizard OF, Central de Conciliação, cards de status).
+- Edge functions novas (o `pluggy-sync` continua populando `raw`; a chamada ao `promote_open_finance_transactions` será feita ao final do sync numa próxima fase).
+- Permissões nomeadas (`financeiro.*`) — permanece o gate `is_company_admin_or_owner`.
+- Colunas denormalizadas de origem em `accounts` (origem/status são derivados via JOIN em `open_finance_accounts`).
+
+## Entregáveis
+
+- 1 migration única contendo: 2 colunas + 2 índices + 2 triggers + 7 RPCs + 2 policies + GRANTs.
+- Nenhum arquivo TS alterado nesta fase.
+- Teste manual sugerido após a migration:
+  - Tentar `UPDATE accounts SET current_balance=... WHERE id=<of>` → deve falhar.
+  - Rodar `SELECT public.adjust_account_balance(...)` → cria transação e atualiza saldo.
+  - `SELECT public.promote_open_finance_transactions(<connection_id>)` após um sync → retorna contagens > 0 sem duplicar.
+
