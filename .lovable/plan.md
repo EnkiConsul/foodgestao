@@ -1,84 +1,31 @@
-## Objetivo
+## Ajustes na página `/mais` (mobile)
 
-Refatorar a página `/mais` (mobile) para espelhar exatamente a estrutura do menu lateral do desktop de cada módulo: mesmos títulos de seções, mesmos itens clicáveis e **mesmo comportamento de expandir/recolher submenus** (accordion), mantendo o visual iFood Gestor (chips coloridos + cards de botões) e a `BottomNav` fixa.
+### 1. Remover "Início" dos grupos
+- `src/config/mobileNav.tsx`: tirar o item `Home → /dp` do grupo "DP 360°", `Dashboard → /dashboard` do grupo "Financeiro 360°" e `Início → /dp/meu` do grupo "Portal". O botão central da BottomNav já cobre isso.
 
-## Estrutura por módulo (fonte da verdade = sidebar desktop)
+### 2. Estado default dos grupos
+- `src/components/mobile/MoreGroupSection.tsx`: tornar o cabeçalho do grupo (chip + título) clicável para abrir/fechar toda a seção.
+- Grupos de módulo (accent `primary`, `navy`, `amber`) começam **abertos**.
+- Grupo "Conta" (accent `muted`) começa **fechado**; expande ao tocar no cabeçalho ou na seta.
+- Chevron ao lado do título indica o estado.
 
-### Financeiro (`/mais`)
-- **Financeiro 360°** (links diretos): Dashboard · Lançamentos · Fluxo de Caixa · Orçamento
-  - **Relatórios** (grupo colapsável): Financeiros · Contábeis
-- **Cadastros**: Contas Bancárias · Cartões de Crédito · Formas de Pagamento · Clientes/Fornecedores · Categorias · Contas Contábeis
-- **Conta**: Minhas Empresas · Usuários · Meu Plano · Minhas Faturas · Configurações · (Backoffice se super admin)
+### 3. Subgrupos sempre abertos, sem chevron
+- Remover a lógica de colapsar em `SubgroupBlock`. O cabeçalho do subgrupo (ex.: Cadastro, Folgas, Documentos, Comunicação) passa a ser apenas um rótulo, sem botão de expandir e sem contador.
+- `MoreSubGroup.kind` deixa de controlar collapse; `matchPrefixes` fica só para destaque visual do item ativo.
 
-### DP Admin (`/dp/mais`)
-- **DP 360°** — Início (link direto)
-  - **Cadastro** (colapsável, hub `/dp/cadastros`): Colaboradores · Cargos · Unidades · Sindicatos · Pendências
-  - **Folgas** (colapsável, hub `/dp/folgas`): Calendário Geral · Solicitações · Aprovações · Trocas · Datas Bloqueadas
-  - **Documentos** (colapsável, hub `/dp/documentos`): Contracheques · Adiantamentos · Folhas de Ponto · Atestados · Registros Disciplinares · ACT-CCT · Histórico Completo
-  - **Comunicação** (colapsável, hub `/dp/comunicacao`): Mensagens · Quadro de Avisos
-- **Conta**: mesma da Financeiro
+### 4. Layout iFood dos itens
+- Substituir a lista `<ul>/divide-y` dentro do subgrupo por um grid horizontal de "tiles" no estilo iFood Gestor: ícone circular acima, rótulo em duas linhas abaixo, `grid-cols-4` no mobile (`grid-cols-3` quando o rótulo for longo).
+- Cada tile mantém long-press para favoritar, sem `ChevronRight`.
+- O link "Ver visão geral de {seção}" vira um chip discreto no topo do subgrupo (opcional, mantido só quando `hubTo` existir).
 
-### Portal Colaborador (`/dp/meu/mais`)
-- **Portal** — Início · Meu Cadastro (links)
-  - **Folgas** (grupo estático, sempre expandido): Calendário · Trocas · Histórico · Solicitações
-  - **Documentos** (grupo estático): Meus Documentos · Atestados · Disciplinar · Sindicato
-- **Conta**: Configurações
+### 5. Itens diretos do grupo (sem subgrupo)
+- Os `items` no nível do grupo (ex.: Cadastros do Financeiro, Visão geral/Cobrança/Tenants do Admin, Conta) passam a usar o mesmo grid iFood de tiles, substituindo o `TileCard` de altura fixa por um bloco compacto ícone-em-cima / label-embaixo.
 
-### Admin Backoffice (`/admin/mais`)
-Reproduz `AdminSidebar` (Visão geral, Cobrança, Tenants) como seções planas.
+### 6. Sem impacto fora da página `/mais`
+- BottomNav, `useModuleShortcut`, favoritos e busca continuam funcionando (a busca já achata `items + subgroups.items`).
 
-### Hub (`/mais` quando módulo=hub)
-Mostra apenas atalhos de conta + link para módulos (mantém comportamento atual simples).
-
-## Mudanças técnicas
-
-### 1. `src/config/mobileNav.tsx`
-Estender o tipo `MoreGroup` com suporte a subgrupos colapsáveis:
-
-```ts
-export type MoreSubGroup = {
-  kind: "collapsible" | "static";
-  label: string;
-  icon: LucideIcon;
-  hubTo?: string;          // rota do "cabeçalho clicável" (colapsável)
-  matchPrefixes?: string[]; // para auto-abrir quando rota bate
-  items: NavLeaf[];
-};
-
-export type MoreGroup = {
-  label: string;
-  accent?: GroupAccent;
-  items?: NavLeaf[];       // links planos da seção
-  subgroups?: MoreSubGroup[]; // grupos colapsáveis/estáticos
-};
-```
-
-Reescrever `moreGroups` de cada módulo para refletir as seções do desktop conforme mapeamento acima. Preservar `home`, `hubTo`, `moreTo`, `shortcutOptions` intactos.
-
-### 2. `src/components/mobile/MoreGroupSection.tsx`
-Adicionar renderização de `subgroups`:
-- **Colapsável**: header clicável (título + ícone + chevron rotativo) que expande/recolhe os subitens; abre automaticamente se a rota atual bate em `matchPrefixes`; toque no cabeçalho navega para `hubTo` (mesma UX do desktop `DpGroup`) além de togglar. Apenas um grupo aberto por vez por seção.
-- **Estático**: título fixo, subitens sempre visíveis.
-- Subitens renderizados como cards menores (mesmos botões atuais em grid 2 col, sem `featured`).
-- Manter chip de accent no header da seção.
-- Manter long-press → favoritar em todos os subitens.
-
-### 3. `src/pages/Mais.tsx`
-- Achatar todos os `subgroups[].items` no `allItems` usados por busca/favoritos (para que busca continue encontrando "Cargos", "Atestados" etc.).
-- Nenhuma outra mudança de fluxo.
-
-### 4. Sem alterações em
-- `MobileBottomNav.tsx`, `MoreHeader.tsx`, `App.tsx`, roteamento.
-- Lógica de atalhos, favoritos, personalização.
-
-## Detalhes de UX
-
-- **Persistência do estado aberto/fechado**: não persistir entre navegações (estado local do componente). Grupo cuja rota atual pertence abre automaticamente ao entrar em `/mais`.
-- **Toque no cabeçalho do grupo colapsável**: comportamento igual ao desktop — navega para `hubTo` E abre o accordion. No mobile, se o usuário quiser apenas expandir sem navegar, pode tocar no chevron (área separada); ou apenas expandir sem navegar (a decidir — proponho **expandir apenas ao tocar**, com um botão "Abrir seção" secundário dentro do accordion linkando ao hub, evitando navegação acidental).
-- **Chip accent**: cada seção topo mantém quadrado colorido conforme já implementado; subgrupos herdam neutro.
-- **BottomNav**: continua fixa, slot "Mais" ativo.
-
-## Não escopo
-- Mudanças no sidebar desktop.
-- Mudanças em ícones/labels desktop.
-- Mudanças de roteamento.
+### Detalhes técnicos
+- `MoreGroupSection`: novo `useState(open)` inicializado a partir de um prop `defaultOpen` derivado de `accent !== "muted"`.
+- Novo componente interno `IFoodTile` reutilizado por `items` diretos e por `subgroup.items`.
+- Nenhum item featured/full-width permanece na página; se algum `featured: true` restar, é tratado como tile normal.
+- Sem alterações em rotas, hooks de dados ou lógica de negócio.

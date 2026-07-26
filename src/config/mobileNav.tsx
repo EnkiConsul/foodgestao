@@ -202,7 +202,6 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
         label: "Financeiro 360°",
         accent: "primary",
         items: [
-          { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard", end: true },
           { icon: ArrowLeftRight, label: "Lançamentos", to: "/lancamentos", end: true },
           { icon: TrendingUp, label: "Fluxo de Caixa", to: "/fluxo-caixa", end: true },
           { icon: PiggyBank, label: "Orçamento", to: "/orcamento", end: true },
@@ -248,7 +247,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
       {
         label: "DP 360°",
         accent: "primary",
-        items: [{ icon: Home, label: "Início", to: "/dp", end: true }],
+        items: [],
         subgroups: [
           {
             kind: "collapsible",
@@ -329,7 +328,6 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
         label: "Portal",
         accent: "navy",
         items: [
-          { icon: Home, label: "Início", to: "/dp/meu", end: true },
           { icon: Settings, label: "Meu Cadastro", to: "/dp/meu/cadastro" },
         ],
         subgroups: [
