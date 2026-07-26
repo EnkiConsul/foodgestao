@@ -222,17 +222,38 @@ export default function DpAdminCalendario() {
 
   const unidadeFilterId = filterUnidade === "all" ? null : filterUnidade;
 
-  const manualBlocked = useMemo(() => {
-    const m = new Map<string, { reason: string; liberada: boolean }>();
-    const liberadasSet = new Set<string>();
+  /** Overrides de liberação (linhas com `liberada`/`liberada_por_solicitacao`). */
+  const releasedByDate = useMemo(() => {
+    const m = new Map<
+      string,
+      { id: string; motivo: string; unidade_id: string | null; porSolicitacao: boolean }
+    >();
     for (const b of bloqueios) {
       const liberado = !!b.liberada_por_solicitacao || b.liberada === true;
-      if (liberado) {
-        liberadasSet.add(b.data);
-        continue;
-      }
+      if (!liberado) continue;
+      // Preferimos o override global quando houver mais de um na mesma data.
+      const cur = m.get(b.data);
+      if (cur && cur.unidade_id == null) continue;
+      m.set(b.data, {
+        id: b.id,
+        motivo: b.motivo,
+        unidade_id: b.unidade_id ?? null,
+        porSolicitacao: !!b.liberada_por_solicitacao,
+      });
+    }
+    return m;
+  }, [bloqueios]);
+
+  const manualBlocked = useMemo(() => {
+    const m = new Map<string, { reason: string; liberada: boolean }>();
+    for (const b of bloqueios) {
+      const liberado = !!b.liberada_por_solicitacao || b.liberada === true;
+      if (liberado) continue;
       m.set(b.data, { reason: b.motivo, liberada: false });
     }
+    // Remove datas com override de liberação, independentemente da ordem das linhas.
+    releasedByDate.forEach((_v, iso) => m.delete(iso));
+
     const regrasData = regrasBloqueioQuery.data;
     if (regrasData) {
       const fromRegras = buildBloqueiosDeRegras({
@@ -243,21 +264,17 @@ export default function DpAdminCalendario() {
         to: range.endDate,
       });
       fromRegras.forEach((motivo, iso) => {
-        if (liberadasSet.has(iso)) return;
+        if (releasedByDate.has(iso)) return;
         if (!m.has(iso)) m.set(iso, { reason: motivo, liberada: false });
       });
     }
     return m;
-  }, [bloqueios, regrasBloqueioQuery.data, unidadeFilterId, range.startDate, range.endDate]);
+  }, [bloqueios, releasedByDate, regrasBloqueioQuery.data, unidadeFilterId, range.startDate, range.endDate]);
 
   const blockedByDate = useMemo(() => {
     const m = new Map<string, { motivo: string; auto: boolean; id: string; hasGlobal: boolean; hasUnidade: boolean }>();
-    const liberadasSet = new Set<string>();
     for (const b of bloqueios) {
-      if (b.liberada_por_solicitacao || b.liberada === true) {
-        liberadasSet.add(b.data);
-        continue;
-      }
+      if (b.liberada_por_solicitacao || b.liberada === true) continue;
       m.set(b.data, {
         motivo: b.motivo,
         auto: !!b.regra_id,
@@ -266,6 +283,8 @@ export default function DpAdminCalendario() {
         hasUnidade: b.unidade_id != null,
       });
     }
+    releasedByDate.forEach((_v, iso) => m.delete(iso));
+
     const regrasData = regrasBloqueioQuery.data;
     if (regrasData) {
       const fromRegras = buildBloqueiosDeRegrasDetalhado({
@@ -276,12 +295,13 @@ export default function DpAdminCalendario() {
         to: range.endDate,
       });
       fromRegras.forEach((orig, iso) => {
-        if (liberadasSet.has(iso)) return;
+        if (releasedByDate.has(iso)) return;
         if (!m.has(iso)) m.set(iso, { motivo: orig.motivo, auto: true, id: `regra:${iso}`, hasGlobal: orig.hasGlobal, hasUnidade: orig.hasUnidade });
       });
     }
     return m;
-  }, [bloqueios, regrasBloqueioQuery.data, unidadeFilterId, range.startDate, range.endDate]);
+  }, [bloqueios, releasedByDate, regrasBloqueioQuery.data, unidadeFilterId, range.startDate, range.endDate]);
+
 
   const colaboradores = (colabsQ.data ?? []) as any[];
   const filteredColabs = useMemo(() => {
