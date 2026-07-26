@@ -164,7 +164,7 @@ function SlotRenderer({
     }
     return (
       <div className="flex items-start justify-center pt-1 w-full">
-        <MobileFab config={{ type: "fab", icon: config.fab!.icon, label: config.fab!.label, fallbackTo: config.fab!.fallbackTo }} />
+        <MobileFab config={config.fab!} />
       </div>
     );
   }
