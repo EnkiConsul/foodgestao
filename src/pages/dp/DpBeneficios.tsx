@@ -74,12 +74,12 @@ export default function DpBeneficios() {
         ))}
       </div>
 
-      <DpContentCard>
+      <DpContentCard contentClassName="p-4 md:p-5">
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-xs uppercase tracking-wide text-muted-foreground">Colaborador</Label>
             <Select value={colabFilter} onValueChange={setColabFilter}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent className="max-h-72">
                 <SelectItem value="todos">Todos</SelectItem>
                 {colabList.map((c) => (
@@ -88,13 +88,13 @@ export default function DpBeneficios() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-xs uppercase tracking-wide text-muted-foreground">
               Gerar na folha
             </Label>
             <div className="flex gap-2">
               <Select value={periodoId} onValueChange={setPeriodoId}>
-                <SelectTrigger><SelectValue placeholder="Selecione o período" /></SelectTrigger>
+                <SelectTrigger className="min-w-0 flex-1"><SelectValue placeholder="Selecione o período" /></SelectTrigger>
                 <SelectContent className="max-h-72">
                   {b.periodos.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
@@ -105,6 +105,7 @@ export default function DpBeneficios() {
               </Select>
               <Button
                 variant="secondary"
+                className="shrink-0"
                 disabled={!periodoId || b.gerarLancamentos.isPending}
                 onClick={() => b.gerarLancamentos.mutate(periodoId)}
               >
@@ -115,10 +116,10 @@ export default function DpBeneficios() {
         </div>
       </DpContentCard>
 
-      <Tabs defaultValue="ficha">
-        <TabsList>
-          <TabsTrigger value="ficha">Por colaborador</TabsTrigger>
-          <TabsTrigger value="catalogo">Catálogo</TabsTrigger>
+      <Tabs defaultValue="ficha" className="space-y-3">
+        <TabsList className="flex w-full sm:w-auto">
+          <TabsTrigger value="ficha" className="flex-1 sm:flex-none">Por colaborador</TabsTrigger>
+          <TabsTrigger value="catalogo" className="flex-1 sm:flex-none">Catálogo</TabsTrigger>
         </TabsList>
 
         <TabsContent value="ficha" className="space-y-3">
