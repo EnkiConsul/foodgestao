@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { LayoutGrid, LogOut, Search, SearchX, Star, X } from "lucide-react";
+import { LayoutGrid, LogOut, Search, SearchX, Sliders, Star, X } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { toast } from "sonner";
 type Props = {
   groups: MoreGroup[];
   trigger: React.ReactNode;
+  onCustomizeShortcut?: () => void;
 };
 
 const norm = (s: string) =>
@@ -20,7 +21,7 @@ const norm = (s: string) =>
 
 const LONG_PRESS_MS = 550;
 
-export function MobileMoreSheet({ groups, trigger }: Props) {
+export function MobileMoreSheet({ groups, trigger, onCustomizeShortcut }: Props) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { signOut } = useAuth();
@@ -95,14 +96,29 @@ export function MobileMoreSheet({ groups, trigger }: Props) {
             )}
           </div>
           {!isSearching && (
-            <Button
-              variant="outline"
-              className="h-11 w-full justify-start gap-2"
-              onClick={() => go("/hub")}
-            >
-              <LayoutGrid className="h-4 w-4" />
-              Acompanhar módulos (Hub)
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="outline"
+                className="h-11 w-full justify-start gap-2"
+                onClick={() => go("/hub")}
+              >
+                <LayoutGrid className="h-4 w-4" />
+                Acompanhar módulos (Hub)
+              </Button>
+              {onCustomizeShortcut && (
+                <Button
+                  variant="ghost"
+                  className="h-11 w-full justify-start gap-2"
+                  onClick={() => {
+                    setOpen(false);
+                    onCustomizeShortcut();
+                  }}
+                >
+                  <Sliders className="h-4 w-4" />
+                  Personalizar barra
+                </Button>
+              )}
+            </div>
           )}
         </SheetHeader>
 
