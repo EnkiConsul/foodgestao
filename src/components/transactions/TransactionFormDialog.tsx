@@ -1684,6 +1684,23 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
         </form>
       </DialogContent>
 
+      <AccountCreationMethodDialog
+        open={accountMethodOpen}
+        onOpenChange={setAccountMethodOpen}
+        onSelectManual={() => { setAccountMethodOpen(false); setAccountDialogOpen(true); }}
+        onSelectOpenFinance={() => {
+          setAccountMethodOpen(false);
+          if (contextType !== "pj" || !selectedCompanyId) {
+            toast.error("Selecione uma empresa (PJ)", {
+              description: "O Open Finance está disponível apenas no contexto empresarial.",
+            });
+            return;
+          }
+          onOpenChange(false);
+          navigate("/contas-bancarias?openFinance=1");
+        }}
+      />
+
       <AccountFormDialog
         open={accountDialogOpen}
         onOpenChange={setAccountDialogOpen}
