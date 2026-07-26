@@ -272,7 +272,7 @@ export default function DpColaboradores() {
         <TabsList>
           <TabsTrigger value="all">Todos ({counts.todos})</TabsTrigger>
           <TabsTrigger value="ativos">Ativos ({counts.ativos})</TabsTrigger>
-          <TabsTrigger value="inativos">Inativos ({counts.inativos})</TabsTrigger>
+          <TabsTrigger value="desligados">Desligados ({counts.desligados})</TabsTrigger>
         </TabsList>
       </Tabs>
 
