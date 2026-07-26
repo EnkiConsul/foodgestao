@@ -175,12 +175,6 @@ function SubgroupBlock({
 /** Escolhe entre 3 ou 4 colunas conforme a quantidade de itens, para evitar
  * linhas com muitos "buracos". Flex-wrap com justify-center centraliza a última
  * linha quando ela ficar incompleta. */
-function pickCols(n: number): 3 | 4 {
-  if (n <= 4) return 4;
-  if (n <= 6) return 3;
-  return 4;
-}
-
 function TileGrid({
   items,
   accent,
@@ -196,15 +190,12 @@ function TileGrid({
   onNavigate: (to: string) => void;
   onToggleFav: (to: string, label: string) => void;
 }) {
-  const cols = pickCols(items.length);
-  const basis =
-    cols === 4
-      ? "w-[calc(25%-9px)]"
-      : "w-[calc(33.333%-8px)]";
+  // Fixo em 3 colunas para dar mais espaço horizontal aos rótulos.
+  // flex-wrap + justify-center centraliza órfãos na última linha.
   return (
-    <div className="flex flex-wrap justify-center gap-x-3 gap-y-4">
+    <div className="flex flex-wrap justify-center gap-x-2 gap-y-5">
       {items.map((item) => (
-        <div key={item.to} className={cn("flex", basis)}>
+        <div key={item.to} className="flex w-[calc(33.333%-6px)]">
           <IFoodTile
             item={item}
             accent={accent}
@@ -268,7 +259,7 @@ function IFoodTile({
         onNavigate();
       }}
       className={cn(
-        "relative flex w-full min-w-0 flex-col items-center justify-start gap-1.5 px-2 py-2 rounded-xl text-center",
+        "relative flex w-full min-w-0 flex-col items-center justify-start gap-1.5 px-1.5 py-2 rounded-xl text-center",
         "active:scale-[0.95] transition-transform",
       )}
     >
@@ -282,7 +273,7 @@ function IFoodTile({
         <Icon className="h-5 w-5" />
       </span>
       <span className={cn(
-        "block w-full text-[11px] leading-tight break-words hyphens-auto line-clamp-2 min-h-[26px]",
+        "block w-full text-[11.5px] leading-[1.15] break-words hyphens-auto",
         active ? "font-semibold text-primary" : "text-foreground/80",
       )}>
         {item.label}

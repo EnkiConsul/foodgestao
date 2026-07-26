@@ -1,45 +1,52 @@
-## Ajustes na página `/mais` (mobile)
+# Ajustes finais da página `/mais`
 
-### 1. Header (`MoreHeader.tsx`)
-- Remover o sino duplicado. Manter apenas rótulo do módulo + nome da empresa fixos no topo.
+## 1. Personalizar atalho — mostrar todas as telas do módulo
 
-### 2. Grupos de nível 1 (`MoreGroupSection.tsx`)
-- Remover o chip "primeira letra" quando ele repete o nome do módulo. Cabeçalho fica: título + chevron de colapsar/expandir à direita.
-- Cabeçalho togglável (Conta fechada por padrão; demais abertas).
-- Clique no título/linha: se o grupo tiver `hubTo`, navega; senão alterna colapso. Chevron sempre alterna colapso (stopPropagation).
+**Problema:** o customizer só lista `shortcutOptions` (curados) — 7 itens no DP, por exemplo. Faltam a maioria das telas dos submenus (Cadastro, Folgas, Documentos, Comunicação).
 
-### 3. Subgrupos (`SubgroupBlock`)
-- Remover o link "Ver tudo".
-- Adicionar chevron de ocultar/reexibir os itens do subgrupo (default aberto), com `aria-expanded`.
-- Cabeçalho do subgrupo (ícone + nome) clicável: navega para `subgroup.hubTo` (ex.: "Cadastro" → `/dp/cadastros`; "Folgas" → `/dp/folgas`; "Documentos" → `/dp/documentos`; "Comunicação" → `/dp/comunicacao`). Chevron alterna colapso via botão separado com stopPropagation.
+**Correção em `src/hooks/useModuleShortcut.ts`:** deixar de usar `config.shortcutOptions` como fonte e passar a derivar dinamicamente de `config.moreGroups`, achatando `items` + `subgroups[].items`, excluindo o grupo "Conta" (para não misturar contexto) e deduplicando por `to`. Retornar essa lista em `options`.
 
-### 4. Grid de tiles (`TileGrid`) — anti-sobreposição + balanceamento
-- Corrigir sobreposição de rótulos (ex.: "Contracheques" colando em "Adiantamentos"):
-  - Adicionar `gap-x-3 gap-y-4`, `px-2` no tile e `break-words hyphens-auto` no rótulo; garantir `min-w-0` e `w-full` no botão para permitir quebra.
-  - `line-clamp-2` já existe, mas está estourando por falta de espaçamento horizontal — o gap maior e padding lateral resolvem.
-- Distribuição balanceada por quantidade:
-  - `n <= 3` → `grid-cols-3`
-  - `n === 4` → `grid-cols-4`
-  - `n === 5` ou `n === 6` → `grid-cols-3` (5 vira 3+2 centralizado; 6 vira 3+3)
-  - `n >= 7` → `grid-cols-4`
-  - Para linha incompleta com 2 itens em grid de 3, centralizar via `justify-items-center` no container ou wrapper que centraliza a última linha.
+Assim `MobileBottomNav > ShortcutCustomizer` passa a exibir **todas** as telas do módulo ativo, mantendo o slot "esquerdo/direito" e o marcador "Em uso".
 
-### 5. Título "Personalizar Barra"
-- Corrigir capitalização no botão em `Mais.tsx` (linha ~159): `"Personalizar barra"` → `"Personalizar Barra"` (Title Case sem preposição — regra do projeto).
+## 2. Tiles do `/mais` — sem quebra feia nem nome oculto
 
-### 6. Rodapé com usuário (paridade com sidebar desktop)
-- Adicionar bloco de identidade do usuário abaixo dos botões "Personalizar Barra" e "Sair", replicando o footer do sidebar desktop.
-- Mostrar: avatar/iniciais, `full_name` (ou email), e o rótulo de acesso (ex.: "Administrador", "Colaborador", "Super Admin") baseado no perfil ativo.
-- Reutilizar dados de `useAuth` + hook de roles existente (o mesmo consumido pelo sidebar desktop — localizar componente atual e reaproveitar a lógica de label).
+**Problema:** `line-clamp-2` + fonte 11px em 4 colunas cortam nomes longos ("Contracheques", "Adiantamentos", "Contas Bancárias") e sobrepõem visualmente.
 
-### 7. Config (`src/config/mobileNav.tsx`)
-- Garantir `hubTo` em cada `MoreSubGroup` (DP: Cadastro, Folgas, Documentos, Comunicação; Financeiro conforme sidebar).
-- `hubTo` opcional em `MoreGroup` quando fizer sentido.
+**Correção em `src/components/mobile/MoreGroupSection.tsx`:**
+- Fixar grid em **3 colunas** para todos os submenus (mais respiro horizontal).
+- Aumentar altura do tile e o `gap-y` (16 → 20 px).
+- Rótulo: remover `line-clamp-2` e `min-h-[26px]`; usar `text-[11.5px] leading-[1.15] break-words hyphens-auto` com **até 3 linhas** visíveis (`max-h` livre) e sem `truncate`.
+- Ícone continua num círculo 48px; padding horizontal do tile sobe de `px-2` para `px-1.5` para dar mais largura ao texto.
+- Em uma linha incompleta (ex.: 4 itens em grid de 3), manter `flex-wrap justify-center` para centralizar os órfãos.
 
-### Arquivos afetados
-- `src/components/mobile/MoreHeader.tsx`
-- `src/components/mobile/MoreGroupSection.tsx`
-- `src/pages/Mais.tsx`
-- `src/config/mobileNav.tsx`
+## 3. Botão "Personalizar Barra" — sem estouro
 
-Sem alterações em rotas, dados, favoritos ou busca. Long-press para favoritar permanece nos tiles.
+**Problema:** dentro do `grid-cols-2` o rótulo `Personalizar Barra` + ícone excede a largura de metade da tela em 393 px.
+
+**Correção em `src/pages/Mais.tsx`:** trocar o `grid-cols-2` por um **stack vertical**:
+- Botão "Personalizar Barra" ocupa 100% da largura (linha única, com ícone à esquerda e rótulo, `justify-start` sem `truncate`).
+- Botão "Sair" abaixo, também 100% da largura, mantido em vermelho.
+Isso remove o overflow definitivamente sem encurtar o rótulo.
+
+## 4. Header do módulo fixo, sem empresa redundante
+
+**Problema:** o `MoreHeader` mostra a empresa como título principal (redundante com a topbar fixa acima, que já tem o seletor de empresas) e o nome do módulo em caps pequeno; além disso, se o container não permitir sticky, ele rola junto.
+
+**Correção em `src/components/mobile/MoreHeader.tsx`:**
+- Título único e grande: **nome do módulo** (`MODULE_LABEL[activeModule]`, ex.: "DP 360°"), sem subtítulo de empresa.
+- Manter subtítulo apenas em casos onde ajuda a orientar (ex.: "Menu completo") — texto pequeno em `text-muted-foreground`, opcional. Sem `Pakere Pizzaria` aqui.
+- Ajustar posicionamento para `sticky top-0 z-20` **e** garantir na página `/mais` que o container pai não tenha `overflow-hidden` (verificar `MobileShell`/`DpShell` — se necessário elevar o `sticky` para o wrapper correto ou trocar por `position: sticky` com o cálculo do offset já embutido no CSS variable existente do topbar).
+
+## Detalhes técnicos
+
+- `useModuleShortcuts` continua bloqueando colisão entre slot A e B; ao aumentar o universo de opções, isso só afeta a lista exibida no `Sheet`.
+- Se algum item novo do universo não tiver `icon` (não é o caso hoje, mas por segurança), cair para `LayoutGrid`.
+- Não altero `MODULE_NAV`; apenas o hook e os componentes visuais. `shortcutOptions` continua existindo para eventual fallback, mas o customizer passa a ignorá-lo.
+- Testes visuais: `/mais` no DP (Pakere Pizzaria), `/mais` no Financeiro e Portal do colaborador em 393×852.
+
+## Arquivos afetados
+
+- `src/hooks/useModuleShortcut.ts` — derivar `options` de `moreGroups`.
+- `src/components/mobile/MoreGroupSection.tsx` — grid 3 col fixo, rótulo até 3 linhas, sem truncate.
+- `src/pages/Mais.tsx` — stack vertical dos botões de rodapé.
+- `src/components/mobile/MoreHeader.tsx` — módulo como título único, sticky, sem empresa.

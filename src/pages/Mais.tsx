@@ -151,22 +151,22 @@ export default function Mais() {
               />
             ))}
 
-            <div className="grid grid-cols-2 gap-2 pt-2">
+            <div className="flex flex-col gap-2 pt-2">
               <Button
                 variant="outline"
-                className="h-11 rounded-xl justify-start gap-2"
+                className="w-full h-11 rounded-xl justify-start gap-2"
                 onClick={openCustomizer}
               >
-                <Sliders className="h-4 w-4" />
-                Personalizar Barra
+                <Sliders className="h-4 w-4 shrink-0" />
+                <span className="truncate">Personalizar Barra</span>
               </Button>
               <Button
                 variant="outline"
-                className="h-11 rounded-xl justify-start gap-2 text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+                className="w-full h-11 rounded-xl justify-start gap-2 text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
                 onClick={async () => { await signOut(); }}
               >
-                <LogOut className="h-4 w-4" />
-                Sair
+                <LogOut className="h-4 w-4 shrink-0" />
+                <span className="truncate">Sair</span>
               </Button>
             </div>
 
