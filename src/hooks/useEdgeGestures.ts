@@ -4,13 +4,12 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { useActiveModule } from "@/hooks/useActiveModule";
 import { MODULE_NAV } from "@/config/mobileNav";
 import { haptic } from "@/lib/haptics";
-import { toast } from "sonner";
 
 const EDGE_PX = 28;
 const MIN_DELTA_X = 70;
 const MAX_DURATION_MS = 500;
 const MAX_DELTA_Y = 70;
-const HINT_KEY = "360food:edge-gestures-hint";
+
 
 /** Detecta se o toque começou dentro de um container com rolagem horizontal. */
 function startedInHorizontalScroller(target: EventTarget | null): boolean {
@@ -48,22 +47,8 @@ export function useEdgeGestures() {
     depthRef.current += 1;
   }, [pathname]);
 
-  // Dica de descoberta, uma única vez.
-  useEffect(() => {
-    if (!isMobile) return;
-    try {
-      if (window.localStorage.getItem(HINT_KEY)) return;
-      window.localStorage.setItem(HINT_KEY, "1");
-    } catch {
-      return;
-    }
-    const t = window.setTimeout(() => {
-      toast("Dica: arraste da borda esquerda para voltar e da direita para abrir o menu.", {
-        duration: 6000,
-      });
-    }, 1500);
-    return () => window.clearTimeout(t);
-  }, [isMobile]);
+
+
 
   useEffect(() => {
     if (!isMobile) return;
