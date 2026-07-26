@@ -3000,6 +3000,206 @@ export type Database = {
           },
         ]
       }
+      dp_epis: {
+        Row: {
+          ativo: boolean
+          ca: string | null
+          company_id: string
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          updated_at: string
+          validade_dias: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          ca?: string | null
+          company_id: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+          validade_dias?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          ca?: string | null
+          company_id?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+          validade_dias?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_epis_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_epis_entregas: {
+        Row: {
+          arquivo_path: string | null
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          criado_por: string | null
+          data_devolucao: string | null
+          data_entrega: string
+          data_troca_prevista: string | null
+          epi_id: string
+          id: string
+          observacao: string | null
+          quantidade: number
+          recebido_em: string | null
+          updated_at: string
+        }
+        Insert: {
+          arquivo_path?: string | null
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          criado_por?: string | null
+          data_devolucao?: string | null
+          data_entrega?: string
+          data_troca_prevista?: string | null
+          epi_id: string
+          id?: string
+          observacao?: string | null
+          quantidade?: number
+          recebido_em?: string | null
+          updated_at?: string
+        }
+        Update: {
+          arquivo_path?: string | null
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          criado_por?: string | null
+          data_devolucao?: string | null
+          data_entrega?: string
+          data_troca_prevista?: string | null
+          epi_id?: string
+          id?: string
+          observacao?: string | null
+          quantidade?: number
+          recebido_em?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_epis_entregas_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_epis_entregas_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_epis_entregas_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_epis_entregas_epi_id_fkey"
+            columns: ["epi_id"]
+            isOneToOne: false
+            referencedRelation: "dp_epis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_exames_aso: {
+        Row: {
+          arquivo_path: string | null
+          clinica: string | null
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          criado_por: string | null
+          data_realizado: string | null
+          data_vencimento: string | null
+          id: string
+          medico: string | null
+          observacao: string | null
+          restricoes: string | null
+          resultado: Database["public"]["Enums"]["dp_exame_resultado"]
+          tipo: Database["public"]["Enums"]["dp_exame_tipo"]
+          updated_at: string
+        }
+        Insert: {
+          arquivo_path?: string | null
+          clinica?: string | null
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          criado_por?: string | null
+          data_realizado?: string | null
+          data_vencimento?: string | null
+          id?: string
+          medico?: string | null
+          observacao?: string | null
+          restricoes?: string | null
+          resultado?: Database["public"]["Enums"]["dp_exame_resultado"]
+          tipo: Database["public"]["Enums"]["dp_exame_tipo"]
+          updated_at?: string
+        }
+        Update: {
+          arquivo_path?: string | null
+          clinica?: string | null
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          criado_por?: string | null
+          data_realizado?: string | null
+          data_vencimento?: string | null
+          id?: string
+          medico?: string | null
+          observacao?: string | null
+          restricoes?: string | null
+          resultado?: Database["public"]["Enums"]["dp_exame_resultado"]
+          tipo?: Database["public"]["Enums"]["dp_exame_tipo"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_exames_aso_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_exames_aso_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_exames_aso_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_ferias_gozos: {
         Row: {
           adiantar_13: boolean
@@ -3797,11 +3997,14 @@ export type Database = {
       dp_pendencias_config: {
         Row: {
           alerta_adiantamento_offset: number
+          alerta_aso_dias: number
           alerta_contracheque_dia_mes: number
+          alerta_epi_dias: number
           alerta_ferias_dias: number
           alerta_folha_ponto_dia_mes: number
           alerta_negociacao_dias: number
           alerta_solicitacao_dias: number
+          alerta_treinamento_dias: number
           alerta_troca_dias: number
           company_id: string
           created_at: string
@@ -3810,11 +4013,14 @@ export type Database = {
         }
         Insert: {
           alerta_adiantamento_offset?: number
+          alerta_aso_dias?: number
           alerta_contracheque_dia_mes?: number
+          alerta_epi_dias?: number
           alerta_ferias_dias?: number
           alerta_folha_ponto_dia_mes?: number
           alerta_negociacao_dias?: number
           alerta_solicitacao_dias?: number
+          alerta_treinamento_dias?: number
           alerta_troca_dias?: number
           company_id: string
           created_at?: string
@@ -3823,11 +4029,14 @@ export type Database = {
         }
         Update: {
           alerta_adiantamento_offset?: number
+          alerta_aso_dias?: number
           alerta_contracheque_dia_mes?: number
+          alerta_epi_dias?: number
           alerta_ferias_dias?: number
           alerta_folha_ponto_dia_mes?: number
           alerta_negociacao_dias?: number
           alerta_solicitacao_dias?: number
+          alerta_treinamento_dias?: number
           alerta_troca_dias?: number
           company_id?: string
           created_at?: string
@@ -4252,6 +4461,130 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_treinamentos: {
+        Row: {
+          ativo: boolean
+          carga_horaria: number | null
+          company_id: string
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          obrigatorio: boolean
+          updated_at: string
+          validade_meses: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          carga_horaria?: number | null
+          company_id: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          obrigatorio?: boolean
+          updated_at?: string
+          validade_meses?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          carga_horaria?: number | null
+          company_id?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          obrigatorio?: boolean
+          updated_at?: string
+          validade_meses?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_treinamentos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_treinamentos_participacoes: {
+        Row: {
+          certificado_path: string | null
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          criado_por: string | null
+          data_conclusao: string | null
+          data_vencimento: string | null
+          id: string
+          nota: number | null
+          observacao: string | null
+          status: Database["public"]["Enums"]["dp_treinamento_status"]
+          treinamento_id: string
+          updated_at: string
+        }
+        Insert: {
+          certificado_path?: string | null
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          criado_por?: string | null
+          data_conclusao?: string | null
+          data_vencimento?: string | null
+          id?: string
+          nota?: number | null
+          observacao?: string | null
+          status?: Database["public"]["Enums"]["dp_treinamento_status"]
+          treinamento_id: string
+          updated_at?: string
+        }
+        Update: {
+          certificado_path?: string | null
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          criado_por?: string | null
+          data_conclusao?: string | null
+          data_vencimento?: string | null
+          id?: string
+          nota?: number | null
+          observacao?: string | null
+          status?: Database["public"]["Enums"]["dp_treinamento_status"]
+          treinamento_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_treinamentos_participacoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_treinamentos_participacoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_treinamentos_participacoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_treinamentos_participacoes_treinamento_id_fkey"
+            columns: ["treinamento_id"]
+            isOneToOne: false
+            referencedRelation: "dp_treinamentos"
             referencedColumns: ["id"]
           },
         ]
@@ -6901,6 +7234,13 @@ export type Database = {
         | "sindicato"
         | "ferias"
       dp_elegibilidade_recontratacao: "sim" | "nao" | "com_ressalvas"
+      dp_exame_resultado: "apto" | "apto_com_restricoes" | "inapto" | "pendente"
+      dp_exame_tipo:
+        | "admissional"
+        | "periodico"
+        | "retorno_trabalho"
+        | "mudanca_funcao"
+        | "demissional"
       dp_ferias_gozo_status:
         | "planejado"
         | "aprovado"
@@ -6972,6 +7312,11 @@ export type Database = {
         | "atestado"
         | "adiantamento"
         | "outros"
+      dp_treinamento_status:
+        | "planejado"
+        | "em_andamento"
+        | "concluido"
+        | "cancelado"
       dp_troca_status:
         | "pendente_colega"
         | "pendente_gestor"
@@ -7196,6 +7541,14 @@ export const Constants = {
         "ferias",
       ],
       dp_elegibilidade_recontratacao: ["sim", "nao", "com_ressalvas"],
+      dp_exame_resultado: ["apto", "apto_com_restricoes", "inapto", "pendente"],
+      dp_exame_tipo: [
+        "admissional",
+        "periodico",
+        "retorno_trabalho",
+        "mudanca_funcao",
+        "demissional",
+      ],
       dp_ferias_gozo_status: [
         "planejado",
         "aprovado",
@@ -7275,6 +7628,12 @@ export const Constants = {
         "atestado",
         "adiantamento",
         "outros",
+      ],
+      dp_treinamento_status: [
+        "planejado",
+        "em_andamento",
+        "concluido",
+        "cancelado",
       ],
       dp_troca_status: [
         "pendente_colega",
