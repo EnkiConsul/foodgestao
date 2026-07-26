@@ -1,18 +1,18 @@
 ## Problema
 
-Na lista vertical do calendário mobile (`src/components/dp/CalendarioMobileLista.tsx`), o rótulo do dia da semana + número do dia estão dentro de um único flex com `min-w-[64px]`. Como o número muda de 1 dígito (1–9) para 2 dígitos (10–31), o bloco inteiro fica mais largo em dias de 2 dígitos, empurrando os chips (1/1, nomes) para a direita e criando o efeito "cobra" ao rolar.
+No `CalendarioMobileLista`, o número do dia usa `w-6` (24px), mas com `text-lg` + `font-bold` + `tabular-nums`, dígitos duplos como "22"/"28" chegam a ~24–26px e acabam encostando/estourando o box. Como o container é `flex items-baseline gap-1.5`, qualquer overflow desloca o conteúdo seguinte, dando a sensação de que os números "dançam" ao rolar.
 
-## Correção
+## Correção (apenas em `src/components/dp/CalendarioMobileLista.tsx`)
 
-Ajustar somente o bloco de cabeçalho de cada linha em `CalendarioMobileLista.tsx` (linhas 141-159) para usar **duas colunas de largura fixa**:
+1. **Aumentar a coluna do número do dia** para caber 2 dígitos em `text-lg tabular-nums` sem overflow:
+   - `w-6` → `w-7` (28px), mantendo `text-right`.
+2. **Aumentar o wrapper** de weekday+número para acomodar a nova largura sem espremer:
+   - `w-16` (64px) → `w-[68px]` (10 + gap 1.5 + 7 = ~68px), `shrink-0`.
+3. **Trocar `items-baseline` por `items-center`** no wrapper — baseline com pesos diferentes (weekday 11px semibold vs número 18px bold) contribui para a percepção de desalinhamento vertical.
+4. Manter `tabular-nums` no número e no weekday (opcional) para largura de glifo estável.
 
-1. Weekday (`SÁB`, `DOM`, …): largura fixa (`w-10`, `text-left`).
-2. Número do dia: largura fixa (`w-6`, `text-right`, `tabular-nums`).
-3. Remover `min-w-[64px]` do wrapper e usar `w-16 shrink-0` para travar a coluna inteira.
+Nenhuma alteração de lógica, dados ou outros calendários — apenas classes utilitárias do próprio componente compartilhado.
 
-Resultado: o início da coluna de chips fica **exatamente** no mesmo x em todos os dias, independentemente de o número ter 1 ou 2 dígitos.
+## Verificação
 
-## Fora de escopo
-
-- Não altero tipografia, cores, espaçamento vertical, ícones ou lógica de renderização de chips/bloqueios.
-- Não mexo na versão desktop (grid) nem em outras telas.
+- Abrir `/dp/folgas`, `/dp/admin/calendario` e `/dp/portal/meu-calendario` no viewport mobile e conferir que a coluna de chips (nomes) começa exatamente na mesma coordenada X para os dias 1–9 e 10–31.
