@@ -355,4 +355,3 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
     moreGroups: [contaGroup],
   },
 };
-};
