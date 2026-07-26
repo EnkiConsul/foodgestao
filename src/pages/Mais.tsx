@@ -18,7 +18,6 @@ const norm = (s: string) =>
 export default function Mais() {
   const activeModule = useActiveModule();
   const navigate = useNavigate();
-  const { pathname } = useLocation();
   const { signOut } = useAuth();
   const { favorites, isFavorite, toggle, max } = useFavoriteNavItems();
   const [query, setQuery] = useState("");
