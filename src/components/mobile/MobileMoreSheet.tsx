@@ -21,7 +21,7 @@ const norm = (s: string) =>
 
 const LONG_PRESS_MS = 550;
 
-export function MobileMoreSheet({ groups, trigger }: Props) {
+export function MobileMoreSheet({ groups, trigger, onCustomizeShortcut }: Props) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { signOut } = useAuth();
