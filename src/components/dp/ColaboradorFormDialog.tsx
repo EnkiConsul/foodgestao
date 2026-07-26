@@ -330,15 +330,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             </Select>
           </div>
 
-          {/* Ativo */}
-          <div className="col-span-2 flex items-center gap-3 rounded-xl border border-border p-3">
-            <Switch
-              id="ativo"
-              checked={form.ativo}
-              onCheckedChange={(v) => setForm({ ...form, ativo: v, data_desligamento: v ? "" : form.data_desligamento })}
-            />
-            <Label htmlFor="ativo" className="cursor-pointer">Ativo</Label>
-          </div>
+
+
 
           {/* Folha de ponto (condicional) */}
           {unidadeSelecionada?.possui_relogio_ponto && (
