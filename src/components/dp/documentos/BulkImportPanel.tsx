@@ -383,39 +383,46 @@ export function BulkImportPanel({
             return (
               <div key={b.id} className="border rounded-md">
                 <button
-                  className="w-full flex items-center justify-between p-3 text-left hover:bg-muted/50"
+                  type="button"
+                  className="w-full flex items-start justify-between gap-2 p-3 text-left hover:bg-muted/50"
                   onClick={() => setExpanded((s) => ({ ...s, [b.id]: !s[b.id] }))}
                 >
-                  <div className="flex items-center gap-2 min-w-0">
-                    {isOpen ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
-                    <div className="min-w-0">
+                  <div className="flex items-start gap-2 min-w-0 flex-1">
+                    {isOpen ? <ChevronDown className="h-4 w-4 shrink-0 mt-0.5" /> : <ChevronRight className="h-4 w-4 shrink-0 mt-0.5" />}
+                    <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium truncate">{b.source_file_name ?? b.id.slice(0, 8)}</div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-muted-foreground truncate">
                         {b.tipo} ·{" "}
                         {isProcessing && totalPag > 0
                           ? `OCR ${processed}/${totalPag}`
-                          : `${totalPag} páginas · ${b.matched_count ?? 0} vinculadas`}
-                        {isOpen && bItems.length > 0 ? ` · ${importadas}/${totalPag} importadas` : ""} ·{" "}
+                          : `${totalPag} pág · ${b.matched_count ?? 0} vinc.`}
+                        {isOpen && bItems.length > 0 ? ` · ${importadas}/${totalPag} imp.` : ""}
+                      </div>
+                      <div className="hidden md:block text-xs text-muted-foreground truncate">
                         {new Date(b.created_at).toLocaleString("pt-BR")}
                       </div>
                       {b.error_message && (
-                        <div className="text-xs text-destructive mt-0.5 flex items-center gap-1">
-                          <AlertTriangle className="h-3 w-3" /> {b.error_message}
+                        <div className="text-xs text-destructive mt-0.5 flex items-center gap-1 truncate">
+                          <AlertTriangle className="h-3 w-3 shrink-0" /> <span className="truncate">{b.error_message}</span>
                         </div>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 shrink-0">
                     {!isProcessing && totalPag > 0 && (
                       <Button
                         size="sm"
                         variant="outline"
+                        aria-label="Revisar lote"
+                        title="Revisar"
+                        className="h-9 w-9 md:w-auto md:px-3 p-0 md:p-2"
                         onClick={(e) => {
                           e.stopPropagation();
                           setReviewBatch({ id: b.id, name: b.source_file_name });
                         }}
                       >
-                        <Eye className="h-4 w-4 mr-1" /> Revisar
+                        <Eye className="h-4 w-4 md:mr-1" />
+                        <span className="hidden md:inline">Revisar</span>
                       </Button>
                     )}
                     {canDiscard && (
@@ -424,9 +431,13 @@ export function BulkImportPanel({
                           <Button
                             size="sm"
                             variant="outline"
+                            aria-label="Descartar lote"
+                            title="Descartar"
+                            className="h-9 w-9 md:w-auto md:px-3 p-0 md:p-2"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <Trash2 className="h-4 w-4 mr-1" /> Descartar
+                            <Trash2 className="h-4 w-4 md:mr-1" />
+                            <span className="hidden md:inline">Descartar</span>
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent onClick={(e) => e.stopPropagation()}>
@@ -445,13 +456,26 @@ export function BulkImportPanel({
                         </AlertDialogContent>
                       </AlertDialog>
                     )}
-                    <Badge variant={
-                      b.status === "imported" ? "default"
-                      : b.status === "failed" ? "destructive"
-                      : "secondary"
-                    }>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      aria-label="Detalhes do lote"
+                      title="Detalhes"
+                      className="h-9 w-9 md:hidden"
+                      onClick={(e) => { e.stopPropagation(); setDetailsBatch(b); }}
+                    >
+                      <Info className="h-4 w-4" />
+                    </Button>
+                    <Badge
+                      variant={
+                        b.status === "imported" ? "default"
+                        : b.status === "failed" ? "destructive"
+                        : "secondary"
+                      }
+                      className="whitespace-nowrap"
+                    >
                       {isProcessing && <Loader2 className="h-3 w-3 mr-1 animate-spin inline" />}
-                      {b.status}
+                      {statusLabel(b.status)}
                     </Badge>
                   </div>
                 </button>
