@@ -1,6 +1,7 @@
 import { Search, X } from "lucide-react";
 import { MODULE_LABEL, useActiveModule } from "@/hooks/useActiveModule";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 type Props = {
   query: string;
