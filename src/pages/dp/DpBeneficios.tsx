@@ -74,12 +74,12 @@ export default function DpBeneficios() {
         ))}
       </div>
 
-      <DpContentCard>
+      <DpContentCard contentClassName="p-4 md:p-5">
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-xs uppercase tracking-wide text-muted-foreground">Colaborador</Label>
             <Select value={colabFilter} onValueChange={setColabFilter}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent className="max-h-72">
                 <SelectItem value="todos">Todos</SelectItem>
                 {colabList.map((c) => (
@@ -88,13 +88,13 @@ export default function DpBeneficios() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-xs uppercase tracking-wide text-muted-foreground">
               Gerar na folha
             </Label>
             <div className="flex gap-2">
               <Select value={periodoId} onValueChange={setPeriodoId}>
-                <SelectTrigger><SelectValue placeholder="Selecione o período" /></SelectTrigger>
+                <SelectTrigger className="min-w-0 flex-1"><SelectValue placeholder="Selecione o período" /></SelectTrigger>
                 <SelectContent className="max-h-72">
                   {b.periodos.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
@@ -105,6 +105,7 @@ export default function DpBeneficios() {
               </Select>
               <Button
                 variant="secondary"
+                className="shrink-0"
                 disabled={!periodoId || b.gerarLancamentos.isPending}
                 onClick={() => b.gerarLancamentos.mutate(periodoId)}
               >
@@ -115,10 +116,10 @@ export default function DpBeneficios() {
         </div>
       </DpContentCard>
 
-      <Tabs defaultValue="ficha">
-        <TabsList>
-          <TabsTrigger value="ficha">Por colaborador</TabsTrigger>
-          <TabsTrigger value="catalogo">Catálogo</TabsTrigger>
+      <Tabs defaultValue="ficha" className="space-y-3">
+        <TabsList className="flex w-full sm:w-auto">
+          <TabsTrigger value="ficha" className="flex-1 sm:flex-none">Por colaborador</TabsTrigger>
+          <TabsTrigger value="catalogo" className="flex-1 sm:flex-none">Catálogo</TabsTrigger>
         </TabsList>
 
         <TabsContent value="ficha" className="space-y-3">
@@ -129,13 +130,13 @@ export default function DpBeneficios() {
           </div>
           <DpContentCard>
             {b.atribuicoes.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
+              <p className="p-6 text-center text-sm text-muted-foreground">
                 Nenhum benefício atribuído.
               </p>
             ) : (
               <div className="divide-y divide-border">
                 {b.atribuicoes.map((a) => (
-                  <div key={a.id} className="flex items-center justify-between gap-3 py-3">
+                  <div key={a.id} className="flex items-center justify-between gap-3 px-4 py-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">
                         {a.colaborador_nome} · {a.beneficio_nome}
@@ -150,11 +151,11 @@ export default function DpBeneficios() {
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       {!a.ativo && <Badge variant="secondary">Inativo</Badge>}
-                      <Button size="icon" variant="ghost"
+                      <Button size="icon" variant="ghost" aria-label="Editar atribuição"
                         onClick={() => { setAtrEdit(a); setAtrOpen(true); }}>
                         <Pencil className="size-4" />
                       </Button>
-                      <Button size="icon" variant="ghost"
+                      <Button size="icon" variant="ghost" aria-label="Remover atribuição"
                         onClick={() => b.deleteAtribuicao.mutate(a.id)}>
                         <Trash2 className="size-4 text-destructive" />
                       </Button>
@@ -174,13 +175,13 @@ export default function DpBeneficios() {
           </div>
           <DpContentCard>
             {b.beneficios.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
+              <p className="p-6 text-center text-sm text-muted-foreground">
                 Nenhum benefício cadastrado.
               </p>
             ) : (
               <div className="divide-y divide-border">
                 {b.beneficios.map((x) => (
-                  <div key={x.id} className="flex items-center justify-between gap-3 py-3">
+                  <div key={x.id} className="flex items-center justify-between gap-3 px-4 py-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{x.nome}</p>
                       <p className="text-xs text-muted-foreground">
@@ -192,11 +193,11 @@ export default function DpBeneficios() {
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       {!x.ativo && <Badge variant="secondary">Inativo</Badge>}
-                      <Button size="icon" variant="ghost"
+                      <Button size="icon" variant="ghost" aria-label="Editar benefício"
                         onClick={() => { setCatEdit(x); setCatOpen(true); }}>
                         <Pencil className="size-4" />
                       </Button>
-                      <Button size="icon" variant="ghost"
+                      <Button size="icon" variant="ghost" aria-label="Remover benefício"
                         onClick={() => b.deleteBeneficio.mutate(x.id)}>
                         <Trash2 className="size-4 text-destructive" />
                       </Button>

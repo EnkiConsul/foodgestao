@@ -137,11 +137,11 @@ export default function DpFerias() {
       </div>
 
       {/* Filtros + geração */}
-      <div className="flex flex-wrap items-end gap-4 rounded-2xl border border-border bg-card p-4">
-        <div className="space-y-2">
+      <div className="grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-3 lg:items-end">
+        <div className="space-y-1.5">
           <Label className="text-xs font-bold uppercase text-muted-foreground">Colaborador</Label>
           <Select value={colabFilter} onValueChange={setColabFilter}>
-            <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent className="max-h-72">
               <SelectItem value="todos">Todos</SelectItem>
               {colaboradores.map((c) => (
@@ -150,10 +150,10 @@ export default function DpFerias() {
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <Label className="text-xs font-bold uppercase text-muted-foreground">Situação</Label>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todas</SelectItem>
               {(Object.keys(PERIODO_LABEL) as FeriasPeriodoStatus[]).map((s) => (
@@ -162,11 +162,11 @@ export default function DpFerias() {
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1.5 sm:col-span-2 lg:col-span-1">
           <Label className="text-xs font-bold uppercase text-muted-foreground">Gerar períodos aquisitivos</Label>
           <div className="flex gap-2">
             <Select value={gerarColab} onValueChange={setGerarColab}>
-              <SelectTrigger className="w-[220px]"><SelectValue placeholder="Escolha o colaborador" /></SelectTrigger>
+              <SelectTrigger className="min-w-0 flex-1"><SelectValue placeholder="Escolha o colaborador" /></SelectTrigger>
               <SelectContent className="max-h-72">
                 {colaboradores.map((c) => (
                   <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
@@ -175,6 +175,7 @@ export default function DpFerias() {
             </Select>
             <Button
               variant="outline"
+              className="shrink-0"
               disabled={!gerarColab || gerarPeriodos.isPending}
               onClick={() => gerarPeriodos.mutate(gerarColab)}
             >
@@ -230,11 +231,11 @@ export default function DpFerias() {
                           </span>
                           <span className="flex items-center gap-2">
                             <Badge variant="outline">{GOZO_LABEL[g.status] ?? g.status}</Badge>
-                            <Button size="icon" variant="ghost" onClick={() => abrirEdicao(g)}>
+                            <Button size="icon" variant="ghost" aria-label="Editar agendamento de férias" onClick={() => abrirEdicao(g)}>
                               <Pencil className="size-4" />
                             </Button>
                             <Button
-                              size="icon" variant="ghost"
+                              size="icon" variant="ghost" aria-label="Remover agendamento de férias"
                               onClick={() => {
                                 if (confirm("Remover este agendamento de férias?")) deleteGozo.mutate(g.id);
                               }}

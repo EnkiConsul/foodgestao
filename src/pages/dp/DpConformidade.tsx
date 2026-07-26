@@ -88,11 +88,11 @@ export default function DpConformidade() {
         ))}
       </div>
 
-      <div className="flex flex-wrap items-end gap-4 rounded-2xl border border-border bg-card p-4">
-        <div className="space-y-2">
+      <div className="grid gap-3 rounded-2xl border border-border bg-card p-4 sm:max-w-sm">
+        <div className="space-y-1.5">
           <Label className="text-xs font-bold uppercase text-muted-foreground">Colaborador</Label>
           <Select value={colabFilter} onValueChange={setColabFilter}>
-            <SelectTrigger className="w-[240px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent className="max-h-72">
               <SelectItem value="todos">Todos</SelectItem>
               {colabList.map((x) => (
@@ -104,10 +104,10 @@ export default function DpConformidade() {
       </div>
 
       <Tabs defaultValue="aso">
-        <TabsList>
-          <TabsTrigger value="aso">Exames (ASO)</TabsTrigger>
-          <TabsTrigger value="epis">EPIs</TabsTrigger>
-          <TabsTrigger value="treinamentos">Treinamentos</TabsTrigger>
+        <TabsList className="flex w-full overflow-x-auto sm:w-auto">
+          <TabsTrigger value="aso" className="flex-1 sm:flex-none">Exames (ASO)</TabsTrigger>
+          <TabsTrigger value="epis" className="flex-1 sm:flex-none">EPIs</TabsTrigger>
+          <TabsTrigger value="treinamentos" className="flex-1 sm:flex-none">Treinamentos</TabsTrigger>
         </TabsList>
 
         {/* ---------------------------- ASO ---------------------------- */}
@@ -136,10 +136,10 @@ export default function DpConformidade() {
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline">{EXAME_RESULTADO_LABEL[e.resultado]}</Badge>
                       <VencimentoBadge data={e.data_vencimento} />
-                      <Button size="sm" variant="outline" onClick={() => { setExameEdit(e); setExameOpen(true); }}>
+                      <Button size="sm" variant="outline" aria-label="Editar" onClick={() => { setExameEdit(e); setExameOpen(true); }}>
                         <Pencil className="size-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => c.deleteExame.mutate(e.id)}>
+                      <Button size="sm" variant="ghost" aria-label="Excluir" onClick={() => c.deleteExame.mutate(e.id)}>
                         <Trash2 className="size-4 text-destructive" />
                       </Button>
                     </div>
@@ -180,10 +180,10 @@ export default function DpConformidade() {
                     </div>
                     <div className="flex items-center gap-2">
                       {!e.ativo && <Badge variant="outline">Inativo</Badge>}
-                      <Button size="sm" variant="outline" onClick={() => { setEpiEdit(e); setEpiOpen(true); }}>
+                      <Button size="sm" variant="outline" aria-label="Editar" onClick={() => { setEpiEdit(e); setEpiOpen(true); }}>
                         <Pencil className="size-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => c.deleteEpi.mutate(e.id)}>
+                      <Button size="sm" variant="ghost" aria-label="Excluir" onClick={() => c.deleteEpi.mutate(e.id)}>
                         <Trash2 className="size-4 text-destructive" />
                       </Button>
                     </div>
@@ -216,10 +216,10 @@ export default function DpConformidade() {
                         ? <Badge className="bg-emerald-500/15 text-emerald-600">Recebido</Badge>
                         : <Badge variant="outline">Sem confirmação</Badge>}
                       {!e.data_devolucao && <VencimentoBadge data={e.data_troca_prevista} janela={15} />}
-                      <Button size="sm" variant="outline" onClick={() => { setEntregaEdit(e); setEntregaOpen(true); }}>
+                      <Button size="sm" variant="outline" aria-label="Editar" onClick={() => { setEntregaEdit(e); setEntregaOpen(true); }}>
                         <Pencil className="size-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => c.deleteEntrega.mutate(e.id)}>
+                      <Button size="sm" variant="ghost" aria-label="Excluir" onClick={() => c.deleteEntrega.mutate(e.id)}>
                         <Trash2 className="size-4 text-destructive" />
                       </Button>
                     </div>
@@ -261,10 +261,10 @@ export default function DpConformidade() {
                     <div className="flex items-center gap-2">
                       {t.obrigatorio && <Badge className="bg-primary/15 text-primary">Obrigatório</Badge>}
                       {!t.ativo && <Badge variant="outline">Inativo</Badge>}
-                      <Button size="sm" variant="outline" onClick={() => { setTreinoEdit(t); setTreinoOpen(true); }}>
+                      <Button size="sm" variant="outline" aria-label="Editar" onClick={() => { setTreinoEdit(t); setTreinoOpen(true); }}>
                         <Pencil className="size-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => c.deleteTreinamento.mutate(t.id)}>
+                      <Button size="sm" variant="ghost" aria-label="Excluir" onClick={() => c.deleteTreinamento.mutate(t.id)}>
                         <Trash2 className="size-4 text-destructive" />
                       </Button>
                     </div>
@@ -294,10 +294,10 @@ export default function DpConformidade() {
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline">{TREINAMENTO_STATUS_LABEL[p.status]}</Badge>
                       <VencimentoBadge data={p.data_vencimento} />
-                      <Button size="sm" variant="outline" onClick={() => { setPartEdit(p); setPartOpen(true); }}>
+                      <Button size="sm" variant="outline" aria-label="Editar" onClick={() => { setPartEdit(p); setPartOpen(true); }}>
                         <Pencil className="size-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => c.deleteParticipacao.mutate(p.id)}>
+                      <Button size="sm" variant="ghost" aria-label="Excluir" onClick={() => c.deleteParticipacao.mutate(p.id)}>
                         <Trash2 className="size-4 text-destructive" />
                       </Button>
                     </div>
