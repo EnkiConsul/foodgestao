@@ -11,6 +11,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { PDFDocument } from "npm:pdf-lib@1.17.1";
 import { z } from "npm:zod@3";
+import { extractPeriodo, extractPeriodoFromFilename } from "../_shared/competencia.ts";
 
 const BUCKET = "dp-bulk-import";
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -330,55 +331,6 @@ function extractCNPJs(text: string): string[] {
   return [...out];
 }
 
-const MESES_MAP: Record<string, number> = {
-  janeiro: 1, jan: 1, fevereiro: 2, fev: 2, marco: 3, março: 3, mar: 3,
-  abril: 4, abr: 4, maio: 5, mai: 5, junho: 6, jun: 6,
-  julho: 7, jul: 7, agosto: 8, ago: 8, setembro: 9, set: 9,
-  outubro: 10, out: 10, novembro: 11, nov: 11, dezembro: 12, dez: 12,
-};
-
-/** Retorna "YYYY-MM" ou null. */
-function extractPeriodo(text: string): string | null {
-  if (!text) return null;
-  const low = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-  // 1) "comp[etência]|referencia MM/YYYY" ou "MM-YYYY"
-  const r1 = /(?:comp\.?|competencia|referencia|periodo|mes)[^\d]{0,25}(\d{1,2})[\/\-.](\d{4})/i;
-  const m1 = low.match(r1);
-  if (m1) {
-    const mm = Math.max(1, Math.min(12, Number(m1[1])));
-    const yy = Number(m1[2]);
-    if (yy >= 2000 && yy <= 2100) return `${yy}-${String(mm).padStart(2, "0")}`;
-  }
-
-  // 2) "MES/YYYY" nome do mês (tolera "Junho de 2026", "JUNHO/2026", "competência: junho 2026", etc.)
-  const r2 = new RegExp(`\\b(${Object.keys(MESES_MAP).join("|")})\\b[^\\d]{0,25}(20\\d{2})`, "i");
-  const m2 = low.match(r2);
-  if (m2) {
-    const mm = MESES_MAP[m2[1].toLowerCase()];
-    const yy = Number(m2[2]);
-    if (mm && yy >= 2000 && yy <= 2100) return `${yy}-${String(mm).padStart(2, "0")}`;
-  }
-
-  // 3) "MM/YYYY", "MM-YYYY" ou "MM.YYYY" isolado (menos confiável — pega o primeiro)
-  const r3 = /\b(0?[1-9]|1[0-2])[\/\-.](20\d{2})\b/;
-  const m3 = low.match(r3);
-  if (m3) {
-    const mm = Number(m3[1]);
-    const yy = Number(m3[2]);
-    return `${yy}-${String(mm).padStart(2, "0")}`;
-  }
-
-  return null;
-}
-
-/** Tenta extrair "YYYY-MM" do nome do arquivo (ex.: "Recibo 06.2026.pdf"). */
-function extractPeriodoFromFilename(name: string): string | null {
-  if (!name) return null;
-  const base = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  return extractPeriodo(base);
-}
-
 function base64Encode(bytes: Uint8Array): string {
   let bin = "";
   const CHUNK = 0x8000;
@@ -397,7 +349,7 @@ async function ocrPage(apiKey: string, pdfB64: string): Promise<string> {
         content: [
           {
             type: "text",
-            text: "Extraia TODO o texto legível deste documento (holerite/ponto/contracheque). Responda apenas com o texto puro extraído, sem comentários. Inclua CPF, CNPJ, matrícula, nome do colaborador e período de referência (mês/ano) se visíveis.",
+            text: "Extraia TODO o texto legível deste documento de RH (contracheque, folha de ponto, adiantamento ou décimo terceiro). Responda apenas com o texto puro extraído, sem comentários. Inclua CPF, CNPJ, matrícula e nome do colaborador. Na ÚLTIMA linha, acrescente exatamente `COMPETENCIA: MM/AAAA` com o mês/ano de referência do documento (o período trabalhado ou a folha a que ele se refere). NUNCA use a data de emissão, impressão, admissão ou pagamento como competência. Se não for possível determinar, escreva `COMPETENCIA: DESCONHECIDA`.",
           },
           {
             type: "file",
