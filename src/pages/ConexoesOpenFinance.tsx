@@ -279,6 +279,9 @@ export default function ConexoesOpenFinance() {
             {activeCount} {activeCount === 1 ? "conexão ativa" : "conexões ativas"}
           </p>
         </div>
+        <Button variant="outline" onClick={() => navigate("/contas-bancarias/conciliacao")}>
+          Conciliação
+        </Button>
         <Button onClick={() => navigate("/contas-bancarias?openFinance=1")}>
           <Zap className="h-4 w-4 mr-2" /> Nova conexão
         </Button>
