@@ -88,11 +88,11 @@ export default function DpConformidade() {
         ))}
       </div>
 
-      <div className="flex flex-wrap items-end gap-4 rounded-2xl border border-border bg-card p-4">
-        <div className="space-y-2">
+      <div className="grid gap-3 rounded-2xl border border-border bg-card p-4 sm:max-w-sm">
+        <div className="space-y-1.5">
           <Label className="text-xs font-bold uppercase text-muted-foreground">Colaborador</Label>
           <Select value={colabFilter} onValueChange={setColabFilter}>
-            <SelectTrigger className="w-[240px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent className="max-h-72">
               <SelectItem value="todos">Todos</SelectItem>
               {colabList.map((x) => (
@@ -104,10 +104,10 @@ export default function DpConformidade() {
       </div>
 
       <Tabs defaultValue="aso">
-        <TabsList>
-          <TabsTrigger value="aso">Exames (ASO)</TabsTrigger>
-          <TabsTrigger value="epis">EPIs</TabsTrigger>
-          <TabsTrigger value="treinamentos">Treinamentos</TabsTrigger>
+        <TabsList className="flex w-full overflow-x-auto sm:w-auto">
+          <TabsTrigger value="aso" className="flex-1 sm:flex-none">Exames (ASO)</TabsTrigger>
+          <TabsTrigger value="epis" className="flex-1 sm:flex-none">EPIs</TabsTrigger>
+          <TabsTrigger value="treinamentos" className="flex-1 sm:flex-none">Treinamentos</TabsTrigger>
         </TabsList>
 
         {/* ---------------------------- ASO ---------------------------- */}
