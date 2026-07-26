@@ -161,8 +161,13 @@ export function useDpFerias(colaboradorFilter: string) {
   return {
     periodos: periodosQ.data ?? [],
     periodosLoading: periodosQ.isLoading,
+    periodosError: periodosQ.isError,
     gozos: gozosQ.data ?? [],
     gozosLoading: gozosQ.isLoading,
+    refetchAll: () => {
+      periodosQ.refetch();
+      gozosQ.refetch();
+    },
     gerarPeriodos,
     saveGozo,
     setGozoStatus,
