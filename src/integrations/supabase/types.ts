@@ -31,6 +31,8 @@ export type Database = {
           initial_balance: number
           is_active: boolean
           name: string
+          reference_balance_date: string | null
+          soft_deleted_at: string | null
           updated_at: string
           user_id: string
         }
@@ -50,6 +52,8 @@ export type Database = {
           initial_balance?: number
           is_active?: boolean
           name: string
+          reference_balance_date?: string | null
+          soft_deleted_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -69,6 +73,8 @@ export type Database = {
           initial_balance?: number
           is_active?: boolean
           name?: string
+          reference_balance_date?: string | null
+          soft_deleted_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -4802,6 +4808,7 @@ export type Database = {
           connector_id: number | null
           consent_expires_at: string | null
           created_at: string
+          disconnected_at: string | null
           id: string
           institution_logo_url: string | null
           institution_name: string | null
@@ -4819,6 +4826,7 @@ export type Database = {
           connector_id?: number | null
           consent_expires_at?: string | null
           created_at?: string
+          disconnected_at?: string | null
           id?: string
           institution_logo_url?: string | null
           institution_name?: string | null
@@ -4836,6 +4844,7 @@ export type Database = {
           connector_id?: number | null
           consent_expires_at?: string | null
           created_at?: string
+          disconnected_at?: string | null
           id?: string
           institution_logo_url?: string | null
           institution_name?: string | null
@@ -5930,6 +5939,15 @@ export type Database = {
       }
     }
     Functions: {
+      adjust_account_balance: {
+        Args: {
+          _account_id: string
+          _adjust_date: string
+          _note: string
+          _target_balance: number
+        }
+        Returns: string
+      }
       apply_ai_categorization: {
         Args: {
           p_category_id: string
@@ -6106,6 +6124,10 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      disconnect_open_finance_connection: {
+        Args: { _connection_id: string }
+        Returns: undefined
+      }
       dp_bulk_increment_processed: {
         Args: { p_batch_id: string }
         Returns: undefined
@@ -6228,6 +6250,8 @@ export type Database = {
           initial_balance: number
           is_active: boolean
           name: string
+          reference_balance_date: string | null
+          soft_deleted_at: string | null
           updated_at: string
           user_id: string
         }[]
@@ -6326,6 +6350,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      ignore_open_finance_account: {
+        Args: { _ignored?: boolean; _of_account_id: string }
+        Returns: undefined
       }
       increment_rule_hit: { Args: { p_rule_id: string }; Returns: undefined }
       insert_audit_log: {
@@ -6521,6 +6549,10 @@ export type Database = {
           transaction_type: Database["public"]["Enums"]["transaction_type"]
         }[]
       }
+      promote_open_finance_transactions: {
+        Args: { _connection_id: string; _max_rows?: number }
+        Returns: Json
+      }
       promote_to_transfer: {
         Args: {
           _destination_account_id: string
@@ -6582,9 +6614,18 @@ export type Database = {
         }[]
       }
       seed_default_categories: { Args: { _company_id: string }; Returns: Json }
+      set_open_finance_auto_import: {
+        Args: { _enabled: boolean; _of_account_id: string }
+        Returns: undefined
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      soft_delete_account: { Args: { _account_id: string }; Returns: undefined }
       unaccent: { Args: { "": string }; Returns: string }
+      unlink_open_finance_account: {
+        Args: { _of_account_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       account_type:
