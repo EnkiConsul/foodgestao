@@ -192,7 +192,11 @@ export default function DpBloqueios() {
         saving={saveRegra.isPending}
         onChange={(updater) => setRegraForm(updater)}
         onCancel={() => { setRegraOpen(false); setEditRegraId(null); }}
-        onSubmit={() => saveRegra.mutate()}
+        onSubmit={() => saveRegra.mutate(
+          { form: regraForm, editId: editRegraId },
+          { onSuccess: () => { setRegraOpen(false); setEditRegraId(null); } },
+        )}
+
       />
 
       <DataDialog
