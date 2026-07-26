@@ -19,6 +19,18 @@ import {
   PADRAO_LEGAL_DOMINGO_MULHER, isMenosProtetiva, type AlertaCiencia,
 } from "@/lib/dp/dsr-rules";
 
+function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
+  return (
+    <DpContentCard contentClassName="space-y-4 p-4 md:p-5">
+      <div>
+        <h2 className="text-base font-semibold">{title}</h2>
+        {description && <p className="text-xs text-muted-foreground">{description}</p>}
+      </div>
+      {children}
+    </DpContentCard>
+  );
+}
+
 const num = (v: string, fallback: number) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
@@ -71,7 +83,7 @@ export default function DpConfiguracoesJornada() {
 
       <DpPageHeader
         title="Regras de jornada e folgas"
-        subtitle="Parâmetros de DSR, folga dominical e políticas de fim de semana aplicados a toda a empresa."
+        description="Parâmetros de DSR, folga dominical e políticas de fim de semana aplicados a toda a empresa."
         icon={Scale}
         actions={
           <Button onClick={handleSave} disabled={saving || isLoading} className="gap-2">
@@ -81,7 +93,7 @@ export default function DpConfiguracoesJornada() {
         }
       />
 
-      <DpContentCard title="Folga dominical (DSR)">
+      <Section title="Folga dominical (DSR)">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2 flex items-start justify-between gap-4 rounded-lg border p-3">
             <div>
@@ -151,9 +163,9 @@ export default function DpConfiguracoesJornada() {
             </Select>
           </div>
         </div>
-      </DpContentCard>
+      </Section>
 
-      <DpContentCard title="Sábados, feriados e menores">
+      <Section title="Sábados, feriados e menores">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="pol-sabado">Política de sábado</Label>
@@ -193,9 +205,9 @@ export default function DpConfiguracoesJornada() {
             />
           </div>
         </div>
-      </DpContentCard>
+      </Section>
 
-      <DpContentCard
+      <Section
         title="Histórico de alterações"
         description="Registro imutável de mudanças nas regras, com confirmações de ciência."
       >
@@ -220,7 +232,7 @@ export default function DpConfiguracoesJornada() {
             ))}
           </ul>
         )}
-      </DpContentCard>
+      </Section>
 
       <CienciaLegalDialog
         open={alertas.length > 0}
