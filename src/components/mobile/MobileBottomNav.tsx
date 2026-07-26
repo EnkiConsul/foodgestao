@@ -257,6 +257,9 @@ function LeafSlot({ leaf, onLongPress }: { leaf: NavLeaf; onLongPress?: () => vo
       to={leaf.to}
       end={leaf.end}
       role="tab"
+      draggable={false}
+      onContextMenu={(e) => e.preventDefault()}
+      onDragStart={(e) => e.preventDefault()}
       onPointerDown={startPress}
       onPointerUp={cancelPress}
       onPointerLeave={cancelPress}
@@ -272,6 +275,7 @@ function LeafSlot({ leaf, onLongPress }: { leaf: NavLeaf; onLongPress?: () => vo
       className={cn(
         "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] py-1.5",
         "text-muted-foreground active:scale-95 transition-all",
+        "select-none [-webkit-touch-callout:none] [-webkit-tap-highlight-color:transparent]",
       )}
       activeClassName="text-primary"
     >
