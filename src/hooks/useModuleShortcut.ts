@@ -84,12 +84,15 @@ export function useModuleShortcuts(mod: ActiveModule) {
 
   const config = MODULE_NAV[mod] ?? MODULE_NAV.financeiro;
 
+  // Universo completo de telas do módulo (achatado a partir de moreGroups).
+  const options = useMemo(() => flattenModuleOptions(config.moreGroups), [config.moreGroups]);
+
   // Primeiro resolve com valores tentativos para saber colisões.
   const tentativeA = rawA ?? config.defaultShortcutA.to;
   const tentativeB = rawB ?? config.defaultShortcutB.to;
 
-  const shortcutA = resolve(mod, "a", rawA, tentativeB);
-  const shortcutB = resolve(mod, "b", rawB, shortcutA.to);
+  const shortcutA = resolve(mod, "a", rawA, tentativeB, options);
+  const shortcutB = resolve(mod, "b", rawB, shortcutA.to, options);
 
   const setShortcut = useCallback(
     (slot: ShortcutSlot, to: string) => {
@@ -108,6 +111,6 @@ export function useModuleShortcuts(mod: ActiveModule) {
     shortcutA,
     shortcutB,
     setShortcut,
-    options: config.shortcutOptions,
+    options,
   };
 }
