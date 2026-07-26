@@ -199,12 +199,6 @@ function AvisoDialog({
             Salvar
           </Button>
         </DialogFooter>
-              onOpenChange(false);
-            }}
-          >
-            Salvar
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
