@@ -132,14 +132,17 @@ export function MobileBottomNav() {
     setIndicator({ left: er.left - pr.left + er.width / 2 - 14, width: 28 });
   }, [activeIdx, pathname, isHomeActive]);
 
-  
+  const hidden = useHideOnScroll(customizerSlot !== null);
 
   return (
     <>
       <nav
         ref={navRef}
         role="tablist"
-        className="fixed bottom-0 left-0 right-0 z-50 md:hidden"
+        className={cn(
+          "fixed bottom-0 left-0 right-0 z-50 md:hidden transition-transform duration-200 ease-out",
+          hidden && "translate-y-full",
+        )}
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="relative" style={{ height: NAV_HEIGHT }}>
