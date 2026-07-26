@@ -228,8 +228,8 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
     hubTo: "/hub",
     moreTo: "/mais",
     home: financeiroHome,
-    defaultShortcutA: financeiroShortcuts[0],
-    defaultShortcutB: financeiroShortcuts[1],
+    defaultShortcutA: pickShortcut(financeiroShortcuts, GLOBAL_SHORTCUT_DEFAULTS.financeiro.A, 0),
+    defaultShortcutB: pickShortcut(financeiroShortcuts, GLOBAL_SHORTCUT_DEFAULTS.financeiro.B, 1),
     shortcutOptions: financeiroShortcuts,
     moreGroups: [
       {
