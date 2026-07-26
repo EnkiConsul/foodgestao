@@ -545,7 +545,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
                     defaultCpf={current.matched_cpf ?? ""}
                     onCreated={(id) => setColab.mutate({ id: current.id, colaborador_id: id })}
                     trigger={
-                      <Button size="icon" variant="outline" title="Cadastrar novo colaborador">
+                      <Button size="icon" variant="outline" className="h-10 w-10 shrink-0" title="Cadastrar novo colaborador">
                         <span className="text-lg leading-none">+</span>
                       </Button>
                     }
@@ -561,7 +561,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
               <div className="space-y-1">
                 <Label className="text-xs">Competência</Label>
                 <Input
-                  className="h-9"
+                  className="h-10 w-full"
                     type="month"
                     value={normalizeCompetencia(current.detected_competencia) ?? ""}
                   onChange={(e) => setCompetencia.mutate({
@@ -574,16 +574,17 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
 
               <div className="flex gap-1 justify-end">
                 {current.status === "rejected" ? (
-                  <Button size="sm" variant="outline" onClick={() => undo.mutate(current.id)}>
+                  <Button size="sm" variant="outline" className="h-10 w-full md:w-auto" onClick={() => undo.mutate(current.id)}>
                     <RotateCcw className="h-4 w-4 mr-1" /> Desfazer
                   </Button>
                 ) : current.status === "pending" ? (
-                  <Button size="sm" variant="outline" onClick={() => reject.mutate(current.id)}>
+                  <Button size="sm" variant="outline" className="h-10 w-full md:w-auto" onClick={() => reject.mutate(current.id)}>
                     <X className="h-4 w-4 mr-1" /> Ignorar
                   </Button>
                 ) : null}
               </div>
             </div>
+
           </div>
         )}
       </div>
