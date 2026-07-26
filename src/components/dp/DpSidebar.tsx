@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { NavLink, useLocation, Link, useNavigate } from "react-router-dom";
 import {
   Home, Users, Briefcase, Building2, Scale, FileSignature,
-  Calendar, ClipboardList, UserCheck, ArrowLeftRight, Ban, Palmtree,
+  Calendar, ClipboardList, UserCheck, ArrowLeftRight, Ban, Palmtree, ShieldCheck,
   FileText, Coins, Clock, HeartPulse, ShieldAlert, ListChecks,
   MessageSquare, Bell, BellRing, ChevronDown, LogOut, ArrowLeft, Settings, Repeat,
 } from "lucide-react";
