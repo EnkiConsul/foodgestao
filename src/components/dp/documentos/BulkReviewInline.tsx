@@ -519,7 +519,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
 
               <div className="space-y-1">
                 <Label className="text-xs">Colaborador</Label>
-                <div className="flex gap-1">
+                <div className="flex gap-1 min-w-0">
                   <Select
                     value={current.matched_colaborador_id ?? "none"}
                     onValueChange={(v) => setColab.mutate({
@@ -527,9 +527,10 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
                     })}
                     disabled={current.status === "imported"}
                   >
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Selecionar colaborador" />
+                    <SelectTrigger className="h-10 min-w-0 flex-1">
+                      <SelectValue placeholder="Selecionar colaborador" className="truncate" />
                     </SelectTrigger>
+
                     <SelectContent>
                       <SelectItem value="none">— Nenhum —</SelectItem>
                       {colaboradores.map((c: any) => (
