@@ -1,49 +1,38 @@
-## 1. Anexo 1 — "Data bloqueada" mostrando "Liberado manualmente"
+## Minha recomendação (crítica)
 
-O card do dia mistura dois estados: o cabeçalho vermelho continua dizendo *DATA BLOQUEADA* mesmo quando existe um override de liberação, e o motivo exibido é justamente "Liberado manualmente pelo administrador".
+Concordo com você em manter um gesto de voltar, mas com uma correção importante de direção:
 
-Ajuste: derivar um único estado efetivo do dia (`bloqueada` | `liberada-por-override` | `livre`) e renderizar um bloco coerente:
+Em iOS (swipe back nativo) e Android (predictive back), **arrastar da borda ESQUERDA para a direita = Voltar**. É o gesto mais memorizado que existe no mobile. Hoje o app usa essa borda para abrir a sidebar — isso conflita com o instinto do usuário e é a raiz da confusão.
 
-- Liberada por override: card verde, título **DATA LIBERADA**, texto "Liberada manualmente — a regra de bloqueio segue ativa nos demais dias", badge com escopo (unidade/global) e botão **Bloquear novamente**.
-- Bloqueada: card vermelho atual, com o motivo real da regra e botão **Liberar Data**.
+Já o menu não precisa de gesto privilegiado: ele tem botão dedicado ("Mais") na barra inferior. Gestos devem servir ações **sem** atalho visível óbvio.
 
-## 2. Anexo 2 — Preview do contracheque fica "processando" para sempre
+Proposta final:
 
-Ao abrir o olho de um documento já aprovado, a tela de revisão em lote é reaberta e entra no estado de polling de OCR, que nunca finaliza porque o lote já foi encerrado.
+```text
+Borda ESQUERDA  →  arrasta para a direita  =  VOLTAR (history back)
+Borda DIREITA   →  arrasta para a esquerda =  Abrir "Mais" (menu completo)
+```
 
-Ajuste: o ícone de olho em documentos já aprovados deve abrir apenas o visualizador do arquivo (`DocumentPreview`), sem passar pelo fluxo de revisão em lote. Adicionalmente, o painel de revisão só entra em estado de processamento quando o lote está com status ativo — lotes concluídos renderizam o resultado direto, com timeout/fallback caso o progresso não avance.
+O Hub deixa de ter gesto (já é o slot 1 da barra e continua acessível). A sidebar lateral também deixa de abrir por gesto no mobile — "Mais" já é o menu completo mobile.
 
-## 3. Anexo 3 — Rolagem lateral no Financeiro + header diferente do DP
+## O que muda
 
-Overflow: as barras de filtro do Dashboard (período e status) são pílulas em linha que estouram a largura no mobile.
+**1. `src/hooks/useEdgeGestures.ts`**
+- Borda esquerda → `navigate(-1)`. Guarda de segurança: se não houver histórico dentro do app (entrada direta), navega para a home do módulo ativo em vez de sair do site.
+- Borda direita → navega para `config.moreTo` do módulo ativo (via `MODULE_NAV` + `useActiveModule`); se já estiver em `/mais`, o gesto vira "voltar" também (fecha).
+- Mantém as travas atuais: ignora quando há dialog/sheet aberto, exige deslocamento mínimo, limita duração e desvio vertical.
+- Adiciona: ignorar quando o toque começa sobre um elemento com scroll horizontal (carrossel/tabela), evitando gesto acidental.
+- Só ativo em mobile (`isMobile`).
 
-- Tornar as barras de filtro roláveis apenas dentro do próprio container (scroll horizontal contido, sem barra visível), e o `main` com `overflow-x-hidden`.
-- Reduzir padding/tamanho das pílulas no mobile.
+**2. Feedback tátil**
+- `haptic(8)` no disparo de cada gesto, igual ao resto da barra inferior.
 
-Header: hoje `AppHeader` (financeiro, `h-12`) e `DpHeader` (`h-14`, fundo branco translúcido, botão Hub sempre visível, favoritos) divergem.
+**3. Descoberta do gesto (uma vez só)**
+- Na primeira visita mobile, um toast discreto: "Dica: arraste da borda esquerda para voltar e da direita para abrir o menu." Persistido em localStorage para não repetir.
 
-Sugestão: unificar em um único componente de header de app com a mesma altura, mesmo espaçamento e mesma ordem de elementos — `trigger da sidebar · atalho Hub · seletor de contexto · espaço · ações do módulo (privacidade/favorito) · sino`. Cada módulo apenas injeta suas ações específicas. Assim as duas telas ficam visualmente idênticas.
+## Detalhes técnicos
 
-## 4. Anexos 4 e 5 — Cards grandes demais no mobile
-
-- KPIs do Dashboard: reduzir de `min-h-[130px]`/`p-5` para uma variante compacta no mobile (`p-3.5`, altura livre, valor em `text-xl`, rótulo `text-[10px]`), mantendo o tamanho atual a partir de `md`.
-- Mesma compactação nos 4 cards do Calendário Geral do DP (Folgas marcadas / Vagas / Dias lotados / Capacidade), que hoje ocupam quase uma tela inteira.
-- Opcional (recomendado): no mobile, agrupar os 4 KPIs numa faixa de 2 colunas mais densa, ganhando cerca de 30% de altura de tela.
-
-## 5. Gestos de swipe
-
-Proposta de comportamento (mobile apenas):
-
-- Arrastar da borda **esquerda para a direita** → abre o menu lateral completo (hoje esse gesto faz "voltar").
-- Arrastar da borda **direita para a esquerda** → navega para o `/hub`.
-- Bloqueios: ignorar quando houver dialog/sheet aberto, ao arrastar sobre listas/carrosséis horizontais, e exigir gesto iniciado na borda (24px) com deslocamento mínimo.
-
-Observação: isso substitui o "voltar por swipe" atual. Para não perder navegação, mantenho o botão de voltar nas telas internas. Uma alternativa é manter "voltar" na borda esquerda e abrir o menu com swipe iniciado **fora** da borda — mas isso costuma disparar sem querer; recomendo a primeira opção.
-
-### Detalhes técnicos
-
-- `DpCalendarDayDialog` / `DataRow`: estado efetivo do dia calculado por `src/lib/dp/bloqueio-rules.ts`, reaproveitando a mutação `rebloquear` já existente.
-- `BulkReviewInline` / `BulkImportPanel`: separar "visualizar documento aprovado" de "revisar lote"; encerrar polling quando `status !== 'processing'`.
-- `Dashboard.tsx`: containers de filtro com `overflow-x-auto` + `no-scrollbar`; KPI grid com classes responsivas.
-- Novo `AppHeaderBase` compartilhado por `AppHeader` e `DpHeader`.
-- `useEdgeSwipeBack` renomeado/reescrito como `useEdgeGestures`, integrando com o contexto da sidebar (`useSidebar().setOpenMobile`) e `navigate('/hub')`.
+- Nenhuma mudança de backend, rotas ou lógica de negócio.
+- `EdgeGestures` continua montado em `AppLayout` e `DpShell`, sem alteração de estrutura.
+- `setOpenMobile` deixa de ser usado no hook; a sidebar mobile continua funcionando pelos botões existentes.
+- Sem impacto no desktop.

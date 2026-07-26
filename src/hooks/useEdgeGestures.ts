@@ -1,25 +1,73 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSidebar } from "@/components/ui/sidebar";
+import { useActiveModule } from "@/hooks/useActiveModule";
+import { MODULE_NAV } from "@/config/mobileNav";
+import { haptic } from "@/lib/haptics";
+import { toast } from "sonner";
 
 const EDGE_PX = 28;
 const MIN_DELTA_X = 70;
 const MAX_DURATION_MS = 500;
 const MAX_DELTA_Y = 70;
+const HINT_KEY = "360food:edge-gestures-hint";
+
+/** Detecta se o toque começou dentro de um container com rolagem horizontal. */
+function startedInHorizontalScroller(target: EventTarget | null): boolean {
+  let el = target instanceof Element ? target : null;
+  while (el) {
+    if (el.scrollWidth > el.clientWidth + 8) {
+      const overflowX = window.getComputedStyle(el).overflowX;
+      if (overflowX === "auto" || overflowX === "scroll") return true;
+    }
+    el = el.parentElement;
+  }
+  return false;
+}
 
 /**
- * Gestos de borda (mobile):
- * - Arrastar da borda esquerda para a direita → abre o menu completo (sidebar).
- * - Arrastar da borda direita para a esquerda → abre o Hub de módulos.
+ * Gestos de borda (mobile), alinhados aos padrões iOS/Android:
+ * - Arrastar da borda esquerda para a direita → Voltar.
+ * - Arrastar da borda direita para a esquerda → abre o menu "Mais" do módulo.
  *
- * Ignorado quando há dialog/sheet aberto.
+ * Ignorado quando há dialog/sheet aberto ou o toque inicia em scroller horizontal.
  */
 export function useEdgeGestures() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { setOpenMobile, isMobile } = useSidebar();
+  const { isMobile } = useSidebar();
+  const activeModule = useActiveModule();
+
+  const config = MODULE_NAV[activeModule] ?? MODULE_NAV.financeiro;
+  const moreTo = config.moreTo;
+  const homeTo = config.home.to;
+
+  // Contador de navegações feitas dentro do app nesta sessão de montagem.
+  const depthRef = useRef(0);
+  useEffect(() => {
+    depthRef.current += 1;
+  }, [pathname]);
+
+  // Dica de descoberta, uma única vez.
+  useEffect(() => {
+    if (!isMobile) return;
+    try {
+      if (window.localStorage.getItem(HINT_KEY)) return;
+      window.localStorage.setItem(HINT_KEY, "1");
+    } catch {
+      return;
+    }
+    const t = window.setTimeout(() => {
+      toast("Dica: arraste da borda esquerda para voltar e da direita para abrir o menu.", {
+        duration: 6000,
+      });
+    }, 1500);
+    return () => window.clearTimeout(t);
+  }, [isMobile]);
 
   useEffect(() => {
+    if (!isMobile) return;
+
     let startX = 0;
     let startY = 0;
     let startT = 0;
@@ -33,6 +81,7 @@ export function useEdgeGestures() {
         '[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]',
       );
       if (overlay) return;
+      if (startedInHorizontalScroller(e.target)) return;
 
       const w = window.innerWidth;
       if (t.clientX <= EDGE_PX) mode = "left";
@@ -56,9 +105,18 @@ export function useEdgeGestures() {
       if (dy > MAX_DELTA_Y) return;
 
       if (current === "left" && dx >= MIN_DELTA_X) {
-        setOpenMobile(true);
+        haptic(8);
+        // Sem histórico interno (entrada direta) → volta para a home do módulo.
+        if (depthRef.current > 1 && window.history.length > 1) navigate(-1);
+        else if (pathname !== homeTo) navigate(homeTo);
       } else if (current === "right" && dx <= -MIN_DELTA_X) {
-        if (pathname !== "/hub") navigate("/hub");
+        haptic(8);
+        if (pathname === moreTo) {
+          if (depthRef.current > 1 && window.history.length > 1) navigate(-1);
+          else navigate(homeTo);
+        } else {
+          navigate(moreTo);
+        }
       }
     };
 
@@ -68,5 +126,5 @@ export function useEdgeGestures() {
       window.removeEventListener("touchstart", onStart);
       window.removeEventListener("touchend", onEnd);
     };
-  }, [pathname, navigate, setOpenMobile, isMobile]);
+  }, [pathname, navigate, isMobile, moreTo, homeTo]);
 }
