@@ -10,7 +10,6 @@ import {
   User,
   ArrowLeftRight,
   CreditCard,
-  Repeat,
   Tags,
   Contact,
   Banknote,
@@ -29,6 +28,28 @@ import {
   Landmark,
   ScrollText,
   Search,
+  LayoutDashboard,
+  Briefcase,
+  Scale,
+  UserCheck,
+  Ban,
+  Coins,
+  Clock,
+  HeartPulse,
+  ShieldAlert,
+  ListChecks,
+  FileSignature,
+  MessageSquare,
+  Bell,
+  Repeat,
+  UserCog,
+  Sparkles,
+  Receipt,
+  Webhook,
+  Database,
+  Brain,
+  Tag,
+  FolderTree,
   type LucideIcon,
 } from "lucide-react";
 import type { ActiveModule } from "@/hooks/useActiveModule";
@@ -46,10 +67,23 @@ export type NavLeaf = {
 /** Chave semântica de cor para o chip do grupo na página "Mais". */
 export type GroupAccent = "primary" | "navy" | "amber" | "slate" | "muted";
 
+/** Subgrupo dentro de uma seção — espelha grupos colapsáveis/estáticos do sidebar desktop. */
+export type MoreSubGroup = {
+  kind: "collapsible" | "static";
+  label: string;
+  icon: LucideIcon;
+  /** Rota do "hub" da seção (ex.: /dp/cadastros) — vira link "Ver visão geral". */
+  hubTo?: string;
+  /** Prefixos que fazem o grupo abrir automaticamente. */
+  matchPrefixes?: string[];
+  items: NavLeaf[];
+};
+
 export type MoreGroup = {
   label: string;
-  items: NavLeaf[];
   accent?: GroupAccent;
+  items?: NavLeaf[];
+  subgroups?: MoreSubGroup[];
 };
 
 /**
@@ -57,32 +91,32 @@ export type MoreGroup = {
  * Layout fixo: [Hub / Atalho C] [Atalho A] [Início destacado] [Atalho B] [Mais].
  */
 export type ModuleNav = {
-  /** Link do slot "Hub" (sempre /hub). */
   hubTo: string;
-  /** Rota da página "Mais" contextual do módulo. */
   moreTo: string;
-  /** Botão central destacado — home do módulo. */
   home: NavLeaf;
-  /** Atalho padrão do slot esquerdo customizável. */
   defaultShortcutA: NavLeaf;
-  /** Atalho padrão do slot direito customizável. */
   defaultShortcutB: NavLeaf;
-  /** Opções elegíveis para os slots customizáveis. */
   shortcutOptions: NavLeaf[];
-  /** Grupos exibidos na página "Mais". */
   moreGroups: MoreGroup[];
 };
 
+// ── Conta (compartilhado) ────────────────────────────────────────────────
 const contaGroup: MoreGroup = {
   label: "Conta",
   accent: "muted",
   items: [
-    { icon: Building2, label: "Empresas", to: "/empresas" },
-    { icon: Users, label: "Usuários", to: "/gestao-usuarios" },
-    { icon: Package, label: "Planos", to: "/planos" },
-    { icon: FileText, label: "Faturas", to: "/faturas" },
+    { icon: Building2, label: "Minhas Empresas", to: "/empresas" },
+    { icon: UserCog, label: "Usuários", to: "/gestao-usuarios" },
+    { icon: Sparkles, label: "Meu Plano", to: "/planos" },
+    { icon: Receipt, label: "Minhas Faturas", to: "/faturas" },
     { icon: Settings, label: "Configurações", to: "/configuracoes" },
   ],
+};
+
+const contaGroupPortal: MoreGroup = {
+  label: "Conta",
+  accent: "muted",
+  items: [{ icon: Settings, label: "Configurações", to: "/configuracoes" }],
 };
 
 // ── Financeiro ───────────────────────────────────────────────────────────
@@ -165,32 +199,38 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
     shortcutOptions: financeiroShortcuts,
     moreGroups: [
       {
-        label: "Operar",
+        label: "Financeiro 360°",
         accent: "primary",
         items: [
-          { icon: List, label: "Lançamentos", to: "/lancamentos", featured: true },
-          { icon: ArrowLeftRight, label: "Transferências", to: "/transferencias" },
-          { icon: CreditCard, label: "Cartões", to: "/cartoes-credito" },
-          { icon: Repeat, label: "Recorrências", to: "/recorrencias" },
+          { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard", end: true },
+          { icon: ArrowLeftRight, label: "Lançamentos", to: "/lancamentos", end: true },
+          { icon: TrendingUp, label: "Fluxo de Caixa", to: "/fluxo-caixa", end: true },
+          { icon: PiggyBank, label: "Orçamento", to: "/orcamento", end: true },
+        ],
+        subgroups: [
+          {
+            kind: "collapsible",
+            label: "Relatórios",
+            icon: FileBarChart,
+            hubTo: "/relatorios",
+            matchPrefixes: ["/relatorios"],
+            items: [
+              { icon: FileBarChart, label: "Financeiros", to: "/relatorios", end: true },
+              { icon: BookOpen, label: "Contábeis", to: "/relatorios/contabeis", end: true },
+            ],
+          },
         ],
       },
       {
         label: "Cadastros",
         accent: "navy",
         items: [
-          { icon: Tags, label: "Categorias", to: "/categorias" },
-          { icon: Contact, label: "Contatos", to: "/contatos" },
-          { icon: Banknote, label: "Formas de pagamento", to: "/formas-pagamento" },
-          { icon: Wallet, label: "Contas bancárias", to: "/contas-bancarias" },
-        ],
-      },
-      {
-        label: "Relatórios",
-        accent: "amber",
-        items: [
-          { icon: TrendingUp, label: "Fluxo de caixa", to: "/fluxo-caixa", featured: true },
-          { icon: FileBarChart, label: "Relatórios", to: "/relatorios" },
-          { icon: PiggyBank, label: "Orçamento", to: "/orcamento" },
+          { icon: Landmark, label: "Contas Bancárias", to: "/contas-bancarias" },
+          { icon: CreditCard, label: "Cartões de Crédito", to: "/cartoes-credito" },
+          { icon: Banknote, label: "Formas de Pagamento", to: "/formas-pagamento" },
+          { icon: Contact, label: "Clientes / Fornecedores", to: "/contatos" },
+          { icon: FolderTree, label: "Categorias", to: "/categorias" },
+          { icon: BookOpen, label: "Contas Contábeis", to: "/contas-contabeis" },
         ],
       },
       contaGroup,
@@ -206,32 +246,72 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
     shortcutOptions: dpShortcuts,
     moreGroups: [
       {
-        label: "Operar",
+        label: "DP 360°",
         accent: "primary",
-        items: [
-          { icon: CheckSquare, label: "Aprovações", to: "/dp/aprovacoes", featured: true },
-          { icon: Inbox, label: "Solicitações", to: "/dp/solicitacoes" },
-          { icon: Calendar, label: "Folgas", to: "/dp/folgas" },
-          { icon: ArrowLeftRight, label: "Trocas", to: "/dp/trocas" },
-          { icon: FileText, label: "Documentos", to: "/dp/documentos" },
-          { icon: BellRing, label: "Comunicação", to: "/dp/comunicacao" },
+        items: [{ icon: Home, label: "Início", to: "/dp", end: true }],
+        subgroups: [
+          {
+            kind: "collapsible",
+            label: "Cadastro",
+            icon: Users,
+            hubTo: "/dp/cadastros",
+            matchPrefixes: ["/dp/colaboradores", "/dp/cadastros"],
+            items: [
+              { icon: Users, label: "Colaboradores", to: "/dp/colaboradores" },
+              { icon: Briefcase, label: "Cargos", to: "/dp/cadastros/cargos" },
+              { icon: Building2, label: "Unidades", to: "/dp/cadastros/unidades" },
+              { icon: Scale, label: "Sindicatos", to: "/dp/cadastros/sindicatos" },
+              { icon: BellRing, label: "Pendências", to: "/dp/cadastros/pendencias" },
+            ],
+          },
+          {
+            kind: "collapsible",
+            label: "Folgas",
+            icon: Calendar,
+            hubTo: "/dp/folgas",
+            matchPrefixes: [
+              "/dp/folgas",
+              "/dp/solicitacoes",
+              "/dp/aprovacoes",
+              "/dp/trocas",
+              "/dp/bloqueios",
+            ],
+            items: [
+              { icon: Calendar, label: "Calendário Geral", to: "/dp/folgas/calendario" },
+              { icon: Inbox, label: "Solicitações", to: "/dp/solicitacoes" },
+              { icon: UserCheck, label: "Aprovações", to: "/dp/aprovacoes" },
+              { icon: ArrowLeftRight, label: "Trocas", to: "/dp/trocas" },
+              { icon: Ban, label: "Datas Bloqueadas", to: "/dp/bloqueios" },
+            ],
+          },
+          {
+            kind: "collapsible",
+            label: "Documentos",
+            icon: FileText,
+            hubTo: "/dp/documentos",
+            matchPrefixes: ["/dp/documentos", "/dp/disciplinar", "/dp/atestados"],
+            items: [
+              { icon: FileText, label: "Contracheques", to: "/dp/documentos/contracheque" },
+              { icon: Coins, label: "Adiantamentos", to: "/dp/documentos/adiantamento" },
+              { icon: Clock, label: "Folhas de Ponto", to: "/dp/documentos/ponto" },
+              { icon: HeartPulse, label: "Atestados", to: "/dp/atestados" },
+              { icon: ShieldAlert, label: "Registros Disciplinares", to: "/dp/disciplinar" },
+              { icon: FileSignature, label: "ACT-CCT", to: "/dp/documentos/act-cct" },
+              { icon: ListChecks, label: "Histórico Completo", to: "/dp/documentos/historico" },
+            ],
+          },
+          {
+            kind: "collapsible",
+            label: "Comunicação",
+            icon: MessageSquare,
+            hubTo: "/dp/comunicacao",
+            matchPrefixes: ["/dp/comunicacao", "/dp/mensagens", "/dp/avisos"],
+            items: [
+              { icon: MessageSquare, label: "Mensagens", to: "/dp/mensagens" },
+              { icon: Bell, label: "Quadro de Avisos", to: "/dp/avisos" },
+            ],
+          },
         ],
-      },
-      {
-        label: "Cadastros",
-        accent: "navy",
-        items: [
-          { icon: Users, label: "Colaboradores", to: "/dp/colaboradores", featured: true },
-          { icon: BookOpen, label: "Cargos", to: "/dp/cadastros/cargos" },
-          { icon: Building2, label: "Unidades", to: "/dp/cadastros/unidades" },
-          { icon: Calendar, label: "Datas bloqueadas", to: "/dp/bloqueios" },
-          { icon: BellRing, label: "Pendências", to: "/dp/cadastros/pendencias" },
-        ],
-      },
-      {
-        label: "Relatórios",
-        accent: "amber",
-        items: [{ icon: FileBarChart, label: "Histórico", to: "/dp/documentos/historico" }],
       },
       contaGroup,
     ],
@@ -246,17 +326,38 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
     shortcutOptions: portalShortcuts,
     moreGroups: [
       {
-        label: "Meu portal",
+        label: "Portal",
         accent: "navy",
         items: [
-          { icon: Calendar, label: "Meu calendário", to: "/dp/meu/calendario", featured: true },
-          { icon: Inbox, label: "Solicitações", to: "/dp/meu/solicitacoes" },
-          { icon: ArrowLeftRight, label: "Trocas", to: "/dp/meu/trocas" },
-          { icon: FileText, label: "Documentos", to: "/dp/meu/documentos" },
-          { icon: FileBarChart, label: "Histórico", to: "/dp/meu/historico" },
-          { icon: User, label: "Perfil", to: "/dp/meu/perfil" },
+          { icon: Home, label: "Início", to: "/dp/meu", end: true },
+          { icon: Settings, label: "Meu Cadastro", to: "/dp/meu/cadastro" },
+        ],
+        subgroups: [
+          {
+            kind: "static",
+            label: "Folgas",
+            icon: Calendar,
+            items: [
+              { icon: Calendar, label: "Calendário", to: "/dp/meu/calendario" },
+              { icon: Repeat, label: "Trocas", to: "/dp/meu/trocas" },
+              { icon: ListChecks, label: "Histórico", to: "/dp/meu/historico" },
+              { icon: Inbox, label: "Solicitações", to: "/dp/meu/solicitacoes" },
+            ],
+          },
+          {
+            kind: "static",
+            label: "Documentos",
+            icon: FileText,
+            items: [
+              { icon: FileText, label: "Meus Documentos", to: "/dp/meu/documentos" },
+              { icon: HeartPulse, label: "Atestados", to: "/dp/meu/atestados" },
+              { icon: ShieldAlert, label: "Disciplinar", to: "/dp/meu/disciplinar" },
+              { icon: Scale, label: "Sindicato", to: "/dp/meu/sindicato" },
+            ],
+          },
         ],
       },
+      contaGroupPortal,
     ],
   },
 
@@ -290,30 +391,41 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
     shortcutOptions: adminShortcuts,
     moreGroups: [
       {
-        label: "Backoffice",
+        label: "Visão geral",
         accent: "primary",
         items: [
-          { icon: BarChart3, label: "Estatísticas", to: "/admin/estatisticas", featured: true },
-          { icon: Users, label: "Clientes", to: "/admin/clientes" },
-          { icon: Package, label: "Assinaturas", to: "/admin/assinaturas" },
-          { icon: FileText, label: "Faturas", to: "/admin/faturas" },
-          { icon: Ticket, label: "Cupons", to: "/admin/cupons" },
-          { icon: Landmark, label: "Bancos", to: "/admin/bancos" },
+          { icon: BarChart3, label: "Estatísticas", to: "/admin/estatisticas" },
+          { icon: FileText, label: "Landing Page", to: "/admin/landing-page" },
+          { icon: ScrollText, label: "Documentos Legais", to: "/admin/documentos-legais" },
+          { icon: ScrollText, label: "Auditoria", to: "/admin/auditoria" },
+          { icon: Search, label: "Indexação SEO", to: "/admin/seo-indexacao" },
         ],
       },
       {
-        label: "Configuração",
-        accent: "slate",
+        label: "Cobrança",
+        accent: "amber",
         items: [
-          { icon: Package, label: "Planos", to: "/admin/planos" },
-          { icon: Package, label: "Módulos", to: "/admin/modulos" },
-          { icon: Users, label: "Perfis de acesso", to: "/admin/perfis-acesso" },
-          { icon: ScrollText, label: "Auditoria", to: "/admin/auditoria" },
-          { icon: FileText, label: "Cadastros", to: "/admin/cadastros" },
-          { icon: FileText, label: "Documentos legais", to: "/admin/documentos-legais" },
+          { icon: Sparkles, label: "Planos", to: "/admin/planos" },
+          { icon: CreditCard, label: "Assinaturas", to: "/admin/assinaturas" },
+          { icon: Receipt, label: "Faturamento", to: "/admin/faturamento" },
+          { icon: Tag, label: "Cupons", to: "/admin/cupons" },
+          { icon: Receipt, label: "Faturas", to: "/admin/faturas" },
+          { icon: Webhook, label: "Webhooks Asaas", to: "/admin/webhooks-asaas" },
         ],
       },
-      contaGroup,
+      {
+        label: "Tenants",
+        accent: "navy",
+        items: [
+          { icon: Users, label: "Clientes", to: "/admin/clientes" },
+          { icon: UserCog, label: "Cadastros", to: "/admin/cadastros" },
+          { icon: Building2, label: "Perfis de Acesso", to: "/admin/perfis-acesso" },
+          { icon: Sparkles, label: "Módulos", to: "/admin/modulos" },
+          { icon: Landmark, label: "Bancos", to: "/admin/bancos" },
+          { icon: Database, label: "Resetar Dados", to: "/admin/resetar-dados" },
+          { icon: Brain, label: "Categorização IA", to: "/admin/categorizacao-ia" },
+        ],
+      },
     ],
   },
 

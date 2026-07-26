@@ -1,73 +1,84 @@
-# Plano — Página "Mais" full-screen estilo iFood Gestor
+## Objetivo
 
-Referência: screenshot do iFood Gestor (header contextual no topo, cartão de destaque, grupos com ícone colorido de categoria, cards em 1‑col/2‑col, barra inferior fixa visível o tempo todo).
+Refatorar a página `/mais` (mobile) para espelhar exatamente a estrutura do menu lateral do desktop de cada módulo: mesmos títulos de seções, mesmos itens clicáveis e **mesmo comportamento de expandir/recolher submenus** (accordion), mantendo o visual iFood Gestor (chips coloridos + cards de botões) e a `BottomNav` fixa.
 
-## O que muda
+## Estrutura por módulo (fonte da verdade = sidebar desktop)
 
-Hoje o slot **Mais** abre um `Sheet` (bottom sheet ~88vh). Vai virar uma **rota real full-screen** (`/mais`) renderizada **dentro do `AppLayout`**, então a `MobileBottomNav` continua fixa embaixo com o item "Mais" ativo. Ao tocar em qualquer card, navega para a rota do item e a barra permanece.
+### Financeiro (`/mais`)
+- **Financeiro 360°** (links diretos): Dashboard · Lançamentos · Fluxo de Caixa · Orçamento
+  - **Relatórios** (grupo colapsável): Financeiros · Contábeis
+- **Cadastros**: Contas Bancárias · Cartões de Crédito · Formas de Pagamento · Clientes/Fornecedores · Categorias · Contas Contábeis
+- **Conta**: Minhas Empresas · Usuários · Meu Plano · Minhas Faturas · Configurações · (Backoffice se super admin)
 
-## Estrutura visual
+### DP Admin (`/dp/mais`)
+- **DP 360°** — Início (link direto)
+  - **Cadastro** (colapsável, hub `/dp/cadastros`): Colaboradores · Cargos · Unidades · Sindicatos · Pendências
+  - **Folgas** (colapsável, hub `/dp/folgas`): Calendário Geral · Solicitações · Aprovações · Trocas · Datas Bloqueadas
+  - **Documentos** (colapsável, hub `/dp/documentos`): Contracheques · Adiantamentos · Folhas de Ponto · Atestados · Registros Disciplinares · ACT-CCT · Histórico Completo
+  - **Comunicação** (colapsável, hub `/dp/comunicacao`): Mensagens · Quadro de Avisos
+- **Conta**: mesma da Financeiro
 
-```text
-┌─────────────────────────────────────┐
-│  360°FOOD · Financeiro       [🔔]   │  ← header contextual
-├─────────────────────────────────────┤
-│ ┌─────────────────────────────────┐ │
-│ │ 🏢  Acompanhar empresas       › │ │  ← cartão destaque
-│ └─────────────────────────────────┘ │
-│                                     │
-│ ⬛ Operar                            │  ← chip 32x32 colorido + label
-│ ┌─────────────────────────────────┐ │
-│ │ 📄  Lançamentos                 │ │  ← item featured (linha inteira)
-│ └─────────────────────────────────┘ │
-│ ┌───────────────┐ ┌───────────────┐ │
-│ │ 💳 Cartões    │ │ 🔁 Recorrênc. │ │  ← grid 2-col
-│ └───────────────┘ └───────────────┘ │
-│ ...                                 │
-│ [ 🔍 Buscar funcionalidade ]        │
-│ [ ⚙️  Personalizar barra ] [ 🚪 ]    │
-├─────────────────────────────────────┤
-│  Hub · A · Início · B · [Mais]      │  ← BottomNav FIXA (sempre visível)
-└─────────────────────────────────────┘
+### Portal Colaborador (`/dp/meu/mais`)
+- **Portal** — Início · Meu Cadastro (links)
+  - **Folgas** (grupo estático, sempre expandido): Calendário · Trocas · Histórico · Solicitações
+  - **Documentos** (grupo estático): Meus Documentos · Atestados · Disciplinar · Sindicato
+- **Conta**: Configurações
+
+### Admin Backoffice (`/admin/mais`)
+Reproduz `AdminSidebar` (Visão geral, Cobrança, Tenants) como seções planas.
+
+### Hub (`/mais` quando módulo=hub)
+Mostra apenas atalhos de conta + link para módulos (mantém comportamento atual simples).
+
+## Mudanças técnicas
+
+### 1. `src/config/mobileNav.tsx`
+Estender o tipo `MoreGroup` com suporte a subgrupos colapsáveis:
+
+```ts
+export type MoreSubGroup = {
+  kind: "collapsible" | "static";
+  label: string;
+  icon: LucideIcon;
+  hubTo?: string;          // rota do "cabeçalho clicável" (colapsável)
+  matchPrefixes?: string[]; // para auto-abrir quando rota bate
+  items: NavLeaf[];
+};
+
+export type MoreGroup = {
+  label: string;
+  accent?: GroupAccent;
+  items?: NavLeaf[];       // links planos da seção
+  subgroups?: MoreSubGroup[]; // grupos colapsáveis/estáticos
+};
 ```
 
-Regras de layout:
-- Ícone da categoria em quadrado 32x32 arredondado, cor semântica por grupo.
-- Primeiro item de um grupo pode ser destacado (linha inteira, h≈64px); os demais em grid 2-col. Controlado via campo opcional `featured` no `MoreGroup`.
-- Cards em `bg-muted/40` sobre `bg-background`, label `text-sm font-medium`, ícone 20px.
-- Padding-bottom da página = altura da BottomNav + safe-area, para o último card não ficar coberto.
+Reescrever `moreGroups` de cada módulo para refletir as seções do desktop conforme mapeamento acima. Preservar `home`, `hubTo`, `moreTo`, `shortcutOptions` intactos.
 
-Cores dos grupos (mapa fixo em config, consistente entre módulos):
-- Operar → primário (laranja 360°FOOD)
-- Cadastros → marinho
-- Relatórios → âmbar
-- Backoffice / Configuração → slate
-- Conta → primário suave
-- Meu portal → marinho
+### 2. `src/components/mobile/MoreGroupSection.tsx`
+Adicionar renderização de `subgroups`:
+- **Colapsável**: header clicável (título + ícone + chevron rotativo) que expande/recolhe os subitens; abre automaticamente se a rota atual bate em `matchPrefixes`; toque no cabeçalho navega para `hubTo` (mesma UX do desktop `DpGroup`) além de togglar. Apenas um grupo aberto por vez por seção.
+- **Estático**: título fixo, subitens sempre visíveis.
+- Subitens renderizados como cards menores (mesmos botões atuais em grid 2 col, sem `featured`).
+- Manter chip de accent no header da seção.
+- Manter long-press → favoritar em todos os subitens.
 
-## O que fica igual
+### 3. `src/pages/Mais.tsx`
+- Achatar todos os `subgroups[].items` no `allItems` usados por busca/favoritos (para que busca continue encontrando "Cargos", "Atestados" etc.).
+- Nenhuma outra mudança de fluxo.
 
-- BottomNav (5 slots, Início central, atalhos A/B customizáveis) **sempre fixa**, inclusive na `/mais`.
-- Config declarativa em `src/config/mobileNav.tsx` alimenta a página; adiciono só `accent?` por grupo e `featured?` por item.
-- Favoritos + long-press + "Personalizar barra": preservados, portados para a nova página.
+### 4. Sem alterações em
+- `MobileBottomNav.tsx`, `MoreHeader.tsx`, `App.tsx`, roteamento.
+- Lógica de atalhos, favoritos, personalização.
 
-## Arquivos afetados
+## Detalhes de UX
 
-- Novo: `src/pages/Mais.tsx` — página full-screen contextual (lê `useActiveModule` + `MODULE_NAV`).
-- Novo: `src/components/mobile/MoreGroupSection.tsx` — chip colorido + featured + grid 2-col.
-- Novo: `src/components/mobile/MoreHeader.tsx` — cabeçalho contextual (empresa/módulo + sino).
-- Atualiza: `src/config/mobileNav.tsx` — campos opcionais `accent` e `featured`.
-- Atualiza: `src/components/mobile/MobileBottomNav.tsx` — slot `more` vira `NavLink to="/mais"` (fim do `Sheet`); estado ativo por rota.
-- Atualiza: `src/App.tsx` — registra `/mais` **dentro do `AppLayout`** para manter a `MobileBottomNav` visível.
-- `src/components/mobile/MobileMoreSheet.tsx` deixa de ser usado pela BottomNav; removido ao final da fase.
+- **Persistência do estado aberto/fechado**: não persistir entre navegações (estado local do componente). Grupo cuja rota atual pertence abre automaticamente ao entrar em `/mais`.
+- **Toque no cabeçalho do grupo colapsável**: comportamento igual ao desktop — navega para `hubTo` E abre o accordion. No mobile, se o usuário quiser apenas expandir sem navegar, pode tocar no chevron (área separada); ou apenas expandir sem navegar (a decidir — proponho **expandir apenas ao tocar**, com um botão "Abrir seção" secundário dentro do accordion linkando ao hub, evitando navegação acidental).
+- **Chip accent**: cada seção topo mantém quadrado colorido conforme já implementado; subgrupos herdam neutro.
+- **BottomNav**: continua fixa, slot "Mais" ativo.
 
-## Notas técnicas
-
-- Página é apenas mobile: em `md+` redireciono para `/hub` (a barra já é `md:hidden`).
-- Cabeçalho lê `useCompanyContext` para nome da empresa ativa (fallback: nome do módulo).
-- Sem alterações de backend, RLS ou lógica financeira.
-
-## Fora de escopo
-
-- Não altero labels/conteúdo dos menus, só apresentação.
-- Não mexo em desktop (sidebar continua idêntico).
+## Não escopo
+- Mudanças no sidebar desktop.
+- Mudanças em ícones/labels desktop.
+- Mudanças de roteamento.
