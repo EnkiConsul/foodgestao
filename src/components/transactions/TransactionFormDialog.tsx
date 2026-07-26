@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
 import { useAuth } from "@/hooks/useAuth";
@@ -19,6 +20,7 @@ import { getSignedAttachmentUrl } from "@/lib/attachments";
 import { Calendar, Repeat, X, FileText, Upload, CheckCircle, Clock, XCircle, Plus, Wallet, CreditCard, Info } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
+import { AccountCreationMethodDialog } from "@/components/accounts/AccountCreationMethodDialog";
 import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { PaymentMethodFormDialog } from "@/components/payment-methods/PaymentMethodFormDialog";
@@ -92,6 +94,7 @@ const MAX_ATTACHMENTS = 5;
 export function TransactionFormDialog({ open, onOpenChange, onCreated, transaction, initialType, editScope = "single", duplicateSource }: Props) {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
+  const navigate = useNavigate();
   const { isRequired } = useTransactionFieldSettings();
   const {
     accounts,
@@ -134,6 +137,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
 
   const [accountDialogOpen, setAccountDialogOpen] = useState(false);
+  const [accountMethodOpen, setAccountMethodOpen] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState(false);
@@ -1390,7 +1394,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                 size="icon"
                 className="shrink-0"
                 title="Criar nova conta"
-                onClick={() => { setAccountTarget("origin"); setAccountDialogOpen(true); }}
+                onClick={() => { setAccountTarget("origin"); setAccountMethodOpen(true); }}
               >
                 <Plus className="h-4 w-4" />
               </Button>
@@ -1450,7 +1454,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                   size="icon"
                   className="shrink-0"
                   title="Criar nova conta"
-                  onClick={() => { setAccountTarget("destination"); setAccountDialogOpen(true); }}
+                  onClick={() => { setAccountTarget("destination"); setAccountMethodOpen(true); }}
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -1679,6 +1683,23 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           </div>
         </form>
       </DialogContent>
+
+      <AccountCreationMethodDialog
+        open={accountMethodOpen}
+        onOpenChange={setAccountMethodOpen}
+        onSelectManual={() => { setAccountMethodOpen(false); setAccountDialogOpen(true); }}
+        onSelectOpenFinance={() => {
+          setAccountMethodOpen(false);
+          if (contextType !== "pj" || !selectedCompanyId) {
+            toast.error("Selecione uma empresa (PJ)", {
+              description: "O Open Finance está disponível apenas no contexto empresarial.",
+            });
+            return;
+          }
+          onOpenChange(false);
+          navigate("/contas-bancarias?openFinance=1");
+        }}
+      />
 
       <AccountFormDialog
         open={accountDialogOpen}
