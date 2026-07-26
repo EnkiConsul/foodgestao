@@ -1,52 +1,52 @@
-# Ajustes finais da página `/mais`
+## Ajustes na página /mais (mobile)
 
-## 1. Personalizar atalho — mostrar todas as telas do módulo
+Aplicar 4 correções pontuais focadas no cabeçalho, na busca e na fonte dos favoritos.
 
-**Problema:** o customizer só lista `shortcutOptions` (curados) — 7 itens no DP, por exemplo. Faltam a maioria das telas dos submenus (Cadastro, Folgas, Documentos, Comunicação).
+### 1. Remover cabeçalho de grupo redundante do módulo (Anexo 1)
 
-**Correção em `src/hooks/useModuleShortcut.ts`:** deixar de usar `config.shortcutOptions` como fonte e passar a derivar dinamicamente de `config.moreGroups`, achatando `items` + `subgroups[].items`, excluindo o grupo "Conta" (para não misturar contexto) e deduplicando por `to`. Retornar essa lista em `options`.
+Hoje, o primeiro `MoreGroupSection` renderiza um botão com o rótulo do módulo (ex.: "DP 360°") e um chevron que colapsa todo o módulo. Como o nome do módulo já aparecerá fixo no header, esse cabeçalho é redundante e o colapso "de tudo" não deve existir.
 
-Assim `MobileBottomNav > ShortcutCustomizer` passa a exibir **todas** as telas do módulo ativo, mantendo o slot "esquerdo/direito" e o marcador "Em uso".
+- Em `src/components/mobile/MoreGroupSection.tsx`: introduzir uma prop `hideHeader?: boolean`. Quando `true`, não renderiza o botão de cabeçalho (nem o título nem o chevron do grupo), apenas os `items` e `subgroups` diretamente. Os subgrupos internos (Cadastro, Folgas, Documentos, Comunicação, etc.) continuam com seus próprios chevrons de ocultar/exibir — nada muda ali.
+- Em `src/pages/Mais.tsx`: ao renderizar `config.moreGroups`, passar `hideHeader` para grupos "raiz" do módulo (aqueles cujo `label` seja igual ao nome do módulo, ex.: "DP 360°", "Financeiro"). Grupos secundários mantêm o cabeçalho normal.
 
-## 2. Tiles do `/mais` — sem quebra feia nem nome oculto
+### 2. Header fixo com nome do módulo + busca compacta (Anexo 2)
 
-**Problema:** `line-clamp-2` + fonte 11px em 4 colunas cortam nomes longos ("Contracheques", "Adiantamentos", "Contas Bancárias") e sobrepõem visualmente.
+O `MoreHeader` já é `sticky top-0`, mas mora abaixo da topbar global (empresa + sino) e mostra o subtítulo "Menu completo". Vamos:
 
-**Correção em `src/components/mobile/MoreGroupSection.tsx`:**
-- Fixar grid em **3 colunas** para todos os submenus (mais respiro horizontal).
-- Aumentar altura do tile e o `gap-y` (16 → 20 px).
-- Rótulo: remover `line-clamp-2` e `min-h-[26px]`; usar `text-[11.5px] leading-[1.15] break-words hyphens-auto` com **até 3 linhas** visíveis (`max-h` livre) e sem `truncate`.
-- Ícone continua num círculo 48px; padding horizontal do tile sobe de `px-2` para `px-1.5` para dar mais largura ao texto.
-- Em uma linha incompleta (ex.: 4 itens em grid de 3), manter `flex-wrap justify-center` para centralizar os órfãos.
+- `src/components/mobile/MoreHeader.tsx`: remover o subtítulo "Menu completo"; deixar apenas o nome do módulo em uma linha. Adicionar um slot direito na mesma linha para a busca.
+- Transformar a busca em um ícone `Search` (lupa) posicionado no canto direito do header, na mesma linha do título do módulo. Ao tocar, expande inline para um `Input` com placeholder curto **"Buscar"** e um `X` para fechar. Sem texto "Buscar Funcionalidade".
+- Mover o estado `query`/`setQuery` para `MoreHeader` (ou elevar via prop) e continuar entregando o valor à `Mais.tsx` para filtrar `searchResults`. A caixa de busca separada abaixo do cartão "Hub" é removida.
+- Remover também o cartão destaque "Acompanhar módulos / Alternar entre Financeiro, DP e outros" que servia de atalho ao Hub — o botão Hub já existe fixo na `BottomNav`, portanto é redundante conforme o pedido.
 
-## 3. Botão "Personalizar Barra" — sem estouro
+### 3. Favoritos sincronizados com o desktop
 
-**Problema:** dentro do `grid-cols-2` o rótulo `Personalizar Barra` + ícone excede a largura de metade da tela em 393 px.
+Hoje `useFavoriteNavItems` (mobile) usa `localStorage` isolado. O desktop (DP) persiste favoritos por empresa em `dp_user_prefs.extras.favoritos_paginas` via `useDpUserPrefs`. Vamos unificar:
 
-**Correção em `src/pages/Mais.tsx`:** trocar o `grid-cols-2` por um **stack vertical**:
-- Botão "Personalizar Barra" ocupa 100% da largura (linha única, com ícone à esquerda e rótulo, `justify-start` sem `truncate`).
-- Botão "Sair" abaixo, também 100% da largura, mantido em vermelho.
-Isso remove o overflow definitivamente sem encurtar o rótulo.
+- `src/hooks/useFavoriteNavItems.ts`: substituir a origem `localStorage` por leitura/escrita de `useDpUserPrefs().favoritePages` / `toggleFavoritePage`. Manter a mesma API pública (`favorites`, `isFavorite`, `toggle`, `max`) para não impactar consumidores.
+- Manter o limite `MAX = 6` no toggle (retornando `"limit"` quando atingido) — o desktop hoje não impõe teto, mas o mobile continua respeitando o slot da grade.
+- Fallback: quando `useDpUserPrefs` não estiver disponível (usuário sem empresa selecionada ou fora do módulo DP), voltar para o `localStorage` atual como cache local, para não quebrar a página `/mais` em outros módulos.
 
-## 4. Header do módulo fixo, sem empresa redundante
+### 4. Layout final do topo
 
-**Problema:** o `MoreHeader` mostra a empresa como título principal (redundante com a topbar fixa acima, que já tem o seletor de empresas) e o nome do módulo em caps pequeno; além disso, se o container não permitir sticky, ele rola junto.
+```text
+┌──────────────────────────────────────────┐
+│ topbar global (empresa · sino)           │  ← já existe
+├──────────────────────────────────────────┤
+│ DP 360°                            🔍    │  ← MoreHeader (sticky)
+├──────────────────────────────────────────┤
+│ Favoritos                                │
+│ [ícones …]                               │
+│ Cadastro                          ⌄      │
+│ Folgas                            ⌄      │
+│ …                                        │
+└──────────────────────────────────────────┘
+```
 
-**Correção em `src/components/mobile/MoreHeader.tsx`:**
-- Título único e grande: **nome do módulo** (`MODULE_LABEL[activeModule]`, ex.: "DP 360°"), sem subtítulo de empresa.
-- Manter subtítulo apenas em casos onde ajuda a orientar (ex.: "Menu completo") — texto pequeno em `text-muted-foreground`, opcional. Sem `Pakere Pizzaria` aqui.
-- Ajustar posicionamento para `sticky top-0 z-20` **e** garantir na página `/mais` que o container pai não tenha `overflow-hidden` (verificar `MobileShell`/`DpShell` — se necessário elevar o `sticky` para o wrapper correto ou trocar por `position: sticky` com o cálculo do offset já embutido no CSS variable existente do topbar).
+### Arquivos alterados
 
-## Detalhes técnicos
+- `src/components/mobile/MoreHeader.tsx` — remove subtítulo, adiciona lupa/busca inline; recebe props `query`/`onQueryChange`.
+- `src/components/mobile/MoreGroupSection.tsx` — nova prop `hideHeader`.
+- `src/pages/Mais.tsx` — remove cartão Hub e caixa de busca externa; passa `query` ao header; aplica `hideHeader` no grupo raiz do módulo.
+- `src/hooks/useFavoriteNavItems.ts` — passa a persistir via `useDpUserPrefs` (com fallback para `localStorage`).
 
-- `useModuleShortcuts` continua bloqueando colisão entre slot A e B; ao aumentar o universo de opções, isso só afeta a lista exibida no `Sheet`.
-- Se algum item novo do universo não tiver `icon` (não é o caso hoje, mas por segurança), cair para `LayoutGrid`.
-- Não altero `MODULE_NAV`; apenas o hook e os componentes visuais. `shortcutOptions` continua existindo para eventual fallback, mas o customizer passa a ignorá-lo.
-- Testes visuais: `/mais` no DP (Pakere Pizzaria), `/mais` no Financeiro e Portal do colaborador em 393×852.
-
-## Arquivos afetados
-
-- `src/hooks/useModuleShortcut.ts` — derivar `options` de `moreGroups`.
-- `src/components/mobile/MoreGroupSection.tsx` — grid 3 col fixo, rótulo até 3 linhas, sem truncate.
-- `src/pages/Mais.tsx` — stack vertical dos botões de rodapé.
-- `src/components/mobile/MoreHeader.tsx` — módulo como título único, sticky, sem empresa.
+Nenhuma alteração em `BottomNav`, rotas, config `MODULE_NAV` ou em desktop.
