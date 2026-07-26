@@ -1,11 +1,7 @@
 import { Helmet } from "react-helmet-async";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { format } from "date-fns";
 import { ArrowLeftRight, Calendar, User, MessageSquare, Check, X, Trash2 } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -14,7 +10,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { RecusaDialog } from "@/components/dp/RecusaDialog";
+import { useDpTrocas } from "@/hooks/useDpTrocas";
 import { cn } from "@/lib/utils";
+
 
 const statusMeta: Record<string, { label: string; className: string }> = {
   pendente_colega: {
