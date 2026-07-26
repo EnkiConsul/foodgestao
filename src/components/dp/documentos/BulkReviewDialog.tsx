@@ -101,10 +101,9 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
   const rows = items.data ?? [];
   const current = rows[currentIdx];
 
-  // Render PDF page preview via signed URL
-  useEffect(() => {
   // Observa largura disponível para renderizar a página ajustada à largura
   useEffect(() => {
+
     const el = previewBoxRef.current;
     if (!el || !open) return;
     const update = () => setBoxWidth(el.clientWidth);
