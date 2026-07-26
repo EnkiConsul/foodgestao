@@ -22,8 +22,9 @@ export function AvisosPopout() {
       const nowIso = new Date().toISOString();
       const { data } = await supabase
         .from("dp_avisos")
-        .select("id, titulo, conteudo, prioridade, publicado_em, expira_em, fixado")
+        .select("id, titulo, conteudo, prioridade, publicado_em, expira_em, fixado, leitura_obrigatoria")
         .eq("company_id", selectedCompanyId!)
+        .eq("leitura_obrigatoria", true)
         .lte("publicado_em", nowIso)
         .or(`expira_em.is.null,expira_em.gte.${nowIso}`)
         .order("fixado", { ascending: false })

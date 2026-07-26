@@ -1,5 +1,6 @@
 import {
   Home,
+  Megaphone,
   LayoutGrid,
   List,
   Wallet,
@@ -151,6 +152,7 @@ const portalHome: NavLeaf = { icon: Home, label: "Início", to: "/dp/meu", end: 
 const portalShortcuts: NavLeaf[] = [
   { icon: Home, label: "Financeiro", to: "/dashboard" },
   { icon: Users, label: "DP", to: "/dp" },
+  { icon: Megaphone, label: "Mural", to: "/dp/meu/mural" },
   { icon: Calendar, label: "Calendário", to: "/dp/meu/calendario" },
   { icon: Inbox, label: "Solicitações", to: "/dp/meu/solicitacoes" },
   { icon: FileText, label: "Documentos", to: "/dp/meu/documentos" },
@@ -362,6 +364,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
         label: "Portal",
         accent: "navy",
         items: [
+          { icon: Megaphone, label: "Mural", to: "/dp/meu/mural" },
           { icon: Settings, label: "Meu Cadastro", to: "/dp/meu/perfil" },
         ],
         subgroups: [

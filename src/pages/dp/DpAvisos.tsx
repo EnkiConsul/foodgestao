@@ -2,7 +2,8 @@ import { Helmet } from "react-helmet-async";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Trash2, Pencil, Bell, FileText, Paperclip } from "lucide-react";
+import { Plus, Trash2, Pencil, Bell, FileText, Paperclip, BarChart3 } from "lucide-react";
+import { AvisoEngajamentoDialog } from "@/components/dp/comunicacao/AvisoEngajamentoDialog";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useDpAvisos, type DpAviso } from "@/hooks/useDpComunicacao";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
@@ -50,6 +52,9 @@ function AvisoDialog({
   const [arquivoPath, setArquivoPath] = useState(aviso?.arquivo_path ?? "");
   const [arquivoMime, setArquivoMime] = useState(aviso?.arquivo_mime ?? "");
   const [uploading, setUploading] = useState(false);
+  const [leituraObrigatoria, setLeituraObrigatoria] = useState<boolean>((aviso as any)?.leitura_obrigatoria ?? false);
+  const [permitirReacoes, setPermitirReacoes] = useState<boolean>((aviso as any)?.permitir_reacoes ?? true);
+  const [permitirComentarios, setPermitirComentarios] = useState<boolean>((aviso as any)?.permitir_comentarios ?? false);
 
   const unidades = useDpUnidades();
   const colaboradores = useDpColaboradores();
@@ -145,6 +150,29 @@ function AvisoDialog({
               </p>
             )}
           </div>
+          <div className="space-y-3 rounded-md border p-3">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <Label className="text-sm">Leitura obrigatória</Label>
+                <p className="text-xs text-muted-foreground">Exibe o aviso em pop-up até a confirmação.</p>
+              </div>
+              <Switch checked={leituraObrigatoria} onCheckedChange={setLeituraObrigatoria} />
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <Label className="text-sm">Permitir reações</Label>
+                <p className="text-xs text-muted-foreground">Colaboradores podem reagir com emojis.</p>
+              </div>
+              <Switch checked={permitirReacoes} onCheckedChange={setPermitirReacoes} />
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <Label className="text-sm">Permitir comentários</Label>
+                <p className="text-xs text-muted-foreground">Comentários passam por moderação do admin.</p>
+              </div>
+              <Switch checked={permitirComentarios} onCheckedChange={setPermitirComentarios} />
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
@@ -163,6 +191,9 @@ function AvisoDialog({
                 ...dest,
                 arquivo_path: arquivoPath || null,
                 arquivo_mime: arquivoMime || null,
+                leitura_obrigatoria: leituraObrigatoria,
+                permitir_reacoes: permitirReacoes,
+                permitir_comentarios: permitirComentarios,
               } as any);
               onOpenChange(false);
             }}
@@ -181,6 +212,9 @@ export default function DpAvisos() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<DpAviso | null>(null);
   const [toDelete, setToDelete] = useState<DpAviso | null>(null);
+  const [engajamento, setEngajamento] = useState<DpAviso | null>(null);
+  const colaboradoresAdmin = useDpColaboradores();
+  const totalColaboradores = (colaboradoresAdmin.data ?? []).filter((c: any) => c.ativo !== false).length;
 
   const sorted = useMemo(() => {
     return [...avisos].sort((a, b) => new Date(b.publicado_em).getTime() - new Date(a.publicado_em).getTime());
@@ -229,6 +263,12 @@ export default function DpAvisos() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-semibold text-base">{a.titulo}</h3>
                     <Badge variant="outline" className="text-xs">{destinoLabel(a)}</Badge>
+                    {(a as any).leitura_obrigatoria && (
+                      <Badge variant="secondary" className="text-[10px]">Leitura obrigatória</Badge>
+                    )}
+                    {(a as any).permitir_comentarios && (
+                      <Badge variant="outline" className="text-[10px]">Comentários</Badge>
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {format(new Date(a.publicado_em), "dd/MM/yyyy", { locale: ptBR })}
@@ -236,6 +276,9 @@ export default function DpAvisos() {
                   </p>
                 </div>
                 <div className="flex gap-1">
+                  <Button size="icon" variant="ghost" title="Engajamento" onClick={() => setEngajamento(a)}>
+                    <BarChart3 className="h-4 w-4" />
+                  </Button>
                   <Button size="icon" variant="ghost" onClick={() => { setEditing(a); setOpen(true); }}>
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -265,6 +308,14 @@ export default function DpAvisos() {
           onSave={(v) => upsert.mutate(v)}
         />
       </Dialog>
+
+      <AvisoEngajamentoDialog
+        avisoId={engajamento?.id ?? null}
+        titulo={engajamento?.titulo}
+        totalColaboradores={totalColaboradores}
+        onOpenChange={(v) => { if (!v) setEngajamento(null); }}
+      />
+
 
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <AlertDialogContent>

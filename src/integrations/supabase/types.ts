@@ -2091,6 +2091,9 @@ export type Database = {
           expira_em: string | null
           fixado: boolean
           id: string
+          leitura_obrigatoria: boolean
+          permitir_comentarios: boolean
+          permitir_reacoes: boolean
           prioridade: string
           publicado_em: string
           titulo: string
@@ -2110,6 +2113,9 @@ export type Database = {
           expira_em?: string | null
           fixado?: boolean
           id?: string
+          leitura_obrigatoria?: boolean
+          permitir_comentarios?: boolean
+          permitir_reacoes?: boolean
           prioridade?: string
           publicado_em?: string
           titulo: string
@@ -2129,6 +2135,9 @@ export type Database = {
           expira_em?: string | null
           fixado?: boolean
           id?: string
+          leitura_obrigatoria?: boolean
+          permitir_comentarios?: boolean
+          permitir_reacoes?: boolean
           prioridade?: string
           publicado_em?: string
           titulo?: string
@@ -2173,6 +2182,80 @@ export type Database = {
           },
         ]
       }
+      dp_avisos_comentarios: {
+        Row: {
+          autor_nome: string | null
+          aviso_id: string
+          colaborador_id: string | null
+          company_id: string
+          conteudo: string
+          created_at: string
+          id: string
+          moderado_em: string | null
+          moderado_por: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          autor_nome?: string | null
+          aviso_id: string
+          colaborador_id?: string | null
+          company_id: string
+          conteudo: string
+          created_at?: string
+          id?: string
+          moderado_em?: string | null
+          moderado_por?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          autor_nome?: string | null
+          aviso_id?: string
+          colaborador_id?: string | null
+          company_id?: string
+          conteudo?: string
+          created_at?: string
+          id?: string
+          moderado_em?: string | null
+          moderado_por?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_avisos_comentarios_aviso_id_fkey"
+            columns: ["aviso_id"]
+            isOneToOne: false
+            referencedRelation: "dp_avisos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_avisos_comentarios_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_avisos_comentarios_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_avisos_comentarios_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_avisos_leituras: {
         Row: {
           aviso_id: string
@@ -2192,6 +2275,35 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "dp_avisos_leituras_aviso_id_fkey"
+            columns: ["aviso_id"]
+            isOneToOne: false
+            referencedRelation: "dp_avisos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_avisos_reacoes: {
+        Row: {
+          aviso_id: string
+          created_at: string
+          emoji: string
+          user_id: string
+        }
+        Insert: {
+          aviso_id: string
+          created_at?: string
+          emoji: string
+          user_id: string
+        }
+        Update: {
+          aviso_id?: string
+          created_at?: string
+          emoji?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_avisos_reacoes_aviso_id_fkey"
             columns: ["aviso_id"]
             isOneToOne: false
             referencedRelation: "dp_avisos"
