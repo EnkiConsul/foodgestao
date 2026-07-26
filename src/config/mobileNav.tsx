@@ -419,8 +419,8 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
     hubTo: "/hub",
     moreTo: "/admin/mais",
     home: adminHome,
-    defaultShortcutA: adminShortcuts[0],
-    defaultShortcutB: adminShortcuts[1],
+    defaultShortcutA: pickShortcut(adminShortcuts, GLOBAL_SHORTCUT_DEFAULTS.admin.A, 0),
+    defaultShortcutB: pickShortcut(adminShortcuts, GLOBAL_SHORTCUT_DEFAULTS.admin.B, 1),
     shortcutOptions: adminShortcuts,
     moreGroups: [
       {
