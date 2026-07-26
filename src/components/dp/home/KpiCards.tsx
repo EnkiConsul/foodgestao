@@ -12,7 +12,7 @@ function Kpi({ icon: Icon, label, value, hint }: { icon: any; label: string; val
         <Icon className="h-5 w-5 text-primary" />
       </div>
       <div className="min-w-0">
-        <p className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground break-words leading-tight">{label}</p>
+        <p className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground leading-tight whitespace-normal break-normal [overflow-wrap:normal] hyphens-none">{label}</p>
         <p className="text-2xl font-semibold leading-tight">{value}</p>
         {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
       </div>
