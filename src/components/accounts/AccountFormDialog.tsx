@@ -168,118 +168,125 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
 
 
 
-  // Etapa 2B — formulário manual (também usado no modo edição).
+  // Bloco 3 — formulário manual seccionado (também usado no modo edição).
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Editar Conta Bancária" : "Nova Conta Bancária"}</DialogTitle>
+          <DialogTitle>{isEdit ? "Editar conta financeira" : "Nova conta financeira"}</DialogTitle>
+          <DialogDescription>
+            {isEdit
+              ? "Ajuste os dados da conta. Alterações de saldo devem ser feitas apenas para acertos manuais."
+              : "Cadastre a conta manualmente. Você poderá importar o extrato logo em seguida."}
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Banco</Label>
-            <BankSelect
-              value={bankSlug}
-              onChange={(slug, bankName) => {
-                setBankSlug(slug);
-                if (slug && bankName && !name.trim()) setName(bankName);
-              }}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="name">Nome da Conta</Label>
-            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Nubank, Itaú..." required maxLength={100} />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Vinculado a</Label>
-            <Select
-              value={ownerType === "pf" ? "pf" : (ownerCompanyId ?? "")}
-              onValueChange={(v) => {
-                if (v === "pf") {
-                  setOwnerType("pf");
-                  setOwnerCompanyId(null);
-                } else {
-                  setOwnerType("pj");
-                  setOwnerCompanyId(v);
-                }
-              }}
-            >
-              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pf">Pessoa Física (Pessoal)</SelectItem>
-                {companies.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.trade_name || c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Tipo de Conta</Label>
-            <Select value={accountType} onValueChange={(v) => setAccountType(v as AccountType)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {Object.entries(accountTypeLabels).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>{label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {showBankFields && (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="agency">Agência</Label>
-                <Input
-                  id="agency"
-                  value={agency}
-                  onChange={(e) => setAgency(e.target.value)}
-                  placeholder="0001"
-                  maxLength={20}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="account_number">Conta</Label>
-                <Input
-                  id="account_number"
-                  value={accountNumber}
-                  onChange={(e) => setAccountNumber(e.target.value)}
-                  placeholder="12345-6"
-                  maxLength={30}
-                />
-              </div>
-            </div>
-          )}
-
-          {!isEdit ? (
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Seção 1 — Identificação */}
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">Identificação</h3>
             <div className="space-y-2">
-              <Label>Saldo Inicial</Label>
-              <CurrencyInput value={initialBalance} onValueChange={setInitialBalance} placeholder="0,00" />
+              <Label>Banco</Label>
+              <BankSelect
+                value={bankSlug}
+                onChange={(slug, bankName) => {
+                  setBankSlug(slug);
+                  if (slug && bankName && !name.trim()) setName(bankName);
+                }}
+              />
             </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome da conta</Label>
+              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Nubank PJ, Itaú Pessoal..." required maxLength={100} />
+            </div>
+          </section>
+
+          {/* Seção 2 — Vínculo e tipo */}
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">Vínculo e tipo</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Vinculado a</Label>
+                <Select
+                  value={ownerType === "pf" ? "pf" : (ownerCompanyId ?? "")}
+                  onValueChange={(v) => {
+                    if (v === "pf") { setOwnerType("pf"); setOwnerCompanyId(null); }
+                    else { setOwnerType("pj"); setOwnerCompanyId(v); }
+                  }}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pf">Pessoa Física (Pessoal)</SelectItem>
+                    {companies.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.trade_name || c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Tipo de conta</Label>
+                <Select value={accountType} onValueChange={(v) => setAccountType(v as AccountType)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(accountTypeLabels).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </section>
+
+          {/* Seção 3 — Dados bancários (opcional) */}
+          {showBankFields && (
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">Dados bancários <span className="font-normal text-muted-foreground">(opcional)</span></h3>
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label>Saldo Inicial</Label>
-                  <CurrencyInput value={initialBalance} onValueChange={setInitialBalance} placeholder="0,00" />
+                  <Label htmlFor="agency">Agência</Label>
+                  <Input id="agency" value={agency} onChange={(e) => setAgency(e.target.value)} placeholder="0001" maxLength={20} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Saldo Atual</Label>
-                  <CurrencyInput value={currentBalance} onValueChange={setCurrentBalance} placeholder="0,00" />
+                  <Label htmlFor="account_number">Conta</Label>
+                  <Input id="account_number" value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} placeholder="12345-6" maxLength={30} />
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                O saldo atual normalmente é calculado pelos lançamentos. Altere apenas para ajustes manuais.
-              </p>
-            </div>
+            </section>
           )}
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={saving || !name.trim()}>
-              {saving ? "Salvando..." : isEdit ? "Salvar" : "Criar Conta"}
+          {/* Seção 4 — Saldo */}
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">Saldo</h3>
+            {!isEdit ? (
+              <div className="space-y-2">
+                <Label>Saldo inicial</Label>
+                <CurrencyInput value={initialBalance} onValueChange={setInitialBalance} placeholder="0,00" />
+                <p className="text-xs text-muted-foreground">
+                  Informe o saldo atual do banco. A partir dele, o sistema calcula os movimentos.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Saldo inicial</Label>
+                    <CurrencyInput value={initialBalance} onValueChange={setInitialBalance} placeholder="0,00" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Saldo atual</Label>
+                    <CurrencyInput value={currentBalance} onValueChange={setCurrentBalance} placeholder="0,00" />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  O saldo atual normalmente é calculado pelos lançamentos. Altere apenas para ajustes manuais.
+                </p>
+              </div>
+            )}
+          </section>
+
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="h-11 sm:h-10">Cancelar</Button>
+            <Button type="submit" disabled={saving || !name.trim()} className="h-11 sm:h-10">
+              {saving ? "Salvando..." : isEdit ? "Salvar" : "Criar conta"}
             </Button>
           </div>
         </form>
