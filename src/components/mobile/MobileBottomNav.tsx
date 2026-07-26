@@ -71,8 +71,11 @@ export function MobileBottomNav() {
     ? pathname === config.home.to
     : pathname === config.home.to || pathname.startsWith(config.home.to + "/");
 
+  const isMoreActive = pathname === config.moreTo || pathname.startsWith(config.moreTo + "/");
+
   const activeIdx = useMemo(() => {
     if (isHomeActive) return 2;
+    if (isMoreActive) return 4;
     let best = -1;
     let bestLen = -1;
     slots.forEach((s, i) => {
@@ -87,7 +90,7 @@ export function MobileBottomNav() {
       }
     });
     return best;
-  }, [pathname, slots, isHomeActive]);
+  }, [pathname, slots, isHomeActive, isMoreActive]);
 
   useEffect(() => {
     if (activeIdx < 0 || isHomeActive || !navRef.current) {
