@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
+import { AccountCreationMethodDialog } from "@/components/accounts/AccountCreationMethodDialog";
 
 
 
@@ -42,6 +43,7 @@ export default function ContasBancarias() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<Account | null>(null);
+  const [methodOpen, setMethodOpen] = useState(false);
   const [deleteAccount, setDeleteAccount] = useState<Account | null>(null);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
@@ -163,7 +165,7 @@ export default function ContasBancarias() {
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${resyncing ? "animate-spin" : ""}`} /> Recalcular saldos
           </Button>
-          <Button onClick={() => { setEditAccount(null); setDialogOpen(true); }} className="hidden md:flex">
+          <Button onClick={() => { setEditAccount(null); setMethodOpen(true); }} className="hidden md:flex">
             <Plus className="h-4 w-4 mr-2" /> Nova Conta
           </Button>
         </div>
@@ -242,7 +244,7 @@ export default function ContasBancarias() {
             <CardContent className="flex flex-col items-center py-12 text-muted-foreground">
               <Landmark className="h-10 w-10 mb-3 opacity-40" />
               <p className="text-sm">Nenhuma conta bancária encontrada</p>
-              <Button variant="link" onClick={() => { setEditAccount(null); setDialogOpen(true); }} className="mt-2">
+              <Button variant="link" onClick={() => { setEditAccount(null); setMethodOpen(true); }} className="mt-2">
                 Criar primeira conta
               </Button>
             </CardContent>
@@ -336,11 +338,23 @@ export default function ContasBancarias() {
 
       {/* FAB mobile */}
       <button
-        onClick={() => { setEditAccount(null); setDialogOpen(true); }}
+        onClick={() => { setEditAccount(null); setMethodOpen(true); }}
         className="fixed bottom-20 right-4 z-50 md:hidden flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
       >
         <Plus className="h-6 w-6" />
       </button>
+
+      <AccountCreationMethodDialog
+        open={methodOpen}
+        onOpenChange={setMethodOpen}
+        onSelectManual={() => { setMethodOpen(false); setDialogOpen(true); }}
+        onSelectOpenFinance={() => {
+          setMethodOpen(false);
+          toast.info("Em breve", {
+            description: "A conexão via Open Finance será liberada no próximo bloco.",
+          });
+        }}
+      />
 
       <AccountFormDialog
         open={dialogOpen}

@@ -1,49 +1,50 @@
-## Objetivo
+## Bloco 2 — Modal de método de cadastro de conta
 
-Reorganizar cards de lista no mobile para eliminar texto encavalado — aplicando o mesmo padrão em todas as telas do 360°FOOD que sofrem do mesmo problema (linha única com muitos metadados + várias legendas de botões).
+Interpor um passo de escolha entre **Open Finance** e **Manual** antes do formulário atual. Sem alterar o `AccountFormDialog` existente e sem tocar em RPCs, RLS ou edge functions (isso é dos blocos seguintes).
 
-## Padrão a aplicar (mobile-first, desktop preservado)
+### Escopo
 
-Em cada card mobile (<`md`):
+- Novo componente `AccountCreationMethodDialog`.
+- Refator do trigger em `src/pages/ContasBancarias.tsx` para abrir o novo modal em vez do formulário direto (apenas no caminho "criar"; "editar" continua indo direto ao `AccountFormDialog`).
+- Nenhuma migração, RPC, policy, hook ou edge function neste bloco.
 
-1. **Linha 1**: título truncado (`min-w-0 truncate`) + `Badge` de status compacto (label curto em pt-BR).
-2. **Linha 2**: no máximo 1 metadado essencial (ex.: `tipo · N pág`, `vencimento`, `valor`). Datas completas, nomes de arquivo longos, contadores secundários e mensagens de erro saem daqui.
-3. **Botões inline**: `size="icon"` (`h-8 w-8`) exibindo **apenas o ícone**, com `aria-label` e `title`. Ícones permanecem visíveis; texto vira `<span className="hidden md:inline">`. Adicionar botão **Detalhes** (`Info`) ícone-only.
-4. **Card clicável → Sheet (bottom)** com:
-   - Todas as informações completas (nome/arquivo completo, timestamps, contadores, erro).
-   - **Mesmos botões da barra do card**, agora com ícone + legenda para clareza.
-   - Confirmações (`AlertDialog`) e handlers idênticos aos existentes.
-   - `e.stopPropagation()` nos triggers para não colidir com expand/collapse.
-5. **Desktop (`md:`)**: layout atual intocado (label curto do badge continua sendo aplicado para consistência visual).
+### Fora do escopo (blocos 3–8)
 
-Utilitários compartilhados sugeridos (novos, `src/components/ui/`):
+- Refino do fluxo manual (Bloco 3).
+- `OpenFinanceAccountWizard` e integração Pluggy no front (Bloco 4).
+- Criação/vínculo, cards/estados, conciliação, segurança/testes (5–8).
 
-- `MobileActionButton` — wrapper de `Button` que renderiza ícone-only no mobile e ícone+label no desktop.
-- `MobileDetailsSheet` — Sheet bottom padrão com header (título + badge), grid de metadados e footer de ações.
-- `statusLabel(status)` — mapa curto pt-BR (`partially_imported → "Parcial"`, `processing → "Processando"`, `imported → "Importado"`, `pending → "Pendente"`, `approved → "Aprovado"`, `rejected → "Rejeitado"`, `failed → "Falhou"`, etc.).
+### Arquivos
 
-## Telas afetadas
+**Novo**
+- `src/components/accounts/AccountCreationMethodDialog.tsx`
+  - Props: `open`, `onOpenChange`, `onSelectManual()`, `onSelectOpenFinance()`.
+  - Layout: `Dialog` shadcn, título "Adicionar conta financeira", dois cards lado a lado (empilhados no mobile via `grid gap-3 md:grid-cols-2`).
+  - Card Open Finance: badge `Recomendado` (variant secondary laranja `bg-primary/10 text-primary`), ícone `Link2`/`Zap`, título "Conectar por Open Finance", descrição curta ("Sincronize saldos e extratos automaticamente com seu banco"), bullets de benefícios (automação, atualização diária, menos digitação), botão primário "Conectar com Open Finance".
+  - Card Manual: ícone `Pencil`, título "Cadastrar manualmente", descrição ("Informe os dados da conta e lance/importe extratos por conta própria"), bullets (controle total, importação de extrato, sem conexão bancária), botão outline "Cadastrar manualmente".
+  - Sem cores/textos/logos de terceiros; usa tokens de `index.css` (`primary`, `muted`, `card`). Cards clicáveis inteiros (`role="button"`, `aria-label`, foco visível).
+  - Acessibilidade: `DialogTitle`, `DialogDescription`, botão de fechar padrão.
 
-Aplicar o padrão nas listas de cards com o mesmo sintoma:
+**Alterado**
+- `src/pages/ContasBancarias.tsx`
+  - Novo estado `methodOpen`.
+  - Trocar cada handler de "criar nova" (header desktop L166–167, empty-state L245, FAB mobile L339) para `setEditAccount(null); setMethodOpen(true)`.
+  - Manter os handlers de "editar" (L315) apontando direto ao `AccountFormDialog`.
+  - Callbacks do novo modal:
+    - `onSelectManual`: fecha o método, abre `AccountFormDialog` (`setDialogOpen(true)`).
+    - `onSelectOpenFinance`: fecha o método e chama `toast({ title: "Em breve", description: "A conexão via Open Finance será liberada no próximo bloco." })` — placeholder até o Bloco 4. Não navega, não cria conexão.
+  - Renderizar `<AccountCreationMethodDialog />` ao lado do `AccountFormDialog` existente.
 
-1. **`src/components/dp/documentos/BulkImportPanel.tsx`** — Lotes recentes (caso do print).
-2. **`src/pages/dp/DpSolicitacoes.tsx`** — Solicitações do colaborador (Aprovar/Rejeitar + metadados longos).
-3. **`src/pages/dp/DpAprovacoes.tsx`** — Aprovações do admin (mesmo perfil de card).
-4. **`src/pages/dp/DpDocumentos.tsx`** — Lista de documentos (nome de arquivo + tipo + data + Revisar/Baixar/Excluir).
-5. **`src/components/dp/documentos/BulkReviewInline.tsx`** — Itens do lote (páginas + colaborador + status + ações).
+### Notas de UX
 
-Escopo em cada arquivo: apenas o bloco de renderização de card/linha da lista principal. Nenhuma alteração em queries, mutations, RLS, tipos, filtros ou fluxos de negócio.
+- Mobile: cards em coluna única, botões `h-11`, hierarquia primária/outline mantida.
+- Identidade 360°FOOD: laranja `#EB6119` no badge/primary, marinho no texto forte; sem gradientes/copywriting de concorrentes.
+- Nenhuma alteração em cards de listagem (Bloco 6).
 
-## Fora de escopo
+### Entregáveis do bloco
 
-- Formulários, dialogs de criação/edição, tabelas do desktop, calendários, dashboards.
-- Qualquer mudança em backend, RPCs, RLS, Edge Functions ou schema.
-- Refatorar telas que já usam esse padrão (ex.: `CalendarioMobileLista`).
-
-## Verificação
-
-Para cada tela afetada, abrir no preview mobile (407px) e conferir:
-- Card em no máximo 2 linhas, sem quebra de texto entre botões.
-- Botões inline só com ícone; badge com label curto em pt-BR.
-- Tap no card abre o Sheet com todas as informações + mesmos botões funcionais (Revisar/Descartar/Aprovar/Rejeitar conforme a tela).
-- No desktop (`md:`) o layout permanece idêntico ao atual.
+- Arquivos criados: `AccountCreationMethodDialog.tsx`.
+- Arquivos alterados: `ContasBancarias.tsx`.
+- Migrations/RPCs/Policies/Testes: nenhum.
+- Resultado esperado: clicar em "Nova Conta" (desktop, FAB mobile, empty-state) abre o modal de escolha; "Manual" segue para o formulário atual; "Open Finance" mostra toast placeholder.
+- Pendências: Blocos 3–8 conforme prompt.
