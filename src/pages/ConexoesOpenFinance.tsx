@@ -356,9 +356,17 @@ export default function ConexoesOpenFinance() {
             const meta = statusMeta(c.status, c.disconnected_at);
             const isExpanded = expanded[c.id];
             const accounts = accountsByConn[c.id] ?? [];
+            const divergences = accounts.filter(
+              (a) =>
+                a.local_account_id &&
+                a.local_balance != null &&
+                a.balance != null &&
+                Math.abs(Number(a.balance) - Number(a.local_balance)) > 0.01,
+            ).length;
             const consentSoon =
               c.consent_expires_at &&
               new Date(c.consent_expires_at).getTime() - Date.now() < 15 * 24 * 3600 * 1000;
+
             return (
               <Card key={c.id} className={c.disconnected_at ? "opacity-70" : ""}>
                 <CardHeader className="p-4 pb-2">
