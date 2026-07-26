@@ -527,9 +527,19 @@ export default function DpColaboradores() {
                     <UserPlus className="h-4 w-4 mr-1" /> Acesso
                   </Button>
                 )}
+                {c.ativo ? (
+                  <Button size="sm" variant="ghost" className="min-h-11 flex-1 text-destructive" onClick={() => setToDesligar(c)}>
+                    <UserMinus className="h-4 w-4 mr-1" /> Desligar
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => setToReintegrar(c)}>
+                    <RotateCcw className="h-4 w-4 mr-1" /> Reintegrar
+                  </Button>
+                )}
                 <Button size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => setToDelete(c)} title="Remover">
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
+
               </div>
             </div>
           );
