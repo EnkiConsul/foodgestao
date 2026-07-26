@@ -5,6 +5,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { Button } from "@/components/ui/button";
 import { DpShell } from "@/components/dp/DpShell";
+import { CarenciaPortalBanner } from "@/components/dp/CarenciaPortalBanner";
+
 
 export function ColaboradorShell() {
   const { user } = useAuth();
