@@ -96,6 +96,8 @@ export type ModuleNav = {
   home: NavLeaf;
   defaultShortcutA: NavLeaf;
   defaultShortcutB: NavLeaf;
+  /** Somente usado no módulo Hub (Slot 1 vira 3º atalho personalizável). */
+  defaultShortcutC?: NavLeaf;
   shortcutOptions: NavLeaf[];
   moreGroups: MoreGroup[];
 };
