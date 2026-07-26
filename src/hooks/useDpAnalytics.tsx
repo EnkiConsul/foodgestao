@@ -279,6 +279,8 @@ export function useDpAnalytics(range: AnalyticsRange, unidadeFilter = "todas") {
 
   return {
     isLoading,
+    isError,
+    refetchAll,
     unidades,
     serie,
     porUnidade,
