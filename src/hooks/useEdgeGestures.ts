@@ -47,22 +47,8 @@ export function useEdgeGestures() {
     depthRef.current += 1;
   }, [pathname]);
 
-  // Dica de descoberta, uma única vez.
-  useEffect(() => {
-    if (!isMobile) return;
-    try {
-      if (window.localStorage.getItem(HINT_KEY)) return;
-      window.localStorage.setItem(HINT_KEY, "1");
-    } catch {
-      return;
-    }
-    const t = window.setTimeout(() => {
-      toast("Dica: arraste da borda esquerda para voltar e da direita para abrir o menu.", {
-        duration: 6000,
-      });
-    }, 1500);
-    return () => window.clearTimeout(t);
-  }, [isMobile]);
+
+
 
   useEffect(() => {
     if (!isMobile) return;
