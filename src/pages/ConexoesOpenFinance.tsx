@@ -103,7 +103,9 @@ export default function ConexoesOpenFinance() {
   const [syncing, setSyncing] = useState<Record<string, boolean>>({});
   const [confirmDisconnect, setConfirmDisconnect] = useState<Connection | null>(null);
   const [confirmUnlink, setConfirmUnlink] = useState<OFAccount | null>(null);
+  const [confirmAdjust, setConfirmAdjust] = useState<OFAccount | null>(null);
   const [busy, setBusy] = useState(false);
+
 
   const inPJ = contextType === "pj" && !!selectedCompanyId;
 
