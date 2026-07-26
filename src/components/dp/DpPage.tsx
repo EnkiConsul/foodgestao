@@ -11,7 +11,7 @@ interface DpPageProps {
 
 export function DpPage({ children, className, narrow = false }: DpPageProps) {
   return (
-    <div className={cn("dp-page space-y-6 mx-auto w-full", narrow ? "max-w-5xl" : "max-w-7xl", className)}>
+    <div className={cn("dp-page space-y-4 md:space-y-6 mx-auto w-full", narrow ? "max-w-5xl" : "max-w-7xl", className)}>
       {children}
     </div>
   );
