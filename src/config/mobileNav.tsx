@@ -191,13 +191,45 @@ const contaShortcuts: NavLeaf[] = [
 
 const noopShortcut: NavLeaf = { icon: LayoutGrid, label: "Hub", to: "/hub" };
 
+/**
+ * ─────────────────────────────────────────────────────────────────────────
+ * DEFAULTS GLOBAIS DOS ATALHOS (aplicados a todos os usuários novos).
+ * Cada valor é a rota (`to`) de um item presente em `shortcutOptions` do módulo.
+ * Se a rota não existir na lista, cai no primeiro item disponível.
+ * Usuários que já personalizaram (dp_user_prefs / localStorage) mantêm sua escolha.
+ * ─────────────────────────────────────────────────────────────────────────
+ */
+const GLOBAL_SHORTCUT_DEFAULTS: Record<
+  ActiveModule,
+  { A: string; B: string; C?: string }
+> = {
+  financeiro: { A: "/lancamentos", B: "/contas-bancarias" },
+  dp:         { A: "/dp/folgas", B: "/dp/documentos" },
+  portal_colaborador: { A: "/dashboard", B: "/dp" },
+  hub:        { A: "/dashboard", B: "/dp", C: "/buscar" },
+  admin:      { A: "/admin/clientes", B: "/admin/assinaturas" },
+  conta:      { A: "/empresas", B: "/gestao-usuarios" },
+  crm:        { A: "/hub", B: "/hub" },
+  rh:         { A: "/hub", B: "/hub" },
+  pedidos:    { A: "/hub", B: "/hub" },
+};
+
+function pickShortcut(list: NavLeaf[], to: string | undefined, fallbackIdx = 0): NavLeaf {
+  if (to) {
+    const found = list.find((l) => l.to === to);
+    if (found) return found;
+  }
+  return list[fallbackIdx] ?? list[0];
+}
+
+
 export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
   financeiro: {
     hubTo: "/hub",
     moreTo: "/mais",
     home: financeiroHome,
-    defaultShortcutA: financeiroShortcuts[0],
-    defaultShortcutB: financeiroShortcuts[1],
+    defaultShortcutA: pickShortcut(financeiroShortcuts, GLOBAL_SHORTCUT_DEFAULTS.financeiro.A, 0),
+    defaultShortcutB: pickShortcut(financeiroShortcuts, GLOBAL_SHORTCUT_DEFAULTS.financeiro.B, 1),
     shortcutOptions: financeiroShortcuts,
     moreGroups: [
       {
@@ -242,8 +274,8 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
     hubTo: "/hub",
     moreTo: "/dp/mais",
     home: dpHome,
-    defaultShortcutA: dpShortcuts[0],
-    defaultShortcutB: dpShortcuts[1],
+    defaultShortcutA: pickShortcut(dpShortcuts, GLOBAL_SHORTCUT_DEFAULTS.dp.A, 0),
+    defaultShortcutB: pickShortcut(dpShortcuts, GLOBAL_SHORTCUT_DEFAULTS.dp.B, 1),
     shortcutOptions: dpShortcuts,
     moreGroups: [
       {
@@ -322,8 +354,8 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
     hubTo: "/hub",
     moreTo: "/dp/meu/mais",
     home: portalHome,
-    defaultShortcutA: portalShortcuts[0],
-    defaultShortcutB: portalShortcuts[1],
+    defaultShortcutA: pickShortcut(portalShortcuts, GLOBAL_SHORTCUT_DEFAULTS.portal_colaborador.A, 0),
+    defaultShortcutB: pickShortcut(portalShortcuts, GLOBAL_SHORTCUT_DEFAULTS.portal_colaborador.B, 1),
     shortcutOptions: portalShortcuts,
     moreGroups: [
       {
@@ -365,9 +397,9 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
     hubTo: "/hub",
     moreTo: "/mais",
     home: hubHome,
-    defaultShortcutA: hubShortcuts[0], // Financeiro (2º)
-    defaultShortcutB: hubShortcuts[1], // DP (4º)
-    defaultShortcutC: hubShortcuts[2] ?? hubShortcuts[0], // Buscar (1º)
+    defaultShortcutA: pickShortcut(hubShortcuts, GLOBAL_SHORTCUT_DEFAULTS.hub.A, 0),
+    defaultShortcutB: pickShortcut(hubShortcuts, GLOBAL_SHORTCUT_DEFAULTS.hub.B, 1),
+    defaultShortcutC: pickShortcut(hubShortcuts, GLOBAL_SHORTCUT_DEFAULTS.hub.C, 2),
     shortcutOptions: hubShortcuts,
     moreGroups: [
       {
@@ -387,8 +419,8 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
     hubTo: "/hub",
     moreTo: "/admin/mais",
     home: adminHome,
-    defaultShortcutA: adminShortcuts[0],
-    defaultShortcutB: adminShortcuts[1],
+    defaultShortcutA: pickShortcut(adminShortcuts, GLOBAL_SHORTCUT_DEFAULTS.admin.A, 0),
+    defaultShortcutB: pickShortcut(adminShortcuts, GLOBAL_SHORTCUT_DEFAULTS.admin.B, 1),
     shortcutOptions: adminShortcuts,
     moreGroups: [
       {
@@ -434,8 +466,8 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
     hubTo: "/hub",
     moreTo: "/mais",
     home: contaHome,
-    defaultShortcutA: contaShortcuts[0],
-    defaultShortcutB: contaShortcuts[1],
+    defaultShortcutA: pickShortcut(contaShortcuts, GLOBAL_SHORTCUT_DEFAULTS.conta.A, 0),
+    defaultShortcutB: pickShortcut(contaShortcuts, GLOBAL_SHORTCUT_DEFAULTS.conta.B, 1),
     shortcutOptions: contaShortcuts,
     moreGroups: [contaGroup],
   },

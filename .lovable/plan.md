@@ -1,29 +1,40 @@
-## Problema
+## Objetivo
 
-Ao segurar (long-press) um atalho na BottomNav mobile, o Chrome Android abre seu **menu de contexto nativo** ("Copiar endereço do link", "Baixar link", "Compartilhar link", "Abrir no navegador Chrome"…) em vez de — ou junto com — o nosso `ShortcutCustomizer`.
+Fazer com que os atalhos personalizados (slots A, B e C do Hub) que **eu** configurar no preview virem os **defaults globais** para todos os usuários. Cada usuário ainda poderá personalizar depois via long-press — só muda o *ponto de partida*.
 
-Causa: os slots da BottomNav são renderizados como `<a>`/`Link` do react-router. No Android, um toque longo em link dispara o menu de contexto do sistema por padrão, e o callback JS de long-press não consegue impedir isso a tempo.
+## Como está hoje
+
+- `src/config/mobileNav.tsx` define `defaultShortcutA/B/C` em cada módulo, apontando para os primeiros itens da lista (`financeiroShortcuts[0]`, etc.).
+- `src/hooks/useModuleShortcut.ts` resolve o atalho efetivo: usa a escolha do usuário se existir em `dp_user_prefs.extras.mobile_shortcuts` ou `localStorage`; caso contrário, cai nesse default hard-coded.
+- Ou seja, para mudar o default global basta trocar o `NavLeaf` referenciado em `defaultShortcutA/B/C` de cada módulo.
 
 ## Correção
 
-Ajustar **apenas** `src/components/mobile/MobileBottomNav.tsx` para desativar o menu de contexto nativo nos slots customizáveis, sem alterar navegação nem lógica de sincronização:
+1. **Adicionar um bloco de "Defaults globais dos atalhos"** no topo de `src/config/mobileNav.tsx`, explícito e fácil de editar, no formato:
+   ```ts
+   const GLOBAL_SHORTCUT_DEFAULTS = {
+     financeiro: { A: "/rota-a", B: "/rota-b" },
+     dp:         { A: "/rota-a", B: "/rota-b" },
+     portal:     { A: "/rota-a", B: "/rota-b" },
+     hub:        { A: "/rota-a", B: "/rota-b", C: "/rota-c" },
+     admin:      { A: "/rota-a", B: "/rota-b" },
+     conta:      { A: "/rota-a", B: "/rota-b" },
+   };
+   ```
+   Cada valor é a rota (`to`) do `NavLeaf` desejado dentro daquela lista de atalhos do módulo.
 
-1. Nos elementos dos slots A, B e C (Hub):
-   - Adicionar `onContextMenu={(e) => e.preventDefault()}`
-   - Adicionar as CSS properties `WebkitTouchCallout: 'none'` e `WebkitUserSelect: 'none'` (Tailwind: `[-webkit-touch-callout:none] select-none`)
-   - Adicionar o atributo HTML `draggable={false}`
-2. Se o slot for renderizado como `<Link>`, trocar por `<button>` + `navigate()` **apenas** nos slots que suportam long-press, para eliminar de vez o gatilho do menu nativo do Chrome em links. Slots fixos (Hub, FAB) permanecem como estão.
-3. Manter o comportamento atual: tap curto navega, long-press (~500ms) abre o `ShortcutCustomizer`.
+2. **Ajustar cada `MODULE_NAV[modulo]`** para resolver `defaultShortcutA/B/C` a partir desse mapa (procurando na lista de shortcuts do módulo pelo `to`), com fallback para o primeiro item se a rota for inválida.
 
-## Detalhes técnicos
+3. **Preencher inicialmente** com os atalhos que já estão em uso hoje (paridade — nenhuma mudança visual imediata). Assim que você me informar quais rotas devem ser os defaults por módulo, eu substituo os valores.
 
-- `onContextMenu` cobre desktop (clique direito) e a maioria dos Androids.
-- `-webkit-touch-callout: none` é o que efetivamente suprime o "peek menu" no Chrome/Safari mobile em elementos que são âncoras.
-- `user-select: none` evita a seleção de texto que às vezes aparece junto.
-- `draggable={false}` remove o gesto de arrastar link no Android.
-- Nenhuma alteração em rotas, hooks (`useModuleShortcut`, `useDpUserPrefs`) ou banco.
+4. **Não** vou mexer em `useModuleShortcut.ts`, `useDpUserPrefs`, RLS, banco, nem no `ShortcutCustomizer`. A personalização por usuário continua funcionando exatamente como está — só o *default inicial* muda.
 
-## Fora de escopo
+## Fluxo depois da mudança
 
-- Não mexer no `ShortcutCustomizer`, na sincronização dos atalhos ou nos slots fixos (Hub central e FAB).
-- Não alterar comportamento desktop.
+- Você me diz (ou edita direto) os atalhos desejados para cada módulo em `GLOBAL_SHORTCUT_DEFAULTS`.
+- Ao publicar, qualquer usuário novo (ou sem personalização salva) verá esses atalhos como padrão.
+- Usuários que já personalizaram mantêm sua escolha (comportamento atual preservado).
+
+## Perguntas antes de aplicar
+
+Se quiser, já me passe as rotas desejadas por módulo (ex.: "Hub → A: /lancamentos, B: /dp, C: /buscar"). Se preferir, aplico o refactor mantendo os defaults atuais e depois você indica os novos.
