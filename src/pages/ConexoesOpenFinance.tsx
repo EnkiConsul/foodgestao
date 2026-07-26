@@ -474,10 +474,15 @@ export default function ConexoesOpenFinance() {
                         Nenhuma conta descoberta ainda nesta conexão.
                       </p>
                     ) : (
-                      accounts.map((a) => (
+                      accounts.map((a) => {
+                        const hasLocal = !!a.local_account_id && a.local_balance != null;
+                        const diff =
+                          hasLocal && a.balance != null ? Number(a.balance) - Number(a.local_balance) : 0;
+                        const diverges = hasLocal && Math.abs(diff) > 0.01;
+                        return (
                         <div
                           key={a.id}
-                          className={`rounded-md border p-3 ${a.ignored ? "opacity-60" : ""}`}
+                          className={`rounded-md border p-3 ${a.ignored ? "opacity-60" : ""} ${diverges ? "border-amber-500/60" : ""}`}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
@@ -493,13 +498,18 @@ export default function ConexoesOpenFinance() {
                                     <Ban className="h-3 w-3 mr-0.5" /> Ignorada
                                   </Badge>
                                 )}
+                                {diverges && (
+                                  <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-600">
+                                    <AlertTriangle className="h-3 w-3 mr-0.5" /> Divergência
+                                  </Badge>
+                                )}
                               </div>
                               <div className="text-xs text-muted-foreground truncate">
                                 {[a.subtype ?? a.type, a.number].filter(Boolean).join(" · ") || "—"}
                               </div>
                             </div>
                             <div className="text-right shrink-0">
-                              <div className="text-[10px] text-muted-foreground uppercase">Saldo</div>
+                              <div className="text-[10px] text-muted-foreground uppercase">Saldo banco</div>
                               <div className="text-sm font-semibold tabular-nums">
                                 {a.balance != null
                                   ? a.balance.toLocaleString("pt-BR", {
@@ -508,8 +518,46 @@ export default function ConexoesOpenFinance() {
                                     })
                                   : "—"}
                               </div>
+                              {hasLocal && (
+                                <div className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">
+                                  Local:{" "}
+                                  {Number(a.local_balance).toLocaleString("pt-BR", {
+                                    style: "currency",
+                                    currency: "BRL",
+                                  })}
+                                </div>
+                              )}
                             </div>
                           </div>
+                          {diverges && (
+                            <Alert className="mt-2 py-2 border-amber-500/60">
+                              <AlertTriangle className="h-4 w-4 text-amber-600" />
+                              <AlertDescription className="text-xs flex items-center justify-between gap-2 flex-wrap">
+                                <span>
+                                  Divergência de{" "}
+                                  <strong className="tabular-nums">
+                                    {Math.abs(diff).toLocaleString("pt-BR", {
+                                      style: "currency",
+                                      currency: "BRL",
+                                    })}
+                                  </strong>{" "}
+                                  entre o saldo do banco e o saldo local. Promova as transações pendentes ou ajuste manualmente.
+                                </span>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => navigate("/contas-bancarias/conciliacao")}
+                                  >
+                                    Conciliar
+                                  </Button>
+                                  <Button size="sm" onClick={() => setConfirmAdjust(a)}>
+                                    Ajustar saldo
+                                  </Button>
+                                </div>
+                              </AlertDescription>
+                            </Alert>
+                          )}
                           <div className="flex flex-wrap items-center gap-3 mt-2 pt-2 border-t">
                             <label className="flex items-center gap-2 text-xs text-muted-foreground">
                               <Switch
@@ -539,7 +587,9 @@ export default function ConexoesOpenFinance() {
                             )}
                           </div>
                         </div>
-                      ))
+                        );
+                      })
+
                     )}
                   </CardContent>
                 )}
