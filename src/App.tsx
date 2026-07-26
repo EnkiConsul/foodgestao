@@ -283,6 +283,7 @@ const AppRoutes = () => (
       <Route path="/esqueci-senha" element={<EsqueciSenha />} />
       <Route path="/dp/meu" element={<PortalProtected><ColaboradorShell /></PortalProtected>}>
         <Route index element={<DpMeuHome />} />
+        <Route path="mural" element={<DpMeuMural />} />
         <Route path="perfil" element={<DpMeuPerfil />} />
         <Route path="cadastro" element={<Navigate to="/dp/meu/perfil" replace />} />
         <Route path="documentos" element={<DpMeuDocumentos />} />
