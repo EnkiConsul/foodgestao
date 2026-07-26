@@ -25,7 +25,11 @@ export default function Mais() {
   const config = MODULE_NAV[activeModule] ?? MODULE_NAV.financeiro;
 
   const allItems: NavLeaf[] = useMemo(
-    () => config.moreGroups.flatMap((g) => g.items),
+    () =>
+      config.moreGroups.flatMap((g) => [
+        ...(g.items ?? []),
+        ...(g.subgroups ?? []).flatMap((sg) => sg.items),
+      ]),
     [config.moreGroups],
   );
 
