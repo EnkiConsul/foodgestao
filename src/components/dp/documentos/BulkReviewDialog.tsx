@@ -336,7 +336,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
               </div>
             </div>
             <ScrollArea className="flex-1">
-              <div className="flex items-center justify-center p-4 min-h-full">
+              <div ref={previewBoxRef} className="flex items-center justify-center p-2 sm:p-4 min-h-full">
                 {rendering && (
                   <div className="text-sm text-muted-foreground flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" /> Renderizando…
@@ -344,10 +344,11 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
                 )}
                 <canvas
                   ref={canvasRef}
-                  className={cn("shadow-md rounded bg-white", rendering && "opacity-40")}
+                  className={cn("shadow-md rounded bg-white max-w-full", rendering && "opacity-40")}
                 />
               </div>
             </ScrollArea>
+
           </div>
 
           {/* RIGHT: Item list + edit panel */}
