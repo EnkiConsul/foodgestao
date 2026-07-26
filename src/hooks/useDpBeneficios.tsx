@@ -202,6 +202,11 @@ export function useDpBeneficios(colaboradorFilter = "todos") {
     atribuicoes: atribuicoesQ.data ?? [],
     periodos: periodosQ.data ?? [],
     isLoading: beneficiosQ.isLoading || atribuicoesQ.isLoading,
+    isError: beneficiosQ.isError || atribuicoesQ.isError,
+    refetchAll: () => {
+      beneficiosQ.refetch();
+      atribuicoesQ.refetch();
+    },
     saveBeneficio,
     deleteBeneficio,
     saveAtribuicao,

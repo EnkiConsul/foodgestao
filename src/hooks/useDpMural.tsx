@@ -32,22 +32,45 @@ export const MURAL_EMOJIS = ["👍", "🎉", "❤️", "👏", "😀"] as const;
 
 /**
  * Feed do mural: avisos vigentes + reações, comentários e leitura do usuário atual.
- * O RLS já restringe os avisos à empresa do usuário.
+ * Filtra explicitamente pelas empresas do usuário (colaborador ou membro),
+ * além da proteção de acesso já aplicada no banco.
  */
 export function useDpMural() {
   const { user } = useAuth();
   const qc = useQueryClient();
 
-  const avisos = useQuery({
-    queryKey: ["dp_mural_avisos", user?.id],
+  const empresas = useQuery({
+    queryKey: ["dp_mural_empresas", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
+      const [colabRes, memberRes] = await Promise.all([
+        supabase.from("dp_colaboradores").select("company_id").eq("user_id", user!.id),
+        supabase.from("company_members").select("company_id").eq("user_id", user!.id),
+      ]);
+      if (colabRes.error) throw colabRes.error;
+      const ids = [
+        ...(colabRes.data ?? []).map((r: any) => r.company_id as string),
+        ...(memberRes.data ?? []).map((r: any) => r.company_id as string),
+      ].filter(Boolean);
+      return Array.from(new Set(ids));
+    },
+  });
+
+  const companyIds = empresas.data ?? [];
+  const companiesKey = companyIds.join(",");
+
+  const avisos = useQuery({
+    queryKey: ["dp_mural_avisos", user?.id, companiesKey],
+    enabled: !!user?.id && empresas.isSuccess,
+    queryFn: async () => {
+      if (companyIds.length === 0) return [] as MuralAviso[];
       const nowIso = new Date().toISOString();
       const { data, error } = await supabase
         .from("dp_avisos")
         .select(
           "id, company_id, titulo, conteudo, prioridade, publicado_em, expira_em, fixado, arquivo_path, leitura_obrigatoria, permitir_reacoes, permitir_comentarios",
         )
+        .in("company_id", companyIds)
         .lte("publicado_em", nowIso)
         .or(`expira_em.is.null,expira_em.gte.${nowIso}`)
         .order("fixado", { ascending: false })
@@ -57,6 +80,7 @@ export function useDpMural() {
       return (data ?? []) as MuralAviso[];
     },
   });
+
 
   const avisoIds = (avisos.data ?? []).map((a) => a.id);
   const idsKey = avisoIds.join(",");

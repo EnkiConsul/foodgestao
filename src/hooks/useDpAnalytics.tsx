@@ -153,6 +153,16 @@ export function useDpAnalytics(range: AnalyticsRange, unidadeFilter = "todas") {
   const isLoading =
     colaboradoresQ.isLoading || unidadesQ.isLoading || folgasQ.isLoading ||
     atestadosQ.isLoading || folhaQ.isLoading;
+  const isError =
+    colaboradoresQ.isError || unidadesQ.isError || folgasQ.isError ||
+    atestadosQ.isError || folhaQ.isError;
+  const refetchAll = () => {
+    colaboradoresQ.refetch();
+    unidadesQ.refetch();
+    folgasQ.refetch();
+    atestadosQ.refetch();
+    folhaQ.refetch();
+  };
 
   const unidades = unidadesQ.data ?? [];
   const nomeUnidade = (id: string | null) =>
@@ -269,6 +279,8 @@ export function useDpAnalytics(range: AnalyticsRange, unidadeFilter = "todas") {
 
   return {
     isLoading,
+    isError,
+    refetchAll,
     unidades,
     serie,
     porUnidade,

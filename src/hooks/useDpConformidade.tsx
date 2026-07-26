@@ -358,6 +358,16 @@ export function useDpConformidade(colaboradorFilter = "todos") {
     treinamentosLoading: treinamentosQ.isLoading,
     participacoes: participacoesQ.data ?? [],
     participacoesLoading: participacoesQ.isLoading,
+    isError:
+      examesQ.isError || episQ.isError || entregasQ.isError ||
+      treinamentosQ.isError || participacoesQ.isError,
+    refetchAll: () => {
+      examesQ.refetch();
+      episQ.refetch();
+      entregasQ.refetch();
+      treinamentosQ.refetch();
+      participacoesQ.refetch();
+    },
     saveExame,
     deleteExame,
     saveEpi,

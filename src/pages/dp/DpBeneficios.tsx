@@ -12,6 +12,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
+import { DpErrorState } from "@/components/dp/DpErrorState";
 import {
   useDpBeneficios, type Beneficio, type ColaboradorBeneficio,
 } from "@/hooks/useDpBeneficios";
@@ -115,6 +116,8 @@ export default function DpBeneficios() {
           </div>
         </div>
       </DpContentCard>
+
+      {b.isError && <DpErrorState onRetry={b.refetchAll} className="mb-3" />}
 
       <Tabs defaultValue="ficha" className="space-y-3">
         <TabsList className="flex w-full sm:w-auto">

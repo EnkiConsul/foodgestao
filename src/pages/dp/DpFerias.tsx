@@ -17,6 +17,7 @@ import {
   useDpFerias, type FeriasGozo, type FeriasPeriodo, type FeriasPeriodoStatus,
 } from "@/hooks/useDpFerias";
 import { FeriasGozoDialog } from "@/components/dp/ferias/FeriasGozoDialog";
+import { DpErrorState } from "@/components/dp/DpErrorState";
 
 const PERIODO_LABEL: Record<FeriasPeriodoStatus, string> = {
   em_aquisicao: "Em aquisição",
@@ -54,7 +55,8 @@ export default function DpFerias() {
   const [defaultPeriodoId, setDefaultPeriodoId] = useState<string | null>(null);
 
   const {
-    periodos, periodosLoading, gozos, gerarPeriodos, saveGozo, deleteGozo,
+    periodos, periodosLoading, periodosError, refetchAll,
+    gozos, gerarPeriodos, saveGozo, deleteGozo,
   } = useDpFerias(colabFilter);
 
   const periodosFiltrados = useMemo(
@@ -188,7 +190,11 @@ export default function DpFerias() {
 
       {/* Períodos */}
       <DpContentCard>
-        {periodosLoading ? (
+        {periodosError ? (
+          <div className="p-4">
+            <DpErrorState onRetry={refetchAll} />
+          </div>
+        ) : periodosLoading ? (
           <div className="p-8 text-center text-muted-foreground">Carregando…</div>
         ) : periodosFiltrados.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
