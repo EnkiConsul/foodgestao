@@ -48,6 +48,7 @@ import {
 } from "@/lib/dp/folga-rules";
 import { buildBloqueiosDeRegras, type RegraRow } from "@/lib/dp/bloqueio-rules";
 import { cn } from "@/lib/utils";
+import { CalendarioMobileLista } from "@/components/dp/CalendarioMobileLista";
 
 const STATUS_LABEL: Record<DateStatusKind, string> = {
   available: "Disponível",
@@ -543,34 +544,60 @@ export default function DpMeuCalendario() {
         </Button>
       </div>
 
-      <FolgaCalendarShared
-        year={ano}
-        month0={mes - 1}
-        occupantsByDate={occupantsByDate}
-        manualBlocked={manualBlocked}
-        dayLimits={dayLimits}
-        myColaboradorId={meRef.data?.id ?? null}
-        allFolgas={allFolgasRecords}
-        allColaboradores={colaboradores}
-        pendingRequests={pendingRequests}
-        isAdmin={false}
-        variant="chunky"
-        onPrev={goPrev}
-        onNext={goNext}
-        onSelectDay={(iso, info) => {
-          const st = calculateDateStatus({
-            date: parseYMD(iso),
-            myColaboradorId: meRef.data?.id ?? null,
-            allFolgas: allFolgasRecords,
-            allColaboradores: colaboradores,
-            manualBlocked,
-            dayLimits,
-            pendingRequests,
-            isAdmin: false,
-          });
-          setSelectedDay({ iso, status: (info?.status ?? st.status) as DateStatusKind });
-        }}
-      />
+      <div className="hidden md:block">
+        <FolgaCalendarShared
+          year={ano}
+          month0={mes - 1}
+          occupantsByDate={occupantsByDate}
+          manualBlocked={manualBlocked}
+          dayLimits={dayLimits}
+          myColaboradorId={meRef.data?.id ?? null}
+          allFolgas={allFolgasRecords}
+          allColaboradores={colaboradores}
+          pendingRequests={pendingRequests}
+          isAdmin={false}
+          variant="chunky"
+          onPrev={goPrev}
+          onNext={goNext}
+          onSelectDay={(iso, info) => {
+            const st = calculateDateStatus({
+              date: parseYMD(iso),
+              myColaboradorId: meRef.data?.id ?? null,
+              allFolgas: allFolgasRecords,
+              allColaboradores: colaboradores,
+              manualBlocked,
+              dayLimits,
+              pendingRequests,
+              isAdmin: false,
+            });
+            setSelectedDay({ iso, status: (info?.status ?? st.status) as DateStatusKind });
+          }}
+        />
+      </div>
+      <div className="md:hidden">
+        <CalendarioMobileLista
+          year={ano}
+          month0={mes - 1}
+          occupantsByDate={occupantsByDate as any}
+          manualBlocked={manualBlocked}
+          myColaboradorId={meRef.data?.id ?? null}
+          onPrev={goPrev}
+          onNext={goNext}
+          onSelectDay={(iso) => {
+            const st = calculateDateStatus({
+              date: parseYMD(iso),
+              myColaboradorId: meRef.data?.id ?? null,
+              allFolgas: allFolgasRecords,
+              allColaboradores: colaboradores,
+              manualBlocked,
+              dayLimits,
+              pendingRequests,
+              isAdmin: false,
+            });
+            setSelectedDay({ iso, status: st.status as DateStatusKind });
+          }}
+        />
+      </div>
 
       <p className="text-xs text-muted-foreground">
         Clique em um dia para ver detalhes, marcar folga de fim de semana, pedir troca ou solicitar exceção.
