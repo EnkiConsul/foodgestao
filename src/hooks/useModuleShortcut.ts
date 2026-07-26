@@ -3,62 +3,89 @@ import { MODULE_NAV } from "@/config/mobileNav";
 import type { NavLeaf } from "@/config/mobileNav";
 import type { ActiveModule } from "@/hooks/useActiveModule";
 
-const keyOf = (mod: ActiveModule) => `360food:mobile-shortcut:${mod}`;
+export type ShortcutSlot = "a" | "b";
 
-function readStored(mod: ActiveModule): string | null {
+const keyOf = (mod: ActiveModule, slot: ShortcutSlot) =>
+  `360food:mobile-shortcut:${mod}:${slot}`;
+
+function readStored(mod: ActiveModule, slot: ShortcutSlot): string | null {
   if (typeof window === "undefined") return null;
   try {
-    return window.localStorage.getItem(keyOf(mod));
+    return window.localStorage.getItem(keyOf(mod, slot));
   } catch {
     return null;
   }
 }
 
-function resolve(mod: ActiveModule, to: string | null): NavLeaf {
-  const config = MODULE_NAV[mod];
-  if (!config) return { icon: MODULE_NAV.financeiro.defaultShortcut.icon, label: "", to: "/" };
-  if (to) {
-    const found = config.shortcutOptions.find((it) => it.to === to);
+function resolve(
+  mod: ActiveModule,
+  slot: ShortcutSlot,
+  storedTo: string | null,
+  otherTo: string,
+): NavLeaf {
+  const config = MODULE_NAV[mod] ?? MODULE_NAV.financeiro;
+  const options = config.shortcutOptions;
+  const fallback = slot === "a" ? config.defaultShortcutA : config.defaultShortcutB;
+
+  if (storedTo && storedTo !== otherTo) {
+    const found = options.find((it) => it.to === storedTo);
     if (found) return found;
   }
-  return config.defaultShortcut;
+  // Fallback padrão — se colide com o outro slot, escolhe primeira opção diferente.
+  if (fallback.to !== otherTo) return fallback;
+  const alt = options.find((it) => it.to !== otherTo);
+  return alt ?? fallback;
 }
 
 /**
- * Hook do slot customizável da BottomNav.
- * Persiste em localStorage por módulo. Devolve item resolvido para render.
+ * Hook dos dois slots customizáveis da BottomNav.
+ * Persiste em localStorage por módulo + posição. Impede colisão entre A e B.
  */
-export function useModuleShortcut(mod: ActiveModule) {
-  const [rawTo, setRawTo] = useState<string | null>(() => readStored(mod));
+export function useModuleShortcuts(mod: ActiveModule) {
+  const [rawA, setRawA] = useState<string | null>(() => readStored(mod, "a"));
+  const [rawB, setRawB] = useState<string | null>(() => readStored(mod, "b"));
 
   useEffect(() => {
-    setRawTo(readStored(mod));
+    setRawA(readStored(mod, "a"));
+    setRawB(readStored(mod, "b"));
   }, [mod]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const onStorage = (e: StorageEvent) => {
-      if (e.key === keyOf(mod)) setRawTo(e.newValue);
+      if (e.key === keyOf(mod, "a")) setRawA(e.newValue);
+      if (e.key === keyOf(mod, "b")) setRawB(e.newValue);
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, [mod]);
 
+  const config = MODULE_NAV[mod] ?? MODULE_NAV.financeiro;
+
+  // Primeiro resolve com valores tentativos para saber colisões.
+  const tentativeA = rawA ?? config.defaultShortcutA.to;
+  const tentativeB = rawB ?? config.defaultShortcutB.to;
+
+  const shortcutA = resolve(mod, "a", rawA, tentativeB);
+  const shortcutB = resolve(mod, "b", rawB, shortcutA.to);
+
   const setShortcut = useCallback(
-    (to: string) => {
+    (slot: ShortcutSlot, to: string) => {
       try {
-        window.localStorage.setItem(keyOf(mod), to);
+        window.localStorage.setItem(keyOf(mod, slot), to);
       } catch {
         /* noop */
       }
-      setRawTo(to);
+      if (slot === "a") setRawA(to);
+      else setRawB(to);
     },
     [mod],
   );
 
-  const config = MODULE_NAV[mod];
-  const options = config?.shortcutOptions ?? [];
-  const shortcut = resolve(mod, rawTo);
-
-  return { shortcut, setShortcut, options };
+  return {
+    shortcutA,
+    shortcutB,
+    setShortcut,
+    options: config.shortcutOptions,
+  };
 }

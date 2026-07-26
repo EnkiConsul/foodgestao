@@ -1,90 +1,79 @@
+# Plano — BottomNav "Início Centralizado" + 2 Atalhos Customizáveis
+
 ## Objetivo
 
-Barra inferior fixa estilo iFood Gestor visível em **todas** as rotas mobile do sistema, com layout consistente:
+Substituir o FAB `+` central por um botão **Início** destacado (mesma estética elevada, círculo laranja com notch curvo) e transformar os slots 2 e 4 em **atalhos configuráveis pelo usuário**.
+
+## Layout final
 
 ```
-[ Hub ] [ Início ] [ + FAB ] [ Atalho ] [ Mais ]
+┌────────────────────────────────────────────────────┐
+│  [Hub]   [Atalho1]   ( 🏠 INÍCIO )   [Atalho2]   [Mais]  │
+│                       elevado/laranja                │
+└────────────────────────────────────────────────────┘
 ```
 
-- **Hub** (fixo, esq.) → `/hub`. Ativo quando `pathname === "/hub"`.
-- **Início** (fixo) → home do módulo atual (Financeiro → `/dashboard`; DP → `/dp`; Portal → `/dp/meu`; Admin → `/admin/estatisticas`; Hub → `/hub` mesmo).
-- **FAB (+)** (fixo, centro, elevado com notch) → ação primária do módulo (registrada por página via `useMobileFab`; fallback do módulo em `MOBILE_NAV`).
-- **Atalho customizável** (1 slot) → o usuário escolhe qual funcionalidade do módulo fica ali. Padrão por módulo definido; persistido em `localStorage` por usuário/módulo.
-- **Mais** (fixo, dir.) → abre o `MobileMoreSheet` com busca, favoritos e todos os itens do módulo.
+- **Slot 1** — Hub (fixo). Exceção: no módulo Hub vira 3º atalho customizável.
+- **Slot 2** — Atalho customizável A (padrão por módulo).
+- **Slot 3** — **Início do módulo** com destaque visual (herda estilo do FAB atual: círculo, elevação, notch curvo, `-mt-7`, `ring-4 ring-background`, `shadow` do primary). Clique navega para a home do módulo. Sem long-press, sem modal.
+- **Slot 4** — Atalho customizável B (padrão por módulo).
+- **Slot 5** — Mais (fixo).
 
-## Correções e mudanças
+## Padrões por módulo
 
-### 1. Fazer a barra aparecer em todas as rotas
-Hoje a barra só é montada em `AppLayout`. O DP usa `DpShell` próprio, e Hub/Admin estão excluídos por `MODULES_WITHOUT_BOTTOM_NAV`.
+| Módulo | Slot 1 | Slot 2 (padrão) | Slot 3 (fixo) | Slot 4 (padrão) |
+|---|---|---|---|---|
+| Financeiro | Hub | Lançamentos | Início → `/dashboard` | Contas |
+| DP | Hub | Calendário¹ | Início → `/dp` | Documentos |
+| Portal | Hub | Financeiro² | Início → `/dp/meu` | DP² |
+| Admin | Hub | Clientes | Início → `/admin/estatisticas` | Assinaturas |
+| Hub | Atalho C | Atalho A | Início → `/hub` | Atalho B |
+| Conta | Hub | Empresas | Início → `/configuracoes` | Usuários |
 
-- `src/components/mobile/MobileBottomNav.tsx`: remover o `if (MODULES_WITHOUT_BOTTOM_NAV.includes(...)) return null` — barra passa a aparecer em qualquer módulo.
-- `src/config/mobileNav.tsx`:
-  - Remover / esvaziar `MODULES_WITHOUT_BOTTOM_NAV`.
-  - Adicionar entradas `MOBILE_NAV.hub` e `MOBILE_NAV.admin` (com seus próprios slots e grupos do "Mais").
-- `src/components/dp/DpShell.tsx`: envolver com `MobileFabProvider` e montar `<MobileBottomNav />`; adicionar `pb-24 md:pb-8` no `<main>` para o conteúdo não ficar coberto.
-- Verificar outros shells que possam existir (busca por `SidebarProvider` em `src/components/**`) e aplicar o mesmo tratamento se houver.
+¹ Calendário do DP hoje não é um item direto do menu; será mapeado para `/dp/folgas` (visão calendário). Confirmar durante a build se prefere outra rota.
+² No Portal, "Financeiro" e "DP" só aparecem se o usuário tiver acesso a esses módulos; caso contrário, cai em Calendário/Solicitações.
 
-### 2. Padronizar os 5 slots por módulo
+## Customização pelo usuário
 
-Refatorar `MOBILE_NAV` para o formato de 5 slots com semântica fixa:
+- **Long-press (550ms) nos slots 2 ou 4** abre o sheet "Personalizar atalho da barra" com a lista de opções do módulo atual (definidas em `MODULE_NAV.shortcutOptions`).
+- Também acessível via **"Mais → Personalizar barra"**.
+- Persistido em `localStorage` por módulo **e por posição** (`slot-a` e `slot-b`), separados.
+- Não é permitido escolher o mesmo atalho nos dois slots — a UI marca o já usado como desabilitado.
 
-```ts
-type ModuleNav = {
-  hubTo: "/hub";
-  homeTo: string;              // Início do módulo
-  fab: NavFab;                 // ação primária + fallbackTo
-  defaultShortcut: NavLeaf;    // atalho padrão do módulo
-  shortcutOptions: NavLeaf[];  // opções elegíveis para o slot customizável
-  moreGroups: MoreGroup[];     // conteúdo do sheet "Mais"
-};
+## Detalhes técnicos
+
+**Arquivos afetados:**
+- `src/config/mobileNav.tsx` — Remover `fab` do tipo `ModuleNav`, renomear `defaultShortcut`/`shortcutOptions` para `defaultShortcutA` + `defaultShortcutB` + `shortcutOptions` (lista única compartilhada). Ajustar cada módulo com os padrões da tabela acima.
+- `src/hooks/useModuleShortcut.ts` — Estender para gerenciar dois slots (`slot: "a" | "b"`), chaves separadas no localStorage (`360food:mobile-shortcut:{module}:a` / `:b`), com validação para não permitir mesma rota nos dois.
+- `src/components/mobile/MobileBottomNav.tsx` — Remover renderização do slot FAB; renderizar slot 3 como botão "Início" destacado, reutilizando as classes do FAB atual (`h-14 w-14 -mt-7`, `bg-primary`, `ring-4`, `shadow`). Manter `BottomNavShape` (notch curvo continua fazendo sentido para destacar o Início). Passar `slot: "a" | "b"` para o long-press customizer.
+- `src/components/mobile/MobileFab.tsx` — **Deletar** (não é mais usado).
+- `src/providers/MobileFabProvider.tsx` — **Deletar** (não há mais FAB para páginas registrarem ação).
+- `src/components/dp/DpShell.tsx`, `src/components/layout/AppLayout.tsx`, `src/components/layout/AdminLayout.tsx` — Remover import e wrapping do `MobileFabProvider`.
+- `src/hooks/useMobileFab.ts` (se existir como export separado) — remover.
+- Grep global por `useMobileFab` para remover chamadas em páginas (se houver).
+
+**Visual do slot Início:**
+```tsx
+<NavLink to={home.to} className="h-14 w-14 -mt-7 rounded-full bg-primary text-primary-foreground
+  ring-4 ring-background shadow-[0_10px_24px_-6px_hsl(var(--primary)/0.5)]
+  flex items-center justify-center active:scale-90 transition-transform">
+  <Home className="h-6 w-6" strokeWidth={2.5} />
+</NavLink>
 ```
 
-Configuração inicial por módulo:
+**Indicador de aba ativa:** ao estar na home do módulo, o botão central já é destacado por si só — o traço superior do indicador é suprimido nesse caso para não competir visualmente. Nas outras rotas, o traço continua se movendo sobre slots 1/2/4.
 
-| Módulo | Início | FAB | Atalho padrão | Opções de atalho |
-| --- | --- | --- | --- | --- |
-| Financeiro | /dashboard | Novo lançamento (/lancamentos?new=1) | Lançamentos | Lançamentos, Cartões, Contas, Fluxo Caixa, Relatórios, Categorias |
-| DP | /dp | Novo colaborador | Colaboradores | Colaboradores, Solicitações, Aprovações, Folgas, Documentos, Comunicação |
-| Portal | /dp/meu | Nova solicitação | Meu Calendário | Meu Calendário, Meus Documentos, Meu Histórico, Trocas, Perfil |
-| Hub | /hub | (sem FAB — usa placeholder oculto) | Todos módulos | — |
-| Admin | /admin/estatisticas | (sem FAB) | Cadastros | Cadastros, Assinaturas, Faturas, Cupons, Bancos, Auditoria, SEO |
-| Conta | /configuracoes | (sem FAB) | Empresas | Empresas, Usuários, Planos, Faturas, Configurações |
+## Fora de escopo
 
-Quando `fab` for opcional/ausente, renderizar um espaçador invisível no centro (mantém a simetria do notch).
+- Não muda comportamento de rotas nem cria páginas novas.
+- Não mexe em desktop (sidebar continua igual).
+- Não altera o sheet "Mais" além do link "Personalizar barra" que já existe.
+- Migração de chave antiga do localStorage (`360food:mobile-shortcut:{mod}`) — se existir valor prévio, ele passa a ser ignorado e o padrão do slot A é usado; sem prompt de migração.
 
-### 3. Slot customizável (atalho por módulo)
+## Critério de aceite
 
-- Novo hook `src/hooks/useModuleShortcut.ts`:
-  - Estado por módulo em `localStorage`, chave `360food:mobile-shortcut:<módulo>`.
-  - API: `{ shortcut, setShortcut, options }`.
-  - Default: `defaultShortcut` do `MOBILE_NAV[módulo]`.
-- Slot 4 na `MobileBottomNav`: usa o item retornado pelo hook para renderizar como `NavLeaf`.
-- **Personalização**: long-press (≥550ms) no slot abre um `Sheet` pequeno "Escolha o atalho" listando `shortcutOptions` (radio-list). Também acessível pelo topo do "Mais" via botão "Personalizar barra".
-- Feedback: `toast` + `navigator.vibrate(15)` ao trocar.
-
-### 4. Ajustes de estilo/estado ativo
-
-- Estado ativo do slot **Hub** e **Início** deve ganhar do slot Atalho quando as URLs se sobrepuserem (o cálculo atual pega o `to` mais específico — validar).
-- No módulo `hub`: slot Hub e Início apontam ambos para `/hub`; ativar apenas Hub (marcar `homeTo` como não-ativo quando `pathname === hubTo` e forem iguais).
-- Garantir contraste do `text-primary` sobre o notch em dark mode.
-
-### 5. Validação (Playwright, viewport 393×852)
-
-Screenshots em cada uma:
-
-- `/hub` — barra visível, slot Hub ativo.
-- `/dashboard` — Financeiro, Início ativo, FAB "Novo lançamento".
-- `/lancamentos` — atalho padrão ativo.
-- `/dp` — Início do DP ativo, FAB DP.
-- `/dp/colaboradores` — atalho DP ativo.
-- `/dp/meu` — Portal Início ativo.
-- `/admin/estatisticas` — Admin barra visível, sem FAB (espaçador central).
-- `/configuracoes` — módulo Conta.
-- Long-press no atalho → sheet de personalização abre e persiste a escolha após reload.
-
-## Fora do escopo
-
-- Não redesenhar visual da barra (shape/notch/indicador já estão prontos).
-- Não implementar novos FABs específicos por página (registros via `useMobileFab` seguem por demanda).
-- Não mexer em desktop/sidebar/DpSidebar.
-- Não alterar RLS, dados, nem funcionalidade de negócio.
+- Barra visível em todos os módulos, com "Início" no centro destacado em laranja.
+- Long-press nos slots 2/4 abre o customizer certo (A ou B) e a escolha persiste após reload.
+- Não é possível deixar os dois slots com a mesma rota.
+- Nenhum arquivo do projeto ainda importa `MobileFab`/`MobileFabProvider`/`useMobileFab` (build passa).
+- Zero overflow horizontal em 375–393 px.
