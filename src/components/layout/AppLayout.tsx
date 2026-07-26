@@ -25,23 +25,21 @@ export function AppLayout() {
 
   return (
     <SidebarProvider>
-      <MobileFabProvider>
-        <div className="flex min-h-screen w-full">
-          <AppSidebar />
-          <div className="flex flex-1 flex-col min-w-0">
-            <SubscriptionBanner />
-            <AppHeader />
-            <main className="flex-1 p-3 md:p-6 pb-24 md:pb-6">
-              <Profiler id={`route:${location.pathname}`} onRender={profilerOnRender}>
-                <Outlet />
-              </Profiler>
-            </main>
-          </div>
+      <div className="flex min-h-screen w-full">
+        <AppSidebar />
+        <div className="flex flex-1 flex-col min-w-0">
+          <SubscriptionBanner />
+          <AppHeader />
+          <main className="flex-1 p-3 md:p-6 pb-24 md:pb-6">
+            <Profiler id={`route:${location.pathname}`} onRender={profilerOnRender}>
+              <Outlet />
+            </Profiler>
+          </main>
         </div>
-        <MobileBottomNav />
-        <InstallPrompt />
-        <PerfOverlay />
-      </MobileFabProvider>
+      </div>
+      <MobileBottomNav />
+      <InstallPrompt />
+      <PerfOverlay />
     </SidebarProvider>
   );
 }
