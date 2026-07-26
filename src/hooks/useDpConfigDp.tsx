@@ -87,8 +87,8 @@ export function useDpConfigDp() {
         company_id: selectedCompanyId,
         usuario_id: userData.user?.id ?? null,
         tabela: "dp_config_dp",
-        valor_antigo: anterior as unknown as Record<string, unknown>,
-        valor_novo: merged as unknown as Record<string, unknown>,
+        valor_antigo: anterior as unknown as never,
+        valor_novo: merged as unknown as never,
         justificativa: input.justificativa ?? null,
         ciencia_confirmada: !!input.cienciaConfirmada,
       });
