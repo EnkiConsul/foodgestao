@@ -60,13 +60,53 @@ export function useDeleteDpColaborador() {
   });
 }
 
-export function useToggleDpColaboradorAtivo() {
+export type DesligamentoInput = {
+  id: string;
+  data_desligamento: string;
+  motivo?: string | null;
+  observacao?: string | null;
+  elegibilidade?: string | null;
+};
+
+export type DesligamentoResult = {
+  folgas_canceladas: number;
+  solicitacoes_canceladas: number;
+  trocas_canceladas: number;
+  acesso_portal_ate: string | null;
+};
+
+export function useDesligarDpColaborador() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
-      const { error } = await supabase.from("dp_colaboradores").update({ ativo }).eq("id", id);
+    mutationFn: async (input: DesligamentoInput): Promise<DesligamentoResult> => {
+      const { data, error } = await supabase.rpc("dp_desligar_colaborador", {
+        p_colaborador_id: input.id,
+        p_data_desligamento: input.data_desligamento,
+        p_motivo: (input.motivo ?? null) as any,
+        p_observacao: input.observacao ?? null,
+        p_elegibilidade: (input.elegibilidade ?? null) as any,
+      });
       if (error) throw error;
+      return (data ?? {}) as unknown as DesligamentoResult;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_colaboradores"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
+      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+    },
   });
 }
+
+export function useReintegrarDpColaborador() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("dp_reintegrar_colaborador", { p_colaborador_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
+      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+    },
+  });
+}
+
