@@ -513,6 +513,24 @@ export default function DpAdminCalendario() {
     onError: (e: any) => toast.error(e.message ?? "Erro ao liberar"),
   });
 
+  /** Remove o override de liberação, devolvendo a data ao estado bloqueado. */
+  const rebloquearData = useMutation({
+    mutationFn: async (overrideId: string) => {
+      const { error } = await supabase.from("dp_datas_bloqueadas").delete().eq("id", overrideId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Data bloqueada novamente");
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas"] });
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_geral"] });
+      setDayOpen(null);
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao bloquear novamente"),
+  });
+
+
+
   // ===== conflict / assign =====
   const [confirmDialog, setConfirmDialog] = useState<{
     iso: string;
