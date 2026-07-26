@@ -363,7 +363,7 @@ export default function Dashboard() {
       </div>
 
       {/* Bento Grid */}
-      <div className="grid grid-cols-12 gap-4 lg:gap-5">
+      <div className="grid grid-cols-12 gap-2.5 md:gap-4 lg:gap-5">
         {/* KPIs */}
         {kpis.map((kpi) => {
           const isHero = kpi.variant === "hero";
@@ -389,9 +389,9 @@ export default function Dashboard() {
                   isHero ? "text-primary-foreground/70" : (kpi.positive ? "text-success" : "text-muted-foreground")
                 )} />
               </div>
-              <div className="mt-2">
+              <div className="mt-1.5 md:mt-2">
                 <div className={cn(
-                  "font-display font-bold tracking-tight text-xl sm:text-2xl leading-tight whitespace-nowrap",
+                  "font-display font-bold tracking-tight text-lg sm:text-2xl leading-tight whitespace-nowrap",
                   isHero
                     ? "text-primary-foreground"
                     : kpi.variant === "accent-success"
