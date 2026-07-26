@@ -31,17 +31,18 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onImported: () => void;
+  defaultAccountId?: string | null;
 }
 
 type Step = "upload" | "review" | "done";
 type DuplicateDecision = "none" | "pending" | "skip" | "include" | "manual";
 
-export function ImportStatementDialog({ open, onOpenChange, onImported }: Props) {
+export function ImportStatementDialog({ open, onOpenChange, onImported, defaultAccountId }: Props) {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const [step, setStep] = useState<Step>("upload");
   const [file, setFile] = useState<File | null>(null);
-  const [accountId, setAccountId] = useState<string>("");
+  const [accountId, setAccountId] = useState<string>(defaultAccountId ?? "");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -59,11 +60,15 @@ export function ImportStatementDialog({ open, onOpenChange, onImported }: Props)
   const [quickContact, setQuickContact] = useState<{ rowIdx: number; name: string; contactType: "cliente" | "fornecedor" | "ambos" } | null>(null);
 
   const reset = useCallback(() => {
-    setStep("upload"); setFile(null); setAccountId(""); setRows([]); setReconciliation(null);
+    setStep("upload"); setFile(null); setAccountId(defaultAccountId ?? ""); setRows([]); setReconciliation(null);
     setImportedCount(0); setDuplicateCount(0); setFailures([]); setProgress(null);
     setDuplicateDecision("none");
     setQuickCat(null); setQuickContact(null);
-  }, []);
+  }, [defaultAccountId]);
+
+  useEffect(() => {
+    if (open && defaultAccountId) setAccountId(defaultAccountId);
+  }, [open, defaultAccountId]);
 
   useEffect(() => {
     if (!open) { reset(); return; }
