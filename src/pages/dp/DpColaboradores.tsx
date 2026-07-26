@@ -477,11 +477,16 @@ export default function DpColaboradores() {
                     {c.unidade_nome ? <span> • {c.unidade_nome}</span> : null}
                   </div>
                 </div>
-                <Switch
-                  checked={!!c.ativo}
-                  onCheckedChange={(v) => handleToggle(c, v)}
-                  disabled={toggle.isPending}
-                />
+                {c.ativo ? (
+                  <Badge variant="outline" className="text-[11px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
+                    Ativo
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[11px] bg-destructive/10 text-destructive border-destructive/30">
+                    Desligado {fmtDate(c.data_desligamento)}
+                  </Badge>
+                )}
+
               </div>
 
               <div className="flex flex-wrap gap-1.5">
