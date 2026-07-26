@@ -74,6 +74,7 @@ export const FAVORITABLE_PAGES: FavoritablePage[] = [
   { pattern: "/dp/meu/disciplinar", label: "Meu Disciplinar", icon: ShieldAlert },
   { pattern: "/dp/meu/sindicato", label: "Meu Sindicato", icon: HandshakeIcon },
   { pattern: "/dp/meu/historico", label: "Meu Histórico", icon: History },
+  { pattern: "/dp/meu/mural", label: "Mural", icon: Megaphone },
 ];
 
 function capitalize(s: string) {
