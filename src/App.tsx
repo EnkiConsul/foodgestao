@@ -280,7 +280,7 @@ const AppRoutes = () => (
       <Route path="/dp/meu" element={<PortalProtected><ColaboradorShell /></PortalProtected>}>
         <Route index element={<DpMeuHome />} />
         <Route path="perfil" element={<DpMeuPerfil />} />
-        <Route path="cadastro" element={<DpMeuPerfil />} />
+        <Route path="cadastro" element={<Navigate to="/dp/meu/perfil" replace />} />
         <Route path="documentos" element={<DpMeuDocumentos />} />
         <Route path="solicitacoes" element={<DpMeuSolicitacoes />} />
         <Route path="trocas" element={<DpMeuTrocas />} />

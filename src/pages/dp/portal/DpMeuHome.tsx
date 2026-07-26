@@ -144,7 +144,7 @@ export default function DpMeuHome() {
             <p className="text-xs md:text-sm text-muted-foreground capitalize">{dateStr}</p>
           </div>
           <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
-            <Link to="/dp/meu/cadastro"><User className="h-4 w-4 mr-2" /> Meu Cadastro</Link>
+            <Link to="/dp/meu/perfil"><User className="h-4 w-4 mr-2" /> Meu Cadastro</Link>
           </Button>
         </div>
       </header>
