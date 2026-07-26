@@ -399,6 +399,13 @@ export default function ConexoesOpenFinance() {
                           <Badge variant={meta.variant} className="text-[10px]">
                             {meta.label}
                           </Badge>
+                          {divergences > 0 && (
+                            <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-600">
+                              <AlertTriangle className="h-3 w-3 mr-0.5" />
+                              {divergences} divergência{divergences > 1 ? "s" : ""}
+                            </Badge>
+                          )}
+
                           {c.last_synced_at ? (
                             <span className="text-xs text-muted-foreground">
                               Sincronizado{" "}
