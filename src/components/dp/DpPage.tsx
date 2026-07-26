@@ -27,12 +27,14 @@ interface DpPageHeaderProps {
 
 export function DpPageHeader({ icon: Icon, title, description, actions, className }: DpPageHeaderProps) {
   return (
-    <header className={cn("dp-page-header flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between", className)}>
-      <div className="flex min-w-0 items-start gap-3">
-        <Icon className="mt-1 h-7 w-7 shrink-0 text-primary" />
+    <header className={cn("dp-page-header flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between", className)}>
+      <div className="flex min-w-0 items-start gap-2.5 sm:gap-3">
+        <Icon className="mt-0.5 h-6 w-6 shrink-0 text-primary sm:mt-1 sm:h-7 sm:w-7" />
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold leading-tight tracking-normal md:text-3xl">{title}</h1>
-          {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+          <h1 className="text-xl font-bold leading-tight tracking-normal sm:text-2xl md:text-3xl">{title}</h1>
+          {description && (
+            <p className="mt-1 line-clamp-2 text-xs text-muted-foreground sm:line-clamp-none sm:text-sm">{description}</p>
+          )}
         </div>
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center justify-start gap-2 sm:justify-end">{actions}</div>}
