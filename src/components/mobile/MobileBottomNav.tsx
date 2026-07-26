@@ -35,6 +35,16 @@ export function MobileBottomNav() {
 
   const [customizerSlot, setCustomizerSlot] = useState<ShortcutSlot | null>(null);
 
+  // Página /mais dispara este evento no botão "Personalizar barra".
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ slot?: ShortcutSlot }>).detail;
+      setCustomizerSlot(detail?.slot ?? "a");
+    };
+    window.addEventListener("mobile-nav:customize", handler as EventListener);
+    return () => window.removeEventListener("mobile-nav:customize", handler as EventListener);
+  }, []);
+
   const isHubModule = activeModule === "hub";
 
   // Slot 1: Hub em geral; no módulo Hub, vira Financeiro (primeiro atalho fixo).
