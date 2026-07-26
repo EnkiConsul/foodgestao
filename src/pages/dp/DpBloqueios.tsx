@@ -207,7 +207,11 @@ export default function DpBloqueios() {
         saving={saveData.isPending}
         onChange={(updater) => setDataForm(updater)}
         onCancel={() => { setDataOpen(false); setEditDataId(null); }}
-        onSubmit={() => saveData.mutate()}
+        onSubmit={() => saveData.mutate(
+          { form: dataForm, editId: editDataId },
+          { onSuccess: () => { setDataOpen(false); setEditDataId(null); } },
+        )}
+
       />
     </DpPage>
   );
