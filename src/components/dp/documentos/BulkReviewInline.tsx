@@ -17,7 +17,10 @@ import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { NovoColaboradorInlineDialog } from "./NovoColaboradorInlineDialog";
 import { BulkProgressBanner } from "./BulkProgressBanner";
 import { ConfirmarSubstituicaoDialog, type DuplicateCollision } from "./ConfirmarSubstituicaoDialog";
+import { ConfirmarFaltantesDialog } from "./ConfirmarFaltantesDialog";
 import { detectDuplicates } from "@/lib/dp/bulk-duplicates";
+import { ColaboradoresFaltantesPanel } from "./ColaboradoresFaltantesPanel";
+import { competenciaPredominante, computeCoverage } from "@/lib/dp/bulk-coverage";
 import { cn } from "@/lib/utils";
 
 // Setup pdfjs worker once (shared with BulkReviewDialog)
@@ -281,7 +284,17 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
     }
   }
 
-  async function handleApproveClick() {
+  const [confirmFaltantes, setConfirmFaltantes] = useState(false);
+
+  function handleApproveClick() {
+    if (coverage.faltantes.length > 0) {
+      setConfirmFaltantes(true);
+      return;
+    }
+    void proceedApprove();
+  }
+
+  async function proceedApprove() {
     const eligible = rows.filter((r: any) => r.status === "pending" && r.matched_colaborador_id);
     if (eligible.length === 0) {
       toast.error("Nenhuma página vinculada");
@@ -359,6 +372,30 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
   const ocrInProgress = !bInfo || bInfo.status === "processing" || (bInfo.status !== "ready" ? false : totalPages > 0 && rows.length < totalPages);
   const approvedCount = Math.min(savingTotal, bInfo?.approved_count ?? 0);
 
+  // Conferência de cobertura: quem deveria ter documento e não tem página no lote
+  const competenciaLote = competenciaPredominante(
+    rows.map((r: any) => r.detected_competencia),
+    bInfo?.referencia_data,
+  );
+  const unidadeLote = (() => {
+    const cnpjs = rows.map((r: any) => r.detected_cnpj).filter(Boolean);
+    if (cnpjs.length === 0) return null;
+    const ids = new Set(
+      rows.map((r: any) => colaboradores.find((c: any) => c.id === r.matched_colaborador_id)?.unidade_id)
+        .filter(Boolean),
+    );
+    return ids.size === 1 ? ([...ids][0] as string) : null;
+  })();
+  const coverage = computeCoverage({
+    colaboradores: colaboradores as any,
+    vinculados: new Set(rows.map((r: any) => r.matched_colaborador_id).filter(Boolean)),
+    competencia: competenciaLote,
+    unidadeId: unidadeLote,
+    tipo: bInfo?.tipo ?? null,
+  });
+
+
+
   return (
     <div className="border rounded-md bg-background overflow-hidden">
       {/* Header: nome do arquivo + contadores + progresso */}
@@ -386,7 +423,16 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
             style={{ width: `${progressPct}%` }}
           />
         </div>
+        {!ocrInProgress && !isSaving && (
+          <ColaboradoresFaltantesPanel
+            className="mt-2"
+            faltantes={coverage.faltantes}
+            totalEsperados={coverage.esperados.length}
+            competencia={competenciaLote}
+          />
+        )}
       </div>
+
 
       {/* Enquanto o OCR ainda não completou, mostramos apenas o banner de
           progresso — nada de preview parcial nem navegação enganosa. */}
@@ -636,7 +682,16 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
           }}
         />
       )}
+
+      <ConfirmarFaltantesDialog
+        open={confirmFaltantes}
+        onOpenChange={setConfirmFaltantes}
+        faltantes={coverage.faltantes}
+        competencia={competenciaLote}
+        onConfirm={() => { setConfirmFaltantes(false); void proceedApprove(); }}
+      />
     </div>
+
   );
 }
 
