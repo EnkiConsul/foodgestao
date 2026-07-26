@@ -69,7 +69,10 @@ interface OFAccount {
   auto_import: boolean;
   ignored: boolean;
   last_transaction_at: string | null;
+  local_balance?: number | null;
+  local_reference_date?: string | null;
 }
+
 
 function statusMeta(status: string | null, disconnected_at: string | null) {
   if (disconnected_at) return { label: "Desconectada", variant: "outline" as const, tone: "muted" };
