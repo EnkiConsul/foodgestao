@@ -13,39 +13,6 @@ import { haptic } from "@/lib/haptics";
 
 const NAV_HEIGHT = 64;
 
-/** Detecta direção do scroll para esconder a BottomNav ao rolar para baixo. */
-function useHideOnScroll(disabled = false) {
-  const [hidden, setHidden] = useState(false);
-  useEffect(() => {
-    if (disabled) return;
-    let lastY = window.scrollY;
-    let ticking = false;
-    const update = () => {
-      const y = window.scrollY;
-      const dy = y - lastY;
-      const doc = document.documentElement;
-      const atBottom = y + window.innerHeight >= doc.scrollHeight - 8;
-      if (y < 24 || atBottom) {
-        setHidden(false);
-      } else if (dy > 8) {
-        setHidden(true);
-      } else if (dy < -6) {
-        setHidden(false);
-      }
-      lastY = y;
-      ticking = false;
-    };
-    const onScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(update);
-        ticking = true;
-      }
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [disabled]);
-  return hidden;
-}
 
 type SlotDef =
   | { kind: "link"; item: NavLeaf; longPressSlot?: ShortcutSlot }
@@ -134,17 +101,12 @@ export function MobileBottomNav() {
     setIndicator({ left: er.left - pr.left + er.width / 2 - 14, width: 28 });
   }, [activeIdx, pathname, isHomeActive]);
 
-  const hidden = useHideOnScroll(customizerSlot !== null);
-
   return (
     <>
       <nav
         ref={navRef}
         role="tablist"
-        className={cn(
-          "fixed bottom-0 left-0 right-0 z-50 md:hidden transition-transform duration-200 ease-out",
-          hidden && "translate-y-full",
-        )}
+        className="fixed bottom-0 left-0 right-0 z-50 md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="relative" style={{ height: NAV_HEIGHT }}>
