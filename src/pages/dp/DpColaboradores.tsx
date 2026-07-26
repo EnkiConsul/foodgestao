@@ -366,12 +366,32 @@ export default function DpColaboradores() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Switch
-                          checked={!!c.ativo}
-                          onCheckedChange={(v) => handleToggle(c, v)}
-                          disabled={toggle.isPending}
-                        />
+                        {c.ativo ? (
+                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
+                            Ativo
+                          </Badge>
+                        ) : (
+                          <div className="space-y-0.5">
+                            <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
+                              Desligado em {fmtDate(c.data_desligamento)}
+                            </Badge>
+                            <div className="text-[11px] text-muted-foreground whitespace-nowrap">
+                              {(c as any).motivo_desligamento
+                                ? MOTIVO_DESLIGAMENTO_LABEL[(c as any).motivo_desligamento as keyof typeof MOTIVO_DESLIGAMENTO_LABEL]
+                                : "Motivo não informado"}
+                              {(c as any).elegivel_recontratacao
+                                ? ` • ${ELEGIBILIDADE_LABEL[(c as any).elegivel_recontratacao as keyof typeof ELEGIBILIDADE_LABEL]}`
+                                : ""}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground whitespace-nowrap">
+                              {acessoPortalAtivo((c as any).acesso_portal_ate)
+                                ? `Portal até ${fmtDate((c as any).acesso_portal_ate)} (${diasRestantesCarencia((c as any).acesso_portal_ate)} d)`
+                                : "Portal encerrado"}
+                            </div>
+                          </div>
+                        )}
                       </TableCell>
+
                       <TableCell>
                         <Badge
                           variant="outline"
