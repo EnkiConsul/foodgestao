@@ -1,9 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { useMemo, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { toast } from "sonner";
+import { useState } from "react";
 import {
   Plus, Calendar, CalendarX, Eye, EyeOff,
 } from "lucide-react";
@@ -12,21 +8,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import {
-  MESES, getMonthName, parseYMD, toYMD,
+  MESES, getMonthName,
   emptyRegraForm, regraToFormState,
-  type Regra, type DataBloq, type Unidade,
-  type RegraFormState, type DataFormState, type RegraJson,
+  type Regra, type DataBloq,
+  type RegraFormState, type DataFormState,
 } from "@/lib/dp/bloqueios";
-import { expandRegraNoIntervalo, type RegraRow, type RegraUnidadeLink } from "@/lib/dp/bloqueio-rules";
+import { useDpBloqueios } from "@/hooks/useDpBloqueios";
 import { RegraDialog } from "@/components/dp/bloqueios/RegraDialog";
 import { DataDialog } from "@/components/dp/bloqueios/DataDialog";
 import { RegraRow as RegraRowUI } from "@/components/dp/bloqueios/RegraRow";
 import { DataRow } from "@/components/dp/bloqueios/DataRow";
 
 export default function DpBloqueios() {
-  const { selectedCompanyId } = useCompanyContext();
-  const qc = useQueryClient();
-
   // Filtros
   const [anoFiltro, setAnoFiltro] = useState(new Date().getFullYear());
   const [mesFiltro, setMesFiltro] = useState<string>("all");
@@ -43,389 +36,20 @@ export default function DpBloqueios() {
 
   const [regraForm, setRegraForm] = useState<RegraFormState>(emptyRegraForm);
   const [dataForm, setDataForm] = useState<DataFormState>({ data: "", motivo: "", unidade_id: "" });
+  const {
+    unidades,
+    regrasLoading,
+    datasLoading,
+    regrasFiltradas,
+    datasFiltradas,
+    saveRegra,
+    delRegra,
+    saveData,
+    delData,
+    rebloquear,
+    liberar,
+  } = useDpBloqueios({ anoFiltro, mesFiltro, aplicacaoFiltro, unidadeFiltro, showPast });
 
-  // ---- Queries ----
-  const unidadesQ = useQuery({
-    queryKey: ["dp_unidades_ativas", selectedCompanyId],
-    enabled: !!selectedCompanyId,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("dp_unidades")
-        .select("id, nome").eq("company_id", selectedCompanyId!).eq("ativo", true).order("nome");
-      if (error) throw error;
-      return (data ?? []) as Unidade[];
-    },
-  });
-
-  const regrasQ = useQuery({
-    queryKey: ["dp_bloqueio_regras", selectedCompanyId],
-    enabled: !!selectedCompanyId,
-    queryFn: async () => {
-      const { data: regrasData, error } = await supabase
-        .from("dp_bloqueio_regras")
-        .select("*")
-        .eq("company_id", selectedCompanyId!)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-
-      const { data: vinc } = await supabase
-        .from("dp_bloqueio_regra_unidades")
-        .select("regra_id, unidade_id");
-      const { data: unis } = await supabase
-        .from("dp_unidades").select("id, nome").eq("company_id", selectedCompanyId!);
-
-      const uniById = new Map((unis ?? []).map((u: any) => [u.id, u as Unidade]));
-      const vincByRegra = new Map<string, Unidade[]>();
-      (vinc ?? []).forEach((v: any) => {
-        const u = uniById.get(v.unidade_id);
-        if (!u) return;
-        const arr = vincByRegra.get(v.regra_id) ?? [];
-        arr.push(u); vincByRegra.set(v.regra_id, arr);
-      });
-
-      return ((regrasData ?? []) as any[]).map((r) => ({
-        ...r,
-        unidades: vincByRegra.get(r.id) ?? [],
-      })) as Regra[];
-    },
-  });
-
-  const datasQ = useQuery({
-    queryKey: ["dp_datas_bloqueadas_admin", selectedCompanyId],
-    enabled: !!selectedCompanyId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dp_datas_bloqueadas")
-        .select("*, liberada, unidade:dp_unidades(id, nome)")
-        .eq("company_id", selectedCompanyId!)
-        .order("data", { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as DataBloq[];
-    },
-  });
-
-  // ---- Filtros memo ----
-  const today = useMemo(() => {
-    const t = new Date(); t.setHours(0, 0, 0, 0); return t;
-  }, []);
-
-  // ---- Merge: expansão em runtime das regras + linhas físicas (overrides/manuais) ----
-  const datasFiltradas = useMemo<DataBloq[]>(() => {
-    const physical = datasQ.data ?? [];
-    const regras = regrasQ.data ?? [];
-
-    // Intervalo do filtro (ano + mês)
-    const mesNum = mesFiltro === "all" ? null : Number(mesFiltro);
-    const fromRaw = mesNum
-      ? new Date(anoFiltro, mesNum - 1, 1)
-      : new Date(anoFiltro, 0, 1);
-    const to = mesNum
-      ? new Date(anoFiltro, mesNum, 0)
-      : new Date(anoFiltro, 11, 31);
-    const from = !showPast && fromRaw < today ? today : fromRaw;
-    if (from > to) return [];
-
-    // Unidade alvo para expansão
-    const unidadeAlvo: string | null =
-      unidadeFiltro === "all" ? null
-      : unidadeFiltro === "__global__" ? "__global__"
-      : unidadeFiltro;
-
-    // Vínculos regra→unidades (a partir de regrasQ que já enriquece com unidades)
-    const vinculos: RegraUnidadeLink[] = [];
-    for (const r of regras) {
-      for (const u of r.unidades ?? []) {
-        vinculos.push({ regra_id: r.id, unidade_id: u.id });
-      }
-    }
-    const regrasRow: RegraRow[] = regras.map((r) => ({
-      id: r.id, company_id: r.company_id, nome: r.nome, tipo: r.tipo,
-      mes: r.mes, dia: r.dia, regra_json: (r.regra_json ?? null) as any, ativo: r.ativo,
-    }));
-
-    // Nome das unidades para exibir nas badges de override parcial
-    const unidadeNomeById = new Map<string, string>();
-    for (const u of unidadesQ.data ?? []) unidadeNomeById.set(u.id, u.nome);
-
-    // Expande cada regra respeitando o filtro de unidade
-    const autoMap = new Map<string, string>(); // iso -> motivo
-    const regraByIso = new Map<string, string>(); // iso -> regra_id
-    const globalRuleByIso = new Map<string, boolean>(); // iso -> alguma regra global cobre a data?
-    for (const r of regrasRow) {
-      const linked = vinculos.filter((v) => v.regra_id === r.id).map((v) => v.unidade_id);
-      // Filtro por unidade:
-      // - "__global__": apenas regras SEM vínculos
-      // - unidadeId específico: globais (sem vínculos) OU vinculadas àquela unidade
-      // - "all" (null): todas
-      if (unidadeAlvo === "__global__" && linked.length > 0) continue;
-      if (unidadeAlvo && unidadeAlvo !== "__global__" && linked.length > 0 && !linked.includes(unidadeAlvo)) continue;
-      const isGlobal = linked.length === 0;
-      const set = expandRegraNoIntervalo(r, from, to);
-      for (const iso of set) {
-        if (!autoMap.has(iso)) {
-          autoMap.set(iso, r.nome);
-          regraByIso.set(iso, r.id);
-        }
-        if (isGlobal) globalRuleByIso.set(iso, true);
-        else if (!globalRuleByIso.has(iso)) globalRuleByIso.set(iso, false);
-      }
-    }
-
-    // 1) Overrides / manuais em `dp_datas_bloqueadas` no intervalo/unidade
-    const physicalInScope = physical.filter((d) => {
-      const dt = parseYMD(d.data);
-      if (dt < from || dt > to) return false;
-      if (unidadeFiltro === "__global__" && d.unidade_id) return false;
-      if (unidadeFiltro !== "all" && unidadeFiltro !== "__global__" && d.unidade_id && d.unidade_id !== unidadeFiltro) return false;
-      return true;
-    });
-
-    const physicalByKey = new Map<string, DataBloq>();
-    for (const d of physicalInScope) {
-      physicalByKey.set(`${d.data}|${d.unidade_id ?? ""}`, d);
-    }
-
-    // Overrides parciais (com liberada=true) por iso, apenas quando o filtro
-    // é "all" — nas visões restritas por unidade não faz sentido consolidar.
-    const partialByIso = new Map<string, Array<{ id: string; unidade_id: string; unidade_nome: string }>>();
-    if (unidadeFiltro === "all") {
-      for (const d of physicalInScope) {
-        if (!d.unidade_id) continue;
-        const isLib = d.liberada === true || !!d.liberada_por_solicitacao;
-        if (!isLib) continue;
-        if (!autoMap.has(d.data)) continue; // só relevante quando há regra cobrindo
-        const nome = unidadeNomeById.get(d.unidade_id) ?? d.unidade?.nome ?? "Unidade";
-        const arr = partialByIso.get(d.data) ?? [];
-        arr.push({ id: d.id, unidade_id: d.unidade_id, unidade_nome: nome });
-        partialByIso.set(d.data, arr);
-      }
-    }
-
-    const getOverrideForAuto = (iso: string) => {
-      if (unidadeFiltro !== "all" && unidadeFiltro !== "__global__") {
-        return physicalByKey.get(`${iso}|${unidadeFiltro}`) ?? physicalByKey.get(`${iso}|`);
-      }
-      return physicalByKey.get(`${iso}|`);
-    };
-
-    // 2) Monta linhas AUTO (a partir do runtime), aplicando override se existir
-    const result: DataBloq[] = [];
-    const consumedKeys = new Set<string>();
-    for (const [iso, motivo] of autoMap.entries()) {
-      const regraId = regraByIso.get(iso) ?? null;
-      const override = getOverrideForAuto(iso);
-      const partials = partialByIso.get(iso) ?? [];
-      if (override) {
-        consumedKeys.add(`${override.data}|${override.unidade_id ?? ""}`);
-        const isLiberada = override.liberada === true || !!override.liberada_por_solicitacao;
-        result.push({
-          ...override,
-          regra_id: regraId,
-          motivo: isLiberada ? motivo : override.motivo,
-          partialOverrides: partials.filter((p) => p.id !== override.id),
-        });
-      } else {
-        result.push({
-          id: `auto:${regraId ?? "x"}:${iso}`,
-          company_id: selectedCompanyId ?? "",
-          data: iso,
-          motivo,
-          regra_id: regraId,
-          unidade_id: null,
-          liberada: false,
-          liberada_por_solicitacao: null,
-          unidade: null,
-          partialOverrides: partials,
-        });
-      }
-      // Consumir chaves dos overrides parciais para não duplicar como linha "Liberada"
-      for (const p of partials) consumedKeys.add(`${iso}|${p.unidade_id}`);
-    }
-
-    // 3) Linhas físicas não cobertas por regra: manuais reais
-    for (const [key, d] of physicalByKey.entries()) {
-      if (consumedKeys.has(key)) continue;
-      const isLiberada = d.liberada === true || !!d.liberada_por_solicitacao;
-      if (isLiberada && autoMap.has(d.data)) {
-        const regraId = regraByIso.get(d.data) ?? null;
-        result.push({
-          ...d,
-          regra_id: regraId,
-          motivo: autoMap.get(d.data) ?? d.motivo,
-        });
-        continue;
-      }
-      if (autoMap.has(d.data)) continue;
-      result.push(d);
-    }
-
-    // 4) Ordenação
-    result.sort((a, b) => a.data.localeCompare(b.data));
-    return result;
-  }, [datasQ.data, regrasQ.data, unidadesQ.data, anoFiltro, mesFiltro, unidadeFiltro, showPast, today, selectedCompanyId]);
-
-  const regrasFiltradas = useMemo(() => {
-    const rows = regrasQ.data ?? [];
-    if (aplicacaoFiltro === "all") return rows;
-    return rows.filter((r) => (r.regra_json?.aplicacao ?? "anual") === aplicacaoFiltro);
-  }, [regrasQ.data, aplicacaoFiltro]);
-
-  // Regras dinâmicas passaram a valer em runtime — nenhuma regeneração manual é necessária.
-
-
-  // ---- Mutations ----
-  const saveRegra = useMutation({
-    mutationFn: async () => {
-      if (!regraForm.nome.trim()) throw new Error("Descrição é obrigatória");
-      if (regraForm.aplicacao === "unica" && !regraForm.ano_referencia) throw new Error("Informe o ano de referência.");
-      if (regraForm.meses.length === 0) throw new Error("Selecione pelo menos um mês.");
-      if (regraForm.tipo === "fixa_anual" && regraForm.dias.length === 0) throw new Error("Selecione pelo menos um dia.");
-      if (regraForm.tipo === "dinamica" && (regraForm.ordinal == null || regraForm.dia_semana == null)) throw new Error("Preencha ordinal e dia da semana.");
-
-      const { data: userRes } = await supabase.auth.getUser();
-      const payload = {
-        company_id: selectedCompanyId!,
-        nome: regraForm.nome.trim(),
-        tipo: regraForm.tipo,
-        mes: regraForm.meses.length === 1 ? regraForm.meses[0] : null,
-        dia: regraForm.tipo === "fixa_anual" && regraForm.dias.length === 1 ? regraForm.dias[0] : null,
-        regra_json: {
-          aplicacao: regraForm.aplicacao,
-          ano_referencia: regraForm.aplicacao === "unica" ? regraForm.ano_referencia : null,
-          meses: regraForm.meses,
-          dias: regraForm.tipo === "fixa_anual" ? regraForm.dias : [],
-          ordinal: regraForm.tipo === "dinamica" ? regraForm.ordinal : null,
-          dia_semana: regraForm.tipo === "dinamica" ? regraForm.dia_semana : null,
-          pos_pagamento_dia: regraForm.tipo === "pos_pagamento" ? (regraForm.pos_pagamento_dia ?? 5) : null,
-        } as RegraJson,
-        ativo: regraForm.ativo,
-        criado_por: userRes.user?.id ?? null,
-      };
-
-      let regraId = editRegraId;
-      if (editRegraId) {
-        const { error } = await supabase.from("dp_bloqueio_regras").update(payload).eq("id", editRegraId);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase.from("dp_bloqueio_regras").insert(payload).select("id").single();
-        if (error) throw error;
-        regraId = data!.id;
-      }
-
-      if (regraId) {
-        await supabase.from("dp_bloqueio_regra_unidades").delete().eq("regra_id", regraId);
-        if (regraForm.unidades.length > 0) {
-          const inserts = regraForm.unidades.map((unidade_id) => ({ regra_id: regraId!, unidade_id }));
-          const { error } = await supabase.from("dp_bloqueio_regra_unidades").insert(inserts);
-          if (error) throw error;
-        }
-      }
-    },
-    onSuccess: async () => {
-      toast.success(editRegraId ? "Regra atualizada" : "Regra criada");
-      setRegraOpen(false); setEditRegraId(null);
-      await qc.invalidateQueries({ queryKey: ["dp_bloqueio_regras"] });
-    },
-    onError: (e: any) => toast.error(e.message ?? "Erro"),
-  });
-
-  const delRegra = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_bloqueio_regras").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: async () => {
-      toast.success("Regra excluída");
-      await qc.invalidateQueries({ queryKey: ["dp_bloqueio_regras"] });
-    },
-  });
-
-  const saveData = useMutation({
-    mutationFn: async () => {
-      if (!dataForm.data) throw new Error("Selecione uma data");
-      if (!dataForm.motivo.trim()) throw new Error("Informe o motivo");
-      const { data: userRes } = await supabase.auth.getUser();
-      const payload = {
-        company_id: selectedCompanyId!,
-        data: dataForm.data,
-        motivo: dataForm.motivo.trim(),
-        unidade_id: dataForm.unidade_id || null,
-        regra_id: null,
-        criado_por: userRes.user?.id ?? null,
-      };
-      if (editDataId) {
-        const { error } = await supabase.from("dp_datas_bloqueadas").update(payload).eq("id", editDataId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("dp_datas_bloqueadas").insert(payload);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      toast.success(editDataId ? "Bloqueio atualizado" : "Data bloqueada");
-      setDataOpen(false); setEditDataId(null);
-      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
-    },
-    onError: (e: any) => toast.error(e.message ?? "Erro"),
-  });
-
-  const delData = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_datas_bloqueadas").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Bloqueio removido");
-      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
-    },
-  });
-
-  const rebloquear = useMutation({
-    mutationFn: async (d: DataBloq) => {
-      if (d.regra_id) {
-        const { error } = await supabase.from("dp_datas_bloqueadas").delete().eq("id", d.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("dp_datas_bloqueadas")
-          .update({ liberada: false, liberada_por_solicitacao: null })
-          .eq("id", d.id);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      toast.success("Data bloqueada novamente");
-      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
-    },
-    onError: (e: any) => toast.error(e.message ?? "Erro"),
-  });
-
-  const liberar = useMutation({
-    mutationFn: async (d: DataBloq) => {
-      const { data: userRes } = await supabase.auth.getUser();
-      const unidadeIdParaUpsert = d.unidade_id ?? null;
-      const { error } = await supabase
-        .from("dp_datas_bloqueadas")
-        .upsert(
-          {
-            company_id: selectedCompanyId!,
-            data: d.data,
-            unidade_id: unidadeIdParaUpsert,
-            liberada: true,
-            motivo: "Liberado manualmente pelo administrador",
-            criado_por: userRes.user?.id ?? null,
-          },
-          { onConflict: "company_id,unidade_id,data" },
-        );
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Data liberada");
-      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
-      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas"] });
-      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_geral"] });
-    },
-    onError: (e: any) => toast.error(e?.message ?? "Erro ao liberar"),
-  });
 
   // ---- Handlers de abertura ----
   const openNovaRegra = () => {
@@ -487,7 +111,7 @@ export default function DpBloqueios() {
             className="bg-background border border-border rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary w-[180px]">
             <option value="all">Todas</option>
             <option value="__global__">Global</option>
-            {(unidadesQ.data ?? []).map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
+            {(unidades).map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
           </select>
         </div>
         <Button variant="ghost" size="sm" onClick={() => setShowPast(!showPast)} className="flex items-center gap-2">
@@ -513,7 +137,7 @@ export default function DpBloqueios() {
         </div>
 
         <div className="bg-card border border-border rounded-2xl overflow-hidden">
-          {regrasQ.isLoading ? (
+          {regrasLoading ? (
             <div className="p-8 text-center text-muted-foreground">Carregando…</div>
           ) : regrasFiltradas.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">Nenhuma regra configurada.</div>
@@ -539,7 +163,7 @@ export default function DpBloqueios() {
           <span className="text-sm font-normal text-muted-foreground">({datasFiltradas.length} datas)</span>
         </h2>
         <div className="bg-card border border-border rounded-2xl overflow-hidden">
-          {datasQ.isLoading ? (
+          {datasLoading ? (
             <div className="p-8 text-center text-muted-foreground">Carregando…</div>
           ) : datasFiltradas.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">Nenhuma data bloqueada neste período.</div>
@@ -564,22 +188,30 @@ export default function DpBloqueios() {
         open={regraOpen}
         isEditing={!!editRegraId}
         form={regraForm}
-        unidades={unidadesQ.data ?? []}
+        unidades={unidades}
         saving={saveRegra.isPending}
         onChange={(updater) => setRegraForm(updater)}
         onCancel={() => { setRegraOpen(false); setEditRegraId(null); }}
-        onSubmit={() => saveRegra.mutate()}
+        onSubmit={() => saveRegra.mutate(
+          { form: regraForm, editId: editRegraId },
+          { onSuccess: () => { setRegraOpen(false); setEditRegraId(null); } },
+        )}
+
       />
 
       <DataDialog
         open={dataOpen}
         isEditing={!!editDataId}
         form={dataForm}
-        unidades={unidadesQ.data ?? []}
+        unidades={unidades}
         saving={saveData.isPending}
         onChange={(updater) => setDataForm(updater)}
         onCancel={() => { setDataOpen(false); setEditDataId(null); }}
-        onSubmit={() => saveData.mutate()}
+        onSubmit={() => saveData.mutate(
+          { form: dataForm, editId: editDataId },
+          { onSuccess: () => { setDataOpen(false); setEditDataId(null); } },
+        )}
+
       />
     </DpPage>
   );
