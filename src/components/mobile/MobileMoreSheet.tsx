@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { LayoutGrid, LogOut, Search, SearchX, Star, X } from "lucide-react";
+import { LayoutGrid, LogOut, Search, SearchX, Sliders, Star, X } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { toast } from "sonner";
 type Props = {
   groups: MoreGroup[];
   trigger: React.ReactNode;
+  onCustomizeShortcut?: () => void;
 };
 
 const norm = (s: string) =>
