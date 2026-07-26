@@ -139,7 +139,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [current?.id, ocrInProgress, isSaving]);
+  }, [current?.id, batchInfo.data?.status, isSaving]);
 
   // Render página atual
   useEffect(() => {
