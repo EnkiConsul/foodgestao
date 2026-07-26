@@ -1,4 +1,5 @@
 import { Outlet } from "react-router-dom";
+import { EdgeGestures } from "@/components/mobile/EdgeGestures";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DpSidebar } from "./DpSidebar";
 import { DpHeader } from "./DpHeader";
@@ -9,6 +10,7 @@ import { MobileBottomNav } from "@/components/mobile/MobileBottomNav";
 export function DpShell({ variant = "admin" }: { variant?: "admin" | "portal" }) {
   return (
     <SidebarProvider>
+      <EdgeGestures />
       <div className="dp-shell flex min-h-screen w-full bg-[hsl(var(--dp-canvas))]">
         <DpSidebar variant={variant} />
         <div className="flex flex-1 flex-col min-w-0">

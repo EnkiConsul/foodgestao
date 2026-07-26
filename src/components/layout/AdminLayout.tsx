@@ -1,3 +1,4 @@
+import { EdgeGestures } from "@/components/mobile/EdgeGestures";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "./AdminSidebar";
 import { Outlet } from "react-router-dom";
@@ -8,6 +9,7 @@ import { MobileBottomNav } from "@/components/mobile/MobileBottomNav";
 export function AdminLayout() {
   return (
     <SidebarProvider>
+      <EdgeGestures />
       <div className="flex min-h-screen w-full">
         <AdminSidebar />
         <div className="flex flex-1 flex-col">
