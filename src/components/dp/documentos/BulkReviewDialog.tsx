@@ -48,7 +48,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
     enabled: open && !!batchId,
     refetchInterval: (q) => {
       const b = q.state.data as any;
-      if (!b || b.status !== "ready" || isSaving) return 900;
+      if (!b || b.status === "processing" || isSaving) return 900;
       return false;
     },
     queryFn: async () => {
@@ -69,7 +69,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
       const rows = (q.state.data as any[] | undefined) ?? [];
       const b = batchInfo.data as any;
       const total = b?.total_pages ?? 0;
-      const notReady = !b || b.status !== "ready";
+      const notReady = !b || b.status === "processing";
       const missingRows = total > 0 && rows.length < total;
       return (notReady || missingRows || rows.length === 0) ? 1500 : false;
     },
@@ -286,7 +286,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
           const b = batchInfo.data as any;
           const totalPages = b?.total_pages ?? 0;
           const processedPages = b?.processed_pages ?? 0;
-          const ocrInProgress = !b || b.status !== "ready" || (totalPages > 0 && rows.length < totalPages);
+          const ocrInProgress = !b || b.status === "processing" || (b.status !== "ready" ? false : totalPages > 0 && rows.length < totalPages);
           const approvedCount = Math.min(savingTotal, b?.approved_count ?? 0);
           if (ocrInProgress) {
             return (
