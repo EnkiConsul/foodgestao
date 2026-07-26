@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronRight, Star } from "lucide-react";
+import { ChevronDown, Star } from "lucide-react";
 import type {
   GroupAccent,
   MoreGroup,
@@ -30,10 +30,10 @@ export function MoreGroupSection({ group, isFavorite, onToggleFav }: Props) {
   const { pathname } = useLocation();
   const accent = group.accent ?? "muted";
 
-  const items = (group.items ?? []).filter((it) => it.to !== "/dp" || false);
+  const items = group.items ?? [];
   const subgroups = group.subgroups ?? [];
 
-  // Grupos de módulo abrem por padrão; Conta (muted) começa fechado.
+  // Conta (muted) começa fechado; demais abertos.
   const [open, setOpen] = useState<boolean>(accent !== "muted");
 
   const isActive = (to: string) =>
@@ -50,15 +50,6 @@ export function MoreGroupSection({ group, isFavorite, onToggleFav }: Props) {
         className="w-full flex items-center gap-2 px-1 py-1 text-left"
         aria-expanded={open}
       >
-        <span
-          className={cn(
-            "inline-flex h-7 w-7 items-center justify-center rounded-lg text-[13px] font-semibold",
-            ACCENT_CHIP[accent],
-          )}
-          aria-hidden
-        >
-          {group.label.charAt(0)}
-        </span>
         <h3 className="flex-1 text-sm font-semibold tracking-tight">
           {group.label}
         </h3>
@@ -116,41 +107,78 @@ function SubgroupBlock({
   onToggleFav: (to: string, label: string) => void;
 }) {
   const SgIcon = subgroup.icon;
+  const { pathname } = useLocation();
+  const autoOpen = (subgroup.matchPrefixes ?? []).some((p) =>
+    pathname === p || pathname.startsWith(p + "/") || pathname.startsWith(p),
+  );
+  const [open, setOpen] = useState<boolean>(true);
+  // Se rota bater, garantir aberto quando muda para essa rota.
+  useEffect(() => {
+    if (autoOpen) setOpen(true);
+  }, [autoOpen]);
+
+  const headerClickable = Boolean(subgroup.hubTo);
+
   return (
     <div className="rounded-2xl border bg-card p-3 space-y-3">
       <div className="flex items-center gap-2">
-        <span
+        <button
+          type="button"
+          disabled={!headerClickable}
+          onClick={() => headerClickable && onNavigate(subgroup.hubTo!)}
           className={cn(
-            "inline-flex h-8 w-8 items-center justify-center rounded-lg",
-            ACCENT_CHIP[accent],
+            "flex flex-1 min-w-0 items-center gap-2 text-left",
+            headerClickable && "active:opacity-70",
           )}
         >
-          <SgIcon className="h-4 w-4" />
-        </span>
-        <span className="flex-1 min-w-0 text-[13px] font-semibold truncate">
-          {subgroup.label}
-        </span>
-        {subgroup.hubTo && (
-          <button
-            type="button"
-            onClick={() => onNavigate(subgroup.hubTo!)}
-            className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+          <span
+            className={cn(
+              "inline-flex h-8 w-8 items-center justify-center rounded-lg shrink-0",
+              ACCENT_CHIP[accent],
+            )}
           >
-            Ver tudo
-            <ChevronRight className="h-3 w-3" />
-          </button>
-        )}
+            <SgIcon className="h-4 w-4" />
+          </span>
+          <span className="flex-1 min-w-0 text-[13px] font-semibold truncate">
+            {subgroup.label}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen((v) => !v);
+          }}
+          aria-expanded={open}
+          aria-label={open ? `Ocultar ${subgroup.label}` : `Mostrar ${subgroup.label}`}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
+        >
+          <ChevronDown
+            className={cn("h-4 w-4 transition-transform", open && "rotate-180")}
+          />
+        </button>
       </div>
-      <TileGrid
-        items={subgroup.items}
-        accent={accent}
-        isActive={isActive}
-        isFavorite={isFavorite}
-        onNavigate={onNavigate}
-        onToggleFav={onToggleFav}
-      />
+      {open && (
+        <TileGrid
+          items={subgroup.items}
+          accent={accent}
+          isActive={isActive}
+          isFavorite={isFavorite}
+          onNavigate={onNavigate}
+          onToggleFav={onToggleFav}
+        />
+      )}
     </div>
   );
+}
+
+/** Escolhe entre 3 ou 4 colunas conforme a quantidade de itens, para evitar
+ * linhas com muitos "buracos". Flex-wrap com justify-center centraliza a última
+ * linha quando ela ficar incompleta. */
+function pickCols(n: number): 3 | 4 {
+  if (n <= 4) return 4;
+  if (n <= 6) return 3;
+  return 4;
 }
 
 function TileGrid({
@@ -168,18 +196,24 @@ function TileGrid({
   onNavigate: (to: string) => void;
   onToggleFav: (to: string, label: string) => void;
 }) {
+  const cols = pickCols(items.length);
+  const basis =
+    cols === 4
+      ? "w-[calc(25%-9px)]"
+      : "w-[calc(33.333%-8px)]";
   return (
-    <div className="grid grid-cols-4 gap-2">
+    <div className="flex flex-wrap justify-center gap-x-3 gap-y-4">
       {items.map((item) => (
-        <IFoodTile
-          key={item.to}
-          item={item}
-          accent={accent}
-          active={isActive(item.to)}
-          fav={isFavorite(item.to)}
-          onNavigate={() => onNavigate(item.to)}
-          onToggleFav={() => onToggleFav(item.to, item.label)}
-        />
+        <div key={item.to} className={cn("flex", basis)}>
+          <IFoodTile
+            item={item}
+            accent={accent}
+            active={isActive(item.to)}
+            fav={isFavorite(item.to)}
+            onNavigate={() => onNavigate(item.to)}
+            onToggleFav={() => onToggleFav(item.to, item.label)}
+          />
+        </div>
       ))}
     </div>
   );
@@ -234,13 +268,13 @@ function IFoodTile({
         onNavigate();
       }}
       className={cn(
-        "relative flex flex-col items-center justify-start gap-1.5 px-1 py-2 rounded-xl text-center",
+        "relative flex w-full min-w-0 flex-col items-center justify-start gap-1.5 px-2 py-2 rounded-xl text-center",
         "active:scale-[0.95] transition-transform",
       )}
     >
       <span
         className={cn(
-          "inline-flex h-12 w-12 items-center justify-center rounded-full",
+          "inline-flex h-12 w-12 items-center justify-center rounded-full shrink-0",
           ACCENT_CHIP[accent],
           active && "ring-2 ring-primary/60",
         )}
@@ -248,7 +282,7 @@ function IFoodTile({
         <Icon className="h-5 w-5" />
       </span>
       <span className={cn(
-        "block text-[11px] leading-tight line-clamp-2 min-h-[26px]",
+        "block w-full text-[11px] leading-tight break-words hyphens-auto line-clamp-2 min-h-[26px]",
         active ? "font-semibold text-primary" : "text-foreground/80",
       )}>
         {item.label}

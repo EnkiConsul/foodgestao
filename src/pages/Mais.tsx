@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutGrid, LogOut, Search, SearchX, Sliders, Star, X } from "lucide-react";
+import { LayoutGrid, LogOut, Search, SearchX, Sliders, User, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveModule } from "@/hooks/useActiveModule";
+import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { MODULE_NAV, type NavLeaf } from "@/config/mobileNav";
 import { useFavoriteNavItems } from "@/hooks/useFavoriteNavItems";
 import { MoreHeader } from "@/components/mobile/MoreHeader";
@@ -18,7 +19,8 @@ const norm = (s: string) =>
 export default function Mais() {
   const activeModule = useActiveModule();
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
+  const { isSuperAdmin } = useSuperAdmin();
   const { favorites, isFavorite, toggle, max } = useFavoriteNavItems();
   const [query, setQuery] = useState("");
 
@@ -156,7 +158,7 @@ export default function Mais() {
                 onClick={openCustomizer}
               >
                 <Sliders className="h-4 w-4" />
-                Personalizar barra
+                Personalizar Barra
               </Button>
               <Button
                 variant="outline"
@@ -166,6 +168,27 @@ export default function Mais() {
                 <LogOut className="h-4 w-4" />
                 Sair
               </Button>
+            </div>
+
+            {/* Rodapé do usuário — espelha o menu lateral do desktop */}
+            <div className="mt-4 flex items-center gap-3 rounded-2xl border bg-card px-3 py-3">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground shrink-0">
+                <User className="h-5 w-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium truncate">
+                  {(user?.user_metadata as { full_name?: string } | undefined)?.full_name
+                    || user?.email
+                    || "Usuário"}
+                </p>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {isSuperAdmin
+                    ? "Super Admin"
+                    : activeModule === "portal_colaborador"
+                      ? "Colaborador"
+                      : "Administrador"}
+                </p>
+              </div>
             </div>
           </>
         )}
