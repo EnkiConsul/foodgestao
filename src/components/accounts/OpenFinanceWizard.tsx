@@ -190,8 +190,24 @@ export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished }:
     if (!companyId) return;
     setBusy(true);
     try {
+      const subtype = (row.subtype ?? "").toUpperCase();
+      const type = (row.type ?? "").toUpperCase();
+      const accountType: "corrente" | "poupanca" | "investimento" | "cartao_credito" | "outro" =
+        type === "CREDIT" || subtype.includes("CREDIT_CARD")
+          ? "cartao_credito"
+          : subtype.includes("SAVINGS")
+          ? "poupanca"
+          : type === "INVESTMENT"
+          ? "investimento"
+          : type === "BANK"
+          ? "corrente"
+          : "outro";
       const { data, error: err } = await supabase.rpc("create_and_link_open_finance_account", {
         _of_account_id: row.id,
+        _account_name: row.name ?? institutionName ?? "Conta Open Finance",
+        _account_type: accountType,
+        _initial_balance: row.balance ?? 0,
+        _auto_import: row.auto_import,
       });
       if (err) throw err;
       setAccounts((list) => list.map((a) => (a.id === row.id ? { ...a, local_account_id: data as string } : a)));
