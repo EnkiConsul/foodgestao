@@ -409,7 +409,8 @@ const AppRoutes = () => (
         <Route path="/admin/seo-indexacao" element={<AdminSeoIndexacao />} />
         <Route path="/admin/modulos" element={<AdminModulos />} />
         <Route path="/admin/categorizacao-ia" element={<CategorizacaoIA />} />
-        
+        <Route path="/admin/mais" element={<Mais />} />
+
       </Route>
       <Route path="/convite/:token" element={<AcceptInvite />} />
       <Route path="/reset-password" element={<ResetPassword />} />
