@@ -202,7 +202,6 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
         label: "Financeiro 360°",
         accent: "primary",
         items: [
-          { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard", end: true },
           { icon: ArrowLeftRight, label: "Lançamentos", to: "/lancamentos", end: true },
           { icon: TrendingUp, label: "Fluxo de Caixa", to: "/fluxo-caixa", end: true },
           { icon: PiggyBank, label: "Orçamento", to: "/orcamento", end: true },
