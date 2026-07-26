@@ -4,7 +4,6 @@ import { NavLink } from "@/components/NavLink";
 import { useActiveModule, type ActiveModule } from "@/hooks/useActiveModule";
 import { MODULE_NAV, type NavLeaf } from "@/config/mobileNav";
 import { useModuleShortcuts, type ShortcutSlot } from "@/hooks/useModuleShortcut";
-import { MobileMoreSheet } from "./MobileMoreSheet";
 import { BottomNavShape } from "./BottomNavShape";
 import { cn } from "@/lib/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
