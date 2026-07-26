@@ -15,6 +15,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useAuth } from "@/hooks/useAuth";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { MobileDetailsSheet } from "@/components/dp/MobileCardKit";
 import type { Database } from "@/integrations/supabase/types";
 
 type Tipo = Database["public"]["Enums"]["dp_solicitacao_tipo"];
@@ -53,6 +54,7 @@ export default function DpSolicitacoes() {
   const [respostas, setRespostas] = useState<Record<string, string>>({});
   const [confirmAdiantamento, setConfirmAdiantamento] = useState<RowWithColab | null>(null);
   const [form, setForm] = useState({ colaborador_id: "", tipo: "folga" as Tipo, data_alvo: "", data_fim: "", motivo: "" });
+  const [detailsRow, setDetailsRow] = useState<RowWithColab | null>(null);
 
   const list = useQuery({
     queryKey: ["dp_solicitacoes", selectedCompanyId],
@@ -166,42 +168,73 @@ export default function DpSolicitacoes() {
           {pendentes.map((s) => {
             const arquivo = (s as unknown as { arquivo_path?: string | null }).arquivo_path ?? null;
             return (
-              <div key={s.id} className="bg-card border border-amber-500/30 rounded-xl p-4 space-y-3">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div>
-                    <div className="font-medium">{s.dp_colaboradores?.nome ?? "Funcionário"}</div>
-                    <div className="text-sm text-muted-foreground">
+              <div
+                key={s.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => setDetailsRow(s)}
+                onKeyDown={(e) => { if (e.key === "Enter") setDetailsRow(s); }}
+                className="bg-card border border-amber-500/30 rounded-xl p-4 space-y-3 cursor-pointer hover:bg-muted/30 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium truncate">{s.dp_colaboradores?.nome ?? "Funcionário"}</div>
+                    <div className="text-sm text-muted-foreground truncate">
                       <span className="capitalize mr-2">{s.tipo}</span>
-                      Solicitando: <b>{formatBR(s.data_alvo)}{s.data_fim ? ` → ${formatBR(s.data_fim)}` : ""}</b>
+                      <b>{formatBR(s.data_alvo)}{s.data_fim ? ` → ${formatBR(s.data_fim)}` : ""}</b>
                     </div>
                   </div>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="hidden md:inline text-xs text-muted-foreground whitespace-nowrap">
                     {new Date(s.created_at).toLocaleString("pt-BR")}
                   </span>
                 </div>
 
                 {s.motivo && (
-                  <div className="text-sm bg-muted/40 rounded-lg p-3">{s.motivo}</div>
+                  <div className="text-sm bg-muted/40 rounded-lg p-3 line-clamp-2 md:line-clamp-none">{s.motivo}</div>
                 )}
 
                 <Textarea
                   placeholder="Resposta (opcional)"
                   value={respostas[s.id] ?? ""}
                   onChange={(e) => setRespostas({ ...respostas, [s.id]: e.target.value })}
+                  onClick={(e) => e.stopPropagation()}
                   rows={2}
                 />
 
-                <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 sm:justify-end">
+                <div className="flex flex-wrap gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
                   {arquivo && (
-                    <Button variant="ghost" size="sm" className="min-h-11 w-full sm:w-auto" onClick={() => openArquivo(arquivo)}>
-                      <FileText className="size-4 mr-1" /> Ver arquivo
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label="Ver arquivo"
+                      title="Ver arquivo"
+                      className="min-h-11 h-11 w-11 md:w-auto md:px-3"
+                      onClick={() => openArquivo(arquivo)}
+                    >
+                      <FileText className="size-4 md:mr-1" />
+                      <span className="hidden md:inline">Ver arquivo</span>
                     </Button>
                   )}
-                  <Button variant="outline" className="min-h-11 w-full sm:w-auto" onClick={() => decide(s, false)} disabled={respond.isPending}>
-                    <X className="size-4 mr-1" /> Recusar
+                  <Button
+                    variant="outline"
+                    aria-label="Recusar solicitação"
+                    title="Recusar"
+                    className="min-h-11 h-11 w-11 md:w-auto md:px-3"
+                    onClick={() => decide(s, false)}
+                    disabled={respond.isPending}
+                  >
+                    <X className="size-4 md:mr-1" />
+                    <span className="hidden md:inline">Recusar</span>
                   </Button>
-                  <Button className="min-h-11 w-full sm:w-auto" onClick={() => decide(s, true)} disabled={respond.isPending}>
-                    <Check className="size-4 mr-1" /> Aprovar
+                  <Button
+                    aria-label="Aprovar solicitação"
+                    title="Aprovar"
+                    className="min-h-11 h-11 w-11 md:w-auto md:px-3"
+                    onClick={() => decide(s, true)}
+                    disabled={respond.isPending}
+                  >
+                    <Check className="size-4 md:mr-1" />
+                    <span className="hidden md:inline">Aprovar</span>
                   </Button>
                 </div>
               </div>
@@ -220,20 +253,27 @@ export default function DpSolicitacoes() {
           {historico.map((s) => {
             const meta = STATUS_META[s.status];
             return (
-              <div key={s.id} className="p-4 text-sm flex items-start justify-between gap-3 flex-wrap">
-                <div className="min-w-0">
-                  <div className="font-medium">
+              <div
+                key={s.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => setDetailsRow(s)}
+                onKeyDown={(e) => { if (e.key === "Enter") setDetailsRow(s); }}
+                className="p-4 text-sm flex items-start justify-between gap-3 cursor-pointer hover:bg-muted/30 transition-colors"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium truncate">
                     {s.dp_colaboradores?.nome ?? "—"} <span className="text-muted-foreground">• {formatBR(s.data_alvo)}</span>
                     <span className="capitalize text-muted-foreground"> • {s.tipo}</span>
                   </div>
-                  {s.motivo && <div className="text-muted-foreground mt-0.5">{s.motivo}</div>}
+                  {s.motivo && <div className="text-muted-foreground mt-0.5 line-clamp-1 md:line-clamp-none">{s.motivo}</div>}
                   {s.resposta_admin && (
-                    <div className="text-xs text-muted-foreground mt-1">
+                    <div className="text-xs text-muted-foreground mt-1 line-clamp-1 md:line-clamp-none">
                       <b>Resposta:</b> {s.resposta_admin}
                     </div>
                   )}
                 </div>
-                <span className={`text-xs px-2 py-1 rounded-md whitespace-nowrap ${meta.className}`}>
+                <span className={`text-xs px-2 py-1 rounded-md whitespace-nowrap shrink-0 ${meta.className}`}>
                   {meta.label}
                 </span>
               </div>
@@ -317,6 +357,31 @@ export default function DpSolicitacoes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <MobileDetailsSheet
+        open={!!detailsRow}
+        onOpenChange={(o) => !o && setDetailsRow(null)}
+        title={detailsRow?.dp_colaboradores?.nome ?? "Solicitação"}
+        description={detailsRow ? STATUS_META[detailsRow.status].label : undefined}
+        meta={detailsRow ? [
+          { label: "Tipo", value: <span className="capitalize">{detailsRow.tipo}</span> },
+          { label: "Data alvo", value: formatBR(detailsRow.data_alvo) },
+          ...(detailsRow.data_fim ? [{ label: "Data fim", value: formatBR(detailsRow.data_fim) }] : []),
+          { label: "Criada em", value: new Date(detailsRow.created_at).toLocaleString("pt-BR") },
+          ...(detailsRow.motivo ? [{ label: "Motivo", value: detailsRow.motivo }] : []),
+          ...(detailsRow.resposta_admin ? [{ label: "Resposta", value: detailsRow.resposta_admin }] : []),
+        ] : []}
+        footer={detailsRow && detailsRow.status === "pendente" ? (
+          <div className="flex gap-2 w-full">
+            <Button variant="outline" className="flex-1" onClick={() => { decide(detailsRow, false); setDetailsRow(null); }}>
+              <X className="size-4 mr-1" /> Recusar
+            </Button>
+            <Button className="flex-1" onClick={() => { decide(detailsRow, true); setDetailsRow(null); }}>
+              <Check className="size-4 mr-1" /> Aprovar
+            </Button>
+          </div>
+        ) : null}
+      />
     </DpPage>
   );
 }
