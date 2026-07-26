@@ -2199,6 +2199,56 @@ export type Database = {
           },
         ]
       }
+      dp_beneficios: {
+        Row: {
+          ativo: boolean
+          company_id: string
+          created_at: string
+          desconto_percentual: number
+          descricao: string | null
+          folha_tipo: Database["public"]["Enums"]["dp_folha_tipo"] | null
+          id: string
+          nome: string
+          tipo: Database["public"]["Enums"]["dp_beneficio_tipo"]
+          updated_at: string
+          valor_padrao: number
+        }
+        Insert: {
+          ativo?: boolean
+          company_id: string
+          created_at?: string
+          desconto_percentual?: number
+          descricao?: string | null
+          folha_tipo?: Database["public"]["Enums"]["dp_folha_tipo"] | null
+          id?: string
+          nome: string
+          tipo?: Database["public"]["Enums"]["dp_beneficio_tipo"]
+          updated_at?: string
+          valor_padrao?: number
+        }
+        Update: {
+          ativo?: boolean
+          company_id?: string
+          created_at?: string
+          desconto_percentual?: number
+          descricao?: string | null
+          folha_tipo?: Database["public"]["Enums"]["dp_folha_tipo"] | null
+          id?: string
+          nome?: string
+          tipo?: Database["public"]["Enums"]["dp_beneficio_tipo"]
+          updated_at?: string
+          valor_padrao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_beneficios_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_bloqueio_regra_unidades: {
         Row: {
           regra_id: string
@@ -2625,6 +2675,80 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "dp_cargos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_colaborador_beneficios: {
+        Row: {
+          ativo: boolean
+          beneficio_id: string
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          data_fim: string | null
+          data_inicio: string
+          desconto_valor: number
+          id: string
+          observacao: string | null
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean
+          beneficio_id: string
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string
+          desconto_valor?: number
+          id?: string
+          observacao?: string | null
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          ativo?: boolean
+          beneficio_id?: string
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string
+          desconto_valor?: number
+          id?: string
+          observacao?: string | null
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_colaborador_beneficios_beneficio_id_fkey"
+            columns: ["beneficio_id"]
+            isOneToOne: false
+            referencedRelation: "dp_beneficios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_beneficios_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_beneficios_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_beneficios_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
@@ -6662,6 +6786,10 @@ export type Database = {
         Args: { _connection_id: string }
         Returns: undefined
       }
+      dp_beneficios_gerar_lancamentos: {
+        Args: { _periodo_id: string }
+        Returns: number
+      }
       dp_bulk_increment_processed: {
         Args: { p_batch_id: string }
         Returns: undefined
@@ -7214,6 +7342,16 @@ export type Database = {
       context_type: "pf" | "pj"
       discount_type: "percent" | "fixed"
       dp_aprovacao_status: "pendente" | "aprovado" | "recusado"
+      dp_beneficio_tipo:
+        | "vale_transporte"
+        | "vale_alimentacao"
+        | "vale_refeicao"
+        | "plano_saude"
+        | "plano_odontologico"
+        | "seguro_vida"
+        | "auxilio_creche"
+        | "auxilio_combustivel"
+        | "outro"
       dp_bloqueio_regra_tipo: "fixa_anual" | "dinamica" | "pos_pagamento"
       dp_bloqueio_tipo: "folga" | "troca" | "solicitacoes" | "todos"
       dp_disciplinar_tipo:
@@ -7519,6 +7657,17 @@ export const Constants = {
       context_type: ["pf", "pj"],
       discount_type: ["percent", "fixed"],
       dp_aprovacao_status: ["pendente", "aprovado", "recusado"],
+      dp_beneficio_tipo: [
+        "vale_transporte",
+        "vale_alimentacao",
+        "vale_refeicao",
+        "plano_saude",
+        "plano_odontologico",
+        "seguro_vida",
+        "auxilio_creche",
+        "auxilio_combustivel",
+        "outro",
+      ],
       dp_bloqueio_regra_tipo: ["fixa_anual", "dinamica", "pos_pagamento"],
       dp_bloqueio_tipo: ["folga", "troca", "solicitacoes", "todos"],
       dp_disciplinar_tipo: [

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { NavLink, useLocation, Link, useNavigate } from "react-router-dom";
 import {
   Home, Users, Briefcase, Building2, Scale, FileSignature,
-  Calendar, ClipboardList, UserCheck, ArrowLeftRight, Ban, Palmtree, ShieldCheck,
+  Calendar, ClipboardList, UserCheck, ArrowLeftRight, Ban, Palmtree, ShieldCheck, Gift,
   FileText, Coins, Clock, HeartPulse, ShieldAlert, ListChecks,
   MessageSquare, Bell, BellRing, ChevronDown, LogOut, ArrowLeft, Settings, Repeat,
 } from "lucide-react";
@@ -67,6 +67,7 @@ const ADMIN_ITEMS: Item[] = [
     ],
   },
   { kind: "link", title: "Conformidade", url: "/dp/conformidade", icon: ShieldCheck },
+  { kind: "link", title: "Benefícios", url: "/dp/beneficios", icon: Gift },
   {
     kind: "group", title: "Comunicação", icon: MessageSquare,
     prefixes: ["/dp/comunicacao", "/dp/mensagens", "/dp/avisos"],
