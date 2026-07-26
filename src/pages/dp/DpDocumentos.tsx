@@ -21,9 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
-import { useAuth } from "@/hooks/useAuth";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { MobileDetailsSheet } from "@/components/dp/MobileCardKit";
@@ -46,7 +44,6 @@ export const TIPOS: { value: Tipo; label: string }[] = [
   { value: "outros", label: "Outros" },
 ];
 
-const BUCKET = "dp-documentos";
 
 export default function DpDocumentos() {
   const { categoria } = useParams<{ categoria?: string }>();
