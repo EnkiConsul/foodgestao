@@ -364,6 +364,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
         label: "Portal",
         accent: "navy",
         items: [
+          { icon: Megaphone, label: "Mural", to: "/dp/meu/mural" },
           { icon: Settings, label: "Meu Cadastro", to: "/dp/meu/perfil" },
         ],
         subgroups: [
