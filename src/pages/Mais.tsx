@@ -1,10 +1,9 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutGrid, LogOut, Search, SearchX, Sliders, User, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { LogOut, SearchX, Sliders, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { useActiveModule } from "@/hooks/useActiveModule";
+import { MODULE_LABEL, useActiveModule } from "@/hooks/useActiveModule";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { MODULE_NAV, type NavLeaf } from "@/config/mobileNav";
 import { useFavoriteNavItems } from "@/hooks/useFavoriteNavItems";
@@ -25,6 +24,7 @@ export default function Mais() {
   const [query, setQuery] = useState("");
 
   const config = MODULE_NAV[activeModule] ?? MODULE_NAV.financeiro;
+  const moduleLabel = MODULE_LABEL[activeModule];
 
   const allItems: NavLeaf[] = useMemo(
     () =>
@@ -67,46 +67,7 @@ export default function Mais() {
 
   return (
     <div className="min-h-full bg-background pb-[calc(80px+env(safe-area-inset-bottom))]">
-      <MoreHeader />
-
-      <div className="px-4 pt-4 space-y-4">
-        {/* Cartão destaque: Hub */}
-        <button
-          type="button"
-          onClick={() => navigate("/hub")}
-          className="w-full flex items-center gap-3 rounded-2xl border bg-gradient-to-br from-primary/10 to-primary/5 px-4 py-4 text-left active:scale-[0.99] transition"
-        >
-          <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <LayoutGrid className="h-5 w-5" />
-          </span>
-          <span className="flex-1 min-w-0">
-            <span className="block text-sm font-semibold">Acompanhar módulos</span>
-            <span className="block text-xs text-muted-foreground">
-              Alternar entre Financeiro, DP e outros
-            </span>
-          </span>
-        </button>
-
-        {/* Busca */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar funcionalidade..."
-            className="pl-9 pr-9 h-11 rounded-xl"
-          />
-          {query && (
-            <button
-              onClick={() => setQuery("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-muted-foreground hover:bg-muted"
-              aria-label="Limpar busca"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-      </div>
+      <MoreHeader query={query} onQueryChange={setQuery} />
 
       <div className="px-4 py-4 space-y-6">
         {isSearching ? (
@@ -146,6 +107,7 @@ export default function Mais() {
               <MoreGroupSection
                 key={group.label}
                 group={group}
+                hideHeader={group.label === moduleLabel}
                 isFavorite={isFavorite}
                 onToggleFav={handleToggleFav}
               />

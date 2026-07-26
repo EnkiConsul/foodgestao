@@ -23,9 +23,11 @@ type Props = {
   group: MoreGroup;
   isFavorite: (to: string) => boolean;
   onToggleFav: (to: string, label: string) => void;
+  /** Se true, não renderiza o cabeçalho do grupo (título + chevron do grupo raiz). */
+  hideHeader?: boolean;
 };
 
-export function MoreGroupSection({ group, isFavorite, onToggleFav }: Props) {
+export function MoreGroupSection({ group, isFavorite, onToggleFav, hideHeader }: Props) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const accent = group.accent ?? "muted";
@@ -35,6 +37,7 @@ export function MoreGroupSection({ group, isFavorite, onToggleFav }: Props) {
 
   // Conta (muted) começa fechado; demais abertos.
   const [open, setOpen] = useState<boolean>(accent !== "muted");
+  const showContent = hideHeader ? true : open;
 
   const isActive = (to: string) =>
     pathname === to || pathname.startsWith(to + "/");
@@ -44,24 +47,26 @@ export function MoreGroupSection({ group, isFavorite, onToggleFav }: Props) {
 
   return (
     <section className="space-y-3">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2 px-1 py-1 text-left"
-        aria-expanded={open}
-      >
-        <h3 className="flex-1 text-sm font-semibold tracking-tight">
-          {group.label}
-        </h3>
-        <ChevronDown
-          className={cn(
-            "h-4 w-4 text-muted-foreground transition-transform",
-            open && "rotate-180",
-          )}
-        />
-      </button>
+      {!hideHeader && (
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="w-full flex items-center gap-2 px-1 py-1 text-left"
+          aria-expanded={open}
+        >
+          <h3 className="flex-1 text-sm font-semibold tracking-tight">
+            {group.label}
+          </h3>
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 text-muted-foreground transition-transform",
+              open && "rotate-180",
+            )}
+          />
+        </button>
+      )}
 
-      {open && (
+      {showContent && (
         <div className="space-y-4">
           {items.length > 0 && (
             <TileGrid
