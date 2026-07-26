@@ -33,7 +33,7 @@ import type { Database } from "@/integrations/supabase/types";
 
 type Tipo = Database["public"]["Enums"]["dp_documento_tipo"];
 type Aprov = "pendente" | "aprovado" | "recusado";
-type Row = Database["public"]["Tables"]["dp_documentos"]["Row"];
+type Row = Database["public"]["Tables"]["dp_documentos"]["Row"] & { dp_colaboradores?: { nome: string } | null };
 
 export const TIPOS: { value: Tipo; label: string }[] = [
   { value: "contracheque", label: "Contracheque" },
