@@ -1687,15 +1687,12 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       <AccountCreationMethodDialog
         open={accountMethodOpen}
         onOpenChange={setAccountMethodOpen}
+        openFinanceEnabled={contextType === "pj" && !!selectedCompanyId}
+        openFinanceDisabledReason="Selecione uma empresa antes de conectar uma conta via Open Finance."
         onSelectManual={() => { setAccountMethodOpen(false); setAccountDialogOpen(true); }}
         onSelectOpenFinance={() => {
+          if (contextType !== "pj" || !selectedCompanyId) return;
           setAccountMethodOpen(false);
-          if (contextType !== "pj" || !selectedCompanyId) {
-            toast.error("Selecione uma empresa (PJ)", {
-              description: "O Open Finance está disponível apenas no contexto empresarial.",
-            });
-            return;
-          }
           onOpenChange(false);
           navigate("/contas-bancarias?openFinance=1");
         }}
