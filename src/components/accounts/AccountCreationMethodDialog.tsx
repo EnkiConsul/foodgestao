@@ -1,12 +1,16 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Zap, Pencil, Check } from "lucide-react";
+import { Zap, Pencil, Check, Info } from "lucide-react";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelectManual: () => void;
   onSelectOpenFinance: () => void;
+  /** Se falso, o card de Open Finance é exibido desabilitado com aviso. */
+  openFinanceEnabled?: boolean;
+  /** Mensagem exibida quando Open Finance está desabilitado. */
+  openFinanceDisabledReason?: string;
 }
 
 function Bullet({ children }: { children: React.ReactNode }) {
@@ -18,7 +22,14 @@ function Bullet({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function AccountCreationMethodDialog({ open, onOpenChange, onSelectManual, onSelectOpenFinance }: Props) {
+export function AccountCreationMethodDialog({
+  open,
+  onOpenChange,
+  onSelectManual,
+  onSelectOpenFinance,
+  openFinanceEnabled = true,
+  openFinanceDisabledReason = "Selecione uma empresa antes de conectar uma conta via Open Finance.",
+}: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -34,8 +45,15 @@ export function AccountCreationMethodDialog({ open, onOpenChange, onSelectManual
           <button
             type="button"
             aria-label="Conectar por Open Finance"
+            aria-disabled={!openFinanceEnabled}
+            disabled={!openFinanceEnabled}
             onClick={onSelectOpenFinance}
-            className="group relative flex flex-col text-left cursor-pointer rounded-lg border bg-card p-4 transition-all hover:border-primary hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className={
+              "group relative flex flex-col text-left rounded-lg border bg-card p-4 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary " +
+              (openFinanceEnabled
+                ? "cursor-pointer hover:border-primary hover:shadow-md"
+                : "cursor-not-allowed opacity-60")
+            }
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -52,9 +70,25 @@ export function AccountCreationMethodDialog({ open, onOpenChange, onSelectManual
               <Bullet>Atualização diária dos saldos</Bullet>
               <Bullet>Menos digitação e menos erros</Bullet>
             </ul>
+
+            {!openFinanceEnabled && (
+              <div
+                role="note"
+                className="mt-3 flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-2 text-xs text-foreground"
+              >
+                <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-warning" />
+                <span>{openFinanceDisabledReason}</span>
+              </div>
+            )}
+
             <span
               aria-hidden="true"
-              className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors group-hover:bg-primary/90"
+              className={
+                "mt-4 inline-flex h-10 w-full items-center justify-center rounded-md px-4 text-sm font-medium transition-colors " +
+                (openFinanceEnabled
+                  ? "bg-primary text-primary-foreground group-hover:bg-primary/90"
+                  : "bg-muted text-muted-foreground")
+              }
             >
               Conectar com Open Finance
             </span>

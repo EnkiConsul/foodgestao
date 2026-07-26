@@ -380,16 +380,15 @@ export default function ContasBancarias() {
       <AccountCreationMethodDialog
         open={methodOpen}
         onOpenChange={setMethodOpen}
+        openFinanceEnabled={contextType === "pj" && !!selectedCompanyId}
+        openFinanceDisabledReason="Selecione uma empresa antes de conectar uma conta via Open Finance."
         onSelectManual={() => { setMethodOpen(false); setEditAccount(null); setDialogOpen(true); }}
         onSelectOpenFinance={() => {
-          setMethodOpen(false);
           if (contextType !== "pj" || !selectedCompanyId) {
-            toast.error("Selecione uma empresa", {
-              description:
-                "Para conectar uma conta via Open Finance, selecione primeiro a empresa que será vinculada à conta.",
-            });
+            // Card está desabilitado — não deveria disparar. Mantém o modal aberto.
             return;
           }
+          setMethodOpen(false);
           setOfWizardOpen(true);
         }}
       />
