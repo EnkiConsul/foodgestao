@@ -365,8 +365,9 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
     hubTo: "/hub",
     moreTo: "/mais",
     home: hubHome,
-    defaultShortcutA: hubShortcuts[0],
-    defaultShortcutB: hubShortcuts[1],
+    defaultShortcutA: hubShortcuts[0], // Financeiro (2º)
+    defaultShortcutB: hubShortcuts[1], // DP (4º)
+    defaultShortcutC: hubShortcuts[2] ?? hubShortcuts[0], // Buscar (1º)
     shortcutOptions: hubShortcuts,
     moreGroups: [
       {
