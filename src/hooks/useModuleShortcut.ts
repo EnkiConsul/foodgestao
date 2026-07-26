@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { MODULE_NAV } from "@/config/mobileNav";
-import type { NavLeaf } from "@/config/mobileNav";
+import type { MoreGroup, NavLeaf } from "@/config/mobileNav";
 import type { ActiveModule } from "@/hooks/useActiveModule";
 
 export type ShortcutSlot = "a" | "b";
@@ -17,21 +17,43 @@ function readStored(mod: ActiveModule, slot: ShortcutSlot): string | null {
   }
 }
 
+/** Achata todas as telas visíveis do módulo (items + subgroups.items),
+ *  ignorando o grupo "Conta" para não misturar contexto no customizer. */
+function flattenModuleOptions(groups: MoreGroup[]): NavLeaf[] {
+  const out: NavLeaf[] = [];
+  const seen = new Set<string>();
+  for (const g of groups) {
+    if ((g.accent ?? "") === "muted") continue; // pula "Conta"
+    for (const it of g.items ?? []) {
+      if (seen.has(it.to)) continue;
+      seen.add(it.to);
+      out.push(it);
+    }
+    for (const sg of g.subgroups ?? []) {
+      for (const it of sg.items) {
+        if (seen.has(it.to)) continue;
+        seen.add(it.to);
+        out.push(it);
+      }
+    }
+  }
+  return out;
+}
+
 function resolve(
   mod: ActiveModule,
   slot: ShortcutSlot,
   storedTo: string | null,
   otherTo: string,
+  options: NavLeaf[],
 ): NavLeaf {
   const config = MODULE_NAV[mod] ?? MODULE_NAV.financeiro;
-  const options = config.shortcutOptions;
   const fallback = slot === "a" ? config.defaultShortcutA : config.defaultShortcutB;
 
   if (storedTo && storedTo !== otherTo) {
     const found = options.find((it) => it.to === storedTo);
     if (found) return found;
   }
-  // Fallback padrão — se colide com o outro slot, escolhe primeira opção diferente.
   if (fallback.to !== otherTo) return fallback;
   const alt = options.find((it) => it.to !== otherTo);
   return alt ?? fallback;
