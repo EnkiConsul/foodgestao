@@ -1,9 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { useMemo, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { toast } from "sonner";
+import { useState } from "react";
 import {
   Plus, Calendar, CalendarX, Eye, EyeOff,
 } from "lucide-react";
@@ -12,21 +8,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import {
-  MESES, getMonthName, parseYMD, toYMD,
+  MESES, getMonthName,
   emptyRegraForm, regraToFormState,
-  type Regra, type DataBloq, type Unidade,
-  type RegraFormState, type DataFormState, type RegraJson,
+  type Regra, type DataBloq,
+  type RegraFormState, type DataFormState,
 } from "@/lib/dp/bloqueios";
-import { expandRegraNoIntervalo, type RegraRow, type RegraUnidadeLink } from "@/lib/dp/bloqueio-rules";
+import { useDpBloqueios } from "@/hooks/useDpBloqueios";
 import { RegraDialog } from "@/components/dp/bloqueios/RegraDialog";
 import { DataDialog } from "@/components/dp/bloqueios/DataDialog";
 import { RegraRow as RegraRowUI } from "@/components/dp/bloqueios/RegraRow";
 import { DataRow } from "@/components/dp/bloqueios/DataRow";
 
 export default function DpBloqueios() {
-  const { selectedCompanyId } = useCompanyContext();
-  const qc = useQueryClient();
-
   // Filtros
   const [anoFiltro, setAnoFiltro] = useState(new Date().getFullYear());
   const [mesFiltro, setMesFiltro] = useState<string>("all");
@@ -43,6 +36,7 @@ export default function DpBloqueios() {
 
   const [regraForm, setRegraForm] = useState<RegraFormState>(emptyRegraForm);
   const [dataForm, setDataForm] = useState<DataFormState>({ data: "", motivo: "", unidade_id: "" });
+
 
   // ---- Queries ----
   const unidadesQ = useQuery({
