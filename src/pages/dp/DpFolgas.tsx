@@ -793,104 +793,201 @@ export default function DpFolgas() {
         {query.isLoading ? (
           <CalendarSkeleton />
         ) : (
-          <div className="grid grid-cols-7 gap-px bg-[hsl(var(--dp-border))] rounded-lg overflow-hidden border border-[hsl(var(--dp-border))]">
-            {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((d) => (
-              <div
-                key={d}
-                className="bg-muted/40 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
-              >
-                {d}
-              </div>
-            ))}
-            {days.map((day) => {
-              const key = format(day, "yyyy-MM-dd");
-              const events = eventsByDay.get(key) ?? [];
-              const inMonth = isSameMonth(day, cursor);
-              const isToday = isSameDay(day, new Date());
-              const cap = capacityByDay.get(key) ?? defaultDailyCap;
-              const aprov = events.filter((e) => e.status === "aprovada" && e.tipo === "folga").length;
-              const blocked = blockedByDate.get(key);
-              const lotado = !blocked && cap > 0 && aprov >= cap;
-              const parcial = !blocked && aprov > 0 && !lotado;
-
-              return (
-                <button
-                  key={key}
-                  onClick={() => openDay(day)}
-                  title={blocked?.reason}
-                  className={cn(
-                    "min-h-[112px] bg-white p-2 text-left flex flex-col gap-1.5 transition-colors hover:bg-muted/30",
-                    !inMonth && "bg-muted/10 text-muted-foreground",
-                    blocked && inMonth && "bg-destructive/15 border border-destructive/40",
-                    lotado && inMonth && "bg-red-50/60",
-                    parcial && inMonth && "bg-emerald-50/40",
-                  )}
+          <>
+            {/* Desktop: grid semanal */}
+            <div className="hidden md:grid grid-cols-7 gap-px bg-[hsl(var(--dp-border))] rounded-lg overflow-hidden border border-[hsl(var(--dp-border))]">
+              {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((d) => (
+                <div
+                  key={d}
+                  className="bg-muted/40 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
                 >
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={cn(
-                        "text-sm font-semibold",
-                        isToday && "text-primary",
-                        blocked && inMonth && "text-destructive",
-                        lotado && inMonth && "text-red-700",
-                        parcial && inMonth && "text-emerald-700",
-                      )}
-                    >
-                      {format(day, "d")}
-                    </span>
-                    {inMonth && blocked && (
-                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-destructive/20 text-destructive uppercase tracking-wider">
-                        Bloqueado
-                      </span>
+                  {d}
+                </div>
+              ))}
+              {days.map((day) => {
+                const key = format(day, "yyyy-MM-dd");
+                const events = eventsByDay.get(key) ?? [];
+                const inMonth = isSameMonth(day, cursor);
+                const isToday = isSameDay(day, new Date());
+                const cap = capacityByDay.get(key) ?? defaultDailyCap;
+                const aprov = events.filter((e) => e.status === "aprovada" && e.tipo === "folga").length;
+                const blocked = blockedByDate.get(key);
+                const lotado = !blocked && cap > 0 && aprov >= cap;
+                const parcial = !blocked && aprov > 0 && !lotado;
+
+                return (
+                  <button
+                    key={key}
+                    onClick={() => openDay(day)}
+                    title={blocked?.reason}
+                    className={cn(
+                      "min-h-[112px] bg-white p-2 text-left flex flex-col gap-1.5 transition-colors hover:bg-muted/30",
+                      !inMonth && "bg-muted/10 text-muted-foreground",
+                      blocked && inMonth && "bg-destructive/15 border border-destructive/40",
+                      lotado && inMonth && "bg-red-50/60",
+                      parcial && inMonth && "bg-emerald-50/40",
                     )}
-                    {inMonth && !blocked && (
+                  >
+                    <div className="flex items-center justify-between">
                       <span
                         className={cn(
-                          "text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
-                          lotado
-                            ? "bg-red-100 text-red-700"
-                            : "bg-emerald-100 text-emerald-700",
+                          "text-sm font-semibold",
+                          isToday && "text-primary",
+                          blocked && inMonth && "text-destructive",
+                          lotado && inMonth && "text-red-700",
+                          parcial && inMonth && "text-emerald-700",
                         )}
                       >
-                        {aprov}/{cap}
+                        {format(day, "d")}
                       </span>
-                    )}
-                  </div>
+                      {inMonth && blocked && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-destructive/20 text-destructive uppercase tracking-wider">
+                          Bloqueado
+                        </span>
+                      )}
+                      {inMonth && !blocked && (
+                        <span
+                          className={cn(
+                            "text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
+                            lotado
+                              ? "bg-red-100 text-red-700"
+                              : "bg-emerald-100 text-emerald-700",
+                          )}
+                        >
+                          {aprov}/{cap}
+                        </span>
+                      )}
+                    </div>
 
-                  <div className="flex flex-col gap-1 overflow-hidden">
-                    {events.slice(0, 3).map((ev) => {
-                      const isWeekly = ev.id.startsWith(WEEKLY_FOLGA_ID_PREFIX);
-                      return (
-                      <div
-                        key={ev.id + key}
-                        className={cn(
-                          "truncate rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase text-center",
-                          ev.status === "pendente"
-                            ? "bg-violet-100 text-violet-700"
-                            : isWeekly
-                              ? "bg-blue-100 text-blue-700"
-                              : ev.tipo === "folga"
-                                ? "bg-amber-100 text-amber-700"
-                                : ev.tipo === "ferias"
+                    <div className="flex flex-col gap-1 overflow-hidden">
+                      {events.slice(0, 3).map((ev) => {
+                        const isWeekly = ev.id.startsWith(WEEKLY_FOLGA_ID_PREFIX);
+                        return (
+                        <div
+                          key={ev.id + key}
+                          className={cn(
+                            "truncate rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase text-center",
+                            ev.status === "pendente"
+                              ? "bg-violet-100 text-violet-700"
+                              : isWeekly
+                                ? "bg-blue-100 text-blue-700"
+                                : ev.tipo === "folga"
                                   ? "bg-amber-100 text-amber-700"
-                                  : "bg-slate-100 text-slate-700",
+                                  : ev.tipo === "ferias"
+                                    ? "bg-amber-100 text-amber-700"
+                                    : "bg-slate-100 text-slate-700",
+                          )}
+                          title={`${ev.dp_colaboradores?.nome ?? ""} — ${isWeekly ? "Folga Semanal" : TIPO_LABEL[ev.tipo]}`}
+                        >
+                          {(ev.dp_colaboradores?.nome ?? "—").split(" ")[0]}
+                        </div>
+                        );
+                      })}
+                      {events.length > 3 && (
+                        <div className="text-[10px] text-muted-foreground pl-1">
+                          +{events.length - 3}
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Mobile: lista vertical (uma linha por dia do mês) */}
+            <ul className="md:hidden divide-y rounded-lg border border-[hsl(var(--dp-border))] overflow-hidden bg-white">
+              {days.filter((d) => isSameMonth(d, cursor)).map((day) => {
+                const key = format(day, "yyyy-MM-dd");
+                const events = eventsByDay.get(key) ?? [];
+                const isToday = isSameDay(day, new Date());
+                const cap = capacityByDay.get(key) ?? defaultDailyCap;
+                const aprov = events.filter((e) => e.status === "aprovada" && e.tipo === "folga").length;
+                const blocked = blockedByDate.get(key);
+                const lotado = !blocked && cap > 0 && aprov >= cap;
+                const parcial = !blocked && aprov > 0 && !lotado;
+                const wd = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][day.getDay()];
+                const hasEvents = events.length > 0 || !!blocked;
+
+                return (
+                  <li key={key}>
+                    <button
+                      type="button"
+                      onClick={() => openDay(day)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors active:bg-muted/60 hover:bg-muted/40",
+                        isToday && "bg-primary/5",
+                        blocked && "bg-destructive/5",
+                      )}
+                    >
+                      <div className="flex items-baseline gap-2 min-w-[64px] shrink-0">
+                        <span className={cn(
+                          "text-[11px] font-semibold uppercase tracking-wide",
+                          hasEvents ? "text-muted-foreground" : "text-muted-foreground/60",
+                        )}>
+                          {wd}
+                        </span>
+                        <span className={cn(
+                          "text-lg font-bold tabular-nums",
+                          isToday && "text-primary",
+                          blocked && "text-destructive",
+                          !hasEvents && "text-muted-foreground/50",
+                        )}>
+                          {format(day, "d")}
+                        </span>
+                      </div>
+
+                      <div className="flex-1 min-w-0 flex flex-wrap gap-1">
+                        {blocked && (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-destructive/25 bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold text-destructive max-w-full">
+                            <Lock className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{blocked.reason || "Bloqueado"}</span>
+                          </span>
                         )}
-                        title={`${ev.dp_colaboradores?.nome ?? ""} — ${isWeekly ? "Folga Semanal" : TIPO_LABEL[ev.tipo]}`}
-                      >
-                        {(ev.dp_colaboradores?.nome ?? "—").split(" ")[0]}
+                        {!blocked && (
+                          <span className={cn(
+                            "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                            lotado
+                              ? "bg-red-100 text-red-700 border-red-200"
+                              : parcial
+                                ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                                : "bg-muted text-muted-foreground border-border",
+                          )}>
+                            {aprov}/{cap}
+                          </span>
+                        )}
+                        {events.map((ev) => {
+                          const isWeekly = ev.id.startsWith(WEEKLY_FOLGA_ID_PREFIX);
+                          const chipClass = ev.status === "pendente"
+                            ? "bg-violet-100 text-violet-700 border-violet-200"
+                            : isWeekly
+                              ? "bg-blue-100 text-blue-700 border-blue-200"
+                              : ev.tipo === "folga" || ev.tipo === "ferias"
+                                ? "bg-amber-100 text-amber-700 border-amber-200"
+                                : "bg-slate-100 text-slate-700 border-slate-200";
+                          return (
+                            <span
+                              key={ev.id + key}
+                              className={cn(
+                                "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium max-w-full",
+                                chipClass,
+                              )}
+                              title={`${ev.dp_colaboradores?.nome ?? ""} — ${isWeekly ? "Folga Semanal" : TIPO_LABEL[ev.tipo]}`}
+                            >
+                              <span className="truncate">
+                                {(ev.dp_colaboradores?.nome ?? "—").split(" ")[0]}
+                              </span>
+                            </span>
+                          );
+                        })}
                       </div>
-                      );
-                    })}
-                    {events.length > 3 && (
-                      <div className="text-[10px] text-muted-foreground pl-1">
-                        +{events.length - 3}
-                      </div>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+
+                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
         )}
 
         {/* Legend */}
