@@ -43,6 +43,7 @@ export default function ContasBancarias() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<Account | null>(null);
+  const [methodOpen, setMethodOpen] = useState(false);
   const [deleteAccount, setDeleteAccount] = useState<Account | null>(null);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
