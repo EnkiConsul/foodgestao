@@ -371,7 +371,7 @@ export default function Dashboard() {
             <div
               key={kpi.label}
               className={cn(
-                "col-span-6 lg:col-span-3 p-5 rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 flex flex-col justify-between min-h-[130px]",
+                "col-span-6 lg:col-span-3 p-3.5 md:p-5 rounded-xl md:rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 flex flex-col justify-between min-h-[96px] md:min-h-[130px]",
                 isHero
                   ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20"
                   : "bg-card border-border/60 shadow-sm hover:shadow-md"
