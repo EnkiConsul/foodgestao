@@ -4,7 +4,6 @@ import { NavLink } from "@/components/NavLink";
 import { useActiveModule, type ActiveModule } from "@/hooks/useActiveModule";
 import { MODULE_NAV, type NavLeaf } from "@/config/mobileNav";
 import { useModuleShortcuts, type ShortcutSlot } from "@/hooks/useModuleShortcut";
-import { MobileMoreSheet } from "./MobileMoreSheet";
 import { BottomNavShape } from "./BottomNavShape";
 import { cn } from "@/lib/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -36,6 +35,16 @@ export function MobileBottomNav() {
 
   const [customizerSlot, setCustomizerSlot] = useState<ShortcutSlot | null>(null);
 
+  // Página /mais dispara este evento no botão "Personalizar barra".
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ slot?: ShortcutSlot }>).detail;
+      setCustomizerSlot(detail?.slot ?? "a");
+    };
+    window.addEventListener("mobile-nav:customize", handler as EventListener);
+    return () => window.removeEventListener("mobile-nav:customize", handler as EventListener);
+  }, []);
+
   const isHubModule = activeModule === "hub";
 
   // Slot 1: Hub em geral; no módulo Hub, vira Financeiro (primeiro atalho fixo).
@@ -62,8 +71,11 @@ export function MobileBottomNav() {
     ? pathname === config.home.to
     : pathname === config.home.to || pathname.startsWith(config.home.to + "/");
 
+  const isMoreActive = pathname === config.moreTo || pathname.startsWith(config.moreTo + "/");
+
   const activeIdx = useMemo(() => {
     if (isHomeActive) return 2;
+    if (isMoreActive) return 4;
     let best = -1;
     let bestLen = -1;
     slots.forEach((s, i) => {
@@ -78,7 +90,7 @@ export function MobileBottomNav() {
       }
     });
     return best;
-  }, [pathname, slots, isHomeActive]);
+  }, [pathname, slots, isHomeActive, isMoreActive]);
 
   useEffect(() => {
     if (activeIdx < 0 || isHomeActive || !navRef.current) {
@@ -169,23 +181,7 @@ function SlotRenderer({
   }
 
   if (slot.kind === "more") {
-    return (
-      <MobileMoreSheet
-        groups={config.moreGroups}
-        onCustomizeShortcut={() => onOpenCustomizer("a")}
-        trigger={
-          <button
-            type="button"
-            onClick={() => haptic(6)}
-            className="flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] py-1.5 text-muted-foreground hover:text-foreground active:scale-95 transition-all"
-            aria-label="Mais opções"
-          >
-            <MoreHorizontal className="h-5 w-5" />
-            <span className="text-[10px] font-medium leading-none">Mais</span>
-          </button>
-        }
-      />
-    );
+    return <MoreSlot to={config.moreTo} />;
   }
 
   return (
@@ -219,6 +215,26 @@ function HomeSlot({ leaf }: { leaf: NavLeaf }) {
     </div>
   );
 }
+
+function MoreSlot({ to }: { to: string }) {
+  return (
+    <NavLink
+      to={to}
+      role="tab"
+      onClick={() => haptic(6)}
+      className={cn(
+        "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] py-1.5",
+        "text-muted-foreground active:scale-95 transition-all",
+      )}
+      activeClassName="text-primary"
+      aria-label="Mais opções"
+    >
+      <MoreHorizontal className="h-5 w-5" />
+      <span className="text-[10px] font-medium leading-none">Mais</span>
+    </NavLink>
+  );
+}
+
 
 function LeafSlot({ leaf, onLongPress }: { leaf: NavLeaf; onLongPress?: () => void }) {
   const Icon = leaf.icon;
