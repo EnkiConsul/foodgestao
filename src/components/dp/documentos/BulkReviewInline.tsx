@@ -51,8 +51,11 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
   const [currentIdx, setCurrentIdx] = useState(0);
   const [zoom, setZoom] = useState(1);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const previewBoxRef = useRef<HTMLDivElement | null>(null);
+  const [boxWidth, setBoxWidth] = useState(0);
   const [rendering, setRendering] = useState(false);
   const signedUrlsRef = useRef<Map<string, { url: string; exp: number }>>(new Map());
+
 
   const [savingTotal, setSavingTotal] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
@@ -127,9 +130,20 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
     return data.signedUrl;
   }
 
+  // Observa a largura disponível do contêiner da prévia (fit-to-width)
+  useEffect(() => {
+    const el = previewBoxRef.current;
+    if (!el) return;
+    const update = () => setBoxWidth(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [current?.id, batchInfo.data?.status, isSaving]);
+
   // Render página atual
   useEffect(() => {
-    if (!current?.page_file_path || !canvasRef.current) return;
+    if (!current?.page_file_path || !canvasRef.current || boxWidth <= 0) return;
     let cancelled = false;
     (async () => {
       try {
@@ -139,7 +153,11 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
         const doc = await loadPdfCached(current.page_file_path, signed);
         const page = await doc.getPage(1);
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        const viewport = page.getViewport({ scale: 1.5 * zoom * dpr });
+        // largura base da página (scale 1) para calcular o "fit to width"
+        const base = page.getViewport({ scale: 1 });
+        const available = Math.max(160, boxWidth - 16);
+        const fitScale = available / base.width;
+        const viewport = page.getViewport({ scale: fitScale * zoom * dpr });
         const canvas = canvasRef.current;
         if (!canvas || cancelled) return;
         canvas.width = viewport.width;
@@ -156,7 +174,8 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
       }
     })();
     return () => { cancelled = true; };
-  }, [current?.page_file_path, current?.id, zoom]);
+  }, [current?.page_file_path, current?.id, zoom, boxWidth]);
+
 
   // Pré-carrega páginas vizinhas (próxima e anterior)
   useEffect(() => {
@@ -387,28 +406,34 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
       {!ocrInProgress && !isSaving && (
       <>
       {/* Navigation bar */}
-      <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/20">
+      <div className="flex items-center justify-between gap-2 px-2 sm:px-3 py-2 border-b bg-muted/20">
         <Button
           size="sm" variant="outline"
+          className="h-10 px-2 sm:px-3 shrink-0"
           disabled={currentIdx <= 0}
           onClick={() => setCurrentIdx((i) => Math.max(0, i - 1))}
+          aria-label="Página anterior"
         >
-          <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
+          <ChevronLeft className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Anterior</span>
         </Button>
-        <div className="text-sm text-muted-foreground">
-          {rows.length > 0 ? <>Página <b className="text-foreground">{currentIdx + 1}</b> de {rows.length}</> : "—"}
+        <div className="text-sm text-muted-foreground text-center truncate">
+          {rows.length > 0
+            ? <><span className="hidden sm:inline">Página </span><b className="text-foreground">{currentIdx + 1}</b><span className="sm:hidden"> / </span><span className="hidden sm:inline"> de </span>{rows.length}</>
+            : "—"}
         </div>
         <Button
           size="sm" variant="outline"
+          className="h-10 px-2 sm:px-3 shrink-0"
           disabled={currentIdx >= rows.length - 1}
           onClick={() => setCurrentIdx((i) => Math.min(rows.length - 1, i + 1))}
+          aria-label="Próxima página"
         >
-          Próximo <ChevronRight className="h-4 w-4 ml-1" />
+          <span className="hidden sm:inline">Próximo</span> <ChevronRight className="h-4 w-4 sm:ml-1" />
         </Button>
       </div>
 
       {/* Card com preview */}
-      <div className="p-3">
+      <div className="p-2 sm:p-3">
 
 
         {current && (
@@ -420,22 +445,22 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
             bannerVariant === "muted" && "border-muted",
           )}>
             {/* Banner de status */}
-            <div className="flex items-center justify-between px-3 py-2 border-b bg-background/60">
-              <div className="flex items-center gap-2 text-sm">
+            <div className="flex flex-col gap-1 px-3 py-2 border-b bg-background/60 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm min-w-0">
                 {current.status === "imported" ? (
-                  <><CheckCircle2 className="h-4 w-4 text-green-600" /> <span>Importado</span></>
+                  <><CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" /> <span>Importado</span></>
                 ) : current.status === "rejected" ? (
-                  <><X className="h-4 w-4 text-muted-foreground" /> <span>Ignorada</span></>
+                  <><X className="h-4 w-4 shrink-0 text-muted-foreground" /> <span>Ignorada</span></>
                 ) : current.status === "failed" ? (
-                  <><AlertTriangle className="h-4 w-4 text-destructive" /> <span>{current.error_message ?? "Falha no processamento"}</span></>
+                  <><AlertTriangle className="h-4 w-4 shrink-0 text-destructive" /> <span className="min-w-0 truncate">{current.error_message ?? "Falha no processamento"}</span></>
                 ) : current.matched_colaborador_id ? (
-                  <><CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <span>Vinculado {current.manual_override ? "manualmente" : "automaticamente"}
+                  <><CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
+                    <span className="min-w-0 truncate">Vinculado {current.manual_override ? "manualmente" : "automaticamente"}
                       {!current.manual_override && Number(current.confidence) >= 0.95 ? " (nome exato)" : ""}
                     </span>
                   </>
                 ) : (
-                  <><AlertTriangle className="h-4 w-4 text-amber-600" /> <span>Sem vínculo — selecione um colaborador</span></>
+                  <><AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" /> <span className="min-w-0 truncate">Sem vínculo — selecione um colaborador</span></>
                 )}
                 {current.matched_colaborador_ativo === false && (
                   <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40 text-[10px]">
@@ -446,43 +471,55 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
                   <Badge variant="destructive" className="text-[10px]">Duplicado</Badge>
                 )}
                 {current.detected_competencia && (
-                  <Badge variant="outline" className="text-[10px]">
+                  <Badge variant="outline" className="text-[10px] whitespace-nowrap">
                     Competência {formatCompetencia(current.detected_competencia)}
                   </Badge>
                 )}
               </div>
-              <div className="flex items-center gap-1">
-                <Button size="icon" variant="ghost" onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))} title="Diminuir zoom">
+              <div className="flex items-center justify-end gap-0.5 shrink-0">
+                <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))} title="Diminuir zoom">
                   <ZoomOut className="h-4 w-4" />
                 </Button>
-                <span className="text-xs w-12 text-center tabular-nums">{Math.round(zoom * 100)}%</span>
-                <Button size="icon" variant="ghost" onClick={() => setZoom((z) => Math.min(2.5, z + 0.1))} title="Aumentar zoom">
+                <button
+                  type="button"
+                  onClick={() => setZoom(1)}
+                  title="Ajustar à largura"
+                  className="text-xs w-11 text-center tabular-nums text-muted-foreground hover:text-foreground"
+                >
+                  {Math.round(zoom * 100)}%
+                </button>
+                <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => setZoom((z) => Math.min(3, z + 0.25))} title="Aumentar zoom">
                   <ZoomIn className="h-4 w-4" />
                 </Button>
-                <Button size="icon" variant="ghost" onClick={openInNewTab} title="Abrir em nova aba">
+                <Button size="icon" variant="ghost" className="h-9 w-9" onClick={openInNewTab} title="Abrir em nova aba">
                   <ExternalLink className="h-4 w-4" />
                 </Button>
               </div>
             </div>
 
             {/* Preview grande do PDF */}
-            <div className="bg-muted/20 max-h-[70vh] overflow-auto flex items-start justify-center p-4">
+            <div
+              ref={previewBoxRef}
+              className="relative bg-muted/20 max-h-[60vh] md:max-h-[70vh] overflow-auto flex items-start justify-center p-2 sm:p-4"
+            >
               {rendering && (
-                <div className="absolute mt-4 text-sm text-muted-foreground flex items-center gap-2">
+                <div className="absolute inset-x-0 top-4 z-10 text-sm text-muted-foreground flex items-center justify-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" /> Renderizando…
                 </div>
               )}
               <canvas
                 ref={canvasRef}
-                className={cn("shadow-md rounded bg-white", rendering && "opacity-40")}
+                className={cn("shadow-md rounded bg-white max-w-full", rendering && "opacity-40")}
               />
             </div>
 
+
             {/* Editor: colaborador + competência + ações */}
-            <div className="p-3 border-t bg-background grid gap-3 md:grid-cols-[2fr_1fr_auto] items-end">
+            <div className="p-3 border-t bg-background grid gap-3 grid-cols-1 md:grid-cols-[2fr_1fr_auto] md:items-end">
+
               <div className="space-y-1">
                 <Label className="text-xs">Colaborador</Label>
-                <div className="flex gap-1">
+                <div className="flex gap-1 min-w-0">
                   <Select
                     value={current.matched_colaborador_id ?? "none"}
                     onValueChange={(v) => setColab.mutate({
@@ -490,9 +527,10 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
                     })}
                     disabled={current.status === "imported"}
                   >
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Selecionar colaborador" />
+                    <SelectTrigger className="h-10 min-w-0 flex-1">
+                      <SelectValue placeholder="Selecionar colaborador" className="truncate" />
                     </SelectTrigger>
+
                     <SelectContent>
                       <SelectItem value="none">— Nenhum —</SelectItem>
                       {colaboradores.map((c: any) => (
@@ -507,7 +545,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
                     defaultCpf={current.matched_cpf ?? ""}
                     onCreated={(id) => setColab.mutate({ id: current.id, colaborador_id: id })}
                     trigger={
-                      <Button size="icon" variant="outline" title="Cadastrar novo colaborador">
+                      <Button size="icon" variant="outline" className="h-10 w-10 shrink-0" title="Cadastrar novo colaborador">
                         <span className="text-lg leading-none">+</span>
                       </Button>
                     }
@@ -523,7 +561,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
               <div className="space-y-1">
                 <Label className="text-xs">Competência</Label>
                 <Input
-                  className="h-9"
+                  className="h-10 w-full"
                     type="month"
                     value={normalizeCompetencia(current.detected_competencia) ?? ""}
                   onChange={(e) => setCompetencia.mutate({
@@ -536,27 +574,29 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
 
               <div className="flex gap-1 justify-end">
                 {current.status === "rejected" ? (
-                  <Button size="sm" variant="outline" onClick={() => undo.mutate(current.id)}>
+                  <Button size="sm" variant="outline" className="h-10 w-full md:w-auto" onClick={() => undo.mutate(current.id)}>
                     <RotateCcw className="h-4 w-4 mr-1" /> Desfazer
                   </Button>
                 ) : current.status === "pending" ? (
-                  <Button size="sm" variant="outline" onClick={() => reject.mutate(current.id)}>
+                  <Button size="sm" variant="outline" className="h-10 w-full md:w-auto" onClick={() => reject.mutate(current.id)}>
                     <X className="h-4 w-4 mr-1" /> Ignorar
                   </Button>
                 ) : null}
               </div>
             </div>
+
           </div>
         )}
       </div>
 
       {/* Rodapé de aprovação */}
       {stats.total > 0 && (
-        <div className="px-4 py-3 border-t bg-muted/10 flex items-center justify-between gap-2">
-          <div className="text-xs text-muted-foreground">
+        <div className="px-3 sm:px-4 py-3 border-t bg-muted/10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="hidden sm:block text-xs text-muted-foreground">
             Use ← / → para navegar entre páginas
           </div>
           <Button
+            className="w-full sm:w-auto h-11"
             onClick={handleApproveClick}
             disabled={
               checkingDup
@@ -565,12 +605,16 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
             }
           >
             {(checkingDup || isSaving)
-              ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              : <Check className="h-4 w-4 mr-1" />}
-            Aprovar e Salvar {rows.filter((r: any) => r.status === "pending" && r.matched_colaborador_id).length} Documento(s)
+              ? <Loader2 className="h-4 w-4 mr-1 animate-spin shrink-0" />
+              : <Check className="h-4 w-4 mr-1 shrink-0" />}
+            <span className="truncate">
+              <span className="sm:hidden">Aprovar {rows.filter((r: any) => r.status === "pending" && r.matched_colaborador_id).length} documento(s)</span>
+              <span className="hidden sm:inline">Aprovar e Salvar {rows.filter((r: any) => r.status === "pending" && r.matched_colaborador_id).length} Documento(s)</span>
+            </span>
           </Button>
         </div>
       )}
+
       </>
       )}
 

@@ -39,6 +39,9 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
   const { data: colaboradores = [] } = useDpColaboradores();
   const [currentIdx, setCurrentIdx] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const previewBoxRef = useRef<HTMLDivElement | null>(null);
+  const [boxWidth, setBoxWidth] = useState(0);
+
   const [rendering, setRendering] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [savingTotal, setSavingTotal] = useState(0);
@@ -98,9 +101,21 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
   const rows = items.data ?? [];
   const current = rows[currentIdx];
 
+  // Observa largura disponível para renderizar a página ajustada à largura
+  useEffect(() => {
+
+    const el = previewBoxRef.current;
+    if (!el || !open) return;
+    const update = () => setBoxWidth(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [open, current?.id]);
+
   // Render PDF page preview via signed URL
   useEffect(() => {
-    if (!open || !current?.page_file_path || !canvasRef.current) return;
+    if (!open || !current?.page_file_path || !canvasRef.current || boxWidth <= 0) return;
     let cancelled = false;
     (async () => {
       try {
@@ -113,11 +128,16 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
         const buf = await resp.arrayBuffer();
         const doc = await pdfjsLib.getDocument({ data: buf }).promise;
         const page = await doc.getPage(1);
-        const viewport = page.getViewport({ scale: 1.5 });
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const base = page.getViewport({ scale: 1 });
+        const available = Math.max(160, boxWidth - 16);
+        const viewport = page.getViewport({ scale: (available / base.width) * dpr });
         const canvas = canvasRef.current;
         if (!canvas || cancelled) return;
         canvas.width = viewport.width;
         canvas.height = viewport.height;
+        canvas.style.width = `${viewport.width / dpr}px`;
+        canvas.style.height = `${viewport.height / dpr}px`;
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
         await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
@@ -128,7 +148,8 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
       }
     })();
     return () => { cancelled = true; };
-  }, [open, current?.page_file_path, current?.id]);
+  }, [open, current?.page_file_path, current?.id, boxWidth]);
+
 
   const setColab = useMutation({
     mutationFn: async ({ id, colaborador_id }: { id: string; colaborador_id: string | null }) => {
@@ -336,7 +357,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
               </div>
             </div>
             <ScrollArea className="flex-1">
-              <div className="flex items-center justify-center p-4 min-h-full">
+              <div ref={previewBoxRef} className="flex items-center justify-center p-2 sm:p-4 min-h-full">
                 {rendering && (
                   <div className="text-sm text-muted-foreground flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" /> Renderizando…
@@ -344,10 +365,11 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
                 )}
                 <canvas
                   ref={canvasRef}
-                  className={cn("shadow-md rounded bg-white", rendering && "opacity-40")}
+                  className={cn("shadow-md rounded bg-white max-w-full", rendering && "opacity-40")}
                 />
               </div>
             </ScrollArea>
+
           </div>
 
           {/* RIGHT: Item list + edit panel */}
@@ -465,18 +487,23 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
           </div>
         </div>
 
-        <DialogFooter className="p-3 border-t bg-background">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
+        <DialogFooter className="p-3 border-t bg-background gap-2">
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>Fechar</Button>
           <Button
+            className="w-full sm:w-auto h-11 sm:h-10"
             onClick={handleApproveClick}
             disabled={pendingCount === 0 || checkingDup || isSaving}
           >
             {(checkingDup || isSaving)
-              ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              : <Check className="h-4 w-4 mr-1" />}
-            Aprovar e Salvar {pendingCount} Documento(s)
+              ? <Loader2 className="h-4 w-4 mr-1 animate-spin shrink-0" />
+              : <Check className="h-4 w-4 mr-1 shrink-0" />}
+            <span className="truncate">
+              <span className="sm:hidden">Aprovar {pendingCount} documento(s)</span>
+              <span className="hidden sm:inline">Aprovar e Salvar {pendingCount} Documento(s)</span>
+            </span>
           </Button>
         </DialogFooter>
+
           </>
           );
         })()}
