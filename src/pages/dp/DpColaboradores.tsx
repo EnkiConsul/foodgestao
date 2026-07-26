@@ -50,7 +50,7 @@ export default function DpColaboradores() {
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
   const del = useDeleteDpColaborador();
-  const toggle = useToggleDpColaboradorAtivo();
+  const reintegrar = useReintegrarDpColaborador();
 
   const [search, setSearch] = useState("");
   const [unidadeFilter, setUnidadeFilter] = useState<string>("all");
