@@ -782,8 +782,35 @@ export default function DpAdminCalendario() {
 
           {dayOpen && (
             <div className="space-y-6 py-2">
-              {currentBlock && (
+              {currentRelease && (
+                <div className="space-y-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-emerald-700">
+                      <Unlock className="h-3.5 w-3.5" /> Data Liberada
+                    </h3>
+                    <Badge variant="outline" className="border-emerald-500/30 text-[9px] font-black uppercase text-emerald-700">
+                      {currentRelease.unidade_id ? "Unidade" : "Global"}
+                    </Badge>
+                  </div>
+                  <p className="text-sm font-semibold text-emerald-800">
+                    {currentRelease.porSolicitacao
+                      ? "Liberada por solicitação aprovada — disponível para folgas."
+                      : "Liberada manualmente pelo administrador — a regra de bloqueio segue ativa nos demais dias."}
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="h-11 w-full rounded-xl border-destructive/30 font-bold text-destructive hover:bg-destructive/10"
+                    onClick={() => rebloquearData.mutate(currentRelease.id)}
+                    disabled={rebloquearData.isPending}
+                  >
+                    <Lock className="mr-2 h-4 w-4" /> Bloquear novamente
+                  </Button>
+                </div>
+              )}
+
+              {currentBlock && !currentRelease && (
                 <div className="space-y-3 rounded-2xl border border-destructive/20 bg-destructive/10 p-5">
+
                   <div className="flex items-center justify-between">
                     <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-destructive">
                       <Lock className="h-3.5 w-3.5" /> Data Bloqueada
