@@ -54,6 +54,7 @@ export default function DpSolicitacoes() {
   const [respostas, setRespostas] = useState<Record<string, string>>({});
   const [confirmAdiantamento, setConfirmAdiantamento] = useState<RowWithColab | null>(null);
   const [form, setForm] = useState({ colaborador_id: "", tipo: "folga" as Tipo, data_alvo: "", data_fim: "", motivo: "" });
+  const [detailsRow, setDetailsRow] = useState<RowWithColab | null>(null);
 
   const list = useQuery({
     queryKey: ["dp_solicitacoes", selectedCompanyId],
