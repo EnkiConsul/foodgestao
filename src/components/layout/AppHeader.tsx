@@ -19,7 +19,7 @@ export function AppHeader() {
     location.pathname !== "/hub";
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b bg-card px-3 md:px-4">
+    <header className="sticky top-0 z-40 flex h-12 md:h-14 items-center gap-2 border-b bg-card px-3 md:px-4">
       <SidebarTrigger className="h-10 w-10 md:h-9 md:w-9" />
 
       {/* Module switcher (mobile only) — quick jump between modules */}
