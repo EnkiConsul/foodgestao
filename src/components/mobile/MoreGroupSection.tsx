@@ -175,12 +175,6 @@ function SubgroupBlock({
 /** Escolhe entre 3 ou 4 colunas conforme a quantidade de itens, para evitar
  * linhas com muitos "buracos". Flex-wrap com justify-center centraliza a última
  * linha quando ela ficar incompleta. */
-function pickCols(n: number): 3 | 4 {
-  if (n <= 4) return 4;
-  if (n <= 6) return 3;
-  return 4;
-}
-
 function TileGrid({
   items,
   accent,
@@ -196,15 +190,12 @@ function TileGrid({
   onNavigate: (to: string) => void;
   onToggleFav: (to: string, label: string) => void;
 }) {
-  const cols = pickCols(items.length);
-  const basis =
-    cols === 4
-      ? "w-[calc(25%-9px)]"
-      : "w-[calc(33.333%-8px)]";
+  // Fixo em 3 colunas para dar mais espaço horizontal aos rótulos.
+  // flex-wrap + justify-center centraliza órfãos na última linha.
   return (
-    <div className="flex flex-wrap justify-center gap-x-3 gap-y-4">
+    <div className="flex flex-wrap justify-center gap-x-2 gap-y-5">
       {items.map((item) => (
-        <div key={item.to} className={cn("flex", basis)}>
+        <div key={item.to} className="flex w-[calc(33.333%-6px)]">
           <IFoodTile
             item={item}
             accent={accent}
