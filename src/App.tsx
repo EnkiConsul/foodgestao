@@ -350,6 +350,8 @@ const AppRoutes = () => (
         <Route path="solicitacoes" element={<DpSolicitacoes />} />
         <Route path="folgas" element={<DpFolgasHub />} />
         <Route path="folgas/calendario" element={<DpFolgas />} />
+        <Route path="ferias" element={<DpFerias />} />
+
         <Route path="calendario" element={<DpAdminCalendario />} />
         <Route path="documentos" element={<DpDocumentosHub />} />
         <Route path="documentos/todos" element={<DpDocumentos />} />
