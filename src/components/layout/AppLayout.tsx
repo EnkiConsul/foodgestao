@@ -4,7 +4,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
 import { MobileBottomNav } from "@/components/mobile/MobileBottomNav";
-import { MobileFabProvider } from "@/providers/MobileFabProvider";
+
 import { SubscriptionBanner } from "@/components/billing/SubscriptionBanner";
 import { useBillingRealtime } from "@/hooks/useBillingRealtime";
 import { Outlet } from "react-router-dom";
