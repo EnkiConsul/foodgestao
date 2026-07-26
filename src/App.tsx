@@ -91,6 +91,7 @@ const DpNotificacoes = lazy(() => import("./pages/dp/DpNotificacoes"));
 
 // DP portal
 const DpMeuHome = lazy(() => import("./pages/dp/portal/DpMeuHome"));
+const DpMeuMural = lazy(() => import("./pages/dp/portal/DpMeuMural"));
 const DpMeuPerfil = lazy(() => import("./pages/dp/portal/DpMeuPerfil"));
 const DpMeuDocumentos = lazy(() => import("./pages/dp/portal/DpMeuDocumentos"));
 const DpMeuSolicitacoes = lazy(() => import("./pages/dp/portal/DpMeuSolicitacoes"));
