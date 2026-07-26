@@ -9,6 +9,7 @@ import { CompanyContextProvider } from "@/hooks/useCompanyContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useVisualViewport } from "@/hooks/useVisualViewport";
 import { usePageviewTracking } from "@/hooks/usePageviewTracking";
+import { useEdgeSwipeBack } from "@/hooks/useEdgeSwipeBack";
 import { ModuleGuard } from "@/components/modules/ModuleGuard";
 import { ModulePlaceholder } from "@/components/modules/ModulePlaceholder";
 import { DpLayout } from "@/components/dp/DpLayout";
@@ -435,6 +436,7 @@ const AppRoutes = () => (
 const AppShell = () => {
   useVisualViewport();
   usePageviewTracking();
+  useEdgeSwipeBack();
   return (
     <>
       <AppRoutes />
