@@ -283,7 +283,17 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
     }
   }
 
-  async function handleApproveClick() {
+  const [confirmFaltantes, setConfirmFaltantes] = useState(false);
+
+  function handleApproveClick() {
+    if (coverage.faltantes.length > 0) {
+      setConfirmFaltantes(true);
+      return;
+    }
+    void proceedApprove();
+  }
+
+  async function proceedApprove() {
     const eligible = rows.filter((r: any) => r.status === "pending" && r.matched_colaborador_id);
     if (eligible.length === 0) {
       toast.error("Nenhuma página vinculada");
