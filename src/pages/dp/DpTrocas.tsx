@@ -38,85 +38,25 @@ const statusMeta: Record<string, { label: string; className: string }> = {
 };
 
 export default function DpTrocas() {
-  const { selectedCompanyId } = useCompanyContext();
-  const qc = useQueryClient();
   const [filtro, setFiltro] = useState<string>("todos");
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
   const [recusa, setRecusa] = useState<{ id: string; etapa: "colega" | "gestor" } | null>(null);
 
-  const list = useQuery({
-    queryKey: ["dp_trocas", selectedCompanyId],
-    enabled: !!selectedCompanyId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dp_trocas")
-        .select("*, solicitante:solicitante_id(nome), destino:destino_id(nome)")
-        .eq("company_id", selectedCompanyId!)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+  const { rows, isLoading, responder: responderMut, remover } = useDpTrocas(filtro);
 
-  const filtered = useMemo(() => {
-    const rows = list.data ?? [];
-    if (filtro === "todos") return rows;
-    return rows.filter((r: any) => r.status === filtro);
-  }, [list.data, filtro]);
+  const list = { isLoading };
+  const filtered = rows;
 
-  const responder = useMutation({
-    mutationFn: async ({ id, etapa, aceito, obs }: { id: string; etapa: "colega" | "gestor"; aceito: boolean; obs?: string }) => {
-      const now = new Date().toISOString();
-      const { data: userRes } = await supabase.auth.getUser();
-      if (etapa === "colega") {
-        const { error } = await supabase.from("dp_trocas").update({
-          colega_resposta: obs ?? (aceito ? "aprovada" : "recusada"),
-          colega_respondido_em: now,
-          status: aceito ? "pendente_gestor" : "recusada",
-        }).eq("id", id);
-        if (error) throw error;
-        return;
-      }
-      if (!aceito) {
-        const { error } = await supabase.from("dp_trocas").update({
-          gestor_resposta: obs ?? "recusada",
-          gestor_respondido_em: now,
-          gestor_id: userRes.user?.id ?? null,
-          status: "recusada",
-        }).eq("id", id);
-        if (error) throw error;
-        return;
-      }
-      const { error: upErr } = await supabase.from("dp_trocas").update({
-        gestor_resposta: "aprovada",
-        gestor_respondido_em: now,
-        gestor_id: userRes.user?.id ?? null,
-      }).eq("id", id);
-      if (upErr) throw upErr;
-      const { error: rpcErr } = await supabase.rpc("dp_processar_troca", { _troca_id: id });
-      if (rpcErr) throw rpcErr;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["dp_trocas"] });
-      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
-      toast.success("Resposta registrada");
-      setRecusa(null);
-    },
-    onError: (e: any) => toast.error(e.message ?? "Erro"),
-  });
+  const responder = {
+    isPending: responderMut.isPending,
+    mutate: (vars: { id: string; etapa: "colega" | "gestor"; aceito: boolean; obs?: string }) =>
+      responderMut.mutate(vars, { onSuccess: () => setRecusa(null) }),
+  };
 
-  const del = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_trocas").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["dp_trocas"] });
-      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
-      toast.success("Removido");
-      setConfirmDel(null);
-    },
-  });
+  const del = {
+    mutate: (id: string) => remover.mutate(id, { onSuccess: () => setConfirmDel(null) }),
+  };
+
 
   return (
     <DpPage>
