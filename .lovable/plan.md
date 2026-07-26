@@ -1,52 +1,26 @@
-## Ajustes na página /mais (mobile)
+## Duas correções no header de /mais
 
-Aplicar 4 correções pontuais focadas no cabeçalho, na busca e na fonte dos favoritos.
+### 1. Fixar a linha do módulo logo abaixo da topbar
 
-### 1. Remover cabeçalho de grupo redundante do módulo (Anexo 1)
+Hoje `MoreHeader` usa `sticky top-0`, mesmo `top` que a topbar (`AppHeader`, `h-14`). Isso faz a linha do módulo "colidir" com a topbar quando o conteúdo rola. Solução:
 
-Hoje, o primeiro `MoreGroupSection` renderiza um botão com o rótulo do módulo (ex.: "DP 360°") e um chevron que colapsa todo o módulo. Como o nome do módulo já aparecerá fixo no header, esse cabeçalho é redundante e o colapso "de tudo" não deve existir.
+- Em `src/components/mobile/MoreHeader.tsx`, trocar a classe `sticky top-0 z-20` por `sticky top-14 z-20` (56 px = altura da `AppHeader`). Assim as duas linhas ficam empilhadas e fixas: topbar (empresa + sino) no topo, header do módulo logo abaixo.
+- `z-20` continua abaixo do `z-40` da topbar, evitando sobreposição visual.
 
-- Em `src/components/mobile/MoreGroupSection.tsx`: introduzir uma prop `hideHeader?: boolean`. Quando `true`, não renderiza o botão de cabeçalho (nem o título nem o chevron do grupo), apenas os `items` e `subgroups` diretamente. Os subgrupos internos (Cadastro, Folgas, Documentos, Comunicação, etc.) continuam com seus próprios chevrons de ocultar/exibir — nada muda ali.
-- Em `src/pages/Mais.tsx`: ao renderizar `config.moreGroups`, passar `hideHeader` para grupos "raiz" do módulo (aqueles cujo `label` seja igual ao nome do módulo, ex.: "DP 360°", "Financeiro"). Grupos secundários mantêm o cabeçalho normal.
+### 2. Voltar com input "Buscar" persistente
 
-### 2. Header fixo com nome do módulo + busca compacta (Anexo 2)
+O usuário quer o formato anterior — um campo de busca visível, só com texto **"Buscar"** em vez do antigo "Buscar funcionalidade..." — não o botão lupa que expande.
 
-O `MoreHeader` já é `sticky top-0`, mas mora abaixo da topbar global (empresa + sino) e mostra o subtítulo "Menu completo". Vamos:
+Alterações em `MoreHeader`:
 
-- `src/components/mobile/MoreHeader.tsx`: remover o subtítulo "Menu completo"; deixar apenas o nome do módulo em uma linha. Adicionar um slot direito na mesma linha para a busca.
-- Transformar a busca em um ícone `Search` (lupa) posicionado no canto direito do header, na mesma linha do título do módulo. Ao tocar, expande inline para um `Input` com placeholder curto **"Buscar"** e um `X` para fechar. Sem texto "Buscar Funcionalidade".
-- Mover o estado `query`/`setQuery` para `MoreHeader` (ou elevar via prop) e continuar entregando o valor à `Mais.tsx` para filtrar `searchResults`. A caixa de busca separada abaixo do cartão "Hub" é removida.
-- Remover também o cartão destaque "Acompanhar módulos / Alternar entre Financeiro, DP e outros" que servia de atalho ao Hub — o botão Hub já existe fixo na `BottomNav`, portanto é redundante conforme o pedido.
-
-### 3. Favoritos sincronizados com o desktop
-
-Hoje `useFavoriteNavItems` (mobile) usa `localStorage` isolado. O desktop (DP) persiste favoritos por empresa em `dp_user_prefs.extras.favoritos_paginas` via `useDpUserPrefs`. Vamos unificar:
-
-- `src/hooks/useFavoriteNavItems.ts`: substituir a origem `localStorage` por leitura/escrita de `useDpUserPrefs().favoritePages` / `toggleFavoritePage`. Manter a mesma API pública (`favorites`, `isFavorite`, `toggle`, `max`) para não impactar consumidores.
-- Manter o limite `MAX = 6` no toggle (retornando `"limit"` quando atingido) — o desktop hoje não impõe teto, mas o mobile continua respeitando o slot da grade.
-- Fallback: quando `useDpUserPrefs` não estiver disponível (usuário sem empresa selecionada ou fora do módulo DP), voltar para o `localStorage` atual como cache local, para não quebrar a página `/mais` em outros módulos.
-
-### 4. Layout final do topo
-
-```text
-┌──────────────────────────────────────────┐
-│ topbar global (empresa · sino)           │  ← já existe
-├──────────────────────────────────────────┤
-│ DP 360°                            🔍    │  ← MoreHeader (sticky)
-├──────────────────────────────────────────┤
-│ Favoritos                                │
-│ [ícones …]                               │
-│ Cadastro                          ⌄      │
-│ Folgas                            ⌄      │
-│ …                                        │
-└──────────────────────────────────────────┘
-```
+- Remover o toggle `expanded` e o botão-lupa.
+- Renderizar sempre um `<Input>` compacto na mesma linha do título:
+  - Título (`DP 360°`) à esquerda, sem `flex-1` para não roubar espaço.
+  - Input com `flex-1 max-w-[200px]` alinhado à direita, `h-9 rounded-xl`, ícone `Search` prefixado, `X` sufixado quando houver texto, placeholder **"Buscar"**.
+- Manter a propagação de `query`/`onQueryChange` para `Mais.tsx` (nada muda no consumidor).
 
 ### Arquivos alterados
 
-- `src/components/mobile/MoreHeader.tsx` — remove subtítulo, adiciona lupa/busca inline; recebe props `query`/`onQueryChange`.
-- `src/components/mobile/MoreGroupSection.tsx` — nova prop `hideHeader`.
-- `src/pages/Mais.tsx` — remove cartão Hub e caixa de busca externa; passa `query` ao header; aplica `hideHeader` no grupo raiz do módulo.
-- `src/hooks/useFavoriteNavItems.ts` — passa a persistir via `useDpUserPrefs` (com fallback para `localStorage`).
+- `src/components/mobile/MoreHeader.tsx` — sticky `top-14` e input "Buscar" sempre visível na mesma linha do título.
 
-Nenhuma alteração em `BottomNav`, rotas, config `MODULE_NAV` ou em desktop.
+Nenhuma alteração em `Mais.tsx`, rotas, ou config.
