@@ -191,6 +191,38 @@ const contaShortcuts: NavLeaf[] = [
 
 const noopShortcut: NavLeaf = { icon: LayoutGrid, label: "Hub", to: "/hub" };
 
+/**
+ * ─────────────────────────────────────────────────────────────────────────
+ * DEFAULTS GLOBAIS DOS ATALHOS (aplicados a todos os usuários novos).
+ * Cada valor é a rota (`to`) de um item presente em `shortcutOptions` do módulo.
+ * Se a rota não existir na lista, cai no primeiro item disponível.
+ * Usuários que já personalizaram (dp_user_prefs / localStorage) mantêm sua escolha.
+ * ─────────────────────────────────────────────────────────────────────────
+ */
+const GLOBAL_SHORTCUT_DEFAULTS: Record<
+  ActiveModule,
+  { A: string; B: string; C?: string }
+> = {
+  financeiro: { A: "/lancamentos", B: "/contas-bancarias" },
+  dp:         { A: "/dp/folgas", B: "/dp/documentos" },
+  portal_colaborador: { A: "/dashboard", B: "/dp" },
+  hub:        { A: "/dashboard", B: "/dp", C: "/buscar" },
+  admin:      { A: "/admin/clientes", B: "/admin/assinaturas" },
+  conta:      { A: "/empresas", B: "/gestao-usuarios" },
+  crm:        { A: "/hub", B: "/hub" },
+  rh:         { A: "/hub", B: "/hub" },
+  pedidos:    { A: "/hub", B: "/hub" },
+};
+
+function pickShortcut(list: NavLeaf[], to: string | undefined, fallbackIdx = 0): NavLeaf {
+  if (to) {
+    const found = list.find((l) => l.to === to);
+    if (found) return found;
+  }
+  return list[fallbackIdx] ?? list[0];
+}
+
+
 export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
   financeiro: {
     hubTo: "/hub",
