@@ -1,18 +1,31 @@
-## Problema
+## Plano
 
-No `CalendarioMobileLista`, o número do dia usa `w-6` (24px), mas com `text-lg` + `font-bold` + `tabular-nums`, dígitos duplos como "22"/"28" chegam a ~24–26px e acabam encostando/estourando o box. Como o container é `flex items-baseline gap-1.5`, qualquer overflow desloca o conteúdo seguinte, dando a sensação de que os números "dançam" ao rolar.
+1. Corrigir a lista mobile de `Folgas`
+   - O calendário da tela de folgas ainda usa um layout próprio com `min-w` e `items-baseline`, então os números continuam variando de posição ao rolar.
+   - Trocar esse bloco por colunas fixas: coluna do dia da semana, coluna do número e depois a área dos chips.
 
-## Correção (apenas em `src/components/dp/CalendarioMobileLista.tsx`)
+2. Padronizar o alinhamento em todos os calendários mobile do DP
+   - Manter o padrão já iniciado em `CalendarioMobileLista`.
+   - Garantir que o número do dia use largura fixa, `text-right`, `tabular-nums` e `leading-none`.
+   - Garantir que a área de chips comece sempre no mesmo eixo horizontal.
 
-1. **Aumentar a coluna do número do dia** para caber 2 dígitos em `text-lg tabular-nums` sem overflow:
-   - `w-6` → `w-7` (28px), mantendo `text-right`.
-2. **Aumentar o wrapper** de weekday+número para acomodar a nova largura sem espremer:
-   - `w-16` (64px) → `w-[68px]` (10 + gap 1.5 + 7 = ~68px), `shrink-0`.
-3. **Trocar `items-baseline` por `items-center`** no wrapper — baseline com pesos diferentes (weekday 11px semibold vs número 18px bold) contribui para a percepção de desalinhamento vertical.
-4. Manter `tabular-nums` no número e no weekday (opcional) para largura de glifo estável.
+3. Ajustar ergonomia visual
+   - Preservar destaque do dia atual, bloqueios e chips existentes.
+   - Evitar que dias com 1 ou 2 dígitos mudem a posição dos nomes/status.
 
-Nenhuma alteração de lógica, dados ou outros calendários — apenas classes utilitárias do próprio componente compartilhado.
+## Detalhe técnico
 
-## Verificação
+A correção principal é substituir estruturas flexíveis como:
 
-- Abrir `/dp/folgas`, `/dp/admin/calendario` e `/dp/portal/meu-calendario` no viewport mobile e conferir que a coluna de chips (nomes) começa exatamente na mesma coordenada X para os dias 1–9 e 10–31.
+```text
+[DOM] [9] [chips]
+[SEG] [10] [chips]
+```
+
+por uma grade fixa:
+
+```text
+[coluna fixa weekday] [coluna fixa número alinhado à direita] [chips]
+```
+
+Assim o `9`, `10`, `19`, `30` ficam alinhados pela direita, e os chips começam sempre no mesmo ponto.

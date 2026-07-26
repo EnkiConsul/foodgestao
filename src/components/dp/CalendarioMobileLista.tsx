@@ -138,10 +138,10 @@ export function CalendarioMobileLista({
                   isToday && "bg-primary/5",
                 )}
               >
-                <div className="flex items-center gap-1.5 w-[68px] shrink-0">
+                <div className="grid w-16 shrink-0 grid-cols-[2.25rem_1.75rem] items-center gap-1">
                   <span
                     className={cn(
-                      "w-10 text-left text-[11px] font-semibold uppercase tracking-wide tabular-nums",
+                      "text-left text-[11px] font-semibold uppercase tracking-wide leading-none",
                       hasEvents ? "text-muted-foreground" : "text-muted-foreground/60",
                     )}
                   >
@@ -149,7 +149,7 @@ export function CalendarioMobileLista({
                   </span>
                   <span
                     className={cn(
-                      "w-7 text-right text-lg font-bold tabular-nums leading-none",
+                      "text-right text-lg font-bold tabular-nums leading-none",
                       isToday && "text-primary",
                       !hasEvents && "text-muted-foreground/50",
                     )}
