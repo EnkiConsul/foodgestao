@@ -36,7 +36,7 @@ const currency = (n: number) =>
 
 export default function ConciliacaoOpenFinance() {
   const navigate = useNavigate();
-  const { activeCompanyId } = useCompanyContext();
+  const { selectedCompanyId: activeCompanyId } = useCompanyContext();
   const [rows, setRows] = useState<RawRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
