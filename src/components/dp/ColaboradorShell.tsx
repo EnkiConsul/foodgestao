@@ -48,6 +48,12 @@ export function ColaboradorShell() {
     );
   }
 
-  return <DpShell variant="portal" />;
+  return (
+    <>
+      <CarenciaPortalBanner />
+      <DpShell variant="portal" />
+    </>
+  );
 }
+
 
