@@ -15,6 +15,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useAuth } from "@/hooks/useAuth";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { MobileDetailsSheet } from "@/components/dp/MobileCardKit";
 import type { Database } from "@/integrations/supabase/types";
 
 type Tipo = Database["public"]["Enums"]["dp_solicitacao_tipo"];
