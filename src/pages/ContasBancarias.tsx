@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
 import { AccountCreationMethodDialog } from "@/components/accounts/AccountCreationMethodDialog";
+import { OpenFinanceWizard } from "@/components/accounts/OpenFinanceWizard";
 import { ImportStatementDialog } from "@/components/transactions/ImportStatementDialog";
 
 
