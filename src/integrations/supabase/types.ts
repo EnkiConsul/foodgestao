@@ -6355,6 +6355,7 @@ export type Database = {
         Args: { _ignored?: boolean; _of_account_id: string }
         Returns: undefined
       }
+      ignore_open_finance_raw: { Args: { _raw_ids: string[] }; Returns: Json }
       increment_rule_hit: { Args: { p_rule_id: string }; Returns: undefined }
       insert_audit_log: {
         Args: {
@@ -6548,6 +6549,10 @@ export type Database = {
           status: Database["public"]["Enums"]["transaction_status"]
           transaction_type: Database["public"]["Enums"]["transaction_type"]
         }[]
+      }
+      promote_open_finance_raw_ids: {
+        Args: { _raw_ids: string[] }
+        Returns: Json
       }
       promote_open_finance_transactions: {
         Args: { _connection_id: string; _max_rows?: number }
