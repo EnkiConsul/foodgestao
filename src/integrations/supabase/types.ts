@@ -3026,6 +3026,59 @@ export type Database = {
           },
         ]
       }
+      dp_config_dp: {
+        Row: {
+          company_id: string
+          created_at: string
+          exige_validacao_menor: boolean
+          folgas_fds_por_mes: number
+          id: string
+          periodicidade_domingo: number
+          periodicidade_domingo_mulher: number
+          politica_feriado: Database["public"]["Enums"]["dp_politica_feriado"]
+          politica_sabado: Database["public"]["Enums"]["dp_politica_sabado"]
+          regra_dsr: Database["public"]["Enums"]["dp_regra_dsr"]
+          setor_comercio: boolean
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          exige_validacao_menor?: boolean
+          folgas_fds_por_mes?: number
+          id?: string
+          periodicidade_domingo?: number
+          periodicidade_domingo_mulher?: number
+          politica_feriado?: Database["public"]["Enums"]["dp_politica_feriado"]
+          politica_sabado?: Database["public"]["Enums"]["dp_politica_sabado"]
+          regra_dsr?: Database["public"]["Enums"]["dp_regra_dsr"]
+          setor_comercio?: boolean
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          exige_validacao_menor?: boolean
+          folgas_fds_por_mes?: number
+          id?: string
+          periodicidade_domingo?: number
+          periodicidade_domingo_mulher?: number
+          politica_feriado?: Database["public"]["Enums"]["dp_politica_feriado"]
+          politica_sabado?: Database["public"]["Enums"]["dp_politica_sabado"]
+          regra_dsr?: Database["public"]["Enums"]["dp_regra_dsr"]
+          setor_comercio?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_config_dp_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_datas_bloqueadas: {
         Row: {
           company_id: string
@@ -4404,6 +4457,53 @@ export type Database = {
           },
           {
             foreignKeyName: "dp_registros_disciplinares_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_regras_historico: {
+        Row: {
+          ciencia_confirmada: boolean
+          company_id: string
+          created_at: string
+          id: string
+          justificativa: string | null
+          registro_id: string | null
+          tabela: string
+          usuario_id: string | null
+          valor_antigo: Json | null
+          valor_novo: Json | null
+        }
+        Insert: {
+          ciencia_confirmada?: boolean
+          company_id: string
+          created_at?: string
+          id?: string
+          justificativa?: string | null
+          registro_id?: string | null
+          tabela: string
+          usuario_id?: string | null
+          valor_antigo?: Json | null
+          valor_novo?: Json | null
+        }
+        Update: {
+          ciencia_confirmada?: boolean
+          company_id?: string
+          created_at?: string
+          id?: string
+          justificativa?: string | null
+          registro_id?: string | null
+          tabela?: string
+          usuario_id?: string | null
+          valor_antigo?: Json | null
+          valor_novo?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_regras_historico_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
@@ -7553,7 +7653,10 @@ export type Database = {
         | "disciplinar_novo"
         | "atestado_novo"
       dp_perfil_acesso: "colaborador" | "gestor" | "admin"
+      dp_politica_feriado: "compensa" | "dobro"
+      dp_politica_sabado: "trabalha" | "folga" | "alterna" | "especifica"
       dp_regime_trabalho: "clt" | "pj" | "estagio" | "temporario" | "mei"
+      dp_regra_dsr: "clt" | "cct" | "propria"
       dp_sindicato_tipo: "patronal" | "laboral"
       dp_solicitacao_status: "pendente" | "aprovada" | "recusada" | "cancelada"
       dp_solicitacao_tipo:
@@ -7880,7 +7983,10 @@ export const Constants = {
         "atestado_novo",
       ],
       dp_perfil_acesso: ["colaborador", "gestor", "admin"],
+      dp_politica_feriado: ["compensa", "dobro"],
+      dp_politica_sabado: ["trabalha", "folga", "alterna", "especifica"],
       dp_regime_trabalho: ["clt", "pj", "estagio", "temporario", "mei"],
+      dp_regra_dsr: ["clt", "cct", "propria"],
       dp_sindicato_tipo: ["patronal", "laboral"],
       dp_solicitacao_status: ["pendente", "aprovada", "recusada", "cancelada"],
       dp_solicitacao_tipo: [
