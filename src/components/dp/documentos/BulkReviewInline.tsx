@@ -591,11 +591,12 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
 
       {/* Rodapé de aprovação */}
       {stats.total > 0 && (
-        <div className="px-4 py-3 border-t bg-muted/10 flex items-center justify-between gap-2">
-          <div className="text-xs text-muted-foreground">
+        <div className="px-3 sm:px-4 py-3 border-t bg-muted/10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="hidden sm:block text-xs text-muted-foreground">
             Use ← / → para navegar entre páginas
           </div>
           <Button
+            className="w-full sm:w-auto h-11"
             onClick={handleApproveClick}
             disabled={
               checkingDup
@@ -604,12 +605,16 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
             }
           >
             {(checkingDup || isSaving)
-              ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              : <Check className="h-4 w-4 mr-1" />}
-            Aprovar e Salvar {rows.filter((r: any) => r.status === "pending" && r.matched_colaborador_id).length} Documento(s)
+              ? <Loader2 className="h-4 w-4 mr-1 animate-spin shrink-0" />
+              : <Check className="h-4 w-4 mr-1 shrink-0" />}
+            <span className="truncate">
+              <span className="sm:hidden">Aprovar {rows.filter((r: any) => r.status === "pending" && r.matched_colaborador_id).length} documento(s)</span>
+              <span className="hidden sm:inline">Aprovar e Salvar {rows.filter((r: any) => r.status === "pending" && r.matched_colaborador_id).length} Documento(s)</span>
+            </span>
           </Button>
         </div>
       )}
+
       </>
       )}
 
