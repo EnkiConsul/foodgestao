@@ -14,6 +14,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
+import { DpErrorState } from "@/components/dp/DpErrorState";
 import {
   useDpConformidade, type Epi, type EpiEntrega, type ExameAso, type Treinamento,
   type TreinamentoParticipacao,
@@ -102,6 +103,8 @@ export default function DpConformidade() {
           </Select>
         </div>
       </div>
+
+      {c.isError && <DpErrorState onRetry={c.refetchAll} className="mb-3" />}
 
       <Tabs defaultValue="aso">
         <TabsList className="flex w-full overflow-x-auto sm:w-auto">
