@@ -232,6 +232,31 @@ export default function ConexoesOpenFinance() {
     }
   };
 
+  const doAdjust = async () => {
+    if (!confirmAdjust || confirmAdjust.local_account_id == null || confirmAdjust.balance == null) return;
+    setBusy(true);
+    try {
+      const { error } = await supabase.rpc("adjust_account_balance", {
+        _account_id: confirmAdjust.local_account_id,
+        _target_balance: confirmAdjust.balance,
+        _adjust_date: new Date().toISOString().slice(0, 10),
+        _note: "Ajuste automático via Open Finance",
+      });
+      if (error) throw error;
+      toast.success("Saldo local ajustado", {
+        description: "Lançamento de conciliação criado para alinhar ao saldo do banco.",
+      });
+      const connId = confirmAdjust.connection_id;
+      setConfirmAdjust(null);
+      fetchAccountsFor(connId);
+    } catch (e: any) {
+      toast.error("Falha ao ajustar saldo", { description: e?.message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+
   const toggleAutoImport = async (row: OFAccount, value: boolean) => {
     setAccountsByConn((prev) => ({
       ...prev,
