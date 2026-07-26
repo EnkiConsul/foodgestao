@@ -18,6 +18,8 @@ import { NovoColaboradorInlineDialog } from "./NovoColaboradorInlineDialog";
 import { BulkProgressBanner } from "./BulkProgressBanner";
 import { ConfirmarSubstituicaoDialog, type DuplicateCollision } from "./ConfirmarSubstituicaoDialog";
 import { detectDuplicates } from "@/lib/dp/bulk-duplicates";
+import { ColaboradoresFaltantesPanel } from "./ColaboradoresFaltantesPanel";
+import { competenciaPredominante, computeCoverage } from "@/lib/dp/bulk-coverage";
 import { cn } from "@/lib/utils";
 
 // Setup pdfjs worker once (shared with BulkReviewDialog)
