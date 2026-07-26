@@ -216,6 +216,26 @@ function HomeSlot({ leaf }: { leaf: NavLeaf }) {
   );
 }
 
+function MoreSlot({ to }: { to: string }) {
+  return (
+    <NavLink
+      to={to}
+      role="tab"
+      onClick={() => haptic(6)}
+      className={cn(
+        "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] py-1.5",
+        "text-muted-foreground active:scale-95 transition-all",
+      )}
+      activeClassName="text-primary"
+      aria-label="Mais opções"
+    >
+      <MoreHorizontal className="h-5 w-5" />
+      <span className="text-[10px] font-medium leading-none">Mais</span>
+    </NavLink>
+  );
+}
+
+
 function LeafSlot({ leaf, onLongPress }: { leaf: NavLeaf; onLongPress?: () => void }) {
   const Icon = leaf.icon;
   const timerRef = useRef<number | null>(null);
