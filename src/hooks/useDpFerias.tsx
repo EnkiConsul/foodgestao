@@ -131,14 +131,14 @@ export function useDpFerias(colaboradorFilter: string) {
   const setGozoStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: FeriasGozoStatus }) => {
       const { data: userRes } = await supabase.auth.getUser();
-      const patch: Record<string, unknown> = { status };
-      if (status === "aprovado") {
-        patch.aprovado_por = userRes.user?.id ?? null;
-        patch.aprovado_em = new Date().toISOString();
-      }
+      const patch =
+        status === "aprovado"
+          ? { status, aprovado_por: userRes.user?.id ?? null, aprovado_em: new Date().toISOString() }
+          : { status };
       const { error } = await supabase.from("dp_ferias_gozos").update(patch).eq("id", id);
       if (error) throw error;
     },
+
     onSuccess: () => {
       toast.success("Situação atualizada");
       invalidate();
