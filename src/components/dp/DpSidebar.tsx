@@ -87,6 +87,7 @@ const ADMIN_ITEMS: Item[] = [
 // Grupos estáticos (não colapsáveis) como no AppShell da referência.
 const PORTAL_ITEMS: Item[] = [
   { kind: "link", title: "Início", url: "/dp/meu", icon: Home, end: true, home: true },
+  { kind: "link", title: "Mural", url: "/dp/meu/mural", icon: Bell },
   { kind: "link", title: "Meu Cadastro", url: "/dp/meu/perfil", icon: Settings },
   {
     kind: "static-group", title: "Folgas", icon: Calendar,
