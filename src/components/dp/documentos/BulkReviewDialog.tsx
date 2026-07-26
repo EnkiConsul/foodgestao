@@ -21,6 +21,8 @@ import { NovoColaboradorInlineDialog } from "./NovoColaboradorInlineDialog";
 import { BulkProgressBanner } from "./BulkProgressBanner";
 import { ConfirmarSubstituicaoDialog, type DuplicateCollision } from "./ConfirmarSubstituicaoDialog";
 import { detectDuplicates } from "@/lib/dp/bulk-duplicates";
+import { ColaboradoresFaltantesPanel } from "./ColaboradoresFaltantesPanel";
+import { competenciaPredominante, computeCoverage } from "@/lib/dp/bulk-coverage";
 import { cn } from "@/lib/utils";
 
 // Setup pdfjs worker once
@@ -291,6 +293,17 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
     if (data?.signedUrl) window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   };
 
+  const competenciaLote = competenciaPredominante(
+    rows.map((r: any) => r.detected_competencia),
+    (batchInfo.data as any)?.referencia_data,
+  );
+  const coverage = computeCoverage({
+    colaboradores: colaboradores as any,
+    vinculados: new Set(rows.map((r: any) => r.matched_colaborador_id).filter(Boolean)),
+    competencia: competenciaLote,
+    tipo: (batchInfo.data as any)?.tipo ?? null,
+  });
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] w-[1400px] h-[92vh] p-0 flex flex-col">
@@ -329,6 +342,13 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
           }
           return (
           <>
+        <div className="px-4 pt-2">
+          <ColaboradoresFaltantesPanel
+            faltantes={coverage.faltantes}
+            totalEsperados={coverage.esperados.length}
+            competencia={competenciaLote}
+          />
+        </div>
         <div className="flex-1 min-h-0 grid grid-cols-[1fr_420px] gap-0 overflow-hidden">
           {/* LEFT: PDF preview */}
           <div className="bg-muted/20 border-r flex flex-col min-h-0">
