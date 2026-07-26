@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { LayoutGrid, LogOut, Search, SearchX, Sliders, Star, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -170,5 +170,3 @@ export default function Mais() {
   );
 }
 
-// referência para linter (evita import não usado quando dev tools alteram o layout)
-void pathname;
