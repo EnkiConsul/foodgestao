@@ -19,7 +19,8 @@ const norm = (s: string) =>
 export default function Mais() {
   const activeModule = useActiveModule();
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
+  const { isSuperAdmin } = useSuperAdmin();
   const { favorites, isFavorite, toggle, max } = useFavoriteNavItems();
   const [query, setQuery] = useState("");
 
