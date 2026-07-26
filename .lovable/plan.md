@@ -1,47 +1,33 @@
-## Problema
+## Diagnóstico (confirmado nos dados)
 
-Na tela de revisão da importação em lote (`BulkReviewInline`, usada em Documentos/Contracheques/Ponto), o layout foi feito para desktop:
+No OCR da página 6 (Karine, cartão de ponto) o rótulo "Período de referência" se perde na leitura colunar. O texto contém `07/05/2026` (data de admissão, sem rótulo) **antes** de `01/06/2026 à 30/06/2026`. A regra 3 de `extractPeriodo` (`supabase/functions/dp-doc-bulk-ingest/index.ts`) casa `MM/AAAA` solto dentro de `07/05/2026` → competência errada **05/2026**. No holerite do mesmo mês o texto traz "Junho de 2026" e a detecção acertou.
 
-- A prévia do PDF é renderizada com escala fixa (`1.5 × zoom`), maior que a largura do celular. Como o contêiner tem rolagem, o usuário vê apenas uma faixa branca da margem da página — parece que "não carregou".
-- O banner de status ocupa 3 linhas de texto e empurra os botões de zoom/abrir para fora da linha.
-- O rodapé coloca a dica "Use ← / → para navegar" ao lado do botão principal, cortando o texto "Aprovar e Salvar 10 Documento(s)".
-- Os controles de colaborador/competência/ignorar usam grid de 3 colunas que só quebra em `md`.
+## Parte 1 — Corrigir a detecção de competência (todos os tipos)
 
-## O que será feito
+`extractPeriodo` é única e usada por qualquer lote, então a correção já vale para **contracheque, ponto, adiantamento** e para o futuro **décimo terceiro**. Ajustes:
 
-Todas as mudanças são de UI/apresentação, sem alterar regras de negócio, OCR ou aprovação.
+1. **Nova regra de maior prioridade — intervalo de datas**: `DD/MM/AAAA` a/à/até/`-` `DD/MM/AAAA`. Meses iguais → esse mês; diferentes → mês da data inicial. Cobre "de 01/06/2026 à 30/06/2026" sem rótulo.
+2. Manter rótulo + `MM/AAAA` e nome do mês + ano, ampliando os rótulos ("período de referência", "competência", "folha mensal", "adiantamento referente a", "13º/décimo terceiro").
+3. **Endurecer o fallback solto**: ignorar `MM/AAAA` que faz parte de uma data completa `DD/MM/AAAA` e ignorar ocorrências próximas de "admissão", "emissão", "impressão", "nascimento", "cadastro", "pagamento em".
+4. **Desempate por frequência**: contar datas de linha (`01/06`, `02/06`, …) e usar o mês/ano majoritário — útil no ponto e em adiantamentos com tabela de dias.
+5. Prompt do OCR passa a pedir uma linha final explícita `COMPETENCIA: MM/AAAA` (período do documento, nunca emissão/admissão), usada como fonte prioritária quando presente.
 
-**1. Prévia do PDF ajustada à largura (fit-to-width)**
-- Medir a largura real do contêrer da prévia e calcular a escala para a página caber inteira na largura disponível, multiplicada pelo zoom do usuário (zoom 100% = página inteira visível na largura).
-- Re-renderizar ao redimensionar/rotacionar a tela.
-- Altura do contêiner passa a ser adaptativa (`~55vh` no mobile, `70vh` no desktop) com fundo neutro e a página centralizada.
-- Indicador "Renderizando…" posicionado corretamente (hoje usa `absolute` sem pai relativo, ficando solto).
+Extrair essa lógica para um módulo compartilhado testável e cobrir com testes unitários usando os trechos reais de OCR de contracheque e de ponto, mais casos de adiantamento e 13º.
 
-**2. Barra de status e ferramentas**
-- No mobile: status em uma linha própria (texto compacto, com reticências quando longo) e a barra de zoom / abrir em nova aba em uma segunda linha alinhada à direita.
-- Badges (Competência, Duplicado, Inativo) passam a quebrar linha em vez de espremer o texto.
-- Adicionar botão "ajustar à largura" (reset de zoom) junto de − / +.
+## Parte 2 — Sinalizar colaboradores faltantes no lote (todos os tipos)
 
-**3. Navegação entre páginas**
-- Barra de navegação compacta no mobile: setas em botões-ícone com área de toque de 40px e o indicador "3 / 10" centralizado.
+Adicionar painel **"Colaboradores sem documento neste lote"** na revisão (`BulkReviewInline.tsx`, com paridade em `BulkReviewDialog.tsx`), válido para qualquer `tipo` de lote.
 
-**4. Rodapé de aprovação**
-- No mobile o botão "Aprovar e Salvar N Documento(s)" passa a ocupar a largura total, em linha própria, com texto encurtado ("Aprovar 10 documentos") quando necessário.
-- A dica de teclado "Use ← / →" fica oculta no mobile (não se aplica a toque).
+Esperado calculado no cliente a partir dos colaboradores já carregados:
+- mesma empresa e, quando o lote identificou unidade pelo CNPJ das páginas, mesma unidade;
+- filtro por tipo: `ponto` exige `possui_folha_ponto`; contracheque/adiantamento/13º consideram todos os colaboradores elegíveis;
+- **ativo no período**: `data_admissao` ≤ último dia da competência e (`data_desligamento` nulo ou ≥ primeiro dia da competência) — inclui desligados no meio do mês, exclui admitidos depois.
 
-**5. Editor de vínculo**
-- Grid passa a ser 1 coluna no mobile (colaborador, competência, ações empilhados), com o botão "Ignorar" em largura total e o campo de colaborador sem estourar a linha.
-
-**6. Paridade na tela cheia**
-- Aplicar o mesmo cálculo de escala fit-to-width e o mesmo rodapé responsivo em `BulkReviewDialog` (modo tela cheia), que hoje usa escala fixa `1.5`.
+O painel mostra "X de Y colaboradores com documento", lista os faltantes (nome, matrícula, unidade) e exibe alerta âmbar. Não bloqueia a aprovação: apenas pede confirmação antes de aprovar quando houver faltantes.
 
 ## Detalhes técnicos
 
-- Arquivos: `src/components/dp/documentos/BulkReviewInline.tsx` e `src/components/dp/documentos/BulkReviewDialog.tsx`.
-- Escala: `scale = (containerWidth - padding) / pageViewportWidth * zoom * dpr`, com `dpr` limitado a 2 (já existente), usando `ResizeObserver` no contêiner da prévia.
-- Breakpoints via classes Tailwind (`sm:`/`md:`) e o hook existente `use-mobile` quando for necessário lógica condicional (texto do botão).
-- Sem alterações em Edge Functions, RLS ou consultas.
-
-## Verificação
-
-Rodar a tela em viewport 390–407px com Playwright e conferir: página do PDF visível por inteiro na largura, nenhum overflow horizontal, botão de aprovação com texto completo.
+- Backend: apenas `supabase/functions/dp-doc-bulk-ingest/index.ts` (parsing + prompt). Sem migração de banco.
+- A competência-base da conferência é a predominante entre os itens do lote, com fallback para `referencia_data` do lote.
+- Décimo terceiro: quando o tipo for criado no enum `dp_documento_tipo`, ele já cai nas mesmas regras — o único ajuste futuro será tratar parcelas (1ª/2ª) na exibição.
+- Documentos já importados com competência errada não são corrigidos retroativamente; a competência segue editável na revisão.
