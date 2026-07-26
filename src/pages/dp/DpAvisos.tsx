@@ -259,6 +259,12 @@ export default function DpAvisos() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-semibold text-base">{a.titulo}</h3>
                     <Badge variant="outline" className="text-xs">{destinoLabel(a)}</Badge>
+                    {(a as any).leitura_obrigatoria && (
+                      <Badge variant="secondary" className="text-[10px]">Leitura obrigatória</Badge>
+                    )}
+                    {(a as any).permitir_comentarios && (
+                      <Badge variant="outline" className="text-[10px]">Comentários</Badge>
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {format(new Date(a.publicado_em), "dd/MM/yyyy", { locale: ptBR })}
@@ -266,6 +272,9 @@ export default function DpAvisos() {
                   </p>
                 </div>
                 <div className="flex gap-1">
+                  <Button size="icon" variant="ghost" title="Engajamento" onClick={() => setEngajamento(a)}>
+                    <BarChart3 className="h-4 w-4" />
+                  </Button>
                   <Button size="icon" variant="ghost" onClick={() => { setEditing(a); setOpen(true); }}>
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -295,6 +304,14 @@ export default function DpAvisos() {
           onSave={(v) => upsert.mutate(v)}
         />
       </Dialog>
+
+      <AvisoEngajamentoDialog
+        avisoId={engajamento?.id ?? null}
+        titulo={engajamento?.titulo}
+        totalColaboradores={totalColaboradores}
+        onOpenChange={(v) => { if (!v) setEngajamento(null); }}
+      />
+
 
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <AlertDialogContent>
