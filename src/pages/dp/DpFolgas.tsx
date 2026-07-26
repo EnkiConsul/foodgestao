@@ -330,125 +330,15 @@ export default function DpFolgas() {
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(cursor);
 
-  const unidadesQuery = useQuery({
-    queryKey: ["dp_unidades", selectedCompanyId],
-    enabled: !!selectedCompanyId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dp_unidades")
-        .select("id, nome")
-        .eq("company_id", selectedCompanyId!)
-        .order("nome");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+  const {
+    unidadesQuery,
+    diaConfigQuery,
+    regrasBloqueioQuery,
+    datasBloqueadasQuery,
+    query,
+    folgasQuery,
+  } = useDpFolgasQueries({ cursor, rangeStart, rangeEnd, unidadeFilter, colabFilter, tipoFilter });
 
-  const diaConfigQuery = useQuery({
-    queryKey: ["dp_dia_config", selectedCompanyId, format(cursor, "yyyy-MM")],
-    enabled: !!selectedCompanyId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dp_dia_config")
-        .select("data, limite_folgas, unidade_id")
-        .eq("company_id", selectedCompanyId!)
-        .gte("data", format(rangeStart, "yyyy-MM-dd"))
-        .lte("data", format(rangeEnd, "yyyy-MM-dd"));
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  const regrasBloqueioQuery = useQuery({
-    queryKey: ["dp_bloq_regras_geral", selectedCompanyId],
-    enabled: !!selectedCompanyId,
-    queryFn: async () => {
-      const [{ data: regras }, { data: vinc }] = await Promise.all([
-        supabase
-          .from("dp_bloqueio_regras")
-          .select("id, company_id, nome, tipo, mes, dia, regra_json, ativo")
-          .eq("company_id", selectedCompanyId!)
-          .eq("ativo", true),
-        supabase.from("dp_bloqueio_regra_unidades").select("regra_id, unidade_id"),
-      ]);
-      return {
-        regras: (regras ?? []) as RegraRow[],
-        vinculos: (vinc ?? []) as { regra_id: string; unidade_id: string }[],
-      };
-    },
-  });
-
-  const datasBloqueadasQuery = useQuery({
-    queryKey: ["dp_datas_bloqueadas_geral", selectedCompanyId, format(cursor, "yyyy-MM")],
-    enabled: !!selectedCompanyId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dp_datas_bloqueadas")
-        .select("id, data, motivo, liberada, liberada_por_solicitacao, unidade_id, regra_id")
-        .eq("company_id", selectedCompanyId!)
-        .gte("data", format(rangeStart, "yyyy-MM-dd"))
-        .lte("data", format(rangeEnd, "yyyy-MM-dd"));
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-
-  const query = useQuery({
-    queryKey: ["dp_folgas", selectedCompanyId, format(cursor, "yyyy-MM"), unidadeFilter, colabFilter, tipoFilter],
-    enabled: !!selectedCompanyId,
-    queryFn: async () => {
-      let q = supabase
-        .from("dp_solicitacoes")
-        .select("*, dp_colaboradores(nome, unidade_id)")
-        .eq("company_id", selectedCompanyId!)
-        .not("data_alvo", "is", null)
-        .lte("data_alvo", format(rangeEnd, "yyyy-MM-dd"))
-        .or(
-          `data_fim.gte.${format(rangeStart, "yyyy-MM-dd")},and(data_fim.is.null,data_alvo.gte.${format(rangeStart, "yyyy-MM-dd")})`,
-        );
-      if (tipoFilter !== "todos") q = q.eq("tipo", tipoFilter);
-      if (colabFilter !== "todos") q = q.eq("colaborador_id", colabFilter);
-      const { data, error } = await q;
-      if (error) throw error;
-      let rows = (data ?? []) as Row[];
-      if (unidadeFilter !== "todas") {
-        rows = rows.filter((r) => r.dp_colaboradores?.unidade_id === unidadeFilter);
-      }
-      return rows;
-    },
-  });
-
-  // Folgas efetivadas em dp_folgas (sorteio, admin manual, trocas)
-  const folgasQuery = useQuery({
-    queryKey: ["dp_folgas_efetivadas", selectedCompanyId, format(cursor, "yyyy-MM"), unidadeFilter, colabFilter, tipoFilter],
-    enabled: !!selectedCompanyId && (tipoFilter === "todos" || tipoFilter === "folga"),
-    queryFn: async () => {
-      let q = supabase
-        .from("dp_folgas")
-        .select("id, colaborador_id, data, tipo, status, observacao, dp_colaboradores!inner(nome, unidade_id)")
-        .eq("company_id", selectedCompanyId!)
-        .neq("status", "cancelada")
-        .gte("data", format(rangeStart, "yyyy-MM-dd"))
-        .lte("data", format(rangeEnd, "yyyy-MM-dd"));
-      if (colabFilter !== "todos") q = q.eq("colaborador_id", colabFilter);
-      const { data, error } = await q;
-      if (error) throw error;
-      let rows = (data ?? []) as Array<{
-        id: string;
-        colaborador_id: string;
-        data: string;
-        tipo: string;
-        status: string;
-        observacao: string | null;
-        dp_colaboradores: { nome: string; unidade_id: string | null } | null;
-      }>;
-      if (unidadeFilter !== "todas") {
-        rows = rows.filter((r) => r.dp_colaboradores?.unidade_id === unidadeFilter);
-      }
-      return rows;
-    },
-  });
 
   const days = useMemo(
     () => eachDayOfInterval({ start: rangeStart, end: rangeEnd }),
