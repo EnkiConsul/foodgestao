@@ -615,6 +615,8 @@ export default function DpAdminCalendario() {
   const currentDay = dayOpen ? parseYMD(dayOpen) : null;
   const currentIsWeekend = currentDay ? isWeekend(currentDay) : false;
   const currentBlock = dayOpen ? blockedByDate.get(dayOpen) ?? null : null;
+  const currentRelease = dayOpen ? releasedByDate.get(dayOpen) ?? null : null;
+
   const dayOccupants = dayOpen ? occupantsByDate.get(dayOpen) ?? [] : [];
 
   const clearFilters = () => {
