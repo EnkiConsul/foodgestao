@@ -31,17 +31,18 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onImported: () => void;
+  defaultAccountId?: string | null;
 }
 
 type Step = "upload" | "review" | "done";
 type DuplicateDecision = "none" | "pending" | "skip" | "include" | "manual";
 
-export function ImportStatementDialog({ open, onOpenChange, onImported }: Props) {
+export function ImportStatementDialog({ open, onOpenChange, onImported, defaultAccountId }: Props) {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const [step, setStep] = useState<Step>("upload");
   const [file, setFile] = useState<File | null>(null);
-  const [accountId, setAccountId] = useState<string>("");
+  const [accountId, setAccountId] = useState<string>(defaultAccountId ?? "");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
