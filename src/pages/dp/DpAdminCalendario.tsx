@@ -80,6 +80,7 @@ import {
   type RegraRow,
 } from "@/lib/dp/bloqueio-rules";
 import { LiberarEscopoDialog } from "@/components/dp/bloqueios/LiberarEscopoDialog";
+import { CalendarioMobileLista } from "@/components/dp/CalendarioMobileLista";
 
 const isoWeekKey = (d: Date) => `${getISOWeekYear(d)}-${getISOWeek(d)}`;
 
@@ -695,22 +696,36 @@ export default function DpAdminCalendario() {
 
       {/* Calendário */}
       <DpContentCard contentClassName="p-4 md:p-6">
-        <FolgaCalendarShared
-          year={ano}
-          month0={mes - 1}
-          occupantsByDate={occupantsByDate}
-          manualBlocked={manualBlocked}
-          dayLimits={dayLimits}
-          myColaboradorId={null}
-          allFolgas={allFolgasRecords}
-          allColaboradores={colabsForOccupants}
-          pendingRequests={pendingRequests}
-          isAdmin
-          variant="chunky"
-          onPrev={goPrev}
-          onNext={goNext}
-          onSelectDay={(iso) => openDay(iso)}
-        />
+        <div className="hidden md:block">
+          <FolgaCalendarShared
+            year={ano}
+            month0={mes - 1}
+            occupantsByDate={occupantsByDate}
+            manualBlocked={manualBlocked}
+            dayLimits={dayLimits}
+            myColaboradorId={null}
+            allFolgas={allFolgasRecords}
+            allColaboradores={colabsForOccupants}
+            pendingRequests={pendingRequests}
+            isAdmin
+            variant="chunky"
+            onPrev={goPrev}
+            onNext={goNext}
+            onSelectDay={(iso) => openDay(iso)}
+          />
+        </div>
+        <div className="md:hidden">
+          <CalendarioMobileLista
+            year={ano}
+            month0={mes - 1}
+            occupantsByDate={occupantsByDate as any}
+            manualBlocked={manualBlocked}
+            myColaboradorId={null}
+            onPrev={goPrev}
+            onNext={goNext}
+            onSelectDay={(iso) => openDay(iso)}
+          />
+        </div>
       </DpContentCard>
 
       {/* Dialog do dia */}

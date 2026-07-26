@@ -1,55 +1,52 @@
-## Melhorias Mobile Transversais — DP + todos os módulos
+## Ajustes Mobile — Rodada de Polish
 
-Todas as mudanças ficam em componentes compartilhados de layout mobile — valem automaticamente para **DP, Financeiro, Admin, Portal Colaborador e Hub**.
+### 1. Header /mais — barra "Buscar" e sobreposição
+**Problema:** O input encolheu demais (`w-[116px]`) e o header fixo está encavalando visualmente a topbar global.
+**Correção em `src/components/mobile/MoreHeader.tsx`:**
+- Alinhar o `top` do header com a altura real da topbar global no mobile (mesma variável usada em ambos) para eliminar sobreposição.
+- Aumentar altura do header para `h-11` e do input para `h-9`, largura `w-[150px]`, `text-sm`, placeholder "Buscar".
+- Usar `bg-background` sólido (sem `/95` translúcido) para não deixar a topbar sangrar por baixo.
 
-### 1. Header do módulo 100% fixo e discreto — `MoreHeader.tsx` + `Mais.tsx`
-- Trocar `sticky top-14` por `fixed left-0 right-0 top-14` (imune ao jitter do momentum scroll iOS).
-- Compactar: `py-1.5`, título `text-[13px] font-semibold`, campo Buscar `h-8 rounded-lg`. Altura final ~40 px (contra ~64 px hoje).
-- `Mais.tsx`: adicionar `pt-10` no container do conteúdo para compensar o header fixo.
+### 2. BottomNav — reaparecer no fim da página
+**Problema:** O auto-hide esconde a barra ao rolar para baixo mas não reexibe ao chegar no fim.
+**Correção em `src/components/mobile/MobileBottomNav.tsx` (`useHideOnScroll`):**
+- Detectar `scrollY + innerHeight >= scrollHeight - 8` e forçar `setHidden(false)`.
+- Manter o comportamento atual de reexibir no scroll-up e quando `y < 24`.
 
-### 2. Personalizador de atalhos em lista única — `MobileBottomNav.tsx` (`ShortcutCustomizer`)
-- Remover abas.
-- Uma única lista onde cada item tem à direita dois chips: **[2º]** e **[4º]**. Tocar um chip fixa o item naquele slot.
-- Indicadores "Atual (2º)" / "Atual (4º)" ao lado dos itens já em uso.
-- Título: "Personalizar Barra Inferior".
+### 3. Quebra de palavras nos tiles (DP Home e /mais)
+**Problema:** Palavras únicas como "Contracheques", "Colaboradores" ainda quebram em duas linhas.
+**Correção:**
+- `src/pages/dp/DpHome.tsx` e cards compartilhados: aplicar `break-normal`, remover `break-words`/`hyphens-auto`, usar `text-[11px] tracking-tight`.
+- Confirmar a mesma regra em `MoreGroupSection.tsx` para rótulos dentro dos subgrupos.
 
-### 3. Auto-hide da BottomNav ao rolar — `MobileBottomNav.tsx`
-- Novo hook `useHideOnScroll()` interno: detecta direção do scroll do `window`. Ao descer >8 px, aplica `translate-y-full` na barra; ao subir, restaura.
-- Transição `transition-transform duration-200 ease-out`. Ganho de área útil em listas longas.
+### 4. Hub de Módulos — grid denso (2 colunas mobile)
+**Problema:** `/hub` mostra 1 módulo por linha no mobile, desperdiçando espaço.
+**Correção em `src/pages/Hub.tsx`:**
+- Trocar o grid mobile para `grid-cols-2 gap-3` (mantendo `md:grid-cols-3`+ no desktop).
+- Reduzir padding, ícone `h-8 w-8`, título `text-sm font-semibold`, subtítulo `text-[11px] line-clamp-2`.
+- Preservar cores/acentos por módulo.
 
-### 4. Topbar global mais enxuto no mobile — `AppHeader.tsx` + `AdminLayout.tsx` + `MoreHeader.tsx`
-- Reduzir de `h-14` para `h-12` no breakpoint mobile (`h-12 md:h-14`).
-- Atualizar `MoreHeader` para `top-12 md:top-14` acompanhando a nova altura.
-
-### 5. Swipe-back da borda esquerda — novo `src/hooks/useEdgeSwipeBack.ts`
-- Detecta `touchstart` iniciado a <24 px da borda esquerda com deslocamento >60 px em <300 ms → dispara `navigate(-1)`.
-- Ignorado se a rota atual for uma home de hub (`/`, `/dp/home`, `/admin/home`, `/portal/home`) ou se houver dialog aberto (verifica `document.querySelector('[role="dialog"][data-state="open"]')`).
-- Instalado uma vez no `App.tsx` (ou `layouts` mobile).
-
-### 6. Utilitário háptico compartilhado — novo `src/lib/haptics.ts`
-- Extrair `haptic(ms)` do `MobileBottomNav.tsx`.
-- Exportar `haptics.tap()` (8 ms), `haptics.select()` (12 ms), `haptics.success()` (20 ms), `haptics.warn()` ([10,40,10]).
-- Aplicar em: ações de FAB, toggles do topo, seleção nos tiles de `/mais`, confirmar/cancelar em dialogs de destruição.
-
-### 7. FAB contextual por rota — `src/config/mobileFab.ts` + `MobileFab.tsx`
-- Novo mapa `rota-prefix → { label, icon, action }`.
-- Rotas iniciais mapeadas:
-  - `/lancamentos` → Novo lançamento
-  - `/dp/colaboradores` → Novo colaborador
-  - `/dp/folgas` → Nova solicitação de folga
-  - `/dp/documentos` → Enviar documento
-  - `/dp/aprovacoes` → (oculta o FAB)
-  - `/admin/cadastros` → Novo cadastro
-- Fallback: mantém o comportamento atual quando a rota não estiver mapeada.
-
-### 8. Pull-to-refresh nas listas principais — novo `src/components/mobile/PullToRefresh.tsx`
-- Wrapper leve baseado em `touchstart/touchmove/touchend` (sem lib externa); usa translate + spinner ao arrastar >64 px.
-- Aplicar em: `/lancamentos`, `/dp/aprovacoes`, `/dp/colaboradores`, `/dp/folgas`, `/dp/documentos`.
-- Callback chama `queryClient.invalidateQueries` das keys de cada tela.
+### 5. Calendário mobile em lista — Admin DP + Portal Colaborador
+**Problema:** No mobile o grid semanal do DP fica ilegível ("K...", "S...", etc.). O portal também deve seguir o mesmo padrão de lista mostrado no anexo 3.
+**Correção nos dois calendários:**
+- Admin: `src/pages/dp/DpAdminCalendario.tsx` (grid mensal atual).
+- Portal: `src/pages/dp/portal/DpMeuCalendario.tsx` (calendário do colaborador).
+- Em ambos, adicionar variante mobile via `md:hidden` (lista) + `hidden md:block` (grid atual preservado).
+- Extrair componente compartilhado `src/components/dp/CalendarioMobileLista.tsx` para reuso:
+  - Header do mês: `<  Mês AAAA  >` + contador ("X dias úteis" no portal, contagem contextual no admin) à direita.
+  - Uma linha por dia do mês:
+    - `[Dia semana abrev.] [nº] [chips coloridos de eventos]  >`
+    - Chips com nome completo (Folga, Bloqueio, Holerite, Troca, Atestado etc.), sem truncar.
+    - Dias sem eventos: apenas número em cinza claro.
+  - Toque na linha abre o mesmo drawer/detalhe do dia usado no grid.
+- Reusar exatamente os datasets já consumidos por cada tela — apresentação muda, dados não.
 
 ### Fora do escopo
-- Sem mudanças em dados, permissões, RLS, rotas ou desktop.
-- Item 3G (busca global full-screen) fica adiado — a lupa compacta do `/mais` já cobre o caso principal por módulo.
+- Sem mudanças de RLS, hooks de dados ou lógica de negócio.
+- Desktop dos calendários permanece inalterado.
 
-### Ordem de implementação
-1 → 2 → 4 → 3 → 5 → 6 → 7 → 8, para poder observar cada mudança separadamente na preview.
+### Ordem de execução
+1. Header /mais + auto-hide fim-de-página.
+2. Quebra de palavras nos tiles/cards.
+3. Hub 2 colunas.
+4. Componente `CalendarioMobileLista` + integração no admin e no portal.

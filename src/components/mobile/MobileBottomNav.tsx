@@ -23,7 +23,9 @@ function useHideOnScroll(disabled = false) {
     const update = () => {
       const y = window.scrollY;
       const dy = y - lastY;
-      if (y < 24) {
+      const doc = document.documentElement;
+      const atBottom = y + window.innerHeight >= doc.scrollHeight - 8;
+      if (y < 24 || atBottom) {
         setHidden(false);
       } else if (dy > 8) {
         setHidden(true);
