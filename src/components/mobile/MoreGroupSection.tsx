@@ -259,7 +259,7 @@ function IFoodTile({
         onNavigate();
       }}
       className={cn(
-        "relative flex w-full min-w-0 flex-col items-center justify-start gap-1.5 px-2 py-2 rounded-xl text-center",
+        "relative flex w-full min-w-0 flex-col items-center justify-start gap-1.5 px-1.5 py-2 rounded-xl text-center",
         "active:scale-[0.95] transition-transform",
       )}
     >
@@ -273,7 +273,7 @@ function IFoodTile({
         <Icon className="h-5 w-5" />
       </span>
       <span className={cn(
-        "block w-full text-[11px] leading-tight break-words hyphens-auto line-clamp-2 min-h-[26px]",
+        "block w-full text-[11.5px] leading-[1.15] break-words hyphens-auto",
         active ? "font-semibold text-primary" : "text-foreground/80",
       )}>
         {item.label}
