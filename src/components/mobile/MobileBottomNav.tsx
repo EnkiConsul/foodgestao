@@ -146,13 +146,13 @@ export function MobileBottomNav() {
 
       <ShortcutCustomizer
         slot={customizerSlot}
+        onSlotChange={(s) => setCustomizerSlot(s)}
         onOpenChange={(open) => { if (!open) setCustomizerSlot(null); }}
-        currentTo={customizerSlot === "a" ? shortcutA.to : shortcutB.to}
+        currentA={shortcutA.to}
+        currentB={shortcutB.to}
         options={options}
-        disabledRoutes={usedRoutes}
-        onPick={(to) => {
-          if (!customizerSlot) return;
-          setShortcut(customizerSlot, to);
+        onPick={(s, to) => {
+          setShortcut(s, to);
           const picked = options.find((o) => o.to === to);
           if (picked) toast.success(`Atalho: ${picked.label}`);
           haptic(15);
