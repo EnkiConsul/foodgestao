@@ -165,7 +165,7 @@ export default function ContasBancarias() {
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${resyncing ? "animate-spin" : ""}`} /> Recalcular saldos
           </Button>
-          <Button onClick={() => { setEditAccount(null); setDialogOpen(true); }} className="hidden md:flex">
+          <Button onClick={() => { setEditAccount(null); setMethodOpen(true); }} className="hidden md:flex">
             <Plus className="h-4 w-4 mr-2" /> Nova Conta
           </Button>
         </div>
