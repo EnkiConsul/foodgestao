@@ -278,7 +278,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
             ],
             items: [
               { icon: Calendar, label: "Calendário Geral", to: "/dp/folgas/calendario" },
-              { icon: ClipboardListIcon, label: "Solicitações", to: "/dp/solicitacoes" },
+              { icon: Inbox, label: "Solicitações", to: "/dp/solicitacoes" },
               { icon: UserCheck, label: "Aprovações", to: "/dp/aprovacoes" },
               { icon: ArrowLeftRight, label: "Trocas", to: "/dp/trocas" },
               { icon: Ban, label: "Datas Bloqueadas", to: "/dp/bloqueios" },
