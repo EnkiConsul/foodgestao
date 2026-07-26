@@ -357,6 +357,31 @@ export default function DpSolicitacoes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <MobileDetailsSheet
+        open={!!detailsRow}
+        onOpenChange={(o) => !o && setDetailsRow(null)}
+        title={detailsRow?.dp_colaboradores?.nome ?? "Solicitação"}
+        description={detailsRow ? STATUS_META[detailsRow.status].label : undefined}
+        meta={detailsRow ? [
+          { label: "Tipo", value: <span className="capitalize">{detailsRow.tipo}</span> },
+          { label: "Data alvo", value: formatBR(detailsRow.data_alvo) },
+          ...(detailsRow.data_fim ? [{ label: "Data fim", value: formatBR(detailsRow.data_fim) }] : []),
+          { label: "Criada em", value: new Date(detailsRow.created_at).toLocaleString("pt-BR") },
+          ...(detailsRow.motivo ? [{ label: "Motivo", value: detailsRow.motivo }] : []),
+          ...(detailsRow.resposta_admin ? [{ label: "Resposta", value: detailsRow.resposta_admin }] : []),
+        ] : []}
+        footer={detailsRow && detailsRow.status === "pendente" ? (
+          <div className="flex gap-2 w-full">
+            <Button variant="outline" className="flex-1" onClick={() => { decide(detailsRow, false); setDetailsRow(null); }}>
+              <X className="size-4 mr-1" /> Recusar
+            </Button>
+            <Button className="flex-1" onClick={() => { decide(detailsRow, true); setDetailsRow(null); }}>
+              <Check className="size-4 mr-1" /> Aprovar
+            </Button>
+          </div>
+        ) : null}
+      />
     </DpPage>
   );
 }
