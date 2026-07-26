@@ -103,7 +103,20 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
 
   // Render PDF page preview via signed URL
   useEffect(() => {
-    if (!open || !current?.page_file_path || !canvasRef.current) return;
+  // Observa largura disponível para renderizar a página ajustada à largura
+  useEffect(() => {
+    const el = previewBoxRef.current;
+    if (!el || !open) return;
+    const update = () => setBoxWidth(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [open, current?.id]);
+
+  // Render PDF page preview via signed URL
+  useEffect(() => {
+    if (!open || !current?.page_file_path || !canvasRef.current || boxWidth <= 0) return;
     let cancelled = false;
     (async () => {
       try {
@@ -116,11 +129,16 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
         const buf = await resp.arrayBuffer();
         const doc = await pdfjsLib.getDocument({ data: buf }).promise;
         const page = await doc.getPage(1);
-        const viewport = page.getViewport({ scale: 1.5 });
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const base = page.getViewport({ scale: 1 });
+        const available = Math.max(160, boxWidth - 16);
+        const viewport = page.getViewport({ scale: (available / base.width) * dpr });
         const canvas = canvasRef.current;
         if (!canvas || cancelled) return;
         canvas.width = viewport.width;
         canvas.height = viewport.height;
+        canvas.style.width = `${viewport.width / dpr}px`;
+        canvas.style.height = `${viewport.height / dpr}px`;
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
         await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
@@ -131,7 +149,8 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
       }
     })();
     return () => { cancelled = true; };
-  }, [open, current?.page_file_path, current?.id]);
+  }, [open, current?.page_file_path, current?.id, boxWidth]);
+
 
   const setColab = useMutation({
     mutationFn: async ({ id, colaborador_id }: { id: string; colaborador_id: string | null }) => {
