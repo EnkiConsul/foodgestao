@@ -17,6 +17,7 @@ import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { NovoColaboradorInlineDialog } from "./NovoColaboradorInlineDialog";
 import { BulkProgressBanner } from "./BulkProgressBanner";
 import { ConfirmarSubstituicaoDialog, type DuplicateCollision } from "./ConfirmarSubstituicaoDialog";
+import { ConfirmarFaltantesDialog } from "./ConfirmarFaltantesDialog";
 import { detectDuplicates } from "@/lib/dp/bulk-duplicates";
 import { ColaboradoresFaltantesPanel } from "./ColaboradoresFaltantesPanel";
 import { competenciaPredominante, computeCoverage } from "@/lib/dp/bulk-coverage";
