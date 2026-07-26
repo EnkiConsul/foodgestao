@@ -919,15 +919,15 @@ export default function DpFolgas() {
                         blocked && "bg-destructive/5",
                       )}
                     >
-                      <div className="flex items-baseline gap-2 min-w-[64px] shrink-0">
+                      <div className="grid w-16 shrink-0 grid-cols-[2.25rem_1.75rem] items-center gap-1">
                         <span className={cn(
-                          "text-[11px] font-semibold uppercase tracking-wide",
+                          "text-left text-[11px] font-semibold uppercase tracking-wide leading-none",
                           hasEvents ? "text-muted-foreground" : "text-muted-foreground/60",
                         )}>
                           {wd}
                         </span>
                         <span className={cn(
-                          "text-lg font-bold tabular-nums",
+                          "text-right text-lg font-bold tabular-nums leading-none",
                           isToday && "text-primary",
                           blocked && "text-destructive",
                           !hasEvents && "text-muted-foreground/50",
