@@ -96,13 +96,17 @@ export function useDpBeneficios(colaboradorFilter = "todos") {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_folha_periodos")
-        .select("id, ano, mes, status")
+        .select("id, competencia, tipo, status")
         .eq("company_id", selectedCompanyId!)
-        .order("ano", { ascending: false })
-        .order("mes", { ascending: false })
+        .order("competencia", { ascending: false })
         .limit(24);
       if (error) throw error;
-      return (data ?? []) as { id: string; ano: number; mes: number; status: string }[];
+      return (data ?? []) as {
+        id: string;
+        competencia: string;
+        tipo: string;
+        status: string;
+      }[];
     },
   });
 
