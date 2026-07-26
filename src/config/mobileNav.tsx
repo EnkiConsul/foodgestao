@@ -1,5 +1,6 @@
 import {
   Home,
+  Megaphone,
   LayoutGrid,
   List,
   Wallet,
