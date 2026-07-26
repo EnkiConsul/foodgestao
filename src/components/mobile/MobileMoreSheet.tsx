@@ -96,14 +96,29 @@ export function MobileMoreSheet({ groups, trigger, onCustomizeShortcut }: Props)
             )}
           </div>
           {!isSearching && (
-            <Button
-              variant="outline"
-              className="h-11 w-full justify-start gap-2"
-              onClick={() => go("/hub")}
-            >
-              <LayoutGrid className="h-4 w-4" />
-              Acompanhar módulos (Hub)
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="outline"
+                className="h-11 w-full justify-start gap-2"
+                onClick={() => go("/hub")}
+              >
+                <LayoutGrid className="h-4 w-4" />
+                Acompanhar módulos (Hub)
+              </Button>
+              {onCustomizeShortcut && (
+                <Button
+                  variant="ghost"
+                  className="h-11 w-full justify-start gap-2"
+                  onClick={() => {
+                    setOpen(false);
+                    onCustomizeShortcut();
+                  }}
+                >
+                  <Sliders className="h-4 w-4" />
+                  Personalizar barra
+                </Button>
+              )}
+            </div>
           )}
         </SheetHeader>
 
