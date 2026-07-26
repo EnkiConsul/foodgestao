@@ -1,39 +1,82 @@
-## Objetivo
+> Todos os dados abaixo foram confirmados por leitura de código e consulta direta ao banco (não por suposição).
 
-Trocar o botão "inativar" (switch solto na lista de colaboradores) por um **fluxo formal de desligamento**, com registro auditável e período de carência de acesso ao portal.
+# PARTE 1 — Diagnóstico do que existe hoje
 
-## Concordo com sua proposta — e sugiro alguns complementos
+## 1.1 Superfície do módulo
+- **34 telas admin** em `/dp/*` + **7 telas** do portal do colaborador em `/dp/meu/*` (`src/App.tsx:277-386`), mais 9 rotas de redirecionamento legado.
+- **~40 componentes** em `src/components/dp/**` (shell, home/KPIs, colaboradores, documentos/bulk, bloqueios, comunicação, kit mobile).
+- **11 hooks** `useDp*` em `src/hooks/`.
+- **6 utilitários de negócio** em `src/lib/dp/**` (`bloqueio-rules`, `bloqueios`, `bulk-coverage`, `bulk-duplicates`, `desligamento`, `folga-rules`) com testes.
+- **11 Edge Functions** `dp-*` (acesso/senha do colaborador, convite, sorteio de folgas, bulk-ingest com OCR+IA, bulk-approve/discard, PDF disciplinar, notificação de atestado, broadcast).
 
-O que você pediz faz total sentido: hoje o switch inativa sem registrar data, motivo ou responsável, o que quebra os cálculos históricos (ex.: cobertura de documentos por competência já usa `data_desligamento`, que muitas vezes fica vazio).
+## 1.2 Camada de dados
+- **35 tabelas** `dp_*` + view `dp_colaboradores_public`; **81 policies** RLS (todas `authenticated`), multi-tenant por `company_id`.
+- **25 funções SQL** `dp_*` e **~37 triggers** (validação de folga, notificações, desligamento, pipeline de folha).
+- **24 enums** de domínio; **3 buckets** privados (`dp-documentos`, `dp-disciplinar`, `dp-bulk-import`) com políticas por `company_id` no path.
+- Integração real DP↔Financeiro: `dp_folha_lancamentos` → `accounts` / `categories` / `transactions`.
 
-Complementos que recomendo:
-1. **Reversão de desligamento** ("Reintegrar") em vez de simplesmente religar o switch — limpa/arquiva o desligamento e registra quem reintegrou.
-2. **Registrar quem desligou e quando** (`desligado_por`, `desligado_em`), separado da data efetiva de demissão.
-3. **Elegibilidade para recontratação** — campo sim/não/com ressalvas, ao lado da observação. É o dado que o admin realmente procura numa futura avaliação.
-4. **Efeitos colaterais automáticos**: cancelar folgas futuras agendadas e solicitações pendentes a partir da data de demissão, com aviso na confirmação ("X folgas futuras serão canceladas").
-5. **Aviso de carência**: banner no portal do colaborador desligado ("Seu acesso encerra em N dias — baixe seus documentos"), e bloqueio de ações de escrita (pedir folga, troca, solicitações) desde já — só leitura/download.
-6. **Data de demissão futura**: permitir agendar (aviso prévio). O acesso completo continua até a data, e a carência conta a partir dela.
-7. **Filtro "Desligados"** com coluna de motivo e data, além de exportação.
+## 1.3 Cobertura funcional atual (forte)
+Cadastro organizacional (unidades/cargos/sindicatos/CCT-ACT), colaboradores com fluxo formal de desligamento e reintegração, escala de folgas com sorteio + motor de bloqueios (inclusive feriados móveis), trocas entre colegas, solicitações, documentos com importação em massa por OCR/IA e cobertura por unidade/competência, disciplinar com PDF, folha de pagamento até virar lançamento financeiro, comunicação (avisos, mensagens, modelos, broadcast, notificações) e portal do colaborador.
 
-## Escopo da implementação
+## 1.4 Lacunas confirmadas (0 tabelas no banco)
+| Domínio | Situação |
+|---|---|
+| Férias formais (aquisitivo, saldo, aviso) | Só existe como *tipo* de folga/solicitação/documento |
+| ASO / exames ocupacionais | Inexistente |
+| EPIs | Inexistente |
+| Treinamentos | Inexistente |
+| Benefícios (VT/VA/VR) | Só como linha de folha, sem cadastro/gestão |
+| Feed/mural com interação | Comunicação é unidirecional admin→colaborador |
+| Analytics de RH | Inexistente |
 
-### Banco de dados
-- Novo enum `dp_motivo_desligamento`: pedido de demissão, dispensa sem justa causa, dispensa com justa causa, término de contrato/experiência, acordo mútuo, abandono de emprego, aposentadoria, falecimento, outro.
-- Em `dp_colaboradores`: `motivo_desligamento` (enum, opcional), `observacao_desligamento` (texto), `elegivel_recontratacao` (enum/texto opcional), `desligado_por` (uuid), `desligado_em` (timestamp), `acesso_portal_ate` (date).
-- `data_desligamento` passa a ser obrigatória sempre que `ativo = false` — validado por trigger (não CHECK, por depender de dados).
-- Trigger de desligamento: ao definir `data_desligamento`, calcula `acesso_portal_ate = data_desligamento + 30 dias`, seta `ativo = false` e preenche auditoria.
-- Ajustar a função de acesso do colaborador (`auth_access_enabled` / gate do portal) para permitir login enquanto `now() <= acesso_portal_ate`, e negar depois. Políticas de escrita do colaborador (folgas, solicitações, trocas) passam a exigir `ativo = true`.
-- Prazo de 30 dias configurável em `dp_pendencias_config`-style (ou nova chave de config DP), com default 30.
+> Ponto eletrônico e banco de horas também não existem no banco, mas foram **deliberadamente deixados fora deste roadmap** — exigem conformidade com a Portaria MTP 671/2021 (REP-A ou REP-P) e serão tratados como projeto separado no futuro.
 
-### Frontend
-- Remover o `Switch` de ativo/inativo da lista e do card mobile (`src/pages/dp/DpColaboradores.tsx`).
-- Novo `DesligamentoDialog.tsx`: data da demissão (obrigatória), motivo (select opcional), observação (textarea), elegibilidade para recontratação, resumo dos efeitos (folgas/solicitações canceladas, data-limite de acesso ao portal).
-- Novo `ReintegrarDialog.tsx` (confirmação simples + limpeza dos campos, mantendo histórico).
-- Aba/filtro "Desligados" com motivo, data e data-limite de acesso; detalhe do colaborador mostra bloco "Desligamento".
-- Portal do colaborador (`ColaboradorShell.tsx`): banner de carência com contagem regressiva e ocultação/desativação das ações de escrita.
+## 1.5 Dívidas técnicas identificadas
+1. `src/pages/dp/DpLogin.tsx` é arquivo órfão (não roteado; `/dp/login` redireciona para `/auth`).
+2. Páginas pesadas (`DpFolgas`, `DpTrocas`, `DpDocumentos`, `DpAprovacoes`, `DpBloqueios`) fazem queries/mutations Supabase inline, fora do padrão `useDp*` do restante do módulo.
+3. Nenhuma tabela `dp_*` usa `FORCE ROW LEVEL SECURITY`.
+4. Duplicidade de rotas para a mesma página (`/dp/meu/perfil` e `/dp/meu/cadastro`).
 
-### Detalhes técnicos
-- Validação Zod em `src/lib/validations.ts` (`desligamentoSchema`) usada com `validateWithToast`.
-- Cancelamento de folgas/solicitações futuras via função SQL `SECURITY DEFINER` chamada na mesma transação do desligamento.
-- Registro em `audit_logs` da ação de desligamento e reintegração.
-- Testes unitários para o cálculo da janela de carência e para `ativoNaCompetencia` continuar correto com os novos campos.
+---
+
+# PARTE 2 — Benchmark e posicionamento
+Referências analisadas: Sólides, Pontomais, Convenia, Flash, Rippling, BambooHR, Deel, Employment Hero.
+
+**Onde o 360°FOOD já compete de igual para igual:** escala/folgas com regras de bloqueio e sorteio (mais sofisticado que a média do mercado brasileiro para food service), portal do colaborador, importação de documentos com OCR/IA, integração nativa DP↔Financeiro (diferencial real — os concorrentes exigem integração externa).
+
+**Onde há distância clara (dentro do escopo atual):**
+- *Conformidade*: férias formais, ASO/exames, EPIs e treinamentos são obrigações legais cobertas por Convenia/Sólides.
+- *Engajamento*: Flash e Employment Hero exploram benefícios e feed social; aqui a comunicação é unidirecional.
+- *Estratégico*: BambooHR/Rippling entregam analytics de RH (turnover, headcount, absenteísmo).
+
+---
+
+# PARTE 3 — Roadmap proposto
+
+### Fase A — Higienização (baixo esforço, sem novas tabelas)
+- Remover `DpLogin.tsx` órfão e a rota duplicada `/dp/meu/cadastro`.
+- Extrair a lógica de dados das 5 páginas pesadas para hooks `useDpFolgas`, `useDpTrocas`, `useDpDocumentos`, `useDpAprovacoes`, `useDpBloqueios`.
+- Avaliar `FORCE ROW LEVEL SECURITY` nas tabelas com PII (`dp_colaboradores`, `dp_documentos`, `dp_mensagens`).
+
+### Fase B — Férias formais (maior ganho de conformidade por esforço)
+- Tabelas `dp_ferias_periodos` (aquisitivo/concessivo, saldo, dias vendidos) e `dp_ferias_solicitacoes`, ligadas a `dp_colaboradores` e ao fluxo existente de `dp_solicitacoes`/`dp_folgas`.
+- Cálculo automático de saldo a partir da data de admissão, alerta de período vencendo no quadro de pendências, aviso de férias em PDF e integração com `dp_folha_lancamentos` (tipo `ferias`).
+
+### Fase C — Conformidade e saúde ocupacional
+- `dp_exames_aso` (admissional, periódico, demissional, com vencimento), `dp_epis_entregas` (ficha de EPI com assinatura), `dp_treinamentos`.
+- Todos alimentando o quadro de pendências existente com alertas de vencimento por unidade.
+
+### Fase D — Benefícios
+- Cadastro de benefícios por colaborador (VT/VA/VR e descontos), gerando automaticamente as linhas correspondentes em `dp_folha_lancamentos`.
+
+### Fase E — Engajamento
+- Evolução de `dp_avisos` para mural com confirmação de leitura obrigatória, reações e comentários moderados.
+
+### Fase F — Analytics de RH
+- Painel com turnover, headcount, absenteísmo, custo por unidade e distribuição de folgas, reaproveitando o padrão de relatórios do financeiro (incluindo exportação PDF/CSV).
+
+## Detalhes técnicos
+Toda tabela nova segue o padrão do projeto: `company_id` com FK `ON DELETE CASCADE`, `GRANT` explícito a `authenticated`/`service_role`, RLS habilitado com policies admin-write/self-read via `dp_colaborador_of` e `dp_colaborador_ativo_of`, `updated_at` com trigger `dp_set_updated_at()`. Novas telas herdam `DpLayout`/`DpPage`, o kit mobile (`MobileCardKit`, `BottomNav`) e os tokens da identidade 360°FOOD.
+
+## Escopo desta aprovação
+Aprovar este plano registra a auditoria e o roadmap. A implementação começa pela **Fase A**; cada fase seguinte será proposta como um plano próprio antes de codificar.
