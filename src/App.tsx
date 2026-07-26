@@ -320,6 +320,7 @@ const AppRoutes = () => (
         
         <Route path="/contas-contabeis" element={<ContasContabeis />} />
         <Route path="/contas-bancarias" element={<ContasBancarias />} />
+        <Route path="/contas-bancarias/conexoes" element={<ConexoesOpenFinance />} />
         <Route path="/cartoes-credito" element={<CartoesCredito />} />
         
         <Route path="/configuracoes" element={<Configuracoes />} />
