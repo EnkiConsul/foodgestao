@@ -1,10 +1,9 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutGrid, LogOut, Search, SearchX, Sliders, User, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { LogOut, SearchX, Sliders, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { useActiveModule } from "@/hooks/useActiveModule";
+import { MODULE_LABEL, useActiveModule } from "@/hooks/useActiveModule";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { MODULE_NAV, type NavLeaf } from "@/config/mobileNav";
 import { useFavoriteNavItems } from "@/hooks/useFavoriteNavItems";
