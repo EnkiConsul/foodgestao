@@ -71,6 +71,7 @@ export default function DpDocumentos() {
   const [search, setSearch] = useState("");
   const [periodoInicio, setPeriodoInicio] = useState("");
   const [periodoFim, setPeriodoFim] = useState("");
+  const [detailsRow, setDetailsRow] = useState<Row | null>(null);
 
   const list = useQuery({
     queryKey: ["dp_documentos", selectedCompanyId, filterTipo ?? "all"],
