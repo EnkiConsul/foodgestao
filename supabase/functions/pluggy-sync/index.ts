@@ -172,7 +172,9 @@ Deno.serve(async (req) => {
   // Drain mode (cron / internal)
   if ("drain" in body) {
     const expected = Deno.env.get("PLUGGY_SYNC_ALL_SECRET");
-    if (!expected || body.secret !== expected) return json(401, { error: "forbidden" });
+    const cronSecret = Deno.env.get("PLUGGY_CRON_SECRET");
+    const ok = (expected && body.secret === expected) || (cronSecret && body.secret === cronSecret);
+    if (!ok) return json(401, { error: "forbidden" });
 
     const max = body.max_runs ?? 5;
     const processed: any[] = [];

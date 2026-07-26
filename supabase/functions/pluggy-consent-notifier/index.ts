@@ -16,8 +16,10 @@ Deno.serve(async (req) => {
   if (req.method !== "POST" && req.method !== "GET") return json(405, { error: "Method not allowed" });
 
   const expected = Deno.env.get("PLUGGY_SYNC_ALL_SECRET");
+  const cronSecret = Deno.env.get("PLUGGY_CRON_SECRET");
   const provided = req.headers.get("x-cron-secret") ?? new URL(req.url).searchParams.get("secret");
-  if (!expected || provided !== expected) return json(401, { error: "forbidden" });
+  const ok = (expected && provided === expected) || (cronSecret && provided === cronSecret);
+  if (!ok) return json(401, { error: "forbidden" });
 
   const url = Deno.env.get("SUPABASE_URL")!;
   const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
