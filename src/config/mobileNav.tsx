@@ -354,8 +354,8 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
     hubTo: "/hub",
     moreTo: "/dp/meu/mais",
     home: portalHome,
-    defaultShortcutA: portalShortcuts[0],
-    defaultShortcutB: portalShortcuts[1],
+    defaultShortcutA: pickShortcut(portalShortcuts, GLOBAL_SHORTCUT_DEFAULTS.portal_colaborador.A, 0),
+    defaultShortcutB: pickShortcut(portalShortcuts, GLOBAL_SHORTCUT_DEFAULTS.portal_colaborador.B, 1),
     shortcutOptions: portalShortcuts,
     moreGroups: [
       {
