@@ -136,7 +136,7 @@ export default function DpBeneficios() {
             ) : (
               <div className="divide-y divide-border">
                 {b.atribuicoes.map((a) => (
-                  <div key={a.id} className="flex items-center justify-between gap-3 py-3">
+                  <div key={a.id} className="flex items-center justify-between gap-3 px-4 py-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">
                         {a.colaborador_nome} · {a.beneficio_nome}
@@ -151,11 +151,11 @@ export default function DpBeneficios() {
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       {!a.ativo && <Badge variant="secondary">Inativo</Badge>}
-                      <Button size="icon" variant="ghost"
+                      <Button size="icon" variant="ghost" aria-label="Editar atribuição"
                         onClick={() => { setAtrEdit(a); setAtrOpen(true); }}>
                         <Pencil className="size-4" />
                       </Button>
-                      <Button size="icon" variant="ghost"
+                      <Button size="icon" variant="ghost" aria-label="Remover atribuição"
                         onClick={() => b.deleteAtribuicao.mutate(a.id)}>
                         <Trash2 className="size-4 text-destructive" />
                       </Button>
@@ -181,7 +181,7 @@ export default function DpBeneficios() {
             ) : (
               <div className="divide-y divide-border">
                 {b.beneficios.map((x) => (
-                  <div key={x.id} className="flex items-center justify-between gap-3 py-3">
+                  <div key={x.id} className="flex items-center justify-between gap-3 px-4 py-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{x.nome}</p>
                       <p className="text-xs text-muted-foreground">
@@ -193,11 +193,11 @@ export default function DpBeneficios() {
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       {!x.ativo && <Badge variant="secondary">Inativo</Badge>}
-                      <Button size="icon" variant="ghost"
+                      <Button size="icon" variant="ghost" aria-label="Editar benefício"
                         onClick={() => { setCatEdit(x); setCatOpen(true); }}>
                         <Pencil className="size-4" />
                       </Button>
-                      <Button size="icon" variant="ghost"
+                      <Button size="icon" variant="ghost" aria-label="Remover benefício"
                         onClick={() => b.deleteBeneficio.mutate(x.id)}>
                         <Trash2 className="size-4 text-destructive" />
                       </Button>
