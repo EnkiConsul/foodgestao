@@ -222,17 +222,38 @@ export default function DpAdminCalendario() {
 
   const unidadeFilterId = filterUnidade === "all" ? null : filterUnidade;
 
-  const manualBlocked = useMemo(() => {
-    const m = new Map<string, { reason: string; liberada: boolean }>();
-    const liberadasSet = new Set<string>();
+  /** Overrides de liberação (linhas com `liberada`/`liberada_por_solicitacao`). */
+  const releasedByDate = useMemo(() => {
+    const m = new Map<
+      string,
+      { id: string; motivo: string; unidade_id: string | null; porSolicitacao: boolean }
+    >();
     for (const b of bloqueios) {
       const liberado = !!b.liberada_por_solicitacao || b.liberada === true;
-      if (liberado) {
-        liberadasSet.add(b.data);
-        continue;
-      }
+      if (!liberado) continue;
+      // Preferimos o override global quando houver mais de um na mesma data.
+      const cur = m.get(b.data);
+      if (cur && cur.unidade_id == null) continue;
+      m.set(b.data, {
+        id: b.id,
+        motivo: b.motivo,
+        unidade_id: b.unidade_id ?? null,
+        porSolicitacao: !!b.liberada_por_solicitacao,
+      });
+    }
+    return m;
+  }, [bloqueios]);
+
+  const manualBlocked = useMemo(() => {
+    const m = new Map<string, { reason: string; liberada: boolean }>();
+    for (const b of bloqueios) {
+      const liberado = !!b.liberada_por_solicitacao || b.liberada === true;
+      if (liberado) continue;
       m.set(b.data, { reason: b.motivo, liberada: false });
     }
+    // Remove datas com override de liberação, independentemente da ordem das linhas.
+    releasedByDate.forEach((_v, iso) => m.delete(iso));
+
     const regrasData = regrasBloqueioQuery.data;
     if (regrasData) {
       const fromRegras = buildBloqueiosDeRegras({
@@ -243,21 +264,17 @@ export default function DpAdminCalendario() {
         to: range.endDate,
       });
       fromRegras.forEach((motivo, iso) => {
-        if (liberadasSet.has(iso)) return;
+        if (releasedByDate.has(iso)) return;
         if (!m.has(iso)) m.set(iso, { reason: motivo, liberada: false });
       });
     }
     return m;
-  }, [bloqueios, regrasBloqueioQuery.data, unidadeFilterId, range.startDate, range.endDate]);
+  }, [bloqueios, releasedByDate, regrasBloqueioQuery.data, unidadeFilterId, range.startDate, range.endDate]);
 
   const blockedByDate = useMemo(() => {
     const m = new Map<string, { motivo: string; auto: boolean; id: string; hasGlobal: boolean; hasUnidade: boolean }>();
-    const liberadasSet = new Set<string>();
     for (const b of bloqueios) {
-      if (b.liberada_por_solicitacao || b.liberada === true) {
-        liberadasSet.add(b.data);
-        continue;
-      }
+      if (b.liberada_por_solicitacao || b.liberada === true) continue;
       m.set(b.data, {
         motivo: b.motivo,
         auto: !!b.regra_id,
@@ -266,6 +283,8 @@ export default function DpAdminCalendario() {
         hasUnidade: b.unidade_id != null,
       });
     }
+    releasedByDate.forEach((_v, iso) => m.delete(iso));
+
     const regrasData = regrasBloqueioQuery.data;
     if (regrasData) {
       const fromRegras = buildBloqueiosDeRegrasDetalhado({
@@ -276,12 +295,13 @@ export default function DpAdminCalendario() {
         to: range.endDate,
       });
       fromRegras.forEach((orig, iso) => {
-        if (liberadasSet.has(iso)) return;
+        if (releasedByDate.has(iso)) return;
         if (!m.has(iso)) m.set(iso, { motivo: orig.motivo, auto: true, id: `regra:${iso}`, hasGlobal: orig.hasGlobal, hasUnidade: orig.hasUnidade });
       });
     }
     return m;
-  }, [bloqueios, regrasBloqueioQuery.data, unidadeFilterId, range.startDate, range.endDate]);
+  }, [bloqueios, releasedByDate, regrasBloqueioQuery.data, unidadeFilterId, range.startDate, range.endDate]);
+
 
   const colaboradores = (colabsQ.data ?? []) as any[];
   const filteredColabs = useMemo(() => {
@@ -493,6 +513,24 @@ export default function DpAdminCalendario() {
     onError: (e: any) => toast.error(e.message ?? "Erro ao liberar"),
   });
 
+  /** Remove o override de liberação, devolvendo a data ao estado bloqueado. */
+  const rebloquearData = useMutation({
+    mutationFn: async (overrideId: string) => {
+      const { error } = await supabase.from("dp_datas_bloqueadas").delete().eq("id", overrideId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Data bloqueada novamente");
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas"] });
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_geral"] });
+      setDayOpen(null);
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao bloquear novamente"),
+  });
+
+
+
   // ===== conflict / assign =====
   const [confirmDialog, setConfirmDialog] = useState<{
     iso: string;
@@ -577,6 +615,8 @@ export default function DpAdminCalendario() {
   const currentDay = dayOpen ? parseYMD(dayOpen) : null;
   const currentIsWeekend = currentDay ? isWeekend(currentDay) : false;
   const currentBlock = dayOpen ? blockedByDate.get(dayOpen) ?? null : null;
+  const currentRelease = dayOpen ? releasedByDate.get(dayOpen) ?? null : null;
+
   const dayOccupants = dayOpen ? occupantsByDate.get(dayOpen) ?? [] : [];
 
   const clearFilters = () => {
@@ -608,21 +648,22 @@ export default function DpAdminCalendario() {
       />
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-4">
         {[
           { label: "Folgas Marcadas", value: stats.totalFolgas, icon: CheckCircle, tone: "text-emerald-500" },
           { label: "Vagas Restantes", value: stats.vagasRestantes, icon: Users, tone: "text-blue-500" },
           { label: "Dias Lotados", value: stats.diasLotados, icon: AlertTriangle, tone: "text-rose-500" },
           { label: "Capacidade Total", value: stats.totalVagas, icon: CalendarDays, tone: "text-muted-foreground" },
         ].map((k) => (
-          <div key={k.label} className="rounded-2xl border bg-card p-4 shadow-sm">
-            <div className="mb-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{k.label}</div>
-            <div className="flex items-center gap-2 text-2xl font-black">
-              <k.icon className={cn("h-5 w-5", k.tone)} /> {k.value}
+          <div key={k.label} className="rounded-xl border bg-card p-3 shadow-sm md:rounded-2xl md:p-4">
+            <div className="mb-0.5 truncate text-[9px] font-black uppercase tracking-widest text-muted-foreground md:mb-1 md:text-[10px]">{k.label}</div>
+            <div className="flex items-center gap-1.5 text-lg font-black md:gap-2 md:text-2xl">
+              <k.icon className={cn("h-4 w-4 md:h-5 md:w-5", k.tone)} /> {k.value}
             </div>
           </div>
         ))}
       </div>
+
 
       {/* Filtros */}
       <div className="flex flex-wrap items-end gap-6 rounded-3xl border bg-card p-5 shadow-sm">
@@ -742,8 +783,35 @@ export default function DpAdminCalendario() {
 
           {dayOpen && (
             <div className="space-y-6 py-2">
-              {currentBlock && (
+              {currentRelease && (
+                <div className="space-y-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-emerald-700">
+                      <Unlock className="h-3.5 w-3.5" /> Data Liberada
+                    </h3>
+                    <Badge variant="outline" className="border-emerald-500/30 text-[9px] font-black uppercase text-emerald-700">
+                      {currentRelease.unidade_id ? "Unidade" : "Global"}
+                    </Badge>
+                  </div>
+                  <p className="text-sm font-semibold text-emerald-800">
+                    {currentRelease.porSolicitacao
+                      ? "Liberada por solicitação aprovada — disponível para folgas."
+                      : "Liberada manualmente pelo administrador — a regra de bloqueio segue ativa nos demais dias."}
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="h-11 w-full rounded-xl border-destructive/30 font-bold text-destructive hover:bg-destructive/10"
+                    onClick={() => rebloquearData.mutate(currentRelease.id)}
+                    disabled={rebloquearData.isPending}
+                  >
+                    <Lock className="mr-2 h-4 w-4" /> Bloquear novamente
+                  </Button>
+                </div>
+              )}
+
+              {currentBlock && !currentRelease && (
                 <div className="space-y-3 rounded-2xl border border-destructive/20 bg-destructive/10 p-5">
+
                   <div className="flex items-center justify-between">
                     <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-destructive">
                       <Lock className="h-3.5 w-3.5" /> Data Bloqueada

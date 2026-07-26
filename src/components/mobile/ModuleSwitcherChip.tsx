@@ -32,7 +32,7 @@ export function ModuleSwitcherChip() {
       <SheetTrigger asChild>
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3 h-9 text-sm font-medium min-w-0 max-w-[60vw] hover:bg-muted/50 transition-colors"
+          className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3 h-9 text-sm font-medium min-w-0 max-w-[34vw] hover:bg-muted/50 transition-colors"
           aria-label="Trocar de módulo"
         >
           <span className="truncate">{label}</span>

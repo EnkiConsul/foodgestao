@@ -63,7 +63,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
     refetchInterval: (q) => {
       const b = q.state.data as any;
       // Enquanto processando OCR OU enquanto salvamento em curso, poll rápido.
-      if (!b || b.status !== "ready" || isSaving) return 900;
+      if (!b || b.status === "processing" || isSaving) return 900;
       return false;
     },
     queryFn: async () => {
@@ -84,7 +84,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
       const rows = (q.state.data as any[] | undefined) ?? [];
       const b = batchInfo.data as any;
       const total = b?.total_pages ?? 0;
-      const notReady = !b || b.status !== "ready";
+      const notReady = !b || b.status === "processing";
       const missingRows = total > 0 && rows.length < total;
       const anyUnresolved = rows.some((r: any) => r.status === "pending" && !r.matched_colaborador_id && !r.error_message);
       return (notReady || missingRows || anyUnresolved || !rows.length) ? 2000 : false;
@@ -337,7 +337,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
   const bInfo = batchInfo.data as any;
   const totalPages = bInfo?.total_pages ?? 0;
   const processedPages = bInfo?.processed_pages ?? 0;
-  const ocrInProgress = !bInfo || bInfo.status !== "ready" || (totalPages > 0 && rows.length < totalPages);
+  const ocrInProgress = !bInfo || bInfo.status === "processing" || (bInfo.status !== "ready" ? false : totalPages > 0 && rows.length < totalPages);
   const approvedCount = Math.min(savingTotal, bInfo?.approved_count ?? 0);
 
   return (

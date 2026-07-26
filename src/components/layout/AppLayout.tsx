@@ -1,4 +1,5 @@
 import { useLocation } from "react-router-dom";
+import { EdgeGestures } from "@/components/mobile/EdgeGestures";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
@@ -15,6 +16,7 @@ export function AppLayout() {
 
   return (
     <SidebarProvider>
+      <EdgeGestures />
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <div className="flex flex-1 flex-col min-w-0">

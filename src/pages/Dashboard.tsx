@@ -363,7 +363,7 @@ export default function Dashboard() {
       </div>
 
       {/* Bento Grid */}
-      <div className="grid grid-cols-12 gap-4 lg:gap-5">
+      <div className="grid grid-cols-12 gap-2.5 md:gap-4 lg:gap-5">
         {/* KPIs */}
         {kpis.map((kpi) => {
           const isHero = kpi.variant === "hero";
@@ -371,7 +371,7 @@ export default function Dashboard() {
             <div
               key={kpi.label}
               className={cn(
-                "col-span-6 lg:col-span-3 p-5 rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 flex flex-col justify-between min-h-[130px]",
+                "col-span-6 lg:col-span-3 p-3.5 md:p-5 rounded-xl md:rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 flex flex-col justify-between min-h-[96px] md:min-h-[130px]",
                 isHero
                   ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20"
                   : "bg-card border-border/60 shadow-sm hover:shadow-md"
@@ -389,9 +389,9 @@ export default function Dashboard() {
                   isHero ? "text-primary-foreground/70" : (kpi.positive ? "text-success" : "text-muted-foreground")
                 )} />
               </div>
-              <div className="mt-2">
+              <div className="mt-1.5 md:mt-2">
                 <div className={cn(
-                  "font-display font-bold tracking-tight text-xl sm:text-2xl leading-tight whitespace-nowrap",
+                  "font-display font-bold tracking-tight text-lg sm:text-2xl leading-tight whitespace-nowrap",
                   isHero
                     ? "text-primary-foreground"
                     : kpi.variant === "accent-success"
