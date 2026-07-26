@@ -681,7 +681,16 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
           }}
         />
       )}
+
+      <ConfirmarFaltantesDialog
+        open={confirmFaltantes}
+        onOpenChange={setConfirmFaltantes}
+        faltantes={coverage.faltantes}
+        competencia={competenciaLote}
+        onConfirm={() => { setConfirmFaltantes(false); void proceedApprove(); }}
+      />
     </div>
+
   );
 }
 
