@@ -96,6 +96,8 @@ export type ModuleNav = {
   home: NavLeaf;
   defaultShortcutA: NavLeaf;
   defaultShortcutB: NavLeaf;
+  /** Somente usado no módulo Hub (Slot 1 vira 3º atalho personalizável). */
+  defaultShortcutC?: NavLeaf;
   shortcutOptions: NavLeaf[];
   moreGroups: MoreGroup[];
 };
@@ -363,8 +365,9 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
     hubTo: "/hub",
     moreTo: "/mais",
     home: hubHome,
-    defaultShortcutA: hubShortcuts[0],
-    defaultShortcutB: hubShortcuts[1],
+    defaultShortcutA: hubShortcuts[0], // Financeiro (2º)
+    defaultShortcutB: hubShortcuts[1], // DP (4º)
+    defaultShortcutC: hubShortcuts[2] ?? hubShortcuts[0], // Buscar (1º)
     shortcutOptions: hubShortcuts,
     moreGroups: [
       {

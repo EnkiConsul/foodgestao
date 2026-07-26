@@ -27,7 +27,7 @@ export function MobileBottomNav() {
   const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
 
   const config = MODULE_NAV[activeModule] ?? MODULE_NAV.financeiro;
-  const { shortcutA, shortcutB, setShortcut, options } = useModuleShortcuts(activeModule);
+  const { shortcutA, shortcutB, shortcutC, hasSlotC, setShortcut, options } = useModuleShortcuts(activeModule);
 
   const [customizerSlot, setCustomizerSlot] = useState<ShortcutSlot | null>(null);
 
@@ -43,24 +43,24 @@ export function MobileBottomNav() {
 
   const isHubModule = activeModule === "hub";
 
-  // Slot 1: Hub em geral; no módulo Hub, vira Financeiro (primeiro atalho fixo).
-  const slot1: NavLeaf = useMemo(
+  // Slot 1: no Hub vira o 3º atalho personalizável (C); fora do Hub, botão "Hub".
+  const slot1Def: SlotDef = useMemo(
     () =>
-      isHubModule
-        ? { icon: options[0]?.icon ?? LayoutGrid, label: options[0]?.label ?? "Financeiro", to: options[0]?.to ?? "/dashboard" }
-        : { icon: LayoutGrid, label: "Hub", to: config.hubTo, end: true },
-    [isHubModule, options, config.hubTo],
+      isHubModule && hasSlotC
+        ? { kind: "link", item: shortcutC, longPressSlot: "c" }
+        : { kind: "link", item: { icon: LayoutGrid, label: "Hub", to: config.hubTo, end: true } },
+    [isHubModule, hasSlotC, shortcutC, config.hubTo],
   );
 
   const slots: SlotDef[] = useMemo(
     () => [
-      { kind: "link", item: slot1 },
+      slot1Def,
       { kind: "link", item: shortcutA, longPressSlot: "a" },
       { kind: "home", item: config.home },
       { kind: "link", item: shortcutB, longPressSlot: "b" },
       { kind: "more" },
     ],
-    [slot1, shortcutA, shortcutB, config.home],
+    [slot1Def, shortcutA, shortcutB, config.home],
   );
 
   const isHomeActive = config.home.end
@@ -144,6 +144,7 @@ export function MobileBottomNav() {
         onOpenChange={(open) => { if (!open) setCustomizerSlot(null); }}
         currentA={shortcutA.to}
         currentB={shortcutB.to}
+        currentC={hasSlotC && isHubModule ? shortcutC.to : undefined}
         options={options}
         onPick={(s, to) => {
           setShortcut(s, to);
@@ -288,6 +289,7 @@ function ShortcutCustomizer({
   onOpenChange,
   currentA,
   currentB,
+  currentC,
   options,
   onPick,
 }: {
@@ -296,10 +298,12 @@ function ShortcutCustomizer({
   onOpenChange: (o: boolean) => void;
   currentA: string;
   currentB: string;
+  currentC?: string;
   options: NavLeaf[];
   onPick: (slot: ShortcutSlot, to: string) => void;
 }) {
   const open = slot !== null;
+  const hasC = currentC !== undefined;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -310,7 +314,14 @@ function ShortcutCustomizer({
             Personalizar Barra Inferior
           </SheetTitle>
           <p className="text-xs text-muted-foreground text-left">
-            Toque nos chips <span className="font-semibold">2º</span> ou <span className="font-semibold">4º</span> ao lado de cada item para fixá-lo naquele botão da barra.
+            Toque nos chips{" "}
+            {hasC && (
+              <>
+                <span className="font-semibold">1º</span>,{" "}
+              </>
+            )}
+            <span className="font-semibold">2º</span> ou{" "}
+            <span className="font-semibold">4º</span> ao lado de cada item para fixá-lo naquele botão da barra.
           </p>
         </SheetHeader>
         <div className="p-4 max-h-[65vh] overflow-y-auto">
@@ -319,29 +330,42 @@ function ShortcutCustomizer({
               const Icon = opt.icon;
               const isA = opt.to === currentA;
               const isB = opt.to === currentB;
+              const isC = hasC && opt.to === currentC;
+              const takenElsewhere = (target: ShortcutSlot) =>
+                (target !== "a" && isA) ||
+                (target !== "b" && isB) ||
+                (target !== "c" && isC);
               return (
                 <div
                   key={opt.to}
                   className={cn(
                     "w-full min-h-11 flex items-center gap-3 px-4 py-2.5",
                     i > 0 && "border-t",
-                    (isA || isB) && "bg-muted/40",
+                    (isA || isB || isC) && "bg-muted/40",
                   )}
                 >
                   <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
                   <span className="text-sm font-medium flex-1 truncate">{opt.label}</span>
                   <div className="flex items-center gap-1.5 shrink-0">
+                    {hasC && (
+                      <SlotChip
+                        label="1º"
+                        active={isC}
+                        disabled={takenElsewhere("c")}
+                        onClick={() => !takenElsewhere("c") && onPick("c", opt.to)}
+                      />
+                    )}
                     <SlotChip
                       label="2º"
                       active={isA}
-                      disabled={isB}
-                      onClick={() => !isB && onPick("a", opt.to)}
+                      disabled={takenElsewhere("a")}
+                      onClick={() => !takenElsewhere("a") && onPick("a", opt.to)}
                     />
                     <SlotChip
                       label="4º"
                       active={isB}
-                      disabled={isA}
-                      onClick={() => !isA && onPick("b", opt.to)}
+                      disabled={takenElsewhere("b")}
+                      onClick={() => !takenElsewhere("b") && onPick("b", opt.to)}
                     />
                   </div>
                 </div>
@@ -349,13 +373,14 @@ function ShortcutCustomizer({
             })}
           </div>
           <p className="mt-3 text-[11px] text-muted-foreground text-center">
-            Itens já fixos em um slot ficam desabilitados no outro.
+            Itens já fixos em um slot ficam desabilitados nos outros.
           </p>
         </div>
       </SheetContent>
     </Sheet>
   );
 }
+
 
 function SlotChip({
   label,

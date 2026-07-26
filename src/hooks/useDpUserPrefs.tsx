@@ -83,6 +83,28 @@ export function useDpUserPrefs() {
     });
   };
 
+  // ── Atalhos personalizáveis da BottomNav mobile ────────────────────────
+  // Estrutura: extras.mobile_shortcuts = { [module]: { a?, b?, c? } }
+  type ShortcutSlot = "a" | "b" | "c";
+  type ShortcutsMap = Record<string, Partial<Record<ShortcutSlot, string>>>;
+
+  const mobileShortcuts: ShortcutsMap =
+    (query.data?.extras as any)?.mobile_shortcuts && typeof (query.data!.extras as any).mobile_shortcuts === "object"
+      ? ((query.data!.extras as any).mobile_shortcuts as ShortcutsMap)
+      : {};
+
+  const setMobileShortcut = (mod: string, slot: ShortcutSlot, to: string) => {
+    const currentExtras = query.data?.extras ?? {};
+    const currentMap = (currentExtras as any).mobile_shortcuts ?? {};
+    const nextMap: ShortcutsMap = {
+      ...currentMap,
+      [mod]: { ...(currentMap[mod] ?? {}), [slot]: to },
+    };
+    save.mutate({
+      extras: { ...currentExtras, mobile_shortcuts: nextMap },
+    });
+  };
+
   return {
     prefs: query.data ?? DEFAULT,
     isLoading: query.isLoading,
@@ -92,6 +114,8 @@ export function useDpUserPrefs() {
     favoritePages,
     isFavoritePage,
     toggleFavoritePage,
+    mobileShortcuts,
+    setMobileShortcut,
   };
 }
 
