@@ -141,8 +141,25 @@ export default function ConexoesOpenFinance() {
       toast.error("Erro ao carregar contas", { description: error.message });
       return;
     }
-    setAccountsByConn((prev) => ({ ...prev, [connectionId]: (data ?? []) as OFAccount[] }));
+    const rows = (data ?? []) as OFAccount[];
+    const localIds = rows.map((r) => r.local_account_id).filter(Boolean) as string[];
+    if (localIds.length > 0) {
+      const { data: locals } = await supabase
+        .from("accounts")
+        .select("id, current_balance, reference_balance_date")
+        .in("id", localIds);
+      const map = new Map((locals ?? []).map((l: any) => [l.id, l]));
+      rows.forEach((r) => {
+        if (r.local_account_id && map.has(r.local_account_id)) {
+          const l = map.get(r.local_account_id)!;
+          r.local_balance = Number(l.current_balance);
+          r.local_reference_date = l.reference_balance_date;
+        }
+      });
+    }
+    setAccountsByConn((prev) => ({ ...prev, [connectionId]: rows }));
   }, []);
+
 
   useEffect(() => {
     fetchConnections();
