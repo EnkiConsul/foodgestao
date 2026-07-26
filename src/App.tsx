@@ -66,6 +66,7 @@ const DpFolgas = lazy(() => import("./pages/dp/DpFolgas"));
 const DpFerias = lazy(() => import("./pages/dp/DpFerias"));
 const DpConformidade = lazy(() => import("./pages/dp/DpConformidade"));
 const DpBeneficios = lazy(() => import("./pages/dp/DpBeneficios"));
+const DpAnalytics = lazy(() => import("./pages/dp/DpAnalytics"));
 
 const DpFolgasHub = lazy(() => import("./pages/dp/DpFolgasHub"));
 const DpCadastrosHub = lazy(() => import("./pages/dp/DpCadastrosHub"));
