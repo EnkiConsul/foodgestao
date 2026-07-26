@@ -20,6 +20,7 @@ export default function DpAprovacoes() {
   const qc = useQueryClient();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [recusarId, setRecusarId] = useState<string | null>(null);
+  const [detailsRow, setDetailsRow] = useState<Solicitacao | null>(null);
 
   const listQuery = useQuery({
     queryKey: ["dp_cadastro_solicitacoes", selectedCompanyId],
