@@ -59,7 +59,8 @@ export default function DpAnalytics() {
     return { inicio: format(inicio, "yyyy-MM-dd"), fim: format(fim, "yyyy-MM-dd") };
   }, [meses]);
 
-  const { isLoading, unidades, serie, porUnidade, motivos, kpis } = useDpAnalytics(range, unidade);
+  const { isLoading, isError, refetchAll, unidades, serie, porUnidade, motivos, kpis } =
+    useDpAnalytics(range, unidade);
 
   const exportCSV = () => {
     const headers = ["Competência", "Headcount", "Admissões", "Desligamentos", "Turnover (%)", "Custo folha"];
@@ -134,7 +135,9 @@ export default function DpAnalytics() {
         </div>
       </DpFilterCard>
 
-      {isLoading ? (
+      {isError ? (
+        <DpErrorState onRetry={refetchAll} />
+      ) : isLoading ? (
         <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
           Calculando indicadores…
         </div>
