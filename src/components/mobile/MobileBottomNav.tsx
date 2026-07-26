@@ -105,7 +105,7 @@ export function MobileBottomNav() {
     setIndicator({ left: er.left - pr.left + er.width / 2 - 14, width: 28 });
   }, [activeIdx, pathname, isHomeActive]);
 
-  const usedRoutes = new Set([shortcutA.to, shortcutB.to]);
+  
 
   return (
     <>
