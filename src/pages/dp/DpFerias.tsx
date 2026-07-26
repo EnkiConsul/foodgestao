@@ -231,11 +231,11 @@ export default function DpFerias() {
                           </span>
                           <span className="flex items-center gap-2">
                             <Badge variant="outline">{GOZO_LABEL[g.status] ?? g.status}</Badge>
-                            <Button size="icon" variant="ghost" onClick={() => abrirEdicao(g)}>
+                            <Button size="icon" variant="ghost" aria-label="Editar agendamento de férias" onClick={() => abrirEdicao(g)}>
                               <Pencil className="size-4" />
                             </Button>
                             <Button
-                              size="icon" variant="ghost"
+                              size="icon" variant="ghost" aria-label="Remover agendamento de férias"
                               onClick={() => {
                                 if (confirm("Remover este agendamento de férias?")) deleteGozo.mutate(g.id);
                               }}
