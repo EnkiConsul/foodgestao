@@ -456,7 +456,7 @@ export default function ContasBancarias() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir conta bancária</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir a conta <strong>{deleteAccount?.name}</strong>? Esta ação não pode ser desfeita.
+              A conta <strong>{deleteAccount?.name}</strong> será arquivada e deixará de aparecer nas listas. O histórico de lançamentos é preservado para fins contábeis.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
