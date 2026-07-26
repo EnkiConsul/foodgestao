@@ -515,7 +515,8 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
 
 
             {/* Editor: colaborador + competência + ações */}
-            <div className="p-3 border-t bg-background grid gap-3 md:grid-cols-[2fr_1fr_auto] items-end">
+            <div className="p-3 border-t bg-background grid gap-3 grid-cols-1 md:grid-cols-[2fr_1fr_auto] md:items-end">
+
               <div className="space-y-1">
                 <Label className="text-xs">Colaborador</Label>
                 <div className="flex gap-1">
