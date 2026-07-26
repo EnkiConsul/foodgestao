@@ -384,8 +384,9 @@ export default function ContasBancarias() {
         onSelectOpenFinance={() => {
           setMethodOpen(false);
           if (contextType !== "pj" || !selectedCompanyId) {
-            toast.error("Selecione uma empresa (PJ)", {
-              description: "O Open Finance está disponível apenas no contexto empresarial.",
+            toast.error("Selecione uma empresa", {
+              description:
+                "Para conectar uma conta via Open Finance, selecione primeiro a empresa que será vinculada à conta.",
             });
             return;
           }
