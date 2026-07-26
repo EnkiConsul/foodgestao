@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
 import { AccountCreationMethodDialog } from "@/components/accounts/AccountCreationMethodDialog";
+import { OpenFinanceWizard } from "@/components/accounts/OpenFinanceWizard";
 import { ImportStatementDialog } from "@/components/transactions/ImportStatementDialog";
 
 
@@ -45,6 +46,7 @@ export default function ContasBancarias() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [methodOpen, setMethodOpen] = useState(false);
+  const [ofWizardOpen, setOfWizardOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importAccountId, setImportAccountId] = useState<string | null>(null);
   const [postCreateAccountId, setPostCreateAccountId] = useState<string | null>(null);
@@ -354,10 +356,21 @@ export default function ContasBancarias() {
         onSelectManual={() => { setMethodOpen(false); setDialogOpen(true); }}
         onSelectOpenFinance={() => {
           setMethodOpen(false);
-          toast.info("Em breve", {
-            description: "A conexão via Open Finance será liberada no próximo bloco.",
-          });
+          if (contextType !== "pj" || !selectedCompanyId) {
+            toast.error("Selecione uma empresa (PJ)", {
+              description: "O Open Finance está disponível apenas no contexto empresarial.",
+            });
+            return;
+          }
+          setOfWizardOpen(true);
         }}
+      />
+
+      <OpenFinanceWizard
+        open={ofWizardOpen}
+        onOpenChange={setOfWizardOpen}
+        companyId={contextType === "pj" ? selectedCompanyId : null}
+        onFinished={fetchAccounts}
       />
 
       <AccountFormDialog
