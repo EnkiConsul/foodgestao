@@ -39,9 +39,18 @@ export type NavLeaf = {
   label: string;
   to: string;
   end?: boolean;
+  /** Se true, ocupa a linha inteira na página "Mais" (item de destaque). */
+  featured?: boolean;
 };
 
-export type MoreGroup = { label: string; items: NavLeaf[] };
+/** Chave semântica de cor para o chip do grupo na página "Mais". */
+export type GroupAccent = "primary" | "navy" | "amber" | "slate" | "muted";
+
+export type MoreGroup = {
+  label: string;
+  items: NavLeaf[];
+  accent?: GroupAccent;
+};
 
 /**
  * Configuração declarativa de navegação mobile por módulo.
@@ -50,6 +59,8 @@ export type MoreGroup = { label: string; items: NavLeaf[] };
 export type ModuleNav = {
   /** Link do slot "Hub" (sempre /hub). */
   hubTo: string;
+  /** Rota da página "Mais" contextual do módulo. */
+  moreTo: string;
   /** Botão central destacado — home do módulo. */
   home: NavLeaf;
   /** Atalho padrão do slot esquerdo customizável. */
@@ -58,7 +69,7 @@ export type ModuleNav = {
   defaultShortcutB: NavLeaf;
   /** Opções elegíveis para os slots customizáveis. */
   shortcutOptions: NavLeaf[];
-  /** Grupos exibidos no sheet "Mais". */
+  /** Grupos exibidos na página "Mais". */
   moreGroups: MoreGroup[];
 };
 
