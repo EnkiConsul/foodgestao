@@ -169,8 +169,43 @@ export default function ConexoesOpenFinance() {
 
   useRealtimeSync({
     tables: ["open_finance_connections", "open_finance_sync_runs"],
-    onChange: () => fetchConnections(),
+    onChange: (table, evt) => {
+      fetchConnections();
+      if (table === "open_finance_sync_runs" && evt === "UPDATE") {
+        // Best-effort: refresh accounts for the currently expanded connection
+        Object.keys(expanded).forEach((id) => {
+          if (expanded[id]) fetchAccountsFor(id);
+        });
+      }
+    },
   });
+
+  // Toast on failed sync runs (via a dedicated realtime channel to inspect payload)
+  useEffect(() => {
+    const channel = supabase
+      .channel("of-sync-runs-errors")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "open_finance_sync_runs" },
+        (payload: any) => {
+          const next = payload?.new;
+          const prev = payload?.old;
+          if (next?.status === "error" && prev?.status !== "error") {
+            toast.error("Sincronização Open Finance falhou", {
+              description: next?.error_message?.slice(0, 200) ?? "Verifique a conexão do banco.",
+            });
+          }
+          if (next?.status === "succeeded" && prev?.status !== "succeeded") {
+            const t = (next?.stats?.transactions_raw ?? 0) as number;
+            if (t > 0) toast.success(`${t} novo(s) lançamento(s) importado(s)`);
+          }
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const toggleExpand = async (id: string) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
