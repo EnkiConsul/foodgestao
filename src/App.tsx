@@ -435,6 +435,7 @@ const AppRoutes = () => (
 const AppShell = () => {
   useVisualViewport();
   usePageviewTracking();
+  useEdgeSwipeBack();
   return (
     <>
       <AppRoutes />
