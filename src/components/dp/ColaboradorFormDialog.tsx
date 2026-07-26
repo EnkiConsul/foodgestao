@@ -367,17 +367,18 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             )}
           </div>
 
-          {/* Data de demissão (se inativo) */}
-          {!form.ativo && (
-            <div className="col-span-2 space-y-2">
-              <Label>Data de Demissão</Label>
-              <Input
-                type="date"
-                value={form.data_desligamento}
-                onChange={(e) => setForm({ ...form, data_desligamento: e.target.value })}
-              />
+          {/* Situação (somente leitura — desligamento é feito pela ação "Desligar") */}
+          {isEdit && !form.ativo && (
+            <div className="col-span-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">
+              <div className="font-semibold text-destructive">Colaborador desligado</div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                Data da demissão: {form.data_desligamento
+                  ? new Date(`${form.data_desligamento}T12:00:00`).toLocaleDateString("pt-BR")
+                  : "—"}. Use a ação “Reintegrar” na lista de colaboradores para reativar.
+              </div>
             </div>
           )}
+
 
           {/* Senha Inicial */}
           {!isEdit && (
