@@ -361,6 +361,30 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
   const ocrInProgress = !bInfo || bInfo.status === "processing" || (bInfo.status !== "ready" ? false : totalPages > 0 && rows.length < totalPages);
   const approvedCount = Math.min(savingTotal, bInfo?.approved_count ?? 0);
 
+  // Conferência de cobertura: quem deveria ter documento e não tem página no lote
+  const competenciaLote = competenciaPredominante(
+    rows.map((r: any) => r.detected_competencia),
+    bInfo?.referencia_data,
+  );
+  const unidadeLote = (() => {
+    const cnpjs = rows.map((r: any) => r.detected_cnpj).filter(Boolean);
+    if (cnpjs.length === 0) return null;
+    const ids = new Set(
+      rows.map((r: any) => colaboradores.find((c: any) => c.id === r.matched_colaborador_id)?.unidade_id)
+        .filter(Boolean),
+    );
+    return ids.size === 1 ? ([...ids][0] as string) : null;
+  })();
+  const coverage = computeCoverage({
+    colaboradores: colaboradores as any,
+    vinculados: new Set(rows.map((r: any) => r.matched_colaborador_id).filter(Boolean)),
+    competencia: competenciaLote,
+    unidadeId: unidadeLote,
+    tipo: bInfo?.tipo ?? null,
+  });
+
+
+
   return (
     <div className="border rounded-md bg-background overflow-hidden">
       {/* Header: nome do arquivo + contadores + progresso */}
