@@ -3,8 +3,6 @@ import {
   LayoutGrid,
   List,
   Wallet,
-  MoreHorizontal,
-  Plus,
   Users,
   CheckSquare,
   Calendar,
@@ -12,7 +10,7 @@ import {
   User,
   ArrowLeftRight,
   CreditCard,
-  RefreshCw,
+  Repeat,
   Tags,
   Contact,
   Banknote,
@@ -23,10 +21,8 @@ import {
   Package,
   Settings,
   FileText,
-  ClipboardList,
   BellRing,
   BookOpen,
-  Repeat,
   ShieldCheck,
   BarChart3,
   Ticket,
@@ -45,30 +41,22 @@ export type NavLeaf = {
   end?: boolean;
 };
 
-/** FAB central. Se ausente no módulo, um espaçador transparente é renderizado. */
-export type NavFab = {
-  icon: LucideIcon;
-  label: string;
-  /** Rota fallback quando nenhuma página registra ação via useMobileFab. */
-  fallbackTo?: string;
-};
-
 export type MoreGroup = { label: string; items: NavLeaf[] };
 
 /**
  * Configuração declarativa de navegação mobile por módulo.
- * Layout fixo: [Hub] [Início] [FAB] [Atalho customizável] [Mais].
+ * Layout fixo: [Hub / Atalho C] [Atalho A] [Início destacado] [Atalho B] [Mais].
  */
 export type ModuleNav = {
   /** Link do slot "Hub" (sempre /hub). */
   hubTo: string;
-  /** Link do slot "Início" — home do módulo atual. */
+  /** Botão central destacado — home do módulo. */
   home: NavLeaf;
-  /** FAB central. Opcional — quando ausente, espaçador invisível. */
-  fab?: NavFab;
-  /** Atalho padrão do slot customizável do usuário. */
-  defaultShortcut: NavLeaf;
-  /** Opções elegíveis para o slot customizável. */
+  /** Atalho padrão do slot esquerdo customizável. */
+  defaultShortcutA: NavLeaf;
+  /** Atalho padrão do slot direito customizável. */
+  defaultShortcutB: NavLeaf;
+  /** Opções elegíveis para os slots customizáveis. */
   shortcutOptions: NavLeaf[];
   /** Grupos exibidos no sheet "Mais". */
   moreGroups: MoreGroup[];
@@ -101,10 +89,10 @@ const financeiroShortcuts: NavLeaf[] = [
 // ── DP ───────────────────────────────────────────────────────────────────
 const dpHome: NavLeaf = { icon: Home, label: "Início", to: "/dp", end: true };
 const dpShortcuts: NavLeaf[] = [
+  { icon: Calendar, label: "Calendário", to: "/dp/folgas" },
+  { icon: FileText, label: "Documentos", to: "/dp/documentos" },
   { icon: Users, label: "Colaboradores", to: "/dp/colaboradores" },
   { icon: CheckSquare, label: "Aprovações", to: "/dp/aprovacoes" },
-  { icon: Calendar, label: "Folgas", to: "/dp/folgas" },
-  { icon: FileText, label: "Documentos", to: "/dp/documentos" },
   { icon: BellRing, label: "Comunicação", to: "/dp/comunicacao" },
   { icon: Inbox, label: "Solicitações", to: "/dp/solicitacoes" },
   { icon: FileBarChart, label: "Histórico", to: "/dp/documentos/historico" },
@@ -113,6 +101,8 @@ const dpShortcuts: NavLeaf[] = [
 // ── Portal do colaborador ────────────────────────────────────────────────
 const portalHome: NavLeaf = { icon: Home, label: "Início", to: "/dp/meu", end: true };
 const portalShortcuts: NavLeaf[] = [
+  { icon: Home, label: "Financeiro", to: "/dashboard" },
+  { icon: Users, label: "DP", to: "/dp" },
   { icon: Calendar, label: "Calendário", to: "/dp/meu/calendario" },
   { icon: Inbox, label: "Solicitações", to: "/dp/meu/solicitacoes" },
   { icon: FileText, label: "Documentos", to: "/dp/meu/documentos" },
@@ -124,18 +114,18 @@ const portalShortcuts: NavLeaf[] = [
 // ── Hub ──────────────────────────────────────────────────────────────────
 const hubHome: NavLeaf = { icon: LayoutGrid, label: "Módulos", to: "/hub", end: true };
 const hubShortcuts: NavLeaf[] = [
-  { icon: Search, label: "Buscar", to: "/buscar" },
   { icon: Home, label: "Financeiro", to: "/dashboard" },
   { icon: Users, label: "DP", to: "/dp" },
+  { icon: Search, label: "Buscar", to: "/buscar" },
   { icon: Settings, label: "Configurações", to: "/configuracoes" },
 ];
 
 // ── Admin ────────────────────────────────────────────────────────────────
 const adminHome: NavLeaf = { icon: ShieldCheck, label: "Início", to: "/admin/estatisticas", end: true };
 const adminShortcuts: NavLeaf[] = [
-  { icon: BarChart3, label: "Estatísticas", to: "/admin/estatisticas" },
   { icon: Users, label: "Clientes", to: "/admin/clientes" },
   { icon: Package, label: "Assinaturas", to: "/admin/assinaturas" },
+  { icon: BarChart3, label: "Estatísticas", to: "/admin/estatisticas" },
   { icon: FileText, label: "Faturas", to: "/admin/faturas" },
   { icon: Ticket, label: "Cupons", to: "/admin/cupons" },
   { icon: Landmark, label: "Bancos", to: "/admin/bancos" },
@@ -151,17 +141,20 @@ const contaShortcuts: NavLeaf[] = [
   { icon: FileText, label: "Faturas", to: "/faturas" },
 ];
 
+const noopShortcut: NavLeaf = { icon: LayoutGrid, label: "Hub", to: "/hub" };
+
 export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
   financeiro: {
     hubTo: "/hub",
     home: financeiroHome,
-    fab: { icon: Plus, label: "Novo lançamento", fallbackTo: "/lancamentos?new=1" },
-    defaultShortcut: financeiroShortcuts[0],
+    defaultShortcutA: financeiroShortcuts[0], // Lançamentos
+    defaultShortcutB: financeiroShortcuts[1], // Contas
     shortcutOptions: financeiroShortcuts,
     moreGroups: [
       {
         label: "Operar",
         items: [
+          { icon: List, label: "Lançamentos", to: "/lancamentos" },
           { icon: ArrowLeftRight, label: "Transferências", to: "/transferencias" },
           { icon: CreditCard, label: "Cartões", to: "/cartoes-credito" },
           { icon: Repeat, label: "Recorrências", to: "/recorrencias" },
@@ -191,8 +184,8 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
   dp: {
     hubTo: "/hub",
     home: dpHome,
-    fab: { icon: Plus, label: "Novo colaborador", fallbackTo: "/dp/colaboradores?new=1" },
-    defaultShortcut: dpShortcuts[0],
+    defaultShortcutA: dpShortcuts[0], // Calendário
+    defaultShortcutB: dpShortcuts[1], // Documentos
     shortcutOptions: dpShortcuts,
     moreGroups: [
       {
@@ -227,8 +220,8 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
   portal_colaborador: {
     hubTo: "/hub",
     home: portalHome,
-    fab: { icon: Plus, label: "Nova solicitação", fallbackTo: "/dp/meu/solicitacoes?new=1" },
-    defaultShortcut: portalShortcuts[0],
+    defaultShortcutA: portalShortcuts[0], // Financeiro
+    defaultShortcutB: portalShortcuts[1], // DP
     shortcutOptions: portalShortcuts,
     moreGroups: [
       {
@@ -248,7 +241,8 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
   hub: {
     hubTo: "/hub",
     home: hubHome,
-    defaultShortcut: hubShortcuts[0],
+    defaultShortcutA: hubShortcuts[0], // Financeiro
+    defaultShortcutB: hubShortcuts[1], // DP
     shortcutOptions: hubShortcuts,
     moreGroups: [
       {
@@ -266,7 +260,8 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
   admin: {
     hubTo: "/hub",
     home: adminHome,
-    defaultShortcut: adminShortcuts[1],
+    defaultShortcutA: adminShortcuts[0], // Clientes
+    defaultShortcutB: adminShortcuts[1], // Assinaturas
     shortcutOptions: adminShortcuts,
     moreGroups: [
       {
@@ -298,7 +293,8 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
   conta: {
     hubTo: "/hub",
     home: contaHome,
-    defaultShortcut: contaShortcuts[0],
+    defaultShortcutA: contaShortcuts[0],
+    defaultShortcutB: contaShortcuts[1],
     shortcutOptions: contaShortcuts,
     moreGroups: [contaGroup],
   },
@@ -306,22 +302,25 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
   crm: {
     hubTo: "/hub",
     home: { icon: Home, label: "Início", to: "/crm", end: true },
-    defaultShortcut: { icon: LayoutGrid, label: "Hub", to: "/hub" },
-    shortcutOptions: [{ icon: LayoutGrid, label: "Hub", to: "/hub" }],
+    defaultShortcutA: noopShortcut,
+    defaultShortcutB: noopShortcut,
+    shortcutOptions: [noopShortcut],
     moreGroups: [contaGroup],
   },
   rh: {
     hubTo: "/hub",
     home: { icon: Home, label: "Início", to: "/rh", end: true },
-    defaultShortcut: { icon: LayoutGrid, label: "Hub", to: "/hub" },
-    shortcutOptions: [{ icon: LayoutGrid, label: "Hub", to: "/hub" }],
+    defaultShortcutA: noopShortcut,
+    defaultShortcutB: noopShortcut,
+    shortcutOptions: [noopShortcut],
     moreGroups: [contaGroup],
   },
   pedidos: {
     hubTo: "/hub",
     home: { icon: Home, label: "Início", to: "/pedidos", end: true },
-    defaultShortcut: { icon: LayoutGrid, label: "Hub", to: "/hub" },
-    shortcutOptions: [{ icon: LayoutGrid, label: "Hub", to: "/hub" }],
+    defaultShortcutA: noopShortcut,
+    defaultShortcutB: noopShortcut,
+    shortcutOptions: [noopShortcut],
     moreGroups: [contaGroup],
   },
 };
