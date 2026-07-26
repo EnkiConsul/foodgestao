@@ -584,6 +584,25 @@ export default function DpColaboradores() {
 
       <ColaboradorFormDialog open={dialogOpen} onOpenChange={setDialogOpen} colaborador={editing} />
 
+      <DesligamentoDialog colaborador={toDesligar} onOpenChange={(o) => !o && setToDesligar(null)} />
+
+      <AlertDialog open={!!toReintegrar} onOpenChange={(o) => !o && setToReintegrar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reintegrar colaborador?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{toReintegrar?.nome}</strong> voltará a ficar ativo, com acesso completo ao portal.
+              Os dados do desligamento (data, motivo e observações) serão apagados do cadastro.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReintegrar}>Reintegrar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
