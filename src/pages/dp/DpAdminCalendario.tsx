@@ -648,21 +648,22 @@ export default function DpAdminCalendario() {
       />
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-4">
         {[
           { label: "Folgas Marcadas", value: stats.totalFolgas, icon: CheckCircle, tone: "text-emerald-500" },
           { label: "Vagas Restantes", value: stats.vagasRestantes, icon: Users, tone: "text-blue-500" },
           { label: "Dias Lotados", value: stats.diasLotados, icon: AlertTriangle, tone: "text-rose-500" },
           { label: "Capacidade Total", value: stats.totalVagas, icon: CalendarDays, tone: "text-muted-foreground" },
         ].map((k) => (
-          <div key={k.label} className="rounded-2xl border bg-card p-4 shadow-sm">
-            <div className="mb-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{k.label}</div>
-            <div className="flex items-center gap-2 text-2xl font-black">
-              <k.icon className={cn("h-5 w-5", k.tone)} /> {k.value}
+          <div key={k.label} className="rounded-xl border bg-card p-3 shadow-sm md:rounded-2xl md:p-4">
+            <div className="mb-0.5 truncate text-[9px] font-black uppercase tracking-widest text-muted-foreground md:mb-1 md:text-[10px]">{k.label}</div>
+            <div className="flex items-center gap-1.5 text-lg font-black md:gap-2 md:text-2xl">
+              <k.icon className={cn("h-4 w-4 md:h-5 md:w-5", k.tone)} /> {k.value}
             </div>
           </div>
         ))}
       </div>
+
 
       {/* Filtros */}
       <div className="flex flex-wrap items-end gap-6 rounded-3xl border bg-card p-5 shadow-sm">
