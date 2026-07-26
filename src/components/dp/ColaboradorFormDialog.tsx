@@ -141,21 +141,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       if (diffDias > 90) { toast.error("Data de admissão muito distante no futuro (máx. 90 dias)"); return; }
     }
 
-    if (!form.ativo && form.data_desligamento) {
-      const desligamento = new Date(form.data_desligamento + "T00:00:00");
-      if (desligamento < admissao) {
-        toast.error("Data de demissão não pode ser anterior à admissão");
-        return;
-      }
-      if (desligamento > hoje) {
-        toast.error("Data de demissão não pode ser futura");
-        return;
-      }
-    }
-    if (!form.ativo && !form.data_desligamento) {
-      toast.error("Informe a data de demissão para colaboradores inativos");
-      return;
-    }
+
+
 
     // Duplicidade de CPF na empresa
     try {
