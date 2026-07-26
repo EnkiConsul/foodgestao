@@ -60,11 +60,15 @@ export function ImportStatementDialog({ open, onOpenChange, onImported, defaultA
   const [quickContact, setQuickContact] = useState<{ rowIdx: number; name: string; contactType: "cliente" | "fornecedor" | "ambos" } | null>(null);
 
   const reset = useCallback(() => {
-    setStep("upload"); setFile(null); setAccountId(""); setRows([]); setReconciliation(null);
+    setStep("upload"); setFile(null); setAccountId(defaultAccountId ?? ""); setRows([]); setReconciliation(null);
     setImportedCount(0); setDuplicateCount(0); setFailures([]); setProgress(null);
     setDuplicateDecision("none");
     setQuickCat(null); setQuickContact(null);
-  }, []);
+  }, [defaultAccountId]);
+
+  useEffect(() => {
+    if (open && defaultAccountId) setAccountId(defaultAccountId);
+  }, [open, defaultAccountId]);
 
   useEffect(() => {
     if (!open) { reset(); return; }
