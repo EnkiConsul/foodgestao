@@ -467,6 +467,3 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
     moreGroups: [contaGroup],
   },
 };
-
-// Alias auxiliar (evita conflito com Inbox ícone acima).
-const ClipboardListIcon = Inbox;
