@@ -46,6 +46,7 @@ const Categorias = lazy(() => import("./pages/Categorias"));
 const ContasContabeis = lazy(() => import("./pages/ContasContabeis"));
 const ContasBancarias = lazy(() => import("./pages/ContasBancarias"));
 const ConexoesOpenFinance = lazy(() => import("./pages/ConexoesOpenFinance"));
+const ConciliacaoOpenFinance = lazy(() => import("./pages/ConciliacaoOpenFinance"));
 const Configuracoes = lazy(() => import("./pages/Configuracoes"));
 const GestaoUsuarios = lazy(() => import("./pages/GestaoUsuarios"));
 const Empresas = lazy(() => import("./pages/Empresas"));
@@ -321,6 +322,7 @@ const AppRoutes = () => (
         <Route path="/contas-contabeis" element={<ContasContabeis />} />
         <Route path="/contas-bancarias" element={<ContasBancarias />} />
         <Route path="/contas-bancarias/conexoes" element={<ConexoesOpenFinance />} />
+        <Route path="/contas-bancarias/conciliacao" element={<ConciliacaoOpenFinance />} />
         <Route path="/cartoes-credito" element={<CartoesCredito />} />
         
         <Route path="/configuracoes" element={<Configuracoes />} />
