@@ -320,7 +320,7 @@ function LeafSlot({ leaf, onLongPress }: { leaf: NavLeaf; onLongPress?: () => vo
 
 function ShortcutCustomizer({
   slot,
-  onSlotChange,
+  onSlotChange: _onSlotChange,
   onOpenChange,
   currentA,
   currentB,
@@ -336,9 +336,6 @@ function ShortcutCustomizer({
   onPick: (slot: ShortcutSlot, to: string) => void;
 }) {
   const open = slot !== null;
-  const activeSlot: ShortcutSlot = slot ?? "a";
-  const currentTo = activeSlot === "a" ? currentA : currentB;
-  const otherTo = activeSlot === "a" ? currentB : currentA;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -349,66 +346,80 @@ function ShortcutCustomizer({
             Personalizar Barra Inferior
           </SheetTitle>
           <p className="text-xs text-muted-foreground text-left">
-            Escolha qual funcionalidade fica no {activeSlot === "a" ? "2º" : "4º"} slot da barra inferior.
+            Toque nos chips <span className="font-semibold">2º</span> ou <span className="font-semibold">4º</span> ao lado de cada item para fixá-lo naquele botão da barra.
           </p>
-          <div className="mt-2 inline-flex rounded-lg border p-0.5 bg-muted/40 self-start">
-            <button
-              type="button"
-              onClick={() => onSlotChange("a")}
-              className={cn(
-                "px-3 h-8 rounded-md text-xs font-medium transition-colors",
-                activeSlot === "a" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground",
-              )}
-            >
-              Atalho esquerdo (2º)
-            </button>
-            <button
-              type="button"
-              onClick={() => onSlotChange("b")}
-              className={cn(
-                "px-3 h-8 rounded-md text-xs font-medium transition-colors",
-                activeSlot === "b" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground",
-              )}
-            >
-              Atalho direito (4º)
-            </button>
-          </div>
         </SheetHeader>
-        <div className="p-4 max-h-[60vh] overflow-y-auto">
+        <div className="p-4 max-h-[65vh] overflow-y-auto">
           <div className="rounded-xl border bg-card overflow-hidden">
             {options.map((opt, i) => {
               const Icon = opt.icon;
-              const active = opt.to === currentTo;
-              const disabled = !active && opt.to === otherTo;
+              const isA = opt.to === currentA;
+              const isB = opt.to === currentB;
               return (
-                <button
+                <div
                   key={opt.to}
-                  onClick={() => !disabled && onPick(activeSlot, opt.to)}
-                  disabled={disabled}
                   className={cn(
-                    "w-full min-h-11 flex items-center gap-3 px-4 py-3 text-left transition-all",
+                    "w-full min-h-11 flex items-center gap-3 px-4 py-2.5",
                     i > 0 && "border-t",
-                    active && "bg-primary/10 text-primary",
-                    disabled && "opacity-40 cursor-not-allowed",
-                    !active && !disabled && "hover:bg-muted/50 active:scale-[0.98]",
+                    (isA || isB) && "bg-muted/40",
                   )}
                 >
-                  <Icon className="h-5 w-5 shrink-0" />
-                  <span className="text-sm font-medium flex-1">{opt.label}</span>
-                  {active && (
-                    <span className="text-[10px] font-semibold uppercase tracking-wider">Atual</span>
-                  )}
-                  {disabled && (
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      No outro slot
-                    </span>
-                  )}
-                </button>
+                  <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  <span className="text-sm font-medium flex-1 truncate">{opt.label}</span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <SlotChip
+                      label="2º"
+                      active={isA}
+                      disabled={isB}
+                      onClick={() => !isB && onPick("a", opt.to)}
+                    />
+                    <SlotChip
+                      label="4º"
+                      active={isB}
+                      disabled={isA}
+                      onClick={() => !isA && onPick("b", opt.to)}
+                    />
+                  </div>
+                </div>
               );
             })}
           </div>
+          <p className="mt-3 text-[11px] text-muted-foreground text-center">
+            Itens já fixos em um slot ficam desabilitados no outro.
+          </p>
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+function SlotChip({
+  label,
+  active,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled || active}
+      className={cn(
+        "inline-flex items-center justify-center h-7 min-w-[32px] px-2 rounded-md text-[11px] font-semibold border transition-colors",
+        active
+          ? "bg-primary text-primary-foreground border-primary"
+          : disabled
+            ? "opacity-40 cursor-not-allowed border-border text-muted-foreground"
+            : "border-border text-foreground hover:bg-muted active:scale-95",
+      )}
+      aria-label={active ? `Slot ${label} atual` : `Fixar no slot ${label}`}
+    >
+      {label}
+    </button>
   );
 }
