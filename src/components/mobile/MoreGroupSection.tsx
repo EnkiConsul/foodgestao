@@ -270,22 +270,24 @@ function IFoodTile({
     >
       <span
         className={cn(
-          "inline-flex h-12 w-12 items-center justify-center rounded-full shrink-0",
+          "relative inline-flex h-12 w-12 items-center justify-center rounded-full shrink-0",
           ACCENT_CHIP[accent],
           active && "ring-2 ring-primary/60",
         )}
       >
         <Icon className="h-5 w-5" />
+        {fav && (
+          <Star
+            className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 fill-primary text-primary rounded-full ring-2 ring-background"
+          />
+        )}
       </span>
       <span className={cn(
-        "block w-full text-[11.5px] leading-[1.15] break-words hyphens-auto",
+        "block w-full text-[11px] leading-[1.15] tracking-tight whitespace-normal break-normal [overflow-wrap:normal] hyphens-none",
         active ? "font-semibold text-primary" : "text-foreground/80",
       )}>
         {item.label}
       </span>
-      {fav && (
-        <Star className="absolute top-1 right-1 h-3 w-3 fill-primary text-primary" />
-      )}
     </button>
   );
 }
