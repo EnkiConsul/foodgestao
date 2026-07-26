@@ -168,42 +168,73 @@ export default function DpSolicitacoes() {
           {pendentes.map((s) => {
             const arquivo = (s as unknown as { arquivo_path?: string | null }).arquivo_path ?? null;
             return (
-              <div key={s.id} className="bg-card border border-amber-500/30 rounded-xl p-4 space-y-3">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div>
-                    <div className="font-medium">{s.dp_colaboradores?.nome ?? "Funcionário"}</div>
-                    <div className="text-sm text-muted-foreground">
+              <div
+                key={s.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => setDetailsRow(s)}
+                onKeyDown={(e) => { if (e.key === "Enter") setDetailsRow(s); }}
+                className="bg-card border border-amber-500/30 rounded-xl p-4 space-y-3 cursor-pointer hover:bg-muted/30 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium truncate">{s.dp_colaboradores?.nome ?? "Funcionário"}</div>
+                    <div className="text-sm text-muted-foreground truncate">
                       <span className="capitalize mr-2">{s.tipo}</span>
-                      Solicitando: <b>{formatBR(s.data_alvo)}{s.data_fim ? ` → ${formatBR(s.data_fim)}` : ""}</b>
+                      <b>{formatBR(s.data_alvo)}{s.data_fim ? ` → ${formatBR(s.data_fim)}` : ""}</b>
                     </div>
                   </div>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="hidden md:inline text-xs text-muted-foreground whitespace-nowrap">
                     {new Date(s.created_at).toLocaleString("pt-BR")}
                   </span>
                 </div>
 
                 {s.motivo && (
-                  <div className="text-sm bg-muted/40 rounded-lg p-3">{s.motivo}</div>
+                  <div className="text-sm bg-muted/40 rounded-lg p-3 line-clamp-2 md:line-clamp-none">{s.motivo}</div>
                 )}
 
                 <Textarea
                   placeholder="Resposta (opcional)"
                   value={respostas[s.id] ?? ""}
                   onChange={(e) => setRespostas({ ...respostas, [s.id]: e.target.value })}
+                  onClick={(e) => e.stopPropagation()}
                   rows={2}
                 />
 
-                <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 sm:justify-end">
+                <div className="flex flex-wrap gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
                   {arquivo && (
-                    <Button variant="ghost" size="sm" className="min-h-11 w-full sm:w-auto" onClick={() => openArquivo(arquivo)}>
-                      <FileText className="size-4 mr-1" /> Ver arquivo
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label="Ver arquivo"
+                      title="Ver arquivo"
+                      className="min-h-11 h-11 w-11 md:w-auto md:px-3"
+                      onClick={() => openArquivo(arquivo)}
+                    >
+                      <FileText className="size-4 md:mr-1" />
+                      <span className="hidden md:inline">Ver arquivo</span>
                     </Button>
                   )}
-                  <Button variant="outline" className="min-h-11 w-full sm:w-auto" onClick={() => decide(s, false)} disabled={respond.isPending}>
-                    <X className="size-4 mr-1" /> Recusar
+                  <Button
+                    variant="outline"
+                    aria-label="Recusar solicitação"
+                    title="Recusar"
+                    className="min-h-11 h-11 w-11 md:w-auto md:px-3"
+                    onClick={() => decide(s, false)}
+                    disabled={respond.isPending}
+                  >
+                    <X className="size-4 md:mr-1" />
+                    <span className="hidden md:inline">Recusar</span>
                   </Button>
-                  <Button className="min-h-11 w-full sm:w-auto" onClick={() => decide(s, true)} disabled={respond.isPending}>
-                    <Check className="size-4 mr-1" /> Aprovar
+                  <Button
+                    aria-label="Aprovar solicitação"
+                    title="Aprovar"
+                    className="min-h-11 h-11 w-11 md:w-auto md:px-3"
+                    onClick={() => decide(s, true)}
+                    disabled={respond.isPending}
+                  >
+                    <Check className="size-4 md:mr-1" />
+                    <span className="hidden md:inline">Aprovar</span>
                   </Button>
                 </div>
               </div>
