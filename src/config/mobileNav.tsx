@@ -75,6 +75,7 @@ export type ModuleNav = {
 
 const contaGroup: MoreGroup = {
   label: "Conta",
+  accent: "muted",
   items: [
     { icon: Building2, label: "Empresas", to: "/empresas" },
     { icon: Users, label: "Usuários", to: "/gestao-usuarios" },
