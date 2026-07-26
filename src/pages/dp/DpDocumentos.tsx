@@ -1,10 +1,9 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { sanitizeStorageFilename } from "@/lib/storage";
+import { useDpDocumentos, type DpDocumentoRow } from "@/hooks/useDpDocumentos";
+
 import {
   Upload, Download, Trash2, FileText, ArrowLeft, FolderOpen,
   Check, X, Clock, CheckCircle2, XCircle,
