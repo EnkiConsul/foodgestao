@@ -144,6 +144,7 @@ export function MobileBottomNav() {
         onOpenChange={(open) => { if (!open) setCustomizerSlot(null); }}
         currentA={shortcutA.to}
         currentB={shortcutB.to}
+        currentC={hasSlotC && isHubModule ? shortcutC.to : undefined}
         options={options}
         onPick={(s, to) => {
           setShortcut(s, to);
