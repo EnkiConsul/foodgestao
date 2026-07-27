@@ -171,7 +171,7 @@ export function useDpFolhaPeriodo(periodoId: string | undefined) {
       const { error: errUpd } = await supabase
         .from("dp_folha_lancamentos")
         .update({
-          descontos: detalhe as unknown as Record<string, unknown>,
+          descontos: JSON.parse(JSON.stringify(detalhe)),
           valor_bruto: valores.bruto,
           valor_liquido: valores.liquido,
         })
