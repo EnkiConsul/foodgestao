@@ -136,13 +136,47 @@ export interface AlertaCiencia {
   mensagem: string;
 }
 
+function fmtSemanas(valor: number): string {
+  if (valor <= 0) return "sem exigência de folga dominical";
+  return `${Number.isInteger(valor) ? valor : valor.toFixed(1)} semana(s)`;
+}
+
 function textoAlerta(valor: number, padrao: number, publico: string): string {
-  const configurada = valor <= 0 ? "sem exigência de folga dominical" : `${valor} semana(s)`;
   return (
-    `A periodicidade configurada (${configurada}) é inferior ao padrão legal de ${padrao} semana(s) ` +
+    `A periodicidade configurada (${fmtSemanas(valor)}) é inferior ao padrão legal de ${padrao} semana(s) ` +
     `${publico}. A legislação (Lei 10.101/2000 e Art. 386 CLT) exige folgas dominicais mais frequentes. ` +
     `Deseja continuar?`
   );
+}
+
+type CfgFrequencia = Pick<
+  DpConfigDp,
+  "setor_comercio" | "periodicidade_domingo" | "periodicidade_domingo_mulher"
+> &
+  Partial<
+    Pick<
+      DpConfigDp,
+      | "modo_frequencia_domingo"
+      | "domingos_por_mes"
+      | "modo_frequencia_domingo_mulher"
+      | "domingos_por_mes_mulher"
+    >
+  >;
+
+/** Normaliza a configuração (qualquer modelo) para intervalos em semanas. */
+export function semanasDaConfig(cfg: CfgFrequencia): { geral: number; mulher: number } {
+  return {
+    geral: frequenciaParaSemanas(
+      cfg.modo_frequencia_domingo ?? "semanas",
+      cfg.periodicidade_domingo,
+      cfg.domingos_por_mes ?? 0,
+    ),
+    mulher: frequenciaParaSemanas(
+      cfg.modo_frequencia_domingo_mulher ?? "semanas",
+      cfg.periodicidade_domingo_mulher,
+      cfg.domingos_por_mes_mulher ?? 0,
+    ),
+  };
 }
 
 /**
@@ -150,28 +184,29 @@ function textoAlerta(valor: number, padrao: number, publico: string): string {
  * Lista vazia = salvar direto, sem modal.
  */
 export function alertasDeCiencia(
-  cfg: Pick<DpConfigDp, "setor_comercio" | "periodicidade_domingo" | "periodicidade_domingo_mulher">,
+  cfg: CfgFrequencia,
   opts: { temMulheres: boolean },
 ): AlertaCiencia[] {
   const out: AlertaCiencia[] = [];
   const padrao = padraoLegalDomingo(cfg.setor_comercio);
+  const { geral, mulher } = semanasDaConfig(cfg);
 
-  if (isMenosProtetiva(cfg.periodicidade_domingo, padrao)) {
+  if (isMenosProtetiva(geral, padrao)) {
     out.push({
       campo: "periodicidade_domingo",
-      valor: cfg.periodicidade_domingo,
+      valor: geral,
       padrao,
-      mensagem: textoAlerta(cfg.periodicidade_domingo, padrao, "para o setor desta empresa"),
+      mensagem: textoAlerta(geral, padrao, "para o setor desta empresa"),
     });
   }
 
-  if (opts.temMulheres && isMenosProtetiva(cfg.periodicidade_domingo_mulher, PADRAO_LEGAL_DOMINGO_MULHER)) {
+  if (opts.temMulheres && isMenosProtetiva(mulher, PADRAO_LEGAL_DOMINGO_MULHER)) {
     out.push({
       campo: "periodicidade_domingo_mulher",
-      valor: cfg.periodicidade_domingo_mulher,
+      valor: mulher,
       padrao: PADRAO_LEGAL_DOMINGO_MULHER,
       mensagem: textoAlerta(
-        cfg.periodicidade_domingo_mulher,
+        mulher,
         PADRAO_LEGAL_DOMINGO_MULHER,
         "para colaboradoras mulheres (Art. 386 CLT)",
       ),
@@ -191,8 +226,8 @@ export interface ConformidadeInput {
   sexo?: string | null;
   /** Datas ISO (yyyy-mm-dd) de domingos em que o colaborador folgou no período. */
   domingosFolgados: string[];
-  /** Sábados folgados — só contam no modo acordo coletivo. */
-  sabadosFolgados?: string[];
+  /** Folgas em dias negociados (exceto domingo) — só contam no modo acordo coletivo. */
+  diasNegociadosFolgados?: string[];
   /** Total de domingos existentes no período analisado. */
   domingosNoPeriodo: number;
 }
@@ -200,10 +235,10 @@ export interface ConformidadeInput {
 export interface ConformidadeLinha extends ConformidadeInput {
   periodicidadeAplicada: number;
   esperado: number;
-  /** Folgas consideradas na avaliação (domingos, ou fins de semana no modo acordo). */
+  /** Folgas consideradas na avaliação (domingos, ou dias negociados no modo acordo). */
   folgasConsideradas: number;
-  /** Sábados aproveitados por acordo coletivo. */
-  sabadosAproveitados: number;
+  /** Folgas em dias negociados aproveitadas por acordo coletivo. */
+  negociadosAproveitados: number;
   conforme: boolean;
 }
 
@@ -216,31 +251,42 @@ export function domingosEsperados(domingosNoPeriodo: number, periodicidadeSemana
 export function avaliarConformidade(
   linhas: ConformidadeInput[],
   cfg: Pick<DpConfigDp, "periodicidade_domingo" | "periodicidade_domingo_mulher"> &
-    Partial<Pick<DpConfigDp, "tipo_descanso_domingo">>,
+    Partial<
+      Pick<
+        DpConfigDp,
+        | "tipo_descanso_domingo"
+        | "modo_frequencia_domingo"
+        | "domingos_por_mes"
+        | "modo_frequencia_domingo_mulher"
+        | "domingos_por_mes_mulher"
+      >
+    >,
 ): ConformidadeLinha[] {
   const porAcordo = cfg.tipo_descanso_domingo === "acordo_coletivo";
+  const { geral, mulher } = semanasDaConfig({ setor_comercio: true, ...cfg });
   return linhas.map((l) => {
     const periodicidade =
-      l.sexo === "F"
-        ? Math.min(cfg.periodicidade_domingo_mulher || Infinity, cfg.periodicidade_domingo || Infinity)
-        : cfg.periodicidade_domingo;
+      l.sexo === "F" ? Math.min(mulher || Infinity, geral || Infinity) : geral;
     const p = Number.isFinite(periodicidade) ? periodicidade : 0;
     const esperado = domingosEsperados(l.domingosNoPeriodo, p);
     const domingos = l.domingosFolgados.length;
-    const sabados = porAcordo ? (l.sabadosFolgados?.length ?? 0) : 0;
-    // No modo acordo, sábados só complementam o que faltar de domingo.
-    const sabadosAproveitados = porAcordo ? Math.max(0, Math.min(sabados, esperado - domingos)) : 0;
-    const folgasConsideradas = domingos + sabadosAproveitados;
+    const negociados = porAcordo ? (l.diasNegociadosFolgados?.length ?? 0) : 0;
+    // No modo acordo, os dias negociados só complementam o que faltar de domingo.
+    const negociadosAproveitados = porAcordo
+      ? Math.max(0, Math.min(negociados, esperado - domingos))
+      : 0;
+    const folgasConsideradas = domingos + negociadosAproveitados;
     return {
       ...l,
       periodicidadeAplicada: p,
       esperado,
       folgasConsideradas,
-      sabadosAproveitados,
+      negociadosAproveitados,
       conforme: folgasConsideradas >= esperado,
     };
   });
 }
+
 
 
 export const TIPO_ESCALA_LABEL: Record<string, string> = {
