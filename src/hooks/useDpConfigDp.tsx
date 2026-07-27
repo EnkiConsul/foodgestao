@@ -231,10 +231,8 @@ export function useDpConfigDp(unidadeId: string | null = null) {
     /** A unidade selecionada possui regra própria? */
     temExcecao: !!unidadeRow,
     /** Ids das unidades que já possuem regra própria. */
-    unidadesConfiguradas: useMemo(
-      () => new Set(rows.map((r) => r.unidade_id).filter((v): v is string => !!v)),
-      [rows],
-    ),
+    unidadesConfiguradas,
+
     temMulheres: mulheres.data ?? false,
 
     
