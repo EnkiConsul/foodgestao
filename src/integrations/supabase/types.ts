@@ -6182,16 +6182,22 @@ export type Database = {
           consent_expires_at: string | null
           created_at: string
           disconnected_at: string | null
+          error_since: string | null
           id: string
           institution_logo_url: string | null
           institution_name: string | null
           last_error: string | null
+          last_error_at: string | null
+          last_error_code: string | null
           last_synced_at: string | null
           metadata: Json
           pluggy_item_id: string
+          requires_user_action: boolean
           status: string
           status_detail: string | null
           updated_at: string
+          user_action_detail: Json
+          user_action_type: string | null
         }
         Insert: {
           company_id: string
@@ -6200,16 +6206,22 @@ export type Database = {
           consent_expires_at?: string | null
           created_at?: string
           disconnected_at?: string | null
+          error_since?: string | null
           id?: string
           institution_logo_url?: string | null
           institution_name?: string | null
           last_error?: string | null
+          last_error_at?: string | null
+          last_error_code?: string | null
           last_synced_at?: string | null
           metadata?: Json
           pluggy_item_id: string
+          requires_user_action?: boolean
           status?: string
           status_detail?: string | null
           updated_at?: string
+          user_action_detail?: Json
+          user_action_type?: string | null
         }
         Update: {
           company_id?: string
@@ -6218,16 +6230,22 @@ export type Database = {
           consent_expires_at?: string | null
           created_at?: string
           disconnected_at?: string | null
+          error_since?: string | null
           id?: string
           institution_logo_url?: string | null
           institution_name?: string | null
           last_error?: string | null
+          last_error_at?: string | null
+          last_error_code?: string | null
           last_synced_at?: string | null
           metadata?: Json
           pluggy_item_id?: string
+          requires_user_action?: boolean
           status?: string
           status_detail?: string | null
           updated_at?: string
+          user_action_detail?: Json
+          user_action_type?: string | null
         }
         Relationships: [
           {
@@ -7544,6 +7562,18 @@ export type Database = {
             Args: { _lock_seconds?: number; _worker_id: string }
             Returns: string
           }
+      classify_open_finance_item_state: {
+        Args: {
+          _connection_id: string
+          _consent_expires_at?: string
+          _error_code?: string
+          _error_message?: string
+          _execution_status: string
+          _parameter?: Json
+          _status: string
+        }
+        Returns: Json
+      }
       create_and_link_open_finance_account: {
         Args: {
           _account_name: string

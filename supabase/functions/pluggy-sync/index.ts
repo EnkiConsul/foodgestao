@@ -64,18 +64,29 @@ async function runSync(
   const BACKFILL_DAYS = 90;
   const isoDate = (d: Date) => d.toISOString().slice(0, 10);
 
-  // refresh item (status + consent)
+  // refresh item (status + consent) e classifica erros que exigem ação do usuário (Bloco 8)
   const itemResp = await getItem(itemId);
   if (itemResp.ok) {
-    await supabase
-      .from("open_finance_connections")
-      .update({
-        status: itemResp.data.status,
-        status_detail: itemResp.data.executionStatus ?? null,
-        consent_expires_at: itemResp.data.consentExpiresAt ?? null,
-      })
-      .eq("id", connectionId);
+    const item = itemResp.data as any;
+    const { data: state } = await supabase.rpc("classify_open_finance_item_state", {
+      _connection_id: connectionId,
+      _status: item.status ?? null,
+      _execution_status: item.executionStatus ?? null,
+      _error_code: item.error?.code ?? null,
+      _error_message: item.error?.message ?? null,
+      _consent_expires_at: item.consentExpiresAt ?? null,
+      _parameter: item.parameter ?? null,
+    });
+    if ((state as any)?.requires_user_action) {
+      const action = (state as any).user_action_type as string;
+      return {
+        ok: false,
+        stats,
+        error: `user_action_required:${action}`,
+      };
+    }
   }
+
 
   const accResp = await listAccounts(itemId);
   if (!accResp.ok) {

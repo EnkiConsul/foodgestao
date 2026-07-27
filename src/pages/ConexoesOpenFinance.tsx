@@ -43,6 +43,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
+import { OpenFinanceWizard } from "@/components/accounts/OpenFinanceWizard";
 
 interface Connection {
   id: string;
@@ -53,6 +54,9 @@ interface Connection {
   last_synced_at: string | null;
   consent_expires_at: string | null;
   last_error: string | null;
+  pluggy_item_id: string | null;
+  requires_user_action: boolean | null;
+  user_action_type: string | null;
   disconnected_at: string | null;
   created_at: string;
 }
@@ -73,6 +77,30 @@ interface OFAccount {
   local_reference_date?: string | null;
 }
 
+
+
+const ACTION_COPY: Record<string, { title: string; description: string }> = {
+  login_error: {
+    title: "Credenciais inválidas",
+    description: "O banco recusou o acesso. Reconecte informando novamente seus dados de login.",
+  },
+  mfa_required: {
+    title: "Autenticação em duas etapas pendente",
+    description: "O banco pediu um código/token adicional. Reconecte para concluir a validação.",
+  },
+  consent_expired: {
+    title: "Consentimento expirado",
+    description: "O consentimento Open Finance venceu. Reconecte para retomar a sincronização.",
+  },
+  account_locked: {
+    title: "Conta bloqueada no banco",
+    description: "Resolva a pendência no aplicativo do banco e depois reconecte aqui.",
+  },
+  provider_outage: {
+    title: "Instabilidade no banco",
+    description: "A instituição está indisponível no momento. Tentaremos novamente automaticamente.",
+  },
+};
 
 function statusMeta(status: string | null, disconnected_at: string | null) {
   if (disconnected_at) return { label: "Desconectada", variant: "outline" as const, tone: "muted" };
@@ -105,6 +133,7 @@ export default function ConexoesOpenFinance() {
   const [confirmUnlink, setConfirmUnlink] = useState<OFAccount | null>(null);
   const [confirmAdjust, setConfirmAdjust] = useState<OFAccount | null>(null);
   const [busy, setBusy] = useState(false);
+  const [reconnect, setReconnect] = useState<Connection | null>(null);
 
 
   const inPJ = contextType === "pj" && !!selectedCompanyId;
@@ -119,7 +148,7 @@ export default function ConexoesOpenFinance() {
     const { data, error } = await supabase
       .from("open_finance_connections")
       .select(
-        "id, institution_name, institution_logo_url, status, status_detail, last_synced_at, consent_expires_at, last_error, disconnected_at, created_at",
+        "id, institution_name, institution_logo_url, status, status_detail, last_synced_at, consent_expires_at, last_error, pluggy_item_id, requires_user_action, user_action_type, disconnected_at, created_at",
       )
       .eq("company_id", selectedCompanyId!)
       .order("created_at", { ascending: false });
@@ -496,7 +525,28 @@ export default function ConexoesOpenFinance() {
                   </div>
                 </CardHeader>
 
-                {(c.last_error || consentSoon) && (
+                {c.requires_user_action && (
+                  <div className="px-4 pb-2">
+                    <Alert variant="destructive" className="py-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle className="text-xs">
+                        {ACTION_COPY[c.user_action_type ?? ""]?.title ?? "Ação necessária"}
+                      </AlertTitle>
+                      <AlertDescription className="text-xs">
+                        {ACTION_COPY[c.user_action_type ?? ""]?.description ??
+                          c.last_error ??
+                          "Reconecte a instituição para retomar a sincronização."}
+                        <div className="mt-2">
+                          <Button size="sm" variant="outline" onClick={() => setReconnect(c)}>
+                            <RefreshCw className="h-3.5 w-3.5 mr-2" /> Reconectar
+                          </Button>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                )}
+
+                {!c.requires_user_action && (c.last_error || consentSoon) && (
                   <div className="px-4 pb-2">
                     {c.last_error && (
                       <Alert variant="destructive" className="py-2">
@@ -710,6 +760,17 @@ export default function ConexoesOpenFinance() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <OpenFinanceWizard
+        open={!!reconnect}
+        onOpenChange={(o) => !o && setReconnect(null)}
+        companyId={selectedCompanyId ?? null}
+        reconnectItemId={reconnect?.pluggy_item_id ?? null}
+        onFinished={() => {
+          setReconnect(null);
+          void fetchConnections();
+        }}
+      />
     </div>
 
   );
