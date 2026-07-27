@@ -5251,6 +5251,85 @@ export type Database = {
           },
         ]
       }
+      dp_ponto_fechamentos: {
+        Row: {
+          atraso_minutos: number
+          colaborador_id: string
+          company_id: string
+          competencia: string
+          created_at: string
+          faltas: number
+          fechado_em: string
+          fechado_por: string | null
+          id: string
+          minutos_previstos: number
+          minutos_trabalhados: number
+          observacao: string | null
+          saldo_acumulado_minutos: number
+          saldo_anterior_minutos: number
+          saldo_minutos: number
+          updated_at: string
+        }
+        Insert: {
+          atraso_minutos?: number
+          colaborador_id: string
+          company_id: string
+          competencia: string
+          created_at?: string
+          faltas?: number
+          fechado_em?: string
+          fechado_por?: string | null
+          id?: string
+          minutos_previstos?: number
+          minutos_trabalhados?: number
+          observacao?: string | null
+          saldo_acumulado_minutos?: number
+          saldo_anterior_minutos?: number
+          saldo_minutos?: number
+          updated_at?: string
+        }
+        Update: {
+          atraso_minutos?: number
+          colaborador_id?: string
+          company_id?: string
+          competencia?: string
+          created_at?: string
+          faltas?: number
+          fechado_em?: string
+          fechado_por?: string | null
+          id?: string
+          minutos_previstos?: number
+          minutos_trabalhados?: number
+          observacao?: string | null
+          saldo_acumulado_minutos?: number
+          saldo_anterior_minutos?: number
+          saldo_minutos?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_ponto_fechamentos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ponto_fechamentos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ponto_fechamentos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_pontos: {
         Row: {
           ajustado_por: string | null
