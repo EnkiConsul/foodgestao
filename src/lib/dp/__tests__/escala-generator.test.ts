@@ -32,7 +32,8 @@ describe("gerarEscala", () => {
   it("propõe uma folga por semana no dia da jornada", () => {
     const { propostas, alertas } = gerarEscala({ ...base, colaboradores: [colab()] });
     expect(propostas).toHaveLength(4);
-    expect(propostas.map((p) => p.data)).toEqual(["2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24"]);
+    // na 3ª semana a periodicidade dominical vence e a folga migra para o domingo
+    expect(propostas.map((p) => p.data)).toEqual(["2026-08-03", "2026-08-10", "2026-08-16", "2026-08-24"]);
     expect(alertas).toHaveLength(0);
   });
 
@@ -47,7 +48,7 @@ describe("gerarEscala", () => {
 
   it("aloca domingo quando a periodicidade vence", () => {
     const { propostas } = gerarEscala({ ...base, colaboradores: [colab()], periodicidadeDomingo: 2 });
-    const domingos = propostas.filter((p) => p.data === "2026-08-16" || p.data === "2026-08-02");
+    const domingos = propostas.filter((p) => p.motivo.includes("dominical"));
     expect(domingos.length).toBeGreaterThan(0);
   });
 
