@@ -90,17 +90,39 @@ async function runSync(
           number: a.number ?? null,
           balance: a.balance ?? null,
           currency: a.currencyCode ?? "BRL",
+          owner_name: a.owner ?? null,
+          tax_number: a.taxNumber ?? null,
+          transfer_number: a.bankData?.transferNumber ?? null,
+          credit_brand: a.creditData?.brand ?? null,
+          credit_level: a.creditData?.level ?? null,
+          credit_limit: a.creditData?.creditLimit ?? null,
+          available_credit_limit: a.creditData?.availableCreditLimit ?? null,
+          balance_close_date: a.creditData?.balanceCloseDate ?? null,
+          balance_due_date: a.creditData?.balanceDueDate ?? null,
+          removed_at: null, // reappearing account clears soft-remove
           raw: a as any,
         })),
         { onConflict: "connection_id,pluggy_account_id" },
       );
   }
 
-  // Resolve internal OF account ids
+  // Soft-remove accounts that disappeared from Pluggy since the last sync.
+  const activePluggyIds = accounts.map((a) => a.id);
+  if (activePluggyIds.length > 0) {
+    await supabase
+      .from("open_finance_accounts")
+      .update({ removed_at: new Date().toISOString() })
+      .eq("connection_id", connectionId)
+      .is("removed_at", null)
+      .not("pluggy_account_id", "in", `(${activePluggyIds.map((id) => `"${id}"`).join(",")})`);
+  }
+
+  // Resolve internal OF account ids (only active ones for the tx loop)
   const { data: ofAccts } = await supabase
     .from("open_finance_accounts")
     .select("id, pluggy_account_id")
-    .eq("connection_id", connectionId);
+    .eq("connection_id", connectionId)
+    .is("removed_at", null);
   const idByPluggy = new Map<string, string>((ofAccts ?? []).map((r: any) => [r.pluggy_account_id, r.id]));
 
   const defaultFrom = from ?? new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString().slice(0, 10);
