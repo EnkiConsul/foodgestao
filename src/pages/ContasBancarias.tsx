@@ -79,14 +79,52 @@ export default function ContasBancarias() {
 
   useEffect(() => { fetchAccounts(); }, [fetchAccounts]);
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Controle mutuamente exclusivo entre os 3 modais de conta.
+  // Só um dos três (methodOpen / dialogOpen / ofWizardOpen) pode estar aberto.
+  // Cada helper limpa os outros antes de abrir o próprio fluxo.
+  // ─────────────────────────────────────────────────────────────────────────
+  const openMethodDialog = useCallback(() => {
+    setDialogOpen(false);
+    setOfWizardOpen(false);
+    setEditAccount(null);
+    setMethodOpen(true);
+  }, []);
+
+  const openManualForm = useCallback((account: Account | null) => {
+    setMethodOpen(false);
+    setOfWizardOpen(false);
+    setEditAccount(account);
+    setDialogOpen(true);
+  }, []);
+
+  const openOfWizard = useCallback(() => {
+    setMethodOpen(false);
+    setDialogOpen(false);
+    setEditAccount(null);
+    setOfWizardOpen(true);
+  }, []);
+
+  // Fechamentos individuais — limpam apenas o estado do próprio fluxo.
+  const handleMethodOpenChange = useCallback((open: boolean) => {
+    setMethodOpen(open);
+  }, []);
+  const handleFormOpenChange = useCallback((open: boolean) => {
+    setDialogOpen(open);
+    if (!open) setEditAccount(null);
+  }, []);
+  const handleOfWizardOpenChange = useCallback((open: boolean) => {
+    setOfWizardOpen(open);
+  }, []);
+
   // Auto-open Open Finance wizard from ?openFinance=1 (e.g., voltando da tela de Conexões)
   useEffect(() => {
     if (searchParams.get("openFinance") === "1" && contextType === "pj" && selectedCompanyId) {
-      setOfWizardOpen(true);
+      openOfWizard();
       searchParams.delete("openFinance");
       setSearchParams(searchParams, { replace: true });
     }
-  }, [searchParams, setSearchParams, contextType, selectedCompanyId]);
+  }, [searchParams, setSearchParams, contextType, selectedCompanyId, openOfWizard]);
 
   // Reset detector quando muda o perfil de acesso
   useEffect(() => {
