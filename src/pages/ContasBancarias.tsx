@@ -54,6 +54,7 @@ export default function ContasBancarias() {
   const [importAccountId, setImportAccountId] = useState<string | null>(null);
   const [postCreateAccountId, setPostCreateAccountId] = useState<string | null>(null);
   const [deleteAccount, setDeleteAccount] = useState<Account | null>(null);
+  const [deleteHasTx, setDeleteHasTx] = useState<boolean | null>(null);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [staleBalance, setStaleBalance] = useState(false);
