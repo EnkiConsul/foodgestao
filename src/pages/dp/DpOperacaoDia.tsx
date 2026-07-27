@@ -11,6 +11,8 @@ import { useDpEscalaMes } from "@/hooks/useDpEscalaMes";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import { itemDeTurno, STATUS_LABEL, type EscalaItem } from "@/lib/dp/escala-mes";
 import { montarOperacaoDia, alertasDoDia, rotuloAusencia, type PessoaDia } from "@/lib/dp/operacao-dia";
+import { resolverCoberturaMinima } from "@/lib/dp/cobertura-utils";
+import { useDpCoberturaMinima } from "@/hooks/useDpCoberturaMinima";
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
@@ -77,6 +79,18 @@ export default function DpOperacaoDia() {
   });
 
   const { escala, itens, colaboradores, turnos } = escalaMes;
+  const { regras: regrasCobertura } = useDpCoberturaMinima();
+
+  const coberturaMinima = useMemo(
+    () =>
+      resolverCoberturaMinima({
+        regras: regrasCobertura,
+        data,
+        unidadeId,
+        turnoIds: turnos.map((t) => t.id),
+      }),
+    [regrasCobertura, data, unidadeId, turnos],
+  );
 
   const dia = useMemo(
     () =>
@@ -87,8 +101,9 @@ export default function DpOperacaoDia() {
         turnos: turnos.map((t) => ({
           id: t.id, nome: t.nome, cor: t.cor, entrada: t.entrada, saida: t.saida,
         })),
+        coberturaMinima,
       }),
-    [data, itens, colaboradores, turnos],
+    [data, itens, colaboradores, turnos, coberturaMinima],
   );
 
   const alertas = useMemo(() => alertasDoDia(dia), [dia]);
