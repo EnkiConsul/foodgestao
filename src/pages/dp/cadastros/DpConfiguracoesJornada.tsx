@@ -233,21 +233,26 @@ export default function DpConfiguracoesJornada() {
       />
 
       <Section
-        title="Regra aplicada a"
-        description="A regra da unidade prevalece sobre a regra padrão da empresa. Unidades sem exceção seguem o padrão."
+        title="Unidade"
+        description="Cada unidade tem suas próprias regras — normalmente negociadas com sindicatos diferentes. Ao salvar você pode replicar a configuração para outras lojas."
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1 space-y-1.5">
-            <Label htmlFor="alvo-regra">Escopo</Label>
+            <Label htmlFor="alvo-regra">Configurando as regras de</Label>
             <Select
-              value={unidadeId ?? PADRAO}
-              onValueChange={(v) => setUnidadeId(v === PADRAO ? null : v)}
+              value={unidadeId ?? ""}
+              onValueChange={(v) => setUnidadeId(v)}
+              disabled={unidades.length === 0}
             >
-              <SelectTrigger id="alvo-regra"><SelectValue /></SelectTrigger>
+              <SelectTrigger id="alvo-regra">
+                <SelectValue placeholder="Nenhuma unidade cadastrada" />
+              </SelectTrigger>
               <SelectContent>
-                <SelectItem value={PADRAO}>Todas as unidades (padrão da empresa)</SelectItem>
                 {unidades.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.nome}
+                    {unidadesConfiguradas.has(u.id) ? "" : " — ainda não configurada"}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -255,32 +260,59 @@ export default function DpConfiguracoesJornada() {
 
           {unidadeId && (
             <div className="flex flex-wrap items-center gap-2">
-              {herdando ? (
+              {naoConfigurada ? (
                 <Badge variant="outline" className="gap-1">
-                  <Store className="h-3.5 w-3.5" aria-hidden="true" /> Herdando o padrão da empresa
+                  <Store className="h-3.5 w-3.5" aria-hidden="true" /> Ainda não configurada
                 </Badge>
               ) : (
                 <>
                   <Badge className="gap-1">
-                    <Store className="h-3.5 w-3.5" aria-hidden="true" /> Exceção própria
+                    <Store className="h-3.5 w-3.5" aria-hidden="true" /> Regras configuradas
                   </Badge>
                   <Button
                     variant="outline" size="sm" className="gap-2"
-                    onClick={() => void handleRemoverExcecao()} disabled={removendo}
+                    onClick={() => setLimparAberto(true)} disabled={removendo}
                   >
-                    <Trash2 className="h-4 w-4" aria-hidden="true" /> Remover exceção
+                    <Trash2 className="h-4 w-4" aria-hidden="true" /> Limpar Regras
                   </Button>
                 </>
               )}
             </div>
           )}
         </div>
-        {herdando && (
+
+        {unidades.length === 0 && (
+          <p className="text-xs text-destructive">
+            Cadastre ao menos uma unidade em Cadastros → Unidades para definir as regras de folgas.
+          </p>
+        )}
+
+        {unidadeId && (
+          <div className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
+            <p className="flex items-center gap-2 font-medium text-foreground">
+              <Landmark className="h-4 w-4" aria-hidden="true" /> Contexto sindical desta unidade
+            </p>
+            <p className="mt-1">
+              {contextoSindical?.sindicatos.length
+                ? contextoSindical.sindicatos.join(" • ")
+                : "Nenhum sindicato vinculado a esta unidade."}
+            </p>
+            {contextoSindical?.negociacao && (
+              <p className="mt-1">
+                Última negociação registrada: {contextoSindical.negociacao.tipo_documento?.toUpperCase() ?? "Documento"}
+                {contextoSindical.negociacao.ano ? ` — vigência ${contextoSindical.negociacao.ano}` : ""}
+              </p>
+            )}
+          </div>
+        )}
+
+        {naoConfigurada && unidadeId && (
           <p className="text-xs text-muted-foreground">
-            Ajuste os campos abaixo e clique em Salvar para criar uma exceção só para esta unidade.
+            Os campos abaixo partem do padrão legal (CLT). Ajuste e clique em Salvar para gravar as regras desta unidade.
           </p>
         )}
       </Section>
+
 
       <Section
         title="Descanso Dominical"
