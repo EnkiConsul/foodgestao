@@ -41,6 +41,12 @@ function mapRow(data: Record<string, unknown>): ConfigRow {
     negociacao_id: (data.negociacao_id as string | null) ?? null,
   };
 }
+/** Remove campos de identidade da linha, deixando apenas os valores de regra. */
+function stripIdentity(row: ConfigRow): DpConfigDpForm {
+  const { id: _id, unidade_id: _unidade, ...regras } = row;
+  return regras;
+}
+
 
 /**
  * Configuração de regras de folgas.
@@ -72,13 +78,14 @@ export function useDpConfigDp(unidadeId: string | null = null) {
   );
 
   const configPadrao: DpConfigDpForm = useMemo(
-    () => padraoRow ?? DP_CONFIG_DP_DEFAULT,
+    () => (padraoRow ? stripIdentity(padraoRow) : DP_CONFIG_DP_DEFAULT),
     [padraoRow],
   );
   const config: DpConfigDpForm = useMemo(
-    () => unidadeRow ?? configPadrao,
+    () => (unidadeRow ? stripIdentity(unidadeRow) : configPadrao),
     [unidadeRow, configPadrao],
   );
+
 
 
 
@@ -126,8 +133,10 @@ export function useDpConfigDp(unidadeId: string | null = null) {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
       const alvo = input.unidadeId !== undefined ? input.unidadeId : unidadeId;
       const existente = rows.find((r) => r.unidade_id === (alvo ?? null)) ?? null;
-      const anterior: DpConfigDpForm = existente ?? configPadrao;
-      const merged = { ...anterior, ...input.patch };
+      const base = existente ?? padraoRow ?? null;
+      // Nunca herdar campos de identidade (id/unidade_id) da regra usada como base.
+      const anterior: DpConfigDpForm = base ? stripIdentity(base) : DP_CONFIG_DP_DEFAULT;
+      const merged: DpConfigDpForm = { ...anterior, ...input.patch };
       const payload = { ...merged, company_id: selectedCompanyId, unidade_id: alvo ?? null };
 
       if (existente) {
@@ -140,6 +149,7 @@ export function useDpConfigDp(unidadeId: string | null = null) {
         const { error } = await supabase.from("dp_config_dp").insert(payload);
         if (error) throw error;
       }
+
 
       const { data: userData } = await supabase.auth.getUser();
       const { error: histError } = await supabase.from("dp_regras_historico").insert({
