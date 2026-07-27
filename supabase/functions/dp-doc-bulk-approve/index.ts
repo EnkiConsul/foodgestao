@@ -14,6 +14,8 @@ const DST_BUCKET = "dp-documentos";
 const BodySchema = z.object({
   item_ids: z.array(z.string().uuid()).min(1).max(200),
   on_duplicate: z.enum(["skip", "replace"]).default("skip"),
+  /** Aprovação explícita de lote sem unidade identificada (registrada em auditoria). */
+  sem_unidade_confirmado: z.boolean().optional().default(false),
 });
 
 Deno.serve(async (req) => {
@@ -54,6 +56,23 @@ Deno.serve(async (req) => {
       await svc.from("dp_bulk_import_batches")
         .update({ approved_count: 0 })
         .eq("id", bid);
+    }
+
+    if (parsed.data.sem_unidade_confirmado) {
+      const firstBatch = (items as any[])[0]?.dp_bulk_import_batches;
+      await svc.from("audit_logs").insert({
+        user_id: uid,
+        action: "dp_bulk_approve_sem_unidade",
+        table_name: "dp_bulk_import_batches",
+        record_id: firstBatch?.id ?? null,
+        metadata: {
+          company_id: firstBatch?.company_id ?? null,
+          tipo: firstBatch?.tipo ?? null,
+          referencia_data: firstBatch?.referencia_data ?? null,
+          source_file_name: firstBatch?.source_file_name ?? null,
+          item_count: (items as any[]).length,
+        },
+      });
     }
 
     let processedSoFar = 0;
