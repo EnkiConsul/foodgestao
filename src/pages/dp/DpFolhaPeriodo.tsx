@@ -19,7 +19,7 @@ import {
 import { useDpFolhaPeriodo } from "@/hooks/useDpFolha";
 import {
   FOLHA_TIPO_LABEL, LANCAMENTO_STATUS_LABEL, PERIODO_STATUS_LABEL,
-  folhaParaCsv, formatarBRL, podeGerarDespesa, proximoStatusPeriodo, totaisDaFolha, totaisDosExtras,
+  encargosDoLancamento, folhaParaCsv, formatarBRL, podeGerarDespesa, proximoStatusPeriodo, totaisDaFolha, totaisDosExtras,
   type FolhaPeriodoStatus,
 } from "@/lib/dp/folha";
 import { imprimirHolerite, type HoleriteDados } from "@/lib/dp/holerite";
