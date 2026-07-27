@@ -7192,11 +7192,24 @@ export type Database = {
         Args: { _names: string[] }
         Returns: undefined
       }
+      _e2e_cleanup_foreign_accounts: {
+        Args: { _empty_name: string; _history_name: string }
+        Returns: undefined
+      }
       _e2e_seed_delete_accounts: {
         Args: { _empty_name: string; _history_name: string }
         Returns: {
           company_id: string
           empty_id: string
+          history_id: string
+          tx_id: string
+        }[]
+      }
+      _e2e_seed_foreign_accounts: {
+        Args: { _empty_name: string; _history_name: string }
+        Returns: {
+          empty_id: string
+          foreign_user_id: string
           history_id: string
           tx_id: string
         }[]
