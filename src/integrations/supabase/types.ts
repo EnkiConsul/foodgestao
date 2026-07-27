@@ -2758,6 +2758,7 @@ export type Database = {
           created_at: string
           descricao: string | null
           id: string
+          insalubre_periculoso: boolean
           nome: string
           salario_base: number | null
           updated_at: string
@@ -2769,6 +2770,7 @@ export type Database = {
           created_at?: string
           descricao?: string | null
           id?: string
+          insalubre_periculoso?: boolean
           nome: string
           salario_base?: number | null
           updated_at?: string
@@ -2780,6 +2782,7 @@ export type Database = {
           created_at?: string
           descricao?: string | null
           id?: string
+          insalubre_periculoso?: boolean
           nome?: string
           salario_base?: number | null
           updated_at?: string
@@ -2790,6 +2793,64 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_cobertura_minima: {
+        Row: {
+          cargo_id: string | null
+          company_id: string
+          created_at: string
+          dia_semana: number | null
+          id: string
+          minimo: number
+          turno: Database["public"]["Enums"]["dp_turno"] | null
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          cargo_id?: string | null
+          company_id: string
+          created_at?: string
+          dia_semana?: number | null
+          id?: string
+          minimo?: number
+          turno?: Database["public"]["Enums"]["dp_turno"] | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cargo_id?: string | null
+          company_id?: string
+          created_at?: string
+          dia_semana?: number | null
+          id?: string
+          minimo?: number
+          turno?: Database["public"]["Enums"]["dp_turno"] | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_cobertura_minima_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_cobertura_minima_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_cobertura_minima_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -2868,9 +2929,90 @@ export type Database = {
           },
         ]
       }
+      dp_colaborador_jornadas: {
+        Row: {
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          fim: string | null
+          folga_fixa_semana_override: number | null
+          horario_entrada_override: string | null
+          horario_saida_override: string | null
+          id: string
+          inicio: string
+          intervalo_fim_override: string | null
+          intervalo_inicio_override: string | null
+          jornada_id: string
+          observacoes: string | null
+          updated_at: string
+        }
+        Insert: {
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          fim?: string | null
+          folga_fixa_semana_override?: number | null
+          horario_entrada_override?: string | null
+          horario_saida_override?: string | null
+          id?: string
+          inicio?: string
+          intervalo_fim_override?: string | null
+          intervalo_inicio_override?: string | null
+          jornada_id: string
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          fim?: string | null
+          folga_fixa_semana_override?: number | null
+          horario_entrada_override?: string | null
+          horario_saida_override?: string | null
+          id?: string
+          inicio?: string
+          intervalo_fim_override?: string | null
+          intervalo_inicio_override?: string | null
+          jornada_id?: string
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_colaborador_jornadas_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_jornadas_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_jornadas_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_jornadas_jornada_id_fkey"
+            columns: ["jornada_id"]
+            isOneToOne: false
+            referencedRelation: "dp_jornadas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_colaboradores: {
         Row: {
           acesso_portal_ate: string | null
+          aprendiz: boolean
           aprovacao_status: Database["public"]["Enums"]["dp_aprovacao_status"]
           ativo: boolean
           cargo: string | null
@@ -2892,6 +3034,7 @@ export type Database = {
           email_portal: string | null
           endereco: Json | null
           folga_fixa_semana: number | null
+          fundamental_concluido: boolean
           id: string
           matricula: string | null
           motivo_desligamento:
@@ -2904,6 +3047,7 @@ export type Database = {
           perfil_acesso: Database["public"]["Enums"]["dp_perfil_acesso"]
           possui_folha_ponto: boolean
           regime: Database["public"]["Enums"]["dp_regime_trabalho"]
+          sexo: string | null
           sindicato_id: string | null
           telefone: string | null
           unidade_id: string | null
@@ -2913,6 +3057,7 @@ export type Database = {
         }
         Insert: {
           acesso_portal_ate?: string | null
+          aprendiz?: boolean
           aprovacao_status?: Database["public"]["Enums"]["dp_aprovacao_status"]
           ativo?: boolean
           cargo?: string | null
@@ -2934,6 +3079,7 @@ export type Database = {
           email_portal?: string | null
           endereco?: Json | null
           folga_fixa_semana?: number | null
+          fundamental_concluido?: boolean
           id?: string
           matricula?: string | null
           motivo_desligamento?:
@@ -2946,6 +3092,7 @@ export type Database = {
           perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"]
           possui_folha_ponto?: boolean
           regime?: Database["public"]["Enums"]["dp_regime_trabalho"]
+          sexo?: string | null
           sindicato_id?: string | null
           telefone?: string | null
           unidade_id?: string | null
@@ -2955,6 +3102,7 @@ export type Database = {
         }
         Update: {
           acesso_portal_ate?: string | null
+          aprendiz?: boolean
           aprovacao_status?: Database["public"]["Enums"]["dp_aprovacao_status"]
           ativo?: boolean
           cargo?: string | null
@@ -2976,6 +3124,7 @@ export type Database = {
           email_portal?: string | null
           endereco?: Json | null
           folga_fixa_semana?: number | null
+          fundamental_concluido?: boolean
           id?: string
           matricula?: string | null
           motivo_desligamento?:
@@ -2988,6 +3137,7 @@ export type Database = {
           perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"]
           possui_folha_ponto?: boolean
           regime?: Database["public"]["Enums"]["dp_regime_trabalho"]
+          sexo?: string | null
           sindicato_id?: string | null
           telefone?: string | null
           unidade_id?: string | null
@@ -3022,6 +3172,59 @@ export type Database = {
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_config_dp: {
+        Row: {
+          company_id: string
+          created_at: string
+          exige_validacao_menor: boolean
+          folgas_fds_por_mes: number
+          id: string
+          periodicidade_domingo: number
+          periodicidade_domingo_mulher: number
+          politica_feriado: Database["public"]["Enums"]["dp_politica_feriado"]
+          politica_sabado: Database["public"]["Enums"]["dp_politica_sabado"]
+          regra_dsr: Database["public"]["Enums"]["dp_regra_dsr"]
+          setor_comercio: boolean
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          exige_validacao_menor?: boolean
+          folgas_fds_por_mes?: number
+          id?: string
+          periodicidade_domingo?: number
+          periodicidade_domingo_mulher?: number
+          politica_feriado?: Database["public"]["Enums"]["dp_politica_feriado"]
+          politica_sabado?: Database["public"]["Enums"]["dp_politica_sabado"]
+          regra_dsr?: Database["public"]["Enums"]["dp_regra_dsr"]
+          setor_comercio?: boolean
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          exige_validacao_menor?: boolean
+          folgas_fds_por_mes?: number
+          id?: string
+          periodicidade_domingo?: number
+          periodicidade_domingo_mulher?: number
+          politica_feriado?: Database["public"]["Enums"]["dp_politica_feriado"]
+          politica_sabado?: Database["public"]["Enums"]["dp_politica_sabado"]
+          regra_dsr?: Database["public"]["Enums"]["dp_regra_dsr"]
+          setor_comercio?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_config_dp_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -3901,6 +4104,77 @@ export type Database = {
           },
         ]
       }
+      dp_jornadas: {
+        Row: {
+          ativo: boolean
+          carga_horaria_diaria: number
+          carga_horaria_semanal: number
+          company_id: string
+          created_at: string
+          dias_folga: number[]
+          dias_trabalho: number[]
+          horario_entrada: string | null
+          horario_saida: string | null
+          id: string
+          intervalo_fim: string | null
+          intervalo_inicio: string | null
+          nome: string
+          observacoes: string | null
+          permite_intervalo_fracionado: boolean
+          tipo_escala: Database["public"]["Enums"]["dp_tipo_escala"]
+          turno: Database["public"]["Enums"]["dp_turno"]
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          carga_horaria_diaria?: number
+          carga_horaria_semanal?: number
+          company_id: string
+          created_at?: string
+          dias_folga?: number[]
+          dias_trabalho?: number[]
+          horario_entrada?: string | null
+          horario_saida?: string | null
+          id?: string
+          intervalo_fim?: string | null
+          intervalo_inicio?: string | null
+          nome: string
+          observacoes?: string | null
+          permite_intervalo_fracionado?: boolean
+          tipo_escala?: Database["public"]["Enums"]["dp_tipo_escala"]
+          turno?: Database["public"]["Enums"]["dp_turno"]
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          carga_horaria_diaria?: number
+          carga_horaria_semanal?: number
+          company_id?: string
+          created_at?: string
+          dias_folga?: number[]
+          dias_trabalho?: number[]
+          horario_entrada?: string | null
+          horario_saida?: string | null
+          id?: string
+          intervalo_fim?: string | null
+          intervalo_inicio?: string | null
+          nome?: string
+          observacoes?: string | null
+          permite_intervalo_fracionado?: boolean
+          tipo_escala?: Database["public"]["Enums"]["dp_tipo_escala"]
+          turno?: Database["public"]["Enums"]["dp_turno"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_jornadas_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_legacy_import_errors: {
         Row: {
           created_at: string
@@ -4404,6 +4678,53 @@ export type Database = {
           },
           {
             foreignKeyName: "dp_registros_disciplinares_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_regras_historico: {
+        Row: {
+          ciencia_confirmada: boolean
+          company_id: string
+          created_at: string
+          id: string
+          justificativa: string | null
+          registro_id: string | null
+          tabela: string
+          usuario_id: string | null
+          valor_antigo: Json | null
+          valor_novo: Json | null
+        }
+        Insert: {
+          ciencia_confirmada?: boolean
+          company_id: string
+          created_at?: string
+          id?: string
+          justificativa?: string | null
+          registro_id?: string | null
+          tabela: string
+          usuario_id?: string | null
+          valor_antigo?: Json | null
+          valor_novo?: Json | null
+        }
+        Update: {
+          ciencia_confirmada?: boolean
+          company_id?: string
+          created_at?: string
+          id?: string
+          justificativa?: string | null
+          registro_id?: string | null
+          tabela?: string
+          usuario_id?: string | null
+          valor_antigo?: Json | null
+          valor_novo?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_regras_historico_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
@@ -7553,7 +7874,10 @@ export type Database = {
         | "disciplinar_novo"
         | "atestado_novo"
       dp_perfil_acesso: "colaborador" | "gestor" | "admin"
+      dp_politica_feriado: "compensa" | "dobro"
+      dp_politica_sabado: "trabalha" | "folga" | "alterna" | "especifica"
       dp_regime_trabalho: "clt" | "pj" | "estagio" | "temporario" | "mei"
+      dp_regra_dsr: "clt" | "cct" | "propria"
       dp_sindicato_tipo: "patronal" | "laboral"
       dp_solicitacao_status: "pendente" | "aprovada" | "recusada" | "cancelada"
       dp_solicitacao_tipo:
@@ -7562,6 +7886,14 @@ export type Database = {
         | "atestado"
         | "adiantamento"
         | "outros"
+      dp_tipo_escala:
+        | "6x1"
+        | "5x2"
+        | "5x1"
+        | "4x2"
+        | "12x36"
+        | "intermitente"
+        | "personalizada"
       dp_treinamento_status:
         | "planejado"
         | "em_andamento"
@@ -7573,6 +7905,7 @@ export type Database = {
         | "aprovada"
         | "recusada"
         | "cancelada"
+      dp_turno: "matutino" | "vespertino" | "noturno" | "misto"
       invite_status: "pending" | "accepted" | "rejected" | "expired"
       invoice_cycle_status:
         | "aberta"
@@ -7880,7 +8213,10 @@ export const Constants = {
         "atestado_novo",
       ],
       dp_perfil_acesso: ["colaborador", "gestor", "admin"],
+      dp_politica_feriado: ["compensa", "dobro"],
+      dp_politica_sabado: ["trabalha", "folga", "alterna", "especifica"],
       dp_regime_trabalho: ["clt", "pj", "estagio", "temporario", "mei"],
+      dp_regra_dsr: ["clt", "cct", "propria"],
       dp_sindicato_tipo: ["patronal", "laboral"],
       dp_solicitacao_status: ["pendente", "aprovada", "recusada", "cancelada"],
       dp_solicitacao_tipo: [
@@ -7889,6 +8225,15 @@ export const Constants = {
         "atestado",
         "adiantamento",
         "outros",
+      ],
+      dp_tipo_escala: [
+        "6x1",
+        "5x2",
+        "5x1",
+        "4x2",
+        "12x36",
+        "intermitente",
+        "personalizada",
       ],
       dp_treinamento_status: [
         "planejado",
@@ -7903,6 +8248,7 @@ export const Constants = {
         "recusada",
         "cancelada",
       ],
+      dp_turno: ["matutino", "vespertino", "noturno", "misto"],
       invite_status: ["pending", "accepted", "rejected", "expired"],
       invoice_cycle_status: [
         "aberta",

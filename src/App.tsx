@@ -71,6 +71,8 @@ const DpAnalytics = lazy(() => import("./pages/dp/DpAnalytics"));
 const DpFolgasHub = lazy(() => import("./pages/dp/DpFolgasHub"));
 const DpCadastrosHub = lazy(() => import("./pages/dp/DpCadastrosHub"));
 const DpCadastroPendencias = lazy(() => import("./pages/dp/cadastros/DpCadastroPendencias"));
+const DpCadastroJornadas = lazy(() => import("./pages/dp/cadastros/DpCadastroJornadas"));
+const DpConfiguracoesJornada = lazy(() => import("./pages/dp/cadastros/DpConfiguracoesJornada"));
 const DpUnidades = lazy(() => import("./pages/dp/DpUnidades"));
 const DpCargos = lazy(() => import("./pages/dp/DpCargos"));
 const DpSindicatos = lazy(() => import("./pages/dp/DpSindicatos"));
@@ -384,6 +386,8 @@ const AppRoutes = () => (
         <Route path="cadastros/cargos" element={<DpCargos />} />
         <Route path="cadastros/sindicatos" element={<DpSindicatos />} />
         <Route path="cadastros/pendencias" element={<DpCadastroPendencias />} />
+        <Route path="cadastros/jornadas" element={<DpCadastroJornadas />} />
+        <Route path="cadastros/regras-jornada" element={<DpConfiguracoesJornada />} />
         <Route path="documentos/act-cct" element={<DpSindicatoNegociacoes />} />
         <Route path="configuracoes" element={<DpConfiguracoes />} />
         <Route path="sindicatos" element={<Navigate to="/dp/cadastros/sindicatos" replace />} />
