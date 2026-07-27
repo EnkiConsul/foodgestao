@@ -166,14 +166,33 @@ async function request<T>(method: string, path: string, body?: unknown) {
   return last as { ok: false; error: string; httpStatus?: number };
 }
 
-/** Create a short-lived connect token for the widget. */
-export async function createConnectToken(options: {
+/**
+ * Create a short-lived connect token for the widget.
+ *
+ * Contract (Pluggy):
+ *   POST /connect_token
+ *   Body: { itemId?: string, options?: { clientUserId?, avoidDuplicates?, webhookUrl? } }
+ *
+ * - `itemId` (root) is only used for update/reconnect flows.
+ * - `clientUserId`, `avoidDuplicates` and `webhookUrl` belong under `options`.
+ */
+export async function createConnectToken(input: {
   clientUserId: string;
   webhookUrl?: string;
-  itemId?: string; // for update/reconnect flows
+  avoidDuplicates?: boolean;
+  itemId?: string; // update/reconnect
 }) {
-  return await request<{ accessToken: string }>("POST", "/connect_token", options);
+  const body: Record<string, unknown> = {
+    options: {
+      clientUserId: input.clientUserId,
+      avoidDuplicates: input.avoidDuplicates ?? true,
+      ...(input.webhookUrl ? { webhookUrl: input.webhookUrl } : {}),
+    },
+  };
+  if (input.itemId) body.itemId = input.itemId;
+  return await request<{ accessToken: string }>("POST", "/connect_token", body);
 }
+
 
 export async function getItem(itemId: string) {
   return await request<PluggyItem>("GET", `/items/${itemId}`);

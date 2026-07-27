@@ -6053,42 +6053,69 @@ export type Database = {
       }
       open_finance_connection_requests: {
         Row: {
+          cancelled_at: string | null
           company_id: string
+          completed_at: string | null
           connect_token: string | null
           connect_token_expires_at: string | null
+          correlation_expires_at: string | null
           created_at: string
           error: string | null
+          error_code: string | null
+          existing_connection_id: string | null
           id: string
+          idempotency_key: string | null
           metadata: Json
+          mode: string
           pluggy_item_id: string | null
           requested_by_user_id: string
           status: string
+          token_created_at: string | null
+          token_expires_at: string | null
           updated_at: string
         }
         Insert: {
+          cancelled_at?: string | null
           company_id: string
+          completed_at?: string | null
           connect_token?: string | null
           connect_token_expires_at?: string | null
+          correlation_expires_at?: string | null
           created_at?: string
           error?: string | null
+          error_code?: string | null
+          existing_connection_id?: string | null
           id?: string
+          idempotency_key?: string | null
           metadata?: Json
+          mode?: string
           pluggy_item_id?: string | null
           requested_by_user_id: string
           status?: string
+          token_created_at?: string | null
+          token_expires_at?: string | null
           updated_at?: string
         }
         Update: {
+          cancelled_at?: string | null
           company_id?: string
+          completed_at?: string | null
           connect_token?: string | null
           connect_token_expires_at?: string | null
+          correlation_expires_at?: string | null
           created_at?: string
           error?: string | null
+          error_code?: string | null
+          existing_connection_id?: string | null
           id?: string
+          idempotency_key?: string | null
           metadata?: Json
+          mode?: string
           pluggy_item_id?: string | null
           requested_by_user_id?: string
           status?: string
+          token_created_at?: string | null
+          token_expires_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -6097,6 +6124,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "open_finance_connection_requests_existing_connection_id_fkey"
+            columns: ["existing_connection_id"]
+            isOneToOne: false
+            referencedRelation: "open_finance_connections"
             referencedColumns: ["id"]
           },
         ]
