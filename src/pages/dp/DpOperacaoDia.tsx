@@ -11,6 +11,8 @@ import { useDpEscalaMes } from "@/hooks/useDpEscalaMes";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import { itemDeTurno, STATUS_LABEL, type EscalaItem } from "@/lib/dp/escala-mes";
 import { montarOperacaoDia, alertasDoDia, rotuloAusencia, type PessoaDia } from "@/lib/dp/operacao-dia";
+import { resolverCoberturaMinima } from "@/lib/dp/cobertura-utils";
+import { useDpCoberturaMinima } from "@/hooks/useDpCoberturaMinima";
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
