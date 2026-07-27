@@ -115,6 +115,10 @@ export default function DpFolhaPeriodo() {
               <Download className="mr-2 h-4 w-4" />
               Exportar CSV
             </Button>
+            <Button variant="outline" size="sm" disabled={!linhas.length} onClick={() => imprimir(linhas)}>
+              <Printer className="mr-2 h-4 w-4" />
+              Imprimir Demonstrativos
+            </Button>
             {status !== "aberto" && (
               <Button variant="outline" size="sm" onClick={() => setConfirmar("aberto")} disabled={alterarStatus.isPending}>
                 Reabrir
