@@ -68,7 +68,6 @@ export default function DpColaboradores() {
   const [toDesligar, setToDesligar] = useState<DpColaborador | null>(null);
   const [jornadaTarget, setJornadaTarget] = useState<DpColaborador | null>(null);
   const [toReintegrar, setToReintegrar] = useState<DpColaborador | null>(null);
-  const [toEditarDesligamento, setToEditarDesligamento] = useState<DpColaborador | null>(null);
   const [resetting, setResetting] = useState<string | null>(null);
   const [granting, setGranting] = useState<string | null>(null);
   const [accessResult, setAccessResult] = useState<{ nome: string; cpf: string; password: string; kind: "created" | "reset" } | null>(null);
@@ -454,14 +453,9 @@ export default function DpColaboradores() {
                                   <UserMinus className="h-4 w-4 mr-2 text-destructive" /> Desligar Colaborador
                                 </DropdownMenuItem>
                               ) : (
-                                <>
-                                  <DropdownMenuItem onSelect={() => setToEditarDesligamento(c)}>
-                                    <Pencil className="h-4 w-4 mr-2" /> Editar Desligamento
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onSelect={() => setToReintegrar(c)}>
-                                    <RotateCcw className="h-4 w-4 mr-2" /> Reintegrar Colaborador
-                                  </DropdownMenuItem>
-                                </>
+                                <DropdownMenuItem onSelect={() => setToReintegrar(c)}>
+                                  <RotateCcw className="h-4 w-4 mr-2" /> Reintegrar Colaborador
+                                </DropdownMenuItem>
                               )}
                               <DropdownMenuItem onSelect={() => setToDelete(c)}>
                                 <Trash2 className="h-4 w-4 mr-2 text-destructive" /> Remover
@@ -575,14 +569,9 @@ export default function DpColaboradores() {
                     <UserMinus className="h-4 w-4 mr-1" /> Desligar
                   </Button>
                 ) : (
-                  <>
-                    <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => setToEditarDesligamento(c)}>
-                      <Pencil className="h-4 w-4 mr-1" /> Desligamento
-                    </Button>
-                    <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => setToReintegrar(c)}>
-                      <RotateCcw className="h-4 w-4 mr-1" /> Reintegrar
-                    </Button>
-                  </>
+                  <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => setToReintegrar(c)}>
+                    <RotateCcw className="h-4 w-4 mr-1" /> Reintegrar
+                  </Button>
                 )}
                 <Button size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => setToDelete(c)} title="Remover">
                   <Trash2 className="h-4 w-4 text-destructive" />
@@ -604,12 +593,6 @@ export default function DpColaboradores() {
       />
 
       <DesligamentoDialog colaborador={toDesligar} onOpenChange={(o) => !o && setToDesligar(null)} />
-
-      <DesligamentoDialog
-        modo="editar"
-        colaborador={toEditarDesligamento}
-        onOpenChange={(o) => !o && setToEditarDesligamento(null)}
-      />
 
       <AlertDialog open={!!toReintegrar} onOpenChange={(o) => !o && setToReintegrar(null)}>
         <AlertDialogContent>
