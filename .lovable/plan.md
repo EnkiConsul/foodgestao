@@ -1,60 +1,60 @@
 ## Objetivo
 
-Reformular a tela **Regras de Folgas** (`/dp/folgas/configuracoes/regras`): regras por unidade de loja, acordo coletivo com dias negociados, seletor único de frequência dominical, e remoção do bloco "Sábados, feriados e menores".
+Refinar a tela **Regras de Folgas** (`/dp/folgas/configuracoes/regras`) e fazer o calendário do portal do colaborador respeitar os dias negociados e a frequência configurada.
 
 ---
 
-## 1. Regras por unidade de loja
+## 1. Dias de descanso negociados — ordem Seg → Dom
 
-Hoje existe **uma única configuração por empresa** (`dp_config_dp` tem chave única em `company_id`). Passa a existir:
+Hoje os chips aparecem como Dom, Seg, Ter… Sáb. Passam a aparecer **Seg, Ter, Qua, Qui, Sex, Sáb, Dom**. Só a ordem de exibição muda — o valor gravado continua sendo o número do dia da semana (0 = domingo), então nada quebra no motor de escala nem na conformidade.
 
-- **Regra da empresa (padrão)** — vale para todas as unidades.
-- **Exceções por unidade** — cada loja pode sobrescrever **todo o conjunto** de regras de folgas.
+## 2. Remover o vínculo com acordo sindical
 
-Na tela: um seletor no topo — "Regra aplicada a: **Todas as unidades (padrão)** / Unidade X / Unidade Y". Ao escolher uma unidade sem exceção, aparece "Criar exceção para esta unidade" (parte dos valores do padrão); com exceção, aparece "Remover exceção e voltar ao padrão". Um badge indica quando a unidade está herdando o padrão.
+- Some o campo **"Acordo / convenção vinculada"** e a validação que obrigava escolher uma negociação para salvar no modo acordo coletivo.
+- O modo "Acordo coletivo (dias negociados)" continua existindo; passa a exigir apenas **ao menos um dia negociado marcado**.
+- A coluna `negociacao_id` permanece no banco (histórico), apenas deixa de ser editada e enviada pela tela.
 
-A resolução no motor (escala automática, validação de folgas, conformidade DSR, portal do colaborador) passa a ser: **regra da unidade do colaborador → senão regra da empresa**.
+## 3. Sinalização "Menos protetiva" com base legal
 
-## 2. Base do descanso dominical e dias negociados
+O badge vermelho ganha um ícone **"i"** ao lado que abre um popover explicando **por que** aquela escolha é menos protetiva, com a base legal correspondente:
 
-- O campo **"Acordo / convenção vinculada"** só aparece quando a base for **Acordo coletivo** (hoje aparece sempre).
-- No modo acordo, novo campo **"Dias de descanso negociados"**: multi-seleção de domingo a sábado. Folga em qualquer dia marcado conta como DSR negociado.
-- No modo legislação: domingo estrito, sem campos de acordo.
-- A conformidade DSR passa a contar folgas nos dias negociados da unidade do colaborador.
+- **Regra geral** — Lei 10.101/2000, art. 6º, parágrafo único (comércio: 1 domingo a cada 3 semanas); demais setores: 1 a cada 7 semanas, prática consolidada na jurisprudência (a Portaria 417/1966 foi revogada pela Portaria MTP 671/2021).
+- **Mulheres** — Art. 386 da CLT: folga dominical quinzenal.
 
-## 3. Frequência da folga dominical — um único modelo
+O popover mostra: valor configurado × padrão legal, a fonte legal e o aviso de que salvar exige confirmação de ciência (o diálogo de ciência atual continua no fluxo de salvar).
 
-Substituir "Modo da folga dominical" + "Domingo de folga a cada (semanas)" por um seletor de **modelo de frequência** com dois modos mutuamente exclusivos:
+A sinalização passa a aparecer nos **quatro** campos: semanas (geral), domingos por mês (geral), semanas (mulheres) e domingos por mês (mulheres) — hoje a versão feminina só é avaliada quando existem colaboradoras; o badge passa a aparecer sempre que a configuração for menos protetiva, mantendo o diálogo de ciência condicionado à existência de mulheres.
 
-- **A cada X semanas** — campo de semanas (3 = padrão do comércio, 7 = demais setores).
-- **X domingos por mês** — campo mensal, incluindo a opção "1 a cada 2 meses".
+## 4. "Base da regra de DSR" no topo, com trava CLT
 
-Escolher um modo oculta o campo do outro — nunca os dois ativos. A **mesma estrutura** se aplica ao bloco de **mulheres (Art. 386 CLT)**: modo próprio + valor próprio.
+O seletor **Base da regra de DSR** (CLT / Acordo-Convenção / Política própria) sai do fim do bloco e vai para o **início da seção "Folga dominical (DSR)"**, antes do toggle de comércio.
 
-Os alertas de "menos protetiva" e o diálogo de ciência legal continuam, normalizando os dois modos para uma base comparável antes de comparar com o padrão legal.
+Comportamento vinculado:
 
-## 4. Remoção do bloco "Sábados, feriados e menores"
+- Escolher **CLT** → os campos de frequência voltam ao padrão legal automaticamente: modo "a cada X semanas", geral = 3 ou 7 (conforme o setor), mulheres = 2. Os campos de frequência ficam **somente leitura**, com nota "Valores fixados pelo padrão CLT — mude a base da regra para editar".
+- Alterar qualquer frequência para valor diferente do padrão CLT só é possível em **Acordo/Convenção coletiva** ou **Política própria**. Se a base estiver em CLT e o usuário tentar editar, o campo está travado — não há estado inconsistente possível.
+- Ao sair de CLT, os campos destravam mantendo os valores atuais.
 
-- **Política de sábado**: removida da tela. O tratamento do sábado passa a vir exclusivamente da escala/jornada cadastrada do colaborador (6x1, 5x2, 12x36 etc.), que já define os dias de trabalho.
-- **Política de feriado trabalhado**: removida por ora — voltará junto com o módulo de Relógio de Ponto, que é quem terá o dado de feriado efetivamente trabalhado.
-- **Validar restrições para menores de 18 anos**: sai de Regras de Folgas e passa para a tela de **Jornadas e Escalas** (`/dp/cadastros/jornadas`), que é onde a trava atua (turno noturno 22h–5h, cargos insalubres/perigosos, carga horária).
+## 5. Calendário do colaborador guiado pelas regras
 
-Com isso a tela de Regras de Folgas fica com: Descanso Dominical → Folga dominical (DSR) → Férias → Histórico.
+Hoje o portal só libera **sábado e domingo** para o colaborador marcar folga (regra fixa no código), e o teto mensal é o `folgas_fds_por_mes`.
+
+Passa a ser:
+
+- **Dias elegíveis** = dias de descanso negociados da regra aplicável (no modo legislação, apenas domingo + sábado como hoje). Um dia não elegível aparece como "não disponível para folga", com o motivo.
+- **Teto mensal** = derivado da frequência configurada (ex.: "1 domingo por mês" limita a 1 domingo marcado no mês; "a cada 3 semanas" limita conforme o intervalo), somado ao teto de `folgas_fds_por_mes` já existente. O menor dos dois prevalece.
+- A regra usada é a **da unidade do colaborador**, com fallback para a regra padrão da empresa.
+
+Isso vale para as três superfícies do calendário: `/dp/meu/calendario`, o formulário de solicitação do portal e o calendário compartilhado usado pelo admin.
 
 ---
 
 ## Detalhes técnicos
 
-**Banco**
-- `dp_config_dp`: adicionar `unidade_id uuid null` referenciando `dp_unidades`; trocar a unicidade de `company_id` por `unique (company_id, unidade_id)` mais índice único parcial para a linha padrão (`unidade_id is null`).
-- Novas colunas: `dias_descanso_negociados smallint[]` (0=dom…6=sáb, default `{0}`), `modo_frequencia_domingo text` (`semanas` | `por_mes`), `domingos_por_mes numeric`, e equivalentes para mulheres.
-- `politica_sabado` e `politica_feriado`: deixam de ser editáveis e são removidas do payload do app; as colunas permanecem no banco (com default) para não quebrar histórico — o feriado volta a ser usado no módulo de Ponto.
-- `exige_validacao_menor`: coluna mantida (a trigger `dp_validar_jornada_menor` depende dela); muda apenas o local de edição na UI.
-- Função `dp_config_resolvida(_company_id, _unidade_id)` (SECURITY DEFINER) devolvendo a regra efetiva com fallback para o padrão; usada pelas triggers de validação de folgas e pelo gerador de escala. GRANTs e RLS espelhando as políticas já existentes de `dp_config_dp`.
-
-**Frontend**
-- `src/lib/dp/dsr-rules.ts`: substituir `ModoDomingo`/`periodicidadeDoModo` pelo modelo de frequência de 2 modos, adicionar `frequenciaParaSemanas`, aceitar `diasNegociados` em `avaliarConformidade`, remover `PoliticaSabado`/`PoliticaFeriado` do tipo de formulário; atualizar `src/lib/dp/__tests__/dsr-rules.test.ts`.
-- `src/hooks/useDpConfigDp.tsx`: carregar padrão + exceções por unidade, expor `unidadeSelecionada`, `criarExcecao`, `removerExcecao`; histórico em `dp_regras_historico` registrando a unidade afetada.
-- `src/pages/dp/cadastros/DpConfiguracoesJornada.tsx`: seletor de unidade, acordo condicional, multi-seleção de dias, seletor de frequência de 2 modos, remoção do bloco de sábados/feriados/menores. Mobile em coluna única, sem rolagem lateral.
-- `src/pages/dp/cadastros/DpCadastroJornadas.tsx`: novo card com o toggle "Validar restrições para menores de 18 anos".
-- `src/pages/dp/DpConformidadeDsr.tsx` e `src/lib/dp/escala-generator.ts`: consumir a regra resolvida pela unidade do colaborador.
+- `src/lib/dp/dsr-rules.ts`: exportar `ORDEM_DIAS_SEG_DOM` (ordem de exibição), `baseLegalDe(campo)` retornando `{ titulo, texto, fonte }` para o popover, e `padroesCltDe(setorComercio)` para o reset do modo CLT.
+- `src/pages/dp/cadastros/DpConfiguracoesJornada.tsx`: reordenar os chips; remover o Select de negociação e sua validação; extrair um componente local `MenosProtetivaBadge` (Badge + `Popover` do shadcn com o texto legal) reutilizado nos 4 campos; mover o Select `regra_dsr` para o topo da seção DSR com o handler de reset/trava (`disabled` nos inputs quando `regra_dsr === "clt"`).
+- `src/hooks/useDpConfigDp.tsx`: parar de enviar `negociacao_id` no payload (mantém a coluna); remover a query `negociacoes` se ficar sem uso na tela.
+- `src/lib/dp/folga-rules.ts`: `calculateDateStatus` passa a receber `diasElegiveis?: number[]` e `tetoMensal?: number`, substituindo a checagem fixa de fim de semana e usando o menor teto.
+- `src/pages/dp/portal/DpMeuCalendario.tsx`, `src/pages/dp/portal/DpMeuSolicitacoes.tsx` e `src/components/dp/FolgaCalendarShared.tsx`: consumir `useDpConfigDp(unidadeDoColaborador)` e repassar `diasElegiveis` / `tetoMensal`.
+- Testes: estender `src/lib/dp/__tests__/dsr-rules.test.ts` (padrões CLT, base legal) e adicionar casos de `calculateDateStatus` com dias elegíveis fora do fim de semana.
+- Sem migração de banco — nenhuma coluna nova é necessária.
