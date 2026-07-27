@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { apurarColaborador, apuracaoParaCsv, semanaDe, somarApuracoes } from "@/lib/dp/apuracao";
+import { apurarColaborador, apuracaoParaCsv, apuracaoParaLancamento, semanaDe, somarApuracoes, valorHoraDe } from "@/lib/dp/apuracao";
 import type { ResumoPontoDia } from "@/lib/dp/ponto";
 
 const dia = (over: Partial<ResumoPontoDia>): ResumoPontoDia => ({
