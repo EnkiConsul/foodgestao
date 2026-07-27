@@ -44,8 +44,6 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
   const [name, setName] = useState("");
   const [accountType, setAccountType] = useState<AccountType>("corrente");
   const [initialBalance, setInitialBalance] = useState("");
-  const [currentBalance, setCurrentBalance] = useState("");
-  const [originalCurrentBalance, setOriginalCurrentBalance] = useState<number>(0);
   const [ownerType, setOwnerType] = useState<"pf" | "pj">("pf");
   const [ownerCompanyId, setOwnerCompanyId] = useState<string | null>(null);
   const [bankSlug, setBankSlug] = useState<string | null>(null);
@@ -65,8 +63,6 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
       setName(account.name);
       setAccountType(account.account_type);
       setInitialBalance(formatCurrency(String(Math.round(account.initial_balance * 100))));
-      setCurrentBalance(formatCurrency(String(Math.round(account.current_balance * 100))));
-      setOriginalCurrentBalance(Number(account.current_balance));
       setOwnerType(account.context as "pf" | "pj");
       setOwnerCompanyId(account.company_id);
       setAgency(a.agency ?? "");
@@ -75,8 +71,6 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
       setName("");
       setAccountType("corrente");
       setInitialBalance("");
-      setCurrentBalance("");
-      setOriginalCurrentBalance(0);
       setOwnerType(contextType);
       setOwnerCompanyId(contextType === "pj" ? selectedCompanyId : null);
       setBankSlug(null);
