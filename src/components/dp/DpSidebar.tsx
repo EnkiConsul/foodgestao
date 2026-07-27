@@ -116,10 +116,6 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
                 if (it.kind === "link") {
                   return <DpLink key={it.url} item={it} collapsed={collapsed} />;
                 }
-                if (it.kind === "static-group") {
-                  return <DpStaticGroup key={it.title} item={it} collapsed={collapsed} />;
-                }
-                return (
                   <DpGroup
                     key={it.title}
                     item={it}
@@ -275,69 +271,3 @@ function DpGroup({
   );
 }
 
-// Grupo estático (não colapsável) — usado no portal do colaborador para
-// reproduzir o comportamento do AppShell da documentação de referência,
-// onde o rótulo do grupo é apenas um cabeçalho e todos os subitens ficam
-// sempre visíveis.
-function DpStaticGroup({
-  item,
-  collapsed,
-}: {
-  item: Extract<Item, { kind: "static-group" }>;
-  collapsed: boolean;
-}) {
-  if (collapsed) {
-    return (
-      <>
-        {item.items.map((sub) => (
-          <SidebarMenuItem key={sub.url}>
-            <NavLink
-              to={sub.url}
-              end={sub.end}
-              aria-label={sub.title}
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center justify-center px-3 py-2.5 rounded-lg transition-colors",
-                  isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-foreground/70 hover:bg-accent",
-                )
-              }
-            >
-              <sub.icon className="h-4 w-4" />
-            </NavLink>
-          </SidebarMenuItem>
-        ))}
-      </>
-    );
-  }
-
-  return (
-    <SidebarMenuItem>
-      <div className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold text-muted-foreground">
-        <item.icon className="h-4 w-4 shrink-0" />
-        <span>{toTitleCase(item.title)}</span>
-      </div>
-      <div className="mt-1 ml-4 pl-3 border-l border-[hsl(var(--dp-border))] space-y-0.5">
-        {item.items.map((sub) => (
-          <NavLink
-            key={sub.url}
-            to={sub.url}
-            end={sub.end}
-            className={({ isActive }) =>
-              cn(
-                "flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors",
-                isActive
-                  ? "bg-primary/10 text-primary font-medium"
-                  : "text-foreground/60 hover:bg-accent hover:text-foreground",
-              )
-            }
-          >
-            <sub.icon className="h-3.5 w-3.5 shrink-0" />
-            <span>{toTitleCase(sub.title)}</span>
-          </NavLink>
-        ))}
-      </div>
-    </SidebarMenuItem>
-  );
-}
