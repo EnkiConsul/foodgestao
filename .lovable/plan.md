@@ -1,59 +1,64 @@
-## Objetivo
 
-Permitir cadastrar horários para os sete dias da jornada sem disparar o alerta de "Acima de 44 horas", movendo a validação legal para o vínculo do colaborador (folga fixa) ou para a escala (folga variável). Também corrigir a sobreposição do resumo de carga sobre o card de segunda-feira no mobile.
+# Jornada única com interpretação por tipo de contrato — análise e proposta
 
-## Estado atual verificado
+## O que confirmei no projeto hoje
 
-- `src/lib/dp/jornada-utils.ts` já tem `calcularCargaDia`, `calcularCargaSemanal`, `validarSemana` e `LIMITE_SEMANAL = 44`.
-- `src/components/dp/HorariosSemanaEditor.tsx` soma os sete dias e mostra "Acima de 44 horas" em vermelho (bloco `sticky top-0` sem espaço reservado — origem da sobreposição).
-- `src/pages/dp/cadastros/DpCadastroJornadas.tsx` usa um `Dialog` de 4 etapas com `max-h-[92vh]`, sem tela cheia no mobile e sem `safe-area-inset-bottom`.
-- `dp_colaborador_jornadas` já possui `folga_fixa_semana_override` (aceita nulo) e `dp_jornadas.tipo_escala` já é um enum com `6x1`, `5x2`, `5x1`, `4x2`, `12x36`, `intermitente`, `personalizada`. Não é necessária alteração de banco.
+- **Não existe módulo de Convocação.** Nenhum arquivo, tabela ou rota trata de convocação — é funcionalidade nova, não um ajuste.
+- **O tipo de vínculo do colaborador não tem "Intermitente".** `ColaboradorFormDialog` oferece CLT, Sócio, Estagiário, PJ, Autônomo, Temporário, e mapeia para o enum de regime do banco (`clt, pj, estagio, temporario, mei`) — que também não tem intermitente.
+- **"Intermitente" hoje existe apenas como tipo de escala da Jornada** (`dp_tipo_escala`), ou seja, num nível errado: é propriedade do contrato do colaborador, não do modelo de horários.
+- **O motor de carga já é neutro o suficiente:** `folgasPorRegime` devolve "indefinido" para intermitente, e depois do último ajuste a validação de 44h não acontece mais no cadastro da jornada — ela ocorre no vínculo (quando há folga fixa) e na escala gerada.
 
-## O que será feito
+## Avaliação da proposta
 
-### 1. Funções de domínio (`src/lib/dp/jornada-utils.ts`)
+**Concordo com o conceito central.** Manter um único objeto "Jornada" = padrão esperado de trabalho, com interpretação variando pelo contrato, é a modelagem correta e é a que menos machuca a arquitetura atual. Renomear para "Disponibilidade" seria pior, como você mesmo apontou.
 
-Centralizar todo o cálculo, sem regra em componente:
+**Vantagens**
+- Fluxo único de cadastro; nenhuma bifurcação de UX para o dono do restaurante.
+- Reaproveita `dp_jornadas` + `dp_jornada_horarios` sem tabela nova.
+- Jornada vira modelo reutilizável que acelera muito a criação de convocações e escalas.
+- Escalável: qualquer contrato futuro (aprendiz, temporário, 12x36) só precisa declarar como interpreta o padrão.
 
-- `calcularCargaTotalCadastrada(horarios)` — soma dos dias cadastrados.
-- `calcularCargaComFolgaFixa(horarios, diaFolga)`.
-- `calcularCargaComFolgas(horarios, diasFolga[])`.
-- `simularCargaPorDiaDeFolga(horarios)` — lista ordenada de {dia, carga} para cada dia possível de folga.
-- `calcularCargaDaEscala(diasEscalados)` — soma apenas dos dias efetivamente escalados.
-- `validarCargaSemanal(carga, limite = 44)` — retorna `{ excede, limite, excedente }`.
-- `folgasPorRegime(tipo_escala)` — 6x1 → 1 folga, 5x2 → 2, 5x1 → 1, 4x2 → 2, todos os dias/12x36/personalizada → sem estimativa fixa.
-- `cargaEstimadaPorRegime(horarios, tipo_escala)` — para 6x1/5x2 etc., total menos as folgas de maior carga (melhor caso) e menor carga, gerando a faixa estimada; para 12x36 retorna `null` (cálculo por ciclo/plantão da escala).
-- `validarSemana` deixa de tratar excesso semanal como erro: mantém apenas erros por dia (entrada/saída inválidas, intervalo maior que o dia, restrição de menores).
+**Riscos e correções necessárias**
+1. **O eixo de decisão precisa ser o contrato, não a jornada.** Hoje "intermitente" está no `tipo_escala` da jornada. Se ficar assim, uma mesma jornada usada por um CLT e por um intermitente se comporta igual para os dois. A regra tem que ler o **regime do colaborador**. Proponho: adicionar `intermitente` ao enum de regime, expor "Intermitente" no Tipo de Vínculo, e depreciar o valor `intermitente` do `tipo_escala` (mapeando para `personalizada`).
+2. **Jornada não é obrigação — precisa ficar registrado no dado, não só no texto.** Se a jornada do intermitente entrar nos mesmos relatórios de conformidade/DSR do CLT, geramos passivo (folga semanal, DSR, 44h para quem não tem jornada contratada). Toda leitura de conformidade precisa excluir intermitentes por regime.
+3. **A CLT exige coisas que a proposta não cobre** e que valem constar como requisitos do módulo de Convocação (fase seguinte): convocação com no mínimo 3 dias corridos de antecedência, aceite/recusa em até 1 dia útil (silêncio = recusa), registro do período e do valor combinado, e multa contratual em caso de descumprimento após aceite. Sem convocação registrada e aceita, não há hora a pagar — logo **folha e ponto do intermitente devem se basear na convocação aceita, nunca na jornada**.
+4. **Descanso semanal do intermitente existe** (proporcional/embutido no pagamento do período convocado). Não valide folga semanal contra a jornada, mas não afirme na UI que "não há folga".
+5. **Ponto (módulo futuro):** o esperado do dia vem da convocação aceita; para CLT vem da jornada. Precisa ser um único ponto de resolução, senão o motor de ponto nasce duplicado.
 
-### 2. Cadastro de jornada
+**Alternativa mais simples que avaliei e descartei:** criar uma tabela `dp_disponibilidades` separada. Duplicaria editor de horários, hooks e UI mobile para um ganho conceitual mínimo. Sua proposta é superior.
 
-- O resumo passa a exibir três blocos: **Carga total cadastrada**, **Carga estimada conforme o regime** (quando aplicável) e a mensagem informativa: "Os horários dos sete dias foram cadastrados. A carga semanal efetiva será calculada conforme a folga semanal de cada colaborador."
-- Excesso de 44h vira aviso neutro/informativo, nunca erro bloqueante; o botão Continuar/Salvar não é mais travado por isso.
-- Bloco expansível "Simular carga por dia de folga" listando o resultado para cada dia (ex.: Folga na segunda 43h59, terça 44h30…).
-- Para 12x36, texto explicando que a carga é apurada por ciclo/plantões gerados na escala.
-- O campo Regime (tipo de escala) sobe para a etapa da semana, já que agora dirige a estimativa.
+**Alternativa que recomendo incorporar:** em vez de espalhar `if (regime === 'intermitente')` pela UI, criar **um único resolvedor de política de contrato** — dado o regime, ele responde: valida 44h? exige folga semanal? entra na conformidade DSR? entra na escala automática? jornada é sugestão ou obrigação? Toda tela consulta esse resolvedor. Isso é o que torna a modelagem realmente escalável para contratos futuros.
 
-### 3. Vínculo do colaborador (`ColaboradorJornadaDialog.tsx`)
+---
 
-- Seletor de folga passa a ter: dias da semana + **"Folga variável conforme escala"** (grava `folga_fixa_semana_override` nulo).
-- Com folga fixa: painel imediato com Jornada, Folga semanal e **Carga semanal prevista**; se passar de 44h, alerta visível, mas salvar continua permitido.
-- Com folga variável: exibe "Carga semanal calculada conforme a escala", sem número definitivo.
+## Plano de implementação (após sua aprovação)
 
-### 4. Escala
+### Fase 1 — Fundação de contrato (base para tudo)
+- Migração: adicionar `intermitente` ao enum de regime de trabalho.
+- Novo módulo de domínio `src/lib/dp/contrato-policy.ts` com a política por regime (valida carga semanal, exige folga semanal, participa de DSR/conformidade, jornada obrigatória vs. sugerida, rótulos de UI).
+- Testes unitários da política.
 
-O gerador/validação semanal em `/dp/escalas` passa a usar `calcularCargaDaEscala`, considerando apenas dias escalados e ignorando folgas, para checar o limite na semana efetivamente montada.
+### Fase 2 — Cadastro do colaborador
+- Adicionar "Intermitente" ao Tipo de Vínculo.
+- Quando intermitente: ocultar Folga semanal e carga semanal prevista; manter a Jornada visível, com o rótulo "Disponibilidade habitual".
 
-### 5. Modal mobile sem sobreposição
+### Fase 3 — Jornada e vínculo
+- Cadastro de Jornada permanece idêntico; o `tipo_escala` "intermitente" deixa de ser oferecido (dados existentes seguem lendo como personalizada).
+- No vínculo (`ColaboradorJornadaDialog`) de um colaborador intermitente: banner "Esta jornada representa a disponibilidade habitual do colaborador. A carga efetiva será calculada pelas convocações realizadas."; sem folga fixa, sem alerta de 44h.
 
-- `DialogContent` em três áreas: cabeçalho `shrink-0` (título, etapa, progresso, fechar), conteúdo `min-h-0 flex-1 overflow-y-auto`, rodapé `shrink-0` com `padding-bottom: env(safe-area-inset-bottom)`.
-- No mobile o cadastro abre em tela cheia (`h-[100dvh] w-screen max-w-none rounded-none`), voltando a modal centralizado no desktop.
-- O card de resumo sai do `sticky` e volta ao fluxo normal do conteúdo, sem posição absoluta, margens negativas ou transform. Cards dos dias com `gap` de 12px.
-- Conferência visual em 320/360/390/430px.
+### Fase 4 — Escalas e conformidade
+- Gerador de escala e validação de 44h passam a ignorar intermitentes (via política).
+- Ao adicionar um intermitente na escala: mostrar "Disponibilidade sugerida HH:MM–HH:MM" com ações **Usar horário sugerido** / **Editar horário**.
+- Relatórios de conformidade DSR excluem intermitentes.
 
-### 6. Testes
+### Fase 5 — Convocações (novo módulo, escopo próprio)
+- Tabela `dp_convocacoes` (colaborador, data, entrada/saída/intervalo, status, prazos de aceite, origem da sugestão) com RLS e grants por empresa.
+- Criação de convocação pré-preenchida pela jornada do dia, com horários editáveis; convocação nunca altera a jornada.
+- Aceite/recusa pelo portal do colaborador, com prazo e regra de silêncio = recusa; base de horas para escala publicada, ponto e folha.
 
-Novo `src/lib/dp/__tests__/jornada-carga.test.ts` cobrindo: 6x1 com sete dias e folga fixa; 5x2 com duas folgas; folga em dia de carga diferente; jornada que atravessa a meia-noite; folga variável (sem carga definitiva); 12x36; carga efetiva abaixo e acima de 44h; desconto correto do intervalo. Mais um teste de componente verificando que o resumo não usa posicionamento sobreposto e que o cadastro dos sete dias não gera erro bloqueante.
+### Notas técnicas
+- Nenhuma tabela nova nas fases 1–4; apenas um valor de enum e código de domínio.
+- Toda decisão de comportamento passa pelo resolvedor de política — proibido `if regime === ...` espalhado nas telas.
+- Mobile: nenhuma tela nova nas fases 1–4; apenas supressão de campos e um banner, o que reduz altura do formulário.
 
-## Detalhes técnicos
-
-Sem migração de banco: `folga_fixa_semana_override` nulo já representa folga variável, e "Todos os dias" é representado pelo regime `personalizada` com sete dias cadastrados (nenhum valor novo de enum é criado). Nenhuma regra de cálculo permanece dentro de componentes React.
+Confirmando esta análise, começo pela Fase 1. Se preferir, entrego Fases 1–4 primeiro e tratamos Convocações como projeto separado — é o corte que recomendo.

@@ -8395,7 +8395,13 @@ export type Database = {
       dp_perfil_acesso: "colaborador" | "gestor" | "admin"
       dp_politica_feriado: "compensa" | "dobro"
       dp_politica_sabado: "trabalha" | "folga" | "alterna" | "especifica"
-      dp_regime_trabalho: "clt" | "pj" | "estagio" | "temporario" | "mei"
+      dp_regime_trabalho:
+        | "clt"
+        | "pj"
+        | "estagio"
+        | "temporario"
+        | "mei"
+        | "intermitente"
       dp_regra_dsr: "clt" | "cct" | "propria"
       dp_sindicato_tipo: "patronal" | "laboral"
       dp_solicitacao_status: "pendente" | "aprovada" | "recusada" | "cancelada"
@@ -8734,7 +8740,14 @@ export const Constants = {
       dp_perfil_acesso: ["colaborador", "gestor", "admin"],
       dp_politica_feriado: ["compensa", "dobro"],
       dp_politica_sabado: ["trabalha", "folga", "alterna", "especifica"],
-      dp_regime_trabalho: ["clt", "pj", "estagio", "temporario", "mei"],
+      dp_regime_trabalho: [
+        "clt",
+        "pj",
+        "estagio",
+        "temporario",
+        "mei",
+        "intermitente",
+      ],
       dp_regra_dsr: ["clt", "cct", "propria"],
       dp_sindicato_tipo: ["patronal", "laboral"],
       dp_solicitacao_status: ["pendente", "aprovada", "recusada", "cancelada"],
