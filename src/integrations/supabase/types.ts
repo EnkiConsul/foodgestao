@@ -7574,6 +7574,7 @@ export type Database = {
         }
         Returns: Json
       }
+      cleanup_open_finance_artifacts: { Args: never; Returns: Json }
       create_and_link_open_finance_account: {
         Args: {
           _account_name: string
@@ -7738,6 +7739,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      enqueue_open_finance_scheduled_syncs: { Args: never; Returns: number }
       enqueue_uncategorized_for_ai: {
         Args: { p_company_id?: string; p_context?: string; p_limit?: number }
         Returns: {
@@ -8125,6 +8127,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      reap_open_finance_stuck_runs: { Args: never; Returns: number }
       recalc_credit_card_invoice_totals: {
         Args: { _invoice_id: string }
         Returns: undefined
