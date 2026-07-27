@@ -59,7 +59,7 @@ def _user_id_from_session() -> str:
     return user_id
 
 
-def _psql(sql: str) -> None:
+def _psql(sql: str, allow_fail: bool = False) -> None:
     """Executa SQL via psql sem ecoar o conteúdo (evita expor o user_id)."""
     result = subprocess.run(
         ["psql", "-v", "ON_ERROR_STOP=1", "-q", "-c", sql],
@@ -67,9 +67,9 @@ def _psql(sql: str) -> None:
         text=True,
     )
     if result.returncode != 0:
-        # Reduz o vazamento do SQL: só imprime stderr sem o comando.
         sys.stderr.write(result.stderr)
-        raise RuntimeError("psql falhou")
+        if not allow_fail:
+            raise RuntimeError("psql falhou")
 
 
 def seed(user_id: str) -> None:
@@ -92,12 +92,10 @@ def seed(user_id: str) -> None:
 
 
 def cleanup() -> None:
-    _psql(
-        f"""
-        DELETE FROM public.transactions WHERE id = '{TX_ID}';
-        DELETE FROM public.accounts     WHERE id IN ('{ACC_EMPTY_ID}', '{ACC_HISTORY_ID}');
-        """
-    )
+    # Ordem defensiva: transação → contas (hard delete pode falhar se restou tx).
+    _psql(f"DELETE FROM public.transactions WHERE id = '{TX_ID}';", allow_fail=True)
+    _psql(f"DELETE FROM public.accounts WHERE id = '{ACC_EMPTY_ID}';",   allow_fail=True)
+    _psql(f"DELETE FROM public.accounts WHERE id = '{ACC_HISTORY_ID}';", allow_fail=True)
 
 
 async def restore_session(context, page) -> None:
