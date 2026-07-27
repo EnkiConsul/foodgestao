@@ -503,8 +503,16 @@ export default function ContasBancarias() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir conta bancária</AlertDialogTitle>
-            <AlertDialogDescription>
-              A conta <strong>{deleteAccount?.name}</strong> será excluída definitivamente se não houver lançamentos vinculados. Se houver histórico, ela será arquivada para preservar a contabilidade.
+            <AlertDialogDescription data-testid="delete-account-description">
+              {deleteHasTx === null && (
+                <>Verificando lançamentos vinculados à conta <strong>{deleteAccount?.name}</strong>…</>
+              )}
+              {deleteHasTx === false && (
+                <>A conta <strong>{deleteAccount?.name}</strong> não possui lançamentos vinculados e será <strong>excluída definitivamente</strong>. Esta ação não pode ser desfeita.</>
+              )}
+              {deleteHasTx === true && (
+                <>A conta <strong>{deleteAccount?.name}</strong> possui lançamentos vinculados e será <strong>arquivada</strong> para preservar o histórico contábil. Ela deixará de aparecer nas listas.</>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
