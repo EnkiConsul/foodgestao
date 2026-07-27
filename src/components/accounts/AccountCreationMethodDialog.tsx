@@ -65,12 +65,13 @@ export function AccountCreationMethodDialog({
           <button
             type="button"
             aria-label="Conectar por Open Finance"
-            aria-disabled={!openFinanceEnabled}
-            disabled={!openFinanceEnabled}
-            onClick={onSelectOpenFinance}
+            aria-disabled={!openFinanceEnabled || selecting}
+            disabled={!openFinanceEnabled || selecting}
+            aria-busy={selecting}
+            onClick={handleSelectOpenFinance}
             className={
               "group relative flex flex-col text-left rounded-lg border bg-card p-4 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary " +
-              (openFinanceEnabled
+              (openFinanceEnabled && !selecting
                 ? "cursor-pointer hover:border-primary hover:shadow-md"
                 : "cursor-not-allowed opacity-60")
             }
