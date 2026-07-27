@@ -67,7 +67,7 @@ export default function DpConformidadeDsr() {
     queryFn: async (): Promise<LinhaComUnidade[]> => {
       const { data: colaboradores, error: cErr } = await supabase
         .from("dp_colaboradores")
-        .select("id, nome, sexo, ativo, unidade_id")
+        .select("id, nome, sexo, ativo, unidade_id, regime")
         .eq("company_id", selectedCompanyId!)
         .eq("ativo", true)
         .order("nome");
