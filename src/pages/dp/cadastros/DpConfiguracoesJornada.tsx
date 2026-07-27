@@ -451,18 +451,7 @@ export default function DpConfiguracoesJornada() {
             </div>
           )}
 
-          <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="folgas-fds">Folgas de fim de semana por mês (colaborador)</Label>
-            <Input
-              id="folgas-fds" type="number" min={0} max={5}
-              value={form.folgas_fds_por_mes}
-              onChange={(e) => set("folgas_fds_por_mes", num(e.target.value, 1))}
-            />
-            <p className="text-xs text-muted-foreground">
-              Teto de dias de descanso que o colaborador pode marcar sozinho no portal. Vale o menor valor entre
-              este teto e a frequência configurada acima.
-            </p>
-          </div>
+
         </div>
       </Section>
 
