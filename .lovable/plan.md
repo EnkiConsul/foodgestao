@@ -1,64 +1,59 @@
 ## Objetivo
 
-Reconstruir o cadastro de Jornadas como uma experiência mobile-first de 4 etapas, com horário por dia da semana em tabela própria, intervalo em minutos e carga calculada automaticamente.
+Permitir cadastrar horários para os sete dias da jornada sem disparar o alerta de "Acima de 44 horas", movendo a validação legal para o vínculo do colaborador (folga fixa) ou para a escala (folga variável). Também corrigir a sobreposição do resumo de carga sobre o card de segunda-feira no mobile.
 
-## Banco de dados
+## Estado atual verificado
 
-Nova tabela `dp_jornada_horarios` (com GRANTs + RLS espelhando `dp_jornadas`):
+- `src/lib/dp/jornada-utils.ts` já tem `calcularCargaDia`, `calcularCargaSemanal`, `validarSemana` e `LIMITE_SEMANAL = 44`.
+- `src/components/dp/HorariosSemanaEditor.tsx` soma os sete dias e mostra "Acima de 44 horas" em vermelho (bloco `sticky top-0` sem espaço reservado — origem da sobreposição).
+- `src/pages/dp/cadastros/DpCadastroJornadas.tsx` usa um `Dialog` de 4 etapas com `max-h-[92vh]`, sem tela cheia no mobile e sem `safe-area-inset-bottom`.
+- `dp_colaborador_jornadas` já possui `folga_fixa_semana_override` (aceita nulo) e `dp_jornadas.tipo_escala` já é um enum com `6x1`, `5x2`, `5x1`, `4x2`, `12x36`, `intermitente`, `personalizada`. Não é necessária alteração de banco.
 
-| campo | tipo |
-|---|---|
-| `id` | uuid PK |
-| `company_id` | uuid (isolamento multiempresa) |
-| `jornada_id` | uuid → `dp_jornadas` (on delete cascade) |
-| `dia_semana` | smallint 0–6 (0 = domingo) |
-| `entrada`, `saida` | time |
-| `intervalo_minutos` | int default 60 |
-| `termina_no_dia_seguinte` | boolean default false |
-| `carga_horas` | numeric (gerada pelo trigger) |
-| `ativo` | boolean default true |
-| `created_at`, `updated_at` | timestamptz |
+## O que será feito
 
-- Único por (`jornada_id`, `dia_semana`).
-- Trigger de validação: entrada e saída obrigatórias, entrada ≠ saída, intervalo menor que a duração, carga positiva, dia presente em `dias_trabalho`. **Sem** regra "saída > entrada" — a virada de meia-noite usa `termina_no_dia_seguinte`.
-- Trigger recalcula `carga_horas` e atualiza `carga_horaria_semanal` da jornada pai.
-- `dp_jornadas` ganha `descricao text`; `carga_horaria_diaria/semanal` viram somente leitura (calculadas).
-- **Migração de dados**: para cada jornada existente, gera um registro por dia em `dias_trabalho` com o horário atual e intervalo derivado de `intervalo_inicio/fim` (padrão 60 min). Colunas antigas permanecem como legado, sem uso na UI.
-- Validação de menor passa a ser dia a dia (nenhum dia pode terminar após 22:00) na função existente.
+### 1. Funções de domínio (`src/lib/dp/jornada-utils.ts`)
 
-## Domínio e testes
+Centralizar todo o cálculo, sem regra em componente:
 
-`src/lib/dp/jornada-utils.ts`: `calcularCargaDia()`, `calcularCargaSemanal()`, `resumoJornada()` (agrupa dias contíguos: "Seg–Sex 08:00–17:00 · Sáb 08:00–14:00 · Dom folga"), `duplicarHorario()`, `horarioDaData()`, `LIMITE_SEMANAL = 44`.
-Testes em `src/lib/dp/__tests__/jornada-utils.test.ts` cobrindo virada de meia-noite, intervalos, agrupamento e limite semanal.
+- `calcularCargaTotalCadastrada(horarios)` — soma dos dias cadastrados.
+- `calcularCargaComFolgaFixa(horarios, diaFolga)`.
+- `calcularCargaComFolgas(horarios, diasFolga[])`.
+- `simularCargaPorDiaDeFolga(horarios)` — lista ordenada de {dia, carga} para cada dia possível de folga.
+- `calcularCargaDaEscala(diasEscalados)` — soma apenas dos dias efetivamente escalados.
+- `validarCargaSemanal(carga, limite = 44)` — retorna `{ excede, limite, excedente }`.
+- `folgasPorRegime(tipo_escala)` — 6x1 → 1 folga, 5x2 → 2, 5x1 → 1, 4x2 → 2, todos os dias/12x36/personalizada → sem estimativa fixa.
+- `cargaEstimadaPorRegime(horarios, tipo_escala)` — para 6x1/5x2 etc., total menos as folgas de maior carga (melhor caso) e menor carga, gerando a faixa estimada; para 12x36 retorna `null` (cálculo por ciclo/plantão da escala).
+- `validarSemana` deixa de tratar excesso semanal como erro: mantém apenas erros por dia (entrada/saída inválidas, intervalo maior que o dia, restrição de menores).
 
-## Componentes novos
+### 2. Cadastro de jornada
 
-- `src/components/dp/JornadaTemplates.tsx` — cartões grandes de modelo: 6x1 Manhã, 6x1 Tarde, 6x1 Noite, 5x2 Administrativo, 12x36, Delivery, Personalizada (com os horários especificados; Noite marca `termina_no_dia_seguinte`).
-- `src/components/dp/JornadaCard.tsx` — card de um dia: checkbox do dia, entrada, saída, seletor rápido de intervalo (15/30/45/60/90/120/Outro), carga calculada e menu `⋮` com "Duplicar horários → Todos os dias / Dias úteis / Fim de semana / Selecionar dias". Dia desmarcado mostra apenas "Folga".
-- `src/components/dp/HorariosSemanaEditor.tsx` — pilha de cards + barra fixa no topo com carga semanal e selo "Dentro do limite legal" / "Acima de 44 horas". Novo dia marcado herda o horário do primeiro dia já configurado.
+- O resumo passa a exibir três blocos: **Carga total cadastrada**, **Carga estimada conforme o regime** (quando aplicável) e a mensagem informativa: "Os horários dos sete dias foram cadastrados. A carga semanal efetiva será calculada conforme a folga semanal de cada colaborador."
+- Excesso de 44h vira aviso neutro/informativo, nunca erro bloqueante; o botão Continuar/Salvar não é mais travado por isso.
+- Bloco expansível "Simular carga por dia de folga" listando o resultado para cada dia (ex.: Folga na segunda 43h59, terça 44h30…).
+- Para 12x36, texto explicando que a carga é apurada por ciclo/plantões gerados na escala.
+- O campo Regime (tipo de escala) sobe para a etapa da semana, já que agora dirige a estimativa.
 
-## Fluxo de 4 etapas
+### 3. Vínculo do colaborador (`ColaboradorJornadaDialog.tsx`)
 
-`DpCadastroJornadas.tsx` passa a abrir um fluxo em passos (dialog full-screen no mobile, modal no desktop):
-1. Escolha do modelo → preenche tudo.
-2. Informações: nome, descrição, tipo, turno, ativa.
-3. Semana de trabalho (editor de cards) — tela principal.
-4. Botão grande "Salvar jornada" + Cancelar.
+- Seletor de folga passa a ter: dias da semana + **"Folga variável conforme escala"** (grava `folga_fixa_semana_override` nulo).
+- Com folga fixa: painel imediato com Jornada, Folga semanal e **Carga semanal prevista**; se passar de 44h, alerta visível, mas salvar continua permitido.
+- Com folga variável: exibe "Carga semanal calculada conforme a escala", sem número definitivo.
 
-Salvamento em transação lógica: upsert da jornada + substituição dos horários do dia.
+### 4. Escala
 
-## Lista de jornadas
+O gerador/validação semanal em `/dp/escalas` passa a usar `calcularCargaDaEscala`, considerando apenas dias escalados e ignorando folgas, para checar o limite na semana efetivamente montada.
 
-Cards reescritos: nome, `44h semanais`, resumo por faixa de dias, turno e status. Sem campos técnicos (escala crua, dias em números, intervalo início/fim).
+### 5. Modal mobile sem sobreposição
 
-## Cadastro do colaborador
+- `DialogContent` em três áreas: cabeçalho `shrink-0` (título, etapa, progresso, fechar), conteúdo `min-h-0 flex-1 overflow-y-auto`, rodapé `shrink-0` com `padding-bottom: env(safe-area-inset-bottom)`.
+- No mobile o cadastro abre em tela cheia (`h-[100dvh] w-screen max-w-none rounded-none`), voltando a modal centralizado no desktop.
+- O card de resumo sai do `sticky` e volta ao fluxo normal do conteúdo, sem posição absoluta, margens negativas ou transform. Cards dos dias com `gap` de 12px.
+- Conferência visual em 320/360/390/430px.
 
-`ColaboradorJornadaDialog.tsx`: removidos os overrides de entrada/saída/intervalo. Restam jornada, folga fixa semanal e observações, com nota de que horários diferentes exigem nova jornada. Overrides existentes são preservados nas observações pela migração.
+### 6. Testes
 
-## Mobile
+Novo `src/lib/dp/__tests__/jornada-carga.test.ts` cobrindo: 6x1 com sete dias e folga fixa; 5x2 com duas folgas; folga em dia de carga diferente; jornada que atravessa a meia-noite; folga variável (sem carga definitiva); 12x36; carga efetiva abaixo e acima de 44h; desconto correto do intervalo. Mais um teste de componente verificando que o resumo não usa posicionamento sobreposto e que o cadastro dos sete dias não gera erro bloqueante.
 
-Sem tabelas nem grids largos: uma coluna, campos com altura ≥ 44px, botões grandes, tipografia legível, tokens semânticos do design system (laranja/marinho 360°FOOD).
+## Detalhes técnicos
 
-## Modelos padrão
-
-Semeados como opções no seletor de modelo (não como registros na tabela), evitando poluir a lista de jornadas de cada empresa.
+Sem migração de banco: `folga_fixa_semana_override` nulo já representa folga variável, e "Todos os dias" é representado pelo regime `personalizada` com sete dias cadastrados (nenhum valor novo de enum é criado). Nenhuma regra de cálculo permanece dentro de componentes React.
