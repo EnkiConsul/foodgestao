@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpConfigDp } from "@/hooks/useDpConfigDp";
 import { semanasEfetivas, semanasEfetivasMulher } from "@/lib/dp/dsr-rules";
+import { contratoPolicy } from "@/lib/dp/contrato-policy";
+
 import { expandRegraNoIntervalo, type RegraRow } from "@/lib/dp/bloqueio-rules";
 import {
   gerarEscala, parseIso, type EscalaProposta, type EscalaAlerta, type EscalaColaborador,
@@ -64,8 +66,9 @@ export default function DpEscalas() {
     enabled: !!selectedCompanyId,
     queryFn: async () => {
       const [colabs, unidades, vinculos, ferias, folgas, diaConfig, datas, regras, regraUnid] = await Promise.all([
-        supabase.from("dp_colaboradores").select("id, nome, sexo, unidade_id")
+        supabase.from("dp_colaboradores").select("id, nome, sexo, unidade_id, regime")
           .eq("company_id", selectedCompanyId!).eq("ativo", true).order("nome"),
+
         supabase.from("dp_unidades").select("id, nome").eq("company_id", selectedCompanyId!).order("nome"),
         supabase.from("dp_colaborador_jornadas")
           .select("colaborador_id, inicio, fim, folga_fixa_semana_override, jornada:dp_jornadas(dias_folga, horarios:dp_jornada_horarios(dia_semana, entrada, saida, intervalo_minutos))")
@@ -105,9 +108,12 @@ export default function DpEscalas() {
     if (!d) return;
 
     const horariosPorColaborador = new Map<string, HorarioDia[]>();
+    // Contratos sem escala automática (ex.: intermitente) trabalham por convocação.
     const colaboradores: EscalaColaborador[] = d.colaboradores
       .filter((c) => unidade === "todas" || c.unidade_id === unidade)
+      .filter((c) => contratoPolicy(c.regime).participaEscalaAutomatica)
       .map((c) => {
+
         const vinculo = d.vinculos
           .filter((v) => v.colaborador_id === c.id && (!v.fim || v.fim >= inicio))
           .sort((a, b) => b.inicio.localeCompare(a.inicio))[0];
@@ -178,10 +184,15 @@ export default function DpEscalas() {
     const folgasFinais = new Set(folgasExistentes);
     for (const p of r.propostas) folgasFinais.add(`${p.colaboradorId}|${p.data}`);
 
+    // Só contratos com limite legal de carga entram na checagem de 44h semanais.
+    const validaCarga = new Set(
+      d.colaboradores.filter((c) => contratoPolicy(c.regime).validaCargaSemanal).map((c) => c.id),
+    );
     const porSemana = new Map<string, { colaboradorId: string; nome: string; semana: string; dias: number[] }>();
     for (const c of colaboradores) {
       const horarios = horariosPorColaborador.get(c.id) ?? [];
-      if (!horarios.length) continue;
+      if (!horarios.length || !validaCarga.has(c.id)) continue;
+
       const cur = parseIso(inicio);
       const ate = parseIso(fim);
       while (cur <= ate) {

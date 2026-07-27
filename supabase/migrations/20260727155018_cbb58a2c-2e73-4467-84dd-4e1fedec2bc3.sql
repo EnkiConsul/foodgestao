@@ -1,0 +1,1 @@
+ALTER TYPE public.dp_regime_trabalho ADD VALUE IF NOT EXISTS 'intermitente';

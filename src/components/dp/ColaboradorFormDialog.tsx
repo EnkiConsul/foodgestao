@@ -12,11 +12,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { maskCpf, isValidCpf } from "@/lib/cpf";
 import { MOTIVO_DESLIGAMENTO_OPTIONS, ELEGIBILIDADE_OPTIONS } from "@/lib/dp/desligamento";
 import type { Database } from "@/integrations/supabase/types";
+import { contratoPolicy } from "@/lib/dp/contrato-policy";
+
 
 type Regime = Database["public"]["Enums"]["dp_regime_trabalho"];
 
 const TIPOS_VINCULO: { value: string; label: string }[] = [
   { value: "CLT", label: "CLT" },
+  { value: "Intermitente", label: "Intermitente" },
   { value: "Socio", label: "Sócio" },
   { value: "Estagiario", label: "Estagiário" },
   { value: "PJ", label: "PJ" },
@@ -30,12 +33,14 @@ const TIPOS_VINCULO: { value: string; label: string }[] = [
 // Map UI "Tipo de Vínculo" (rótulos da documentação) para enum do banco (dp_regime_trabalho)
 const VINCULO_TO_REGIME: Record<string, Regime> = {
   CLT: "clt",
+  Intermitente: "intermitente",
   Socio: "pj",
   Estagiario: "estagio",
   PJ: "pj",
   Autonomo: "pj",
   Temporario: "temporario",
 };
+
 
 const DIAS_SEMANA = [
   { value: "none", label: "Nenhuma" },
@@ -86,6 +91,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
   const isEdit = !!colaborador?.id;
   const isDesligado = isEdit && !!colaborador?.data_desligamento;
+  // Comportamento da jornada/folga é derivado do contrato, nunca testado inline.
+  const policy = contratoPolicy(VINCULO_TO_REGIME[form.tipo_vinculo]);
+
 
   useEffect(() => {
     if (!open) return;
@@ -195,7 +203,11 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         whatsapp: form.whatsapp.trim() || null,
 
         perfil_acesso: form.perfil_acesso,
-        folga_fixa_semana: form.folga_fixa_semana !== "none" ? Number(form.folga_fixa_semana) : null,
+        folga_fixa_semana:
+          policy.exigeFolgaSemanal && form.folga_fixa_semana !== "none"
+            ? Number(form.folga_fixa_semana)
+            : null,
+
         possui_folha_ponto: form.possui_folha_ponto,
         optante_adiantamento: form.optante_adiantamento,
         ...(isDesligado
@@ -331,20 +343,32 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           </div>
 
           {/* Folga Fixa / Perfil */}
-          <div className="space-y-2">
-            <Label>Folga Fixa Semanal</Label>
-            <Select
-              value={form.folga_fixa_semana}
-              onValueChange={(v) => setForm({ ...form, folga_fixa_semana: v })}
-            >
-              <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
-              <SelectContent>
-                {DIAS_SEMANA.map((d) => (
-                  <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {policy.exigeFolgaSemanal ? (
+            <div className="space-y-2">
+              <Label>Folga Fixa Semanal</Label>
+              <Select
+                value={form.folga_fixa_semana}
+                onValueChange={(v) => setForm({ ...form, folga_fixa_semana: v })}
+              >
+                <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
+                <SelectContent>
+                  {DIAS_SEMANA.map((d) => (
+                    <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label>Folga Fixa Semanal</Label>
+              <p className="rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground">
+                {policy.jornadaComoDisponibilidade
+                  ? "No contrato intermitente não há folga fixa: os dias trabalhados nascem das convocações aceitas."
+                  : "Não se aplica a este tipo de vínculo."}
+              </p>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label>Perfil de Acesso</Label>
             <Select

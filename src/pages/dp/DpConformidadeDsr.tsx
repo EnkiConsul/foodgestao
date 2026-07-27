@@ -9,6 +9,8 @@ import {
   avaliarConformidade, DIA_SEMANA_CURTO, semanasDaConfig,
   type ConformidadeInput, type ConformidadeLinha,
 } from "@/lib/dp/dsr-rules";
+import { contratoPolicy } from "@/lib/dp/contrato-policy";
+
 import { DpPage, DpPageHeader, DpContentCard, DpFilterCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { Button } from "@/components/ui/button";
@@ -67,7 +69,7 @@ export default function DpConformidadeDsr() {
     queryFn: async (): Promise<LinhaComUnidade[]> => {
       const { data: colaboradores, error: cErr } = await supabase
         .from("dp_colaboradores")
-        .select("id, nome, sexo, ativo, unidade_id")
+        .select("id, nome, sexo, ativo, unidade_id, regime")
         .eq("company_id", selectedCompanyId!)
         .eq("ativo", true)
         .order("nome");
@@ -91,7 +93,11 @@ export default function DpConformidadeDsr() {
         bucket.set(f.colaborador_id, arr);
       }
 
-      return (colaboradores ?? []).map((c) => {
+      // DSR só se aplica a contratos celetistas; intermitente/PJ ficam fora do relatório.
+      return (colaboradores ?? [])
+        .filter((c) => contratoPolicy(c.regime).participaConformidadeDsr)
+        .map((c) => {
+
         const cfg = configDaUnidade(c.unidade_id ?? null);
         const negociados = new Set((cfg.dias_descanso_negociados ?? []).filter((d) => d !== 0));
         return {
