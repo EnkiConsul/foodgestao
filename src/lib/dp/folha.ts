@@ -242,7 +242,7 @@ export function folhaParaCsv(competencia: string, linhas: LinhaFolha[]): string 
       LANCAMENTO_STATUS_LABEL[l.status],
     ]
       .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-      .join(";"),
-  );
+      .join(";");
+  });
   return [cab.join(";"), ...corpo].join("\n");
 }
