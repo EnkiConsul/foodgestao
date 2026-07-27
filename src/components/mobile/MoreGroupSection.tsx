@@ -8,6 +8,7 @@ import type {
   NavLeaf,
 } from "@/config/mobileNav";
 import { cn } from "@/lib/utils";
+import { makeIsActive } from "@/lib/nav-active";
 
 const ACCENT_CHIP: Record<GroupAccent, string> = {
   primary: "bg-primary/15 text-primary",
@@ -39,8 +40,11 @@ export function MoreGroupSection({ group, isFavorite, onToggleFav, hideHeader }:
   const [open, setOpen] = useState<boolean>(accent !== "muted");
   const showContent = hideHeader ? true : open;
 
-  const isActive = (to: string) =>
-    pathname === to || pathname.startsWith(to + "/");
+  // Ativo por especificidade: só a rota mais longa que casa com o pathname.
+  const isActive = makeIsActive(pathname, [
+    ...items.map((i) => i.to),
+    ...subgroups.flatMap((sg) => sg.items.map((i) => i.to)),
+  ]);
 
   const handleNavigate = (to: string) => navigate(to);
   const handleFav = (to: string, label: string) => onToggleFav(to, label);
