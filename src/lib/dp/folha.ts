@@ -117,15 +117,29 @@ export function totaisDosExtras(extras: RubricaExtra[]): { proventos: number; de
   );
 }
 
+/** Fase 17 — base tributável: proventos apurados + proventos avulsos − faltas/DSR. */
+export function baseTributavel(detalhe: DetalheFolha): number {
+  const p = detalhe.proventos;
+  const extras = totaisDosExtras(detalhe.extras);
+  const base = p.normais + p.extras50 + p.extras100 + p.noturno + extras.proventos - detalhe.faltas - detalhe.dsr;
+  return round2(Math.max(0, base));
+}
+
+/** Fase 17 — INSS, IRRF e FGTS do lançamento. */
+export function encargosDoLancamento(detalhe: DetalheFolha): Encargos {
+  return calcularEncargos(baseTributavel(detalhe), detalhe.dependentes);
+}
+
 /**
- * Fase 16 — recalcula bruto/líquido do lançamento a partir do detalhe
- * (proventos apurados + rubricas avulsas − descontos).
+ * Recalcula bruto/líquido do lançamento a partir do detalhe
+ * (proventos apurados + rubricas avulsas − faltas/DSR − INSS/IRRF − descontos avulsos).
  */
 export function valoresDoLancamento(detalhe: DetalheFolha): { bruto: number; liquido: number } {
   const p = detalhe.proventos;
   const extras = totaisDosExtras(detalhe.extras);
   const bruto = p.normais + p.extras50 + p.extras100 + p.noturno + extras.proventos;
-  const liquido = bruto - detalhe.faltas - detalhe.dsr - extras.descontos;
+  const encargos = encargosDoLancamento(detalhe);
+  const liquido = bruto - detalhe.faltas - detalhe.dsr - encargos.descontos - extras.descontos;
   return { bruto: round2(bruto), liquido: round2(Math.max(0, liquido)) };
 }
 
