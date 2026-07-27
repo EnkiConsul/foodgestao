@@ -385,7 +385,7 @@ export default function ContasBancarias() {
                       variant="ghost"
                       size="icon"
                       className="h-10 w-10 text-muted-foreground hover:text-primary hover:bg-primary/10"
-                      onClick={() => { setEditAccount(a); setDialogOpen(true); }}
+                      onClick={() => openManualForm(a)}
                       aria-label="Editar conta"
                     >
                       <Pencil className="h-4 w-4" />
