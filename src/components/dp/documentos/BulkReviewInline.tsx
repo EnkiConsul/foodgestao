@@ -253,7 +253,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
   } | null>(null);
   const [checkingDup, setCheckingDup] = useState(false);
 
-  const [semUnidadeOk, setSemUnidadeOk] = useState(false);
+  const semUnidadeOkRef = useRef(false);
   const [confirmSemUnidade, setConfirmSemUnidade] = useState(false);
 
   async function runApprove(item_ids: string[], on_duplicate: "skip" | "replace") {
@@ -265,7 +265,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
     setIsSaving(true);
     try {
       const { data, error } = await supabase.functions.invoke("dp-doc-bulk-approve", {
-        body: { item_ids, on_duplicate, sem_unidade_confirmado: semUnidadeOk },
+        body: { item_ids, on_duplicate, sem_unidade_confirmado: semUnidadeOkRef.current },
       });
       if (error) throw error;
       const results = ((data as any)?.results ?? []) as Array<{ ok: boolean; error?: string; replaced?: boolean }>;
@@ -294,7 +294,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
   const [confirmFaltantes, setConfirmFaltantes] = useState(false);
 
   function handleApproveClick() {
-    if (coverage.unidadeIndefinida && !semUnidadeOk) {
+    if (coverage.unidadeIndefinida && !semUnidadeOkRef.current) {
       setConfirmSemUnidade(true);
       return;
     }
@@ -681,7 +681,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
         onOpenChange={setConfirmSemUnidade}
         totalItens={rows.filter((r: any) => r.status === "pending" && r.matched_colaborador_id).length}
         onConfirm={() => {
-          setSemUnidadeOk(true);
+          semUnidadeOkRef.current = true;
           setConfirmSemUnidade(false);
           void proceedApprove();
         }}

@@ -205,7 +205,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
   } | null>(null);
   const [checkingDup, setCheckingDup] = useState(false);
 
-  const [semUnidadeOk, setSemUnidadeOk] = useState(false);
+  const semUnidadeOkRef = useRef(false);
   const [confirmSemUnidade, setConfirmSemUnidade] = useState(false);
 
   async function runApprove(item_ids: string[], on_duplicate: "skip" | "replace") {
@@ -217,7 +217,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
     setIsSaving(true);
     try {
       const { data, error } = await supabase.functions.invoke("dp-doc-bulk-approve", {
-        body: { item_ids, on_duplicate, sem_unidade_confirmado: semUnidadeOk },
+        body: { item_ids, on_duplicate, sem_unidade_confirmado: semUnidadeOkRef.current },
       });
       if (error) throw error;
       const results = ((data as any)?.results ?? []) as Array<{ ok: boolean; error?: string; replaced?: boolean }>;
@@ -244,7 +244,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
   }
 
   async function handleApproveClick() {
-    if (coverage.unidadeIndefinida && !semUnidadeOk) {
+    if (coverage.unidadeIndefinida && !semUnidadeOkRef.current) {
       setConfirmSemUnidade(true);
       return;
     }
@@ -558,7 +558,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
         onOpenChange={setConfirmSemUnidade}
         totalItens={rows.filter((r) => r.status === "pending" && r.matched_colaborador_id).length}
         onConfirm={() => {
-          setSemUnidadeOk(true);
+          semUnidadeOkRef.current = true;
           setConfirmSemUnidade(false);
           void handleApproveClick();
         }}
