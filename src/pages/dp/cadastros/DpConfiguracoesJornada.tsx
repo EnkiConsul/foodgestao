@@ -223,37 +223,6 @@ export default function DpConfiguracoesJornada() {
           </div>
 
           {porAcordo && (
-            <div className="space-y-1.5">
-              <Label htmlFor="negociacao">Acordo / convenção vinculada</Label>
-              <Select
-                value={form.negociacao_id ?? "none"}
-                onValueChange={(v) => set("negociacao_id", v === "none" ? null : v)}
-              >
-                <SelectTrigger id="negociacao"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhuma</SelectItem>
-                  {negociacoes.map((n) => (
-                    <SelectItem key={n.id} value={n.id}>
-                      {n.tipo_documento.toUpperCase()} · {n.vigencia_inicio}
-                      {n.vigencia_fim ? ` a ${n.vigencia_fim}` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {!form.negociacao_id && (
-                <p className="text-xs text-destructive">
-                  Obrigatório vincular uma negociação sindical para usar o modo acordo coletivo.
-                </p>
-              )}
-              {negociacoes.length === 0 && (
-                <p className="text-xs text-muted-foreground">
-                  Nenhuma negociação cadastrada em Sindicatos → ACT/CCT.
-                </p>
-              )}
-            </div>
-          )}
-
-          {porAcordo && (
             <div className="space-y-1.5 sm:col-span-2">
               <Label>Dias de descanso negociados</Label>
               <ToggleGroup
@@ -262,25 +231,27 @@ export default function DpConfiguracoesJornada() {
                 value={(form.dias_descanso_negociados ?? []).map(String)}
                 onValueChange={() => { /* controlado item a item */ }}
               >
-                {DIA_SEMANA_CURTO.map((label, dia) => (
+                {ORDEM_DIAS_SEG_DOM.map((dia) => (
                   <ToggleGroupItem
                     key={dia}
                     value={String(dia)}
-                    aria-label={label}
+                    aria-label={DIA_SEMANA_CURTO[dia]}
                     className="h-9 min-w-12 px-3"
                     onClick={() => toggleDia(dia)}
                   >
-                    {label}
+                    {DIA_SEMANA_CURTO[dia]}
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
               <p className="text-xs text-muted-foreground">
-                Folga em qualquer dia marcado é contabilizada como descanso semanal negociado.
+                Folga em qualquer dia marcado é contabilizada como descanso semanal negociado — e é o que o
+                colaborador pode escolher no calendário do portal.
               </p>
             </div>
           )}
         </div>
       </Section>
+
 
       <Section title="Folga dominical (DSR)">
         <div className="grid gap-4 sm:grid-cols-2">
