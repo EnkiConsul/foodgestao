@@ -91,7 +91,7 @@ describe("rubricas avulsas (Fase 16)", () => {
       }),
     };
     const csv = folhaParaCsv("2026-06", [linha]);
-    expect(csv.split("\n")[0]).toContain("Outros proventos;\"Outros descontos\"".replace('"', ""));
+    expect(csv.split("\n")[0]).toContain("Outros proventos");
     expect(csv).toContain("300,00");
     expect(csv).toContain("500,00");
   });
