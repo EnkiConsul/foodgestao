@@ -2990,6 +2990,145 @@ export type Database = {
           },
         ]
       }
+      dp_colaborador_config_dias: {
+        Row: {
+          company_id: string
+          config_id: string
+          created_at: string
+          dow: number
+          id: string
+          trabalha: boolean
+          turno_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          config_id: string
+          created_at?: string
+          dow: number
+          id?: string
+          trabalha?: boolean
+          turno_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          config_id?: string
+          created_at?: string
+          dow?: number
+          id?: string
+          trabalha?: boolean
+          turno_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_colaborador_config_dias_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_config_dias_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaborador_config_trabalho"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_config_dias_turno_id_fkey"
+            columns: ["turno_id"]
+            isOneToOne: false
+            referencedRelation: "dp_turnos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_colaborador_config_trabalho: {
+        Row: {
+          carga_semanal_horas: number | null
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          folga_fixa_dow: number | null
+          folga_variavel: boolean
+          id: string
+          observacoes: string | null
+          turno_padrao_id: string | null
+          unidade_id: string | null
+          updated_at: string
+          vigencia_fim: string | null
+          vigencia_inicio: string
+        }
+        Insert: {
+          carga_semanal_horas?: number | null
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          folga_fixa_dow?: number | null
+          folga_variavel?: boolean
+          id?: string
+          observacoes?: string | null
+          turno_padrao_id?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          vigencia_fim?: string | null
+          vigencia_inicio?: string
+        }
+        Update: {
+          carga_semanal_horas?: number | null
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          folga_fixa_dow?: number | null
+          folga_variavel?: boolean
+          id?: string
+          observacoes?: string | null
+          turno_padrao_id?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          vigencia_fim?: string | null
+          vigencia_inicio?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_colaborador_config_trabalho_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_config_trabalho_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_config_trabalho_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_config_trabalho_turno_padrao_id_fkey"
+            columns: ["turno_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "dp_turnos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_config_trabalho_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_colaborador_jornadas: {
         Row: {
           colaborador_id: string
