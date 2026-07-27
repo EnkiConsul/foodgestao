@@ -592,13 +592,41 @@ export default function DpConfiguracoesJornada() {
         )}
       </Section>
 
+      <ReplicarRegrasDialog
+        open={replicarAberto}
+        unidadeAtualNome={unidadeAtual?.nome ?? "esta unidade"}
+        outrasUnidades={outrasUnidades}
+        saving={saving}
+        onCancel={() => setReplicarAberto(false)}
+        onConfirm={(alvos) => concluirSalvamento(alvos)}
+      />
+
+      <AlertDialog open={limparAberto} onOpenChange={setLimparAberto}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Limpar Regras Desta Unidade?</AlertDialogTitle>
+            <AlertDialogDescription>
+              As regras de {unidadeAtual?.nome ?? "esta unidade"} serão apagadas e a unidade voltará
+              a seguir o padrão legal (CLT) até ser configurada novamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={removendo}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); void handleLimparRegras(); }} disabled={removendo}>
+              {removendo ? "Removendo..." : "Limpar Regras"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <CienciaLegalDialog
         open={alertas.length > 0}
         alertas={alertas}
         confirming={saving}
         onCancel={() => setAlertas([])}
-        onConfirm={(justificativa) => void persist(true, justificativa)}
+        onConfirm={(justificativa) => void persist(alvosPendentes, true, justificativa)}
       />
+
     </DpPage>
   );
 }
