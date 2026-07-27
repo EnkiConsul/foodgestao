@@ -134,6 +134,42 @@ export function tetoFolgasMes(
   return Math.min(teto, derivado);
 }
 
+export interface ResumoEscolhaFolgas {
+  /** Dias da semana em que o colaborador pode marcar folga (0 = domingo). */
+  dias: number[];
+  /** Quantidade máxima de folgas que ele pode marcar sozinho no mês. */
+  teto: number;
+  /** Frase pronta para exibição: dias elegíveis + teto mensal. */
+  texto: string;
+}
+
+/**
+ * Resumo textual para deixar explícito que os dias marcados são OPÇÕES de
+ * escolha — não quantidade de folgas. A quantidade vem sempre do teto mensal.
+ */
+export function resumoEscolhaFolgas(
+  cfg: Pick<
+    DpConfigDp,
+    | "tipo_descanso_domingo"
+    | "dias_descanso_negociados"
+    | "modo_frequencia_domingo"
+    | "periodicidade_domingo"
+    | "domingos_por_mes"
+    | "folgas_fds_por_mes"
+  >,
+): ResumoEscolhaFolgas {
+  const dias = diasElegiveisDaConfig(cfg);
+  const teto = tetoFolgasMes(cfg);
+  const labels = ORDEM_DIAS_SEG_DOM.filter((d) => dias.includes(d)).map((d) => DIA_SEMANA_CURTO[d]);
+  return {
+    dias,
+    teto,
+    texto: `Você pode escolher entre: ${labels.join(", ")} — até ${teto} folga${teto === 1 ? "" : "s"} neste mês.`,
+  };
+}
+
+
+
 
 /**
  * Padrão legal de referência, em semanas, para a folga dominical.

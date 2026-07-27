@@ -21,6 +21,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { cn } from "@/lib/utils";
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
+import { resumoEscolhaFolgas } from "@/lib/dp/dsr-rules";
+
 import { calculateDateStatus, type ColaboradorRecord, type FolgaRecord } from "@/lib/dp/folga-rules";
 import { buildBloqueiosDeRegras, type RegraRow } from "@/lib/dp/bloqueio-rules";
 
@@ -131,7 +133,9 @@ export default function DpMeuSolicitacoes() {
     },
   });
 
-  const { diasElegiveis, tetoMensal } = useDpRegrasColaborador(meRef.data?.company_id ?? null, meRef.data?.unidade_id ?? null);
+  const { config: regrasConfig, diasElegiveis, tetoMensal } = useDpRegrasColaborador(meRef.data?.company_id ?? null, meRef.data?.unidade_id ?? null);
+  const resumoFolgas = resumoEscolhaFolgas(regrasConfig);
+
   const dataAlvoIso = toIso(form.data_alvo);
   const bloqueioAtivo = useMemo(() => {
     // 1) bloqueio pontual em dp_datas_bloqueadas
@@ -338,6 +342,10 @@ export default function DpMeuSolicitacoes() {
                   <DateField label="Data" value={form.data_alvo} onChange={(d) => setForm({ ...form, data_alvo: d })} />
                   <DateField label="Data fim" value={form.data_fim} onChange={(d) => setForm({ ...form, data_fim: d })} />
                 </div>
+                {form.tipo === "folga" && (
+                  <p className="text-xs text-muted-foreground">{resumoFolgas.texto}</p>
+                )}
+
                 {bloqueioAtivo != null && (
                   <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">
                     <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />

@@ -10,6 +10,7 @@ import {
   semanasDaConfig,
   SEMANAS_POR_MES,
   diasElegiveisDaConfig,
+  resumoEscolhaFolgas,
   tetoFolgasMes,
 } from "../dsr-rules";
 
@@ -194,5 +195,22 @@ describe("diasElegiveisDaConfig + tetoFolgasMes", () => {
         folgas_fds_por_mes: 4,
       }),
     ).toBe(2);
+  });
+});
+
+describe("resumoEscolhaFolgas", () => {
+  it("dias marcados são opções, quantidade vem do teto mensal", () => {
+    const r = resumoEscolhaFolgas({
+      tipo_descanso_domingo: "acordo_coletivo",
+      dias_descanso_negociados: [1, 3, 0],
+      modo_frequencia_domingo: "semanas",
+      periodicidade_domingo: 3,
+      domingos_por_mes: 1,
+      folgas_fds_por_mes: 1,
+    });
+    expect(r.dias).toEqual([0, 1, 3]);
+    expect(r.teto).toBe(1);
+    expect(r.texto).toContain("Seg, Qua, Dom");
+    expect(r.texto).toContain("até 1 folga");
   });
 });

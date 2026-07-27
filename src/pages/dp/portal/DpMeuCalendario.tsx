@@ -34,6 +34,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
+import { resumoEscolhaFolgas } from "@/lib/dp/dsr-rules";
+
 import {
   buildOccupantsByDate,
   calculateDateStatus,
@@ -115,7 +117,9 @@ export default function DpMeuCalendario() {
 
   const companyId = meRef.data?.company_id;
   const myUnidade = meRef.data?.unidade_id ?? null;
-  const { diasElegiveis, tetoMensal } = useDpRegrasColaborador(companyId, myUnidade);
+  const { config: regrasConfig, diasElegiveis, tetoMensal } = useDpRegrasColaborador(companyId, myUnidade);
+  const resumoFolgas = resumoEscolhaFolgas(regrasConfig);
+
 
   const colaboradoresQuery = useQuery({
     queryKey: ["dp_colabs_meu_cal", companyId],
@@ -536,7 +540,9 @@ export default function DpMeuCalendario() {
           <p className="text-muted-foreground mt-2 font-medium">
             Escolha suas folgas de fim de semana.
           </p>
+          <p className="text-xs text-muted-foreground mt-1">{resumoFolgas.texto}</p>
         </div>
+
         <Button
           variant="outline"
           className="rounded-full"
