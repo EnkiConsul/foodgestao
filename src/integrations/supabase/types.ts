@@ -3489,6 +3489,121 @@ export type Database = {
           },
         ]
       }
+      dp_convocacoes: {
+        Row: {
+          carga_prevista_horas: number
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          criada_por: string | null
+          data: string
+          entrada: string
+          enviada_em: string
+          escala_item_id: string | null
+          id: string
+          intervalo_minutos: number
+          motivo_recusa: string | null
+          observacao: string | null
+          prazo_resposta: string | null
+          respondida_em: string | null
+          saida: string
+          status: Database["public"]["Enums"]["dp_convocacao_status"]
+          termina_no_dia_seguinte: boolean
+          turno_id: string | null
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          carga_prevista_horas?: number
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          criada_por?: string | null
+          data: string
+          entrada: string
+          enviada_em?: string
+          escala_item_id?: string | null
+          id?: string
+          intervalo_minutos?: number
+          motivo_recusa?: string | null
+          observacao?: string | null
+          prazo_resposta?: string | null
+          respondida_em?: string | null
+          saida: string
+          status?: Database["public"]["Enums"]["dp_convocacao_status"]
+          termina_no_dia_seguinte?: boolean
+          turno_id?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          carga_prevista_horas?: number
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          criada_por?: string | null
+          data?: string
+          entrada?: string
+          enviada_em?: string
+          escala_item_id?: string | null
+          id?: string
+          intervalo_minutos?: number
+          motivo_recusa?: string | null
+          observacao?: string | null
+          prazo_resposta?: string | null
+          respondida_em?: string | null
+          saida?: string
+          status?: Database["public"]["Enums"]["dp_convocacao_status"]
+          termina_no_dia_seguinte?: boolean
+          turno_id?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_convocacoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_convocacoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_convocacoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_convocacoes_escala_item_id_fkey"
+            columns: ["escala_item_id"]
+            isOneToOne: false
+            referencedRelation: "dp_escala_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_convocacoes_turno_id_fkey"
+            columns: ["turno_id"]
+            isOneToOne: false
+            referencedRelation: "dp_turnos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_convocacoes_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_datas_bloqueadas: {
         Row: {
           company_id: string
@@ -8759,6 +8874,12 @@ export type Database = {
         | "outro"
       dp_bloqueio_regra_tipo: "fixa_anual" | "dinamica" | "pos_pagamento"
       dp_bloqueio_tipo: "folga" | "troca" | "solicitacoes" | "todos"
+      dp_convocacao_status:
+        | "pendente"
+        | "aceita"
+        | "recusada"
+        | "cancelada"
+        | "expirada"
       dp_disciplinar_tipo:
         | "advertencia_verbal"
         | "advertencia_escrita"
@@ -8777,7 +8898,7 @@ export type Database = {
         | "sindicato"
         | "ferias"
       dp_elegibilidade_recontratacao: "sim" | "nao" | "com_ressalvas"
-      dp_escala_item_origem: "gerado" | "manual" | "troca"
+      dp_escala_item_origem: "gerado" | "manual" | "troca" | "convocacao"
       dp_escala_item_tipo:
         | "trabalho"
         | "folga"
@@ -9101,6 +9222,13 @@ export const Constants = {
       ],
       dp_bloqueio_regra_tipo: ["fixa_anual", "dinamica", "pos_pagamento"],
       dp_bloqueio_tipo: ["folga", "troca", "solicitacoes", "todos"],
+      dp_convocacao_status: [
+        "pendente",
+        "aceita",
+        "recusada",
+        "cancelada",
+        "expirada",
+      ],
       dp_disciplinar_tipo: [
         "advertencia_verbal",
         "advertencia_escrita",
@@ -9121,7 +9249,7 @@ export const Constants = {
         "ferias",
       ],
       dp_elegibilidade_recontratacao: ["sim", "nao", "com_ressalvas"],
-      dp_escala_item_origem: ["gerado", "manual", "troca"],
+      dp_escala_item_origem: ["gerado", "manual", "troca", "convocacao"],
       dp_escala_item_tipo: [
         "trabalho",
         "folga",
