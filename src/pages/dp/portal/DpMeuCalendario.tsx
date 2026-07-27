@@ -33,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import {
   buildOccupantsByDate,
   calculateDateStatus,
