@@ -232,6 +232,23 @@ async function runSync(
     }
   }
 
+  // Auto-reconcile: materialize raw rows for accounts with auto_import=true & mapped local account.
+  // Rows without a mapping remain pending in the reconciliation center for manual review.
+  try {
+    const { data: recon } = await supabase.rpc("auto_promote_open_finance_raw", {
+      _connection_id: connectionId,
+    });
+    if (recon && typeof recon === "object") {
+      const r = recon as Record<string, number>;
+      (stats as any).promoted = r.inserted ?? 0;
+      (stats as any).duplicates = r.duplicates ?? 0;
+      (stats as any).pending_manual = r.skipped ?? 0;
+      (stats as any).promote_errors = r.errors ?? 0;
+    }
+  } catch (e) {
+    console.error("[pluggy-sync] auto_promote error:", (e as Error).message);
+  }
+
   await supabase
     .from("open_finance_connections")
     .update({ last_synced_at: new Date().toISOString() })
