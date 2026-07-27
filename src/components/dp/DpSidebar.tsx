@@ -116,6 +116,7 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
                 if (it.kind === "link") {
                   return <DpLink key={it.url} item={it} collapsed={collapsed} />;
                 }
+                return (
                   <DpGroup
                     key={it.title}
                     item={it}
