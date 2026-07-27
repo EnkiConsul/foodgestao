@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { Calculator, FileSignature, Gift, Receipt } from "lucide-react";
+import { BarChart3, Calculator, FileSignature, Gift, Receipt } from "lucide-react";
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
@@ -48,6 +48,12 @@ export default function DpFolha() {
         icon={Receipt}
         actions={
           <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/dp/folha/relatorios">
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Relatórios
+              </Link>
+            </Button>
             <Button variant="outline" size="sm" asChild>
               <Link to="/dp/folha/provisoes">
                 <Gift className="mr-2 h-4 w-4" />
