@@ -37,8 +37,6 @@ export function ColaboradorJornadaDialog({ colaborador, open, onOpenChange }: Pr
   const [jornadaId, setJornadaId] = useState("");
   const [inicio, setInicio] = useState(hoje());
   const [folgaFixa, setFolgaFixa] = useState<string>("none");
-  const [entrada, setEntrada] = useState("");
-  const [saida, setSaida] = useState("");
   const [obs, setObs] = useState("");
 
   const jornadasAtivas = useMemo(() => jornadas.filter((j) => j.ativo), [jornadas]);
@@ -46,10 +44,13 @@ export function ColaboradorJornadaDialog({ colaborador, open, onOpenChange }: Pr
     () => vinculos.find((v) => !v.fim || v.fim >= hoje()),
     [vinculos],
   );
+  const jornadaSelecionada = useMemo(
+    () => jornadasAtivas.find((j) => j.id === jornadaId) ?? null,
+    [jornadasAtivas, jornadaId],
+  );
 
   const limpar = () => {
-    setJornadaId(""); setInicio(hoje()); setFolgaFixa("none");
-    setEntrada(""); setSaida(""); setObs("");
+    setJornadaId(""); setInicio(hoje()); setFolgaFixa("none"); setObs("");
   };
 
   const salvar = async () => {
@@ -65,8 +66,6 @@ export function ColaboradorJornadaDialog({ colaborador, open, onOpenChange }: Pr
         jornada_id: jornadaId,
         inicio,
         folga_fixa_semana_override: folgaFixa === "none" ? null : Number(folgaFixa),
-        horario_entrada_override: entrada || null,
-        horario_saida_override: saida || null,
         observacoes: obs.trim() || null,
       });
       toast.success("Jornada vinculada");
