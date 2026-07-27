@@ -2,11 +2,12 @@ import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Fingerprint } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Fingerprint, Lock, Unlock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpPontos } from "@/hooks/useDpPonto";
 import { useDpHorarioPrevisto } from "@/hooks/useDpHorarioPrevisto";
+import { useDpPontoFechamento } from "@/hooks/useDpPontoFechamento";
 import { textoPrevisto } from "@/lib/dp/horario-previsto";
 import { diasDaCompetencia } from "@/lib/dp/escala-mes";
 import {
@@ -18,6 +19,9 @@ import {
   ORDEM_MARCACOES,
   PONTO_TIPO_LABEL,
   STATUS_DIA_LABEL,
+  calcularFechamento,
+  pendenciasDoFechamento,
+  espelhoParaCsv,
   type PontoTipo,
 } from "@/lib/dp/ponto";
 
@@ -45,6 +49,15 @@ const rotuloDia = (iso: string) =>
   new Date(`${iso}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" });
 
 const hojeIso = () => new Date().toISOString().slice(0, 10);
+
+const baixarCsv = (nome: string, conteudo: string) => {
+  const url = URL.createObjectURL(new Blob(["\ufeff", conteudo], { type: "text/csv;charset=utf-8;" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nome;
+  a.click();
+  URL.revokeObjectURL(url);
+};
 
 export default function DpPonto() {
   const { selectedCompanyId } = useCompanyContext();
@@ -89,6 +102,39 @@ export default function DpPonto() {
   );
 
   const totais = useMemo(() => totalizarPeriodo(resumos), [resumos]);
+
+  const { fechamento, saldoAnteriorMinutos, fechar, reabrir } = useDpPontoFechamento(
+    selecionado || null,
+    competencia,
+    selectedCompanyId,
+  );
+  const fechado = !!fechamento;
+  const calculo = useMemo(
+    () => calcularFechamento(competencia, resumos, saldoAnteriorMinutos),
+    [competencia, resumos, saldoAnteriorMinutos],
+  );
+  const pendencias = useMemo(() => pendenciasDoFechamento(resumos), [resumos]);
+  const nomeColaborador = colaboradores.data?.find((c) => c.id === selecionado)?.nome ?? "colaborador";
+
+  const exportar = () =>
+    baixarCsv(`espelho-ponto-${competencia}-${nomeColaborador}.csv`, espelhoParaCsv(nomeColaborador, competencia, resumos));
+
+  const confirmarFechamento = () => {
+    if (pendencias.length && !window.confirm(`${pendencias.length} dia(s) com marcações incompletas. Fechar assim mesmo?`)) return;
+    fechar.mutate(
+      { calculo },
+      {
+        onSuccess: () => toast.success("Competência fechada. As marcações do mês foram travadas."),
+        onError: (e: unknown) => toast.error((e as Error).message ?? "Não foi possível fechar a competência."),
+      },
+    );
+  };
+
+  const confirmarReabertura = () =>
+    reabrir.mutate(undefined, {
+      onSuccess: () => toast.success("Competência reaberta para correções."),
+      onError: (e: unknown) => toast.error((e as Error).message ?? "Não foi possível reabrir a competência."),
+    });
 
   const salvarHora = (data: string, tipo: PontoTipo, hora: string) => {
     if (!selecionado || !hora) return;
@@ -162,7 +208,7 @@ export default function DpPonto() {
               { label: "Trabalhado", valor: formatarDuracao(totais.minutosTrabalhados) },
               { label: "Previsto", valor: formatarDuracao(totais.minutosPrevistos) },
               { label: "Saldo", valor: formatarSaldo(totais.saldoMinutos) },
-              { label: "Faltas", valor: String(totais.faltas) },
+              { label: "Banco de horas", valor: formatarSaldo(calculo.saldoAcumuladoMinutos) },
             ].map((c) => (
               <div key={c.label} className="rounded-lg border bg-card p-3">
                 <p className="text-xs text-muted-foreground">{c.label}</p>
@@ -170,6 +216,35 @@ export default function DpPonto() {
               </div>
             ))}
           </div>
+
+          <DpContentCard contentClassName="space-y-3 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">
+                  {fechado ? "Competência fechada" : "Competência aberta"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {fechado
+                    ? `Fechada em ${new Date(fechamento!.fechado_em).toLocaleDateString("pt-BR")} · saldo do mês ${formatarSaldo(fechamento!.saldo_minutos)}`
+                    : `Saldo anterior ${formatarSaldo(saldoAnteriorMinutos)} · ${totais.faltas} falta(s) · ${pendencias.length} dia(s) incompleto(s)`}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={exportar}>
+                  <Download className="mr-2 h-4 w-4" /> Exportar CSV
+                </Button>
+                {fechado ? (
+                  <Button variant="outline" size="sm" onClick={confirmarReabertura} disabled={reabrir.isPending}>
+                    <Unlock className="mr-2 h-4 w-4" /> Reabrir
+                  </Button>
+                ) : (
+                  <Button size="sm" onClick={confirmarFechamento} disabled={fechar.isPending}>
+                    <Lock className="mr-2 h-4 w-4" /> Fechar competência
+                  </Button>
+                )}
+              </div>
+            </div>
+          </DpContentCard>
 
           <DpContentCard contentClassName="p-0">
             <ul className="divide-y">
@@ -202,6 +277,7 @@ export default function DpPonto() {
                             <Label className="text-[11px] text-muted-foreground">{PONTO_TIPO_LABEL[tipo]}</Label>
                             <Input
                               type="time"
+                              disabled={fechado}
                               aria-label={`${PONTO_TIPO_LABEL[tipo]} em ${rotuloDia(r.data)}`}
                               defaultValue={m ? horaDaMarcacao(m.registrado_em) : ""}
                               onBlur={(e) => {
