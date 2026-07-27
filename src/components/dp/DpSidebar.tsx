@@ -1,13 +1,6 @@
 import { useState, useEffect } from "react";
 import { NavLink, useLocation, Link, useNavigate } from "react-router-dom";
-import {
-  Home, Users, Briefcase, Building2, Scale, FileSignature,
-  Calendar, CalendarRange,
-  CalendarClock, ClipboardList, UserCheck, ArrowLeftRight, Ban, Palmtree, ShieldCheck, Gift, BarChart3,
-  FileText, Coins, Clock, HeartPulse, ShieldAlert, ListChecks,
-  MessageSquare, Bell, BellRing, ChevronDown, LogOut, ArrowLeft, Settings, Repeat,
-  Fingerprint, Calculator, Receipt,
-} from "lucide-react";
+import { ChevronDown, LogOut, ArrowLeft } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import assinatura360 from "@/assets/360food-assinatura.png.asset.json";
 import symbol360 from "@/assets/360food-symbol.png.asset.json";
@@ -20,112 +13,67 @@ import {
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { toTitleCase } from "@/lib/titleCase";
+import {
+  DP_ADMIN_NAV,
+  DP_PORTAL_NAV,
+  surfaceRoutes,
+  type DpNavGroup,
+  type DpNavItem,
+  type DpNavSurface,
+} from "@/config/dpNavigation";
+import { makeIsActive } from "@/lib/nav-active";
 
 type Sub = { title: string; url: string; icon: LucideIcon; end?: boolean };
 type Item =
   | { kind: "link"; title: string; url: string; icon: LucideIcon; end?: boolean; home?: boolean }
-  | { kind: "group"; title: string; icon: LucideIcon; prefixes: string[]; items: Sub[]; hubUrl?: string }
-  | { kind: "static-group"; title: string; icon: LucideIcon; items: Sub[] };
+  | { kind: "group"; title: string; icon: LucideIcon; prefixes: string[]; items: Sub[]; hubUrl?: string };
 
-const ADMIN_ITEMS: Item[] = [
-  { kind: "link", title: "Início", url: "/dp", icon: Home, end: true, home: true },
-  {
-    kind: "group", title: "Cadastro", icon: Users,
-    prefixes: ["/dp/colaboradores", "/dp/cadastros"],
-    hubUrl: "/dp/cadastros",
-    items: [
-      { title: "Colaboradores", url: "/dp/colaboradores", icon: Users },
-      { title: "Cargos", url: "/dp/cadastros/cargos", icon: Briefcase },
-      { title: "Unidades", url: "/dp/cadastros/unidades", icon: Building2 },
-      { title: "Sindicatos", url: "/dp/cadastros/sindicatos", icon: Scale },
-      { title: "Turnos", url: "/dp/cadastros/turnos", icon: Clock },
-      { title: "Jornadas e escalas", url: "/dp/cadastros/jornadas", icon: Clock },
-      
-      { title: "Pendências", url: "/dp/cadastros/pendencias", icon: BellRing },
-    ],
-  },
-  {
-    kind: "group", title: "Folgas", icon: Calendar,
-    prefixes: ["/dp/folgas", "/dp/solicitacoes", "/dp/aprovacoes", "/dp/trocas", "/dp/bloqueios", "/dp/ferias", "/dp/operacao", "/dp/convocacoes", "/dp/ponto", "/dp/folha", "/dp/conformidade-dsr", "/dp/escalas"],
-    hubUrl: "/dp/folgas",
-    items: [
-      { title: "Calendário Geral", url: "/dp/folgas/calendario", icon: Calendar },
-      { title: "Solicitações", url: "/dp/solicitacoes", icon: ClipboardList },
-      { title: "Aprovações", url: "/dp/aprovacoes", icon: UserCheck },
-      { title: "Trocas", url: "/dp/trocas", icon: ArrowLeftRight },
-      { title: "Datas Bloqueadas", url: "/dp/bloqueios", icon: Ban },
-      { title: "Férias", url: "/dp/ferias", icon: Palmtree },
-      { title: "Escala do Mês", url: "/dp/escalas/mes", icon: CalendarRange },
-      { title: "Operação do Dia", url: "/dp/operacao", icon: CalendarClock },
-      { title: "Convocações", url: "/dp/convocacoes", icon: BellRing },
-      { title: "Espelho de Ponto", url: "/dp/ponto", icon: Fingerprint },
-      { title: "Ponto do Time", url: "/dp/ponto/time", icon: Users },
-      { title: "Apuração para Folha", url: "/dp/ponto/apuracao", icon: Calculator },
-      { title: "Folha de Pagamento", url: "/dp/folha", icon: Receipt },
-      { title: "Gerador de Escala", url: "/dp/escalas", icon: CalendarRange },
-      { title: "Conformidade DSR", url: "/dp/conformidade-dsr", icon: Scale },
-      { title: "Regras De Folgas", url: "/dp/folgas/configuracoes/regras", icon: Settings },
-    ],
-  },
-  {
-    kind: "group", title: "Documentos", icon: FileText,
-    prefixes: ["/dp/documentos", "/dp/disciplinar", "/dp/atestados"],
-    hubUrl: "/dp/documentos",
-    items: [
-      { title: "Contracheques", url: "/dp/documentos/contracheque", icon: FileText },
-      { title: "Adiantamentos", url: "/dp/documentos/adiantamento", icon: Coins },
-      { title: "Folhas de Ponto", url: "/dp/documentos/ponto", icon: Clock },
-      // Corrigido: rota real é /dp/atestados (não /dp/documentos/atestado).
-      { title: "Atestados", url: "/dp/atestados", icon: HeartPulse },
-      { title: "Registros Disciplinares", url: "/dp/disciplinar", icon: ShieldAlert },
-      { title: "ACT-CCT", url: "/dp/documentos/act-cct", icon: FileSignature },
-      { title: "Histórico Completo", url: "/dp/documentos/historico", icon: ListChecks },
-    ],
-  },
-  { kind: "link", title: "Conformidade", url: "/dp/conformidade", icon: ShieldCheck },
-  { kind: "link", title: "Benefícios", url: "/dp/beneficios", icon: Gift },
-  { kind: "link", title: "Analytics de RH", url: "/dp/analytics", icon: BarChart3 },
-  {
-    kind: "group", title: "Comunicação", icon: MessageSquare,
-    prefixes: ["/dp/comunicacao", "/dp/mensagens", "/dp/avisos"],
-    hubUrl: "/dp/comunicacao",
-    items: [
-      { title: "Mensagens", url: "/dp/mensagens", icon: MessageSquare },
-      { title: "Quadro de Avisos", url: "/dp/avisos", icon: Bell },
-    ],
-  },
-];
+/**
+ * Sidebar e menu "Mais" (mobile) compartilham a mesma fonte de verdade:
+ * `src/config/dpNavigation.tsx`.
+ */
+function toSub(item: DpNavItem): Sub {
+  return { title: item.label, url: item.to, icon: item.icon, end: item.end };
+}
 
-// Portal do colaborador — ordem/agrupamento alinhados à documentação do
-// repositório de referência (pakere1996/portalcolaborador):
-//   Meu Cadastro → Folgas (Calendário, Trocas, Histórico)
-//   → Documentos (Meus Documentos, Atestados, Disciplinar, Sindicato)
-// Grupos estáticos (não colapsáveis) como no AppShell da referência.
-const PORTAL_ITEMS: Item[] = [
-  { kind: "link", title: "Início", url: "/dp/meu", icon: Home, end: true, home: true },
-  { kind: "link", title: "Mural", url: "/dp/meu/mural", icon: Bell },
-  { kind: "link", title: "Meu Cadastro", url: "/dp/meu/perfil", icon: Settings },
-  {
-    kind: "static-group", title: "Folgas", icon: Calendar,
-    items: [
-      { title: "Calendário", url: "/dp/meu/calendario", icon: Calendar },
-      { title: "Trocas", url: "/dp/meu/trocas", icon: Repeat },
-      { title: "Histórico", url: "/dp/meu/historico", icon: ClipboardList },
-      // Extra do 360°FOOD (não existe na doc, preservado como último item):
-      { title: "Solicitações", url: "/dp/meu/solicitacoes", icon: ClipboardList },
-    ],
-  },
-  {
-    kind: "static-group", title: "Documentos", icon: FileText,
-    items: [
-      { title: "Meus Documentos", url: "/dp/meu/documentos", icon: FileText },
-      { title: "Meus Contracheques", url: "/dp/meu/contracheque", icon: Receipt },
-      { title: "Atestados", url: "/dp/meu/atestados", icon: HeartPulse },
-      { title: "Disciplinar", url: "/dp/meu/disciplinar", icon: ShieldAlert },
-      { title: "Sindicato", url: "/dp/meu/sindicato", icon: Scale },
-    ],
-  },
-];
+function toGroup(group: DpNavGroup): Item {
+  return {
+    kind: "group",
+    title: group.label,
+    icon: group.icon,
+    prefixes: group.matchPrefixes,
+    hubUrl: group.hubTo,
+    items: group.items.map(toSub),
+  };
+}
+
+function buildItems(surface: DpNavSurface): Item[] {
+  return [
+    {
+      kind: "link",
+      title: surface.home.label,
+      url: surface.home.to,
+      icon: surface.home.icon,
+      end: true,
+      home: true,
+    },
+    ...surface.groups.map(toGroup),
+    ...surface.direct.map((i) => ({
+      kind: "link" as const,
+      title: i.label,
+      url: i.to,
+      icon: i.icon,
+      end: i.end,
+    })),
+  ];
+}
+
+const ADMIN_ITEMS: Item[] = buildItems(DP_ADMIN_NAV);
+const PORTAL_ITEMS: Item[] = buildItems(DP_PORTAL_NAV);
+
+const ADMIN_ROUTES = surfaceRoutes(DP_ADMIN_NAV);
+const PORTAL_ROUTES = surfaceRoutes(DP_PORTAL_NAV);
+
 
 export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" }) {
   const { state } = useSidebar();
