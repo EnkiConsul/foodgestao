@@ -100,13 +100,18 @@ export default function DpEscalas() {
     const d = dados.data;
     if (!d) return;
 
+    const horariosPorColaborador = new Map<string, HorarioDia[]>();
     const colaboradores: EscalaColaborador[] = d.colaboradores
       .filter((c) => unidade === "todas" || c.unidade_id === unidade)
       .map((c) => {
         const vinculo = d.vinculos
           .filter((v) => v.colaborador_id === c.id && (!v.fim || v.fim >= inicio))
           .sort((a, b) => b.inicio.localeCompare(a.inicio))[0];
-        const jornada = vinculo?.jornada as { dias_folga: number[] } | null | undefined;
+        const jornada = vinculo?.jornada as
+          | { dias_folga: number[]; horarios?: HorarioDia[] | null }
+          | null
+          | undefined;
+        horariosPorColaborador.set(c.id, jornada?.horarios ?? []);
         return {
           id: c.id,
           nome: c.nome,
@@ -116,6 +121,7 @@ export default function DpEscalas() {
           folgaFixa: vinculo?.folga_fixa_semana_override ?? null,
         };
       });
+
 
     // Datas bloqueadas: registros não liberados + expansão das regras ativas.
     const bloqueadas = new Set<string>();
