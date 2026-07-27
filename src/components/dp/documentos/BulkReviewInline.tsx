@@ -20,7 +20,9 @@ import { ConfirmarSubstituicaoDialog, type DuplicateCollision } from "./Confirma
 import { ConfirmarFaltantesDialog } from "./ConfirmarFaltantesDialog";
 import { detectDuplicates } from "@/lib/dp/bulk-duplicates";
 import { ColaboradoresFaltantesPanel } from "./ColaboradoresFaltantesPanel";
-import { competenciaPredominante, computeCoverage } from "@/lib/dp/bulk-coverage";
+import { competenciaPredominante, computeCoverage, resolveUnidadesLote } from "@/lib/dp/bulk-coverage";
+import { VincularUnidadeLote } from "./VincularUnidadeLote";
+import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { cn } from "@/lib/utils";
 
 // Setup pdfjs worker once (shared with BulkReviewDialog)
@@ -51,6 +53,7 @@ export interface BulkReviewInlineProps {
 export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkReviewInlineProps) {
   const qc = useQueryClient();
   const { data: colaboradores = [] } = useDpColaboradores();
+  const { data: unidades = [] } = useDpUnidades();
   const [currentIdx, setCurrentIdx] = useState(0);
   const [zoom, setZoom] = useState(1);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -75,7 +78,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_bulk_import_batches" as any)
-        .select("id,status,total_pages,processed_pages,approved_count,company_id,tipo")
+        .select("id,status,total_pages,processed_pages,approved_count,company_id,tipo,unidade_id,referencia_data")
         .eq("id", batchId)
         .maybeSingle();
       if (error) throw error;
@@ -426,6 +429,10 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
             faltantes={coverage.faltantes}
             totalEsperados={coverage.esperados.length}
             competencia={competenciaLote}
+            unidadeIndefinida={coverage.unidadeIndefinida}
+            unidadeSlot={
+              <VincularUnidadeLote batchId={batchId} companyId={bInfo?.company_id ?? null} />
+            }
           />
         )}
       </div>
