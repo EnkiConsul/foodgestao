@@ -57,10 +57,10 @@ export function CategoryRow({
           {...provided.draggableProps}
           className={`group ${snapshot.isDragging ? "bg-muted shadow-md" : ""}`}
         >
-          <TableCell className="py-1.5 px-4">
+          <TableCell className="py-1.5 px-2 md:px-4">
             <Checkbox checked={isSelected} onCheckedChange={() => onToggleSelect(cat.id)} />
           </TableCell>
-          <TableCell className="py-1.5 px-1">
+          <TableCell className="hidden md:table-cell py-1.5 px-1">
             <div
               {...provided.dragHandleProps}
               className="flex items-center justify-center cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
@@ -68,8 +68,11 @@ export function CategoryRow({
               <GripVertical className="h-4 w-4" />
             </div>
           </TableCell>
-          <TableCell className="py-1.5">
-            <div className="flex items-center gap-1" style={{ paddingLeft: `${cat.depth * 24}px` }}>
+          <TableCell className="py-1.5 min-w-0">
+            <div
+              className="flex min-w-0 items-center gap-1 pl-[var(--cat-indent)] md:pl-[calc(var(--cat-indent)*2)]"
+              style={{ ["--cat-indent" as string]: `${cat.depth * 12}px` }}
+            >
               {cat.hasChildren ? (
                 <button
                   onClick={() => onToggleCollapse(cat.id)}
