@@ -5,6 +5,8 @@
 // pela apuração), totais do período e CSV. Funções puras.
 // ------------------------------------------------------------------
 
+import { calcularEncargos, type Encargos } from "./encargos";
+
 export type FolhaPeriodoStatus = "aberto" | "fechado" | "aprovado_dp" | "aprovado_financeiro" | "pago";
 export type FolhaLancamentoStatus = "rascunho" | "aprovado_dp" | "aprovado_financeiro" | "pago" | "cancelado";
 
