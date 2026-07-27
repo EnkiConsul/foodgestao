@@ -322,9 +322,10 @@ export default function DpCadastroJornadas() {
                   <p className="text-lg font-semibold">{form.nome || "Sem nome"}</p>
                   <p className="text-sm text-muted-foreground">
                     {TIPO_ESCALA_LABEL[form.tipo_escala] ?? form.tipo_escala} · {TURNO_LABEL[form.turno] ?? form.turno} ·{" "}
-                    {formatarHoras(semanal)} por semana
+                    {formatarHoras(semanal)} cadastradas
                   </p>
                 </div>
+                <JornadaCargaResumo horarios={form.horarios} tipoEscala={form.tipo_escala} />
                 <ul className="divide-y rounded-xl border">
                   {resumoJornada(form.horarios).map((f) => (
                     <li key={f.rotulo} className="flex items-center justify-between gap-3 p-3 text-sm">
@@ -343,7 +344,11 @@ export default function DpCadastroJornadas() {
             )}
           </div>
 
-          <DialogFooter className="flex-row justify-between gap-2 border-t p-4 sm:justify-between">
+          <DialogFooter
+            className="shrink-0 flex-row justify-between gap-2 border-t p-4 sm:justify-between"
+            style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+          >
+
             <Button
               variant="outline"
               className="h-12 flex-1 gap-2 sm:flex-none"
