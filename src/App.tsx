@@ -389,7 +389,8 @@ const AppRoutes = () => (
         <Route path="cadastros/sindicatos" element={<DpSindicatos />} />
         <Route path="cadastros/pendencias" element={<DpCadastroPendencias />} />
         <Route path="cadastros/jornadas" element={<DpCadastroJornadas />} />
-        <Route path="cadastros/regras-jornada" element={<DpConfiguracoesJornada />} />
+        <Route path="folgas/configuracoes/regras" element={<DpConfiguracoesJornada />} />
+        <Route path="cadastros/regras-jornada" element={<Navigate to="/dp/folgas/configuracoes/regras" replace />} />
         <Route path="conformidade-dsr" element={<DpConformidadeDsr />} />
         <Route path="escalas" element={<DpEscalas />} />
         <Route path="documentos/act-cct" element={<DpSindicatoNegociacoes />} />

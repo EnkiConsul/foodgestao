@@ -10,7 +10,7 @@ const items = [
   { title: "Sindicatos", desc: "Gerencie sindicatos patronais e laborais.", url: "/dp/cadastros/sindicatos", icon: FileText },
   { title: "Negociações sindicais", desc: "Acordos ACT/CCT, reajustes e cláusulas.", url: "/dp/documentos/act-cct", icon: Handshake },
   { title: "Jornadas e escalas", desc: "Modelos de escala 6x1, 5x2, 12x36 com turnos e intervalos.", url: "/dp/cadastros/jornadas", icon: Clock },
-  { title: "Regras de jornada e folgas", desc: "DSR, folga dominical, sábados, feriados e menores.", url: "/dp/cadastros/regras-jornada", icon: Scale },
+  { title: "Regras De Folgas", desc: "DSR, folga dominical, sábados, feriados, menores e férias.", url: "/dp/folgas/configuracoes/regras", icon: Scale },
   { title: "Pendências", desc: "Prazos e lembretes do quadro de pendências.", url: "/dp/cadastros/pendencias", icon: BellRing },
   { title: "Configurações do DP", desc: "Limites de folga, bloqueios e regras gerais.", url: "/dp/configuracoes", icon: Settings },
 ];

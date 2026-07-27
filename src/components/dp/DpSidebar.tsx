@@ -36,7 +36,7 @@ const ADMIN_ITEMS: Item[] = [
       { title: "Unidades", url: "/dp/cadastros/unidades", icon: Building2 },
       { title: "Sindicatos", url: "/dp/cadastros/sindicatos", icon: Scale },
       { title: "Jornadas e escalas", url: "/dp/cadastros/jornadas", icon: Clock },
-      { title: "Regras de jornada", url: "/dp/cadastros/regras-jornada", icon: Scale },
+      
       { title: "Pendências", url: "/dp/cadastros/pendencias", icon: BellRing },
     ],
   },
@@ -53,6 +53,7 @@ const ADMIN_ITEMS: Item[] = [
       { title: "Férias", url: "/dp/ferias", icon: Palmtree },
       { title: "Gerador de Escala", url: "/dp/escalas", icon: CalendarRange },
       { title: "Conformidade DSR", url: "/dp/conformidade-dsr", icon: Scale },
+      { title: "Regras De Folgas", url: "/dp/folgas/configuracoes/regras", icon: Settings },
     ],
   },
   {
