@@ -5,6 +5,8 @@
 // pela apuração), totais do período e CSV. Funções puras.
 // ------------------------------------------------------------------
 
+import { calcularEncargos, type Encargos } from "./encargos";
+
 export type FolhaPeriodoStatus = "aberto" | "fechado" | "aprovado_dp" | "aprovado_financeiro" | "pago";
 export type FolhaLancamentoStatus = "rascunho" | "aprovado_dp" | "aprovado_financeiro" | "pago" | "cancelado";
 
@@ -57,6 +59,8 @@ export interface DetalheFolha {
   };
   /** Fase 16 — rubricas avulsas (adiantamentos, prêmios, descontos etc.). */
   extras: RubricaExtra[];
+  /** Fase 17 — dependentes para dedução do IRRF. */
+  dependentes: number;
 }
 
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
@@ -86,6 +90,7 @@ export function lerDetalhe(raw: unknown): DetalheFolha {
       dsrPerdidos: num(h.dsrPerdidos),
     },
     extras: lerExtras(d.extras),
+    dependentes: Math.max(0, Math.trunc(num(d.dependentes))),
   };
 }
 
@@ -114,15 +119,29 @@ export function totaisDosExtras(extras: RubricaExtra[]): { proventos: number; de
   );
 }
 
+/** Fase 17 — base tributável: proventos apurados + proventos avulsos − faltas/DSR. */
+export function baseTributavel(detalhe: DetalheFolha): number {
+  const p = detalhe.proventos;
+  const extras = totaisDosExtras(detalhe.extras);
+  const base = p.normais + p.extras50 + p.extras100 + p.noturno + extras.proventos - detalhe.faltas - detalhe.dsr;
+  return round2(Math.max(0, base));
+}
+
+/** Fase 17 — INSS, IRRF e FGTS do lançamento. */
+export function encargosDoLancamento(detalhe: DetalheFolha): Encargos {
+  return calcularEncargos(baseTributavel(detalhe), detalhe.dependentes);
+}
+
 /**
- * Fase 16 — recalcula bruto/líquido do lançamento a partir do detalhe
- * (proventos apurados + rubricas avulsas − descontos).
+ * Recalcula bruto/líquido do lançamento a partir do detalhe
+ * (proventos apurados + rubricas avulsas − faltas/DSR − INSS/IRRF − descontos avulsos).
  */
 export function valoresDoLancamento(detalhe: DetalheFolha): { bruto: number; liquido: number } {
   const p = detalhe.proventos;
   const extras = totaisDosExtras(detalhe.extras);
   const bruto = p.normais + p.extras50 + p.extras100 + p.noturno + extras.proventos;
-  const liquido = bruto - detalhe.faltas - detalhe.dsr - extras.descontos;
+  const encargos = encargosDoLancamento(detalhe);
+  const liquido = bruto - detalhe.faltas - detalhe.dsr - encargos.descontos - extras.descontos;
   return { bruto: round2(bruto), liquido: round2(Math.max(0, liquido)) };
 }
 
@@ -194,13 +213,17 @@ export function folhaParaCsv(competencia: string, linhas: LinhaFolha[]): string 
     "Desconto DSR",
     "Outros proventos",
     "Outros descontos",
+    "INSS",
+    "IRRF",
+    "FGTS",
     "Bruto",
     "Liquido",
     "Status",
   ];
   const n = (v: number) => v.toFixed(2).replace(".", ",");
-  const corpo = linhas.map((l) =>
-    [
+  const corpo = linhas.map((l) => {
+    const enc = encargosDoLancamento(l.detalhe);
+    return [
       l.nome,
       competencia,
       n(l.detalhe.proventos.normais),
@@ -211,12 +234,15 @@ export function folhaParaCsv(competencia: string, linhas: LinhaFolha[]): string 
       n(l.detalhe.dsr),
       n(totaisDosExtras(l.detalhe.extras).proventos),
       n(totaisDosExtras(l.detalhe.extras).descontos),
+      n(enc.inss),
+      n(enc.irrf),
+      n(enc.fgts),
       n(l.valor_bruto),
       n(l.valor_liquido),
       LANCAMENTO_STATUS_LABEL[l.status],
     ]
       .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-      .join(";"),
-  );
+      .join(";");
+  });
   return [cab.join(";"), ...corpo].join("\n");
 }

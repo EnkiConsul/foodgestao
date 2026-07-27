@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { lerDetalhe } from "@/lib/dp/folha";
+import { calcularInss } from "@/lib/dp/encargos";
 import {
   holeriteDocumento,
   linhasDoHolerite,
@@ -29,7 +30,7 @@ describe("holerite", () => {
   it("omite rubricas zeradas mas mantém horas normais", () => {
     const linhas = linhasDoHolerite(base());
     const descricoes = linhas.map((l) => l.descricao);
-    expect(descricoes).toEqual(["Horas normais", "Horas extras 50%", "Faltas", "DSR sobre faltas"]);
+    expect(descricoes).toEqual(["Horas normais", "Horas extras 50%", "Faltas", "DSR sobre faltas", "INSS"]);
   });
 
   it("mantém horas normais mesmo sem valor", () => {
@@ -44,9 +45,10 @@ describe("holerite", () => {
 
   it("soma proventos e descontos", () => {
     const t = totaisDoHolerite(linhasDoHolerite(base()));
+    const inss = calcularInss(1830);
     expect(t.proventos).toBe(1950);
-    expect(t.descontos).toBe(120);
-    expect(t.liquido).toBe(1830);
+    expect(t.descontos).toBe(120 + inss);
+    expect(t.liquido).toBe(1830 - inss);
   });
 
   it("escapa HTML e gera um documento por colaborador", () => {
