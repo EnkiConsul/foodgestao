@@ -230,14 +230,3 @@ export default function DpPontoApuracao() {
     </DpPage>
   );
 }
-
-                  </li>
-                ))}
-              </ul>
-            )}
-          </DpContentCard>
-        </>
-      )}
-    </DpPage>
-  );
-}
