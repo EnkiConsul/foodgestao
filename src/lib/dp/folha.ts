@@ -57,6 +57,8 @@ export interface DetalheFolha {
   };
   /** Fase 16 — rubricas avulsas (adiantamentos, prêmios, descontos etc.). */
   extras: RubricaExtra[];
+  /** Fase 17 — dependentes para dedução do IRRF. */
+  dependentes: number;
 }
 
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
