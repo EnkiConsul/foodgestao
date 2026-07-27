@@ -94,6 +94,60 @@ export default function DpConfiguracoesJornada() {
         }
       />
 
+      <Section
+        title="Descanso Dominical"
+        description="Define se o descanso semanal segue a legislação ou um acordo/convenção coletiva vigente."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="tipo-descanso">Base do descanso dominical</Label>
+            <Select
+              value={form.tipo_descanso_domingo}
+              onValueChange={(v) => set("tipo_descanso_domingo", v as DpConfigDpForm["tipo_descanso_domingo"])}
+            >
+              <SelectTrigger id="tipo-descanso"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="legal">Conforme legislação (domingo estrito)</SelectItem>
+                <SelectItem value="acordo_coletivo">Acordo coletivo (domingo ou sábado)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              No modo acordo coletivo, o sábado pode substituir o domingo no rodízio e a conformidade passa a
+              avaliar folga de fim de semana.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="negociacao">Acordo / convenção vinculada</Label>
+            <Select
+              value={form.negociacao_id ?? "none"}
+              onValueChange={(v) => set("negociacao_id", v === "none" ? null : v)}
+            >
+              <SelectTrigger id="negociacao"><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhuma</SelectItem>
+                {negociacoes.map((n) => (
+                  <SelectItem key={n.id} value={n.id}>
+                    {n.tipo_documento.toUpperCase()} · {n.vigencia_inicio}
+                    {n.vigencia_fim ? ` a ${n.vigencia_fim}` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {form.tipo_descanso_domingo === "acordo_coletivo" && !form.negociacao_id && (
+              <p className="text-xs text-destructive">
+                Obrigatório vincular uma negociação sindical para usar o modo acordo coletivo.
+              </p>
+            )}
+            {negociacoes.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                Nenhuma negociação cadastrada em Sindicatos → ACT/CCT.
+              </p>
+            )}
+          </div>
+        </div>
+      </Section>
+
       <Section title="Folga dominical (DSR)">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2 flex items-start justify-between gap-4 rounded-lg border p-3">
@@ -109,6 +163,7 @@ export default function DpConfiguracoesJornada() {
               onCheckedChange={(v) => set("setor_comercio", v)}
             />
           </div>
+
 
           <div className="space-y-1.5">
             <Label htmlFor="per-domingo">Domingo de folga a cada (semanas)</Label>
