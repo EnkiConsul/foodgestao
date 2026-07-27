@@ -38,8 +38,8 @@ export default function DpConformidadeDsr() {
   const { config } = useDpConfigDp();
   const [competencia, setCompetencia] = useState(competenciaAtual);
 
-  const domingos = useMemo(() => domingosDoMes(competencia), [competencia]);
-  const inicio = domingos[0] ?? `${competencia}-01`;
+  const domingos = useMemo(() => diasDaSemanaDoMes(competencia, 0), [competencia]);
+  const sabados = useMemo(() => diasDaSemanaDoMes(competencia, 6), [competencia]);
   const fim = `${competencia}-31`;
 
   const query = useQuery({
@@ -63,12 +63,18 @@ export default function DpConformidadeDsr() {
       if (fErr) throw fErr;
 
       const porColab = new Map<string, string[]>();
+      const sabadosPorColab = new Map<string, string[]>();
       for (const f of folgas ?? []) {
         if (f.status === "cancelada") continue;
-        if (!domingos.includes(f.data)) continue;
-        const arr = porColab.get(f.colaborador_id) ?? [];
-        arr.push(f.data);
-        porColab.set(f.colaborador_id, arr);
+        if (domingos.includes(f.data)) {
+          const arr = porColab.get(f.colaborador_id) ?? [];
+          arr.push(f.data);
+          porColab.set(f.colaborador_id, arr);
+        } else if (sabados.includes(f.data)) {
+          const arr = sabadosPorColab.get(f.colaborador_id) ?? [];
+          arr.push(f.data);
+          sabadosPorColab.set(f.colaborador_id, arr);
+        }
       }
 
       return (colaboradores ?? []).map((c) => ({
@@ -76,10 +82,12 @@ export default function DpConformidadeDsr() {
         nome: c.nome,
         sexo: c.sexo,
         domingosFolgados: porColab.get(c.id) ?? [],
+        sabadosFolgados: sabadosPorColab.get(c.id) ?? [],
         domingosNoPeriodo: domingos.length,
       }));
     },
   });
+
 
   const linhas = useMemo(
     () => avaliarConformidade(query.data ?? [], config),
