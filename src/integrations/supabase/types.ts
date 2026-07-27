@@ -4313,6 +4313,59 @@ export type Database = {
           },
         ]
       }
+      dp_jornada_horarios: {
+        Row: {
+          ativo: boolean
+          carga_horas: number
+          company_id: string
+          created_at: string
+          dia_semana: number
+          entrada: string
+          id: string
+          intervalo_minutos: number
+          jornada_id: string
+          saida: string
+          termina_no_dia_seguinte: boolean
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          carga_horas?: number
+          company_id: string
+          created_at?: string
+          dia_semana: number
+          entrada: string
+          id?: string
+          intervalo_minutos?: number
+          jornada_id: string
+          saida: string
+          termina_no_dia_seguinte?: boolean
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          carga_horas?: number
+          company_id?: string
+          created_at?: string
+          dia_semana?: number
+          entrada?: string
+          id?: string
+          intervalo_minutos?: number
+          jornada_id?: string
+          saida?: string
+          termina_no_dia_seguinte?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_jornada_horarios_jornada_id_fkey"
+            columns: ["jornada_id"]
+            isOneToOne: false
+            referencedRelation: "dp_jornadas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_jornadas: {
         Row: {
           ativo: boolean
@@ -4320,6 +4373,7 @@ export type Database = {
           carga_horaria_semanal: number
           company_id: string
           created_at: string
+          descricao: string | null
           dias_folga: number[]
           dias_trabalho: number[]
           horario_entrada: string | null
@@ -4340,6 +4394,7 @@ export type Database = {
           carga_horaria_semanal?: number
           company_id: string
           created_at?: string
+          descricao?: string | null
           dias_folga?: number[]
           dias_trabalho?: number[]
           horario_entrada?: string | null
@@ -4360,6 +4415,7 @@ export type Database = {
           carga_horaria_semanal?: number
           company_id?: string
           created_at?: string
+          descricao?: string | null
           dias_folga?: number[]
           dias_trabalho?: number[]
           horario_entrada?: string | null
@@ -7606,6 +7662,15 @@ export type Database = {
       dp_bulk_increment_processed: {
         Args: { p_batch_id: string }
         Returns: undefined
+      }
+      dp_calc_carga_dia: {
+        Args: {
+          _entrada: string
+          _intervalo_minutos: number
+          _saida: string
+          _vira_dia: boolean
+        }
+        Returns: number
       }
       dp_calc_data_regra: {
         Args: { _ano: number; _regra_id: string }
