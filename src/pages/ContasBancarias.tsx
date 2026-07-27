@@ -54,6 +54,7 @@ export default function ContasBancarias() {
   const [importAccountId, setImportAccountId] = useState<string | null>(null);
   const [postCreateAccountId, setPostCreateAccountId] = useState<string | null>(null);
   const [deleteAccount, setDeleteAccount] = useState<Account | null>(null);
+  const [deleteHasTx, setDeleteHasTx] = useState<boolean | null>(null);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [staleBalance, setStaleBalance] = useState(false);
@@ -164,6 +165,20 @@ export default function ContasBancarias() {
     setLastAccountAt(Date.now());
     fetchAccounts();
   }, [fetchAccounts]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!deleteAccount) { setDeleteHasTx(null); return; }
+    setDeleteHasTx(null);
+    (async () => {
+      const { count } = await supabase
+        .from("transactions")
+        .select("id", { count: "exact", head: true })
+        .or(`account_id.eq.${deleteAccount.id},destination_account_id.eq.${deleteAccount.id},connection_account_id.eq.${deleteAccount.id}`);
+      if (!cancelled) setDeleteHasTx((count ?? 0) > 0);
+    })();
+    return () => { cancelled = true; };
+  }, [deleteAccount]);
 
   const handleDelete = async () => {
     if (!deleteAccount) return;
@@ -488,8 +503,16 @@ export default function ContasBancarias() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir conta bancária</AlertDialogTitle>
-            <AlertDialogDescription>
-              A conta <strong>{deleteAccount?.name}</strong> será excluída definitivamente se não houver lançamentos vinculados. Se houver histórico, ela será arquivada para preservar a contabilidade.
+            <AlertDialogDescription data-testid="delete-account-description">
+              {deleteHasTx === null && (
+                <>Verificando lançamentos vinculados à conta <strong>{deleteAccount?.name}</strong>…</>
+              )}
+              {deleteHasTx === false && (
+                <>A conta <strong>{deleteAccount?.name}</strong> não possui lançamentos vinculados e será <strong>excluída definitivamente</strong>. Esta ação não pode ser desfeita.</>
+              )}
+              {deleteHasTx === true && (
+                <>A conta <strong>{deleteAccount?.name}</strong> possui lançamentos vinculados e será <strong>arquivada</strong> para preservar o histórico contábil. Ela deixará de aparecer nas listas.</>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
