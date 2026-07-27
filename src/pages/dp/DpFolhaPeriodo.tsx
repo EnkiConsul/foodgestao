@@ -37,10 +37,15 @@ const baixarCsv = (nome: string, conteudo: string) => {
 
 export default function DpFolhaPeriodo() {
   const { id } = useParams<{ id: string }>();
-  const { periodo, linhas, isLoading, error, alterarStatus, cancelarLancamento } = useDpFolhaPeriodo(id);
+  const {
+    periodo, linhas, transactionId, isLoading, error,
+    alterarStatus, cancelarLancamento, gerarDespesa, desfazerDespesa,
+  } = useDpFolhaPeriodo(id);
   const [busca, setBusca] = useState("");
   const [confirmar, setConfirmar] = useState<FolhaPeriodoStatus | null>(null);
   const [cancelar, setCancelar] = useState<string | null>(null);
+  const [despesaAberta, setDespesaAberta] = useState(false);
+  const [desfazerAberto, setDesfazerAberto] = useState(false);
 
   const filtradas = useMemo(
     () => linhas.filter((l) => !busca.trim() || l.nome.toLowerCase().includes(busca.trim().toLowerCase())),
