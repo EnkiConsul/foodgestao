@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import {
   lerDetalhe,
+  lerExtras,
+  valoresDoLancamento,
+  type RubricaExtra,
   type FolhaLancamentoStatus,
   type FolhaPeriodoStatus,
   type LinhaFolha,
@@ -151,6 +154,37 @@ export function useDpFolhaPeriodo(periodoId: string | undefined) {
     onError: (e: Error) => toast.error(e.message || "Não foi possível cancelar o lançamento."),
   });
 
+  /** Fase 16 — salva as rubricas avulsas de um lançamento e recalcula bruto/líquido. */
+  const salvarRubricas = useMutation({
+    mutationFn: async ({ id, extras }: { id: string; extras: RubricaExtra[] }) => {
+      const { data, error } = await supabase
+        .from("dp_folha_lancamentos")
+        .select("descontos, status")
+        .eq("id", id)
+        .single();
+      if (error) throw error;
+      if (data.status !== "rascunho") {
+        throw new Error("Só é possível editar rubricas em lançamentos em rascunho.");
+      }
+      const detalhe = { ...lerDetalhe(data.descontos), extras: lerExtras(extras) };
+      const valores = valoresDoLancamento(detalhe);
+      const { error: errUpd } = await supabase
+        .from("dp_folha_lancamentos")
+        .update({
+          descontos: detalhe as unknown as Record<string, unknown>,
+          valor_bruto: valores.bruto,
+          valor_liquido: valores.liquido,
+        })
+        .eq("id", id);
+      if (errUpd) throw errUpd;
+    },
+    onSuccess: () => {
+      toast.success("Rubricas atualizadas.");
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message || "Não foi possível salvar as rubricas."),
+  });
+
   /** Fase 14 — gera a despesa consolidada da folha no financeiro (conta a pagar). */
   const gerarDespesa = useMutation({
     mutationFn: async (params: { accountId?: string | null; categoryId?: string | null; dataPagamento?: string | null }) => {
@@ -197,6 +231,7 @@ export function useDpFolhaPeriodo(periodoId: string | undefined) {
     error: periodoQuery.error ?? linhasQuery.error,
     alterarStatus,
     cancelarLancamento,
+    salvarRubricas,
     gerarDespesa,
     desfazerDespesa,
   };
