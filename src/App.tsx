@@ -74,6 +74,7 @@ const DpCadastroPendencias = lazy(() => import("./pages/dp/cadastros/DpCadastroP
 const DpCadastroJornadas = lazy(() => import("./pages/dp/cadastros/DpCadastroJornadas"));
 const DpConfiguracoesJornada = lazy(() => import("./pages/dp/cadastros/DpConfiguracoesJornada"));
 const DpConformidadeDsr = lazy(() => import("./pages/dp/DpConformidadeDsr"));
+const DpEscalas = lazy(() => import("./pages/dp/DpEscalas"));
 const DpUnidades = lazy(() => import("./pages/dp/DpUnidades"));
 const DpCargos = lazy(() => import("./pages/dp/DpCargos"));
 const DpSindicatos = lazy(() => import("./pages/dp/DpSindicatos"));
@@ -390,6 +391,7 @@ const AppRoutes = () => (
         <Route path="cadastros/jornadas" element={<DpCadastroJornadas />} />
         <Route path="cadastros/regras-jornada" element={<DpConfiguracoesJornada />} />
         <Route path="conformidade-dsr" element={<DpConformidadeDsr />} />
+        <Route path="escalas" element={<DpEscalas />} />
         <Route path="documentos/act-cct" element={<DpSindicatoNegociacoes />} />
         <Route path="configuracoes" element={<DpConfiguracoes />} />
         <Route path="sindicatos" element={<Navigate to="/dp/cadastros/sindicatos" replace />} />
