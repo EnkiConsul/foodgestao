@@ -1,24 +1,25 @@
-## Objetivo
+## Problema 1 — Erro ao salvar
 
-Manter a lógica atual (dias negociados = leque de opções; quantidade de folgas = teto mensal) e deixar isso **explícito na interface**, para não haver dúvida de que marcar mais dias não aumenta o número de folgas.
+Confirmado no banco: existe a restrição `dp_config_dp_acordo_requer_negociacao_chk`, que obriga preencher `negociacao_id` sempre que o modo for "Acordo coletivo". Como o vínculo com o sindicato foi removido da tela, o salvamento no modo acordo sempre falha (erro 23514 nas tentativas de 04:49).
 
-## 1. Tela "Regras de Folgas" (`/dp/folgas/configuracoes/regras`)
+**Correção:** migração que remove essa restrição. A coluna `negociacao_id` continua existindo (histórico), apenas deixa de ser obrigatória.
 
-No bloco **Dias de descanso negociados**, abaixo dos chips Seg→Dom:
+## Problema 2 — Campo "Folgas de fim de semana por mês (colaborador)"
 
-- Texto de apoio: "Os dias marcados são as **opções** que o colaborador pode escolher no calendário. Marcar mais dias não aumenta a quantidade de folgas."
-- Linha de resumo dinâmica, calculada com os valores já configurados: "Com esta configuração, o colaborador escolhe até **X folga(s) por mês** entre os dias marcados." — X vem de `tetoFolgasMes(config)`.
-- Ícone "i" com popover curto explicando a composição do teto: menor valor entre o teto de folgas por mês e o derivado da frequência de folga dominical.
+Ele é realmente redundante: a quantidade de folgas que o colaborador pode marcar já é derivada da frequência configurada acima (geral e mulheres).
 
-## 2. Portal do colaborador
+**Correção:**
 
-- No calendário (`/dp/meu/calendario`) e no formulário de solicitação: legenda no topo com "Você pode escolher entre: Seg, Qua, Dom — até X folga(s) neste mês", usando os mesmos dias elegíveis e teto que o motor já aplica.
-- Sem mudança de regra: os bloqueios e a mensagem "Teto do mês" continuam como estão.
+- Remover o campo da tela de regras.
+- O teto mensal passa a vir **apenas** da frequência de folga dominical: modo "X por mês" → X folgas; modo "a cada X semanas" → arredondamento de 4,345 ÷ X (ex.: a cada 3 semanas = 1 folga/mês).
+- Para colaboradoras, vale a frequência feminina quando ela for mais protetiva (mais folgas).
+- O resumo já exibido na tela e no portal ("escolhe até N folga(s) por mês") continua funcionando, agora refletindo só a frequência.
+- A coluna `folgas_fds_por_mes` permanece no banco por compatibilidade, mas deixa de ser lida/gravada pelo app.
 
 ## Detalhes técnicos
 
-- Sem migração de banco e sem mudança de lógica em `src/lib/dp/folga-rules.ts` nem em `diasElegiveisDaConfig` / `tetoFolgasMes`.
-- `src/lib/dp/dsr-rules.ts`: adicionar helper puro `resumoEscolhaFolgas(cfg)` retornando `{ dias: number[], teto: number, texto: string }` para reaproveitar nas três telas.
-- `src/pages/dp/cadastros/DpConfiguracoesJornada.tsx`: textos de apoio + popover no bloco de dias negociados.
-- `src/pages/dp/portal/DpMeuCalendario.tsx` e `src/pages/dp/portal/DpMeuSolicitacoes.tsx`: exibir a legenda usando `useDpRegrasColaborador` (já consumido nessas telas).
-- Teste: caso em `src/lib/dp/__tests__/dsr-rules.test.ts` cobrindo `resumoEscolhaFolgas` com 3 dias marcados e teto 1.
+- Migração: `ALTER TABLE public.dp_config_dp DROP CONSTRAINT dp_config_dp_acordo_requer_negociacao_chk;`
+- `src/lib/dp/dsr-rules.ts`: `tetoFolgasMes` deixa de considerar `folgas_fds_por_mes` e passa a aceitar `{ sexo }` opcional para aplicar a frequência feminina; `resumoEscolhaFolgas` acompanha a mudança.
+- `src/pages/dp/cadastros/DpConfiguracoesJornada.tsx`: remover o input do campo (linhas ~455-460).
+- `src/hooks/useDpConfigDp.tsx` e `src/hooks/useDpRegrasColaborador.tsx`: parar de selecionar/enviar `folgas_fds_por_mes`; o hook do portal passa o sexo do colaborador para o cálculo do teto.
+- `src/lib/dp/__tests__/dsr-rules.test.ts`: atualizar os casos que hoje passam `folgas_fds_por_mes` e adicionar caso do teto feminino.

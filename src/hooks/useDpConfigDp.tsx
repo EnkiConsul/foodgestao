@@ -17,7 +17,7 @@ interface ConfigRow extends DpConfigDpForm {
 
 const COLUNAS =
   "id, company_id, unidade_id, setor_comercio, modo_frequencia_domingo, periodicidade_domingo, domingos_por_mes, " +
-  "modo_frequencia_domingo_mulher, periodicidade_domingo_mulher, domingos_por_mes_mulher, folgas_fds_por_mes, " +
+  "modo_frequencia_domingo_mulher, periodicidade_domingo_mulher, domingos_por_mes_mulher, " +
   "regra_dsr, exige_validacao_menor, tipo_descanso_domingo, dias_descanso_negociados, negociacao_id";
 
 const asModo = (v: unknown): ModoFrequencia => (v === "por_mes" ? "por_mes" : "semanas");
@@ -33,7 +33,6 @@ function mapRow(data: Record<string, unknown>): ConfigRow {
     modo_frequencia_domingo_mulher: asModo(data.modo_frequencia_domingo_mulher),
     periodicidade_domingo_mulher: Number(data.periodicidade_domingo_mulher ?? 2),
     domingos_por_mes_mulher: Number(data.domingos_por_mes_mulher ?? 2),
-    folgas_fds_por_mes: Number(data.folgas_fds_por_mes ?? 1),
     regra_dsr: (data.regra_dsr ?? "clt") as DpConfigDpForm["regra_dsr"],
     exige_validacao_menor: data.exige_validacao_menor !== false,
     tipo_descanso_domingo:
