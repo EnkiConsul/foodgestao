@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { toTitleCase } from "@/lib/titleCase";
 
 interface NavigationCardProps {
   title: string;
@@ -30,7 +31,7 @@ export function NavigationCard({ title, description, to, icon: Icon, count, clas
           </div>
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
-              <p className="font-semibold truncate">{title}</p>
+              <p className="font-semibold truncate">{toTitleCase(title)}</p>
               {description && (
                 <p className="text-xs text-muted-foreground line-clamp-2">{description}</p>
               )}

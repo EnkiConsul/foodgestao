@@ -17,6 +17,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import { toTitleCase } from "@/lib/titleCase";
 
 type Sub = { title: string; url: string; icon: LucideIcon; end?: boolean };
 type Item =
@@ -224,7 +225,7 @@ function DpLink({ item, collapsed }: { item: Extract<Item, { kind: "link" }>; co
         }
       >
         <item.icon className="h-4 w-4 shrink-0" />
-        {!collapsed && <span>{item.title}</span>}
+        {!collapsed && <span>{toTitleCase(item.title)}</span>}
       </NavLink>
     </SidebarMenuItem>
   );
@@ -286,7 +287,7 @@ function DpGroup({
         )}
       >
         <item.icon className="h-4 w-4 shrink-0" />
-        <span className="flex-1 text-left">{item.title}</span>
+        <span className="flex-1 text-left">{toTitleCase(item.title)}</span>
         <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
       </button>
       {isOpen && (
@@ -306,7 +307,7 @@ function DpGroup({
               }
             >
               <sub.icon className="h-3.5 w-3.5 shrink-0" />
-              <span>{sub.title}</span>
+              <span>{toTitleCase(sub.title)}</span>
             </NavLink>
           ))}
         </div>
@@ -356,7 +357,7 @@ function DpStaticGroup({
     <SidebarMenuItem>
       <div className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold text-muted-foreground">
         <item.icon className="h-4 w-4 shrink-0" />
-        <span>{item.title}</span>
+        <span>{toTitleCase(item.title)}</span>
       </div>
       <div className="mt-1 ml-4 pl-3 border-l border-[hsl(var(--dp-border))] space-y-0.5">
         {item.items.map((sub) => (
@@ -374,7 +375,7 @@ function DpStaticGroup({
             }
           >
             <sub.icon className="h-3.5 w-3.5 shrink-0" />
-            <span>{sub.title}</span>
+            <span>{toTitleCase(sub.title)}</span>
           </NavLink>
         ))}
       </div>
