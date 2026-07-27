@@ -11,6 +11,8 @@ import {
   pendenciasDoFechamento,
   espelhoParaCsv,
   type ResumoPontoDia,
+  consolidarPeriodo,
+  equipeParaCsv,
 } from "@/lib/dp/ponto";
 import type { HorarioPrevisto } from "@/lib/dp/horario-previsto";
 
@@ -149,5 +151,38 @@ describe("fechamento e banco de horas", () => {
     expect(linhas).toHaveLength(2);
     expect(linhas[0].startsWith('Colaborador;Competencia')).toBe(true);
     expect(linhas[1]).toContain('"Karine"');
+  });
+});
+
+describe("consolidação do time (Fase 10)", () => {
+  const previsto = new Map([
+    ["2026-07-01", { colaborador_id: "c1", data: "2026-07-01", trabalha: true, tipo: "trabalho", turno_id: null, entrada: "08:00", saida: "17:00", intervalo_minutos: 60, termina_no_dia_seguinte: false, carga_prevista_horas: 8, fonte: "escala_publicada", confirmado: true } as never],
+  ]);
+
+  it("consolida cada data do período", () => {
+    const dias = consolidarPeriodo(["2026-07-01", "2026-07-02"], previsto as never, new Map(), "2026-07-05");
+    expect(dias).toHaveLength(2);
+    expect(dias[0].status).toBe("falta");
+    expect(dias[0].minutosPrevistos).toBe(480);
+  });
+
+  it("exporta CSV consolidado com uma linha por colaborador", () => {
+    const dias = consolidarPeriodo(["2026-07-01"], previsto as never, new Map(), "2026-07-05");
+    const csv = equipeParaCsv("2026-07", [
+      {
+        colaborador_id: "c1",
+        nome: "Ana",
+        dias,
+        totais: totalizarPeriodo(dias),
+        pendencias: 0,
+        fechado: false,
+        saldoAnteriorMinutos: 60,
+        saldoAcumuladoMinutos: 60,
+      },
+    ]);
+    const linhas = csv.split("\n");
+    expect(linhas).toHaveLength(2);
+    expect(linhas[1]).toContain("Ana");
+    expect(linhas[1]).toContain("Aberto");
   });
 });
