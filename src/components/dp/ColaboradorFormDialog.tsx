@@ -8,7 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useUpsertDpColaborador, type DpColaborador } from "@/hooks/useDpColaboradores";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
+import { Textarea } from "@/components/ui/textarea";
 import { maskCpf, isValidCpf } from "@/lib/cpf";
+import { MOTIVO_DESLIGAMENTO_OPTIONS, ELEGIBILIDADE_OPTIONS } from "@/lib/dp/desligamento";
 import type { Database } from "@/integrations/supabase/types";
 
 type Regime = Database["public"]["Enums"]["dp_regime_trabalho"];
@@ -52,6 +54,8 @@ interface Props {
   colaborador?: DpColaborador | null;
 }
 
+const NONE_DESLIG = "__none__";
+
 const blank = {
   nome: "",
   cpf: "",
@@ -63,6 +67,9 @@ const blank = {
   data_admissao: "",
   data_nascimento: "",
   data_desligamento: "",
+  motivo_desligamento: NONE_DESLIG,
+  elegivel_recontratacao: NONE_DESLIG,
+  observacao_desligamento: "",
   tipo_vinculo: "CLT",
   folga_fixa_semana: "none",
   perfil_acesso: "colaborador" as "colaborador" | "gestor" | "admin",
@@ -78,6 +85,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const [form, setForm] = useState(blank);
 
   const isEdit = !!colaborador?.id;
+  const isDesligado = isEdit && !!colaborador?.data_desligamento;
 
   useEffect(() => {
     if (!open) return;
@@ -93,6 +101,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       data_admissao: c.data_admissao ?? "",
       data_nascimento: c.data_nascimento ?? "",
       data_desligamento: c.data_desligamento ?? "",
+      motivo_desligamento: c.motivo_desligamento ?? NONE_DESLIG,
+      elegivel_recontratacao: c.elegivel_recontratacao ?? NONE_DESLIG,
+      observacao_desligamento: c.observacao_desligamento ?? "",
       
       tipo_vinculo: c.tipo_vinculo ?? (c.regime ? String(c.regime).toUpperCase() : "CLT"),
       folga_fixa_semana: c.folga_fixa_semana != null ? String(c.folga_fixa_semana) : "none",
@@ -157,6 +168,15 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       }
     } catch { /* silencioso — o banco tem constraint de reserva */ }
 
+    if (isDesligado && !form.data_desligamento) {
+      toast.error("Informe a data da demissão");
+      return;
+    }
+    if (form.observacao_desligamento.length > 2000) {
+      toast.error("Observação do desligamento muito longa (máx. 2000 caracteres)");
+      return;
+    }
+
     const cargoNome = (cargos.data ?? []).find((c) => c.id === form.cargo_id)?.nome ?? null;
 
     try {
@@ -178,6 +198,16 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         folga_fixa_semana: form.folga_fixa_semana !== "none" ? Number(form.folga_fixa_semana) : null,
         possui_folha_ponto: form.possui_folha_ponto,
         optante_adiantamento: form.optante_adiantamento,
+        ...(isDesligado
+          ? {
+              data_desligamento: form.data_desligamento,
+              motivo_desligamento:
+                form.motivo_desligamento === NONE_DESLIG ? null : form.motivo_desligamento,
+              elegivel_recontratacao:
+                form.elegivel_recontratacao === NONE_DESLIG ? null : form.elegivel_recontratacao,
+              observacao_desligamento: form.observacao_desligamento.trim() || null,
+            }
+          : {}),
       } as any);
       toast.success(isEdit ? "Colaborador atualizado" : "Colaborador cadastrado");
       onOpenChange(false);
@@ -360,18 +390,65 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             )}
           </div>
 
-          {/* Situação (somente leitura — desligamento é feito pela ação "Desligar") */}
-          {isEdit && !form.ativo && (
-            <div className="col-span-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">
-              <div className="font-semibold text-destructive">Colaborador desligado</div>
-              <div className="text-xs text-muted-foreground mt-0.5">
-                Data da demissão: {form.data_desligamento
-                  ? new Date(`${form.data_desligamento}T12:00:00`).toLocaleDateString("pt-BR")
-                  : "—"}. Use a ação “Reintegrar” na lista de colaboradores para reativar.
+          {/* Desligamento (editável quando o colaborador está desligado) */}
+          {isDesligado && (
+            <div className="col-span-2 space-y-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
+              <div className="text-sm font-semibold text-destructive">Dados Do Desligamento</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Data da demissão *</Label>
+                  <Input
+                    type="date"
+                    value={form.data_desligamento}
+                    onChange={(e) => setForm({ ...form, data_desligamento: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Motivo do desligamento</Label>
+                  <Select
+                    value={form.motivo_desligamento}
+                    onValueChange={(v) => setForm({ ...form, motivo_desligamento: v })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Selecione (opcional)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE_DESLIG}>Não informar</SelectItem>
+                      {MOTIVO_DESLIGAMENTO_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Recontrataria?</Label>
+                  <Select
+                    value={form.elegivel_recontratacao}
+                    onValueChange={(v) => setForm({ ...form, elegivel_recontratacao: v })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Selecione (opcional)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE_DESLIG}>Não informar</SelectItem>
+                      {ELEGIBILIDADE_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+              <div className="space-y-1.5">
+                <Label>Considerações do desligamento</Label>
+                <Textarea
+                  rows={3}
+                  maxLength={2000}
+                  placeholder="Notas internas para futuras avaliações de recontratação..."
+                  value={form.observacao_desligamento}
+                  onChange={(e) => setForm({ ...form, observacao_desligamento: e.target.value })}
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Alterar a data recalcula o prazo de acesso ao portal. Use a ação “Reintegrar” na lista para reativar o colaborador.
+              </p>
             </div>
           )}
-
 
           {/* Senha Inicial */}
           {!isEdit && (
