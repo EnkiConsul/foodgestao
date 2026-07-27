@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "react-router-dom";
-import { Download, Receipt, Search } from "lucide-react";
+import { Download, Receipt, Search, Wallet } from "lucide-react";
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
+import { FolhaDespesaDialog } from "@/components/dp/FolhaDespesaDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,9 +18,10 @@ import {
 import { useDpFolhaPeriodo } from "@/hooks/useDpFolha";
 import {
   FOLHA_TIPO_LABEL, LANCAMENTO_STATUS_LABEL, PERIODO_STATUS_LABEL,
-  folhaParaCsv, formatarBRL, proximoStatusPeriodo, totaisDaFolha,
+  folhaParaCsv, formatarBRL, podeGerarDespesa, proximoStatusPeriodo, totaisDaFolha,
   type FolhaPeriodoStatus,
 } from "@/lib/dp/folha";
+
 
 const rotuloCompetencia = (iso: string) =>
   new Date(`${iso.slice(0, 7)}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
