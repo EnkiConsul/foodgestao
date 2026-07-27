@@ -53,6 +53,7 @@ const ADMIN_ITEMS: Item[] = [
       { title: "Trocas", url: "/dp/trocas", icon: ArrowLeftRight },
       { title: "Datas Bloqueadas", url: "/dp/bloqueios", icon: Ban },
       { title: "Férias", url: "/dp/ferias", icon: Palmtree },
+      { title: "Escala do Mês", url: "/dp/escalas/mes", icon: CalendarRange },
       { title: "Gerador de Escala", url: "/dp/escalas", icon: CalendarRange },
       { title: "Conformidade DSR", url: "/dp/conformidade-dsr", icon: Scale },
       { title: "Regras De Folgas", url: "/dp/folgas/configuracoes/regras", icon: Settings },
