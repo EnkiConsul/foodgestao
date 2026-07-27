@@ -398,6 +398,16 @@ export default function ContasBancarias() {
                       variant="ghost"
                       size="icon"
                       className="h-10 w-10 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                      onClick={() => setAdjustAccount(a)}
+                      aria-label="Ajustar saldo"
+                      title="Ajustar saldo"
+                    >
+                      <SlidersHorizontal className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 text-muted-foreground hover:text-primary hover:bg-primary/10"
                       onClick={() => openManualForm(a)}
                       aria-label="Editar conta"
                     >
