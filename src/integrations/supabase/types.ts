@@ -2860,6 +2860,7 @@ export type Database = {
       }
       dp_cobertura_minima: {
         Row: {
+          ativo: boolean
           cargo_id: string | null
           company_id: string
           created_at: string
@@ -2867,10 +2868,14 @@ export type Database = {
           id: string
           minimo: number
           turno: Database["public"]["Enums"]["dp_turno"] | null
+          turno_id: string | null
           unidade_id: string | null
           updated_at: string
+          vigencia_fim: string | null
+          vigencia_inicio: string | null
         }
         Insert: {
+          ativo?: boolean
           cargo_id?: string | null
           company_id: string
           created_at?: string
@@ -2878,10 +2883,14 @@ export type Database = {
           id?: string
           minimo?: number
           turno?: Database["public"]["Enums"]["dp_turno"] | null
+          turno_id?: string | null
           unidade_id?: string | null
           updated_at?: string
+          vigencia_fim?: string | null
+          vigencia_inicio?: string | null
         }
         Update: {
+          ativo?: boolean
           cargo_id?: string | null
           company_id?: string
           created_at?: string
@@ -2889,8 +2898,11 @@ export type Database = {
           id?: string
           minimo?: number
           turno?: Database["public"]["Enums"]["dp_turno"] | null
+          turno_id?: string | null
           unidade_id?: string | null
           updated_at?: string
+          vigencia_fim?: string | null
+          vigencia_inicio?: string | null
         }
         Relationships: [
           {
@@ -2905,6 +2917,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_cobertura_minima_turno_id_fkey"
+            columns: ["turno_id"]
+            isOneToOne: false
+            referencedRelation: "dp_turnos"
             referencedColumns: ["id"]
           },
           {
