@@ -265,6 +265,26 @@ export default function DpConfiguracoesJornada() {
 
       <Section title="Folga dominical (DSR)">
         <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="regra-dsr">Base da regra de DSR</Label>
+            <Select
+              value={form.regra_dsr}
+              onValueChange={(v) => setBaseRegra(v as DpConfigDpForm["regra_dsr"])}
+            >
+              <SelectTrigger id="regra-dsr"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="clt">CLT (padrão legal)</SelectItem>
+                <SelectItem value="cct">Acordo/Convenção coletiva</SelectItem>
+                <SelectItem value="propria">Política própria da empresa</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {travadoClt
+                ? "Valores fixados pelo padrão CLT — mude a base da regra para editar a frequência."
+                : "Frequências livres: os campos abaixo podem divergir do padrão CLT, com registro de ciência."}
+            </p>
+          </div>
+
           <div className="sm:col-span-2 flex items-start justify-between gap-4 rounded-lg border p-3">
             <div>
               <Label htmlFor="setor-comercio" className="text-sm font-medium">Empresa do comércio / food service</Label>
@@ -275,13 +295,14 @@ export default function DpConfiguracoesJornada() {
             <Switch
               id="setor-comercio"
               checked={form.setor_comercio}
-              onCheckedChange={(v) => set("setor_comercio", v)}
+              onCheckedChange={setSetorComercio}
             />
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="modo-freq">Modelo de frequência</Label>
             <Select
+              disabled={travadoClt}
               value={form.modo_frequencia_domingo}
               onValueChange={(v) => set("modo_frequencia_domingo", v as ModoFrequencia)}
             >
@@ -301,21 +322,25 @@ export default function DpConfiguracoesJornada() {
             <div className="space-y-1.5">
               <Label htmlFor="per-domingo">Domingo de folga a cada (semanas)</Label>
               <Input
-                id="per-domingo" type="number" min={0} max={12}
+                id="per-domingo" type="number" min={0} max={12} disabled={travadoClt}
                 value={form.periodicidade_domingo}
                 onChange={(e) => set("periodicidade_domingo", num(e.target.value, padrao))}
               />
               <p className="text-xs text-muted-foreground">
                 Padrão legal: {padrao}. Use 0 para não exigir folga dominical.
-                {isMenosProtetiva(semanas.geral, padrao) && (
-                  <Badge variant="destructive" className="ml-2">Menos protetiva</Badge>
-                )}
               </p>
+              {isMenosProtetiva(semanas.geral, padrao) && (
+                <MenosProtetivaBadge
+                  campo="periodicidade_domingo" setorComercio={form.setor_comercio}
+                  valor={semanas.geral} padrao={padrao}
+                />
+              )}
             </div>
           ) : (
             <div className="space-y-1.5">
               <Label htmlFor="dom-mes">Domingos de folga por mês</Label>
               <Select
+                disabled={travadoClt}
                 value={String(form.domingos_por_mes)}
                 onValueChange={(v) => set("domingos_por_mes", Number(v))}
               >
@@ -330,16 +355,20 @@ export default function DpConfiguracoesJornada() {
               </Select>
               <p className="text-xs text-muted-foreground">
                 Equivale a 1 domingo a cada {semanas.geral ? semanas.geral.toFixed(1) : "—"} semana(s).
-                {isMenosProtetiva(semanas.geral, padrao) && (
-                  <Badge variant="destructive" className="ml-2">Menos protetiva</Badge>
-                )}
               </p>
+              {isMenosProtetiva(semanas.geral, padrao) && (
+                <MenosProtetivaBadge
+                  campo="periodicidade_domingo" setorComercio={form.setor_comercio}
+                  valor={semanas.geral} padrao={padrao}
+                />
+              )}
             </div>
           )}
 
           <div className="space-y-1.5">
             <Label htmlFor="modo-freq-mulher">Modelo de frequência — mulheres</Label>
             <Select
+              disabled={travadoClt}
               value={form.modo_frequencia_domingo_mulher}
               onValueChange={(v) => set("modo_frequencia_domingo_mulher", v as ModoFrequencia)}
             >
@@ -357,21 +386,25 @@ export default function DpConfiguracoesJornada() {
             <div className="space-y-1.5">
               <Label htmlFor="per-domingo-mulher">Domingo de folga — mulheres (semanas)</Label>
               <Input
-                id="per-domingo-mulher" type="number" min={0} max={12}
+                id="per-domingo-mulher" type="number" min={0} max={12} disabled={travadoClt}
                 value={form.periodicidade_domingo_mulher}
                 onChange={(e) => set("periodicidade_domingo_mulher", num(e.target.value, PADRAO_LEGAL_DOMINGO_MULHER))}
               />
               <p className="text-xs text-muted-foreground">
                 Padrão legal: {PADRAO_LEGAL_DOMINGO_MULHER} semanas.
-                {temMulheres && isMenosProtetiva(semanas.mulher, PADRAO_LEGAL_DOMINGO_MULHER) && (
-                  <Badge variant="destructive" className="ml-2">Menos protetiva</Badge>
-                )}
               </p>
+              {isMenosProtetiva(semanas.mulher, PADRAO_LEGAL_DOMINGO_MULHER) && (
+                <MenosProtetivaBadge
+                  campo="periodicidade_domingo_mulher" setorComercio={form.setor_comercio}
+                  valor={semanas.mulher} padrao={PADRAO_LEGAL_DOMINGO_MULHER}
+                />
+              )}
             </div>
           ) : (
             <div className="space-y-1.5">
               <Label htmlFor="dom-mes-mulher">Domingos por mês — mulheres</Label>
               <Select
+                disabled={travadoClt}
                 value={String(form.domingos_por_mes_mulher)}
                 onValueChange={(v) => set("domingos_por_mes_mulher", Number(v))}
               >
@@ -386,14 +419,17 @@ export default function DpConfiguracoesJornada() {
               </Select>
               <p className="text-xs text-muted-foreground">
                 Equivale a 1 domingo a cada {semanas.mulher ? semanas.mulher.toFixed(1) : "—"} semana(s).
-                {temMulheres && isMenosProtetiva(semanas.mulher, PADRAO_LEGAL_DOMINGO_MULHER) && (
-                  <Badge variant="destructive" className="ml-2">Menos protetiva</Badge>
-                )}
               </p>
+              {isMenosProtetiva(semanas.mulher, PADRAO_LEGAL_DOMINGO_MULHER) && (
+                <MenosProtetivaBadge
+                  campo="periodicidade_domingo_mulher" setorComercio={form.setor_comercio}
+                  valor={semanas.mulher} padrao={PADRAO_LEGAL_DOMINGO_MULHER}
+                />
+              )}
             </div>
           )}
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="folgas-fds">Folgas de fim de semana por mês (colaborador)</Label>
             <Input
               id="folgas-fds" type="number" min={0} max={5}
@@ -401,23 +437,13 @@ export default function DpConfiguracoesJornada() {
               onChange={(e) => set("folgas_fds_por_mes", num(e.target.value, 1))}
             />
             <p className="text-xs text-muted-foreground">
-              Teto de sábados/domingos que o colaborador pode marcar sozinho no portal.
+              Teto de dias de descanso que o colaborador pode marcar sozinho no portal. Vale o menor valor entre
+              este teto e a frequência configurada acima.
             </p>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="regra-dsr">Base da regra de DSR</Label>
-            <Select value={form.regra_dsr} onValueChange={(v) => set("regra_dsr", v as DpConfigDpForm["regra_dsr"])}>
-              <SelectTrigger id="regra-dsr"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="clt">CLT (padrão legal)</SelectItem>
-                <SelectItem value="cct">Acordo/Convenção coletiva</SelectItem>
-                <SelectItem value="propria">Política própria da empresa</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </div>
       </Section>
+
 
       <FeriasRegrasSection />
 
