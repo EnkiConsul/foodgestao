@@ -3190,10 +3190,15 @@ export type Database = {
         Row: {
           company_id: string
           created_at: string
+          dias_descanso_negociados: number[]
+          domingos_por_mes: number
+          domingos_por_mes_mulher: number
           exige_validacao_menor: boolean
           folgas_fds_por_mes: number
           id: string
           modo_domingo: string
+          modo_frequencia_domingo: string
+          modo_frequencia_domingo_mulher: string
           negociacao_id: string | null
           periodicidade_domingo: number
           periodicidade_domingo_mulher: number
@@ -3202,15 +3207,21 @@ export type Database = {
           regra_dsr: Database["public"]["Enums"]["dp_regra_dsr"]
           setor_comercio: boolean
           tipo_descanso_domingo: string
+          unidade_id: string | null
           updated_at: string
         }
         Insert: {
           company_id: string
           created_at?: string
+          dias_descanso_negociados?: number[]
+          domingos_por_mes?: number
+          domingos_por_mes_mulher?: number
           exige_validacao_menor?: boolean
           folgas_fds_por_mes?: number
           id?: string
           modo_domingo?: string
+          modo_frequencia_domingo?: string
+          modo_frequencia_domingo_mulher?: string
           negociacao_id?: string | null
           periodicidade_domingo?: number
           periodicidade_domingo_mulher?: number
@@ -3219,15 +3230,21 @@ export type Database = {
           regra_dsr?: Database["public"]["Enums"]["dp_regra_dsr"]
           setor_comercio?: boolean
           tipo_descanso_domingo?: string
+          unidade_id?: string | null
           updated_at?: string
         }
         Update: {
           company_id?: string
           created_at?: string
+          dias_descanso_negociados?: number[]
+          domingos_por_mes?: number
+          domingos_por_mes_mulher?: number
           exige_validacao_menor?: boolean
           folgas_fds_por_mes?: number
           id?: string
           modo_domingo?: string
+          modo_frequencia_domingo?: string
+          modo_frequencia_domingo_mulher?: string
           negociacao_id?: string | null
           periodicidade_domingo?: number
           periodicidade_domingo_mulher?: number
@@ -3236,13 +3253,14 @@ export type Database = {
           regra_dsr?: Database["public"]["Enums"]["dp_regra_dsr"]
           setor_comercio?: boolean
           tipo_descanso_domingo?: string
+          unidade_id?: string | null
           updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "dp_config_dp_company_id_fkey"
             columns: ["company_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -3251,6 +3269,13 @@ export type Database = {
             columns: ["negociacao_id"]
             isOneToOne: false
             referencedRelation: "dp_sindicato_negociacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_config_dp_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -7366,6 +7391,38 @@ export type Database = {
       }
       dp_colaborador_ativo_of: { Args: { _user_id: string }; Returns: string }
       dp_colaborador_of: { Args: { _user_id: string }; Returns: string }
+      dp_config_resolvida: {
+        Args: { _company_id: string; _unidade_id?: string }
+        Returns: {
+          company_id: string
+          created_at: string
+          dias_descanso_negociados: number[]
+          domingos_por_mes: number
+          domingos_por_mes_mulher: number
+          exige_validacao_menor: boolean
+          folgas_fds_por_mes: number
+          id: string
+          modo_domingo: string
+          modo_frequencia_domingo: string
+          modo_frequencia_domingo_mulher: string
+          negociacao_id: string | null
+          periodicidade_domingo: number
+          periodicidade_domingo_mulher: number
+          politica_feriado: Database["public"]["Enums"]["dp_politica_feriado"]
+          politica_sabado: Database["public"]["Enums"]["dp_politica_sabado"]
+          regra_dsr: Database["public"]["Enums"]["dp_regra_dsr"]
+          setor_comercio: boolean
+          tipo_descanso_domingo: string
+          unidade_id: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "dp_config_dp"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       dp_desligar_colaborador: {
         Args: {
           p_colaborador_id: string
