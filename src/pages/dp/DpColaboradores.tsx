@@ -423,7 +423,7 @@ export default function DpColaboradores() {
                           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditing(c); setDialogOpen(true); }} title="Editar">
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setJornadaTarget(c)} title="Jornada e escala">
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setJornadaTarget(c)} title="Configuração de trabalho">
                             <Clock className="h-4 w-4" />
                           </Button>
                           <DropdownMenu>
@@ -547,7 +547,7 @@ export default function DpColaboradores() {
                   <Pencil className="h-4 w-4 mr-1" /> Editar
                 </Button>
                 <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => setJornadaTarget(c)}>
-                  <Clock className="h-4 w-4 mr-1" /> Jornada
+                  <Clock className="h-4 w-4 mr-1" /> Trabalho
                 </Button>
                 {c.user_id && (
                   <>
