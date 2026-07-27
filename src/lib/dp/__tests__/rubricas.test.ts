@@ -26,7 +26,7 @@ describe("rubricas avulsas (Fase 16)", () => {
         { descricao: "Prêmio", natureza: "provento", valor: 0 },
         { descricao: "Erro", natureza: "provento", valor: -50 },
       ]),
-    ).toEqual([{ descricao: "Adiantamento", natureza: "desconto", valor: 500 }]);
+    ).toEqual([{ descricao: "Adiantamento", natureza: "desconto", valor: 500, tributavel: true }]);
   });
 
   it("lerDetalhe devolve extras vazios em detalhes legados", () => {

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { Calculator, Receipt } from "lucide-react";
+import { Calculator, FileSignature, Gift, Receipt } from "lucide-react";
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
@@ -47,12 +47,26 @@ export default function DpFolha() {
         description="Períodos gerados pela apuração do ponto e seu ciclo de aprovação."
         icon={Receipt}
         actions={
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/dp/ponto/apuracao">
-              <Calculator className="mr-2 h-4 w-4" />
-              Apuração do Ponto
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/dp/folha/provisoes">
+                <Gift className="mr-2 h-4 w-4" />
+                Férias e 13º
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/dp/rescisoes">
+                <FileSignature className="mr-2 h-4 w-4" />
+                Rescisões
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/dp/ponto/apuracao">
+                <Calculator className="mr-2 h-4 w-4" />
+                Apuração do Ponto
+              </Link>
+            </Button>
+          </div>
         }
       />
 

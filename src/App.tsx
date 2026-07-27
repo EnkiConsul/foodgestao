@@ -85,6 +85,8 @@ const DpPontoConsolidado = lazyWithRetry(() => import("./pages/dp/DpPontoConsoli
 const DpPontoApuracao = lazyWithRetry(() => import("./pages/dp/DpPontoApuracao"));
 const DpFolha = lazyWithRetry(() => import("./pages/dp/DpFolha"));
 const DpFolhaPeriodo = lazyWithRetry(() => import("./pages/dp/DpFolhaPeriodo"));
+const DpFolhaProvisoes = lazyWithRetry(() => import("./pages/dp/DpFolhaProvisoes"));
+const DpRescisoes = lazyWithRetry(() => import("./pages/dp/DpRescisoes"));
 const DpUnidades = lazyWithRetry(() => import("./pages/dp/DpUnidades"));
 const DpCargos = lazyWithRetry(() => import("./pages/dp/DpCargos"));
 const DpSindicatos = lazyWithRetry(() => import("./pages/dp/DpSindicatos"));
@@ -421,6 +423,8 @@ const AppRoutes = () => (
         <Route path="ponto/time" element={<DpPontoConsolidado />} />
         <Route path="ponto/apuracao" element={<DpPontoApuracao />} />
         <Route path="folha" element={<DpFolha />} />
+        <Route path="folha/provisoes" element={<DpFolhaProvisoes />} />
+        <Route path="rescisoes" element={<DpRescisoes />} />
         <Route path="folha/:id" element={<DpFolhaPeriodo />} />
         <Route path="documentos/act-cct" element={<DpSindicatoNegociacoes />} />
         <Route path="configuracoes" element={<DpConfiguracoes />} />

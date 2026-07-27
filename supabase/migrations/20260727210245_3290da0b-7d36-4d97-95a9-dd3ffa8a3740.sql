@@ -1,0 +1,1 @@
+ALTER TYPE public.dp_folha_tipo ADD VALUE IF NOT EXISTS 'rescisao';

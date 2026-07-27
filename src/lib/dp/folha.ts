@@ -32,6 +32,7 @@ export const FOLHA_TIPO_LABEL: Record<string, string> = {
   contracheque_quinzenal: "Contracheque quinzenal",
   decimo_terceiro: "13º salário",
   ferias: "Férias",
+  rescisao: "Rescisão (TRCT)",
   vale_alimentacao: "Vale-alimentação",
   vale_transporte: "Vale-transporte",
 };
@@ -41,6 +42,11 @@ export interface RubricaExtra {
   descricao: string;
   natureza: "provento" | "desconto";
   valor: number;
+  /**
+   * Fase 18 — quando `false`, o provento não entra na base de INSS/IRRF
+   * (abono pecuniário, adiantamentos, verbas indenizatórias). Default: true.
+   */
+  tributavel?: boolean;
 }
 
 export interface DetalheFolha {
@@ -103,9 +109,17 @@ export function lerExtras(raw: unknown): RubricaExtra[] {
       const descricao = typeof r.descricao === "string" ? r.descricao.trim() : "";
       const natureza = r.natureza === "desconto" ? "desconto" : "provento";
       const valor = Math.max(0, num(r.valor));
-      return { descricao, natureza, valor } as RubricaExtra;
+      const tributavel = r.tributavel === false ? false : true;
+      return { descricao, natureza, valor, tributavel } as RubricaExtra;
     })
     .filter((e) => e.descricao.length > 0 && e.valor > 0);
+}
+
+/** Soma apenas dos proventos avulsos que compõem a base de INSS/IRRF. */
+export function proventosTributaveis(extras: RubricaExtra[]): number {
+  return extras
+    .filter((e) => e.natureza === "provento" && e.tributavel !== false)
+    .reduce((acc, e) => acc + e.valor, 0);
 }
 
 /** Soma das rubricas avulsas por natureza. */
@@ -122,8 +136,8 @@ export function totaisDosExtras(extras: RubricaExtra[]): { proventos: number; de
 /** Fase 17 — base tributável: proventos apurados + proventos avulsos − faltas/DSR. */
 export function baseTributavel(detalhe: DetalheFolha): number {
   const p = detalhe.proventos;
-  const extras = totaisDosExtras(detalhe.extras);
-  const base = p.normais + p.extras50 + p.extras100 + p.noturno + extras.proventos - detalhe.faltas - detalhe.dsr;
+  const base =
+    p.normais + p.extras50 + p.extras100 + p.noturno + proventosTributaveis(detalhe.extras) - detalhe.faltas - detalhe.dsr;
   return round2(Math.max(0, base));
 }
 
