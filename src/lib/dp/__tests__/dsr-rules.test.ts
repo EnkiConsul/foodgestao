@@ -10,6 +10,7 @@ import {
   semanasDaConfig,
   SEMANAS_POR_MES,
   diasElegiveisDaConfig,
+  resumoEscolhaFolgas,
   tetoFolgasMes,
 } from "../dsr-rules";
 
