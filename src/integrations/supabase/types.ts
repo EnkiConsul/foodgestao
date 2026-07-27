@@ -6718,6 +6718,7 @@ export type Database = {
       transactions: {
         Row: {
           account_id: string | null
+          adjustment_idempotency_key: string | null
           amount: number
           amount_paid: number
           attachment_url: string | null
@@ -6748,6 +6749,7 @@ export type Database = {
           import_hash: string | null
           installment_number: number | null
           installment_total: number | null
+          is_balance_adjustment: boolean
           is_invoice_payment: boolean
           is_recurring: boolean
           needs_review: boolean
@@ -6777,6 +6779,7 @@ export type Database = {
         }
         Insert: {
           account_id?: string | null
+          adjustment_idempotency_key?: string | null
           amount: number
           amount_paid?: number
           attachment_url?: string | null
@@ -6807,6 +6810,7 @@ export type Database = {
           import_hash?: string | null
           installment_number?: number | null
           installment_total?: number | null
+          is_balance_adjustment?: boolean
           is_invoice_payment?: boolean
           is_recurring?: boolean
           needs_review?: boolean
@@ -6838,6 +6842,7 @@ export type Database = {
         }
         Update: {
           account_id?: string | null
+          adjustment_idempotency_key?: string | null
           amount?: number
           amount_paid?: number
           attachment_url?: string | null
@@ -6868,6 +6873,7 @@ export type Database = {
           import_hash?: string | null
           installment_number?: number | null
           installment_total?: number | null
+          is_balance_adjustment?: boolean
           is_invoice_payment?: boolean
           is_recurring?: boolean
           needs_review?: boolean
@@ -7220,6 +7226,7 @@ export type Database = {
         Args: {
           _account_id: string
           _adjust_date: string
+          _idempotency_key?: string
           _note: string
           _target_balance: number
         }
@@ -7961,6 +7968,18 @@ export type Database = {
             }
             Returns: undefined
           }
+      report_balance_drift: {
+        Args: never
+        Returns: {
+          account_id: string
+          account_name: string
+          company_id: string
+          computed_balance: number
+          context: Database["public"]["Enums"]["context_type"]
+          drift: number
+          stored_balance: number
+        }[]
+      }
       resolve_cpf_login: { Args: { _cpf: string }; Returns: string }
       resolve_login_identifier: {
         Args: { _identifier: string }
