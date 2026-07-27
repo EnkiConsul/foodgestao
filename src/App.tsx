@@ -314,6 +314,7 @@ const AppRoutes = () => (
         <Route path="escala" element={<DpMeuEscala />} />
         <Route path="convocacoes" element={<DpMinhasConvocacoes />} />
         <Route path="ponto" element={<DpMeuPonto />} />
+        <Route path="contracheque" element={<DpMeuContracheque />} />
         <Route path="atestados" element={<Navigate to="/dp/meu/documentos?tipo=atestado" replace />} />
         <Route path="disciplinar" element={<Navigate to="/dp/meu/documentos?tipo=disciplinar" replace />} />
         <Route path="sindicato" element={<Navigate to="/dp/meu/documentos?tipo=act_cct" replace />} />
@@ -419,6 +420,8 @@ const AppRoutes = () => (
         <Route path="ponto" element={<DpPonto />} />
         <Route path="ponto/time" element={<DpPontoConsolidado />} />
         <Route path="ponto/apuracao" element={<DpPontoApuracao />} />
+        <Route path="folha" element={<DpFolha />} />
+        <Route path="folha/:id" element={<DpFolhaPeriodo />} />
         <Route path="documentos/act-cct" element={<DpSindicatoNegociacoes />} />
         <Route path="configuracoes" element={<DpConfiguracoes />} />
         <Route path="sindicatos" element={<Navigate to="/dp/cadastros/sindicatos" replace />} />
