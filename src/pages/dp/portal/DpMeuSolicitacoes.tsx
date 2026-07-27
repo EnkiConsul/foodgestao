@@ -237,8 +237,10 @@ export default function DpMeuSolicitacoes() {
         colaborador_id: p.colaborador_id,
       })),
       isAdmin: false,
+      diasElegiveis,
+      tetoMensal,
     });
-  }, [form.data_alvo, form.tipo, capacity.data, meRef.data, bloqueios.data]);
+  }, [form.data_alvo, form.tipo, capacity.data, meRef.data, bloqueios.data, diasElegiveis, tetoMensal]);
 
   // Validação
   const validation = useMemo(() => {
