@@ -6,6 +6,9 @@ import {
   domingosEsperados,
   avaliarConformidade,
   PADRAO_LEGAL_DOMINGO_MULHER,
+  frequenciaParaSemanas,
+  semanasDaConfig,
+  SEMANAS_POR_MES,
 } from "../dsr-rules";
 
 describe("padraoLegalDomingo", () => {
@@ -98,5 +101,75 @@ describe("avaliarConformidade", () => {
     expect(linha.periodicidadeAplicada).toBe(3);
     expect(linha.esperado).toBe(1);
     expect(linha.conforme).toBe(true);
+  });
+});
+
+describe("frequenciaParaSemanas", () => {
+  it("mantém o valor no modo semanas", () => {
+    expect(frequenciaParaSemanas("semanas", 3, 99)).toBe(3);
+  });
+  it("converte quantidade mensal em intervalo de semanas", () => {
+    expect(frequenciaParaSemanas("por_mes", 99, 1)).toBeCloseTo(SEMANAS_POR_MES, 3);
+    expect(frequenciaParaSemanas("por_mes", 99, 2)).toBeCloseTo(SEMANAS_POR_MES / 2, 3);
+    expect(frequenciaParaSemanas("por_mes", 99, 0.5)).toBeCloseTo(SEMANAS_POR_MES * 2, 3);
+  });
+  it("retorna 0 quando não há exigência", () => {
+    expect(frequenciaParaSemanas("semanas", 0, 1)).toBe(0);
+    expect(frequenciaParaSemanas("por_mes", 3, 0)).toBe(0);
+  });
+});
+
+describe("semanasDaConfig + alertas no modo por_mes", () => {
+  it("normaliza os dois modelos para semanas", () => {
+    const r = semanasDaConfig({
+      setor_comercio: true,
+      periodicidade_domingo: 3,
+      periodicidade_domingo_mulher: 2,
+      modo_frequencia_domingo: "por_mes",
+      domingos_por_mes: 1,
+      modo_frequencia_domingo_mulher: "semanas",
+      domingos_por_mes_mulher: 2,
+    });
+    expect(r.geral).toBeCloseTo(SEMANAS_POR_MES, 3);
+    expect(r.mulher).toBe(2);
+  });
+
+  it("alerta quando 1 domingo por mês fica abaixo do padrão de 3 semanas", () => {
+    const alertas = alertasDeCiencia(
+      {
+        setor_comercio: true,
+        periodicidade_domingo: 3,
+        periodicidade_domingo_mulher: 2,
+        modo_frequencia_domingo: "por_mes",
+        domingos_por_mes: 1,
+      },
+      { temMulheres: false },
+    );
+    expect(alertas).toHaveLength(1);
+    expect(alertas[0].campo).toBe("periodicidade_domingo");
+  });
+});
+
+describe("avaliarConformidade — dias negociados", () => {
+  it("aproveita dias negociados apenas no modo acordo coletivo", () => {
+    const linha = {
+      colaboradorId: "1",
+      nome: "Ana",
+      sexo: "M",
+      domingosFolgados: ["2026-07-05"],
+      diasNegociadosFolgados: ["2026-07-08", "2026-07-15"],
+      domingosNoPeriodo: 8,
+    };
+    const cfgLegal = { periodicidade_domingo: 3, periodicidade_domingo_mulher: 2 } as const;
+    const [semAcordo] = avaliarConformidade([linha], cfgLegal);
+    expect(semAcordo.negociadosAproveitados).toBe(0);
+    expect(semAcordo.conforme).toBe(false);
+
+    const [comAcordo] = avaliarConformidade([linha], {
+      ...cfgLegal,
+      tipo_descanso_domingo: "acordo_coletivo",
+    });
+    expect(comAcordo.negociadosAproveitados).toBe(1);
+    expect(comAcordo.conforme).toBe(true);
   });
 });

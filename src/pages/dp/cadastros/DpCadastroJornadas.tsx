@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { Clock, Plus, Pencil, Trash2 } from "lucide-react";
 import { DpPage, DpPageHeader, DpContentCard, DpEmptyState } from "@/components/dp/DpPage";
 import { CoberturaMinimaCard } from "@/components/dp/CoberturaMinimaCard";
+import { ValidacaoMenorCard } from "@/components/dp/ValidacaoMenorCard";
+
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -105,6 +107,10 @@ export default function DpCadastroJornadas() {
           </Button>
         }
       />
+
+      <ValidacaoMenorCard />
+
+
 
       {isError ? (
         <DpErrorState onRetry={() => void refetch()} />

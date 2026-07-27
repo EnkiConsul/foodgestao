@@ -8,6 +8,7 @@ import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpConfigDp } from "@/hooks/useDpConfigDp";
+import { semanasEfetivas, semanasEfetivasMulher } from "@/lib/dp/dsr-rules";
 import { expandRegraNoIntervalo, type RegraRow } from "@/lib/dp/bloqueio-rules";
 import {
   gerarEscala, parseIso, type EscalaProposta, type EscalaAlerta, type EscalaColaborador,
@@ -39,13 +40,18 @@ const diaSemanaLabel = (iso: string) =>
 
 export default function DpEscalas() {
   const { selectedCompanyId } = useCompanyContext();
-  const { config } = useDpConfigDp();
   const qc = useQueryClient();
 
   const [competencia, setCompetencia] = useState(competenciaAtual);
   const [unidade, setUnidade] = useState("todas");
   const [resultado, setResultado] = useState<{ propostas: EscalaProposta[]; alertas: EscalaAlerta[] } | null>(null);
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
+
+  // Regra vigente: exceção da unidade selecionada, senão o padrão da empresa.
+  const { config } = useDpConfigDp(unidade === "todas" ? null : unidade);
+  const semanasDsr = semanasEfetivas(config);
+  const semanasDsrMulher = semanasEfetivasMulher(config);
+
 
   const { inicio, fim } = useMemo(() => limitesDoMes(competencia), [competencia]);
 
@@ -153,8 +159,8 @@ export default function DpEscalas() {
 
     const r = gerarEscala({
       inicio, fim, colaboradores, bloqueadas, ausencias, folgasExistentes, limitePorDia,
-      periodicidadeDomingo: config.periodicidade_domingo,
-      periodicidadeDomingoMulher: config.periodicidade_domingo_mulher,
+      periodicidadeDomingo: semanasDsr,
+      periodicidadeDomingoMulher: semanasDsrMulher,
     });
 
     setResultado({ propostas: r.propostas, alertas: r.alertas });
@@ -260,8 +266,8 @@ export default function DpEscalas() {
             </Select>
           </div>
           <div className="flex items-end text-xs text-muted-foreground">
-            Folga dominical a cada {config.periodicidade_domingo} semana(s) — {config.periodicidade_domingo_mulher}{" "}
-            para colaboradoras.
+            Folga dominical a cada {semanasDsr ? semanasDsr.toFixed(1) : "—"} semana(s) —{" "}
+            {semanasDsrMulher ? semanasDsrMulher.toFixed(1) : "—"} para colaboradoras.
           </div>
         </div>
       </DpFilterCard>

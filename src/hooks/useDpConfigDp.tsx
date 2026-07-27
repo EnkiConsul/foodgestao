@@ -2,48 +2,84 @@ import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { DP_CONFIG_DP_DEFAULT, type DpConfigDp } from "@/lib/dp/dsr-rules";
+import {
+  DP_CONFIG_DP_DEFAULT,
+  type DpConfigDp,
+  type ModoFrequencia,
+} from "@/lib/dp/dsr-rules";
 
-export type DpConfigDpForm = Omit<DpConfigDp, "company_id">;
+export type DpConfigDpForm = Omit<DpConfigDp, "company_id" | "unidade_id">;
+
+interface ConfigRow extends DpConfigDpForm {
+  id: string;
+  unidade_id: string | null;
+}
 
 const COLUNAS =
-  "company_id, setor_comercio, modo_domingo, periodicidade_domingo, periodicidade_domingo_mulher, folgas_fds_por_mes, politica_sabado, politica_feriado, regra_dsr, exige_validacao_menor, tipo_descanso_domingo, negociacao_id";
+  "id, company_id, unidade_id, setor_comercio, modo_frequencia_domingo, periodicidade_domingo, domingos_por_mes, " +
+  "modo_frequencia_domingo_mulher, periodicidade_domingo_mulher, domingos_por_mes_mulher, folgas_fds_por_mes, " +
+  "regra_dsr, exige_validacao_menor, tipo_descanso_domingo, dias_descanso_negociados, negociacao_id";
 
-export function useDpConfigDp() {
+const asModo = (v: unknown): ModoFrequencia => (v === "por_mes" ? "por_mes" : "semanas");
+
+function mapRow(data: Record<string, unknown>): ConfigRow {
+  return {
+    id: String(data.id),
+    unidade_id: (data.unidade_id as string | null) ?? null,
+    setor_comercio: !!data.setor_comercio,
+    modo_frequencia_domingo: asModo(data.modo_frequencia_domingo),
+    periodicidade_domingo: Number(data.periodicidade_domingo ?? 3),
+    domingos_por_mes: Number(data.domingos_por_mes ?? 1),
+    modo_frequencia_domingo_mulher: asModo(data.modo_frequencia_domingo_mulher),
+    periodicidade_domingo_mulher: Number(data.periodicidade_domingo_mulher ?? 2),
+    domingos_por_mes_mulher: Number(data.domingos_por_mes_mulher ?? 2),
+    folgas_fds_por_mes: Number(data.folgas_fds_por_mes ?? 1),
+    regra_dsr: (data.regra_dsr ?? "clt") as DpConfigDpForm["regra_dsr"],
+    exige_validacao_menor: data.exige_validacao_menor !== false,
+    tipo_descanso_domingo:
+      data.tipo_descanso_domingo === "acordo_coletivo" ? "acordo_coletivo" : "legal",
+    dias_descanso_negociados: ((data.dias_descanso_negociados as number[] | null) ?? [0]).map(Number),
+    negociacao_id: (data.negociacao_id as string | null) ?? null,
+  };
+}
+
+/**
+ * Configuração de regras de folgas.
+ * `unidadeId = null` retorna a regra padrão da empresa; com unidade, retorna a
+ * exceção daquela loja quando existir, com fallback para o padrão.
+ */
+export function useDpConfigDp(unidadeId: string | null = null) {
   const { selectedCompanyId } = useCompanyContext();
   const qc = useQueryClient();
 
   const query = useQuery({
     queryKey: ["dp_config_dp", selectedCompanyId],
     enabled: !!selectedCompanyId,
-    queryFn: async (): Promise<DpConfigDpForm> => {
+    queryFn: async (): Promise<ConfigRow[]> => {
       const { data, error } = await supabase
         .from("dp_config_dp")
         .select(COLUNAS)
-        .eq("company_id", selectedCompanyId!)
-        .maybeSingle();
+        .eq("company_id", selectedCompanyId!);
       if (error) throw error;
-      if (!data) return DP_CONFIG_DP_DEFAULT;
-      return {
-        setor_comercio: data.setor_comercio,
-        modo_domingo: (["legislacao", "tres_semanas", "sete_semanas", "personalizado"].includes(
-          data.modo_domingo,
-        )
-          ? data.modo_domingo
-          : "legislacao") as DpConfigDpForm["modo_domingo"],
-        periodicidade_domingo: data.periodicidade_domingo,
-        periodicidade_domingo_mulher: data.periodicidade_domingo_mulher,
-        folgas_fds_por_mes: data.folgas_fds_por_mes,
-        politica_sabado: data.politica_sabado,
-        politica_feriado: data.politica_feriado,
-        regra_dsr: data.regra_dsr,
-        exige_validacao_menor: data.exige_validacao_menor,
-        tipo_descanso_domingo:
-          data.tipo_descanso_domingo === "acordo_coletivo" ? "acordo_coletivo" : "legal",
-        negociacao_id: data.negociacao_id ?? null,
-      };
+      return ((data ?? []) as unknown as Record<string, unknown>[]).map(mapRow);
     },
   });
+
+  const rows = useMemo(() => query.data ?? [], [query.data]);
+  const padraoRow = useMemo(() => rows.find((r) => r.unidade_id === null) ?? null, [rows]);
+  const unidadeRow = useMemo(
+    () => (unidadeId ? rows.find((r) => r.unidade_id === unidadeId) ?? null : null),
+    [rows, unidadeId],
+  );
+
+  const configPadrao: DpConfigDpForm = useMemo(
+    () => padraoRow ?? DP_CONFIG_DP_DEFAULT,
+    [padraoRow],
+  );
+  const config: DpConfigDpForm = useMemo(
+    () => unidadeRow ?? configPadrao,
+    [unidadeRow, configPadrao],
+  );
 
   /** Negociações sindicais (ACT/CCT) disponíveis para embasar o acordo coletivo. */
   const negociacoes = useQuery({
@@ -59,7 +95,6 @@ export function useDpConfigDp() {
       return data ?? [];
     },
   });
-
 
   /** Existem colaboradoras mulheres cadastradas? Controla a exibição da regra do Art. 386. */
   const mulheres = useQuery({
@@ -82,7 +117,9 @@ export function useDpConfigDp() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_regras_historico")
-        .select("id, usuario_id, tabela, valor_antigo, valor_novo, justificativa, ciencia_confirmada, created_at")
+        .select(
+          "id, usuario_id, tabela, valor_antigo, valor_novo, justificativa, ciencia_confirmada, created_at",
+        )
         .eq("company_id", selectedCompanyId!)
         .order("created_at", { ascending: false })
         .limit(50);
@@ -94,23 +131,34 @@ export function useDpConfigDp() {
   const save = useMutation({
     mutationFn: async (input: {
       patch: Partial<DpConfigDpForm>;
+      /** Alvo da gravação: `null` = regra padrão da empresa. Default: unidade do hook. */
+      unidadeId?: string | null;
       cienciaConfirmada?: boolean;
       justificativa?: string | null;
     }) => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      const anterior = query.data ?? DP_CONFIG_DP_DEFAULT;
+      const alvo = input.unidadeId !== undefined ? input.unidadeId : unidadeId;
+      const existente = rows.find((r) => r.unidade_id === (alvo ?? null)) ?? null;
+      const anterior: DpConfigDpForm = existente ?? configPadrao;
       const merged = { ...anterior, ...input.patch };
+      const payload = { ...merged, company_id: selectedCompanyId, unidade_id: alvo ?? null };
 
-      const { error } = await supabase
-        .from("dp_config_dp")
-        .upsert({ company_id: selectedCompanyId, ...merged }, { onConflict: "company_id" });
-      if (error) throw error;
+      if (existente) {
+        const { error } = await supabase
+          .from("dp_config_dp")
+          .update(payload)
+          .eq("id", existente.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("dp_config_dp").insert(payload);
+        if (error) throw error;
+      }
 
       const { data: userData } = await supabase.auth.getUser();
       const { error: histError } = await supabase.from("dp_regras_historico").insert({
         company_id: selectedCompanyId,
         usuario_id: userData.user?.id ?? null,
-        tabela: "dp_config_dp",
+        tabela: alvo ? `dp_config_dp (unidade ${alvo})` : "dp_config_dp",
         valor_antigo: anterior as unknown as never,
         valor_novo: merged as unknown as never,
         justificativa: input.justificativa ?? null,
@@ -120,16 +168,36 @@ export function useDpConfigDp() {
 
       return merged;
     },
-    onSuccess: (merged) => {
-      qc.setQueryData(["dp_config_dp", selectedCompanyId], merged);
-      qc.invalidateQueries({ queryKey: ["dp_regras_historico", selectedCompanyId] });
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["dp_config_dp", selectedCompanyId] });
+      void qc.invalidateQueries({ queryKey: ["dp_regras_historico", selectedCompanyId] });
     },
   });
 
-  const config = useMemo(() => query.data ?? DP_CONFIG_DP_DEFAULT, [query.data]);
+  const removerExcecao = useMutation({
+    mutationFn: async (alvo: string) => {
+      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
+      const { error } = await supabase
+        .from("dp_config_dp")
+        .delete()
+        .eq("company_id", selectedCompanyId)
+        .eq("unidade_id", alvo);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["dp_config_dp", selectedCompanyId] });
+    },
+  });
 
   return {
+    /** Regra efetiva (unidade quando existir, senão padrão da empresa). */
     config,
+    /** Regra padrão da empresa. */
+    configPadrao,
+    /** Todas as regras cadastradas (padrão + exceções). */
+    rows,
+    /** A unidade selecionada possui exceção própria? */
+    temExcecao: !!unidadeRow,
     temMulheres: mulheres.data ?? false,
     negociacoes: negociacoes.data ?? [],
     historico: historico.data ?? [],
@@ -142,5 +210,7 @@ export function useDpConfigDp() {
     },
     save: save.mutateAsync,
     saving: save.isPending,
+    removerExcecao: removerExcecao.mutateAsync,
+    removendo: removerExcecao.isPending,
   };
 }
