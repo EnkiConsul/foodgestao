@@ -119,8 +119,16 @@ export function AccountCreationMethodDialog({
           <button
             type="button"
             aria-label="Cadastrar conta manualmente"
-            onClick={onSelectManual}
-            className="group relative flex flex-col text-left cursor-pointer rounded-lg border bg-card p-4 transition-all hover:border-primary hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            aria-disabled={selecting}
+            disabled={selecting}
+            aria-busy={selecting}
+            onClick={handleSelectManual}
+            className={
+              "group relative flex flex-col text-left rounded-lg border bg-card p-4 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary " +
+              (selecting
+                ? "cursor-not-allowed opacity-60"
+                : "cursor-pointer hover:border-primary hover:shadow-md")
+            }
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
