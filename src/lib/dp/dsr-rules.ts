@@ -128,6 +128,8 @@ export interface ConformidadeInput {
   sexo?: string | null;
   /** Datas ISO (yyyy-mm-dd) de domingos em que o colaborador folgou no período. */
   domingosFolgados: string[];
+  /** Sábados folgados — só contam no modo acordo coletivo. */
+  sabadosFolgados?: string[];
   /** Total de domingos existentes no período analisado. */
   domingosNoPeriodo: number;
 }
@@ -135,6 +137,10 @@ export interface ConformidadeInput {
 export interface ConformidadeLinha extends ConformidadeInput {
   periodicidadeAplicada: number;
   esperado: number;
+  /** Folgas consideradas na avaliação (domingos, ou fins de semana no modo acordo). */
+  folgasConsideradas: number;
+  /** Sábados aproveitados por acordo coletivo. */
+  sabadosAproveitados: number;
   conforme: boolean;
 }
 
@@ -146,8 +152,10 @@ export function domingosEsperados(domingosNoPeriodo: number, periodicidadeSemana
 
 export function avaliarConformidade(
   linhas: ConformidadeInput[],
-  cfg: Pick<DpConfigDp, "periodicidade_domingo" | "periodicidade_domingo_mulher">,
+  cfg: Pick<DpConfigDp, "periodicidade_domingo" | "periodicidade_domingo_mulher"> &
+    Partial<Pick<DpConfigDp, "tipo_descanso_domingo">>,
 ): ConformidadeLinha[] {
+  const porAcordo = cfg.tipo_descanso_domingo === "acordo_coletivo";
   return linhas.map((l) => {
     const periodicidade =
       l.sexo === "F"
@@ -155,14 +163,22 @@ export function avaliarConformidade(
         : cfg.periodicidade_domingo;
     const p = Number.isFinite(periodicidade) ? periodicidade : 0;
     const esperado = domingosEsperados(l.domingosNoPeriodo, p);
+    const domingos = l.domingosFolgados.length;
+    const sabados = porAcordo ? (l.sabadosFolgados?.length ?? 0) : 0;
+    // No modo acordo, sábados só complementam o que faltar de domingo.
+    const sabadosAproveitados = porAcordo ? Math.max(0, Math.min(sabados, esperado - domingos)) : 0;
+    const folgasConsideradas = domingos + sabadosAproveitados;
     return {
       ...l,
       periodicidadeAplicada: p,
       esperado,
-      conforme: l.domingosFolgados.length >= esperado,
+      folgasConsideradas,
+      sabadosAproveitados,
+      conforme: folgasConsideradas >= esperado,
     };
   });
 }
+
 
 export const TIPO_ESCALA_LABEL: Record<string, string> = {
   "6x1": "6x1 — seis dias de trabalho, um de folga",
