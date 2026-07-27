@@ -18,6 +18,7 @@ import { NovoColaboradorInlineDialog } from "./NovoColaboradorInlineDialog";
 import { BulkProgressBanner } from "./BulkProgressBanner";
 import { ConfirmarSubstituicaoDialog, type DuplicateCollision } from "./ConfirmarSubstituicaoDialog";
 import { ConfirmarFaltantesDialog } from "./ConfirmarFaltantesDialog";
+import { ConfirmarSemUnidadeDialog } from "./ConfirmarSemUnidadeDialog";
 import { detectDuplicates } from "@/lib/dp/bulk-duplicates";
 import { ColaboradoresFaltantesPanel } from "./ColaboradoresFaltantesPanel";
 import { competenciaPredominante, computeCoverage, resolveUnidadesLote } from "@/lib/dp/bulk-coverage";
@@ -252,6 +253,9 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
   } | null>(null);
   const [checkingDup, setCheckingDup] = useState(false);
 
+  const semUnidadeOkRef = useRef(false);
+  const [confirmSemUnidade, setConfirmSemUnidade] = useState(false);
+
   async function runApprove(item_ids: string[], on_duplicate: "skip" | "replace") {
     if (item_ids.length === 0) {
       toast.error("Nenhuma página elegível");
@@ -261,7 +265,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
     setIsSaving(true);
     try {
       const { data, error } = await supabase.functions.invoke("dp-doc-bulk-approve", {
-        body: { item_ids, on_duplicate },
+        body: { item_ids, on_duplicate, sem_unidade_confirmado: semUnidadeOkRef.current },
       });
       if (error) throw error;
       const results = ((data as any)?.results ?? []) as Array<{ ok: boolean; error?: string; replaced?: boolean }>;
@@ -290,6 +294,10 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
   const [confirmFaltantes, setConfirmFaltantes] = useState(false);
 
   function handleApproveClick() {
+    if (coverage.unidadeIndefinida && !semUnidadeOkRef.current) {
+      setConfirmSemUnidade(true);
+      return;
+    }
     if (coverage.faltantes.length > 0) {
       setConfirmFaltantes(true);
       return;
@@ -667,6 +675,17 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
 
       </>
       )}
+
+      <ConfirmarSemUnidadeDialog
+        open={confirmSemUnidade}
+        onOpenChange={setConfirmSemUnidade}
+        totalItens={rows.filter((r: any) => r.status === "pending" && r.matched_colaborador_id).length}
+        onConfirm={() => {
+          semUnidadeOkRef.current = true;
+          setConfirmSemUnidade(false);
+          void proceedApprove();
+        }}
+      />
 
       {confirmDup && (
         <ConfirmarSubstituicaoDialog

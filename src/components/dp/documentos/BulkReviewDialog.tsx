@@ -20,6 +20,7 @@ import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { NovoColaboradorInlineDialog } from "./NovoColaboradorInlineDialog";
 import { BulkProgressBanner } from "./BulkProgressBanner";
 import { ConfirmarSubstituicaoDialog, type DuplicateCollision } from "./ConfirmarSubstituicaoDialog";
+import { ConfirmarSemUnidadeDialog } from "./ConfirmarSemUnidadeDialog";
 import { detectDuplicates } from "@/lib/dp/bulk-duplicates";
 import { ColaboradoresFaltantesPanel } from "./ColaboradoresFaltantesPanel";
 import { competenciaPredominante, computeCoverage, resolveUnidadesLote } from "@/lib/dp/bulk-coverage";
@@ -204,6 +205,9 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
   } | null>(null);
   const [checkingDup, setCheckingDup] = useState(false);
 
+  const semUnidadeOkRef = useRef(false);
+  const [confirmSemUnidade, setConfirmSemUnidade] = useState(false);
+
   async function runApprove(item_ids: string[], on_duplicate: "skip" | "replace") {
     if (item_ids.length === 0) {
       toast.error("Nenhuma página elegível");
@@ -213,7 +217,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
     setIsSaving(true);
     try {
       const { data, error } = await supabase.functions.invoke("dp-doc-bulk-approve", {
-        body: { item_ids, on_duplicate },
+        body: { item_ids, on_duplicate, sem_unidade_confirmado: semUnidadeOkRef.current },
       });
       if (error) throw error;
       const results = ((data as any)?.results ?? []) as Array<{ ok: boolean; error?: string; replaced?: boolean }>;
@@ -240,6 +244,10 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
   }
 
   async function handleApproveClick() {
+    if (coverage.unidadeIndefinida && !semUnidadeOkRef.current) {
+      setConfirmSemUnidade(true);
+      return;
+    }
     const eligible = rows.filter((r) => r.status === "pending" && r.matched_colaborador_id);
     if (eligible.length === 0) {
       toast.error("Nenhuma página vinculada");
@@ -545,6 +553,17 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
           );
         })()}
       </DialogContent>
+      <ConfirmarSemUnidadeDialog
+        open={confirmSemUnidade}
+        onOpenChange={setConfirmSemUnidade}
+        totalItens={rows.filter((r) => r.status === "pending" && r.matched_colaborador_id).length}
+        onConfirm={() => {
+          semUnidadeOkRef.current = true;
+          setConfirmSemUnidade(false);
+          void handleApproveClick();
+        }}
+      />
+
       {confirmDup && (
         <ConfirmarSubstituicaoDialog
           open
