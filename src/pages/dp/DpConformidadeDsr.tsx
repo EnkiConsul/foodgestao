@@ -9,6 +9,8 @@ import {
   avaliarConformidade, DIA_SEMANA_CURTO, semanasDaConfig,
   type ConformidadeInput, type ConformidadeLinha,
 } from "@/lib/dp/dsr-rules";
+import { contratoPolicy } from "@/lib/dp/contrato-policy";
+
 import { DpPage, DpPageHeader, DpContentCard, DpFilterCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { Button } from "@/components/ui/button";
