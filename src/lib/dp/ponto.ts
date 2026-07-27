@@ -166,6 +166,7 @@ export function consolidarDia(input: ConsolidarDiaInput): ResumoPontoDia {
     intervaloMinutos,
     minutosTrabalhados,
     minutosPrevistos,
+    minutosNoturnos: noturnos,
     saldoMinutos,
     atrasoMinutos,
     extraMinutos: Math.max(0, saldoMinutos),
