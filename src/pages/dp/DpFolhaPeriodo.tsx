@@ -219,6 +219,10 @@ export default function DpFolhaPeriodo() {
                         {formatarBRL(totaisDosExtras(l.detalhe.extras).descontos)}
                       </>
                     )}
+                    {" · INSS "}
+                    {formatarBRL(encargosDoLancamento(l.detalhe).inss)}
+                    {" · IRRF "}
+                    {formatarBRL(encargosDoLancamento(l.detalhe).irrf)}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
