@@ -7194,6 +7194,10 @@ export type Database = {
       }
     }
     Functions: {
+      _e2e_cleanup_adjust_balance: {
+        Args: { _account_name: string }
+        Returns: undefined
+      }
       _e2e_cleanup_delete_accounts: {
         Args: { _names: string[] }
         Returns: undefined
@@ -7201,6 +7205,10 @@ export type Database = {
       _e2e_cleanup_foreign_accounts: {
         Args: { _empty_name: string; _history_name: string }
         Returns: undefined
+      }
+      _e2e_seed_adjust_balance: {
+        Args: { _account_name: string }
+        Returns: string
       }
       _e2e_seed_delete_accounts: {
         Args: { _empty_name: string; _history_name: string }
@@ -7220,6 +7228,7 @@ export type Database = {
           tx_id: string
         }[]
       }
+      _test_balance_engine: { Args: never; Returns: string }
       _test_delete_account_authz: { Args: never; Returns: string }
       _test_delete_account_hard_regression: { Args: never; Returns: Json }
       adjust_account_balance: {
