@@ -1,25 +1,18 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { MODULE_NAV, type NavLeaf } from "./mobileNav";
+import {
+  DP_ADMIN_NAV,
+  DP_PORTAL_NAV,
+  surfaceRoutes,
+  surfaceShortcuts,
+} from "./dpNavigation";
+import { resolveActiveRoute } from "@/lib/nav-active";
 
 /**
- * Guarda de paridade: toda rota presente na sidebar desktop do DP precisa
- * existir também no menu "Mais" do mobile (MODULE_NAV.dp / .portal_colaborador).
+ * Guarda de paridade: sidebar desktop e menu "Mais" mobile derivam da mesma
+ * config (`dpNavigation.tsx`). O teste garante que o menu mobile continua
+ * expondo todas as rotas navegáveis e que os grupos não têm duplicidades.
  */
-
-const sidebarSource = readFileSync(
-  path.resolve(__dirname, "../components/dp/DpSidebar.tsx"),
-  "utf-8",
-);
-
-function sidebarRoutes(constName: string): string[] {
-  const start = sidebarSource.indexOf(`const ${constName}: Item[] = [`);
-  expect(start, `${constName} não encontrado em DpSidebar.tsx`).toBeGreaterThan(-1);
-  const nextConst = sidebarSource.indexOf("\nconst ", start + 1);
-  const block = sidebarSource.slice(start, nextConst === -1 ? undefined : nextConst);
-  return [...block.matchAll(/url:\s*"([^"]+)"/g)].map((m) => m[1]);
-}
 
 function mobileRoutes(moduleKey: "dp" | "portal_colaborador"): string[] {
   const config = MODULE_NAV[moduleKey];
@@ -27,23 +20,46 @@ function mobileRoutes(moduleKey: "dp" | "portal_colaborador"): string[] {
     ...(g.items ?? []),
     ...(g.subgroups ?? []).flatMap((sg) => sg.items),
   ]);
-  return [
-    config.home.to,
-    ...leaves.map((l) => l.to),
-    ...config.shortcutOptions.map((s) => s.to),
-  ];
+  return [config.home.to, ...leaves.map((l) => l.to)];
 }
 
 describe("paridade sidebar DP x menu Mais (mobile)", () => {
-  it("admin: nenhuma rota da sidebar fica de fora do menu Mais", () => {
+  it("admin: menu Mais cobre todas as rotas navegáveis do DP", () => {
     const mobile = new Set(mobileRoutes("dp"));
-    const missing = sidebarRoutes("ADMIN_ITEMS").filter((r) => !mobile.has(r));
+    const missing = surfaceRoutes(DP_ADMIN_NAV).filter((r) => !mobile.has(r));
     expect(missing).toEqual([]);
   });
 
-  it("portal do colaborador: nenhuma rota da sidebar fica de fora do menu Mais", () => {
+  it("portal: menu Mais cobre todas as rotas navegáveis do colaborador", () => {
     const mobile = new Set(mobileRoutes("portal_colaborador"));
-    const missing = sidebarRoutes("PORTAL_ITEMS").filter((r) => !mobile.has(r));
+    const missing = surfaceRoutes(DP_PORTAL_NAV).filter((r) => !mobile.has(r));
     expect(missing).toEqual([]);
+  });
+
+  it("não há rota repetida entre grupos", () => {
+    for (const key of ["dp", "portal_colaborador"] as const) {
+      const routes = mobileRoutes(key);
+      const dupes = routes.filter((r, i) => routes.indexOf(r) !== i);
+      expect(dupes, `rotas duplicadas em ${key}`).toEqual([]);
+    }
+  });
+
+  it("atalhos da BottomNav apontam para rotas conhecidas", () => {
+    const admin = new Set([
+      ...surfaceRoutes(DP_ADMIN_NAV),
+      ...DP_ADMIN_NAV.extraShortcuts.map((s) => s.to),
+    ]);
+    expect(surfaceShortcuts(DP_ADMIN_NAV).filter((s) => !admin.has(s.to))).toEqual([]);
+    const portal = new Set(surfaceRoutes(DP_PORTAL_NAV));
+    expect(surfaceShortcuts(DP_PORTAL_NAV).filter((s) => !portal.has(s.to))).toEqual([]);
+  });
+
+  it("apenas o item mais específico fica ativo", () => {
+    const routes = surfaceRoutes(DP_ADMIN_NAV);
+    expect(resolveActiveRoute("/dp/ponto/time", routes)).toBe("/dp/ponto/time");
+    expect(resolveActiveRoute("/dp/folha/relatorios", routes)).toBe("/dp/folha/relatorios");
+    expect(resolveActiveRoute("/dp/escalas/mes", routes)).toBe("/dp/escalas/mes");
+    expect(resolveActiveRoute("/dp/folha/12", routes)).toBe("/dp/folha");
+    expect(resolveActiveRoute("/dp", routes)).toBe("/dp");
   });
 });
