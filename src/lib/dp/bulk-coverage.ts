@@ -8,6 +8,7 @@ export interface CoverageColaborador {
   ativo?: boolean | null;
   unidade_id?: string | null;
   possui_folha_ponto?: boolean | null;
+  optante_adiantamento?: boolean | null;
   data_admissao?: string | null;
   data_desligamento?: string | null;
   dp_unidades?: { nome?: string | null } | null;
@@ -19,8 +20,8 @@ export interface CoverageArgs {
   vinculados: Set<string>;
   /** "YYYY-MM" — competência predominante do lote */
   competencia: string | null;
-  /** unidade detectada no lote (via CNPJ), quando houver */
-  unidadeId?: string | null;
+  /** unidades identificadas no lote (CNPJ, colaboradores vinculados ou vínculo manual) */
+  unidadeIds?: string[] | null;
   tipo?: string | null;
 }
 
@@ -28,6 +29,8 @@ export interface CoverageResult {
   esperados: CoverageColaborador[];
   faltantes: CoverageColaborador[];
   cobertos: number;
+  /** true quando nenhuma unidade pôde ser identificada para o lote */
+  unidadeIndefinida: boolean;
 }
 
 /** Primeiro e último dia da competência "YYYY-MM". */
@@ -57,18 +60,70 @@ export function ativoNaCompetencia(c: CoverageColaborador, competencia: string |
   return true;
 }
 
+const onlyDigits = (v: unknown) => String(v ?? "").replace(/\D+/g, "");
+
+export interface ResolveUnidadeArgs {
+  rows: Array<{ detected_cnpj?: string | null; matched_colaborador_id?: string | null }>;
+  colaboradores: CoverageColaborador[];
+  unidades: Array<{ id: string; cnpj?: string | null }>;
+  /** vínculo manual salvo no lote (tem prioridade absoluta) */
+  manualUnidadeId?: string | null;
+}
+
+/**
+ * Unidades do lote: vínculo manual > CNPJ detectado > unidade dos colaboradores
+ * já reconhecidos nas páginas.
+ */
+export function resolveUnidadesLote({
+  rows, colaboradores, unidades, manualUnidadeId,
+}: ResolveUnidadeArgs): string[] {
+  if (manualUnidadeId) return [manualUnidadeId];
+
+  const porCnpj = new Map<string, string>();
+  for (const u of unidades) {
+    const d = onlyDigits(u.cnpj);
+    if (d.length >= 14) porCnpj.set(d, u.id);
+  }
+  const detectadas = new Set<string>();
+  for (const r of rows) {
+    const d = onlyDigits(r.detected_cnpj);
+    const id = d ? porCnpj.get(d) : undefined;
+    if (id) detectadas.add(id);
+  }
+  if (detectadas.size > 0) return [...detectadas];
+
+  const byId = new Map(colaboradores.map((c) => [c.id, c]));
+  const porColab = new Set<string>();
+  for (const r of rows) {
+    const uid = r.matched_colaborador_id ? byId.get(r.matched_colaborador_id)?.unidade_id : null;
+    if (uid) porColab.add(uid);
+  }
+  return [...porColab];
+}
+
 export function computeCoverage({
-  colaboradores, vinculados, competencia, unidadeId, tipo,
+  colaboradores, vinculados, competencia, unidadeIds, tipo,
 }: CoverageArgs): CoverageResult {
+  const escopo = (unidadeIds ?? []).filter(Boolean);
+  if (escopo.length === 0) {
+    return { esperados: [], faltantes: [], cobertos: 0, unidadeIndefinida: true };
+  }
+  const escopoSet = new Set(escopo);
   const esperados = colaboradores.filter((c) => {
+    if (!c.unidade_id || !escopoSet.has(c.unidade_id)) return false;
     if (tipo === "ponto" && c.possui_folha_ponto === false) return false;
-    if (unidadeId && c.unidade_id && c.unidade_id !== unidadeId) return false;
+    if (tipo === "adiantamento" && c.optante_adiantamento !== true) return false;
     return ativoNaCompetencia(c, competencia);
   });
   const faltantes = esperados
     .filter((c) => !vinculados.has(c.id))
     .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
-  return { esperados, faltantes, cobertos: esperados.length - faltantes.length };
+  return {
+    esperados,
+    faltantes,
+    cobertos: esperados.length - faltantes.length,
+    unidadeIndefinida: false,
+  };
 }
 
 /** Competência predominante entre os itens do lote. */
