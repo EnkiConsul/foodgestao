@@ -217,7 +217,6 @@ export default function DpConfiguracoesJornada() {
                   ...f,
                   tipo_descanso_domingo: tipo,
                   dias_descanso_negociados: tipo === "legal" ? [0] : f.dias_descanso_negociados,
-                  negociacao_id: tipo === "legal" ? null : f.negociacao_id,
                 }));
               }}
             >
