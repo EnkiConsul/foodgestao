@@ -126,6 +126,7 @@ describe("fechamento e banco de horas", () => {
     intervaloMinutos: 60,
     minutosTrabalhados: 480,
     minutosPrevistos: 480,
+    minutosNoturnos: 0,
     saldoMinutos: 0,
     atrasoMinutos: 0,
     extraMinutos: 0,

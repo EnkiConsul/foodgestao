@@ -70,6 +70,19 @@ export function proximaMarcacao(marcacoes: Pick<Marcacao, "tipo">[]): PontoTipo 
 const minutosEntre = (a: string, b: string) =>
   Math.max(0, Math.round((new Date(b).getTime() - new Date(a).getTime()) / 60000));
 
+/** Minutos de sobreposição de [ini, fim] com a janela noturna legal (22h–05h). */
+export function minutosNoturnos(iniIso: string, fimIso: string): number {
+  const ini = new Date(iniIso).getTime();
+  const fim = new Date(fimIso).getTime();
+  if (!(fim > ini)) return 0;
+  let total = 0;
+  for (let t = ini; t < fim; t += 60000) {
+    const h = new Date(t).getHours();
+    if (h >= 22 || h < 5) total += 1;
+  }
+  return total;
+}
+
 export interface ResumoPontoDia {
   data: string;
   status: StatusDia;
@@ -78,6 +91,7 @@ export interface ResumoPontoDia {
   intervaloMinutos: number;
   minutosTrabalhados: number;
   minutosPrevistos: number;
+  minutosNoturnos: number;
   saldoMinutos: number;
   atrasoMinutos: number;
   extraMinutos: number;
@@ -111,6 +125,14 @@ export function consolidarDia(input: ConsolidarDiaInput): ResumoPontoDia {
   const intervaloMinutos = iniInt && fimInt ? minutosEntre(iniInt.registrado_em, fimInt.registrado_em) : 0;
   const bruto = entrada && saida ? minutosEntre(entrada.registrado_em, saida.registrado_em) : 0;
   const minutosTrabalhados = Math.max(0, bruto - intervaloMinutos);
+  const noturnos =
+    entrada && saida
+      ? Math.max(
+          0,
+          minutosNoturnos(entrada.registrado_em, saida.registrado_em) -
+            (iniInt && fimInt ? minutosNoturnos(iniInt.registrado_em, fimInt.registrado_em) : 0),
+        )
+      : 0;
 
   const faltamMarcacoes = ORDEM_MARCACOES.filter((t) => !porTipo.has(t));
 
@@ -144,6 +166,7 @@ export function consolidarDia(input: ConsolidarDiaInput): ResumoPontoDia {
     intervaloMinutos,
     minutosTrabalhados,
     minutosPrevistos,
+    minutosNoturnos: noturnos,
     saldoMinutos,
     atrasoMinutos,
     extraMinutos: Math.max(0, saldoMinutos),
