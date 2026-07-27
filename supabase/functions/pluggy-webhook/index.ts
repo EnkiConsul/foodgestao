@@ -52,34 +52,40 @@ async function processEvent(supabase: any, eventRowId: string, payload: any, eve
       "transactions/deleted",
     ]);
 
-    if (pluggyItemId && dataChangingEvents.has(eventType)) {
-      const { data: conn } = await supabase
+    let conn: { id: string; company_id: string; requires_user_action?: boolean } | null = null;
+    if (pluggyItemId) {
+      const { data } = await supabase
         .from("open_finance_connections")
-        .select("id, company_id")
+        .select("id, company_id, requires_user_action")
         .eq("pluggy_item_id", pluggyItemId)
         .maybeSingle();
-      if (conn) {
+      conn = data ?? null;
+    }
+
+    // Bloco 8 — classifica o estado do item (LOGIN_ERROR, MFA, consentimento) antes de enfileirar.
+    let requiresUserAction = false;
+    if (conn && (eventType.startsWith("item/") || eventType === "connector/status_updated")) {
+      const item = (payload as any)?.item ?? {};
+      const { data: state } = await supabase.rpc("classify_open_finance_item_state", {
+        _connection_id: conn.id,
+        _status: item.status ?? (payload as any)?.status ?? null,
+        _execution_status: item.executionStatus ?? (payload as any)?.executionStatus ?? null,
+        _error_code: item.error?.code ?? (payload as any)?.error?.code ?? null,
+        _error_message: item.error?.message ?? (payload as any)?.error?.message ?? null,
+        _consent_expires_at: item.consentExpiresAt ?? null,
+        _parameter: item.parameter ?? null,
+      });
+      requiresUserAction = Boolean((state as any)?.requires_user_action);
+    }
+
+    if (conn && !requiresUserAction && dataChangingEvents.has(eventType)) {
+      {
         await supabase.from("open_finance_sync_runs").insert({
           connection_id: conn.id,
           company_id: conn.company_id,
           status: "queued",
           triggered_by: `webhook:${eventType}`,
         });
-      }
-    }
-
-    if (
-      pluggyItemId &&
-      (eventType === "item/updated" || eventType === "item/error" || eventType === "item/waiting_user_input")
-    ) {
-      const patch: Record<string, unknown> = {
-        status: payload?.item?.status ?? payload?.status ?? undefined,
-        status_detail: payload?.item?.executionStatus ?? undefined,
-        consent_expires_at: payload?.item?.consentExpiresAt ?? undefined,
-      };
-      for (const k of Object.keys(patch)) if (patch[k] === undefined) delete patch[k];
-      if (Object.keys(patch).length) {
-        await supabase.from("open_finance_connections").update(patch).eq("pluggy_item_id", pluggyItemId);
       }
     }
 
