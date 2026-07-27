@@ -126,7 +126,9 @@ export function useDpConfigDp() {
   return {
     config,
     temMulheres: mulheres.data ?? false,
+    negociacoes: negociacoes.data ?? [],
     historico: historico.data ?? [],
+
     isLoading: query.isLoading,
     isError: query.isError,
     refetch: () => {
