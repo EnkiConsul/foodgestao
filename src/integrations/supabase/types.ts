@@ -7936,6 +7936,7 @@ export type Database = {
         }
         Returns: number
       }
+      open_finance_sync_health: { Args: { _company_id: string }; Returns: Json }
       pair_retro_transfers: {
         Args: { _company_id: string; _connection_id?: string }
         Returns: number

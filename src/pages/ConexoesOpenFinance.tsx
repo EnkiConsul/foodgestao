@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { OpenFinanceWizard } from "@/components/accounts/OpenFinanceWizard";
+import OpenFinanceHealthPanel from "@/components/accounts/OpenFinanceHealthPanel";
 
 interface Connection {
   id: string;
@@ -397,6 +398,10 @@ export default function ConexoesOpenFinance() {
           <Zap className="h-4 w-4 mr-2" /> Nova conexão
         </Button>
       </div>
+
+      {inPJ && selectedCompanyId && (
+        <OpenFinanceHealthPanel companyId={selectedCompanyId} />
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-12 text-muted-foreground">
