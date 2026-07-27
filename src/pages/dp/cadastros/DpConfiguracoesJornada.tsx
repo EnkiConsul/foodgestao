@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Save, Scale, History, Info } from "lucide-react";
 import { DpPage, DpPageHeader, DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
+import { FeriasRegrasSection } from "@/components/dp/ferias/FeriasRegrasSection";
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,7 +69,7 @@ export default function DpConfiguracoesJornada() {
   if (isError) {
     return (
       <DpPage>
-        <DpPageHeader title="Regras de jornada e folgas" icon={Scale} />
+        <DpPageHeader title="Regras De Folgas" icon={Scale} />
         <DpErrorState onRetry={refetch} />
       </DpPage>
     );
@@ -77,13 +78,13 @@ export default function DpConfiguracoesJornada() {
   return (
     <DpPage>
       <Helmet>
-        <title>Regras de jornada e folgas | DP 360°FOOD</title>
-        <meta name="description" content="Configure escalas, periodicidade de folga dominical e políticas de sábado e feriado do Departamento Pessoal." />
+        <title>Regras De Folgas | DP 360°FOOD</title>
+        <meta name="description" content="Configure escalas, periodicidade de folga dominical, políticas de sábado e feriado e as regras de férias do Departamento Pessoal." />
       </Helmet>
 
       <DpPageHeader
-        title="Regras de jornada e folgas"
-        description="Parâmetros de DSR, folga dominical e políticas de fim de semana aplicados a toda a empresa."
+        title="Regras De Folgas"
+        description="Parâmetros de DSR, folga dominical, fim de semana e férias aplicados a toda a empresa."
         icon={Scale}
         actions={
           <Button onClick={handleSave} disabled={saving || isLoading} className="gap-2">
@@ -206,6 +207,9 @@ export default function DpConfiguracoesJornada() {
           </div>
         </div>
       </Section>
+
+      <FeriasRegrasSection />
+
 
       <Section
         title="Histórico de alterações"

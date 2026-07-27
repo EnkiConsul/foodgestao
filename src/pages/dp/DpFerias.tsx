@@ -18,6 +18,7 @@ import {
 } from "@/hooks/useDpFerias";
 import { FeriasGozoDialog } from "@/components/dp/ferias/FeriasGozoDialog";
 import { DpErrorState } from "@/components/dp/DpErrorState";
+import { FeriasRestricoesAviso } from "@/components/dp/ferias/FeriasRestricoesAviso";
 
 const PERIODO_LABEL: Record<FeriasPeriodoStatus, string> = {
   em_aquisicao: "Em aquisição",
@@ -121,6 +122,8 @@ export default function DpFerias() {
           </Button>
         }
       />
+
+      <FeriasRestricoesAviso />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
