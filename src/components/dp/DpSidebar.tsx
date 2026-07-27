@@ -74,6 +74,16 @@ const PORTAL_ITEMS: Item[] = buildItems(DP_PORTAL_NAV);
 const ADMIN_ROUTES = surfaceRoutes(DP_ADMIN_NAV);
 const PORTAL_ROUTES = surfaceRoutes(DP_PORTAL_NAV);
 
+/**
+ * Ativo por especificidade: apenas a rota mais longa que casa com o pathname
+ * fica marcada (ex.: em /dp/ponto/time, "Espelho de Ponto" não acende).
+ */
+function useDpIsActive() {
+  const { pathname } = useLocation();
+  const routes = pathname.startsWith("/dp/meu") ? PORTAL_ROUTES : ADMIN_ROUTES;
+  return makeIsActive(pathname, routes);
+}
+
 
 export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" }) {
   const { state } = useSidebar();
@@ -164,12 +174,14 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
 }
 
 function DpLink({ item, collapsed }: { item: Extract<Item, { kind: "link" }>; collapsed: boolean }) {
+  const isActiveRoute = useDpIsActive();
+  const isActive = isActiveRoute(item.url);
   return (
     <SidebarMenuItem>
       <NavLink
         to={item.url}
         end={item.end}
-        className={({ isActive }) =>
+        className={
           cn(
             "flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors",
             isActive
@@ -200,7 +212,10 @@ function DpGroup({
 }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const active = item.prefixes.some((p) => pathname.startsWith(p));
+  const isActiveRoute = useDpIsActive();
+  const active =
+    item.prefixes.some((p) => pathname === p || pathname.startsWith(p + "/")) ||
+    item.items.some((sub) => isActiveRoute(sub.url));
 
   // Abre automaticamente o grupo cujo prefixo corresponde à rota atual.
   useEffect(() => {
@@ -253,10 +268,10 @@ function DpGroup({
               key={sub.url}
               to={sub.url}
               end={sub.end}
-              className={({ isActive }) =>
+              className={
                 cn(
                   "flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors",
-                  isActive
+                  isActiveRoute(sub.url)
                     ? "bg-primary/10 text-primary font-medium"
                     : "text-foreground/60 hover:bg-accent hover:text-foreground",
                 )
