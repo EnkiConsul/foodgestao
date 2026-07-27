@@ -13,7 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TURNO_LABEL } from "@/lib/dp/dsr-rules";
 
 const DIAS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-const TURNOS = ["matutino", "vespertino", "noturno", "misto"] as const;
 const TODOS = "__all__";
 
 /** Cobertura mínima por unidade, cargo, dia da semana e turno. */
@@ -23,20 +22,23 @@ export function CoberturaMinimaCard() {
   const [unidadeId, setUnidadeId] = useState(TODOS);
   const [cargoId, setCargoId] = useState(TODOS);
   const [diaSemana, setDiaSemana] = useState(TODOS);
-  const [turno, setTurno] = useState(TODOS);
+  const [turnoId, setTurnoId] = useState(TODOS);
   const [minimo, setMinimo] = useState(1);
 
   const refs = useQuery({
     queryKey: ["dp_cobertura_refs", selectedCompanyId],
     enabled: !!selectedCompanyId,
     queryFn: async () => {
-      const [u, c] = await Promise.all([
+      const [u, c, t] = await Promise.all([
         supabase.from("dp_unidades").select("id, nome").eq("company_id", selectedCompanyId!).order("nome"),
         supabase.from("dp_cargos").select("id, nome").eq("company_id", selectedCompanyId!).order("nome"),
+        supabase.from("dp_turnos").select("id, nome, unidade_id").eq("company_id", selectedCompanyId!)
+          .eq("ativo", true).order("entrada"),
       ]);
       if (u.error) throw u.error;
       if (c.error) throw c.error;
-      return { unidades: u.data ?? [], cargos: c.data ?? [] };
+      if (t.error) throw t.error;
+      return { unidades: u.data ?? [], cargos: c.data ?? [], turnos: t.data ?? [] };
     },
   });
 
@@ -46,7 +48,7 @@ export function CoberturaMinimaCard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_cobertura_minima")
-        .select("id, unidade_id, cargo_id, dia_semana, turno, minimo")
+        .select("id, unidade_id, cargo_id, dia_semana, turno, turno_id, minimo")
         .eq("company_id", selectedCompanyId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -64,7 +66,7 @@ export function CoberturaMinimaCard() {
         unidade_id: unidadeId === TODOS ? null : unidadeId,
         cargo_id: cargoId === TODOS ? null : cargoId,
         dia_semana: diaSemana === TODOS ? null : Number(diaSemana),
-        turno: turno === TODOS ? null : (turno as (typeof TURNOS)[number]),
+        turno_id: turnoId === TODOS ? null : turnoId,
         minimo,
       });
       if (error) throw error;
@@ -83,6 +85,10 @@ export function CoberturaMinimaCard() {
 
   const nomeUnidade = useMemo(
     () => new Map((refs.data?.unidades ?? []).map((u) => [u.id, u.nome])),
+    [refs.data],
+  );
+  const nomeTurno = useMemo(
+    () => new Map((refs.data?.turnos ?? []).map((t) => [t.id, t.nome])),
     [refs.data],
   );
   const nomeCargo = useMemo(
@@ -134,11 +140,13 @@ export function CoberturaMinimaCard() {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="cm-turno">Turno</Label>
-          <Select value={turno} onValueChange={setTurno}>
+          <Select value={turnoId} onValueChange={setTurnoId}>
             <SelectTrigger id="cm-turno"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value={TODOS}>Todos</SelectItem>
-              {TURNOS.map((t) => <SelectItem key={t} value={t}>{TURNO_LABEL[t]}</SelectItem>)}
+              {(refs.data?.turnos ?? []).map((t) => (
+                <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -167,7 +175,11 @@ export function CoberturaMinimaCard() {
                 {r.unidade_id ? nomeUnidade.get(r.unidade_id) ?? "Unidade" : "Todas as unidades"} ·{" "}
                 {r.cargo_id ? nomeCargo.get(r.cargo_id) ?? "Cargo" : "Todos os cargos"} ·{" "}
                 {r.dia_semana == null ? "Todos os dias" : DIAS[r.dia_semana]} ·{" "}
-                {r.turno ? TURNO_LABEL[r.turno] : "Todos os turnos"}
+                {r.turno_id
+                  ? nomeTurno.get(r.turno_id) ?? "Turno"
+                  : r.turno
+                    ? TURNO_LABEL[r.turno]
+                    : "Todos os turnos"}
               </span>
               <Button size="icon" variant="ghost" aria-label="Remover regra" onClick={() => remover.mutate(r.id)}>
                 <Trash2 className="h-4 w-4 text-destructive" />
