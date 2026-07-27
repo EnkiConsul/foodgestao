@@ -41,6 +41,12 @@ function mapRow(data: Record<string, unknown>): ConfigRow {
     negociacao_id: (data.negociacao_id as string | null) ?? null,
   };
 }
+/** Remove campos de identidade da linha, deixando apenas os valores de regra. */
+function stripIdentity(row: ConfigRow): DpConfigDpForm {
+  const { id: _id, unidade_id: _unidade, ...regras } = row;
+  return regras;
+}
+
 
 /**
  * Configuração de regras de folgas.
