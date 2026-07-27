@@ -73,22 +73,10 @@ export function HorariosSemanaEditor({ horarios, onChange, menorDeIdade, tipoEsc
   };
 
   return (
-    <div className="space-y-3">
-      <div
-        className={cn(
-          "sticky top-0 z-10 flex items-center justify-between gap-3 rounded-xl border p-4",
-          acima ? "border-destructive/40 bg-destructive/5" : "border-primary/30 bg-primary/5",
-        )}
-      >
-        <div>
-          <p className="text-xs text-muted-foreground">Carga semanal</p>
-          <p className="text-2xl font-bold tabular-nums">{formatarHoras(semanal)}</p>
-        </div>
-        <p className={cn("flex items-center gap-1.5 text-right text-xs font-medium", acima ? "text-destructive" : "text-primary")}>
-          {acima ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
-          {acima ? `Acima de ${LIMITE_SEMANAL} horas` : "Dentro do limite legal"}
-        </p>
-      </div>
+    <div className="flex flex-col gap-3">
+      <JornadaCargaResumo horarios={horarios} tipoEscala={tipoEscala} />
+
+
 
       {ORDEM_EXIBICAO.map((dia) => (
         <JornadaCard
