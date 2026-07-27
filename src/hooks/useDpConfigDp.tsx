@@ -78,13 +78,14 @@ export function useDpConfigDp(unidadeId: string | null = null) {
   );
 
   const configPadrao: DpConfigDpForm = useMemo(
-    () => padraoRow ?? DP_CONFIG_DP_DEFAULT,
+    () => (padraoRow ? stripIdentity(padraoRow) : DP_CONFIG_DP_DEFAULT),
     [padraoRow],
   );
   const config: DpConfigDpForm = useMemo(
-    () => unidadeRow ?? configPadrao,
+    () => (unidadeRow ? stripIdentity(unidadeRow) : configPadrao),
     [unidadeRow, configPadrao],
   );
+
 
 
 
