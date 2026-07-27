@@ -167,8 +167,7 @@ export default function ContasBancarias() {
 
   const handleDelete = async () => {
     if (!deleteAccount) return;
-    const deletedName = deleteAccount.name;
-    const { error } = await supabase.rpc("soft_delete_account", { _account_id: deleteAccount.id });
+    const { data, error } = await supabase.rpc("delete_account", { _account_id: deleteAccount.id });
     if (error) {
       const msg = (error.message || "").toLowerCase();
       if (msg.includes("open_finance") || msg.includes("conex") || msg.includes("desconect")) {
@@ -177,13 +176,8 @@ export default function ContasBancarias() {
         toast.error("Erro ao excluir conta");
       }
     } else {
-      await supabase.rpc("insert_audit_log", {
-        _action: "account_deleted",
-        _entity_type: "account",
-        _entity_id: deleteAccount.id,
-        _details: { target_name: deletedName },
-      });
-      toast.success("Conta arquivada"); fetchAccounts();
+      toast.success(data === "hard" ? "Conta excluída" : "Conta arquivada");
+      fetchAccounts();
     }
     setDeleteAccount(null);
   };
@@ -495,7 +489,7 @@ export default function ContasBancarias() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir conta bancária</AlertDialogTitle>
             <AlertDialogDescription>
-              A conta <strong>{deleteAccount?.name}</strong> será arquivada e deixará de aparecer nas listas. O histórico de lançamentos é preservado para fins contábeis.
+              A conta <strong>{deleteAccount?.name}</strong> será excluída definitivamente se não houver lançamentos vinculados. Se houver histórico, ela será arquivada para preservar a contabilidade.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

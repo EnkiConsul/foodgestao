@@ -7365,6 +7365,7 @@ export type Database = {
         }
         Returns: string
       }
+      delete_account: { Args: { _account_id: string }; Returns: string }
       delete_ai_categorization_message: {
         Args: { p_msg_id: number }
         Returns: boolean
