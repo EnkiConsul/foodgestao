@@ -309,6 +309,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
               { icon: Briefcase, label: "Cargos", to: "/dp/cadastros/cargos" },
               { icon: Building2, label: "Unidades", to: "/dp/cadastros/unidades" },
               { icon: Scale, label: "Sindicatos", to: "/dp/cadastros/sindicatos" },
+              { icon: Clock, label: "Turnos", to: "/dp/cadastros/turnos" },
               { icon: Clock, label: "Jornadas e Escalas", to: "/dp/cadastros/jornadas" },
               { icon: BellRing, label: "Pendências", to: "/dp/cadastros/pendencias" },
             ],
