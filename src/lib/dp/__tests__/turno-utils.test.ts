@@ -48,7 +48,7 @@ describe("turno-utils", () => {
   });
 
   it("avisa sobre intervalo insuficiente sem bloquear", () => {
-    const r = validarTurno({ ...base, intervalo_minutos: 15 });
+    const r = validarTurno({ ...base, intervalo_minutos: 0 });
     expect(r.some((v) => v.nivel === "aviso")).toBe(true);
     expect(r.some((v) => v.nivel === "erro")).toBe(false);
   });
