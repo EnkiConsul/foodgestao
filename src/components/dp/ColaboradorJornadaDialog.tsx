@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDpJornadas, useDpColaboradorJornadas } from "@/hooks/useDpJornadas";
 import { TIPO_ESCALA_LABEL, TURNO_LABEL } from "@/lib/dp/dsr-rules";
+import { resumoJornadaTexto } from "@/lib/dp/jornada-utils";
 
 const DIAS_SEMANA = [
   { v: "0", label: "Domingo" }, { v: "1", label: "Segunda" }, { v: "2", label: "Terça" },
@@ -37,8 +38,6 @@ export function ColaboradorJornadaDialog({ colaborador, open, onOpenChange }: Pr
   const [jornadaId, setJornadaId] = useState("");
   const [inicio, setInicio] = useState(hoje());
   const [folgaFixa, setFolgaFixa] = useState<string>("none");
-  const [entrada, setEntrada] = useState("");
-  const [saida, setSaida] = useState("");
   const [obs, setObs] = useState("");
 
   const jornadasAtivas = useMemo(() => jornadas.filter((j) => j.ativo), [jornadas]);
@@ -46,10 +45,13 @@ export function ColaboradorJornadaDialog({ colaborador, open, onOpenChange }: Pr
     () => vinculos.find((v) => !v.fim || v.fim >= hoje()),
     [vinculos],
   );
+  const jornadaSelecionada = useMemo(
+    () => jornadasAtivas.find((j) => j.id === jornadaId) ?? null,
+    [jornadasAtivas, jornadaId],
+  );
 
   const limpar = () => {
-    setJornadaId(""); setInicio(hoje()); setFolgaFixa("none");
-    setEntrada(""); setSaida(""); setObs("");
+    setJornadaId(""); setInicio(hoje()); setFolgaFixa("none"); setObs("");
   };
 
   const salvar = async () => {
@@ -65,8 +67,6 @@ export function ColaboradorJornadaDialog({ colaborador, open, onOpenChange }: Pr
         jornada_id: jornadaId,
         inicio,
         folga_fixa_semana_override: folgaFixa === "none" ? null : Number(folgaFixa),
-        horario_entrada_override: entrada || null,
-        horario_saida_override: saida || null,
         observacoes: obs.trim() || null,
       });
       toast.success("Jornada vinculada");
@@ -124,14 +124,17 @@ export function ColaboradorJornadaDialog({ colaborador, open, onOpenChange }: Pr
               </Select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="cj-ent">Entrada (override)</Label>
-              <Input id="cj-ent" type="time" value={entrada} onChange={(e) => setEntrada(e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="cj-sai">Saída (override)</Label>
-              <Input id="cj-sai" type="time" value={saida} onChange={(e) => setSaida(e.target.value)} />
-            </div>
+            {jornadaSelecionada && (
+              <div className="rounded-lg border bg-muted/30 p-3 text-xs sm:col-span-2">
+                <p className="font-medium text-foreground">Horários da jornada</p>
+                <p className="text-muted-foreground">
+                  {jornadaSelecionada.horarios.length
+                    ? resumoJornadaTexto(jornadaSelecionada.horarios)
+                    : "Nenhum horário cadastrado nesta jornada."}
+                </p>
+              </div>
+            )}
+
 
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="cj-obs">Observações</Label>

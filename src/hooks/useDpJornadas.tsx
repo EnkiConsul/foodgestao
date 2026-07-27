@@ -2,29 +2,45 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
+import { calcularCargaDia, calcularCargaSemanal, viraODia, hhmm, type HorarioDia } from "@/lib/dp/jornada-utils";
 
-export type DpJornada = Database["public"]["Tables"]["dp_jornadas"]["Row"];
-export type DpJornadaInput = Omit<DpJornada, "id" | "created_at" | "updated_at" | "company_id">;
-export type DpColaboradorJornada = Database["public"]["Tables"]["dp_colaborador_jornadas"]["Row"] & {
-  jornada?: Pick<DpJornada, "id" | "nome" | "tipo_escala" | "turno"> | null;
-};
+export type DpJornadaRow = Database["public"]["Tables"]["dp_jornadas"]["Row"];
+export type DpJornadaHorarioRow = Database["public"]["Tables"]["dp_jornada_horarios"]["Row"];
 
-export const JORNADA_DEFAULT: DpJornadaInput = {
+export type DpJornada = DpJornadaRow & { horarios: HorarioDia[] };
+
+/** Campos editáveis da jornada (carga é sempre calculada pelo motor). */
+export interface DpJornadaForm {
+  nome: string;
+  descricao: string | null;
+  tipo_escala: DpJornadaRow["tipo_escala"];
+  turno: DpJornadaRow["turno"];
+  ativo: boolean;
+  observacoes: string | null;
+  horarios: HorarioDia[];
+}
+
+export const JORNADA_FORM_DEFAULT: DpJornadaForm = {
   nome: "",
+  descricao: null,
   tipo_escala: "6x1",
   turno: "matutino",
-  carga_horaria_diaria: 8,
-  carga_horaria_semanal: 44,
-  dias_trabalho: [1, 2, 3, 4, 5, 6],
-  dias_folga: [0],
-  horario_entrada: "08:00",
-  horario_saida: "17:00",
-  intervalo_inicio: "12:00",
-  intervalo_fim: "13:00",
-  permite_intervalo_fracionado: false,
-  observacoes: null,
   ativo: true,
+  observacoes: null,
+  horarios: [],
 };
+
+function normalizarHorarios(rows: DpJornadaHorarioRow[] | null | undefined): HorarioDia[] {
+  return (rows ?? [])
+    .map((r) => ({
+      dia_semana: r.dia_semana,
+      entrada: hhmm(r.entrada),
+      saida: hhmm(r.saida),
+      intervalo_minutos: r.intervalo_minutos,
+      termina_no_dia_seguinte: r.termina_no_dia_seguinte,
+    }))
+    .sort((a, b) => a.dia_semana - b.dia_semana);
+}
 
 export function useDpJornadas() {
   const { selectedCompanyId } = useCompanyContext();
@@ -37,12 +53,17 @@ export function useDpJornadas() {
     queryFn: async (): Promise<DpJornada[]> => {
       const { data, error } = await supabase
         .from("dp_jornadas")
-        .select("*")
+        .select("*, dp_jornada_horarios(*)")
         .eq("company_id", selectedCompanyId!)
         .order("ativo", { ascending: false })
         .order("nome");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).map((j) => {
+        const { dp_jornada_horarios, ...rest } = j as DpJornadaRow & {
+          dp_jornada_horarios: DpJornadaHorarioRow[] | null;
+        };
+        return { ...rest, horarios: normalizarHorarios(dp_jornada_horarios) };
+      });
     },
   });
 
@@ -51,19 +72,72 @@ export function useDpJornadas() {
     qc.invalidateQueries({ queryKey: ["dp_colaborador_jornadas"] });
   };
 
+  /** Grava os horários de uma jornada substituindo o conjunto atual. */
+  const gravarHorarios = async (jornadaId: string, companyId: string, horarios: HorarioDia[]) => {
+    const dias = horarios.map((h) => h.dia_semana);
+    // Remove os dias que deixaram de existir antes de inserir os novos.
+    const del = supabase.from("dp_jornada_horarios").delete().eq("jornada_id", jornadaId);
+    const { error: delError } = dias.length
+      ? await del.not("dia_semana", "in", `(${dias.join(",")})`)
+      : await del;
+    if (delError) throw delError;
+
+    if (!horarios.length) return;
+    const { error } = await supabase.from("dp_jornada_horarios").upsert(
+      horarios.map((h) => ({
+        company_id: companyId,
+        jornada_id: jornadaId,
+        dia_semana: h.dia_semana,
+        entrada: h.entrada,
+        saida: h.saida,
+        intervalo_minutos: h.intervalo_minutos,
+        termina_no_dia_seguinte: viraODia(h.entrada, h.saida),
+        carga_horas: calcularCargaDia(h),
+      })),
+      { onConflict: "jornada_id,dia_semana" },
+    );
+    if (error) throw error;
+  };
+
+  const camposJornada = (form: DpJornadaForm) => {
+    const dias = form.horarios.map((h) => h.dia_semana).sort();
+    const folgas = [0, 1, 2, 3, 4, 5, 6].filter((d) => !dias.includes(d));
+    const semanal = calcularCargaSemanal(form.horarios);
+    const diaria = form.horarios.reduce((max, h) => Math.max(max, calcularCargaDia(h)), 0);
+    return {
+      nome: form.nome.trim(),
+      descricao: form.descricao,
+      tipo_escala: form.tipo_escala,
+      turno: form.turno,
+      ativo: form.ativo,
+      observacoes: form.observacoes,
+      dias_trabalho: dias,
+      dias_folga: folgas,
+      carga_horaria_semanal: semanal,
+      carga_horaria_diaria: diaria,
+    };
+  };
+
   const create = useMutation({
-    mutationFn: async (input: DpJornadaInput) => {
+    mutationFn: async (form: DpJornadaForm) => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      const { error } = await supabase.from("dp_jornadas").insert({ ...input, company_id: selectedCompanyId });
+      const { data, error } = await supabase
+        .from("dp_jornadas")
+        .insert({ ...camposJornada(form), company_id: selectedCompanyId })
+        .select("id")
+        .single();
       if (error) throw error;
+      await gravarHorarios(data.id, selectedCompanyId, form.horarios);
     },
     onSuccess: invalidate,
   });
 
   const update = useMutation({
-    mutationFn: async ({ id, ...input }: Partial<DpJornadaInput> & { id: string }) => {
-      const { error } = await supabase.from("dp_jornadas").update(input).eq("id", id);
+    mutationFn: async ({ id, form }: { id: string; form: DpJornadaForm }) => {
+      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
+      const { error } = await supabase.from("dp_jornadas").update(camposJornada(form)).eq("id", id);
       if (error) throw error;
+      await gravarHorarios(id, selectedCompanyId, form.horarios);
     },
     onSuccess: invalidate,
   });
@@ -88,7 +162,11 @@ export function useDpJornadas() {
   };
 }
 
-/** Vínculos de jornada (com vigências e overrides) de um colaborador. */
+export type DpColaboradorJornada = Database["public"]["Tables"]["dp_colaborador_jornadas"]["Row"] & {
+  jornada?: Pick<DpJornadaRow, "id" | "nome" | "tipo_escala" | "turno"> | null;
+};
+
+/** Vínculos de jornada (com vigências) de um colaborador. */
 export function useDpColaboradorJornadas(colaboradorId?: string) {
   const { selectedCompanyId } = useCompanyContext();
   const qc = useQueryClient();
@@ -115,8 +193,6 @@ export function useDpColaboradorJornadas(colaboradorId?: string) {
       inicio: string;
       fim?: string | null;
       folga_fixa_semana_override?: number | null;
-      horario_entrada_override?: string | null;
-      horario_saida_override?: string | null;
       observacoes?: string | null;
     }) => {
       if (!selectedCompanyId || !colaboradorId) throw new Error("Contexto incompleto");
