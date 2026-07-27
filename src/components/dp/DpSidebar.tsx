@@ -42,7 +42,7 @@ const ADMIN_ITEMS: Item[] = [
   },
   {
     kind: "group", title: "Folgas", icon: Calendar,
-    prefixes: ["/dp/folgas", "/dp/solicitacoes", "/dp/aprovacoes", "/dp/trocas", "/dp/bloqueios", "/dp/ferias"],
+    prefixes: ["/dp/folgas", "/dp/solicitacoes", "/dp/aprovacoes", "/dp/trocas", "/dp/bloqueios", "/dp/ferias", "/dp/conformidade-dsr"],
     hubUrl: "/dp/folgas",
     items: [
       { title: "Calendário Geral", url: "/dp/folgas/calendario", icon: Calendar },
@@ -51,6 +51,7 @@ const ADMIN_ITEMS: Item[] = [
       { title: "Trocas", url: "/dp/trocas", icon: ArrowLeftRight },
       { title: "Datas Bloqueadas", url: "/dp/bloqueios", icon: Ban },
       { title: "Férias", url: "/dp/ferias", icon: Palmtree },
+      { title: "Conformidade DSR", url: "/dp/conformidade-dsr", icon: Scale },
     ],
   },
   {
