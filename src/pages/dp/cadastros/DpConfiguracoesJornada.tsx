@@ -59,10 +59,15 @@ export default function DpConfiguracoesJornada() {
   };
 
   const handleSave = () => {
+    if (form.tipo_descanso_domingo === "acordo_coletivo" && !form.negociacao_id) {
+      toast.error("Vincule um acordo ou convenção coletiva para usar esse modo de descanso.");
+      return;
+    }
     const pendentes = alertasDeCiencia(form, { temMulheres });
     if (pendentes.length > 0) { setAlertas(pendentes); return; }
     void persist(false);
   };
+
 
   const historicoRecente = useMemo(() => historico.slice(0, 10), [historico]);
 
