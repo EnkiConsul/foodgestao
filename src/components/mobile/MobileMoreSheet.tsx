@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import type { MoreGroup, NavLeaf } from "@/config/mobileNav";
 import { cn } from "@/lib/utils";
+import { makeIsActive } from "@/lib/nav-active";
 import { useMemo, useRef, useState } from "react";
 import { useFavoriteNavItems } from "@/hooks/useFavoriteNavItems";
 import { toast } from "sonner";
@@ -208,6 +209,8 @@ function ItemList({
   onNavigate: (to: string) => void;
   onToggleFav: (to: string, label: string) => void;
 }) {
+  // Ativo por especificidade dentro da lista renderizada.
+  const isActive = makeIsActive(pathname, items.map((i) => i.to));
   return (
     <div className="rounded-xl border bg-card overflow-hidden">
       {items.map((item, i) => (
@@ -215,7 +218,7 @@ function ItemList({
           key={item.to + i}
           item={item}
           isFirst={i === 0}
-          pathname={pathname}
+          active={isActive(item.to)}
           fav={isFavorite(item.to)}
           onNavigate={onNavigate}
           onToggleFav={onToggleFav}
@@ -228,20 +231,19 @@ function ItemList({
 function ItemRow({
   item,
   isFirst,
-  pathname,
+  active,
   fav,
   onNavigate,
   onToggleFav,
 }: {
   item: NavLeaf;
   isFirst: boolean;
-  pathname: string;
+  active: boolean;
   fav: boolean;
   onNavigate: (to: string) => void;
   onToggleFav: (to: string, label: string) => void;
 }) {
   const Icon = item.icon;
-  const active = pathname === item.to || pathname.startsWith(item.to + "/");
   const timerRef = useRef<number | null>(null);
   const longPressedRef = useRef(false);
 

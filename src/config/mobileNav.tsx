@@ -58,6 +58,14 @@ import {
   Fingerprint,
 } from "lucide-react";
 import type { ActiveModule } from "@/hooks/useActiveModule";
+import {
+  DP_ADMIN_NAV,
+  DP_PORTAL_NAV,
+  surfaceShortcuts,
+  type DpNavGroup,
+  type DpNavItem,
+} from "@/config/dpNavigation";
+
 
 /** Item de navegação simples (link). */
 export type NavLeaf = {
@@ -139,37 +147,38 @@ const financeiroShortcuts: NavLeaf[] = [
   { icon: PiggyBank, label: "Orçamento", to: "/orcamento" },
 ];
 
-// ── DP ───────────────────────────────────────────────────────────────────
-const dpHome: NavLeaf = { icon: Home, label: "Início", to: "/dp", end: true };
-const dpShortcuts: NavLeaf[] = [
-  { icon: Calendar, label: "Calendário", to: "/dp/folgas" },
-  { icon: FileText, label: "Documentos", to: "/dp/documentos" },
-  { icon: Users, label: "Colaboradores", to: "/dp/colaboradores" },
-  { icon: CheckSquare, label: "Aprovações", to: "/dp/aprovacoes" },
-  { icon: BellRing, label: "Comunicação", to: "/dp/comunicacao" },
-  { icon: Inbox, label: "Solicitações", to: "/dp/solicitacoes" },
-  { icon: FileBarChart, label: "Histórico", to: "/dp/documentos/historico" },
-  { icon: Palmtree, label: "Férias", to: "/dp/ferias" },
-  { icon: CalendarRange, label: "Escalas", to: "/dp/escalas" },
-  { icon: Clock, label: "Jornadas", to: "/dp/cadastros/jornadas" },
-  { icon: ShieldCheck, label: "Conformidade", to: "/dp/conformidade" },
-  { icon: Gift, label: "Benefícios", to: "/dp/beneficios" },
-  { icon: BarChart3, label: "Analytics", to: "/dp/analytics" },
-];
+// ── DP + Portal (derivados de src/config/dpNavigation.tsx) ───────────────
+/** Converte um item da config compartilhada em NavLeaf do menu mobile. */
+function toLeaf(item: DpNavItem): NavLeaf {
+  return { icon: item.icon, label: item.label, to: item.to, end: item.end };
+}
 
-// ── Portal do colaborador ────────────────────────────────────────────────
-const portalHome: NavLeaf = { icon: Home, label: "Início", to: "/dp/meu", end: true };
+/** Versão curta, usada nas opções de atalho da BottomNav. */
+function toShortcutLeaf(item: DpNavItem): NavLeaf {
+  return { icon: item.icon, label: item.shortLabel ?? item.label, to: item.to };
+}
+
+function toSubGroup(group: DpNavGroup): MoreSubGroup {
+  return {
+    kind: "collapsible",
+    label: group.label,
+    icon: group.icon,
+    hubTo: group.hubTo,
+    matchPrefixes: group.matchPrefixes,
+    items: group.items.map(toLeaf),
+  };
+}
+
+const dpHome: NavLeaf = toLeaf(DP_ADMIN_NAV.home);
+const dpShortcuts: NavLeaf[] = surfaceShortcuts(DP_ADMIN_NAV).map(toShortcutLeaf);
+
+const portalHome: NavLeaf = toLeaf(DP_PORTAL_NAV.home);
 const portalShortcuts: NavLeaf[] = [
   { icon: Home, label: "Financeiro", to: "/dashboard" },
   { icon: Users, label: "DP", to: "/dp" },
-  { icon: Megaphone, label: "Mural", to: "/dp/meu/mural" },
-  { icon: Calendar, label: "Calendário", to: "/dp/meu/calendario" },
-  { icon: Inbox, label: "Solicitações", to: "/dp/meu/solicitacoes" },
-  { icon: FileText, label: "Documentos", to: "/dp/meu/documentos" },
-  { icon: ArrowLeftRight, label: "Trocas", to: "/dp/meu/trocas" },
-  { icon: FileBarChart, label: "Histórico", to: "/dp/meu/historico" },
-  { icon: User, label: "Perfil", to: "/dp/meu/perfil" },
+  ...surfaceShortcuts(DP_PORTAL_NAV).map(toShortcutLeaf),
 ];
+
 
 // ── Hub ──────────────────────────────────────────────────────────────────
 const hubHome: NavLeaf = { icon: LayoutGrid, label: "Módulos", to: "/hub", end: true };
@@ -293,92 +302,10 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
       {
         label: "DP 360°",
         accent: "primary",
-        items: [
-          { icon: ShieldCheck, label: "Conformidade", to: "/dp/conformidade" },
-          { icon: Gift, label: "Benefícios", to: "/dp/beneficios" },
-          { icon: BarChart3, label: "Analytics de RH", to: "/dp/analytics" },
-        ],
-        subgroups: [
-          {
-            kind: "collapsible",
-            label: "Cadastro",
-            icon: Users,
-            hubTo: "/dp/cadastros",
-            matchPrefixes: ["/dp/colaboradores", "/dp/cadastros"],
-            items: [
-              { icon: Users, label: "Colaboradores", to: "/dp/colaboradores" },
-              { icon: Briefcase, label: "Cargos", to: "/dp/cadastros/cargos" },
-              { icon: Building2, label: "Unidades", to: "/dp/cadastros/unidades" },
-              { icon: Scale, label: "Sindicatos", to: "/dp/cadastros/sindicatos" },
-              { icon: Clock, label: "Turnos", to: "/dp/cadastros/turnos" },
-              { icon: Clock, label: "Jornadas e Escalas", to: "/dp/cadastros/jornadas" },
-              { icon: BellRing, label: "Pendências", to: "/dp/cadastros/pendencias" },
-            ],
-          },
-          {
-            kind: "collapsible",
-            label: "Folgas",
-            icon: Calendar,
-            hubTo: "/dp/folgas",
-            matchPrefixes: [
-              "/dp/folgas",
-              "/dp/solicitacoes",
-              "/dp/aprovacoes",
-              "/dp/trocas",
-              "/dp/bloqueios",
-              "/dp/ferias",
-              "/dp/escalas",
-              "/dp/operacao",
-              "/dp/convocacoes",
-              "/dp/ponto",
-              "/dp/conformidade-dsr",
-            ],
-            items: [
-              { icon: CalendarRange, label: "Operação do Dia", to: "/dp/operacao" },
-              { icon: Calendar, label: "Calendário Geral", to: "/dp/folgas/calendario" },
-              { icon: Inbox, label: "Solicitações", to: "/dp/solicitacoes" },
-              { icon: UserCheck, label: "Aprovações", to: "/dp/aprovacoes" },
-              { icon: ArrowLeftRight, label: "Trocas", to: "/dp/trocas" },
-              { icon: Ban, label: "Datas Bloqueadas", to: "/dp/bloqueios" },
-              { icon: Palmtree, label: "Férias", to: "/dp/ferias" },
-              { icon: CalendarRange, label: "Escala do Mês", to: "/dp/escalas/mes" },
-              { icon: BellRing, label: "Convocações", to: "/dp/convocacoes" },
-              { icon: Fingerprint, label: "Espelho de Ponto", to: "/dp/ponto" },
-              { icon: CalendarRange, label: "Gerador de Escala", to: "/dp/escalas" },
-              { icon: Scale, label: "Conformidade DSR", to: "/dp/conformidade-dsr" },
-              { icon: Settings, label: "Regras de Folgas", to: "/dp/folgas/configuracoes/regras" },
-            ],
-          },
-          {
-            kind: "collapsible",
-            label: "Documentos",
-            icon: FileText,
-            hubTo: "/dp/documentos",
-            matchPrefixes: ["/dp/documentos", "/dp/disciplinar", "/dp/atestados"],
-
-            items: [
-              { icon: FileText, label: "Contracheques", to: "/dp/documentos/contracheque" },
-              { icon: Coins, label: "Adiantamentos", to: "/dp/documentos/adiantamento" },
-              { icon: Clock, label: "Folhas de Ponto", to: "/dp/documentos/ponto" },
-              { icon: HeartPulse, label: "Atestados", to: "/dp/atestados" },
-              { icon: ShieldAlert, label: "Registros Disciplinares", to: "/dp/disciplinar" },
-              { icon: FileSignature, label: "ACT-CCT", to: "/dp/documentos/act-cct" },
-              { icon: ListChecks, label: "Histórico Completo", to: "/dp/documentos/historico" },
-            ],
-          },
-          {
-            kind: "collapsible",
-            label: "Comunicação",
-            icon: MessageSquare,
-            hubTo: "/dp/comunicacao",
-            matchPrefixes: ["/dp/comunicacao", "/dp/mensagens", "/dp/avisos"],
-            items: [
-              { icon: MessageSquare, label: "Mensagens", to: "/dp/mensagens" },
-              { icon: Bell, label: "Quadro de Avisos", to: "/dp/avisos" },
-            ],
-          },
-        ],
+        items: DP_ADMIN_NAV.direct.map(toLeaf),
+        subgroups: DP_ADMIN_NAV.groups.map(toSubGroup),
       },
+
       contaGroup,
     ],
   },
@@ -394,35 +321,10 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
       {
         label: "Portal",
         accent: "navy",
-        items: [
-          { icon: Megaphone, label: "Mural", to: "/dp/meu/mural" },
-          { icon: Settings, label: "Meu Cadastro", to: "/dp/meu/perfil" },
-        ],
-        subgroups: [
-          {
-            kind: "static",
-            label: "Folgas",
-            icon: Calendar,
-            items: [
-              { icon: Calendar, label: "Calendário", to: "/dp/meu/calendario" },
-              { icon: Repeat, label: "Trocas", to: "/dp/meu/trocas" },
-              { icon: ListChecks, label: "Histórico", to: "/dp/meu/historico" },
-              { icon: Inbox, label: "Solicitações", to: "/dp/meu/solicitacoes" },
-            ],
-          },
-          {
-            kind: "static",
-            label: "Documentos",
-            icon: FileText,
-            items: [
-              { icon: FileText, label: "Meus Documentos", to: "/dp/meu/documentos" },
-              { icon: HeartPulse, label: "Atestados", to: "/dp/meu/atestados" },
-              { icon: ShieldAlert, label: "Disciplinar", to: "/dp/meu/disciplinar" },
-              { icon: Scale, label: "Sindicato", to: "/dp/meu/sindicato" },
-            ],
-          },
-        ],
+        items: DP_PORTAL_NAV.direct.map(toLeaf),
+        subgroups: DP_PORTAL_NAV.groups.map(toSubGroup),
       },
+
       contaGroupPortal,
     ],
   },
