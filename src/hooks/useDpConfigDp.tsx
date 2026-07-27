@@ -250,8 +250,10 @@ export function useDpConfigDp(unidadeId: string | null = null) {
       void historico.refetch();
     },
     save: save.mutateAsync,
-    saving: save.isPending,
+    saving: save.isPending || saveMany.isPending,
+    saveMany: saveMany.mutateAsync,
     removerExcecao: removerExcecao.mutateAsync,
     removendo: removerExcecao.isPending,
+
   };
 }
