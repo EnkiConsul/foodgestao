@@ -102,7 +102,7 @@ export default function DpMeuCalendario() {
       if (!data) return null;
       const { data: c } = await supabase
         .from("dp_colaboradores")
-        .select("id, company_id, nome, folga_fixa_semana, ativo, unidade_id")
+        .select("id, company_id, nome, sexo, folga_fixa_semana, ativo, unidade_id")
         .eq("id", data)
         .single();
       return c;
