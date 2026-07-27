@@ -83,16 +83,20 @@ export function useDpFolhaPeriodo(periodoId: string | undefined) {
         .eq("periodo_id", periodoId!);
       if (error) throw error;
       return (data ?? [])
-        .map((l) => ({
-          id: l.id,
-          colaborador_id: l.colaborador_id,
-          nome: (l as { dp_colaboradores?: { nome: string } | null }).dp_colaboradores?.nome ?? "Colaborador",
-          status: l.status as FolhaLancamentoStatus,
-          valor_bruto: Number(l.valor_bruto ?? 0),
-          valor_liquido: Number(l.valor_liquido ?? 0),
-          detalhe: lerDetalhe(l.descontos),
-          transaction_id: l.transaction_id ?? null,
-        }))
+        .map((l) => {
+          const detalhe = lerDetalhe(l.descontos);
+          const valores = valoresDoLancamento(detalhe);
+          return {
+            id: l.id,
+            colaborador_id: l.colaborador_id,
+            nome: (l as { dp_colaboradores?: { nome: string } | null }).dp_colaboradores?.nome ?? "Colaborador",
+            status: l.status as FolhaLancamentoStatus,
+            valor_bruto: valores.bruto,
+            valor_liquido: valores.liquido,
+            detalhe,
+            transaction_id: l.transaction_id ?? null,
+          };
+        })
         .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
     },
   });
@@ -254,15 +258,17 @@ export function useMeusContracheques(colaboradorId: string | null) {
           const p = (l as {
             dp_folha_periodos?: { competencia: string; tipo: string; status: string; data_pagamento: string | null } | null;
           }).dp_folha_periodos;
+          const detalhe = lerDetalhe(l.descontos);
+          const valores = valoresDoLancamento(detalhe);
           return {
             id: l.id,
             status: l.status as FolhaLancamentoStatus,
             tipo: (p?.tipo ?? l.tipo) as string,
             competencia: p?.competencia ?? "",
             data_pagamento: p?.data_pagamento ?? null,
-            valor_bruto: Number(l.valor_bruto ?? 0),
-            valor_liquido: Number(l.valor_liquido ?? 0),
-            detalhe: lerDetalhe(l.descontos),
+            valor_bruto: valores.bruto,
+            valor_liquido: valores.liquido,
+            detalhe,
           };
         })
         .sort((a, b) => b.competencia.localeCompare(a.competencia));
