@@ -32,6 +32,7 @@ export const FOLHA_TIPO_LABEL: Record<string, string> = {
   contracheque_quinzenal: "Contracheque quinzenal",
   decimo_terceiro: "13º salário",
   ferias: "Férias",
+  rescisao: "Rescisão (TRCT)",
   vale_alimentacao: "Vale-alimentação",
   vale_transporte: "Vale-transporte",
 };

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { Calculator, Gift, Receipt } from "lucide-react";
+import { Calculator, FileSignature, Gift, Receipt } from "lucide-react";
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
@@ -52,6 +52,12 @@ export default function DpFolha() {
               <Link to="/dp/folha/provisoes">
                 <Gift className="mr-2 h-4 w-4" />
                 Férias e 13º
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/dp/rescisoes">
+                <FileSignature className="mr-2 h-4 w-4" />
+                Rescisões
               </Link>
             </Button>
             <Button variant="outline" size="sm" asChild>
