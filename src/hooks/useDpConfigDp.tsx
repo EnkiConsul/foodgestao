@@ -47,7 +47,7 @@ export function useDpConfigDp() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_sindicato_negociacoes")
-        .select("id, titulo, tipo_documento, vigencia_inicio, vigencia_fim")
+        .select("id, tipo_documento, vigencia_inicio, vigencia_fim")
         .eq("company_id", selectedCompanyId!)
         .order("vigencia_inicio", { ascending: false });
       if (error) throw error;
