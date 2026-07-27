@@ -328,6 +328,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
               "/dp/ferias",
               "/dp/escalas",
               "/dp/operacao",
+              "/dp/convocacoes",
               "/dp/conformidade-dsr",
             ],
             items: [
@@ -339,6 +340,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
               { icon: Ban, label: "Datas Bloqueadas", to: "/dp/bloqueios" },
               { icon: Palmtree, label: "Férias", to: "/dp/ferias" },
               { icon: CalendarRange, label: "Escala do Mês", to: "/dp/escalas/mes" },
+              { icon: BellRing, label: "Convocações", to: "/dp/convocacoes" },
               { icon: CalendarRange, label: "Gerador de Escala", to: "/dp/escalas" },
               { icon: Scale, label: "Conformidade DSR", to: "/dp/conformidade-dsr" },
               { icon: Settings, label: "Regras de Folgas", to: "/dp/folgas/configuracoes/regras" },
