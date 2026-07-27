@@ -11,7 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { useDesligarDpColaborador, type DpColaborador } from "@/hooks/useDpColaboradores";
+import {
+  useDesligarDpColaborador, useEditarDesligamento, type DpColaborador,
+} from "@/hooks/useDpColaboradores";
 import { useDpPendenciasConfig } from "@/hooks/useDpPendenciasConfig";
 import {
   MOTIVO_DESLIGAMENTO_OPTIONS,
@@ -26,11 +28,17 @@ const NONE = "__none__";
 export function DesligamentoDialog({
   colaborador,
   onOpenChange,
+  modo = "desligar",
 }: {
   colaborador: DpColaborador | null;
   onOpenChange: (open: boolean) => void;
+  /** `editar` altera os dados de um desligamento já registrado. */
+  modo?: "desligar" | "editar";
 }) {
+  const isEdicao = modo === "editar";
   const desligar = useDesligarDpColaborador();
+  const editar = useEditarDesligamento();
+  const pending = desligar.isPending || editar.isPending;
   const { config } = useDpPendenciasConfig();
   const dias = (config as any).dias_carencia_portal ?? DIAS_CARENCIA_PORTAL_DEFAULT;
 
@@ -41,16 +49,16 @@ export function DesligamentoDialog({
 
   useEffect(() => {
     if (colaborador) {
-      setData(toDateOnly(new Date()));
-      setMotivo(NONE);
-      setElegibilidade(NONE);
-      setObservacao("");
+      setData(colaborador.data_desligamento ?? toDateOnly(new Date()));
+      setMotivo(colaborador.motivo_desligamento ?? NONE);
+      setElegibilidade(colaborador.elegivel_recontratacao ?? NONE);
+      setObservacao(colaborador.observacao_desligamento ?? "");
     }
-  }, [colaborador?.id]);
+  }, [colaborador?.id, modo]);
 
   const impacto = useQuery({
     queryKey: ["dp_desligamento_impacto", colaborador?.id, data],
-    enabled: !!colaborador?.id && !!data,
+    enabled: !!colaborador?.id && !!data && !isEdicao,
     queryFn: async () => {
       const [folgas, sols] = await Promise.all([
         supabase
@@ -81,6 +89,27 @@ export function DesligamentoDialog({
       toast.error("Observação muito longa (máx. 2000 caracteres)");
       return;
     }
+    const payload = {
+      id: colaborador.id,
+      data_desligamento: data,
+      motivo: motivo === NONE ? null : motivo,
+      elegibilidade: elegibilidade === NONE ? null : elegibilidade,
+      observacao: observacao.trim() || null,
+    };
+
+    if (isEdicao) {
+      try {
+        await editar.mutateAsync(payload);
+        toast.success("Dados do desligamento atualizados");
+        onOpenChange(false);
+      } catch (e) {
+        toast.error("Erro ao atualizar desligamento", {
+          description: e instanceof Error ? e.message : String(e),
+        });
+      }
+      return;
+    }
+
     try {
       const res = await desligar.mutateAsync({
         id: colaborador.id,
@@ -107,11 +136,21 @@ export function DesligamentoDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <UserMinus className="h-5 w-5 text-destructive" /> Desligar colaborador
+            <UserMinus className="h-5 w-5 text-destructive" />
+            {isEdicao ? "Editar desligamento" : "Desligar colaborador"}
           </DialogTitle>
           <DialogDescription>
-            Registre o desligamento de <strong>{colaborador?.nome}</strong>. O histórico permanece no sistema
-            para futuras avaliações de recontratação.
+            {isEdicao ? (
+              <>
+                Atualize a data, o motivo e as considerações do desligamento de{" "}
+                <strong>{colaborador?.nome}</strong>. Folgas e solicitações já canceladas não são alteradas.
+              </>
+            ) : (
+              <>
+                Registre o desligamento de <strong>{colaborador?.nome}</strong>. O histórico permanece no
+                sistema para futuras avaliações de recontratação.
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -125,7 +164,7 @@ export function DesligamentoDialog({
               onChange={(e) => setData(e.target.value)}
             />
             <p className="text-[11px] text-muted-foreground">
-              Pode ser uma data futura (aviso prévio). O acesso ao portal encerra em {dias} dias após ela.
+              {isEdicao ? "Alterar a data recalcula o prazo de acesso ao portal. " : ""}Pode ser uma data futura (aviso prévio). O acesso ao portal encerra em {dias} dias após ela.
             </p>
           </div>
 
@@ -168,6 +207,7 @@ export function DesligamentoDialog({
             />
           </div>
 
+          {!isEdicao && (
           <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs space-y-1">
             <div className="flex items-center gap-2 font-semibold text-amber-700 dark:text-amber-400">
               <AlertTriangle className="h-4 w-4" /> O que acontece ao confirmar
@@ -185,18 +225,21 @@ export function DesligamentoDialog({
               </li>
             </ul>
           </div>
+          )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={desligar.isPending}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>
             Cancelar
           </Button>
           <Button
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className={isEdicao ? undefined : "bg-destructive text-destructive-foreground hover:bg-destructive/90"}
             onClick={handleSubmit}
-            disabled={desligar.isPending}
+            disabled={pending}
           >
-            {desligar.isPending ? "Desligando..." : "Confirmar desligamento"}
+            {pending
+              ? isEdicao ? "Salvando..." : "Desligando..."
+              : isEdicao ? "Salvar alterações" : "Confirmar desligamento"}
           </Button>
         </DialogFooter>
       </DialogContent>
