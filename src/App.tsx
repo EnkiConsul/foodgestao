@@ -73,6 +73,7 @@ const DpFolgasHub = lazyWithRetry(() => import("./pages/dp/DpFolgasHub"));
 const DpCadastrosHub = lazyWithRetry(() => import("./pages/dp/DpCadastrosHub"));
 const DpCadastroPendencias = lazyWithRetry(() => import("./pages/dp/cadastros/DpCadastroPendencias"));
 const DpCadastroJornadas = lazyWithRetry(() => import("./pages/dp/cadastros/DpCadastroJornadas"));
+const DpTurnos = lazyWithRetry(() => import("./pages/dp/cadastros/DpTurnos"));
 const DpConfiguracoesJornada = lazyWithRetry(() => import("./pages/dp/cadastros/DpConfiguracoesJornada"));
 const DpConformidadeDsr = lazyWithRetry(() => import("./pages/dp/DpConformidadeDsr"));
 const DpEscalas = lazyWithRetry(() => import("./pages/dp/DpEscalas"));
@@ -391,6 +392,8 @@ const AppRoutes = () => (
         <Route path="cadastros/sindicatos" element={<DpSindicatos />} />
         <Route path="cadastros/pendencias" element={<DpCadastroPendencias />} />
         <Route path="cadastros/jornadas" element={<DpCadastroJornadas />} />
+        <Route path="cadastros/turnos" element={<DpTurnos />} />
+        <Route path="turnos" element={<Navigate to="/dp/cadastros/turnos" replace />} />
         <Route path="folgas/configuracoes/regras" element={<DpConfiguracoesJornada />} />
         <Route path="cadastros/regras-jornada" element={<Navigate to="/dp/folgas/configuracoes/regras" replace />} />
         <Route path="conformidade-dsr" element={<DpConformidadeDsr />} />
