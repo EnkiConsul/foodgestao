@@ -168,9 +168,12 @@ export default function DpPontoApuracao() {
                 <p className="text-xl font-semibold">{moeda(totalBruto)}</p>
               </div>
               {periodo && (
-                <Badge variant={periodo.status === "aberto" ? "secondary" : "default"}>
-                  Folha {periodo.status.replace(/_/g, " ")} · {periodo.totalLancamentos} lançamento(s)
-                </Badge>
+                <Link to={`/dp/folha/${periodo.id}`} className="shrink-0">
+                  <Badge variant={periodo.status === "aberto" ? "secondary" : "default"}>
+                    {PERIODO_STATUS_LABEL[periodo.status as FolhaPeriodoStatus] ?? periodo.status} ·{" "}
+                    {periodo.totalLancamentos} lançamento(s)
+                  </Badge>
+                </Link>
               )}
             </div>
             {semSalario > 0 && (
