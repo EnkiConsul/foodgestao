@@ -428,11 +428,11 @@ export default function DpAtestados() {
                     <TableHead className="px-3 w-[11%]">Unidade</TableHead>
                     <TableHead className="px-3 w-[9%]">Data</TableHead>
                     <TableHead className="px-3 w-[9%]">Data Retorno</TableHead>
-                    <TableHead className="px-3 w-[16%]">Observações</TableHead>
+                    <TableHead className="px-3 w-[12%]">Observações</TableHead>
                     <TableHead className="px-3 w-[10%]">Status</TableHead>
                     <TableHead className="px-3 w-[11%]">Detalhes</TableHead>
                     <TableHead className="px-3 w-[8%]">Arquivo</TableHead>
-                    <TableHead className="px-3 text-right w-[6%]">Ações</TableHead>
+                    <TableHead className="px-3 text-right w-[10%]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -443,20 +443,20 @@ export default function DpAtestados() {
                     const FileIcon = fileKind.icon;
                     return (
                       <TableRow key={r.id} className="align-middle">
-                        <TableCell className="max-w-44 px-3 font-bold uppercase text-foreground">{r.dp_colaboradores?.nome ?? "—"}</TableCell>
-                        <TableCell className="max-w-28 px-3 text-foreground">{unitName ?? "—"}</TableCell>
+                        <TableCell className="truncate px-3 font-bold uppercase text-foreground" title={r.dp_colaboradores?.nome ?? ""}>{r.dp_colaboradores?.nome ?? "—"}</TableCell>
+                        <TableCell className="truncate px-3 text-foreground" title={unitName ?? ""}>{unitName ?? "—"}</TableCell>
                         <TableCell className="whitespace-nowrap px-3">{formatDate(r.data_alvo)}</TableCell>
                         <TableCell className="whitespace-nowrap px-3">{formatDate(r.data_fim)}</TableCell>
-                        <TableCell className="max-w-36 truncate px-3">{r.motivo || "—"}</TableCell>
+                        <TableCell className="truncate px-3" title={r.motivo || ""}>{r.motivo || "—"}</TableCell>
                         <TableCell className="px-3">
-                          <Badge variant="outline" className={STATUS_BADGE[r.status].className}>{STATUS_BADGE[r.status].label}</Badge>
+                          <Badge variant="outline" className={`max-w-full truncate ${STATUS_BADGE[r.status].className}`}>{STATUS_BADGE[r.status].label}</Badge>
                         </TableCell>
                         <TableCell className="px-3 font-semibold">
                           <div>Dias: {d}</div>
                           <div>Retorno:</div>
                           <div className="font-normal">{formatDate(r.data_fim)}</div>
                         </TableCell>
-                        <TableCell className="px-3">
+                        <TableCell className="px-3 truncate">
                           {r.arquivo_path ? (
                             <button
                               type="button"
