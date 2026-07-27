@@ -540,7 +540,9 @@ export default function DpMeuCalendario() {
           <p className="text-muted-foreground mt-2 font-medium">
             Escolha suas folgas de fim de semana.
           </p>
+          <p className="text-xs text-muted-foreground mt-1">{resumoFolgas.texto}</p>
         </div>
+
         <Button
           variant="outline"
           className="rounded-full"
