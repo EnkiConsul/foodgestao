@@ -186,15 +186,33 @@ describe("diasElegiveisDaConfig + tetoFolgasMes", () => {
       diasElegiveisDaConfig({ tipo_descanso_domingo: "acordo_coletivo", dias_descanso_negociados: [3, 0] }),
     ).toEqual([0, 3]);
   });
-  it("limita o teto mensal pela frequência configurada", () => {
+  it("deriva o teto mensal da frequência configurada", () => {
     expect(
       tetoFolgasMes({
         modo_frequencia_domingo: "semanas",
         periodicidade_domingo: 3,
         domingos_por_mes: 1,
-        folgas_fds_por_mes: 4,
       }),
     ).toBe(2);
+    expect(
+      tetoFolgasMes({
+        modo_frequencia_domingo: "por_mes",
+        periodicidade_domingo: 3,
+        domingos_por_mes: 1,
+      }),
+    ).toBe(1);
+  });
+  it("aplica a frequência feminina quando mais protetiva", () => {
+    const cfg = {
+      modo_frequencia_domingo: "semanas" as const,
+      periodicidade_domingo: 7,
+      domingos_por_mes: 1,
+      modo_frequencia_domingo_mulher: "semanas" as const,
+      periodicidade_domingo_mulher: 2,
+      domingos_por_mes_mulher: 2,
+    };
+    expect(tetoFolgasMes(cfg)).toBe(1);
+    expect(tetoFolgasMes(cfg, { sexo: "F" })).toBe(3);
   });
 });
 
@@ -203,14 +221,14 @@ describe("resumoEscolhaFolgas", () => {
     const r = resumoEscolhaFolgas({
       tipo_descanso_domingo: "acordo_coletivo",
       dias_descanso_negociados: [1, 3, 0],
-      modo_frequencia_domingo: "semanas",
+      modo_frequencia_domingo: "por_mes",
       periodicidade_domingo: 3,
       domingos_por_mes: 1,
-      folgas_fds_por_mes: 1,
     });
     expect(r.dias).toEqual([0, 1, 3]);
     expect(r.teto).toBe(1);
     expect(r.texto).toContain("Seg, Qua, Dom");
     expect(r.texto).toContain("até 1 folga");
   });
+
 });
