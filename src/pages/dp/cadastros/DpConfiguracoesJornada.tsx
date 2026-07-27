@@ -69,6 +69,8 @@ export default function DpConfiguracoesJornada() {
   const semanas = semanasDaConfig(form);
   const herdando = !!unidadeId && !temExcecao;
   const porAcordo = form.tipo_descanso_domingo === "acordo_coletivo";
+  const resumoFolgas = useMemo(() => resumoEscolhaFolgas(form), [form]);
+
   const travadoClt = form.regra_dsr === "clt";
 
   const set = <K extends keyof DpConfigDpForm>(k: K, v: DpConfigDpForm[K]) =>
