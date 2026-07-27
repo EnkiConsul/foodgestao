@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDpJornadas, useDpColaboradorJornadas } from "@/hooks/useDpJornadas";
 import { TIPO_ESCALA_LABEL, TURNO_LABEL } from "@/lib/dp/dsr-rules";
+import { resumoJornadaTexto } from "@/lib/dp/jornada-utils";
 
 const DIAS_SEMANA = [
   { v: "0", label: "Domingo" }, { v: "1", label: "Segunda" }, { v: "2", label: "Terça" },
