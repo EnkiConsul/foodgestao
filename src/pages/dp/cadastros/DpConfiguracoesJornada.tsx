@@ -189,7 +189,7 @@ export default function DpConfiguracoesJornada() {
             >
               <SelectTrigger id="modo-domingo"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {(Object.keys(MODO_DOMINGO_LABEL) as (keyof typeof MODO_DOMINGO_LABEL)[]).map((m) => (
+                {(Object.keys(MODO_DOMINGO_LABEL) as ModoDomingo[]).map((m) => (
                   <SelectItem key={m} value={m}>{MODO_DOMINGO_LABEL[m]}</SelectItem>
                 ))}
               </SelectContent>
