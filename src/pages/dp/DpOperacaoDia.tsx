@@ -42,13 +42,13 @@ const dataExtenso = (iso: string) =>
 
 function Secao({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
-    <Secao contentClassName="p-4">
+    <DpContentCard contentClassName="p-4">
       <div className="mb-2">
         <h2 className="text-sm font-semibold">{title}</h2>
         {description && <p className="text-xs text-muted-foreground">{description}</p>}
       </div>
       {children}
-    </Secao>
+    </DpContentCard>
   );
 }
 
