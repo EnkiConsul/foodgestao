@@ -58,20 +58,26 @@ export default function DpPontoApuracao() {
   });
 
   const { linhas, isLoading, error } = useDpPontoMes(competencia, unidadeId === "todas" ? null : unidadeId);
+  const { bases, periodo, semSalario, enviarParaFolha } = useDpFolhaApuracao(competencia);
 
   const apuracao: LinhaApuracao[] = useMemo(
     () =>
       linhas.map((l) => ({
         colaborador_id: l.colaborador_id,
         nome: l.nome,
-        rubricas: apurarColaborador(l.dias),
+        rubricas: apurarColaborador(l.dias, { valorHora: bases.get(l.colaborador_id)?.valorHora }),
         saldoAcumuladoMinutos: l.saldoAcumuladoMinutos,
         fechado: l.fechado,
       })),
-    [linhas],
+    [linhas, bases],
   );
 
   const totais = useMemo(() => somarApuracoes(apuracao), [apuracao]);
+  const totalBruto = useMemo(
+    () => apuracao.reduce((acc, l) => acc + (l.rubricas.valores?.liquido ?? 0), 0),
+    [apuracao],
+  );
+
 
   if (error) return <DpErrorState message="Não foi possível carregar a apuração do ponto." />;
 
