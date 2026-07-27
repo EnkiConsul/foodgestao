@@ -216,6 +216,15 @@ export default function DpFolhaPeriodo() {
                     <p className="text-xs text-muted-foreground">Líquido</p>
                     <p className="text-sm font-semibold">{formatarBRL(l.valor_liquido)}</p>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Imprimir demonstrativo de ${l.nome}`}
+                    disabled={l.status === "cancelado"}
+                    onClick={() => imprimir([l])}
+                  >
+                    <Printer className="h-4 w-4" />
+                  </Button>
                   <Badge variant={l.status === "rascunho" ? "secondary" : "default"}>
                     {LANCAMENTO_STATUS_LABEL[l.status]}
                   </Badge>
