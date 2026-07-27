@@ -25,9 +25,9 @@ export function useDpFolhaRelatorios(ano: number, unidadeId: string | "todas") {
       const { data, error } = await supabase
         .from("dp_folha_lancamentos")
         .select(
-          "colaborador_id, tipo, status, valor_bruto, valor_liquido, descontos, " +
-            "dp_folha_periodos!inner(competencia), dp_colaboradores!inner(nome, unidade_id)",
+          "colaborador_id, tipo, status, valor_bruto, valor_liquido, descontos, dp_folha_periodos!inner(competencia), dp_colaboradores!inner(nome, unidade_id)",
         )
+
         .eq("company_id", selectedCompanyId!)
         .gte("dp_folha_periodos.competencia", `${ano}-01-01`)
         .lte("dp_folha_periodos.competencia", `${ano}-12-01`);
