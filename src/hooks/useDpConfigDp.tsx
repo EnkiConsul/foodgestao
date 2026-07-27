@@ -122,6 +122,46 @@ export function useDpConfigDp(unidadeId: string | null = null) {
     },
   });
 
+  /** Grava a regra de um alvo (unidade ou empresa) e registra o histórico. */
+  const gravarAlvo = async (
+    alvo: string | null,
+    patch: Partial<DpConfigDpForm>,
+    opts: { cienciaConfirmada?: boolean; justificativa?: string | null; rotulo?: string },
+  ) => {
+    if (!selectedCompanyId) throw new Error("Empresa não selecionada");
+    const existente = rows.find((r) => r.unidade_id === alvo) ?? null;
+    const base = existente ?? padraoRow ?? null;
+    // Nunca herdar campos de identidade (id/unidade_id) da regra usada como base.
+    const anterior: DpConfigDpForm = base ? stripIdentity(base) : DP_CONFIG_DP_DEFAULT;
+    const merged: DpConfigDpForm = { ...anterior, ...patch };
+    const payload = { ...merged, company_id: selectedCompanyId, unidade_id: alvo };
+
+    if (existente) {
+      const { error } = await supabase
+        .from("dp_config_dp")
+        .update(payload)
+        .eq("id", existente.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from("dp_config_dp").insert(payload);
+      if (error) throw error;
+    }
+
+    const { data: userData } = await supabase.auth.getUser();
+    const { error: histError } = await supabase.from("dp_regras_historico").insert({
+      company_id: selectedCompanyId,
+      usuario_id: userData.user?.id ?? null,
+      tabela: alvo ? `Regras de folgas — ${opts.rotulo ?? `unidade ${alvo}`}` : "Regras de folgas — empresa",
+      valor_antigo: anterior as unknown as never,
+      valor_novo: merged as unknown as never,
+      justificativa: opts.justificativa ?? null,
+      ciencia_confirmada: !!opts.cienciaConfirmada,
+    });
+    if (histError) throw histError;
+
+    return merged;
+  };
+
   const save = useMutation({
     mutationFn: async (input: {
       patch: Partial<DpConfigDpForm>;
@@ -129,42 +169,12 @@ export function useDpConfigDp(unidadeId: string | null = null) {
       unidadeId?: string | null;
       cienciaConfirmada?: boolean;
       justificativa?: string | null;
+      rotulo?: string;
     }) => {
-      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      const alvo = input.unidadeId !== undefined ? input.unidadeId : unidadeId;
-      const existente = rows.find((r) => r.unidade_id === (alvo ?? null)) ?? null;
-      const base = existente ?? padraoRow ?? null;
-      // Nunca herdar campos de identidade (id/unidade_id) da regra usada como base.
-      const anterior: DpConfigDpForm = base ? stripIdentity(base) : DP_CONFIG_DP_DEFAULT;
-      const merged: DpConfigDpForm = { ...anterior, ...input.patch };
-      const payload = { ...merged, company_id: selectedCompanyId, unidade_id: alvo ?? null };
-
-      if (existente) {
-        const { error } = await supabase
-          .from("dp_config_dp")
-          .update(payload)
-          .eq("id", existente.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("dp_config_dp").insert(payload);
-        if (error) throw error;
-      }
-
-
-      const { data: userData } = await supabase.auth.getUser();
-      const { error: histError } = await supabase.from("dp_regras_historico").insert({
-        company_id: selectedCompanyId,
-        usuario_id: userData.user?.id ?? null,
-        tabela: alvo ? `dp_config_dp (unidade ${alvo})` : "dp_config_dp",
-        valor_antigo: anterior as unknown as never,
-        valor_novo: merged as unknown as never,
-        justificativa: input.justificativa ?? null,
-        ciencia_confirmada: !!input.cienciaConfirmada,
-      });
-      if (histError) throw histError;
-
-      return merged;
+      const alvo = (input.unidadeId !== undefined ? input.unidadeId : unidadeId) ?? null;
+      return gravarAlvo(alvo, input.patch, input);
     },
+
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["dp_config_dp", selectedCompanyId] });
       void qc.invalidateQueries({ queryKey: ["dp_regras_historico", selectedCompanyId] });
