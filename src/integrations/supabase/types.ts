@@ -8549,9 +8549,22 @@ export type Database = {
         Args: { _periodo_id: string }
         Returns: undefined
       }
+      dp_folha_desfazer_despesa: {
+        Args: { p_periodo_id: string }
+        Returns: boolean
+      }
       dp_folha_enviar_financeiro: {
         Args: { _periodo_id: string }
         Returns: undefined
+      }
+      dp_folha_gerar_despesa: {
+        Args: {
+          p_account_id?: string
+          p_category_id?: string
+          p_data_pagamento?: string
+          p_periodo_id: string
+        }
+        Returns: string
       }
       dp_folha_gerar_lancamentos: {
         Args: { _periodo_id: string }

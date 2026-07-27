@@ -76,7 +76,7 @@ export function useDpFolhaPeriodo(periodoId: string | undefined) {
     queryFn: async (): Promise<LinhaFolha[]> => {
       const { data, error } = await supabase
         .from("dp_folha_lancamentos")
-        .select("id, colaborador_id, status, valor_bruto, valor_liquido, descontos, dp_colaboradores:colaborador_id(nome)")
+        .select("id, colaborador_id, status, valor_bruto, valor_liquido, descontos, transaction_id, dp_colaboradores:colaborador_id(nome)")
         .eq("periodo_id", periodoId!);
       if (error) throw error;
       return (data ?? [])
@@ -88,10 +88,12 @@ export function useDpFolhaPeriodo(periodoId: string | undefined) {
           valor_bruto: Number(l.valor_bruto ?? 0),
           valor_liquido: Number(l.valor_liquido ?? 0),
           detalhe: lerDetalhe(l.descontos),
+          transaction_id: l.transaction_id ?? null,
         }))
         .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
     },
   });
+
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["dp_folha_periodo_detalhe", periodoId] });
@@ -149,15 +151,57 @@ export function useDpFolhaPeriodo(periodoId: string | undefined) {
     onError: (e: Error) => toast.error(e.message || "Não foi possível cancelar o lançamento."),
   });
 
+  /** Fase 14 — gera a despesa consolidada da folha no financeiro (conta a pagar). */
+  const gerarDespesa = useMutation({
+    mutationFn: async (params: { accountId?: string | null; categoryId?: string | null; dataPagamento?: string | null }) => {
+      if (!periodoId) throw new Error("Período inválido.");
+      const { data, error } = await supabase.rpc("dp_folha_gerar_despesa", {
+        p_periodo_id: periodoId,
+        p_account_id: params.accountId ?? undefined,
+        p_category_id: params.categoryId ?? undefined,
+        p_data_pagamento: params.dataPagamento ?? undefined,
+      });
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: () => {
+      toast.success("Despesa da folha gerada no financeiro.");
+      invalidate();
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+    },
+    onError: (e: Error) => toast.error(e.message || "Não foi possível gerar a despesa."),
+  });
+
+  /** Fase 14 — remove a despesa gerada, desde que ainda não confirmada. */
+  const desfazerDespesa = useMutation({
+    mutationFn: async () => {
+      if (!periodoId) throw new Error("Período inválido.");
+      const { error } = await supabase.rpc("dp_folha_desfazer_despesa", { p_periodo_id: periodoId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Despesa removida do financeiro.");
+      invalidate();
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+    },
+    onError: (e: Error) => toast.error(e.message || "Não foi possível desfazer a despesa."),
+  });
+
+  const transactionId = (linhasQuery.data ?? []).find((l) => l.transaction_id)?.transaction_id ?? null;
+
   return {
     periodo: periodoQuery.data ?? null,
     linhas: linhasQuery.data ?? [],
+    transactionId,
     isLoading: periodoQuery.isLoading || linhasQuery.isLoading,
     error: periodoQuery.error ?? linhasQuery.error,
     alterarStatus,
     cancelarLancamento,
+    gerarDespesa,
+    desfazerDespesa,
   };
 }
+
 
 /** Portal — contracheques do próprio colaborador (somente aprovados/pagos por RLS). */
 export function useMeusContracheques(colaboradorId: string | null) {

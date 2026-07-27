@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "react-router-dom";
-import { Download, Receipt, Search } from "lucide-react";
+import { Download, Receipt, Search, Wallet } from "lucide-react";
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
+import { FolhaDespesaDialog } from "@/components/dp/FolhaDespesaDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,9 +18,10 @@ import {
 import { useDpFolhaPeriodo } from "@/hooks/useDpFolha";
 import {
   FOLHA_TIPO_LABEL, LANCAMENTO_STATUS_LABEL, PERIODO_STATUS_LABEL,
-  folhaParaCsv, formatarBRL, proximoStatusPeriodo, totaisDaFolha,
+  folhaParaCsv, formatarBRL, podeGerarDespesa, proximoStatusPeriodo, totaisDaFolha,
   type FolhaPeriodoStatus,
 } from "@/lib/dp/folha";
+
 
 const rotuloCompetencia = (iso: string) =>
   new Date(`${iso.slice(0, 7)}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
@@ -35,10 +37,15 @@ const baixarCsv = (nome: string, conteudo: string) => {
 
 export default function DpFolhaPeriodo() {
   const { id } = useParams<{ id: string }>();
-  const { periodo, linhas, isLoading, error, alterarStatus, cancelarLancamento } = useDpFolhaPeriodo(id);
+  const {
+    periodo, linhas, transactionId, isLoading, error,
+    alterarStatus, cancelarLancamento, gerarDespesa, desfazerDespesa,
+  } = useDpFolhaPeriodo(id);
   const [busca, setBusca] = useState("");
   const [confirmar, setConfirmar] = useState<FolhaPeriodoStatus | null>(null);
   const [cancelar, setCancelar] = useState<string | null>(null);
+  const [despesaAberta, setDespesaAberta] = useState(false);
+  const [desfazerAberto, setDesfazerAberto] = useState(false);
 
   const filtradas = useMemo(
     () => linhas.filter((l) => !busca.trim() || l.nome.toLowerCase().includes(busca.trim().toLowerCase())),
@@ -84,6 +91,12 @@ export default function DpFolhaPeriodo() {
                 Reabrir
               </Button>
             )}
+            {podeGerarDespesa(status) && !transactionId && (
+              <Button size="sm" variant="outline" onClick={() => setDespesaAberta(true)} disabled={gerarDespesa.isPending}>
+                <Wallet className="mr-2 h-4 w-4" />
+                Gerar Despesa no Financeiro
+              </Button>
+            )}
             {proximo && (
               <Button
                 size="sm"
@@ -96,6 +109,26 @@ export default function DpFolhaPeriodo() {
           </>
         }
       />
+
+      {transactionId && (
+        <DpContentCard className="flex flex-wrap items-center justify-between gap-3 p-4">
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Despesa lançada no financeiro</p>
+            <p className="text-xs text-muted-foreground">
+              Conta a pagar de {formatarBRL(totais.liquido)} vinculada a esta folha.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/lancamentos">Ver no Financeiro</Link>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setDesfazerAberto(true)} disabled={desfazerDespesa.isPending}>
+              Desfazer
+            </Button>
+          </div>
+        </DpContentCard>
+      )}
+
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <DpContentCard className="p-3">
@@ -212,6 +245,42 @@ export default function DpFolhaPeriodo() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <FolhaDespesaDialog
+        open={despesaAberta}
+        onOpenChange={setDespesaAberta}
+        total={totais.liquido}
+        competencia={competencia}
+        dataPagamentoSugerida={periodo.data_pagamento}
+        isPending={gerarDespesa.isPending}
+        onConfirm={({ accountId, categoryId, dataPagamento }) => {
+          gerarDespesa.mutate({ accountId, categoryId, dataPagamento }, { onSuccess: () => setDespesaAberta(false) });
+        }}
+      />
+
+      <AlertDialog open={desfazerAberto} onOpenChange={setDesfazerAberto}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desfazer a despesa no financeiro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A conta a pagar será excluída e o vínculo com os contracheques removido. Só é possível enquanto ela
+              estiver pendente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                desfazerDespesa.mutate();
+                setDesfazerAberto(false);
+              }}
+            >
+              Desfazer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DpPage>
+
   );
 }

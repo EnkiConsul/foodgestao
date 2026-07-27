@@ -87,6 +87,13 @@ export interface LinhaFolha {
   valor_bruto: number;
   valor_liquido: number;
   detalhe: DetalheFolha;
+  /** Fase 14 — despesa gerada no financeiro (quando houver). */
+  transaction_id?: string | null;
+}
+
+/** Fase 14 — a despesa da folha só pode ser gerada após aprovação do financeiro. */
+export function podeGerarDespesa(status: FolhaPeriodoStatus): boolean {
+  return status === "aprovado_financeiro" || status === "pago";
 }
 
 export interface TotaisFolha {
