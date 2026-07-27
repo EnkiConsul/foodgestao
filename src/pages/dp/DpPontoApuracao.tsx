@@ -9,6 +9,7 @@ import { useDpPontoMes } from "@/hooks/useDpPontoMes";
 import { useDpFolhaApuracao } from "@/hooks/useDpFolhaApuracao";
 import { formatarDuracao, formatarSaldo } from "@/lib/dp/ponto";
 import { apurarColaborador, apuracaoParaCsv, somarApuracoes, type LinhaApuracao } from "@/lib/dp/apuracao";
+import { PERIODO_STATUS_LABEL, type FolhaPeriodoStatus } from "@/lib/dp/folha";
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
@@ -168,9 +169,12 @@ export default function DpPontoApuracao() {
                 <p className="text-xl font-semibold">{moeda(totalBruto)}</p>
               </div>
               {periodo && (
-                <Badge variant={periodo.status === "aberto" ? "secondary" : "default"}>
-                  Folha {periodo.status.replace(/_/g, " ")} · {periodo.totalLancamentos} lançamento(s)
-                </Badge>
+                <Link to={`/dp/folha/${periodo.id}`} className="shrink-0">
+                  <Badge variant={periodo.status === "aberto" ? "secondary" : "default"}>
+                    {PERIODO_STATUS_LABEL[periodo.status as FolhaPeriodoStatus] ?? periodo.status} ·{" "}
+                    {periodo.totalLancamentos} lançamento(s)
+                  </Badge>
+                </Link>
               )}
             </div>
             {semSalario > 0 && (

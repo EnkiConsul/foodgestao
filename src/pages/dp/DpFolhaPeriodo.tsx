@@ -1,0 +1,217 @@
+import { useMemo, useState } from "react";
+import { Helmet } from "react-helmet-async";
+import { Link, useParams } from "react-router-dom";
+import { Download, Receipt, Search } from "lucide-react";
+
+import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
+import { DpErrorState } from "@/components/dp/DpErrorState";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+import { useDpFolhaPeriodo } from "@/hooks/useDpFolha";
+import {
+  FOLHA_TIPO_LABEL, LANCAMENTO_STATUS_LABEL, PERIODO_STATUS_LABEL,
+  folhaParaCsv, formatarBRL, proximoStatusPeriodo, totaisDaFolha,
+  type FolhaPeriodoStatus,
+} from "@/lib/dp/folha";
+
+const rotuloCompetencia = (iso: string) =>
+  new Date(`${iso.slice(0, 7)}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+
+const baixarCsv = (nome: string, conteudo: string) => {
+  const url = URL.createObjectURL(new Blob(["\ufeff", conteudo], { type: "text/csv;charset=utf-8;" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nome;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+export default function DpFolhaPeriodo() {
+  const { id } = useParams<{ id: string }>();
+  const { periodo, linhas, isLoading, error, alterarStatus, cancelarLancamento } = useDpFolhaPeriodo(id);
+  const [busca, setBusca] = useState("");
+  const [confirmar, setConfirmar] = useState<FolhaPeriodoStatus | null>(null);
+  const [cancelar, setCancelar] = useState<string | null>(null);
+
+  const filtradas = useMemo(
+    () => linhas.filter((l) => !busca.trim() || l.nome.toLowerCase().includes(busca.trim().toLowerCase())),
+    [linhas, busca],
+  );
+  const totais = useMemo(() => totaisDaFolha(linhas), [linhas]);
+
+  if (error) return <DpErrorState message="Não foi possível carregar o período da folha." />;
+  if (isLoading) return <DpPage><Skeleton className="h-64 w-full" /></DpPage>;
+  if (!periodo) return <DpErrorState message="Período da folha não encontrado." />;
+
+  const status = periodo.status as FolhaPeriodoStatus;
+  const proximo = proximoStatusPeriodo(status);
+  const competencia = periodo.competencia.slice(0, 7);
+
+  return (
+    <DpPage>
+      <Helmet>
+        <title>Folha {competencia} | DP 360°FOOD</title>
+        <meta name="description" content="Lançamentos da folha do período, com proventos, descontos e ciclo de aprovação." />
+      </Helmet>
+
+      <DpPageHeader
+        title={`Folha de ${rotuloCompetencia(periodo.competencia)}`}
+        description={`${FOLHA_TIPO_LABEL[periodo.tipo] ?? periodo.tipo} · ${PERIODO_STATUS_LABEL[status]}`}
+        icon={Receipt}
+        actions={
+          <>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/dp/folha">Todos os Períodos</Link>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!linhas.length}
+              onClick={() => baixarCsv(`folha-${competencia}.csv`, folhaParaCsv(competencia, linhas))}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Exportar CSV
+            </Button>
+            {status !== "aberto" && (
+              <Button variant="outline" size="sm" onClick={() => setConfirmar("aberto")} disabled={alterarStatus.isPending}>
+                Reabrir
+              </Button>
+            )}
+            {proximo && (
+              <Button
+                size="sm"
+                disabled={!linhas.length || alterarStatus.isPending}
+                onClick={() => setConfirmar(proximo)}
+              >
+                Avançar para {PERIODO_STATUS_LABEL[proximo]}
+              </Button>
+            )}
+          </>
+        }
+      />
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <DpContentCard className="p-3">
+          <p className="text-xs text-muted-foreground">Proventos</p>
+          <p className="text-lg font-semibold">{formatarBRL(totais.bruto)}</p>
+        </DpContentCard>
+        <DpContentCard className="p-3">
+          <p className="text-xs text-muted-foreground">Descontos</p>
+          <p className="text-lg font-semibold">{formatarBRL(totais.descontos)}</p>
+        </DpContentCard>
+        <DpContentCard className="p-3">
+          <p className="text-xs text-muted-foreground">Líquido</p>
+          <p className="text-lg font-semibold">{formatarBRL(totais.liquido)}</p>
+        </DpContentCard>
+        <DpContentCard className="p-3">
+          <p className="text-xs text-muted-foreground">Rascunhos</p>
+          <p className="text-lg font-semibold">{totais.rascunho}</p>
+        </DpContentCard>
+      </div>
+
+      <DpFilterCard>
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Buscar colaborador"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            aria-label="Buscar colaborador"
+          />
+        </div>
+      </DpFilterCard>
+
+      <DpContentCard className="p-0">
+        {!filtradas.length ? (
+          <p className="p-4 text-sm text-muted-foreground">Nenhum lançamento neste período.</p>
+        ) : (
+          <ul className="divide-y">
+            {filtradas.map((l) => (
+              <li key={l.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{l.nome}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Normais {formatarBRL(l.detalhe.proventos.normais)} · Extras{" "}
+                    {formatarBRL(l.detalhe.proventos.extras50 + l.detalhe.proventos.extras100)} · Noturno{" "}
+                    {formatarBRL(l.detalhe.proventos.noturno)} · Descontos{" "}
+                    {formatarBRL(l.detalhe.faltas + l.detalhe.dsr)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Líquido</p>
+                    <p className="text-sm font-semibold">{formatarBRL(l.valor_liquido)}</p>
+                  </div>
+                  <Badge variant={l.status === "rascunho" ? "secondary" : "default"}>
+                    {LANCAMENTO_STATUS_LABEL[l.status]}
+                  </Badge>
+                  {l.status === "rascunho" && (
+                    <Button variant="ghost" size="sm" onClick={() => setCancelar(l.id)}>
+                      Cancelar
+                    </Button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </DpContentCard>
+
+      <AlertDialog open={!!confirmar} onOpenChange={(o) => !o && setConfirmar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmar === "aberto" ? "Reabrir o período?" : "Avançar o status da folha?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmar === "aberto"
+                ? "Os lançamentos voltam para rascunho e a apuração poderá ser reprocessada."
+                : `Todos os lançamentos ativos passarão para "${confirmar ? PERIODO_STATUS_LABEL[confirmar] : ""}".`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmar) alterarStatus.mutate(confirmar);
+                setConfirmar(null);
+              }}
+            >
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!cancelar} onOpenChange={(o) => !o && setCancelar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar este lançamento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O lançamento sai dos totais do período e não será pago. É possível gerar novamente pela apuração.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (cancelar) cancelarLancamento.mutate(cancelar);
+                setCancelar(null);
+              }}
+            >
+              Cancelar Lançamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </DpPage>
+  );
+}

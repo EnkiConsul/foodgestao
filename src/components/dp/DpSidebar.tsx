@@ -6,7 +6,7 @@ import {
   CalendarClock, ClipboardList, UserCheck, ArrowLeftRight, Ban, Palmtree, ShieldCheck, Gift, BarChart3,
   FileText, Coins, Clock, HeartPulse, ShieldAlert, ListChecks,
   MessageSquare, Bell, BellRing, ChevronDown, LogOut, ArrowLeft, Settings, Repeat,
-  Fingerprint, Calculator,
+  Fingerprint, Calculator, Receipt,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import assinatura360 from "@/assets/360food-assinatura.png.asset.json";
@@ -46,7 +46,7 @@ const ADMIN_ITEMS: Item[] = [
   },
   {
     kind: "group", title: "Folgas", icon: Calendar,
-    prefixes: ["/dp/folgas", "/dp/solicitacoes", "/dp/aprovacoes", "/dp/trocas", "/dp/bloqueios", "/dp/ferias", "/dp/operacao", "/dp/convocacoes", "/dp/ponto", "/dp/conformidade-dsr", "/dp/escalas"],
+    prefixes: ["/dp/folgas", "/dp/solicitacoes", "/dp/aprovacoes", "/dp/trocas", "/dp/bloqueios", "/dp/ferias", "/dp/operacao", "/dp/convocacoes", "/dp/ponto", "/dp/folha", "/dp/conformidade-dsr", "/dp/escalas"],
     hubUrl: "/dp/folgas",
     items: [
       { title: "Calendário Geral", url: "/dp/folgas/calendario", icon: Calendar },
@@ -61,6 +61,7 @@ const ADMIN_ITEMS: Item[] = [
       { title: "Espelho de Ponto", url: "/dp/ponto", icon: Fingerprint },
       { title: "Ponto do Time", url: "/dp/ponto/time", icon: Users },
       { title: "Apuração para Folha", url: "/dp/ponto/apuracao", icon: Calculator },
+      { title: "Folha de Pagamento", url: "/dp/folha", icon: Receipt },
       { title: "Gerador de Escala", url: "/dp/escalas", icon: CalendarRange },
       { title: "Conformidade DSR", url: "/dp/conformidade-dsr", icon: Scale },
       { title: "Regras De Folgas", url: "/dp/folgas/configuracoes/regras", icon: Settings },
@@ -118,6 +119,7 @@ const PORTAL_ITEMS: Item[] = [
     kind: "static-group", title: "Documentos", icon: FileText,
     items: [
       { title: "Meus Documentos", url: "/dp/meu/documentos", icon: FileText },
+      { title: "Meus Contracheques", url: "/dp/meu/contracheque", icon: Receipt },
       { title: "Atestados", url: "/dp/meu/atestados", icon: HeartPulse },
       { title: "Disciplinar", url: "/dp/meu/disciplinar", icon: ShieldAlert },
       { title: "Sindicato", url: "/dp/meu/sindicato", icon: Scale },
