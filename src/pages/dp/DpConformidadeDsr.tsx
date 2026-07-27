@@ -17,20 +17,21 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 
-/** Lista os domingos (ISO yyyy-mm-dd) de um mês de referência 'yyyy-mm'. */
-function domingosDoMes(competencia: string): string[] {
+/** Lista os dias da semana informados (0=dom, 6=sáb) de um mês 'yyyy-mm', em ISO. */
+function diasDaSemanaDoMes(competencia: string, weekday: number): string[] {
   const [y, m] = competencia.split("-").map(Number);
   if (!y || !m) return [];
   const out: string[] = [];
   const last = new Date(y, m, 0).getDate();
   for (let d = 1; d <= last; d++) {
     const date = new Date(y, m - 1, d);
-    if (date.getDay() === 0) out.push(`${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`);
+    if (date.getDay() === weekday) out.push(`${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`);
   }
   return out;
 }
 
 const competenciaAtual = () => new Date().toISOString().slice(0, 7);
+
 
 export default function DpConformidadeDsr() {
   const { selectedCompanyId } = useCompanyContext();
