@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Clock, Plus, Pencil, Trash2, ArrowLeft, ArrowRight, Check, Copy } from "lucide-react";
+import { Clock, Pencil, Trash2, ArrowLeft, ArrowRight, Check, Archive } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { DpPage, DpPageHeader, DpContentCard, DpEmptyState } from "@/components/dp/DpPage";
 import { CoberturaMinimaCard } from "@/components/dp/CoberturaMinimaCard";
 import { ValidacaoMenorCard } from "@/components/dp/ValidacaoMenorCard";
@@ -47,14 +49,6 @@ export default function DpCadastroJornadas() {
 
   const set = <K extends keyof DpJornadaForm>(k: K, v: DpJornadaForm[K]) => setForm((f) => ({ ...f, [k]: v }));
 
-  const abrirNova = () => {
-    setEditing(null);
-    setTemplateId(null);
-    setForm(JORNADA_FORM_DEFAULT);
-    setPasso(0);
-    setOpen(true);
-  };
-
   const abrirEdicao = (j: DpJornada) => {
     setEditing(j);
     setTemplateId(null);
@@ -71,21 +65,6 @@ export default function DpCadastroJornadas() {
     setOpen(true);
   };
 
-  const duplicarJornada = (j: DpJornada) => {
-    setEditing(null);
-    setTemplateId(null);
-    setForm({
-      nome: `${j.nome} (cópia)`,
-      descricao: j.descricao ?? null,
-      tipo_escala: j.tipo_escala,
-      turno: j.turno,
-      ativo: true,
-      observacoes: j.observacoes,
-      horarios: j.horarios,
-    });
-    setPasso(1);
-    setOpen(true);
-  };
 
   const escolherTemplate = (t: JornadaTemplate) => {
     setTemplateId(t.id);
@@ -155,14 +134,29 @@ export default function DpCadastroJornadas() {
 
       <DpPageHeader
         title="Jornadas e Escalas"
-        description={`Modelos de jornada aplicados aos colaboradores. ${ativas} ativa(s).`}
+        description={`Cadastro legado, somente leitura e ajustes. ${ativas} ativa(s).`}
         icon={Clock}
-        actions={
-          <Button onClick={abrirNova} className="gap-2">
-            <Plus className="h-4 w-4" aria-hidden="true" /> Nova Jornada
-          </Button>
-        }
       />
+
+      <Alert>
+        <Archive className="h-4 w-4" aria-hidden="true" />
+        <AlertTitle>Cadastro antigo encerrado</AlertTitle>
+        <AlertDescription className="space-y-2 text-sm">
+          <p>
+            Novas jornadas não são mais criadas por aqui. O horário previsto agora nasce de{" "}
+            <strong>Turnos</strong> → <strong>Configuração de trabalho do colaborador</strong> →{" "}
+            <strong>Escala do mês</strong>. As jornadas abaixo continuam disponíveis para consulta e ajuste.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild size="sm" className="gap-2">
+              <Link to="/dp/cadastros/turnos">Ir para Turnos</Link>
+            </Button>
+            <Button asChild size="sm" variant="outline" className="gap-2">
+              <Link to="/dp/escalas/mes">Escala do Mês</Link>
+            </Button>
+          </div>
+        </AlertDescription>
+      </Alert>
 
       <ValidacaoMenorCard />
 
@@ -173,7 +167,7 @@ export default function DpCadastroJornadas() {
       ) : jornadas.length === 0 ? (
         <DpContentCard contentClassName="p-4 md:p-6">
           <DpEmptyState icon={Clock} dashed>
-            Nenhuma jornada cadastrada. Comece por um modelo pronto (6x1, 5x2, 12x36) e ajuste os horários de cada dia.
+            Nenhuma jornada legada cadastrada. Configure os horários em Turnos e vincule na configuração de trabalho do colaborador.
           </DpEmptyState>
         </DpContentCard>
       ) : (
@@ -191,9 +185,6 @@ export default function DpCadastroJornadas() {
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                     <Badge variant={j.ativo ? "default" : "secondary"}>{j.ativo ? "Ativa" : "Inativa"}</Badge>
-                    <Button variant="ghost" size="icon" aria-label={`Duplicar ${j.nome}`} onClick={() => duplicarJornada(j)}>
-                      <Copy className="h-4 w-4" />
-                    </Button>
                     <Button variant="ghost" size="icon" aria-label={`Editar ${j.nome}`} onClick={() => abrirEdicao(j)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
