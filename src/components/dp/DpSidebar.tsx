@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { NavLink, useLocation, Link, useNavigate } from "react-router-dom";
 import {
   Home, Users, Briefcase, Building2, Scale, FileSignature,
-  Calendar, ClipboardList, UserCheck, ArrowLeftRight, Ban, Palmtree, ShieldCheck, Gift, BarChart3,
+  Calendar, CalendarRange, ClipboardList, UserCheck, ArrowLeftRight, Ban, Palmtree, ShieldCheck, Gift, BarChart3,
   FileText, Coins, Clock, HeartPulse, ShieldAlert, ListChecks,
   MessageSquare, Bell, BellRing, ChevronDown, LogOut, ArrowLeft, Settings, Repeat,
 } from "lucide-react";
@@ -42,7 +42,7 @@ const ADMIN_ITEMS: Item[] = [
   },
   {
     kind: "group", title: "Folgas", icon: Calendar,
-    prefixes: ["/dp/folgas", "/dp/solicitacoes", "/dp/aprovacoes", "/dp/trocas", "/dp/bloqueios", "/dp/ferias", "/dp/conformidade-dsr"],
+    prefixes: ["/dp/folgas", "/dp/solicitacoes", "/dp/aprovacoes", "/dp/trocas", "/dp/bloqueios", "/dp/ferias", "/dp/conformidade-dsr", "/dp/escalas"],
     hubUrl: "/dp/folgas",
     items: [
       { title: "Calendário Geral", url: "/dp/folgas/calendario", icon: Calendar },
@@ -51,6 +51,7 @@ const ADMIN_ITEMS: Item[] = [
       { title: "Trocas", url: "/dp/trocas", icon: ArrowLeftRight },
       { title: "Datas Bloqueadas", url: "/dp/bloqueios", icon: Ban },
       { title: "Férias", url: "/dp/ferias", icon: Palmtree },
+      { title: "Gerador de Escala", url: "/dp/escalas", icon: CalendarRange },
       { title: "Conformidade DSR", url: "/dp/conformidade-dsr", icon: Scale },
     ],
   },
