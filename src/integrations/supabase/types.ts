@@ -3804,6 +3804,156 @@ export type Database = {
           },
         ]
       }
+      dp_escala_itens: {
+        Row: {
+          carga_prevista_horas: number
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          data: string
+          entrada: string | null
+          escala_id: string
+          id: string
+          intervalo_minutos: number
+          observacao: string | null
+          origem: Database["public"]["Enums"]["dp_escala_item_origem"]
+          saida: string | null
+          termina_no_dia_seguinte: boolean
+          tipo: Database["public"]["Enums"]["dp_escala_item_tipo"]
+          turno_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          carga_prevista_horas?: number
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          data: string
+          entrada?: string | null
+          escala_id: string
+          id?: string
+          intervalo_minutos?: number
+          observacao?: string | null
+          origem?: Database["public"]["Enums"]["dp_escala_item_origem"]
+          saida?: string | null
+          termina_no_dia_seguinte?: boolean
+          tipo?: Database["public"]["Enums"]["dp_escala_item_tipo"]
+          turno_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          carga_prevista_horas?: number
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          data?: string
+          entrada?: string | null
+          escala_id?: string
+          id?: string
+          intervalo_minutos?: number
+          observacao?: string | null
+          origem?: Database["public"]["Enums"]["dp_escala_item_origem"]
+          saida?: string | null
+          termina_no_dia_seguinte?: boolean
+          tipo?: Database["public"]["Enums"]["dp_escala_item_tipo"]
+          turno_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_escala_itens_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_escala_itens_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_escala_itens_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_escala_itens_escala_id_fkey"
+            columns: ["escala_id"]
+            isOneToOne: false
+            referencedRelation: "dp_escalas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_escala_itens_turno_id_fkey"
+            columns: ["turno_id"]
+            isOneToOne: false
+            referencedRelation: "dp_turnos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_escalas: {
+        Row: {
+          company_id: string
+          competencia: string
+          created_at: string
+          created_by: string | null
+          id: string
+          observacoes: string | null
+          publicada_em: string | null
+          publicada_por: string | null
+          status: Database["public"]["Enums"]["dp_escala_status"]
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          competencia: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          observacoes?: string | null
+          publicada_em?: string | null
+          publicada_por?: string | null
+          status?: Database["public"]["Enums"]["dp_escala_status"]
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          competencia?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          observacoes?: string | null
+          publicada_em?: string | null
+          publicada_por?: string | null
+          status?: Database["public"]["Enums"]["dp_escala_status"]
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_escalas_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_escalas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_exames_aso: {
         Row: {
           arquivo_path: string | null
@@ -8608,6 +8758,14 @@ export type Database = {
         | "sindicato"
         | "ferias"
       dp_elegibilidade_recontratacao: "sim" | "nao" | "com_ressalvas"
+      dp_escala_item_origem: "gerado" | "manual" | "troca"
+      dp_escala_item_tipo:
+        | "trabalho"
+        | "folga"
+        | "ferias"
+        | "afastamento"
+        | "feriado"
+      dp_escala_status: "rascunho" | "publicada" | "arquivada"
       dp_exame_resultado: "apto" | "apto_com_restricoes" | "inapto" | "pendente"
       dp_exame_tipo:
         | "admissional"
@@ -8944,6 +9102,15 @@ export const Constants = {
         "ferias",
       ],
       dp_elegibilidade_recontratacao: ["sim", "nao", "com_ressalvas"],
+      dp_escala_item_origem: ["gerado", "manual", "troca"],
+      dp_escala_item_tipo: [
+        "trabalho",
+        "folga",
+        "ferias",
+        "afastamento",
+        "feriado",
+      ],
+      dp_escala_status: ["rascunho", "publicada", "arquivada"],
       dp_exame_resultado: ["apto", "apto_com_restricoes", "inapto", "pendente"],
       dp_exame_tipo: [
         "admissional",
