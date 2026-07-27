@@ -1,45 +1,64 @@
-## Problema
+## Objetivo
 
-A tela "Regras De Folgas" começa em **"Todas as unidades (padrão da empresa)"** e trata cada loja como "exceção". Na Pakerê isso não reflete a realidade: Garavelo e T-63 negociam com sindicatos patronais diferentes, então cada unidade tem regra própria — não existe padrão real de empresa.
+Reconstruir o cadastro de Jornadas como uma experiência mobile-first de 4 etapas, com horário por dia da semana em tabela própria, intervalo em minutos e carga calculada automaticamente.
 
-## Nova lógica: regra por unidade, com opção de replicar
+## Banco de dados
 
-**1. Escopo passa a ser a unidade**
-- O seletor lista apenas as unidades da empresa; a primeira (ou a última usada) já vem selecionada.
-- Some a opção "Todas as unidades (padrão da empresa)" e a linguagem de "exceção".
-- Empresa com uma única unidade: seletor oculto, edita direto aquela unidade.
-- Ao lado do seletor, mostrar o sindicato patronal e a negociação vigente vinculados à unidade — deixa explícito por que as regras divergem entre lojas.
+Nova tabela `dp_jornada_horarios` (com GRANTs + RLS espelhando `dp_jornadas`):
 
-**2. Estado por unidade**
-- Badge "Regras Configuradas" quando a unidade já tem regra própria.
-- Badge "Ainda Não Configurada" quando não tem: campos pré-preenchidos com a base legal/CLT apenas como ponto de partida, com o aviso "Ajuste e salve para definir as regras desta unidade."
+| campo | tipo |
+|---|---|
+| `id` | uuid PK |
+| `company_id` | uuid (isolamento multiempresa) |
+| `jornada_id` | uuid → `dp_jornadas` (on delete cascade) |
+| `dia_semana` | smallint 0–6 (0 = domingo) |
+| `entrada`, `saida` | time |
+| `intervalo_minutos` | int default 60 |
+| `termina_no_dia_seguinte` | boolean default false |
+| `carga_horas` | numeric (gerada pelo trigger) |
+| `ativo` | boolean default true |
+| `created_at`, `updated_at` | timestamptz |
 
-**3. Replicar ao salvar**
-- Ao salvar, se houver mais de uma unidade, abre um passo: "Aplicar Estas Regras Também Em Outras Unidades?" — lista das demais unidades, nenhuma marcada por padrão, mais o botão "Salvar Somente Nesta Unidade".
-- Unidades que **já têm regra própria** aparecem com aviso de que serão sobrescritas.
-- Cada unidade marcada recebe seu próprio registro, e cada gravação entra no histórico identificando a unidade.
-- Se a ciência legal for exigida (regra menos protetiva), ela aparece antes da gravação e vale para todas as unidades selecionadas.
+- Único por (`jornada_id`, `dia_semana`).
+- Trigger de validação: entrada e saída obrigatórias, entrada ≠ saída, intervalo menor que a duração, carga positiva, dia presente em `dias_trabalho`. **Sem** regra "saída > entrada" — a virada de meia-noite usa `termina_no_dia_seguinte`.
+- Trigger recalcula `carga_horas` e atualiza `carga_horaria_semanal` da jornada pai.
+- `dp_jornadas` ganha `descricao text`; `carga_horaria_diaria/semanal` viram somente leitura (calculadas).
+- **Migração de dados**: para cada jornada existente, gera um registro por dia em `dias_trabalho` com o horário atual e intervalo derivado de `intervalo_inicio/fim` (padrão 60 min). Colunas antigas permanecem como legado, sem uso na UI.
+- Validação de menor passa a ser dia a dia (nenhum dia pode terminar após 22:00) na função existente.
 
-**4. Substituir "Remover Exceção"**
-- Vira "Limpar Regras Desta Unidade", com confirmação, visível só quando a unidade tem regra. Depois de limpar, volta ao estado "Ainda Não Configurada".
+## Domínio e testes
 
-## Compatibilidade
+`src/lib/dp/jornada-utils.ts`: `calcularCargaDia()`, `calcularCargaSemanal()`, `resumoJornada()` (agrupa dias contíguos: "Seg–Sex 08:00–17:00 · Sáb 08:00–14:00 · Dom folga"), `duplicarHorario()`, `horarioDaData()`, `LIMITE_SEMANAL = 44`.
+Testes em `src/lib/dp/__tests__/jornada-utils.test.ts` cobrindo virada de meia-noite, intervalos, agrupamento e limite semanal.
 
-- O registro de nível empresa continua existindo como **retaguarda invisível**: a resolução de regras já prioriza a unidade e cai para a empresa quando a unidade não tem regra, o que protege unidades criadas no futuro e as telas que leem a regra geral (Conformidade DSR, validação de menores, Escalas com filtro "todas as unidades").
-- Esse registro passa a ser atualizado somente quando o usuário replica para todas as unidades; a tela nunca o edita diretamente.
-- Escalas, calendário do colaborador e conformidade continuam resolvendo pela unidade primeiro; o motor de folgas não muda.
+## Componentes novos
 
-## Detalhes técnicos
+- `src/components/dp/JornadaTemplates.tsx` — cartões grandes de modelo: 6x1 Manhã, 6x1 Tarde, 6x1 Noite, 5x2 Administrativo, 12x36, Delivery, Personalizada (com os horários especificados; Noite marca `termina_no_dia_seguinte`).
+- `src/components/dp/JornadaCard.tsx` — card de um dia: checkbox do dia, entrada, saída, seletor rápido de intervalo (15/30/45/60/90/120/Outro), carga calculada e menu `⋮` com "Duplicar horários → Todos os dias / Dias úteis / Fim de semana / Selecionar dias". Dia desmarcado mostra apenas "Folga".
+- `src/components/dp/HorariosSemanaEditor.tsx` — pilha de cards + barra fixa no topo com carga semanal e selo "Dentro do limite legal" / "Acima de 44 horas". Novo dia marcado herda o horário do primeiro dia já configurado.
 
-- `src/hooks/useDpConfigDp.tsx`: novo `saveMany({ patch, unidadeIds, ciencia, justificativa })` gravando/atualizando uma linha por unidade, com histórico por unidade; `save` atual vira o caso de unidade única.
-- `src/pages/dp/cadastros/DpConfiguracoesJornada.tsx`: seletor só de unidades com persistência da última escolha, badges de estado, bloco de contexto sindical, encadeamento do novo diálogo de replicação com o `CienciaLegalDialog`, e renomeação do botão de limpar.
-- Novo `src/components/dp/ReplicarRegrasDialog.tsx` (checkboxes + marcação de sobrescrita).
-- Contexto sindical reutilizando as consultas já existentes de `dp_sindicato_unidades` / `dp_sindicato_negociacoes`.
-- Textos e badges em Title Case, seguindo o padrão do módulo DP.
+## Fluxo de 4 etapas
 
-## Verificação
+`DpCadastroJornadas.tsx` passa a abrir um fluxo em passos (dialog full-screen no mobile, modal no desktop):
+1. Escolha do modelo → preenche tudo.
+2. Informações: nome, descrição, tipo, turno, ativa.
+3. Semana de trabalho (editor de cards) — tela principal.
+4. Botão grande "Salvar jornada" + Cancelar.
 
-- Garavelo: configurar regra por acordo coletivo e salvar só nela; T-63 mantém a própria regra.
-- Replicar de Garavelo para T-63 com o aviso de sobrescrita e conferir os valores iguais nas duas.
-- Limpar regras de uma unidade e conferir o estado "Ainda Não Configurada" e a resolução caindo na retaguarda.
-- Conferir Escalas e Conformidade DSR lendo a regra correta por unidade e o histórico registrando cada gravação.
+Salvamento em transação lógica: upsert da jornada + substituição dos horários do dia.
+
+## Lista de jornadas
+
+Cards reescritos: nome, `44h semanais`, resumo por faixa de dias, turno e status. Sem campos técnicos (escala crua, dias em números, intervalo início/fim).
+
+## Cadastro do colaborador
+
+`ColaboradorJornadaDialog.tsx`: removidos os overrides de entrada/saída/intervalo. Restam jornada, folga fixa semanal e observações, com nota de que horários diferentes exigem nova jornada. Overrides existentes são preservados nas observações pela migração.
+
+## Mobile
+
+Sem tabelas nem grids largos: uma coluna, campos com altura ≥ 44px, botões grandes, tipografia legível, tokens semânticos do design system (laranja/marinho 360°FOOD).
+
+## Modelos padrão
+
+Semeados como opções no seletor de modelo (não como registros na tabela), evitando poluir a lista de jornadas de cada empresa.
