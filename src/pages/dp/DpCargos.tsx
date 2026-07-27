@@ -119,14 +119,14 @@ export default function DpCargos() {
       </div>
 
       <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm hidden md:block">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div>
+          <table className="w-full table-fixed text-sm">
             <thead className="bg-muted/50 text-muted-foreground border-b border-border">
               <tr>
-                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px]">Nome</th>
-                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden md:table-cell">Descrição</th>
-                <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px]">Colaboradores</th>
-                <th className="text-right p-4 font-bold uppercase tracking-wider text-[10px]">Ações</th>
+                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] w-[30%]">Nome</th>
+                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden md:table-cell w-[42%]">Descrição</th>
+                <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px] w-[16%]">Colaboradores</th>
+                <th className="text-right p-4 font-bold uppercase tracking-wider text-[10px] w-[12%]">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -146,8 +146,8 @@ export default function DpCargos() {
                     onClick={() => setViewCargo(c)}
                     className={cn("hover:bg-muted/20 transition-colors cursor-pointer")}
                   >
-                    <td className="p-4 font-bold uppercase">{c.nome}</td>
-                    <td className="p-4 hidden md:table-cell text-muted-foreground">{descricao || "—"}</td>
+                    <td className="p-4 font-bold uppercase truncate" title={c.nome}>{c.nome}</td>
+                    <td className="p-4 hidden md:table-cell text-muted-foreground truncate" title={descricao ?? ""}>{descricao || "—"}</td>
                     <td className="p-4 text-center">
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                         <Users className="size-3" /> {c.colaboradores_count}

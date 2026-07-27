@@ -410,7 +410,7 @@ export default function DpDisciplinar() {
             </div>
           </DpFilterCard>
 
-          <DpContentCard contentClassName="overflow-x-auto hidden md:block">
+          <DpContentCard contentClassName="hidden md:block">
             {list.isLoading ? (
               <TableSkeleton columns={8} headers={["Colaborador", "Unidade", "Data", "Tipo", "Dias", "Observações", "Arquivo", "Ações"]} />
             ) : filtered.length === 0 ? (
@@ -419,17 +419,17 @@ export default function DpDisciplinar() {
                 Nenhum documento encontrado.
               </div>
             ) : (
-              <Table className="text-xs">
+              <Table className="w-full table-fixed text-xs">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="px-3">Colaborador</TableHead>
-                    <TableHead className="px-3">Unidade</TableHead>
-                    <TableHead className="px-3">Data</TableHead>
-                    <TableHead className="px-3">Tipo</TableHead>
-                    <TableHead className="px-3">Dias</TableHead>
-                    <TableHead className="px-3">Observações</TableHead>
-                    <TableHead className="px-3">Arquivo</TableHead>
-                    <TableHead className="w-32 px-3 text-right">Ações</TableHead>
+                    <TableHead className="px-3 w-[22%]">Colaborador</TableHead>
+                    <TableHead className="px-3 w-[12%]">Unidade</TableHead>
+                    <TableHead className="px-3 w-[9%]">Data</TableHead>
+                    <TableHead className="px-3 w-[13%]">Tipo</TableHead>
+                    <TableHead className="px-3 w-[6%]">Dias</TableHead>
+                    <TableHead className="px-3 w-[20%]">Observações</TableHead>
+                    <TableHead className="px-3 w-[9%]">Arquivo</TableHead>
+                    <TableHead className="px-3 text-right w-[9%]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -439,15 +439,15 @@ export default function DpDisciplinar() {
                     const FileIcon = fileKind.icon;
                     return (
                       <TableRow key={r.id} className="align-middle">
-                        <TableCell className="max-w-44 px-3 font-bold uppercase text-foreground">{r.dp_colaboradores?.nome ?? "—"}</TableCell>
-                        <TableCell className="max-w-28 px-3">{unitName ?? "—"}</TableCell>
+                        <TableCell className="truncate px-3 font-bold uppercase text-foreground" title={r.dp_colaboradores?.nome ?? ""}>{r.dp_colaboradores?.nome ?? "—"}</TableCell>
+                        <TableCell className="truncate px-3" title={unitName ?? ""}>{unitName ?? "—"}</TableCell>
                         <TableCell className="whitespace-nowrap px-3">{formatDate(r.data)}</TableCell>
                         <TableCell className="px-3">
-                          <Badge variant="outline">{TIPO_LABEL[r.tipo] ?? r.tipo}</Badge>
+                          <Badge variant="outline" className="max-w-full truncate">{TIPO_LABEL[r.tipo] ?? r.tipo}</Badge>
                         </TableCell>
                         <TableCell className="px-3">{r.suspensao_dias ?? "—"}</TableCell>
-                        <TableCell className="max-w-40 truncate px-3">{r.descricao || r.motivo || "—"}</TableCell>
-                        <TableCell className="px-3">
+                        <TableCell className="truncate px-3" title={r.descricao || r.motivo || ""}>{r.descricao || r.motivo || "—"}</TableCell>
+                        <TableCell className="px-3 truncate">
                           {r.pdf_storage_path ? (
                             <button
                               type="button"

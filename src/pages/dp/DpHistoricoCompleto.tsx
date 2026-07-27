@@ -438,7 +438,7 @@ export default function DpHistoricoCompleto() {
         </div>
       </DpFilterCard>
 
-      <DpContentCard contentClassName="overflow-x-auto p-0 hidden md:block">
+      <DpContentCard contentClassName="p-0 hidden md:block">
         {query.isLoading ? (
           <div className="p-4">
             <TableSkeleton
@@ -447,31 +447,31 @@ export default function DpHistoricoCompleto() {
             />
           </div>
         ) : (
-          <Table>
+          <Table className="w-full table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="uppercase text-xs cursor-pointer select-none" onClick={() => toggleSort("colaborador_nome")}>Colaborador<SortIcon k="colaborador_nome" /></TableHead>
-                <TableHead className="uppercase text-xs cursor-pointer select-none" onClick={() => toggleSort("tipo_label")}>Tipo<SortIcon k="tipo_label" /></TableHead>
-                <TableHead className="uppercase text-xs cursor-pointer select-none" onClick={() => toggleSort("competencia_sort")}>Competência<SortIcon k="competencia_sort" /></TableHead>
-                <TableHead className="uppercase text-xs cursor-pointer select-none" onClick={() => toggleSort("unidade_nome")}>Unidade<SortIcon k="unidade_nome" /></TableHead>
-                <TableHead className="uppercase text-xs cursor-pointer select-none" onClick={() => toggleSort("status_label")}>Status<SortIcon k="status_label" /></TableHead>
-                <TableHead className="uppercase text-xs cursor-pointer select-none" onClick={() => toggleSort("data")}>Data<SortIcon k="data" /></TableHead>
-                <TableHead className="uppercase text-xs text-right">Ações</TableHead>
+                <TableHead className="uppercase text-xs cursor-pointer select-none w-[24%]" onClick={() => toggleSort("colaborador_nome")}>Colaborador<SortIcon k="colaborador_nome" /></TableHead>
+                <TableHead className="uppercase text-xs cursor-pointer select-none w-[15%]" onClick={() => toggleSort("tipo_label")}>Tipo<SortIcon k="tipo_label" /></TableHead>
+                <TableHead className="uppercase text-xs cursor-pointer select-none w-[12%]" onClick={() => toggleSort("competencia_sort")}>Competência<SortIcon k="competencia_sort" /></TableHead>
+                <TableHead className="uppercase text-xs cursor-pointer select-none w-[16%]" onClick={() => toggleSort("unidade_nome")}>Unidade<SortIcon k="unidade_nome" /></TableHead>
+                <TableHead className="uppercase text-xs cursor-pointer select-none w-[13%]" onClick={() => toggleSort("status_label")}>Status<SortIcon k="status_label" /></TableHead>
+                <TableHead className="uppercase text-xs cursor-pointer select-none w-[10%]" onClick={() => toggleSort("data")}>Data<SortIcon k="data" /></TableHead>
+                <TableHead className="uppercase text-xs text-right w-[10%]">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paged.map((r) => (
                 <TableRow key={r.id}>
-                  <TableCell className="font-semibold">{r.colaborador_nome}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={tipoBadgeClass(r.tipo_key)}>
+                  <TableCell className="font-semibold truncate" title={r.colaborador_nome}>{r.colaborador_nome}</TableCell>
+                  <TableCell className="truncate">
+                    <Badge variant="outline" className={`max-w-full truncate ${tipoBadgeClass(r.tipo_key)}`}>
                       {r.tipo_label}
                     </Badge>
                   </TableCell>
                   <TableCell className="whitespace-nowrap font-mono text-sm">{r.competencia}</TableCell>
-                  <TableCell>{r.unidade_nome}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={statusBadgeClass(r.status_key)}>
+                  <TableCell className="truncate" title={r.unidade_nome}>{r.unidade_nome}</TableCell>
+                  <TableCell className="truncate">
+                    <Badge variant="outline" className={`max-w-full truncate ${statusBadgeClass(r.status_key)}`}>
                       {r.status_label}
                     </Badge>
                   </TableCell>

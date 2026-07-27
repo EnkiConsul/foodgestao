@@ -254,17 +254,17 @@ export default function DpUnidades() {
 
 
       <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm hidden md:block">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div>
+          <table className="w-full table-fixed text-sm">
             <thead className="bg-muted/50 text-muted-foreground border-b border-border">
               <tr>
-                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px]">Unidade</th>
-                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden lg:table-cell">Empresa</th>
-                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden md:table-cell">CNPJ</th>
-                <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px]">Cargos</th>
-                <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px]">Sind. Patronais</th>
-                <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px]">Status</th>
-                <th className="text-right p-4 font-bold uppercase tracking-wider text-[10px]">Ações</th>
+                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] w-[26%]">Unidade</th>
+                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden lg:table-cell w-[16%]">Empresa</th>
+                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden md:table-cell w-[14%]">CNPJ</th>
+                <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px] w-[10%]">Cargos</th>
+                <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px] w-[14%]">Sind. Patronais</th>
+                <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px] w-[10%]">Status</th>
+                <th className="text-right p-4 font-bold uppercase tracking-wider text-[10px] w-[10%]">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -283,10 +283,10 @@ export default function DpUnidades() {
                   onClick={() => openView(u)}
                 >
                   <td className="p-4">
-                    <div className="font-bold">{u.nome}</div>
-                    {u.endereco && <div className="text-xs text-muted-foreground">{u.endereco}</div>}
+                    <div className="font-bold truncate" title={u.nome}>{u.nome}</div>
+                    {u.endereco && <div className="text-xs text-muted-foreground truncate" title={u.endereco}>{u.endereco}</div>}
                   </td>
-                  <td className="p-4 hidden lg:table-cell text-xs">
+                  <td className="p-4 hidden lg:table-cell text-xs truncate">
                     {u.company_name ?? "—"}
                   </td>
                   <td className="p-4 hidden md:table-cell font-mono text-xs">
