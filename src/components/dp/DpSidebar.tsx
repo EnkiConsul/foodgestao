@@ -60,6 +60,7 @@ const ADMIN_ITEMS: Item[] = [
       { title: "Convocações", url: "/dp/convocacoes", icon: BellRing },
       { title: "Espelho de Ponto", url: "/dp/ponto", icon: Fingerprint },
       { title: "Ponto do Time", url: "/dp/ponto/time", icon: Users },
+      { title: "Apuração para Folha", url: "/dp/ponto/apuracao", icon: Calculator },
       { title: "Gerador de Escala", url: "/dp/escalas", icon: CalendarRange },
       { title: "Conformidade DSR", url: "/dp/conformidade-dsr", icon: Scale },
       { title: "Regras De Folgas", url: "/dp/folgas/configuracoes/regras", icon: Settings },
