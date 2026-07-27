@@ -135,7 +135,7 @@ async def run_delete_flow(page, account_name, expected_dialog, expected_toast, p
         soft_root = soft_card.locator(
             "xpath=ancestor::*[.//button[@aria-label='Excluir conta']][1]"
         )
-        await expect(soft_root.get_by_text("Inativa", exact=True)).to_be_visible(timeout=10_000)
+        await expect(soft_root.get_by_text("Inativa", exact=True).first).to_be_visible(timeout=10_000)
         print(f"   ✔ diálogo: '{expected_dialog}' | toast: '{expected_toast}' | card marcado como Inativa")
 
 
