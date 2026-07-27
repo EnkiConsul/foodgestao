@@ -91,7 +91,11 @@ export default function DpConformidadeDsr() {
         bucket.set(f.colaborador_id, arr);
       }
 
-      return (colaboradores ?? []).map((c) => {
+      // DSR só se aplica a contratos celetistas; intermitente/PJ ficam fora do relatório.
+      return (colaboradores ?? [])
+        .filter((c) => contratoPolicy(c.regime).participaConformidadeDsr)
+        .map((c) => {
+
         const cfg = configDaUnidade(c.unidade_id ?? null);
         const negociados = new Set((cfg.dias_descanso_negociados ?? []).filter((d) => d !== 0));
         return {
