@@ -245,6 +245,42 @@ export default function DpFolhaPeriodo() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <FolhaDespesaDialog
+        open={despesaAberta}
+        onOpenChange={setDespesaAberta}
+        total={totais.liquido}
+        competencia={competencia}
+        dataPagamentoSugerida={periodo.data_pagamento}
+        isPending={gerarDespesa.isPending}
+        onConfirm={({ accountId, categoryId, dataPagamento }) => {
+          gerarDespesa.mutate({ accountId, categoryId, dataPagamento }, { onSuccess: () => setDespesaAberta(false) });
+        }}
+      />
+
+      <AlertDialog open={desfazerAberto} onOpenChange={setDesfazerAberto}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desfazer a despesa no financeiro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A conta a pagar será excluída e o vínculo com os contracheques removido. Só é possível enquanto ela
+              estiver pendente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                desfazerDespesa.mutate();
+                setDesfazerAberto(false);
+              }}
+            >
+              Desfazer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DpPage>
+
   );
 }
