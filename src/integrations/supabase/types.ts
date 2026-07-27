@@ -7376,6 +7376,16 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_editar_desligamento: {
+        Args: {
+          p_colaborador_id: string
+          p_data_desligamento: string
+          p_elegibilidade?: Database["public"]["Enums"]["dp_elegibilidade_recontratacao"]
+          p_motivo?: Database["public"]["Enums"]["dp_motivo_desligamento"]
+          p_observacao?: string
+        }
+        Returns: Json
+      }
       dp_escala_auto_gerar: {
         Args: { p_company_id: string; p_mes: string }
         Returns: number
