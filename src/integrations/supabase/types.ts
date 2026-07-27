@@ -6210,6 +6210,7 @@ export type Database = {
           error: string | null
           finished_at: string | null
           id: string
+          queued_at: string
           started_at: string | null
           stats: Json
           status: string
@@ -6225,6 +6226,7 @@ export type Database = {
           error?: string | null
           finished_at?: string | null
           id?: string
+          queued_at?: string
           started_at?: string | null
           stats?: Json
           status?: string
@@ -6240,6 +6242,7 @@ export type Database = {
           error?: string | null
           finished_at?: string | null
           id?: string
+          queued_at?: string
           started_at?: string | null
           stats?: Json
           status?: string
@@ -6346,6 +6349,7 @@ export type Database = {
       }
       open_finance_webhook_events: {
         Row: {
+          attempt_count: number
           created_at: string
           error: string | null
           event_id: string | null
@@ -6354,9 +6358,11 @@ export type Database = {
           payload: Json
           pluggy_item_id: string | null
           processed_at: string | null
+          received_ip: string | null
           signature: string | null
         }
         Insert: {
+          attempt_count?: number
           created_at?: string
           error?: string | null
           event_id?: string | null
@@ -6365,9 +6371,11 @@ export type Database = {
           payload: Json
           pluggy_item_id?: string | null
           processed_at?: string | null
+          received_ip?: string | null
           signature?: string | null
         }
         Update: {
+          attempt_count?: number
           created_at?: string
           error?: string | null
           event_id?: string | null
@@ -6376,6 +6384,7 @@ export type Database = {
           payload?: Json
           pluggy_item_id?: string | null
           processed_at?: string | null
+          received_ip?: string | null
           signature?: string | null
         }
         Relationships: []
