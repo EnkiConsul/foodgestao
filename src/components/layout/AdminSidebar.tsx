@@ -59,6 +59,7 @@ const tenantItems = [
   { title: "Perfis de Acesso", url: "/admin/perfis-acesso", icon: Building2 },
   { title: "Módulos", url: "/admin/modulos", icon: Sparkles },
   { title: "Bancos", url: "/admin/bancos", icon: Landmark },
+  { title: "Auditoria de Saldos", url: "/admin/auditoria-saldos", icon: ShieldCheck },
   
   { title: "Resetar Dados", url: "/admin/resetar-dados", icon: Database },
   { title: "Categorização IA", url: "/admin/categorizacao-ia", icon: Brain },

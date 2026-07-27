@@ -120,6 +120,7 @@ const AdminResetarDados = lazy(() => import("./pages/admin/ResetarDados"));
 const AdminCadastros = lazy(() => import("./pages/admin/Cadastros"));
 const AdminLandingPage = lazy(() => import("./pages/admin/LandingPage"));
 const AdminBancos = lazy(() => import("./pages/admin/Bancos"));
+const AdminDriftSaldos = lazy(() => import("./pages/admin/DriftSaldos"));
 
 const AdminSeoIndexacao = lazy(() => import("./pages/admin/SeoIndexacao"));
 
@@ -430,6 +431,7 @@ const AppRoutes = () => (
         <Route path="/admin/landing-page" element={<AdminLandingPage />} />
         <Route path="/admin/documentos-legais" element={<AdminDocumentosLegais />} />
         <Route path="/admin/bancos" element={<AdminBancos />} />
+        <Route path="/admin/auditoria-saldos" element={<AdminDriftSaldos />} />
         
         <Route path="/admin/seo-indexacao" element={<AdminSeoIndexacao />} />
         <Route path="/admin/modulos" element={<AdminModulos />} />

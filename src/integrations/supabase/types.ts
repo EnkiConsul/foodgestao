@@ -901,6 +901,57 @@ export type Database = {
         }
         Relationships: []
       }
+      balance_drift_snapshots: {
+        Row: {
+          account_id: string
+          account_name: string
+          company_id: string | null
+          computed_balance: number
+          context: Database["public"]["Enums"]["context_type"]
+          created_at: string
+          drift: number
+          id: string
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          scan_id: string
+          scanned_at: string
+          stored_balance: number
+        }
+        Insert: {
+          account_id: string
+          account_name: string
+          company_id?: string | null
+          computed_balance: number
+          context: Database["public"]["Enums"]["context_type"]
+          created_at?: string
+          drift: number
+          id?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          scan_id: string
+          scanned_at?: string
+          stored_balance: number
+        }
+        Update: {
+          account_id?: string
+          account_name?: string
+          company_id?: string | null
+          computed_balance?: number
+          context?: Database["public"]["Enums"]["context_type"]
+          created_at?: string
+          drift?: number
+          id?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          scan_id?: string
+          scanned_at?: string
+          stored_balance?: number
+        }
+        Relationships: []
+      }
       banks: {
         Row: {
           created_at: string
@@ -7989,6 +8040,10 @@ export type Database = {
           stored_balance: number
         }[]
       }
+      resolve_balance_drift: {
+        Args: { _note?: string; _snapshot_id: string }
+        Returns: undefined
+      }
       resolve_cpf_login: { Args: { _cpf: string }; Returns: string }
       resolve_login_identifier: {
         Args: { _identifier: string }
@@ -7996,6 +8051,14 @@ export type Database = {
           email: string
           source: string
           user_id: string
+        }[]
+      }
+      run_balance_drift_scan: {
+        Args: never
+        Returns: {
+          drift_count: number
+          scan_id: string
+          scanned_at: string
         }[]
       }
       seed_default_categories: { Args: { _company_id: string }; Returns: Json }
