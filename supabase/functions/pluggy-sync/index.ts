@@ -126,13 +126,6 @@ async function runSync(
       .not("pluggy_account_id", "in", `(${activePluggyIds.map((id) => `"${id}"`).join(",")})`);
   }
 
-  // Resolve internal OF account ids (only active ones for the tx loop)
-  const { data: ofAccts } = await supabase
-    .from("open_finance_accounts")
-    .select("id, pluggy_account_id")
-    .eq("connection_id", connectionId)
-    .is("removed_at", null);
-  const idByPluggy = new Map<string, string>((ofAccts ?? []).map((r: any) => [r.pluggy_account_id, r.id]));
 
   // Resolve internal OF account ids (only active ones) with their cursors
   const { data: ofAccts } = await supabase
