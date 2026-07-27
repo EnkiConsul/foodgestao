@@ -293,15 +293,8 @@ export default function DpCadastroJornadas() {
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="j-escala">Tipo de escala</Label>
-                  <Select value={form.tipo_escala} onValueChange={(v) => set("tipo_escala", v as DpJornadaForm["tipo_escala"])}>
-                    <SelectTrigger id="j-escala" className="h-12"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {ESCALAS.map((e) => <SelectItem key={e} value={e}>{TIPO_ESCALA_LABEL[e] ?? e}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+
 
                 <div className="space-y-1.5">
                   <Label htmlFor="j-turno">Turno</Label>
