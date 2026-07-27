@@ -64,8 +64,9 @@ export default function DpEscalas() {
           .eq("company_id", selectedCompanyId!).eq("ativo", true).order("nome"),
         supabase.from("dp_unidades").select("id, nome").eq("company_id", selectedCompanyId!).order("nome"),
         supabase.from("dp_colaborador_jornadas")
-          .select("colaborador_id, inicio, fim, folga_fixa_semana_override, jornada:dp_jornadas(dias_folga)")
+          .select("colaborador_id, inicio, fim, folga_fixa_semana_override, jornada:dp_jornadas(dias_folga, horarios:dp_jornada_horarios(dia_semana, entrada, saida, intervalo_minutos))")
           .eq("company_id", selectedCompanyId!).lte("inicio", fim),
+
         supabase.from("dp_ferias_gozos").select("colaborador_id, data_inicio, data_fim, status")
           .eq("company_id", selectedCompanyId!).lte("data_inicio", fim).gte("data_fim", inicio),
         supabase.from("dp_folgas").select("colaborador_id, data, status")
