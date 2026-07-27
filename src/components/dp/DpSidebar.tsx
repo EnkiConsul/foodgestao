@@ -6,7 +6,7 @@ import {
   CalendarClock, ClipboardList, UserCheck, ArrowLeftRight, Ban, Palmtree, ShieldCheck, Gift, BarChart3,
   FileText, Coins, Clock, HeartPulse, ShieldAlert, ListChecks,
   MessageSquare, Bell, BellRing, ChevronDown, LogOut, ArrowLeft, Settings, Repeat,
-  Fingerprint, Calculator,
+  Fingerprint, Calculator, Receipt,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import assinatura360 from "@/assets/360food-assinatura.png.asset.json";
@@ -119,6 +119,7 @@ const PORTAL_ITEMS: Item[] = [
     kind: "static-group", title: "Documentos", icon: FileText,
     items: [
       { title: "Meus Documentos", url: "/dp/meu/documentos", icon: FileText },
+      { title: "Meus Contracheques", url: "/dp/meu/contracheque", icon: Receipt },
       { title: "Atestados", url: "/dp/meu/atestados", icon: HeartPulse },
       { title: "Disciplinar", url: "/dp/meu/disciplinar", icon: ShieldAlert },
       { title: "Sindicato", url: "/dp/meu/sindicato", icon: Scale },
