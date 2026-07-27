@@ -6202,6 +6202,7 @@ export type Database = {
       }
       open_finance_sync_runs: {
         Row: {
+          attempt_count: number
           claim_expires_at: string | null
           claimed_by: string | null
           company_id: string
@@ -6210,6 +6211,8 @@ export type Database = {
           error: string | null
           finished_at: string | null
           id: string
+          max_attempts: number
+          next_attempt_at: string
           queued_at: string
           started_at: string | null
           stats: Json
@@ -6218,6 +6221,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          attempt_count?: number
           claim_expires_at?: string | null
           claimed_by?: string | null
           company_id: string
@@ -6226,6 +6230,8 @@ export type Database = {
           error?: string | null
           finished_at?: string | null
           id?: string
+          max_attempts?: number
+          next_attempt_at?: string
           queued_at?: string
           started_at?: string | null
           stats?: Json
@@ -6234,6 +6240,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          attempt_count?: number
           claim_expires_at?: string | null
           claimed_by?: string | null
           company_id?: string
@@ -6242,6 +6249,8 @@ export type Database = {
           error?: string | null
           finished_at?: string | null
           id?: string
+          max_attempts?: number
+          next_attempt_at?: string
           queued_at?: string
           started_at?: string | null
           stats?: Json
