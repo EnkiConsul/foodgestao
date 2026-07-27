@@ -111,9 +111,9 @@ export function AccountCreationMethodDialog({
               Informe os dados da conta e lance ou importe extratos por conta própria.
             </p>
             <ul className="mt-3 space-y-1.5 flex-1">
-              <Bullet>Controle total sobre os dados</Bullet>
-              <Bullet>Suporte a importação de extrato</Bullet>
-              <Bullet>Sem necessidade de conexão bancária</Bullet>
+              <Bullet>Controle manual dos dados</Bullet>
+              <Bullet>Possibilidade de importar extratos</Bullet>
+              <Bullet>Sem conexão bancária</Bullet>
             </ul>
             <span
               aria-hidden="true"
