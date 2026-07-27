@@ -116,22 +116,34 @@ export function diasElegiveisDaConfig(
   return [0, 6];
 }
 
+type CfgTeto = Pick<DpConfigDp, "modo_frequencia_domingo" | "periodicidade_domingo" | "domingos_por_mes"> &
+  Partial<
+    Pick<
+      DpConfigDp,
+      "modo_frequencia_domingo_mulher" | "periodicidade_domingo_mulher" | "domingos_por_mes_mulher"
+    >
+  >;
+
 /**
  * Teto de folgas que o colaborador pode marcar sozinho no mês.
- * É o menor valor entre o teto configurado (`folgas_fds_por_mes`) e a
- * quantidade mensal derivada do modelo de frequência.
+ * Deriva exclusivamente da frequência de folga dominical configurada.
+ * Para colaboradoras, aplica-se a frequência feminina quando mais protetiva.
  */
-export function tetoFolgasMes(
-  cfg: Pick<
-    DpConfigDp,
-    "modo_frequencia_domingo" | "periodicidade_domingo" | "domingos_por_mes" | "folgas_fds_por_mes"
-  >,
-): number {
-  const teto = Number.isFinite(cfg.folgas_fds_por_mes) ? cfg.folgas_fds_por_mes : 1;
-  const semanas = semanasEfetivas(cfg);
-  if (semanas <= 0) return teto;
-  const derivado = Math.max(1, Math.ceil(SEMANAS_POR_MES / semanas));
-  return Math.min(teto, derivado);
+export function tetoFolgasMes(cfg: CfgTeto, opts?: { sexo?: string | null }): number {
+  const derivar = (semanas: number) =>
+    semanas <= 0 ? 1 : Math.max(1, Math.ceil(SEMANAS_POR_MES / semanas));
+
+  const geral = derivar(semanasEfetivas(cfg));
+  if (opts?.sexo !== "F") return geral;
+
+  const mulher = derivar(
+    frequenciaParaSemanas(
+      cfg.modo_frequencia_domingo_mulher ?? "semanas",
+      cfg.periodicidade_domingo_mulher ?? 0,
+      cfg.domingos_por_mes_mulher ?? 0,
+    ),
+  );
+  return Math.max(geral, mulher);
 }
 
 export interface ResumoEscolhaFolgas {
@@ -148,18 +160,11 @@ export interface ResumoEscolhaFolgas {
  * escolha — não quantidade de folgas. A quantidade vem sempre do teto mensal.
  */
 export function resumoEscolhaFolgas(
-  cfg: Pick<
-    DpConfigDp,
-    | "tipo_descanso_domingo"
-    | "dias_descanso_negociados"
-    | "modo_frequencia_domingo"
-    | "periodicidade_domingo"
-    | "domingos_por_mes"
-    | "folgas_fds_por_mes"
-  >,
+  cfg: CfgTeto & Pick<DpConfigDp, "tipo_descanso_domingo" | "dias_descanso_negociados">,
+  opts?: { sexo?: string | null },
 ): ResumoEscolhaFolgas {
   const dias = diasElegiveisDaConfig(cfg);
-  const teto = tetoFolgasMes(cfg);
+  const teto = tetoFolgasMes(cfg, opts);
   const labels = ORDEM_DIAS_SEG_DOM.filter((d) => dias.includes(d)).map((d) => DIA_SEMANA_CURTO[d]);
   return {
     dias,
@@ -167,6 +172,7 @@ export function resumoEscolhaFolgas(
     texto: `Você pode escolher entre: ${labels.join(", ")} — até ${teto} folga${teto === 1 ? "" : "s"} neste mês.`,
   };
 }
+
 
 
 
