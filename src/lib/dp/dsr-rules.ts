@@ -4,6 +4,8 @@
 export type PoliticaSabado = "trabalha" | "folga" | "alterna" | "especifica";
 export type PoliticaFeriado = "compensa" | "dobro";
 export type RegraDsr = "clt" | "cct" | "propria";
+/** `legal` = folga dominical estrita. `acordo_coletivo` = domingo pode ser substituído por sábado. */
+export type TipoDescansoDomingo = "legal" | "acordo_coletivo";
 
 export interface DpConfigDp {
   company_id: string;
@@ -18,6 +20,9 @@ export interface DpConfigDp {
   politica_feriado: PoliticaFeriado;
   regra_dsr: RegraDsr;
   exige_validacao_menor: boolean;
+  tipo_descanso_domingo: TipoDescansoDomingo;
+  /** Negociação sindical (ACT/CCT) que embasa o modo acordo coletivo. */
+  negociacao_id: string | null;
 }
 
 export const DP_CONFIG_DP_DEFAULT: Omit<DpConfigDp, "company_id"> = {
@@ -29,7 +34,10 @@ export const DP_CONFIG_DP_DEFAULT: Omit<DpConfigDp, "company_id"> = {
   politica_feriado: "compensa",
   regra_dsr: "clt",
   exige_validacao_menor: true,
+  tipo_descanso_domingo: "legal",
+  negociacao_id: null,
 };
+
 
 /**
  * Padrão legal de referência, em semanas, para a folga dominical.
