@@ -40,7 +40,7 @@ export function AccountCreationMethodDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-3 md:grid-cols-2 mt-2">
+        <div className="grid gap-3 md:grid-cols-2 mt-2 items-stretch">
           {/* Open Finance */}
           <button
             type="button"
