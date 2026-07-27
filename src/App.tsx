@@ -415,6 +415,7 @@ const AppRoutes = () => (
         <Route path="convocacoes" element={<DpConvocacoes />} />
         <Route path="ponto" element={<DpPonto />} />
         <Route path="ponto/time" element={<DpPontoConsolidado />} />
+        <Route path="ponto/apuracao" element={<DpPontoApuracao />} />
         <Route path="documentos/act-cct" element={<DpSindicatoNegociacoes />} />
         <Route path="configuracoes" element={<DpConfiguracoes />} />
         <Route path="sindicatos" element={<Navigate to="/dp/cadastros/sindicatos" replace />} />
