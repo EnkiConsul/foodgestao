@@ -125,6 +125,14 @@ export function consolidarDia(input: ConsolidarDiaInput): ResumoPontoDia {
   const intervaloMinutos = iniInt && fimInt ? minutosEntre(iniInt.registrado_em, fimInt.registrado_em) : 0;
   const bruto = entrada && saida ? minutosEntre(entrada.registrado_em, saida.registrado_em) : 0;
   const minutosTrabalhados = Math.max(0, bruto - intervaloMinutos);
+  const noturnos =
+    entrada && saida
+      ? Math.max(
+          0,
+          minutosNoturnos(entrada.registrado_em, saida.registrado_em) -
+            (iniInt && fimInt ? minutosNoturnos(iniInt.registrado_em, fimInt.registrado_em) : 0),
+        )
+      : 0;
 
   const faltamMarcacoes = ORDEM_MARCACOES.filter((t) => !porTipo.has(t));
 
