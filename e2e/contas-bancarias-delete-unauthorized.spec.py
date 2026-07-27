@@ -113,17 +113,39 @@ async def main() -> int:
             await page.screenshot(path=str(SCREENSHOTS / "ui_lista.png"))
             for name in (EMPTY, HIST):
                 await expect(page.locator(f'text="{name}"')).to_have_count(0, timeout=5_000)
-            print("   ✔ nenhum card renderizado para contas alheias → botão inacessível")
-
-            # 4) Confirma que as contas ainda existem (nada foi mutado).
-            check = await rpc(
-                page, "_e2e_seed_foreign_accounts",
-                {"_empty_name": "E2E-FOREIGN-noop", "_history_name": "E2E-FOREIGN-noop"},
-                token,
+            # Além do card, o botão "Excluir conta" (aria-label) das contas alheias
+            # também não pode existir para nenhuma das duas contas semeadas.
+            delete_btns = page.get_by_role("button", name="Excluir conta")
+            total_delete_btns = await delete_btns.count()
+            own_names = set(
+                await page.locator('[data-testid="account-card-name"], .account-name, h3').all_text_contents()
             )
-            # apenas para exercitar rpc; a checagem real é abaixo:
-            # (não temos read direto, mas o cleanup abaixo deve remover 2 accounts)
-            _ = check
+            if EMPTY in own_names or HIST in own_names:
+                raise AssertionError("Contas alheias vazaram para o DOM do usuário.")
+            print(f"   ✔ 0 botões 'Excluir conta' apontam para contas alheias "
+                  f"(total renderizados na página: {total_delete_btns})")
+
+            # 4) Mensagem do backend deve mapear para o toast específico do frontend.
+            print("\n▶ Cenário 4: mensagem do backend mapeia para toast de permissão")
+            body_lc = (r["body"] or "").lower()
+            if "permission denied" not in body_lc:
+                raise AssertionError(
+                    "Backend não retornou 'permission denied' — toast específico não seria acionado."
+                )
+            # Replica a lógica do handler (src/pages/ContasBancarias.tsx handleDelete):
+            def toast_for(msg: str) -> str:
+                m = msg.lower()
+                if any(k in m for k in ("open_finance", "conex", "desconect")):
+                    return "Desconecte o Open Finance desta conta antes de excluir."
+                if "permission denied" in m:
+                    return "Você não tem permissão para excluir esta conta."
+                return "Erro ao excluir conta"
+            toast_txt = toast_for(r["body"] or "")
+            expected = "Você não tem permissão para excluir esta conta."
+            if toast_txt != expected:
+                raise AssertionError(f"Toast esperado '{expected}', obtive '{toast_txt}'")
+            print(f"   ✔ handler exibiria: '{toast_txt}'")
+
 
             print("\n✅ Autorização bloqueada em todos os caminhos.")
             return 0
