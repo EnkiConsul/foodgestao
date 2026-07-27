@@ -374,13 +374,13 @@ export default function FluxoCaixa() {
         <CardHeader>
           <CardTitle className="text-base">Fluxo de Caixa — {granularity === "diario" ? "Diário" : granularity === "semanal" ? "Semanal" : "Mensal"}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="min-w-0 overflow-hidden px-2 md:px-6">
           {chartData.length === 0 ? (
             <div className="flex items-center justify-center h-64 text-muted-foreground text-sm">
               Nenhuma movimentação no período
             </div>
           ) : (
-            <ChartContainer config={chartConfig} className="h-72 w-full">
+            <ChartContainer config={chartConfig} className="h-72 w-full min-w-0 max-w-full">
               <AreaChart data={chartData} accessibilityLayer>
                 <defs>
                   <linearGradient id="gradReceitas" x1="0" y1="0" x2="0" y2="1">

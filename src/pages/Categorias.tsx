@@ -470,21 +470,21 @@ export default function Categorias() {
           </Button>
         </div>
       ) : (
-        <div className="border rounded-lg overflow-x-auto">
-          <Table>
+        <div className="border rounded-lg overflow-hidden">
+          <Table className="w-full table-fixed">
             <TableHeader>
               <TableRow className="bg-muted/50">
-                <TableHead className="w-10">
+                <TableHead className="w-8 md:w-10 px-2 md:px-4">
                   <Checkbox
                     checked={selected.size === tree.length && tree.length > 0}
                     onCheckedChange={toggleAll}
                   />
                 </TableHead>
-                <TableHead className="w-10 text-xs"></TableHead>
+                <TableHead className="hidden md:table-cell w-10 text-xs"></TableHead>
                 <TableHead className="text-xs">Descrição</TableHead>
-                <TableHead className="w-24 text-xs text-center">Tipo</TableHead>
+                <TableHead className="hidden md:table-cell w-24 text-xs text-center">Tipo</TableHead>
                 <TableHead className="text-xs hidden md:table-cell">Visibilidade</TableHead>
-                <TableHead className="w-24 text-xs text-right">Ações</TableHead>
+                <TableHead className="w-[104px] md:w-24 text-xs text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <DragDropContext onDragEnd={onDragEnd}>

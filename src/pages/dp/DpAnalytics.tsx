@@ -206,7 +206,26 @@ export default function DpAnalytics() {
 
           <DpContentCard contentClassName="p-4 md:p-5">
             <h2 className="mb-3 text-sm font-semibold">Resumo por unidade</h2>
-            <div className="overflow-x-auto">
+            {/* Mobile: cards sem rolagem lateral */}
+            <div className="space-y-2 md:hidden">
+              {porUnidade.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sem dados no período.</p>
+              ) : porUnidade.map((u) => (
+                <div key={u.unidade_id ?? "sem"} className="rounded-xl border p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-medium text-sm truncate">{u.nome}</span>
+                    <span className="text-sm font-bold tabular-nums shrink-0">{brl(u.custo)}</span>
+                  </div>
+                  <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    <div className="flex justify-between"><dt>Headcount</dt><dd className="tabular-nums text-foreground">{u.headcount}</dd></div>
+                    <div className="flex justify-between"><dt>Deslig.</dt><dd className="tabular-nums text-foreground">{u.desligamentos}</dd></div>
+                    <div className="flex justify-between"><dt>Folgas</dt><dd className="tabular-nums text-foreground">{u.folgas}</dd></div>
+                    <div className="flex justify-between"><dt>Atestados</dt><dd className="tabular-nums text-foreground">{u.atestados}</dd></div>
+                  </dl>
+                </div>
+              ))}
+            </div>
+            <div className="hidden md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
