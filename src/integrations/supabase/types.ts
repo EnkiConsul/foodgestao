@@ -5251,6 +5251,82 @@ export type Database = {
           },
         ]
       }
+      dp_ponto_ajustes: {
+        Row: {
+          acao: Database["public"]["Enums"]["dp_ponto_ajuste_acao"]
+          analisado_em: string | null
+          analisado_por: string | null
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          criado_por: string | null
+          data: string
+          hora_solicitada: string | null
+          id: string
+          motivo: string
+          observacao_analise: string | null
+          status: Database["public"]["Enums"]["dp_aprovacao_status"]
+          tipo: Database["public"]["Enums"]["dp_ponto_tipo"]
+          updated_at: string
+        }
+        Insert: {
+          acao?: Database["public"]["Enums"]["dp_ponto_ajuste_acao"]
+          analisado_em?: string | null
+          analisado_por?: string | null
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          criado_por?: string | null
+          data: string
+          hora_solicitada?: string | null
+          id?: string
+          motivo: string
+          observacao_analise?: string | null
+          status?: Database["public"]["Enums"]["dp_aprovacao_status"]
+          tipo: Database["public"]["Enums"]["dp_ponto_tipo"]
+          updated_at?: string
+        }
+        Update: {
+          acao?: Database["public"]["Enums"]["dp_ponto_ajuste_acao"]
+          analisado_em?: string | null
+          analisado_por?: string | null
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          criado_por?: string | null
+          data?: string
+          hora_solicitada?: string | null
+          id?: string
+          motivo?: string
+          observacao_analise?: string | null
+          status?: Database["public"]["Enums"]["dp_aprovacao_status"]
+          tipo?: Database["public"]["Enums"]["dp_ponto_tipo"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_ponto_ajustes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ponto_ajustes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ponto_ajustes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_ponto_fechamentos: {
         Row: {
           atraso_minutos: number
@@ -9139,6 +9215,7 @@ export type Database = {
       dp_perfil_acesso: "colaborador" | "gestor" | "admin"
       dp_politica_feriado: "compensa" | "dobro"
       dp_politica_sabado: "trabalha" | "folga" | "alterna" | "especifica"
+      dp_ponto_ajuste_acao: "incluir" | "alterar" | "excluir"
       dp_ponto_origem: "portal" | "admin" | "importado"
       dp_ponto_tipo: "entrada" | "intervalo_inicio" | "intervalo_fim" | "saida"
       dp_regime_trabalho:
@@ -9502,6 +9579,7 @@ export const Constants = {
       dp_perfil_acesso: ["colaborador", "gestor", "admin"],
       dp_politica_feriado: ["compensa", "dobro"],
       dp_politica_sabado: ["trabalha", "folga", "alterna", "especifica"],
+      dp_ponto_ajuste_acao: ["incluir", "alterar", "excluir"],
       dp_ponto_origem: ["portal", "admin", "importado"],
       dp_ponto_tipo: ["entrada", "intervalo_inicio", "intervalo_fim", "saida"],
       dp_regime_trabalho: [
