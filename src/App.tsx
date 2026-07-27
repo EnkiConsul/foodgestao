@@ -18,7 +18,7 @@ import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 import { HelmetProvider } from "react-helmet-async";
 import { CanonicalUrl } from "@/components/seo/CanonicalUrl";
 import { SuperAdminRoute } from "@/components/admin/SuperAdminRoute";
-import { useEffect, useState, lazy, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentSubscription } from "@/hooks/useCurrentSubscription";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
