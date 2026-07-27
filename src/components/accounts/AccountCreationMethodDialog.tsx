@@ -32,7 +32,7 @@ export function AccountCreationMethodDialog({
 }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Adicionar conta financeira</DialogTitle>
           <DialogDescription>
@@ -40,7 +40,7 @@ export function AccountCreationMethodDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-3 md:grid-cols-2 mt-2">
+        <div className="grid gap-3 md:grid-cols-2 mt-2 items-stretch">
           {/* Open Finance */}
           <button
             type="button"
