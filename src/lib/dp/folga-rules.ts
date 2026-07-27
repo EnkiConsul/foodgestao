@@ -311,9 +311,31 @@ export function calculateDateStatus(params: {
     (f) => f.data === iso && (f.tipo === "sabado" || f.tipo === "domingo" || f.tipo === "normal") && f.extra !== true,
   ).length;
 
+  // Teto mensal do colaborador, derivado da frequência configurada nas regras.
+  if (!isAdmin && isWknd && myColaboradorId && typeof tetoMensal === "number" && tetoMensal >= 0) {
+    const mk = monthKey(date);
+    const minhasNoMes = allFolgas.filter(
+      (f) =>
+        f.colaborador_id === myColaboradorId &&
+        f.extra !== true &&
+        monthKey(parseYMD(f.data)) === mk &&
+        elegiveis.includes(parseYMD(f.data).getDay()),
+    ).length;
+    if (minhasNoMes >= tetoMensal) {
+      return {
+        status: "taken",
+        label: "Teto do mês",
+        reason: `Você já atingiu o teto de ${tetoMensal} folga(s) neste mês, conforme as regras de folga da sua unidade.`,
+        occupancy: monthlyCount,
+        limit,
+      };
+    }
+  }
+
   if (!isAdmin && monthlyCount >= limit && isWknd) {
     return { status: "taken", label: "Lotado", reason: "Limite de folgas mensais atingido", occupancy: monthlyCount, limit };
   }
+
 
   return {
     status: isWknd ? "available" : "weekday",
