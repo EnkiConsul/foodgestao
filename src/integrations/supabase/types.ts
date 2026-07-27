@@ -5504,6 +5504,94 @@ export type Database = {
           },
         ]
       }
+      dp_turnos: {
+        Row: {
+          ativo: boolean
+          carga_liquida_horas: number
+          categoria: string | null
+          company_id: string
+          cor: string | null
+          created_at: string
+          descricao: string | null
+          entrada: string
+          id: string
+          intervalo_minutos: number
+          nome: string
+          saida: string
+          termina_no_dia_seguinte: boolean
+          turno_origem_id: string | null
+          unidade_id: string | null
+          updated_at: string
+          versao: number
+          vigencia_fim: string | null
+          vigencia_inicio: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          carga_liquida_horas?: number
+          categoria?: string | null
+          company_id: string
+          cor?: string | null
+          created_at?: string
+          descricao?: string | null
+          entrada: string
+          id?: string
+          intervalo_minutos?: number
+          nome: string
+          saida: string
+          termina_no_dia_seguinte?: boolean
+          turno_origem_id?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          versao?: number
+          vigencia_fim?: string | null
+          vigencia_inicio?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          carga_liquida_horas?: number
+          categoria?: string | null
+          company_id?: string
+          cor?: string | null
+          created_at?: string
+          descricao?: string | null
+          entrada?: string
+          id?: string
+          intervalo_minutos?: number
+          nome?: string
+          saida?: string
+          termina_no_dia_seguinte?: boolean
+          turno_origem_id?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          versao?: number
+          vigencia_fim?: string | null
+          vigencia_inicio?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_turnos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_turnos_turno_origem_id_fkey"
+            columns: ["turno_origem_id"]
+            isOneToOne: false
+            referencedRelation: "dp_turnos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_turnos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_unidade_cargos: {
         Row: {
           cargo_id: string
@@ -5530,6 +5618,63 @@ export type Database = {
           },
           {
             foreignKeyName: "dp_unidade_cargos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_unidade_horarios_funcionamento: {
+        Row: {
+          aberto: boolean
+          company_id: string
+          created_at: string
+          dia_semana: number
+          fecha_no_dia_seguinte: boolean
+          hora_abertura: string | null
+          hora_fechamento: string | null
+          id: string
+          observacoes: string | null
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          aberto?: boolean
+          company_id: string
+          created_at?: string
+          dia_semana: number
+          fecha_no_dia_seguinte?: boolean
+          hora_abertura?: string | null
+          hora_fechamento?: string | null
+          id?: string
+          observacoes?: string | null
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          aberto?: boolean
+          company_id?: string
+          created_at?: string
+          dia_semana?: number
+          fecha_no_dia_seguinte?: boolean
+          hora_abertura?: string | null
+          hora_fechamento?: string | null
+          id?: string
+          observacoes?: string | null
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_unidade_horarios_funcionamento_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_unidade_horarios_funcionamento_unidade_id_fkey"
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "dp_unidades"

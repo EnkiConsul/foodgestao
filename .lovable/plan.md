@@ -1,64 +1,89 @@
+## 1. Arquitetura atual (verificada no código e no banco)
 
-# Jornada única com interpretação por tipo de contrato — análise e proposta
+**Tabelas existentes hoje**
+- `dp_jornadas` (19 col.) — concentra tudo: `tipo_escala`, `turno`, `horario_entrada/saida`, `dias_trabalho`, `dias_folga`, `carga_horaria_diaria/semanal`.
+- `dp_jornada_horarios` (12 col.) — horário por dia da semana, com `carga_horas` e `termina_no_dia_seguinte`.
+- `dp_colaborador_jornadas` (14 col.) — vínculo com vigência + overrides (`folga_fixa_semana_override`, entrada/saída).
+- `dp_unidades` (14 col.) — **não possui horário de funcionamento**.
+- `dp_cobertura_minima` — já existe, mas usa `turno` como enum (`dp_turno`: matutino/vespertino/noturno/misto) e `minimo`, sem `turno_id` nem vigência.
+- `dp_folgas`, `dp_dia_config`, `dp_colaboradores` (`folga_fixa_semana`, `regime`, `aprendiz`, `unidade_id`, `cargo_id`).
+- **Não existe** `dp_escalas` nem `dp_escala_itens`. Não existe tabela de convocações.
 
-## O que confirmei no projeto hoje
+**Volume real de dados (contado agora):** 2 jornadas, 14 horários, **0 vínculos colaborador–jornada**, 3 unidades, 18 folgas, 0 registros de cobertura mínima. A migração de dados é praticamente trivial e de risco baixíssimo.
 
-- **Não existe módulo de Convocação.** Nenhum arquivo, tabela ou rota trata de convocação — é funcionalidade nova, não um ajuste.
-- **O tipo de vínculo do colaborador não tem "Intermitente".** `ColaboradorFormDialog` oferece CLT, Sócio, Estagiário, PJ, Autônomo, Temporário, e mapeia para o enum de regime do banco (`clt, pj, estagio, temporario, mei`) — que também não tem intermitente.
-- **"Intermitente" hoje existe apenas como tipo de escala da Jornada** (`dp_tipo_escala`), ou seja, num nível errado: é propriedade do contrato do colaborador, não do modelo de horários.
-- **O motor de carga já é neutro o suficiente:** `folgasPorRegime` devolve "indefinido" para intermitente, e depois do último ajuste a validação de 44h não acontece mais no cadastro da jornada — ela ocorre no vínculo (quando há folga fixa) e na escala gerada.
+**Código**
+- Hooks/domínio: `useDpJornadas.tsx`, `jornada-utils.ts`, `dsr-rules.ts`, `escala-generator.ts`, `contrato-policy.ts`, `bloqueio-rules.ts`.
+- UI: `DpCadastroJornadas.tsx`, `HorariosSemanaEditor.tsx`, `JornadaCard/CargaResumo/Templates.tsx`, `ColaboradorJornadaDialog.tsx`, `ColaboradorFormDialog.tsx`, `CoberturaMinimaCard.tsx`.
+- `DpEscalas.tsx` **não é uma escala de turnos**: é um gerador de folgas mensal que grava em `dp_folgas`. O nome atual no menu é "Gerador de Escala".
+- Navegação: "Jornadas e escalas" fica dentro de Cadastros; não existe "Operação do Dia" nem "Turnos".
 
-## Avaliação da proposta
+## 2. Problemas encontrados
 
-**Concordo com o conceito central.** Manter um único objeto "Jornada" = padrão esperado de trabalho, com interpretação variando pelo contrato, é a modelagem correta e é a que menos machuca a arquitetura atual. Renomear para "Disponibilidade" seria pior, como você mesmo apontou.
+1. Jornada acumula 6 responsabilidades (horário, regime, dias, folga, carga, escala).
+2. Não há fonte confiável de "horário previsto" por colaborador/data — pré-requisito do ponto.
+3. Nenhum snapshot de horário: alterar uma jornada reescreve o passado.
+4. Escala = folgas, não turnos; sem unidade/cargo/horário por dia.
+5. Cobertura mínima presa a um enum de turno genérico, sem ligação com horários reais.
+6. Unidade sem horário de funcionamento — impossível validar cobertura ou turno fora do expediente.
+7. Validação de 44h aparece em telas de cadastro, onde não faz sentido.
+8. Regras de domínio espalhadas entre componentes e páginas.
 
-**Vantagens**
-- Fluxo único de cadastro; nenhuma bifurcação de UX para o dono do restaurante.
-- Reaproveita `dp_jornadas` + `dp_jornada_horarios` sem tabela nova.
-- Jornada vira modelo reutilizável que acelera muito a criação de convocações e escalas.
-- Escalável: qualquer contrato futuro (aprendiz, temporário, 12x36) só precisa declarar como interpreta o padrão.
+## 3. Arquitetura proposta
 
-**Riscos e correções necessárias**
-1. **O eixo de decisão precisa ser o contrato, não a jornada.** Hoje "intermitente" está no `tipo_escala` da jornada. Se ficar assim, uma mesma jornada usada por um CLT e por um intermitente se comporta igual para os dois. A regra tem que ler o **regime do colaborador**. Proponho: adicionar `intermitente` ao enum de regime, expor "Intermitente" no Tipo de Vínculo, e depreciar o valor `intermitente` do `tipo_escala` (mapeando para `personalizada`).
-2. **Jornada não é obrigação — precisa ficar registrado no dado, não só no texto.** Se a jornada do intermitente entrar nos mesmos relatórios de conformidade/DSR do CLT, geramos passivo (folga semanal, DSR, 44h para quem não tem jornada contratada). Toda leitura de conformidade precisa excluir intermitentes por regime.
-3. **A CLT exige coisas que a proposta não cobre** e que valem constar como requisitos do módulo de Convocação (fase seguinte): convocação com no mínimo 3 dias corridos de antecedência, aceite/recusa em até 1 dia útil (silêncio = recusa), registro do período e do valor combinado, e multa contratual em caso de descumprimento após aceite. Sem convocação registrada e aceita, não há hora a pagar — logo **folha e ponto do intermitente devem se basear na convocação aceita, nunca na jornada**.
-4. **Descanso semanal do intermitente existe** (proporcional/embutido no pagamento do período convocado). Não valide folga semanal contra a jornada, mas não afirme na UI que "não há folga".
-5. **Ponto (módulo futuro):** o esperado do dia vem da convocação aceita; para CLT vem da jornada. Precisa ser um único ponto de resolução, senão o motor de ponto nasce duplicado.
+```text
+Horário de funcionamento (unidade)
+        ↓
+Turnos (horários reutilizáveis)
+        ↓
+Configuração de trabalho do colaborador
+        ↓
+Escala (snapshot do horário previsto)
+        ↓
+Ponto eletrônico (fase futura)
+```
 
-**Alternativa mais simples que avaliei e descartei:** criar uma tabela `dp_disponibilidades` separada. Duplicaria editor de horários, hooks e UI mobile para um ganho conceitual mínimo. Sua proposta é superior.
+Serviço central `obterHorarioPrevistoColaborador({companyId, colaboradorId, data})` com precedência: item de escala publicado → convocação aceita → exceção da data → turno habitual vigente → sem horário previsto.
 
-**Alternativa que recomendo incorporar:** em vez de espalhar `if (regime === 'intermitente')` pela UI, criar **um único resolvedor de política de contrato** — dado o regime, ele responde: valida 44h? exige folga semanal? entra na conformidade DSR? entra na escala automática? jornada é sugestão ou obrigação? Toda tela consulta esse resolvedor. Isso é o que torna a modelagem realmente escalável para contratos futuros.
+## 4. Tabelas novas / alteradas
 
----
+Novas: `dp_unidade_horarios_funcionamento`, `dp_turnos`, `dp_colaborador_config_trabalho`, `dp_escalas`, `dp_escala_itens`, `dp_convocacoes` (+ eventos), `dp_migracao_jornadas_log`.
+Alteradas: `dp_cobertura_minima` ganha `turno_id`, `quantidade_minima`, vigência e `ativo` (mantendo as colunas atuais até o corte).
+Mantidas intactas nesta entrega: `dp_jornadas`, `dp_jornada_horarios`, `dp_colaborador_jornadas` — sem DROP, sem rename.
 
-## Plano de implementação (após sua aprovação)
+Todas as tabelas novas seguem o padrão do projeto: `company_id`, RLS por empresa, GRANTs explícitos, trigger de `updated_at`, índices por empresa/unidade/data.
 
-### Fase 1 — Fundação de contrato (base para tudo)
-- Migração: adicionar `intermitente` ao enum de regime de trabalho.
-- Novo módulo de domínio `src/lib/dp/contrato-policy.ts` com a política por regime (valida carga semanal, exige folga semanal, participa de DSR/conformidade, jornada obrigatória vs. sugerida, rótulos de UI).
-- Testes unitários da política.
+## 5. Plano de entregas (cada fase é aprovada e testada antes da seguinte)
 
-### Fase 2 — Cadastro do colaborador
-- Adicionar "Intermitente" ao Tipo de Vínculo.
-- Quando intermitente: ocultar Folga semanal e carga semanal prevista; manter a Jornada visível, com o rótulo "Disponibilidade habitual".
+**Fase 1 — Fundação de horários**
+`dp_unidade_horarios_funcionamento` + `dp_turnos` (com versionamento e `carga_liquida_horas`), `src/lib/dp/turno-utils.ts`, hooks `useDpHorariosFuncionamento`/`useDpTurnos`, telas `DpTurnos.tsx`, `HorarioFuncionamentoEditor.tsx`, `TurnoCard/TurnoForm`. Sem validação de 44h no cadastro de turno.
 
-### Fase 3 — Jornada e vínculo
-- Cadastro de Jornada permanece idêntico; o `tipo_escala` "intermitente" deixa de ser oferecido (dados existentes seguem lendo como personalizada).
-- No vínculo (`ColaboradorJornadaDialog`) de um colaborador intermitente: banner "Esta jornada representa a disponibilidade habitual do colaborador. A carga efetiva será calculada pelas convocações realizadas."; sem folga fixa, sem alerta de 44h.
+**Fase 2 — Configuração de trabalho do colaborador**
+`dp_colaborador_config_trabalho` com vigência e histórico; `ColaboradorConfigTrabalho.tsx` substituindo o uso principal de `ColaboradorJornadaDialog`; campos condicionais por contrato (6x1, 5x2, 12x36, intermitente, aprendiz/menor) reaproveitando e ampliando `contrato-policy.ts`. Migração dos 2 registros legados em turnos + configuração, com log de auditoria.
 
-### Fase 4 — Escalas e conformidade
-- Gerador de escala e validação de 44h passam a ignorar intermitentes (via política).
-- Ao adicionar um intermitente na escala: mostrar "Disponibilidade sugerida HH:MM–HH:MM" com ações **Usar horário sugerido** / **Editar horário**.
-- Relatórios de conformidade DSR excluem intermitentes.
+**Fase 3 — Escala como centro**
+`dp_escalas` + `dp_escala_itens` com snapshot obrigatório de horário e `origem_horario`. Nova `DpEscalas.tsx` (grade por dia/unidade, mobile-first em cards), atalhos: repetir semana, aplicar turnos habituais, copiar dia, trocar em lote, marcar folga, publicar. O gerador de folgas atual vira "Gerador de Folgas" dentro de Folgas e Ausências, preservado.
 
-### Fase 5 — Convocações (novo módulo, escopo próprio)
-- Tabela `dp_convocacoes` (colaborador, data, entrada/saída/intervalo, status, prazos de aceite, origem da sugestão) com RLS e grants por empresa.
-- Criação de convocação pré-preenchida pela jornada do dia, com horários editáveis; convocação nunca altera a jornada.
-- Aceite/recusa pelo portal do colaborador, com prazo e regra de silêncio = recusa; base de horas para escala publicada, ponto e folha.
+**Fase 4 — Validação e cobertura**
+`src/lib/dp/conformidade-escala.ts` e `cobertura-utils.ts`, com severidades separadas (bloqueante / conformidade / operacional / sugestão). Ajuste de `dp_cobertura_minima` para `turno_id` e vigência; `CoberturaTurnoCard.tsx`, `ConflitoEscalaAlert.tsx`.
 
-### Notas técnicas
-- Nenhuma tabela nova nas fases 1–4; apenas um valor de enum e código de domínio.
-- Toda decisão de comportamento passa pelo resolvedor de política — proibido `if regime === ...` espalhado nas telas.
-- Mobile: nenhuma tela nova nas fases 1–4; apenas supressão de campos e um banner, o que reduz altura do formulário.
+**Fase 5 — Convocações (intermitente)**
+`dp_convocacoes` com snapshot próprio, prazo, aceite/recusa e histórico; ao aceitar, cria/atualiza item de escala com `origem_horario = 'convocacao'`, sem duplicidade e validando sobreposição.
 
-Confirmando esta análise, começo pela Fase 1. Se preferir, entrego Fases 1–4 primeiro e tratamos Convocações como projeto separado — é o corte que recomendo.
+**Fase 6 — Horário previsto + Operação do Dia**
+`src/lib/dp/horario-previsto.ts` implementando a precedência; `DpOperacaoDia.tsx` com blocos Agora / Próximo turno / Alertas / Ações rápidas; reorganização da navegação (Operação do Dia, Escalas, Equipe, Convocações, Folgas e Ausências, Turnos, Unidades, Conformidade, Relatórios, Configurações).
+
+**Fase 7 — Encerramento do legado**
+Bloquear novos cadastros no formato antigo, manter leitura, e só então propor a remoção em entrega separada.
+
+Ponto eletrônico e sugestão de escala por IA ficam fora do escopo: a arquitetura apenas fica preparada (contratos de dados e serviço de horário previsto).
+
+## 6. Riscos e rollback
+
+- **Risco baixo de dados** (0 vínculos, 2 jornadas). Ainda assim, migração só copia — nunca apaga.
+- **Risco de UI**: `DpEscalas` atual é usada para folgas; será preservada com novo nome antes da nova escala entrar.
+- **Rollback**: cada fase é uma migração aditiva; reverter = parar de usar a tela nova e voltar a rota antiga, já que o legado continua funcional e íntegro até a Fase 7.
+- Testes unitários novos para `turno-utils`, `escala-utils`, `conformidade-escala`, `horario-previsto` e `cobertura-utils`; os 80 testes atuais permanecem verdes.
+
+## 7. Padrões técnicos
+
+Nenhuma regra jurídica, cálculo de carga ou precedência de horário dentro de componentes React. Mobile-first testado em 320/360/390/430px, cards empilhados, filtros em bottom sheet, alvos de 44px, rodapé fixo para salvar/publicar, safe area, estados de carregamento/vazio/erro e `aria-label` em botões de ícone.

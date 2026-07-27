@@ -36,6 +36,7 @@ const ADMIN_ITEMS: Item[] = [
       { title: "Cargos", url: "/dp/cadastros/cargos", icon: Briefcase },
       { title: "Unidades", url: "/dp/cadastros/unidades", icon: Building2 },
       { title: "Sindicatos", url: "/dp/cadastros/sindicatos", icon: Scale },
+      { title: "Turnos", url: "/dp/cadastros/turnos", icon: Clock },
       { title: "Jornadas e escalas", url: "/dp/cadastros/jornadas", icon: Clock },
       
       { title: "Pendências", url: "/dp/cadastros/pendencias", icon: BellRing },
