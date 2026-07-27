@@ -7404,6 +7404,10 @@ export type Database = {
         Returns: string
       }
       auth_access_enabled: { Args: never; Returns: boolean }
+      auto_promote_open_finance_raw: {
+        Args: { _connection_id: string }
+        Returns: Json
+      }
       categorize_transaction: {
         Args: {
           p_company_id?: string
