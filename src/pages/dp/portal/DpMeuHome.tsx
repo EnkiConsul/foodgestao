@@ -11,7 +11,7 @@ import { useDpMeuResumo } from "@/hooks/useDpMeuResumo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AtalhosFavoritos } from "@/components/dp/home/AtalhosFavoritos";
-import { PendenciasCard } from "@/components/dp/home/PendenciasCard";
+import { MinhasPendenciasCard } from "@/components/dp/home/MinhasPendenciasCard";
 import { AniversariantesCard } from "@/components/dp/home/AniversariantesCard";
 import { DpPage } from "@/components/dp/DpPage";
 
@@ -248,7 +248,7 @@ export default function DpMeuHome() {
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <PendenciasCard />
+        <MinhasPendenciasCard />
         <AniversariantesCard />
       </div>
 
