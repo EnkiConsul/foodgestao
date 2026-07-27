@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles, UserMinus, RotateCcw } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles, UserMinus, RotateCcw, Clock } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ import {
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { DesligamentoDialog } from "@/components/dp/DesligamentoDialog";
+import { ColaboradorJornadaDialog } from "@/components/dp/ColaboradorJornadaDialog";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,6 +63,7 @@ export default function DpColaboradores() {
   const [editing, setEditing] = useState<DpColaborador | null>(null);
   const [toDelete, setToDelete] = useState<DpColaborador | null>(null);
   const [toDesligar, setToDesligar] = useState<DpColaborador | null>(null);
+  const [jornadaTarget, setJornadaTarget] = useState<DpColaborador | null>(null);
   const [toReintegrar, setToReintegrar] = useState<DpColaborador | null>(null);
   const [resetting, setResetting] = useState<string | null>(null);
   const [granting, setGranting] = useState<string | null>(null);
@@ -419,6 +421,9 @@ export default function DpColaboradores() {
                           <Button size="icon" variant="ghost" onClick={() => { setEditing(c); setDialogOpen(true); }} title="Editar">
                             <Pencil className="h-4 w-4" />
                           </Button>
+                          <Button size="icon" variant="ghost" onClick={() => setJornadaTarget(c)} title="Jornada e escala">
+                            <Clock className="h-4 w-4" />
+                          </Button>
                           {c.user_id ? (
                             <Button
                               size="icon"
@@ -547,6 +552,9 @@ export default function DpColaboradores() {
                 <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => { setEditing(c); setDialogOpen(true); }}>
                   <Pencil className="h-4 w-4 mr-1" /> Editar
                 </Button>
+                <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => setJornadaTarget(c)}>
+                  <Clock className="h-4 w-4 mr-1" /> Jornada
+                </Button>
                 {c.user_id && (
                   <>
                     <Button size="sm" variant="ghost" className="min-h-11 flex-1" disabled={resetting === c.id} onClick={() => handleReset(c)}>
@@ -583,6 +591,12 @@ export default function DpColaboradores() {
 
 
       <ColaboradorFormDialog open={dialogOpen} onOpenChange={setDialogOpen} colaborador={editing} />
+
+      <ColaboradorJornadaDialog
+        colaborador={jornadaTarget}
+        open={!!jornadaTarget}
+        onOpenChange={(o) => !o && setJornadaTarget(null)}
+      />
 
       <DesligamentoDialog colaborador={toDesligar} onOpenChange={(o) => !o && setToDesligar(null)} />
 
