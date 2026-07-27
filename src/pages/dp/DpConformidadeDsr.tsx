@@ -158,7 +158,13 @@ export default function DpConformidadeDsr() {
               Regra geral: 1 a cada {config.periodicidade_domingo} semana(s) · Mulheres: 1 a cada{" "}
               {config.periodicidade_domingo_mulher} semana(s).
             </p>
+            <p>
+              {porAcordo
+                ? "Modo acordo coletivo: o sábado folgado pode substituir o domingo."
+                : "Modo legislação: apenas domingos folgados são considerados."}
+            </p>
           </div>
+
           {linhas.length > 0 && (
             <Badge variant={foraDeConformidade > 0 ? "destructive" : "default"} className="ml-auto">
               {foraDeConformidade > 0
