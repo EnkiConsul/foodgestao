@@ -417,22 +417,22 @@ export default function DpAtestados() {
             </div>
           </DpFilterCard>
 
-          <DpContentCard contentClassName="overflow-x-auto hidden md:block">
+          <DpContentCard contentClassName="hidden md:block">
             {list.isLoading ? (
               <TableSkeleton columns={9} headers={["Colaborador", "Unidade", "Data", "Data Retorno", "Observações", "Status", "Detalhes", "Arquivo", "Ações"]} />
             ) : (
-              <Table className="text-xs">
+              <Table className="w-full table-fixed text-xs">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="px-3">Colaborador</TableHead>
-                    <TableHead className="px-3">Unidade</TableHead>
-                    <TableHead className="px-3">Data</TableHead>
-                    <TableHead className="px-3">Data Retorno</TableHead>
-                    <TableHead className="px-3">Observações</TableHead>
-                    <TableHead className="px-3">Status</TableHead>
-                    <TableHead className="px-3">Detalhes</TableHead>
-                    <TableHead className="px-3">Arquivo</TableHead>
-                    <TableHead className="w-28 px-3 text-right">Ações</TableHead>
+                    <TableHead className="px-3 w-[20%]">Colaborador</TableHead>
+                    <TableHead className="px-3 w-[11%]">Unidade</TableHead>
+                    <TableHead className="px-3 w-[9%]">Data</TableHead>
+                    <TableHead className="px-3 w-[9%]">Data Retorno</TableHead>
+                    <TableHead className="px-3 w-[16%]">Observações</TableHead>
+                    <TableHead className="px-3 w-[10%]">Status</TableHead>
+                    <TableHead className="px-3 w-[11%]">Detalhes</TableHead>
+                    <TableHead className="px-3 w-[8%]">Arquivo</TableHead>
+                    <TableHead className="px-3 text-right w-[6%]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
