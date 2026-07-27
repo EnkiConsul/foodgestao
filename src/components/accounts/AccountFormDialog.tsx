@@ -255,23 +255,14 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
                 </p>
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>Saldo inicial</Label>
-                    <CurrencyInput value={initialBalance} onValueChange={setInitialBalance} placeholder="0,00" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Saldo atual</Label>
-                    <CurrencyInput value={currentBalance} onValueChange={setCurrentBalance} placeholder="0,00" />
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  O saldo atual normalmente é calculado pelos lançamentos. Altere apenas para ajustes manuais.
-                </p>
+              <div className="rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
+                O saldo desta conta é controlado automaticamente pelo motor financeiro a partir dos lançamentos.
+                Para acertar uma divergência, use <strong>Ajustar saldo</strong> na página de contas — o ajuste
+                gera um lançamento auditável com justificativa.
               </div>
             )}
           </section>
+
 
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="h-11 sm:h-10">Cancelar</Button>
