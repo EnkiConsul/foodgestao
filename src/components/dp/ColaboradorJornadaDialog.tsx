@@ -24,7 +24,7 @@ const hoje = () => new Date().toISOString().slice(0, 10);
 const fmt = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : null);
 
 interface Props {
-  colaborador: { id: string; nome_completo: string } | null;
+  colaborador: { id: string; nome: string } | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }
@@ -82,7 +82,7 @@ export function ColaboradorJornadaDialog({ colaborador, open, onOpenChange }: Pr
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5 text-primary" aria-hidden="true" />
-            Jornada de {colaborador?.nome_completo}
+            Jornada de {colaborador?.nome}
           </DialogTitle>
           <DialogDescription>
             Vincule um modelo de escala com vigência. Restrições de menores de 18 anos são validadas ao salvar.

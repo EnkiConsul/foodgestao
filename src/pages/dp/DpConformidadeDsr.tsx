@@ -47,10 +47,10 @@ export default function DpConformidadeDsr() {
     queryFn: async (): Promise<ConformidadeInput[]> => {
       const { data: colaboradores, error: cErr } = await supabase
         .from("dp_colaboradores")
-        .select("id, nome_completo, sexo, ativo")
+        .select("id, nome, sexo, ativo")
         .eq("company_id", selectedCompanyId!)
         .eq("ativo", true)
-        .order("nome_completo");
+        .order("nome");
       if (cErr) throw cErr;
 
       const { data: folgas, error: fErr } = await supabase
@@ -72,7 +72,7 @@ export default function DpConformidadeDsr() {
 
       return (colaboradores ?? []).map((c) => ({
         colaboradorId: c.id,
-        nome: c.nome_completo,
+        nome: c.nome,
         sexo: c.sexo,
         domingosFolgados: porColab.get(c.id) ?? [],
         domingosNoPeriodo: domingos.length,
