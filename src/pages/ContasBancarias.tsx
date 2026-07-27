@@ -187,6 +187,8 @@ export default function ContasBancarias() {
       const msg = (error.message || "").toLowerCase();
       if (msg.includes("open_finance") || msg.includes("conex") || msg.includes("desconect")) {
         toast.error("Desconecte o Open Finance desta conta antes de excluir.");
+      } else if (msg.includes("permission denied") || (error as { code?: string }).code === "42501") {
+        toast.error("Você não tem permissão para excluir esta conta.");
       } else {
         toast.error("Erro ao excluir conta");
       }
