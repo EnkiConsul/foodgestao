@@ -4,6 +4,7 @@ import {
   lerExtras,
   totaisDosExtras,
   valoresDoLancamento,
+  encargosDoLancamento,
   folhaParaCsv,
   type LinhaFolha,
 } from "../folha";
@@ -49,7 +50,12 @@ describe("rubricas avulsas (Fase 16)", () => {
         { descricao: "Adiantamento", natureza: "desconto", valor: 500 },
       ],
     });
-    expect(valoresDoLancamento(detalhe)).toEqual({ bruto: 2400, liquido: 1780 });
+    // 2400 − 100 faltas − 20 DSR − INSS/IRRF − 500 adiantamento
+    const enc = encargosDoLancamento(detalhe);
+    expect(valoresDoLancamento(detalhe)).toEqual({
+      bruto: 2400,
+      liquido: Math.round((1780 - enc.descontos) * 100) / 100,
+    });
   });
 
   it("nunca devolve líquido negativo", () => {
