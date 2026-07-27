@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Clock, Plus, Trash2, CalendarOff } from "lucide-react";
+import { Clock, Plus, Trash2, CalendarOff, AlertTriangle } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
@@ -13,7 +13,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDpJornadas, useDpColaboradorJornadas } from "@/hooks/useDpJornadas";
 import { TIPO_ESCALA_LABEL, TURNO_LABEL } from "@/lib/dp/dsr-rules";
-import { resumoJornadaTexto } from "@/lib/dp/jornada-utils";
+import {
+  calcularCargaComFolgaFixa,
+  formatarHoras,
+  resumoJornadaTexto,
+  validarCargaSemanal,
+} from "@/lib/dp/jornada-utils";
+
 
 const DIAS_SEMANA = [
   { v: "0", label: "Domingo" }, { v: "1", label: "Segunda" }, { v: "2", label: "Terça" },
@@ -49,6 +55,16 @@ export function ColaboradorJornadaDialog({ colaborador, open, onOpenChange }: Pr
     () => jornadasAtivas.find((j) => j.id === jornadaId) ?? null,
     [jornadasAtivas, jornadaId],
   );
+
+  /** Carga prevista só existe quando há jornada e folga fixa escolhida. */
+  const cargaPrevista = useMemo(() => {
+    if (!jornadaSelecionada || folgaFixa === "none") return null;
+    return validarCargaSemanal(
+      calcularCargaComFolgaFixa(jornadaSelecionada.horarios, Number(folgaFixa)),
+    );
+  }, [jornadaSelecionada, folgaFixa]);
+
+
 
   const limpar = () => {
     setJornadaId(""); setInicio(hoje()); setFolgaFixa("none"); setObs("");
@@ -114,26 +130,49 @@ export function ColaboradorJornadaDialog({ colaborador, open, onOpenChange }: Pr
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="cj-folga">Folga fixa semanal (override)</Label>
+              <Label htmlFor="cj-folga">Folga semanal</Label>
               <Select value={folgaFixa} onValueChange={setFolgaFixa}>
                 <SelectTrigger id="cj-folga"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Usar a da jornada</SelectItem>
+                  <SelectItem value="none">Folga variável conforme escala</SelectItem>
                   {DIAS_SEMANA.map((d) => <SelectItem key={d.v} value={d.v}>{d.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
 
             {jornadaSelecionada && (
-              <div className="rounded-lg border bg-muted/30 p-3 text-xs sm:col-span-2">
-                <p className="font-medium text-foreground">Horários da jornada</p>
-                <p className="text-muted-foreground">
-                  {jornadaSelecionada.horarios.length
-                    ? resumoJornadaTexto(jornadaSelecionada.horarios)
-                    : "Nenhum horário cadastrado nesta jornada."}
-                </p>
+              <div className="space-y-2 rounded-lg border bg-muted/30 p-3 text-xs sm:col-span-2">
+                <div>
+                  <p className="font-medium text-foreground">Horários da jornada</p>
+                  <p className="text-muted-foreground">
+                    {jornadaSelecionada.horarios.length
+                      ? resumoJornadaTexto(jornadaSelecionada.horarios)
+                      : "Nenhum horário cadastrado nesta jornada."}
+                  </p>
+                </div>
+                {folgaFixa === "none" ? (
+                  <p className="text-muted-foreground">
+                    Carga semanal calculada conforme a escala — apenas os dias efetivamente escalados são contados.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-foreground">
+                      Folga semanal: <strong>{DIAS_SEMANA.find((d) => d.v === folgaFixa)?.label}</strong> · Carga
+                      semanal prevista:{" "}
+                      <strong className="tabular-nums">{formatarHoras(cargaPrevista?.carga ?? 0)}</strong>
+                    </p>
+                    {cargaPrevista?.excede && (
+                      <p className="flex items-center gap-1.5 text-destructive">
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        Acima de {cargaPrevista.limite}h semanais ({formatarHoras(cargaPrevista.excedente)} de
+                        excedente). Revise a combinação antes de salvar.
+                      </p>
+                    )}
+                  </>
+                )}
               </div>
             )}
+
 
 
             <div className="space-y-1.5 sm:col-span-2">

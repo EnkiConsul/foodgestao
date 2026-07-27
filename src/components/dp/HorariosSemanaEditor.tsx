@@ -1,24 +1,20 @@
 import { useMemo, useState } from "react";
-import { CheckCircle2, AlertTriangle } from "lucide-react";
 import { JornadaCard, type DestinoDuplicacao } from "@/components/dp/JornadaCard";
+import { JornadaCargaResumo } from "@/components/dp/JornadaCargaResumo";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
 import {
-  calcularCargaSemanal,
   duplicarHorario,
-  formatarHoras,
   horarioHerdado,
   validarSemana,
   viraODia,
   DIAS_SEMANA,
   DIAS_UTEIS,
   FIM_DE_SEMANA,
-  LIMITE_SEMANAL,
   ORDEM_EXIBICAO,
   type HorarioDia,
 } from "@/lib/dp/jornada-utils";
@@ -27,22 +23,22 @@ interface Props {
   horarios: HorarioDia[];
   onChange: (horarios: HorarioDia[]) => void;
   menorDeIdade?: boolean;
+  tipoEscala: string;
 }
 
-export function HorariosSemanaEditor({ horarios, onChange, menorDeIdade }: Props) {
+export function HorariosSemanaEditor({ horarios, onChange, menorDeIdade, tipoEscala }: Props) {
   const [origemEscolha, setOrigemEscolha] = useState<number | null>(null);
   const [selecionados, setSelecionados] = useState<number[]>([]);
 
-  const semanal = useMemo(() => calcularCargaSemanal(horarios), [horarios]);
   const erros = useMemo(() => validarSemana(horarios, { menorDeIdade }), [horarios, menorDeIdade]);
   const errosPorDia = useMemo(
     () => new Map(erros.map((e) => [e.dia_semana, e.erro])),
     [erros],
   );
-  const acima = semanal > LIMITE_SEMANAL;
 
   const ordenar = (lista: HorarioDia[]) =>
     [...lista].sort((a, b) => ORDEM_EXIBICAO.indexOf(a.dia_semana as 0) - ORDEM_EXIBICAO.indexOf(b.dia_semana as 0));
+
 
   const toggleDia = (dia: number, marcado: boolean) => {
     if (marcado) onChange(ordenar([...horarios, horarioHerdado(horarios, dia)]));
@@ -77,22 +73,10 @@ export function HorariosSemanaEditor({ horarios, onChange, menorDeIdade }: Props
   };
 
   return (
-    <div className="space-y-3">
-      <div
-        className={cn(
-          "sticky top-0 z-10 flex items-center justify-between gap-3 rounded-xl border p-4",
-          acima ? "border-destructive/40 bg-destructive/5" : "border-primary/30 bg-primary/5",
-        )}
-      >
-        <div>
-          <p className="text-xs text-muted-foreground">Carga semanal</p>
-          <p className="text-2xl font-bold tabular-nums">{formatarHoras(semanal)}</p>
-        </div>
-        <p className={cn("flex items-center gap-1.5 text-right text-xs font-medium", acima ? "text-destructive" : "text-primary")}>
-          {acima ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
-          {acima ? `Acima de ${LIMITE_SEMANAL} horas` : "Dentro do limite legal"}
-        </p>
-      </div>
+    <div className="flex flex-col gap-3">
+      <JornadaCargaResumo horarios={horarios} tipoEscala={tipoEscala} />
+
+
 
       {ORDEM_EXIBICAO.map((dia) => (
         <JornadaCard

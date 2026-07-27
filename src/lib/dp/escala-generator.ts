@@ -43,7 +43,7 @@ export interface EscalaProposta {
   motivo: string;
 }
 
-export type EscalaAlertaTipo = "dsr" | "domingo";
+export type EscalaAlertaTipo = "dsr" | "domingo" | "carga";
 
 export interface EscalaAlerta {
   colaboradorId: string;

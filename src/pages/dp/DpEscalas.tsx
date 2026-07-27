@@ -13,6 +13,10 @@ import { expandRegraNoIntervalo, type RegraRow } from "@/lib/dp/bloqueio-rules";
 import {
   gerarEscala, parseIso, type EscalaProposta, type EscalaAlerta, type EscalaColaborador,
 } from "@/lib/dp/escala-generator";
+import {
+  calcularCargaDaEscala, formatarHoras, validarCargaSemanal, type HorarioDia,
+} from "@/lib/dp/jornada-utils";
+
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { Button } from "@/components/ui/button";
@@ -64,8 +68,9 @@ export default function DpEscalas() {
           .eq("company_id", selectedCompanyId!).eq("ativo", true).order("nome"),
         supabase.from("dp_unidades").select("id, nome").eq("company_id", selectedCompanyId!).order("nome"),
         supabase.from("dp_colaborador_jornadas")
-          .select("colaborador_id, inicio, fim, folga_fixa_semana_override, jornada:dp_jornadas(dias_folga)")
+          .select("colaborador_id, inicio, fim, folga_fixa_semana_override, jornada:dp_jornadas(dias_folga, horarios:dp_jornada_horarios(dia_semana, entrada, saida, intervalo_minutos))")
           .eq("company_id", selectedCompanyId!).lte("inicio", fim),
+
         supabase.from("dp_ferias_gozos").select("colaborador_id, data_inicio, data_fim, status")
           .eq("company_id", selectedCompanyId!).lte("data_inicio", fim).gte("data_fim", inicio),
         supabase.from("dp_folgas").select("colaborador_id, data, status")
@@ -99,13 +104,18 @@ export default function DpEscalas() {
     const d = dados.data;
     if (!d) return;
 
+    const horariosPorColaborador = new Map<string, HorarioDia[]>();
     const colaboradores: EscalaColaborador[] = d.colaboradores
       .filter((c) => unidade === "todas" || c.unidade_id === unidade)
       .map((c) => {
         const vinculo = d.vinculos
           .filter((v) => v.colaborador_id === c.id && (!v.fim || v.fim >= inicio))
           .sort((a, b) => b.inicio.localeCompare(a.inicio))[0];
-        const jornada = vinculo?.jornada as { dias_folga: number[] } | null | undefined;
+        const jornada = vinculo?.jornada as
+          | { dias_folga: number[]; horarios?: HorarioDia[] | null }
+          | null
+          | undefined;
+        horariosPorColaborador.set(c.id, jornada?.horarios ?? []);
         return {
           id: c.id,
           nome: c.nome,
@@ -115,6 +125,7 @@ export default function DpEscalas() {
           folgaFixa: vinculo?.folga_fixa_semana_override ?? null,
         };
       });
+
 
     // Datas bloqueadas: registros não liberados + expansão das regras ativas.
     const bloqueadas = new Set<string>();
@@ -163,9 +174,52 @@ export default function DpEscalas() {
       periodicidadeDomingoMulher: semanasDsrMulher,
     });
 
-    setResultado({ propostas: r.propostas, alertas: r.alertas });
+    // Carga semanal na semana efetivamente montada: conta só os dias escalados (sem folgas/ausências).
+    const folgasFinais = new Set(folgasExistentes);
+    for (const p of r.propostas) folgasFinais.add(`${p.colaboradorId}|${p.data}`);
+
+    const porSemana = new Map<string, { colaboradorId: string; nome: string; semana: string; dias: number[] }>();
+    for (const c of colaboradores) {
+      const horarios = horariosPorColaborador.get(c.id) ?? [];
+      if (!horarios.length) continue;
+      const cur = parseIso(inicio);
+      const ate = parseIso(fim);
+      while (cur <= ate) {
+        const iso = format(cur, "yyyy-MM-dd");
+        const chaveDia = `${c.id}|${iso}`;
+        if (!folgasFinais.has(chaveDia) && !ausencias.has(chaveDia)) {
+          const inicioSemana = new Date(cur);
+          inicioSemana.setDate(inicioSemana.getDate() - ((inicioSemana.getDay() + 6) % 7));
+          const semana = format(inicioSemana, "yyyy-MM-dd");
+          const chave = `${c.id}|${semana}`;
+          const atual = porSemana.get(chave) ?? { colaboradorId: c.id, nome: c.nome, semana, dias: [] };
+          atual.dias.push(cur.getDay());
+          porSemana.set(chave, atual);
+        }
+        cur.setDate(cur.getDate() + 1);
+      }
+    }
+
+    const alertasCarga: EscalaAlerta[] = [];
+    for (const s of porSemana.values()) {
+      const horarios = horariosPorColaborador.get(s.colaboradorId) ?? [];
+      const validacao = validarCargaSemanal(calcularCargaDaEscala(horarios, s.dias));
+      if (validacao.excede) {
+        alertasCarga.push({
+          colaboradorId: s.colaboradorId,
+          nome: s.nome,
+          tipo: "carga",
+          mensagem: `Semana de ${format(parseIso(s.semana), "dd/MM")}: carga escalada de ${formatarHoras(validacao.carga)} excede ${validacao.limite}h.`,
+
+
+        });
+      }
+    }
+
+    setResultado({ propostas: r.propostas, alertas: [...r.alertas, ...alertasCarga] });
     setSelecionadas(new Set(r.propostas.map((p) => `${p.colaboradorId}|${p.data}`)));
     if (r.propostas.length === 0) toast.info("Nenhuma folga nova a propor para este período.");
+
   };
 
   const publicar = useMutation({

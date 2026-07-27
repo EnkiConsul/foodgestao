@@ -8,6 +8,8 @@ import { ValidacaoMenorCard } from "@/components/dp/ValidacaoMenorCard";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { JornadaTemplates, type JornadaTemplate } from "@/components/dp/JornadaTemplates";
 import { HorariosSemanaEditor } from "@/components/dp/HorariosSemanaEditor";
+import { JornadaCargaResumo } from "@/components/dp/JornadaCargaResumo";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -224,8 +226,8 @@ export default function DpCadastroJornadas() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="flex max-h-[92vh] max-w-2xl flex-col gap-4 overflow-hidden p-0">
-          <DialogHeader className="space-y-3 border-b p-4 text-left">
+        <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-auto sm:max-h-[92vh] sm:w-full sm:max-w-2xl sm:rounded-lg">
+          <DialogHeader className="shrink-0 space-y-3 border-b p-4 text-left">
             <div>
               <DialogTitle>{editing ? "Editar Jornada" : "Nova Jornada"}</DialogTitle>
               <DialogDescription>
@@ -235,7 +237,7 @@ export default function DpCadastroJornadas() {
             <Progress value={((passo + 1) / PASSOS.length) * 100} aria-label="Progresso do cadastro" />
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto px-4 pb-2">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
             {passo === 0 && (
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">
@@ -246,8 +248,28 @@ export default function DpCadastroJornadas() {
             )}
 
             {passo === 1 && (
-              <HorariosSemanaEditor horarios={form.horarios} onChange={(h) => set("horarios", h)} />
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="j-escala-semana">Regime da jornada</Label>
+                  <Select value={form.tipo_escala} onValueChange={(v) => set("tipo_escala", v as DpJornadaForm["tipo_escala"])}>
+                    <SelectTrigger id="j-escala-semana" className="h-12"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {ESCALAS.map((e) => <SelectItem key={e} value={e}>{TIPO_ESCALA_LABEL[e] ?? e}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    O regime define quantas folgas semanais são estimadas. A folga de cada colaborador é definida no
+                    vínculo ou na escala.
+                  </p>
+                </div>
+                <HorariosSemanaEditor
+                  horarios={form.horarios}
+                  onChange={(h) => set("horarios", h)}
+                  tipoEscala={form.tipo_escala}
+                />
+              </div>
             )}
+
 
             {passo === 2 && (
               <div className="grid gap-4 sm:grid-cols-2">
@@ -273,17 +295,8 @@ export default function DpCadastroJornadas() {
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="j-escala">Tipo de escala</Label>
-                  <Select value={form.tipo_escala} onValueChange={(v) => set("tipo_escala", v as DpJornadaForm["tipo_escala"])}>
-                    <SelectTrigger id="j-escala" className="h-12"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {ESCALAS.map((e) => <SelectItem key={e} value={e}>{TIPO_ESCALA_LABEL[e] ?? e}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <div className="space-y-1.5 sm:col-span-2">
 
-                <div className="space-y-1.5">
                   <Label htmlFor="j-turno">Turno</Label>
                   <Select value={form.turno} onValueChange={(v) => set("turno", v as DpJornadaForm["turno"])}>
                     <SelectTrigger id="j-turno" className="h-12"><SelectValue /></SelectTrigger>
@@ -311,9 +324,10 @@ export default function DpCadastroJornadas() {
                   <p className="text-lg font-semibold">{form.nome || "Sem nome"}</p>
                   <p className="text-sm text-muted-foreground">
                     {TIPO_ESCALA_LABEL[form.tipo_escala] ?? form.tipo_escala} · {TURNO_LABEL[form.turno] ?? form.turno} ·{" "}
-                    {formatarHoras(semanal)} por semana
+                    {formatarHoras(semanal)} cadastradas
                   </p>
                 </div>
+                <JornadaCargaResumo horarios={form.horarios} tipoEscala={form.tipo_escala} />
                 <ul className="divide-y rounded-xl border">
                   {resumoJornada(form.horarios).map((f) => (
                     <li key={f.rotulo} className="flex items-center justify-between gap-3 p-3 text-sm">
@@ -332,7 +346,11 @@ export default function DpCadastroJornadas() {
             )}
           </div>
 
-          <DialogFooter className="flex-row justify-between gap-2 border-t p-4 sm:justify-between">
+          <DialogFooter
+            className="shrink-0 flex-row justify-between gap-2 border-t p-4 sm:justify-between"
+            style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+          >
+
             <Button
               variant="outline"
               className="h-12 flex-1 gap-2 sm:flex-none"
