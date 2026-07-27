@@ -225,6 +225,10 @@ export function calculateDateStatus(params: {
   canceledFolgas?: { colaborador_id: string; data: string }[];
   isAdmin: boolean;
   locked?: { unlockDateBR: string } | null;
+  /** Dias da semana elegíveis para folga (0 = domingo). Default: sábado e domingo. */
+  diasElegiveis?: number[];
+  /** Teto de folgas que o colaborador pode marcar no mês (regra de frequência). */
+  tetoMensal?: number;
 }): DateStatus {
   const {
     date,
@@ -238,6 +242,8 @@ export function calculateDateStatus(params: {
     canceledFolgas = [],
     isAdmin,
     locked,
+    diasElegiveis,
+    tetoMensal,
   } = params;
 
   const iso = ymd(date);
@@ -246,8 +252,8 @@ export function calculateDateStatus(params: {
 
   if (date < today) return { status: "past", reason: "Data passada" };
 
-  const type = dayType(date);
-  const isWknd = !!type;
+  const elegiveis = diasElegiveis && diasElegiveis.length > 0 ? diasElegiveis : [0, 6];
+  const isWknd = elegiveis.includes(date.getDay());
 
   const birthday = birthdayByDate.get(iso);
   const isMyBirthday =
