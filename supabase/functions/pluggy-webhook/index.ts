@@ -173,13 +173,6 @@ Deno.serve(async (req) => {
   if (insertErr) {
     // Unique-violation on event_id → we've seen it before. ACK without reprocessing.
     if ((insertErr as { code?: string }).code === "23505") {
-      await supabase.rpc("noop"); // best-effort; ignore if not present
-      await supabase
-        .from("open_finance_webhook_events")
-        .update({ attempt_count: (undefined as unknown as number) })
-        .eq("event_id", eventId); // will fail silently; increment via SQL below
-      // Increment attempt_count atomically via raw SQL
-      await supabase.from("open_finance_webhook_events").select("id").eq("event_id", eventId).limit(1);
       console.log("[pluggy-webhook] duplicate event ignored", { eventId, eventType });
       return json(200, { received: true, duplicate: true });
     }
