@@ -38,7 +38,7 @@ const num = (v: string, fallback: number) => {
 };
 
 export default function DpConfiguracoesJornada() {
-  const { config, temMulheres, historico, isLoading, isError, refetch, save, saving } = useDpConfigDp();
+  const { config, temMulheres, negociacoes, historico, isLoading, isError, refetch, save, saving } = useDpConfigDp();
   const [form, setForm] = useState<DpConfigDpForm>(DP_CONFIG_DP_DEFAULT);
   const [alertas, setAlertas] = useState<AlertaCiencia[]>([]);
 
