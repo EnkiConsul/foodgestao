@@ -51,6 +51,9 @@ import {
   Brain,
   Tag,
   FolderTree,
+  Palmtree,
+  CalendarRange,
+  Gift,
   type LucideIcon,
 } from "lucide-react";
 import type { ActiveModule } from "@/hooks/useActiveModule";
@@ -145,6 +148,12 @@ const dpShortcuts: NavLeaf[] = [
   { icon: BellRing, label: "Comunicação", to: "/dp/comunicacao" },
   { icon: Inbox, label: "Solicitações", to: "/dp/solicitacoes" },
   { icon: FileBarChart, label: "Histórico", to: "/dp/documentos/historico" },
+  { icon: Palmtree, label: "Férias", to: "/dp/ferias" },
+  { icon: CalendarRange, label: "Escalas", to: "/dp/escalas" },
+  { icon: Clock, label: "Jornadas", to: "/dp/cadastros/jornadas" },
+  { icon: ShieldCheck, label: "Conformidade", to: "/dp/conformidade" },
+  { icon: Gift, label: "Benefícios", to: "/dp/beneficios" },
+  { icon: BarChart3, label: "Analytics", to: "/dp/analytics" },
 ];
 
 // ── Portal do colaborador ────────────────────────────────────────────────
