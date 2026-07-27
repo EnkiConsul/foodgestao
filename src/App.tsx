@@ -79,6 +79,7 @@ const DpConformidadeDsr = lazyWithRetry(() => import("./pages/dp/DpConformidadeD
 const DpEscalas = lazyWithRetry(() => import("./pages/dp/DpEscalas"));
 const DpEscalaMes = lazyWithRetry(() => import("./pages/dp/DpEscalaMes"));
 const DpOperacaoDia = lazyWithRetry(() => import("./pages/dp/DpOperacaoDia"));
+const DpConvocacoes = lazyWithRetry(() => import("./pages/dp/DpConvocacoes"));
 const DpUnidades = lazyWithRetry(() => import("./pages/dp/DpUnidades"));
 const DpCargos = lazyWithRetry(() => import("./pages/dp/DpCargos"));
 const DpSindicatos = lazyWithRetry(() => import("./pages/dp/DpSindicatos"));
@@ -107,6 +108,7 @@ const DpMeuSolicitacoes = lazyWithRetry(() => import("./pages/dp/portal/DpMeuSol
 const DpMeuTrocas = lazyWithRetry(() => import("./pages/dp/portal/DpMeuTrocas"));
 const DpMeuCalendario = lazyWithRetry(() => import("./pages/dp/portal/DpMeuCalendario"));
 const DpMeuEscala = lazyWithRetry(() => import("./pages/dp/portal/DpMeuEscala"));
+const DpMinhasConvocacoes = lazyWithRetry(() => import("./pages/dp/portal/DpMinhasConvocacoes"));
 const DpMeuHistorico = lazyWithRetry(() => import("./pages/dp/portal/DpMeuHistorico"));
 
 // Admin
@@ -303,6 +305,7 @@ const AppRoutes = () => (
         <Route path="trocas" element={<DpMeuTrocas />} />
         <Route path="calendario" element={<DpMeuCalendario />} />
         <Route path="escala" element={<DpMeuEscala />} />
+        <Route path="convocacoes" element={<DpMinhasConvocacoes />} />
         <Route path="atestados" element={<Navigate to="/dp/meu/documentos?tipo=atestado" replace />} />
         <Route path="disciplinar" element={<Navigate to="/dp/meu/documentos?tipo=disciplinar" replace />} />
         <Route path="sindicato" element={<Navigate to="/dp/meu/documentos?tipo=act_cct" replace />} />
@@ -404,6 +407,7 @@ const AppRoutes = () => (
         <Route path="escalas" element={<DpEscalas />} />
         <Route path="escalas/mes" element={<DpEscalaMes />} />
         <Route path="operacao" element={<DpOperacaoDia />} />
+        <Route path="convocacoes" element={<DpConvocacoes />} />
         <Route path="documentos/act-cct" element={<DpSindicatoNegociacoes />} />
         <Route path="configuracoes" element={<DpConfiguracoes />} />
         <Route path="sindicatos" element={<Navigate to="/dp/cadastros/sindicatos" replace />} />
