@@ -56,6 +56,16 @@ export function ColaboradorJornadaDialog({ colaborador, open, onOpenChange }: Pr
     [jornadasAtivas, jornadaId],
   );
 
+  /** Carga prevista só existe quando há jornada e folga fixa escolhida. */
+  const cargaPrevista = useMemo(() => {
+    if (!jornadaSelecionada || folgaFixa === "none") return null;
+    return validarCargaSemanal(
+      calcularCargaComFolgaFixa(jornadaSelecionada.horarios, Number(folgaFixa)),
+    );
+  }, [jornadaSelecionada, folgaFixa]);
+
+
+
   const limpar = () => {
     setJornadaId(""); setInicio(hoje()); setFolgaFixa("none"); setObs("");
   };
