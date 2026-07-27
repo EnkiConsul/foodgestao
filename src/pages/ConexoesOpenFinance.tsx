@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { OpenFinanceWizard } from "@/components/accounts/OpenFinanceWizard";
+import OpenFinanceHealthPanel from "@/components/accounts/OpenFinanceHealthPanel";
 
 interface Connection {
   id: string;
