@@ -2,10 +2,11 @@ import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Calculator, Download } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calculator, Download, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpPontoMes } from "@/hooks/useDpPontoMes";
+import { useDpFolhaApuracao } from "@/hooks/useDpFolhaApuracao";
 import { formatarDuracao, formatarSaldo } from "@/lib/dp/ponto";
 import { apurarColaborador, apuracaoParaCsv, somarApuracoes, type LinhaApuracao } from "@/lib/dp/apuracao";
 
