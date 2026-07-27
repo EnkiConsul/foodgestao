@@ -89,7 +89,7 @@ export default function DpConvocacoes() {
   };
 
   const aplicarTurno = (id: string) => {
-    const t = (turnos.query.data ?? []).find((x) => x.id === id);
+    const t = (turnos.data ?? []).find((x) => x.id === id);
     setForm((f) => ({
       ...f,
       turno_id: id,
@@ -215,7 +215,7 @@ export default function DpConvocacoes() {
               <Select value={form.turno_id ?? ""} onValueChange={aplicarTurno}>
                 <SelectTrigger><SelectValue placeholder="Preencher a partir de um turno" /></SelectTrigger>
                 <SelectContent>
-                  {(turnos.query.data ?? []).filter((t) => t.ativo).map((t) => (
+                  {(turnos.data ?? []).filter((t) => t.ativo).map((t) => (
                     <SelectItem key={t.id} value={t.id}>
                       {t.nome} · {String(t.entrada).slice(0, 5)}–{String(t.saida).slice(0, 5)}
                     </SelectItem>
