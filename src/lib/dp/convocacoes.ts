@@ -5,7 +5,7 @@
 // ------------------------------------------------------------------
 
 import { turnoSnapshot, type TurnoSnapshot } from "@/lib/dp/turno-utils";
-import { policyDoRegime, type RegimeTrabalho } from "@/lib/dp/contrato-policy";
+import { contratoPolicy, type RegimeTrabalho } from "@/lib/dp/contrato-policy";
 
 export type ConvocacaoStatus = "pendente" | "aceita" | "recusada" | "cancelada" | "expirada";
 
@@ -42,7 +42,7 @@ export const STATUS_META: Record<ConvocacaoStatus, { label: string; className: s
 /** Só contratos intermitentes podem ser convocados. */
 export function podeConvocar(regime: RegimeTrabalho | null | undefined): boolean {
   if (!regime) return false;
-  return policyDoRegime(regime).horasPorConvocacao;
+  return contratoPolicy(regime).horasPorConvocacao;
 }
 
 /** O prazo de resposta já passou? */
