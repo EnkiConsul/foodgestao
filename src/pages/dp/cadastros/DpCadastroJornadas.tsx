@@ -106,6 +106,10 @@ export default function DpCadastroJornadas() {
         }
       />
 
+      <ValidacaoMenorCard />
+
+
+
       {isError ? (
         <DpErrorState onRetry={() => void refetch()} />
       ) : isLoading ? (
