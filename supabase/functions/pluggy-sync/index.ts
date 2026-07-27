@@ -53,7 +53,16 @@ async function runSync(
   from?: string,
   to?: string,
 ): Promise<{ ok: boolean; stats: Record<string, number>; error?: string }> {
-  const stats = { accounts: 0, transactions_raw: 0, pages: 0 };
+  const stats = {
+    accounts: 0,
+    transactions_raw: 0,
+    pages: 0,
+    incremental_accounts: 0,
+    full_backfill_accounts: 0,
+  };
+  const OVERLAP_DAYS = 3; // safety window for late-posted / edited transactions
+  const BACKFILL_DAYS = 90;
+  const isoDate = (d: Date) => d.toISOString().slice(0, 10);
 
   // refresh item (status + consent)
   const itemResp = await getItem(itemId);
