@@ -131,7 +131,9 @@ export default function DpMeuSolicitacoes() {
     },
   });
 
-  const { diasElegiveis, tetoMensal } = useDpRegrasColaborador(meRef.data?.company_id ?? null, meRef.data?.unidade_id ?? null);
+  const { config: regrasConfig, diasElegiveis, tetoMensal } = useDpRegrasColaborador(meRef.data?.company_id ?? null, meRef.data?.unidade_id ?? null);
+  const resumoFolgas = resumoEscolhaFolgas(regrasConfig);
+
   const dataAlvoIso = toIso(form.data_alvo);
   const bloqueioAtivo = useMemo(() => {
     // 1) bloqueio pontual em dp_datas_bloqueadas
