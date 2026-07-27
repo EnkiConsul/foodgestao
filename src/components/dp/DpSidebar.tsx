@@ -6,7 +6,8 @@ import {
   CalendarClock, ClipboardList, UserCheck, ArrowLeftRight, Ban, Palmtree, ShieldCheck, Gift, BarChart3,
   FileText, Coins, Clock, HeartPulse, ShieldAlert, ListChecks,
   MessageSquare, Bell, BellRing, ChevronDown, LogOut, ArrowLeft, Settings, Repeat,
-, Fingerprint } from "lucide-react";
+  Fingerprint,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import assinatura360 from "@/assets/360food-assinatura.png.asset.json";
 import symbol360 from "@/assets/360food-symbol.png.asset.json";
