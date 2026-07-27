@@ -96,6 +96,27 @@ export function useDesligarDpColaborador() {
   });
 }
 
+/** Edita apenas os dados do desligamento (não cancela folgas/solicitações novamente). */
+export function useEditarDesligamento() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: DesligamentoInput) => {
+      const { error } = await supabase.rpc("dp_editar_desligamento", {
+        p_colaborador_id: input.id,
+        p_data_desligamento: input.data_desligamento,
+        p_motivo: (input.motivo ?? null) as any,
+        p_observacao: input.observacao ?? null,
+        p_elegibilidade: (input.elegibilidade ?? null) as any,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
+      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+    },
+  });
+}
+
 export function useReintegrarDpColaborador() {
   const qc = useQueryClient();
   return useMutation({
