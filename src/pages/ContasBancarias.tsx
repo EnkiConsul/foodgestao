@@ -315,7 +315,7 @@ export default function ContasBancarias() {
             <CardContent className="flex flex-col items-center py-12 text-muted-foreground">
               <Landmark className="h-10 w-10 mb-3 opacity-40" />
               <p className="text-sm">Nenhuma conta bancária encontrada</p>
-              <Button variant="link" onClick={() => { setEditAccount(null); setMethodOpen(true); }} className="mt-2">
+              <Button variant="link" onClick={openMethodDialog} className="mt-2">
                 Criar primeira conta
               </Button>
             </CardContent>
