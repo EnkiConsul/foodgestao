@@ -21,6 +21,9 @@ import {
   folhaParaCsv, formatarBRL, podeGerarDespesa, proximoStatusPeriodo, totaisDaFolha,
   type FolhaPeriodoStatus,
 } from "@/lib/dp/folha";
+import { imprimirHolerite, type HoleriteDados } from "@/lib/dp/holerite";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { toast } from "sonner";
 
 
 const rotuloCompetencia = (iso: string) =>
