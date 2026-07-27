@@ -55,7 +55,7 @@ describe("folhaParaCsv", () => {
   it("usa ; como separador e vírgula decimal", () => {
     const csv = folhaParaCsv("2026-07", [linha({ nome: "Ana" })]);
     const [cab, corpo] = csv.split("\n");
-    expect(cab.split(";")).toHaveLength(13);
+    expect(cab.split(";")).toHaveLength(16);
     expect(corpo).toContain('"900,00"');
     expect(corpo).toContain('"Rascunho"');
   });
