@@ -67,7 +67,7 @@ export function AccountCreationMethodDialog({
             </p>
             <ul className="mt-3 space-y-1.5 flex-1">
               <Bullet>Importação automática de lançamentos</Bullet>
-              <Bullet>Atualização diária dos saldos</Bullet>
+              <Bullet>Atualização automática de saldos</Bullet>
               <Bullet>Menos digitação e menos erros</Bullet>
             </ul>
 
