@@ -117,8 +117,8 @@ export default function DpMeuCalendario() {
 
   const companyId = meRef.data?.company_id;
   const myUnidade = meRef.data?.unidade_id ?? null;
-  const { config: regrasConfig, diasElegiveis, tetoMensal } = useDpRegrasColaborador(companyId, myUnidade);
-  const resumoFolgas = resumoEscolhaFolgas(regrasConfig);
+  const { config: regrasConfig, diasElegiveis, tetoMensal } = useDpRegrasColaborador(companyId, myUnidade, (meRef.data as { sexo?: string | null } | undefined)?.sexo ?? null);
+  const resumoFolgas = resumoEscolhaFolgas(regrasConfig, { sexo: (meRef.data as { sexo?: string | null } | undefined)?.sexo ?? null });
 
 
   const colaboradoresQuery = useQuery({
