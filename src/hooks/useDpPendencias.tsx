@@ -517,3 +517,6 @@ export function useDpPendencias() {
     },
   });
 }
+
+/** Alias explícito: escopo administrativo (empresa inteira). */
+export const useDpPendenciasAdmin = useDpPendencias;
