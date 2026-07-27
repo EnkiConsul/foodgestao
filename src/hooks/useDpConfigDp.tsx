@@ -181,6 +181,31 @@ export function useDpConfigDp(unidadeId: string | null = null) {
     },
   });
 
+  /** Grava a mesma regra em várias unidades (replicação). */
+  const saveMany = useMutation({
+    mutationFn: async (input: {
+      patch: Partial<DpConfigDpForm>;
+      /** Unidades alvo; `null` na lista representa o registro de retaguarda da empresa. */
+      alvos: (string | null)[];
+      nomes?: Record<string, string>;
+      cienciaConfirmada?: boolean;
+      justificativa?: string | null;
+    }) => {
+      for (const alvo of input.alvos) {
+        await gravarAlvo(alvo, input.patch, {
+          cienciaConfirmada: input.cienciaConfirmada,
+          justificativa: input.justificativa,
+          rotulo: alvo ? input.nomes?.[alvo] : undefined,
+        });
+      }
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["dp_config_dp", selectedCompanyId] });
+      void qc.invalidateQueries({ queryKey: ["dp_regras_historico", selectedCompanyId] });
+    },
+  });
+
+
   const removerExcecao = useMutation({
     mutationFn: async (alvo: string) => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
