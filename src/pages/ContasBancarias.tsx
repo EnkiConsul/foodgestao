@@ -166,6 +166,20 @@ export default function ContasBancarias() {
     fetchAccounts();
   }, [fetchAccounts]);
 
+  useEffect(() => {
+    let cancelled = false;
+    if (!deleteAccount) { setDeleteHasTx(null); return; }
+    setDeleteHasTx(null);
+    (async () => {
+      const { count } = await supabase
+        .from("transactions")
+        .select("id", { count: "exact", head: true })
+        .or(`account_id.eq.${deleteAccount.id},destination_account_id.eq.${deleteAccount.id},connection_account_id.eq.${deleteAccount.id}`);
+      if (!cancelled) setDeleteHasTx((count ?? 0) > 0);
+    })();
+    return () => { cancelled = true; };
+  }, [deleteAccount]);
+
   const handleDelete = async () => {
     if (!deleteAccount) return;
     const { data, error } = await supabase.rpc("delete_account", { _account_id: deleteAccount.id });
