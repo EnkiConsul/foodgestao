@@ -6,7 +6,7 @@
 // `imprimirHolerite`, único ponto que toca no browser).
 // ------------------------------------------------------------------
 
-import { FOLHA_TIPO_LABEL, formatarBRL, type DetalheFolha } from "./folha";
+import { encargosDoLancamento, FOLHA_TIPO_LABEL, formatarBRL, type DetalheFolha } from "./folha";
 
 export interface HoleriteDados {
   empresa: string;
@@ -70,6 +70,11 @@ export function linhasDoHolerite(d: HoleriteDados): LinhaHolerite[] {
       desconto: detalhe.dsr,
     },
   ];
+  const enc = encargosDoLancamento(detalhe);
+  linhas.push(
+    { descricao: "INSS", referencia: `sobre ${formatarBRL(enc.baseInss)}`, provento: 0, desconto: enc.inss },
+    { descricao: "IRRF", referencia: `sobre ${formatarBRL(enc.baseIrrf)}`, provento: 0, desconto: enc.irrf },
+  );
   for (const e of detalhe.extras) {
     linhas.push({
       descricao: e.descricao,
@@ -161,6 +166,8 @@ export function holeriteHtml(d: HoleriteDados): string {
         </tfoot>
       </table>
 
+      <p class="fgts">FGTS do mês (depósito do empregador): ${formatarBRL(encargosDoLancamento(d.detalhe).fgts)}</p>
+
       <p class="assinatura">Recebi a importância líquida discriminada neste demonstrativo.</p>
       <div class="linha-assinatura"></div>
     </section>`;
@@ -183,6 +190,7 @@ const ESTILO = `
   .rubricas .r { text-align: right; } .rubricas .c { text-align: center; }
   tfoot td { font-weight: bold; background: #fafafa; }
   tfoot .liquido td { background: #0F1B3D; color: #fff; }
+  .fgts { margin-top: 8px; font-size: 11px; color: #555; }
   .assinatura { margin-top: 24px; font-size: 11px; color: #555; }
   .linha-assinatura { margin-top: 28px; border-top: 1px solid #333; width: 60%; }
   @page { size: portrait; margin: 12mm; }
