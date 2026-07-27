@@ -18,10 +18,11 @@ import {
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpConfigDp, type DpConfigDpForm } from "@/hooks/useDpConfigDp";
+import { MenosProtetivaBadge } from "@/components/dp/MenosProtetivaBadge";
 import {
   DP_CONFIG_DP_DEFAULT, alertasDeCiencia, padraoLegalDomingo, isMenosProtetiva,
-  semanasDaConfig, MODO_FREQUENCIA_LABEL, DIA_SEMANA_CURTO,
-  PADRAO_LEGAL_DOMINGO_MULHER, type AlertaCiencia, type ModoFrequencia,
+  semanasDaConfig, MODO_FREQUENCIA_LABEL, DIA_SEMANA_CURTO, ORDEM_DIAS_SEG_DOM,
+  padroesCltDe, PADRAO_LEGAL_DOMINGO_MULHER, type AlertaCiencia, type ModoFrequencia,
 } from "@/lib/dp/dsr-rules";
 
 function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
