@@ -102,6 +102,37 @@ export function semanasEfetivasMulher(
   );
 }
 
+/**
+ * Dias da semana em que o colaborador pode marcar folga, conforme a regra.
+ * No modo legislação: sábado e domingo. No modo acordo: os dias negociados.
+ */
+export function diasElegiveisDaConfig(
+  cfg: Pick<DpConfigDp, "tipo_descanso_domingo" | "dias_descanso_negociados">,
+): number[] {
+  if (cfg.tipo_descanso_domingo === "acordo_coletivo") {
+    const dias = (cfg.dias_descanso_negociados ?? []).filter((d) => d >= 0 && d <= 6);
+    if (dias.length > 0) return [...new Set(dias)].sort((a, b) => a - b);
+  }
+  return [0, 6];
+}
+
+/**
+ * Teto de folgas que o colaborador pode marcar sozinho no mês.
+ * É o menor valor entre o teto configurado (`folgas_fds_por_mes`) e a
+ * quantidade mensal derivada do modelo de frequência.
+ */
+export function tetoFolgasMes(
+  cfg: Pick<
+    DpConfigDp,
+    "modo_frequencia_domingo" | "periodicidade_domingo" | "domingos_por_mes" | "folgas_fds_por_mes"
+  >,
+): number {
+  const teto = Number.isFinite(cfg.folgas_fds_por_mes) ? cfg.folgas_fds_por_mes : 1;
+  const semanas = semanasEfetivas(cfg);
+  if (semanas <= 0) return teto;
+  const derivado = Math.max(1, Math.ceil(SEMANAS_POR_MES / semanas));
+  return Math.min(teto, derivado);
+}
 
 
 /**
