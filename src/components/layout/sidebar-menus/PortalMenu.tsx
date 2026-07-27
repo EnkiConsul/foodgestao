@@ -1,4 +1,4 @@
-import { Home, User, FileText, ClipboardList, Repeat, CalendarDays, CalendarClock, History, Megaphone } from "lucide-react";
+import { Home, User, FileText, ClipboardList, Repeat, CalendarDays, CalendarClock, History, Megaphone, BellRing } from "lucide-react";
 import { SidebarSection, SidebarNavItem, type MenuItem } from "./shared";
 
 const items: MenuItem[] = [
