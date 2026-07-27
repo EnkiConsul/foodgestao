@@ -115,6 +115,10 @@ async def restore_session(context, page) -> None:
     await page.evaluate(
         f"window.localStorage.setItem({json.dumps(storage_key)}, {json.dumps(session_json)})"
     )
+    # Força contexto Pessoal (PF) — nossas contas semeadas são context='pf'.
+    await page.evaluate(
+        "window.localStorage.setItem('app-company-context', JSON.stringify({contextType:'pf', selectedCompanyId:null}))"
+    )
 
 
 async def run_delete_flow(page, account_name: str, expected_dialog: str, expected_toast: str, screenshot_prefix: str):
