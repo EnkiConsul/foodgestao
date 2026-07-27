@@ -7,7 +7,7 @@ import { DP_CONFIG_DP_DEFAULT, type DpConfigDp } from "@/lib/dp/dsr-rules";
 export type DpConfigDpForm = Omit<DpConfigDp, "company_id">;
 
 const COLUNAS =
-  "company_id, setor_comercio, periodicidade_domingo, periodicidade_domingo_mulher, folgas_fds_por_mes, politica_sabado, politica_feriado, regra_dsr, exige_validacao_menor, tipo_descanso_domingo, negociacao_id";
+  "company_id, setor_comercio, modo_domingo, periodicidade_domingo, periodicidade_domingo_mulher, folgas_fds_por_mes, politica_sabado, politica_feriado, regra_dsr, exige_validacao_menor, tipo_descanso_domingo, negociacao_id";
 
 export function useDpConfigDp() {
   const { selectedCompanyId } = useCompanyContext();
@@ -26,6 +26,11 @@ export function useDpConfigDp() {
       if (!data) return DP_CONFIG_DP_DEFAULT;
       return {
         setor_comercio: data.setor_comercio,
+        modo_domingo: (["legislacao", "tres_semanas", "sete_semanas", "personalizado"].includes(
+          data.modo_domingo,
+        )
+          ? data.modo_domingo
+          : "legislacao") as DpConfigDpForm["modo_domingo"],
         periodicidade_domingo: data.periodicidade_domingo,
         periodicidade_domingo_mulher: data.periodicidade_domingo_mulher,
         folgas_fds_por_mes: data.folgas_fds_por_mes,
