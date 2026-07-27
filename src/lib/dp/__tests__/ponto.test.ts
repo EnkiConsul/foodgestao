@@ -7,6 +7,10 @@ import {
   totalizarPeriodo,
   horaDaMarcacao,
   type Marcacao,
+  calcularFechamento,
+  pendenciasDoFechamento,
+  espelhoParaCsv,
+  type ResumoPontoDia,
 } from "@/lib/dp/ponto";
 import type { HorarioPrevisto } from "@/lib/dp/horario-previsto";
 
@@ -108,5 +112,42 @@ describe("ponto", () => {
     expect(t.diasCompletos).toBe(1);
     expect(t.faltas).toBe(1);
     expect(t.minutosTrabalhados).toBe(480);
+  });
+});
+
+describe("fechamento e banco de horas", () => {
+  const dia = (over: Partial<ResumoPontoDia>): ResumoPontoDia => ({
+    data: "2026-07-01",
+    status: "completo",
+    entrada: "08:00",
+    saida: "17:00",
+    intervaloMinutos: 60,
+    minutosTrabalhados: 480,
+    minutosPrevistos: 480,
+    saldoMinutos: 0,
+    atrasoMinutos: 0,
+    extraMinutos: 0,
+    faltamMarcacoes: [],
+    ...over,
+  });
+
+  it("soma o saldo anterior no acumulado", () => {
+    const r = calcularFechamento("2026-07", [dia({ saldoMinutos: 30 }), dia({ data: "2026-07-02", saldoMinutos: -10 })], 120);
+    expect(r.saldoMinutos).toBe(20);
+    expect(r.saldoAnteriorMinutos).toBe(120);
+    expect(r.saldoAcumuladoMinutos).toBe(140);
+  });
+
+  it("aponta dias incompletos como pendência de fechamento", () => {
+    const pend = pendenciasDoFechamento([dia({}), dia({ data: "2026-07-02", status: "incompleto" }), dia({ data: "2026-07-03", status: "falta" })]);
+    expect(pend.map((d) => d.data)).toEqual(["2026-07-02"]);
+  });
+
+  it("gera CSV com cabeçalho e uma linha por dia", () => {
+    const csv = espelhoParaCsv("Karine", "2026-07", [dia({})]);
+    const linhas = csv.split("\n");
+    expect(linhas).toHaveLength(2);
+    expect(linhas[0].startsWith('Colaborador;Competencia')).toBe(true);
+    expect(linhas[1]).toContain('"Karine"');
   });
 });
