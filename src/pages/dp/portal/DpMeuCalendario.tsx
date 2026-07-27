@@ -33,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import {
   buildOccupantsByDate,
   calculateDateStatus,
@@ -114,6 +115,7 @@ export default function DpMeuCalendario() {
 
   const companyId = meRef.data?.company_id;
   const myUnidade = meRef.data?.unidade_id ?? null;
+  const { diasElegiveis, tetoMensal } = useDpRegrasColaborador(companyId, myUnidade);
 
   const colaboradoresQuery = useQuery({
     queryKey: ["dp_colabs_meu_cal", companyId],
@@ -556,6 +558,8 @@ export default function DpMeuCalendario() {
           allColaboradores={colaboradores}
           pendingRequests={pendingRequests}
           isAdmin={false}
+          diasElegiveis={diasElegiveis}
+          tetoMensal={tetoMensal}
           variant="chunky"
           onPrev={goPrev}
           onNext={goNext}
@@ -569,6 +573,8 @@ export default function DpMeuCalendario() {
               dayLimits,
               pendingRequests,
               isAdmin: false,
+              diasElegiveis,
+              tetoMensal,
             });
             setSelectedDay({ iso, status: (info?.status ?? st.status) as DateStatusKind });
           }}
@@ -593,6 +599,8 @@ export default function DpMeuCalendario() {
               dayLimits,
               pendingRequests,
               isAdmin: false,
+              diasElegiveis,
+              tetoMensal,
             });
             setSelectedDay({ iso, status: st.status as DateStatusKind });
           }}

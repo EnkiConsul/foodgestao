@@ -28,6 +28,10 @@ export interface FolgaCalendarSharedProps {
   allColaboradores: ColaboradorRecord[];
   pendingRequests: { data: string; colaborador_id?: string }[];
   isAdmin?: boolean;
+  /** Dias da semana em que o colaborador pode marcar folga (regra da unidade). */
+  diasElegiveis?: number[];
+  /** Teto de folgas por mês que o colaborador pode marcar sozinho. */
+  tetoMensal?: number;
   onPrev: () => void;
   onNext: () => void;
   onSelectDay?: (iso: string, info?: { status: DateStatusKind; reason?: string }) => void;
@@ -82,6 +86,8 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
     allColaboradores,
     pendingRequests,
     isAdmin = false,
+    diasElegiveis,
+    tetoMensal,
     onPrev,
     onNext,
     onSelectDay,
@@ -110,6 +116,8 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
         pendingRequests,
         isAdmin,
         locked,
+        diasElegiveis,
+        tetoMensal,
       });
       result.push({
         kind: "day",
@@ -138,6 +146,8 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
     pendingRequests,
     isAdmin,
     locked,
+    diasElegiveis,
+    tetoMensal,
   ]);
 
   const chunky = variant === "chunky";

@@ -81,20 +81,8 @@ export function useDpConfigDp(unidadeId: string | null = null) {
     [unidadeRow, configPadrao],
   );
 
-  /** Negociações sindicais (ACT/CCT) disponíveis para embasar o acordo coletivo. */
-  const negociacoes = useQuery({
-    queryKey: ["dp_sindicato_negociacoes_opcoes", selectedCompanyId],
-    enabled: !!selectedCompanyId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dp_sindicato_negociacoes")
-        .select("id, tipo_documento, vigencia_inicio, vigencia_fim")
-        .eq("company_id", selectedCompanyId!)
-        .order("vigencia_inicio", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+
+
 
   /** Existem colaboradoras mulheres cadastradas? Controla a exibição da regra do Art. 386. */
   const mulheres = useQuery({
@@ -199,7 +187,7 @@ export function useDpConfigDp(unidadeId: string | null = null) {
     /** A unidade selecionada possui exceção própria? */
     temExcecao: !!unidadeRow,
     temMulheres: mulheres.data ?? false,
-    negociacoes: negociacoes.data ?? [],
+    
     historico: historico.data ?? [],
 
     isLoading: query.isLoading,

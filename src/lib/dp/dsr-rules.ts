@@ -14,6 +14,8 @@ export const MODO_FREQUENCIA_LABEL: Record<ModoFrequencia, string> = {
 
 export const DIA_SEMANA_LABEL = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 export const DIA_SEMANA_CURTO = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+/** Ordem de exibição dos dias da semana: segunda-feira a domingo. */
+export const ORDEM_DIAS_SEG_DOM = [1, 2, 3, 4, 5, 6, 0];
 
 /** Média de semanas por mês, usada para converter "X por mês" em intervalo de semanas. */
 export const SEMANAS_POR_MES = 4.345;
@@ -100,6 +102,37 @@ export function semanasEfetivasMulher(
   );
 }
 
+/**
+ * Dias da semana em que o colaborador pode marcar folga, conforme a regra.
+ * No modo legislação: sábado e domingo. No modo acordo: os dias negociados.
+ */
+export function diasElegiveisDaConfig(
+  cfg: Pick<DpConfigDp, "tipo_descanso_domingo" | "dias_descanso_negociados">,
+): number[] {
+  if (cfg.tipo_descanso_domingo === "acordo_coletivo") {
+    const dias = (cfg.dias_descanso_negociados ?? []).filter((d) => d >= 0 && d <= 6);
+    if (dias.length > 0) return [...new Set(dias)].sort((a, b) => a - b);
+  }
+  return [0, 6];
+}
+
+/**
+ * Teto de folgas que o colaborador pode marcar sozinho no mês.
+ * É o menor valor entre o teto configurado (`folgas_fds_por_mes`) e a
+ * quantidade mensal derivada do modelo de frequência.
+ */
+export function tetoFolgasMes(
+  cfg: Pick<
+    DpConfigDp,
+    "modo_frequencia_domingo" | "periodicidade_domingo" | "domingos_por_mes" | "folgas_fds_por_mes"
+  >,
+): number {
+  const teto = Number.isFinite(cfg.folgas_fds_por_mes) ? cfg.folgas_fds_por_mes : 1;
+  const semanas = semanasEfetivas(cfg);
+  if (semanas <= 0) return teto;
+  const derivado = Math.max(1, Math.ceil(SEMANAS_POR_MES / semanas));
+  return Math.min(teto, derivado);
+}
 
 
 /**
@@ -117,6 +150,57 @@ export function padraoLegalDomingo(setorComercio: boolean): number {
 
 /** Padrão legal para colaboradoras mulheres: domingo quinzenal (Art. 386 CLT). */
 export const PADRAO_LEGAL_DOMINGO_MULHER = 2;
+
+/** Valores que a base "CLT" fixa para a frequência de folga dominical. */
+export function padroesCltDe(setorComercio: boolean): Pick<
+  DpConfigDp,
+  | "modo_frequencia_domingo"
+  | "periodicidade_domingo"
+  | "modo_frequencia_domingo_mulher"
+  | "periodicidade_domingo_mulher"
+> {
+  return {
+    modo_frequencia_domingo: "semanas",
+    periodicidade_domingo: padraoLegalDomingo(setorComercio),
+    modo_frequencia_domingo_mulher: "semanas",
+    periodicidade_domingo_mulher: PADRAO_LEGAL_DOMINGO_MULHER,
+  };
+}
+
+export interface BaseLegal {
+  titulo: string;
+  texto: string;
+  fonte: string;
+}
+
+/** Explicação jurídica exibida no popover de "menos protetiva". */
+export function baseLegalDe(
+  campo: AlertaCiencia["campo"],
+  setorComercio: boolean,
+): BaseLegal {
+  if (campo === "periodicidade_domingo_mulher") {
+    return {
+      titulo: "Folga dominical — mulheres",
+      texto:
+        "O Art. 386 da CLT determina que, no trabalho aos domingos, a escala de revezamento das mulheres deve ser quinzenal — ou seja, ao menos 1 domingo de folga a cada 2 semanas. Uma frequência menor é menos protetiva e exige registro de ciência do responsável.",
+      fonte: "Art. 386 da CLT",
+    };
+  }
+  if (setorComercio) {
+    return {
+      titulo: "Folga dominical — comércio / food service",
+      texto:
+        "Para o comércio em geral (incluindo food service), a lei exige que o repouso semanal coincida com o domingo pelo menos uma vez a cada 3 semanas. Configurar um intervalo maior é menos protetivo e exige registro de ciência do responsável.",
+      fonte: "Lei 10.101/2000, art. 6º, parágrafo único (redação da Lei 11.603/2007)",
+    };
+  }
+  return {
+    titulo: "Folga dominical — demais setores",
+    texto:
+      "Fora do comércio, a referência consolidada na jurisprudência é de 1 domingo de folga a cada 7 semanas. Atenção: a Portaria 417/1966, historicamente citada como fonte dessa regra, foi revogada pela Portaria MTP 671/2021 — mantendo-se a exigência de revezamento pela CLT.",
+    fonte: "Art. 67 da CLT e jurisprudência consolidada",
+  };
+}
 
 /**
  * Uma periodicidade é MENOS protetiva quando o intervalo entre domingos de

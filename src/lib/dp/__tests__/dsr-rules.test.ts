@@ -9,6 +9,8 @@ import {
   frequenciaParaSemanas,
   semanasDaConfig,
   SEMANAS_POR_MES,
+  diasElegiveisDaConfig,
+  tetoFolgasMes,
 } from "../dsr-rules";
 
 describe("padraoLegalDomingo", () => {
@@ -171,5 +173,26 @@ describe("avaliarConformidade — dias negociados", () => {
     });
     expect(comAcordo.negociadosAproveitados).toBe(1);
     expect(comAcordo.conforme).toBe(true);
+  });
+});
+
+describe("diasElegiveisDaConfig + tetoFolgasMes", () => {
+  it("usa sábado e domingo no modo legislação", () => {
+    expect(diasElegiveisDaConfig({ tipo_descanso_domingo: "legal", dias_descanso_negociados: [3] })).toEqual([0, 6]);
+  });
+  it("usa os dias negociados no modo acordo", () => {
+    expect(
+      diasElegiveisDaConfig({ tipo_descanso_domingo: "acordo_coletivo", dias_descanso_negociados: [3, 0] }),
+    ).toEqual([0, 3]);
+  });
+  it("limita o teto mensal pela frequência configurada", () => {
+    expect(
+      tetoFolgasMes({
+        modo_frequencia_domingo: "semanas",
+        periodicidade_domingo: 3,
+        domingos_por_mes: 1,
+        folgas_fds_por_mes: 4,
+      }),
+    ).toBe(2);
   });
 });

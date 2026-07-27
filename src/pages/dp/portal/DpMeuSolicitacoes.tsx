@@ -20,6 +20,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { cn } from "@/lib/utils";
+import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import { calculateDateStatus, type ColaboradorRecord, type FolgaRecord } from "@/lib/dp/folga-rules";
 import { buildBloqueiosDeRegras, type RegraRow } from "@/lib/dp/bloqueio-rules";
 
@@ -130,6 +131,7 @@ export default function DpMeuSolicitacoes() {
     },
   });
 
+  const { diasElegiveis, tetoMensal } = useDpRegrasColaborador(meRef.data?.company_id ?? null, meRef.data?.unidade_id ?? null);
   const dataAlvoIso = toIso(form.data_alvo);
   const bloqueioAtivo = useMemo(() => {
     // 1) bloqueio pontual em dp_datas_bloqueadas
@@ -236,8 +238,10 @@ export default function DpMeuSolicitacoes() {
         colaborador_id: p.colaborador_id,
       })),
       isAdmin: false,
+      diasElegiveis,
+      tetoMensal,
     });
-  }, [form.data_alvo, form.tipo, capacity.data, meRef.data, bloqueios.data]);
+  }, [form.data_alvo, form.tipo, capacity.data, meRef.data, bloqueios.data, diasElegiveis, tetoMensal]);
 
   // Validação
   const validation = useMemo(() => {
