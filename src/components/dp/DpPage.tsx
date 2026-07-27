@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { toTitleCase } from "@/lib/titleCase";
 
 interface DpPageProps {
   children: ReactNode;
@@ -31,7 +32,7 @@ export function DpPageHeader({ icon: Icon, title, description, actions, classNam
       <div className="flex min-w-0 items-start gap-2.5 sm:gap-3">
         <Icon className="mt-0.5 h-6 w-6 shrink-0 text-primary sm:mt-1 sm:h-7 sm:w-7" />
         <div className="min-w-0">
-          <h1 className="text-xl font-bold leading-tight tracking-normal sm:text-2xl md:text-3xl">{title}</h1>
+          <h1 className="text-xl font-bold leading-tight tracking-normal sm:text-2xl md:text-3xl">{toTitleCase(title)}</h1>
           {description && (
             <p className="mt-1 line-clamp-2 text-xs text-muted-foreground sm:line-clamp-none sm:text-sm">{description}</p>
           )}
