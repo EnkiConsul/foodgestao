@@ -57,7 +57,7 @@ function loadPluggyScript(): Promise<void> {
   });
 }
 
-export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished }: Props) {
+export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished, reconnectItemId }: Props) {
   const [step, setStep] = useState<Step>("intro");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -89,7 +89,7 @@ export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished }:
     try {
       await loadPluggyScript();
       const { data, error: tokenErr } = await supabase.functions.invoke("pluggy-connect-token", {
-        body: { company_id: companyId },
+        body: { company_id: companyId, ...(reconnectItemId ? { item_id: reconnectItemId } : {}) },
       });
       if (tokenErr || !data?.access_token) {
         throw new Error(tokenErr?.message || (data as any)?.error || "connect_token_failed");
@@ -101,6 +101,7 @@ export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished }:
       pluggyRef.current = new PluggyConnect({
         connectToken: data.access_token,
         includeSandbox: false,
+        ...(reconnectItemId ? { updateItem: reconnectItemId } : {}),
         onSuccess: async (payload: any) => {
           try {
             const itemId = payload?.item?.id;
@@ -140,7 +141,7 @@ export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished }:
     } finally {
       setBusy(false);
     }
-  }, [companyId]);
+  }, [companyId, reconnectItemId]);
 
   const loadAccounts = useCallback(async (connId: string) => {
     const { data, error: err } = await supabase
