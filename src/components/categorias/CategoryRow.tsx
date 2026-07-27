@@ -87,19 +87,19 @@ export function CategoryRow({
                 className="h-3 w-3 shrink-0 rounded-full"
                 style={{ backgroundColor: cat.color ?? "hsl(var(--primary))" }}
               />
-              <span className="font-mono text-xs text-muted-foreground w-20 shrink-0">{cat.index}.</span>
-              <span className={`text-sm ${cat.depth === 0 ? "font-semibold uppercase" : ""}`}>
+              <span className="font-mono text-[10px] md:text-xs text-muted-foreground w-10 md:w-20 shrink-0 truncate">{cat.index}.</span>
+              <span className={`text-sm truncate ${cat.depth === 0 ? "font-semibold uppercase" : ""}`}>
                 {cat.depth === 0 ? cat.name.toUpperCase() : cat.name}
               </span>
               {(cat as any).chart_account_id && chartAccountMap.get((cat as any).chart_account_id) && (
-                <Badge variant="outline" className="text-[10px] h-4 px-1.5 ml-1 font-mono">
+                <Badge variant="outline" className="hidden md:inline-flex text-[10px] h-4 px-1.5 ml-1 font-mono">
                   {chartAccountMap.get((cat as any).chart_account_id)}
                 </Badge>
               )}
               {(cat as any).category_subtype && (() => {
                 const s = (cat as any).category_subtype as string;
                 return (
-                  <Badge variant="secondary" className={`text-[10px] h-4 px-1.5 ml-1 ${SUBTYPE_CLS[s] ?? ""}`}>
+                  <Badge variant="secondary" className={`hidden md:inline-flex text-[10px] h-4 px-1.5 ml-1 ${SUBTYPE_CLS[s] ?? ""}`}>
                     {SUBTYPE_LABEL[s] ?? s}
                   </Badge>
                 );
@@ -108,7 +108,7 @@ export function CategoryRow({
                 <TooltipProvider delayDuration={300}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Badge variant="outline" className="text-[10px] h-4 px-1.5 ml-1 font-mono cursor-help">
+                      <Badge variant="outline" className="hidden md:inline-flex text-[10px] h-4 px-1.5 ml-1 font-mono cursor-help">
                         {(cat as any).template_code}
                       </Badge>
                     </TooltipTrigger>
@@ -123,7 +123,7 @@ export function CategoryRow({
               )}
             </div>
           </TableCell>
-          <TableCell className="py-1.5 text-center">
+          <TableCell className="hidden md:table-cell py-1.5 text-center">
             <Badge
               variant="secondary"
               className={`text-[10px] h-5 px-1.5 ${
