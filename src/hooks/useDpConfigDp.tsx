@@ -187,7 +187,7 @@ export function useDpConfigDp(unidadeId: string | null = null) {
     /** A unidade selecionada possui exceção própria? */
     temExcecao: !!unidadeRow,
     temMulheres: mulheres.data ?? false,
-    negociacoes: negociacoes.data ?? [],
+    
     historico: historico.data ?? [],
 
     isLoading: query.isLoading,
