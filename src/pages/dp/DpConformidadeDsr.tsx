@@ -187,6 +187,7 @@ export default function DpConformidadeDsr() {
                 <TableHead>Colaborador</TableHead>
                 <TableHead className="text-center">Domingos no mês</TableHead>
                 <TableHead className="text-center">Folgados</TableHead>
+                {porAcordo && <TableHead className="text-center">Sábados (acordo)</TableHead>}
                 <TableHead className="text-center">Mínimo esperado</TableHead>
                 <TableHead className="text-center">Periodicidade</TableHead>
                 <TableHead className="text-right">Situação</TableHead>
@@ -195,7 +196,7 @@ export default function DpConformidadeDsr() {
             <TableBody>
               {linhas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={porAcordo ? 7 : 6} className="py-8 text-center text-sm text-muted-foreground">
                     Nenhum colaborador ativo no período.
                   </TableCell>
                 </TableRow>
@@ -210,10 +211,12 @@ export default function DpConformidadeDsr() {
                     </TableCell>
                     <TableCell className="text-center">{l.domingosNoPeriodo}</TableCell>
                     <TableCell className="text-center font-semibold">{l.domingosFolgados.length}</TableCell>
+                    {porAcordo && <TableCell className="text-center">{l.sabadosAproveitados}</TableCell>}
                     <TableCell className="text-center">{l.esperado}</TableCell>
                     <TableCell className="text-center">
                       {l.periodicidadeAplicada > 0 ? `${l.periodicidadeAplicada} sem.` : "sem exigência"}
                     </TableCell>
+
                     <TableCell className="text-right">
                       {l.conforme ? (
                         <Badge variant="outline" className="gap-1 border-emerald-500/30 text-emerald-700 dark:text-emerald-400">
