@@ -2,10 +2,11 @@ import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Calculator, Download } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calculator, Download, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpPontoMes } from "@/hooks/useDpPontoMes";
+import { useDpFolhaApuracao } from "@/hooks/useDpFolhaApuracao";
 import { formatarDuracao, formatarSaldo } from "@/lib/dp/ponto";
 import { apurarColaborador, apuracaoParaCsv, somarApuracoes, type LinhaApuracao } from "@/lib/dp/apuracao";
 
@@ -27,6 +28,9 @@ const somarMes = (comp: string, delta: number) => {
 
 const rotuloMes = (comp: string) =>
   new Date(`${comp}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+
+const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
 
 const baixarCsv = (nome: string, conteudo: string) => {
   const url = URL.createObjectURL(new Blob(["\ufeff", conteudo], { type: "text/csv;charset=utf-8;" }));
@@ -57,20 +61,26 @@ export default function DpPontoApuracao() {
   });
 
   const { linhas, isLoading, error } = useDpPontoMes(competencia, unidadeId === "todas" ? null : unidadeId);
+  const { bases, periodo, semSalario, enviarParaFolha } = useDpFolhaApuracao(competencia);
 
   const apuracao: LinhaApuracao[] = useMemo(
     () =>
       linhas.map((l) => ({
         colaborador_id: l.colaborador_id,
         nome: l.nome,
-        rubricas: apurarColaborador(l.dias),
+        rubricas: apurarColaborador(l.dias, { valorHora: bases.get(l.colaborador_id)?.valorHora }),
         saldoAcumuladoMinutos: l.saldoAcumuladoMinutos,
         fechado: l.fechado,
       })),
-    [linhas],
+    [linhas, bases],
   );
 
   const totais = useMemo(() => somarApuracoes(apuracao), [apuracao]);
+  const totalBruto = useMemo(
+    () => apuracao.reduce((acc, l) => acc + (l.rubricas.valores?.liquido ?? 0), 0),
+    [apuracao],
+  );
+
 
   if (error) return <DpErrorState message="Não foi possível carregar a apuração do ponto." />;
 
@@ -151,16 +161,43 @@ export default function DpPontoApuracao() {
             </DpContentCard>
           </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-fit"
-            disabled={!apuracao.length}
-            onClick={() => baixarCsv(`apuracao-folha-${competencia}.csv`, apuracaoParaCsv(competencia, apuracao))}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Exportar CSV
-          </Button>
+          <DpContentCard className="space-y-3 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-xs text-muted-foreground">Total estimado da folha (líquido do ponto)</p>
+                <p className="text-xl font-semibold">{moeda(totalBruto)}</p>
+              </div>
+              {periodo && (
+                <Badge variant={periodo.status === "aberto" ? "secondary" : "default"}>
+                  Folha {periodo.status.replace(/_/g, " ")} · {periodo.totalLancamentos} lançamento(s)
+                </Badge>
+              )}
+            </div>
+            {semSalario > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {semSalario} colaborador(es) sem salário base no cargo ficam de fora da geração.
+              </p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!apuracao.length}
+                onClick={() => baixarCsv(`apuracao-folha-${competencia}.csv`, apuracaoParaCsv(competencia, apuracao))}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Exportar CSV
+              </Button>
+              <Button
+                size="sm"
+                disabled={!apuracao.length || enviarParaFolha.isPending || (!!periodo && periodo.status !== "aberto")}
+                onClick={() => enviarParaFolha.mutate(apuracao)}
+              >
+                <Send className="mr-2 h-4 w-4" />
+                {enviarParaFolha.isPending ? "Gerando..." : "Gerar Lançamentos da Folha"}
+              </Button>
+            </div>
+          </DpContentCard>
 
           <DpContentCard className="p-0">
             {!apuracao.length ? (
@@ -171,7 +208,12 @@ export default function DpPontoApuracao() {
                   <li key={l.colaborador_id} className="space-y-2 p-4">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm font-medium">{l.nome}</p>
-                      <Badge variant={l.fechado ? "default" : "secondary"}>{l.fechado ? "Fechado" : "Aberto"}</Badge>
+                      <div className="flex items-center gap-2">
+                        {l.rubricas.valores && (
+                          <span className="text-sm font-semibold">{moeda(l.rubricas.valores.liquido)}</span>
+                        )}
+                        <Badge variant={l.fechado ? "default" : "secondary"}>{l.fechado ? "Fechado" : "Aberto"}</Badge>
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground sm:grid-cols-3">
                       <span>Normais: <strong className="text-foreground">{formatarDuracao(l.rubricas.minutosNormais)}</strong></span>

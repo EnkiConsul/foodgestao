@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { apurarColaborador, apuracaoParaCsv, semanaDe, somarApuracoes } from "@/lib/dp/apuracao";
+import { apurarColaborador, apuracaoParaCsv, apuracaoParaLancamento, semanaDe, somarApuracoes, valorHoraDe } from "@/lib/dp/apuracao";
 import type { ResumoPontoDia } from "@/lib/dp/ponto";
 
 const dia = (over: Partial<ResumoPontoDia>): ResumoPontoDia => ({
@@ -68,5 +68,52 @@ describe("apuração para folha", () => {
     expect(csv.split("\n")).toHaveLength(3);
     expect(csv).toContain("Ana");
     expect(csv).toContain("Fechado");
+  });
+});
+
+describe("Fase 12 — monetização e folha", () => {
+  it("calcula o valor da hora pelo divisor carga x 5", () => {
+    expect(valorHoraDe(2200, 44)).toBeCloseTo(10);
+    expect(valorHoraDe(0, 44)).toBeUndefined();
+    expect(valorHoraDe(2200, null)).toBeCloseTo(10);
+  });
+
+  it("converte a apuração monetizada em lançamento de folha", () => {
+    const linha = {
+      colaborador_id: "c1",
+      nome: "Maria",
+      rubricas: apurarColaborador(
+        [
+          {
+            data: "2026-07-06",
+            status: "completo",
+            minutosPrevistos: 480,
+            minutosTrabalhados: 540,
+            minutosNoturnos: 0,
+            atrasoMinutos: 0,
+            saldoMinutos: 60,
+          },
+        ] as never,
+        { valorHora: 10 },
+      ),
+      saldoAcumuladoMinutos: 60,
+      fechado: false,
+    };
+    const lanc = apuracaoParaLancamento(linha)!;
+    expect(lanc.valor_bruto).toBeCloseTo(95);
+    expect(lanc.valor_liquido).toBeCloseTo(95);
+    expect(lanc.descontos.horas.extras50).toBe(60);
+  });
+
+  it("ignora colaborador sem valor hora", () => {
+    expect(
+      apuracaoParaLancamento({
+        colaborador_id: "c2",
+        nome: "Sem salário",
+        rubricas: apurarColaborador([]),
+        saldoAcumuladoMinutos: 0,
+        fechado: false,
+      }),
+    ).toBeNull();
   });
 });

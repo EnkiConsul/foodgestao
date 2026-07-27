@@ -198,3 +198,74 @@ export function apuracaoParaCsv(competencia: string, linhas: LinhaApuracao[]): s
   );
   return [cab.join(";"), ...corpo].join("\n");
 }
+
+// ------------------------------------------------------------------
+// Fase 12 — Monetização e envio para a folha
+// ------------------------------------------------------------------
+
+/**
+ * Valor da hora normal a partir do salário base e da carga semanal.
+ * Divisor CLT: carga semanal x 5 (44h/sem → 220h/mês).
+ */
+export function valorHoraDe(salarioBase?: number | null, cargaSemanalHoras?: number | null): number | undefined {
+  if (!salarioBase || salarioBase <= 0) return undefined;
+  const carga = cargaSemanalHoras && cargaSemanalHoras > 0 ? cargaSemanalHoras : 44;
+  return salarioBase / (carga * 5);
+}
+
+export interface LancamentoFolha {
+  colaborador_id: string;
+  valor_bruto: number;
+  valor_liquido: number;
+  descontos: {
+    faltas: number;
+    dsr: number;
+    proventos: { normais: number; extras50: number; extras100: number; noturno: number };
+    horas: {
+      normais: number;
+      extras50: number;
+      extras100: number;
+      noturnos: number;
+      falta: number;
+      atraso: number;
+      diasFalta: number;
+      dsrPerdidos: number;
+    };
+  };
+}
+
+const round2 = (v: number) => Math.round(v * 100) / 100;
+
+/** Converte a apuração monetizada em lançamento de folha (rascunho). */
+export function apuracaoParaLancamento(linha: LinhaApuracao): LancamentoFolha | null {
+  const v = linha.rubricas.valores;
+  if (!v) return null;
+  const bruto = round2(v.normais + v.extras50 + v.extras100 + v.noturno);
+  const descFaltas = round2(v.descontoFaltas);
+  const descDsr = round2(v.descontoDsr);
+  return {
+    colaborador_id: linha.colaborador_id,
+    valor_bruto: bruto,
+    valor_liquido: round2(bruto - descFaltas - descDsr),
+    descontos: {
+      faltas: descFaltas,
+      dsr: descDsr,
+      proventos: {
+        normais: round2(v.normais),
+        extras50: round2(v.extras50),
+        extras100: round2(v.extras100),
+        noturno: round2(v.noturno),
+      },
+      horas: {
+        normais: linha.rubricas.minutosNormais,
+        extras50: linha.rubricas.minutosExtras50,
+        extras100: linha.rubricas.minutosExtras100,
+        noturnos: linha.rubricas.minutosNoturnos,
+        falta: linha.rubricas.minutosFalta,
+        atraso: linha.rubricas.minutosAtraso,
+        diasFalta: linha.rubricas.diasFalta,
+        dsrPerdidos: linha.rubricas.dsrPerdidos,
+      },
+    },
+  };
+}
