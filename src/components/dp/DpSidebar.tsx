@@ -59,6 +59,7 @@ const ADMIN_ITEMS: Item[] = [
       { title: "Operação do Dia", url: "/dp/operacao", icon: CalendarClock },
       { title: "Convocações", url: "/dp/convocacoes", icon: BellRing },
       { title: "Espelho de Ponto", url: "/dp/ponto", icon: Fingerprint },
+      { title: "Ponto do Time", url: "/dp/ponto/time", icon: Users },
       { title: "Gerador de Escala", url: "/dp/escalas", icon: CalendarRange },
       { title: "Conformidade DSR", url: "/dp/conformidade-dsr", icon: Scale },
       { title: "Regras De Folgas", url: "/dp/folgas/configuracoes/regras", icon: Settings },
