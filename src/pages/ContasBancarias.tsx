@@ -409,7 +409,7 @@ export default function ContasBancarias() {
 
       {/* FAB mobile */}
       <button
-        onClick={() => { setEditAccount(null); setMethodOpen(true); }}
+        onClick={openMethodDialog}
         className="fixed bottom-20 right-4 z-50 md:hidden flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
       >
         <Plus className="h-6 w-6" />
@@ -417,30 +417,29 @@ export default function ContasBancarias() {
 
       <AccountCreationMethodDialog
         open={methodOpen}
-        onOpenChange={setMethodOpen}
+        onOpenChange={handleMethodOpenChange}
         openFinanceEnabled={contextType === "pj" && !!selectedCompanyId}
         openFinanceDisabledReason="Selecione uma empresa antes de conectar uma conta via Open Finance."
-        onSelectManual={() => { setMethodOpen(false); setEditAccount(null); setDialogOpen(true); }}
+        onSelectManual={() => openManualForm(null)}
         onSelectOpenFinance={() => {
           if (contextType !== "pj" || !selectedCompanyId) {
             // Card está desabilitado — não deveria disparar. Mantém o modal aberto.
             return;
           }
-          setMethodOpen(false);
-          setOfWizardOpen(true);
+          openOfWizard();
         }}
       />
 
       <OpenFinanceWizard
         open={ofWizardOpen}
-        onOpenChange={setOfWizardOpen}
+        onOpenChange={handleOfWizardOpenChange}
         companyId={contextType === "pj" ? selectedCompanyId : null}
         onFinished={fetchAccounts}
       />
 
       <AccountFormDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={handleFormOpenChange}
         onSaved={(newId) => {
           fetchAccounts();
           if (newId && !editAccount) setPostCreateAccountId(newId);
