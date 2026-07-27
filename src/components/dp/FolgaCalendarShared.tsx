@@ -86,6 +86,8 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
     allColaboradores,
     pendingRequests,
     isAdmin = false,
+    diasElegiveis,
+    tetoMensal,
     onPrev,
     onNext,
     onSelectDay,
@@ -144,6 +146,8 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
     pendingRequests,
     isAdmin,
     locked,
+    diasElegiveis,
+    tetoMensal,
   ]);
 
   const chunky = variant === "chunky";
