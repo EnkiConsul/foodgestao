@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMeuPonto } from "@/hooks/useDpPonto";
+import { PontoAjusteDialog } from "@/components/dp/PontoAjusteDialog";
+import { useMeusAjustesPonto, AJUSTE_ACAO_LABEL } from "@/hooks/useDpPontoAjustes";
 import { useDpHorarioPrevisto } from "@/hooks/useDpHorarioPrevisto";
 import { textoPrevisto } from "@/lib/dp/horario-previsto";
 import {
@@ -89,6 +91,8 @@ export default function DpMeuPonto() {
     );
   };
 
+  const { ajustes } = useMeusAjustesPonto(colaboradorId);
+
   const carregando = isLoading || loadingPrevisto || me.isLoading;
 
   return (
@@ -165,6 +169,34 @@ export default function DpMeuPonto() {
               <p className="text-lg font-semibold">{formatarSaldo(resumo.saldoMinutos)}</p>
             </CardContent></Card>
           </div>
+
+          {colaboradorId && vinculo.data?.company_id && (
+            <PontoAjusteDialog
+              colaboradorId={colaboradorId}
+              companyId={vinculo.data.company_id}
+              dataPadrao={hoje}
+            />
+          )}
+
+          {ajustes.length > 0 && (
+            <Card>
+              <CardContent className="divide-y p-0">
+                {ajustes.slice(0, 5).map((a) => (
+                  <div key={a.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">
+                        {new Date(`${a.data}T12:00:00`).toLocaleDateString("pt-BR")} · {PONTO_TIPO_LABEL[a.tipo]}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{AJUSTE_ACAO_LABEL[a.acao]}</p>
+                    </div>
+                    <Badge variant={a.status === "aprovado" ? "default" : a.status === "recusado" ? "destructive" : "secondary"}>
+                      {a.status}
+                    </Badge>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
 
           {resumo.atrasoMinutos > 0 && (
             <p className="flex items-center gap-2 text-xs text-muted-foreground">

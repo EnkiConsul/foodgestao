@@ -27,6 +27,7 @@ import {
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
+import { PontoAjustesAdmin } from "@/components/dp/PontoAjustesAdmin";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -295,6 +296,8 @@ export default function DpPonto() {
               })}
             </ul>
           </DpContentCard>
+
+          <PontoAjustesAdmin colaboradorId={selecionado} />
         </>
       )}
     </DpPage>
