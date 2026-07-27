@@ -91,6 +91,12 @@ export default function DpFolhaPeriodo() {
                 Reabrir
               </Button>
             )}
+            {podeGerarDespesa(status) && !transactionId && (
+              <Button size="sm" variant="outline" onClick={() => setDespesaAberta(true)} disabled={gerarDespesa.isPending}>
+                <Wallet className="mr-2 h-4 w-4" />
+                Gerar Despesa no Financeiro
+              </Button>
+            )}
             {proximo && (
               <Button
                 size="sm"
@@ -103,6 +109,26 @@ export default function DpFolhaPeriodo() {
           </>
         }
       />
+
+      {transactionId && (
+        <DpContentCard className="flex flex-wrap items-center justify-between gap-3 p-4">
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Despesa lançada no financeiro</p>
+            <p className="text-xs text-muted-foreground">
+              Conta a pagar de {formatarBRL(totais.liquido)} vinculada a esta folha.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/lancamentos">Ver no Financeiro</Link>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setDesfazerAberto(true)} disabled={desfazerDespesa.isPending}>
+              Desfazer
+            </Button>
+          </div>
+        </DpContentCard>
+      )}
+
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <DpContentCard className="p-3">
