@@ -76,7 +76,7 @@ export function useDpFolhaPeriodo(periodoId: string | undefined) {
     queryFn: async (): Promise<LinhaFolha[]> => {
       const { data, error } = await supabase
         .from("dp_folha_lancamentos")
-        .select("id, colaborador_id, status, valor_bruto, valor_liquido, descontos, dp_colaboradores:colaborador_id(nome)")
+        .select("id, colaborador_id, status, valor_bruto, valor_liquido, descontos, transaction_id, dp_colaboradores:colaborador_id(nome)")
         .eq("periodo_id", periodoId!);
       if (error) throw error;
       return (data ?? [])
@@ -88,10 +88,12 @@ export function useDpFolhaPeriodo(periodoId: string | undefined) {
           valor_bruto: Number(l.valor_bruto ?? 0),
           valor_liquido: Number(l.valor_liquido ?? 0),
           detalhe: lerDetalhe(l.descontos),
+          transaction_id: l.transaction_id ?? null,
         }))
         .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
     },
   });
+
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["dp_folha_periodo_detalhe", periodoId] });
