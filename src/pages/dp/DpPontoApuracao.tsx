@@ -158,16 +158,43 @@ export default function DpPontoApuracao() {
             </DpContentCard>
           </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-fit"
-            disabled={!apuracao.length}
-            onClick={() => baixarCsv(`apuracao-folha-${competencia}.csv`, apuracaoParaCsv(competencia, apuracao))}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Exportar CSV
-          </Button>
+          <DpContentCard className="space-y-3 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-xs text-muted-foreground">Total estimado da folha (líquido do ponto)</p>
+                <p className="text-xl font-semibold">{moeda(totalBruto)}</p>
+              </div>
+              {periodo && (
+                <Badge variant={periodo.status === "aberto" ? "secondary" : "default"}>
+                  Folha {periodo.status.replace(/_/g, " ")} · {periodo.totalLancamentos} lançamento(s)
+                </Badge>
+              )}
+            </div>
+            {semSalario > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {semSalario} colaborador(es) sem salário base no cargo ficam de fora da geração.
+              </p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!apuracao.length}
+                onClick={() => baixarCsv(`apuracao-folha-${competencia}.csv`, apuracaoParaCsv(competencia, apuracao))}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Exportar CSV
+              </Button>
+              <Button
+                size="sm"
+                disabled={!apuracao.length || enviarParaFolha.isPending || (!!periodo && periodo.status !== "aberto")}
+                onClick={() => enviarParaFolha.mutate(apuracao)}
+              >
+                <Send className="mr-2 h-4 w-4" />
+                {enviarParaFolha.isPending ? "Gerando..." : "Gerar Lançamentos da Folha"}
+              </Button>
+            </div>
+          </DpContentCard>
 
           <DpContentCard className="p-0">
             {!apuracao.length ? (
@@ -178,7 +205,12 @@ export default function DpPontoApuracao() {
                   <li key={l.colaborador_id} className="space-y-2 p-4">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm font-medium">{l.nome}</p>
-                      <Badge variant={l.fechado ? "default" : "secondary"}>{l.fechado ? "Fechado" : "Aberto"}</Badge>
+                      <div className="flex items-center gap-2">
+                        {l.rubricas.valores && (
+                          <span className="text-sm font-semibold">{moeda(l.rubricas.valores.liquido)}</span>
+                        )}
+                        <Badge variant={l.fechado ? "default" : "secondary"}>{l.fechado ? "Fechado" : "Aberto"}</Badge>
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground sm:grid-cols-3">
                       <span>Normais: <strong className="text-foreground">{formatarDuracao(l.rubricas.minutosNormais)}</strong></span>
@@ -188,6 +220,17 @@ export default function DpPontoApuracao() {
                       <span>Faltas: <strong className="text-foreground">{l.rubricas.diasFalta}</strong> · DSR: <strong className="text-foreground">{l.rubricas.dsrPerdidos}</strong></span>
                       <span>Banco: <strong className="text-foreground">{formatarSaldo(l.saldoAcumuladoMinutos)}</strong></span>
                     </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </DpContentCard>
+        </>
+      )}
+    </DpPage>
+  );
+}
+
                   </li>
                 ))}
               </ul>
