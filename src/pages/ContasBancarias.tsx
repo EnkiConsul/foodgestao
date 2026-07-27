@@ -537,6 +537,13 @@ export default function ContasBancarias() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AdjustAccountBalanceDialog
+        open={!!adjustAccount}
+        onOpenChange={(o) => { if (!o) setAdjustAccount(null); }}
+        account={adjustAccount}
+        onAdjusted={fetchAccounts}
+      />
     </div>
   );
 }
