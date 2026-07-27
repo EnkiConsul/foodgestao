@@ -124,8 +124,19 @@ async def run_delete_flow(page, account_name, expected_dialog, expected_toast, p
     await expect(toast).to_be_visible(timeout=10_000)
     await page.screenshot(path=str(SCREENSHOTS / f"{prefix}_3_toast.png"))
 
-    await expect(page.locator(f'text="{account_name}"')).to_have_count(0, timeout=10_000)
-    print(f"   ✔ diálogo: '{expected_dialog}' | toast: '{expected_toast}' | card removido")
+    if prefix == "hard":
+        # Hard delete → card sai da lista.
+        await expect(page.locator(f'text="{account_name}"')).to_have_count(0, timeout=10_000)
+        print(f"   ✔ diálogo: '{expected_dialog}' | toast: '{expected_toast}' | card removido")
+    else:
+        # Soft delete → card permanece mas aparece badge 'Inativa' ao lado do nome.
+        soft_card = page.locator(f'text="{account_name}"').first
+        await expect(soft_card).to_be_visible(timeout=10_000)
+        soft_root = soft_card.locator(
+            "xpath=ancestor::*[.//button[@aria-label='Excluir conta']][1]"
+        )
+        await expect(soft_root.get_by_text("Inativa", exact=True)).to_be_visible(timeout=10_000)
+        print(f"   ✔ diálogo: '{expected_dialog}' | toast: '{expected_toast}' | card marcado como Inativa")
 
 
 async def main() -> int:
