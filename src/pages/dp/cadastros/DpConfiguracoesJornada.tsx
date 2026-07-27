@@ -253,9 +253,27 @@ export default function DpConfiguracoesJornada() {
                 ))}
               </ToggleGroup>
               <p className="text-xs text-muted-foreground">
-                Folga em qualquer dia marcado é contabilizada como descanso semanal negociado — e é o que o
-                colaborador pode escolher no calendário do portal.
+                Os dias marcados são as <strong>opções</strong> que o colaborador pode escolher no calendário
+                do portal. Marcar mais dias não aumenta a quantidade de folgas.
               </p>
+              <div className="flex items-start gap-1.5 rounded-md bg-muted/50 p-2 text-xs">
+                <span>
+                  Com esta configuração, o colaborador escolhe até{" "}
+                  <strong>{resumoFolgas.teto} folga(s) por mês</strong> entre os dias marcados.
+                </span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button type="button" aria-label="Como o teto é calculado" className="mt-0.5 shrink-0">
+                      <Info className="size-3.5 text-muted-foreground" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-72 text-xs">
+                    O teto mensal é o <strong>menor valor</strong> entre o limite de folgas por mês
+                    configurado e a quantidade derivada da frequência de folga dominical.
+                  </PopoverContent>
+                </Popover>
+              </div>
+
             </div>
           )}
         </div>
