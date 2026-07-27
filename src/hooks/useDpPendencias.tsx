@@ -504,6 +504,33 @@ export function useDpPendencias() {
         console.warn("pendencias/escala:", e);
       }
 
+      // 10. Lotes de importação sem unidade identificada
+      try {
+        const { data: lotes } = await supabase
+          .from("dp_bulk_import_batches")
+          .select("id, tipo, source_file_name, referencia_data, created_at, status, unidade_id")
+          .eq("company_id", selectedCompanyId!)
+          .is("unidade_id", null)
+          .eq("status", "ready")
+          .order("created_at", { ascending: true })
+          .limit(10);
+        (lotes ?? []).forEach((l: any) => {
+          const vencimento = new Date(l.created_at);
+          vencimento.setDate(vencimento.getDate() + 2);
+          results.push({
+            id: `lote-sem-unidade-${l.id}`,
+            icon: FileText,
+            titulo: "Unidade Não Identificada No Lote",
+            subtitulo: `${l.source_file_name ?? "Importação"} (${l.tipo}) — vincule a unidade para liberar a aprovação`,
+            tipo: "Importação",
+            vencimento: ymd(vencimento),
+            atrasoDias: differenceInCalendarDays(today, vencimento),
+            url: "/dp/documentos",
+          });
+        });
+      } catch (e) {
+        console.warn("pendencias/lotes-unidade:", e);
+      }
 
       // Ordenar: mais atrasado primeiro; empate → vencimento mais próximo
       results.sort((a, b) => {
