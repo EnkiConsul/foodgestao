@@ -66,9 +66,21 @@ export default function DpConfiguracoesJornada() {
   const semanas = semanasDaConfig(form);
   const herdando = !!unidadeId && !temExcecao;
   const porAcordo = form.tipo_descanso_domingo === "acordo_coletivo";
+  const travadoClt = form.regra_dsr === "clt";
 
   const set = <K extends keyof DpConfigDpForm>(k: K, v: DpConfigDpForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
+
+  /** Alterna a base da regra: CLT restaura e trava os padrões legais. */
+  const setBaseRegra = (v: DpConfigDpForm["regra_dsr"]) =>
+    setForm((f) => (v === "clt" ? { ...f, regra_dsr: v, ...padroesCltDe(f.setor_comercio) } : { ...f, regra_dsr: v }));
+
+  const setSetorComercio = (v: boolean) =>
+    setForm((f) => ({
+      ...f,
+      setor_comercio: v,
+      ...(f.regra_dsr === "clt" ? padroesCltDe(v) : {}),
+    }));
 
   const toggleDia = (dia: number) => {
     setForm((f) => {
@@ -89,14 +101,11 @@ export default function DpConfiguracoesJornada() {
   };
 
   const handleSave = () => {
-    if (porAcordo && !form.negociacao_id) {
-      toast.error("Vincule um acordo ou convenção coletiva para usar esse modo de descanso.");
-      return;
-    }
     if (porAcordo && (form.dias_descanso_negociados ?? []).length === 0) {
       toast.error("Selecione ao menos um dia de descanso negociado.");
       return;
     }
+
     const pendentes = alertasDeCiencia(form, { temMulheres });
     if (pendentes.length > 0) { setAlertas(pendentes); return; }
     void persist(false);
