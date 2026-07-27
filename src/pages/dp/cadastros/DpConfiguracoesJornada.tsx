@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Save, Scale, History, Info, Store, Trash2 } from "lucide-react";
+import { Save, Scale, History, Info, Store, Trash2, Landmark } from "lucide-react";
 import { DpPage, DpPageHeader, DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { FeriasRegrasSection } from "@/components/dp/ferias/FeriasRegrasSection";
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
+import { ReplicarRegrasDialog } from "@/components/dp/ReplicarRegrasDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,10 +16,15 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpConfigDp, type DpConfigDpForm } from "@/hooks/useDpConfigDp";
+import { useSindicatoContextoUnidade } from "@/hooks/useSindicatoContextoUnidade";
 import { MenosProtetivaBadge } from "@/components/dp/MenosProtetivaBadge";
 import {
   DP_CONFIG_DP_DEFAULT, alertasDeCiencia, padraoLegalDomingo, isMenosProtetiva,
@@ -45,29 +51,58 @@ const num = (v: string, fallback: number) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
-const PADRAO = "__padrao__";
+const STORAGE_KEY = "dp:regras-folgas:unidade";
+
 
 export default function DpConfiguracoesJornada() {
   const { selectedCompanyId } = useCompanyContext();
-  const [unidadeId, setUnidadeId] = useState<string | null>(null);
+  const [unidadeId, setUnidadeId] = useState<string | null>(
+    () => localStorage.getItem(STORAGE_KEY) || null,
+  );
   const {
-    config, configPadrao, temExcecao, temMulheres, historico,
-    isLoading, isError, refetch, save, saving, removerExcecao, removendo,
+    config, configPadrao, temExcecao, unidadesConfiguradas, temMulheres, historico,
+    isLoading, isError, refetch, save, saveMany, saving, removerExcecao, removendo,
   } = useDpConfigDp(unidadeId);
   const { data: todasUnidades = [] } = useDpUnidades();
   const unidades = useMemo(
     () => todasUnidades.filter((u) => u.company_id === selectedCompanyId),
     [todasUnidades, selectedCompanyId],
   );
+  const { data: contextoSindical } = useSindicatoContextoUnidade(unidadeId);
 
   const [form, setForm] = useState<DpConfigDpForm>(DP_CONFIG_DP_DEFAULT);
   const [alertas, setAlertas] = useState<AlertaCiencia[]>([]);
+  const [replicarAberto, setReplicarAberto] = useState(false);
+  const [limparAberto, setLimparAberto] = useState(false);
+
+  /** Seleciona a primeira unidade quando não há escolha válida guardada. */
+  useEffect(() => {
+    if (unidades.length === 0) return;
+    if (!unidadeId || !unidades.some((u) => u.id === unidadeId)) {
+      setUnidadeId(unidades[0].id);
+    }
+  }, [unidades, unidadeId]);
+
+  useEffect(() => {
+    if (unidadeId) localStorage.setItem(STORAGE_KEY, unidadeId);
+  }, [unidadeId]);
 
   useEffect(() => { setForm(config); }, [config]);
 
+  const unidadeAtual = useMemo(
+    () => unidades.find((u) => u.id === unidadeId) ?? null,
+    [unidades, unidadeId],
+  );
+  const outrasUnidades = useMemo(
+    () => unidades
+      .filter((u) => u.id !== unidadeId)
+      .map((u) => ({ id: u.id, nome: u.nome, configurada: unidadesConfiguradas.has(u.id) })),
+    [unidades, unidadeId, unidadesConfiguradas],
+  );
+
   const padrao = padraoLegalDomingo(form.setor_comercio);
   const semanas = semanasDaConfig(form);
-  const herdando = !!unidadeId && !temExcecao;
+  const naoConfigurada = !!unidadeId && !temExcecao;
   const porAcordo = form.tipo_descanso_domingo === "acordo_coletivo";
   const resumoFolgas = useMemo(() => resumoEscolhaFolgas(form), [form]);
 
@@ -95,39 +130,79 @@ export default function DpConfiguracoesJornada() {
     });
   };
 
-  const persist = async (cienciaConfirmada: boolean, justificativa?: string) => {
+  /** Grava nas unidades alvo; mantém a retaguarda da empresa quando replica para todas. */
+  const persist = async (
+    alvosExtras: string[],
+    cienciaConfirmada: boolean,
+    justificativa?: string,
+  ) => {
+    if (!unidadeId) return;
+    const nomes: Record<string, string> = {};
+    unidades.forEach((u) => { nomes[u.id] = u.nome; });
+
+    const alvos: (string | null)[] = [unidadeId, ...alvosExtras];
+    // Replicou para todas as unidades: atualiza também a retaguarda da empresa.
+    const todas = unidades.length > 0 && alvos.length === unidades.length;
+    if (todas) alvos.push(null);
+
     try {
-      await save({ patch: form, unidadeId, cienciaConfirmada, justificativa: justificativa || null });
+      await saveMany({ patch: form, alvos, nomes, cienciaConfirmada, justificativa: justificativa || null });
       setAlertas([]);
-      toast.success(unidadeId ? "Regras da unidade atualizadas" : "Regras da empresa atualizadas");
+      setReplicarAberto(false);
+      toast.success(
+        alvosExtras.length > 0
+          ? `Regras salvas em ${alvosExtras.length + 1} unidades`
+          : `Regras de ${unidadeAtual?.nome ?? "unidade"} atualizadas`,
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível salvar as regras");
     }
   };
 
+  const [alvosPendentes, setAlvosPendentes] = useState<string[]>([]);
+
+  /** Etapa final: exige ciência legal quando a regra é menos protetiva. */
+  const concluirSalvamento = (alvosExtras: string[]) => {
+    setAlvosPendentes(alvosExtras);
+    const pendentes = alertasDeCiencia(form, { temMulheres });
+    if (pendentes.length > 0) {
+      setReplicarAberto(false);
+      setAlertas(pendentes);
+      return;
+    }
+    void persist(alvosExtras, false);
+  };
+
   const handleSave = () => {
+    if (!unidadeId) {
+      toast.error("Cadastre uma unidade antes de configurar as regras de folgas.");
+      return;
+    }
     if (porAcordo && (form.dias_descanso_negociados ?? []).length === 0) {
       toast.error("Selecione ao menos um dia de descanso negociado.");
       return;
     }
-
-    const pendentes = alertasDeCiencia(form, { temMulheres });
-    if (pendentes.length > 0) { setAlertas(pendentes); return; }
-    void persist(false);
+    if (outrasUnidades.length > 0) {
+      setReplicarAberto(true);
+      return;
+    }
+    concluirSalvamento([]);
   };
 
-  const handleRemoverExcecao = async () => {
+  const handleLimparRegras = async () => {
     if (!unidadeId) return;
     try {
       await removerExcecao(unidadeId);
       setForm(configPadrao);
-      toast.success("Exceção removida — a unidade volta a seguir a regra da empresa.");
+      setLimparAberto(false);
+      toast.success("Regras da unidade removidas.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível remover a exceção");
+      toast.error(e instanceof Error ? e.message : "Não foi possível remover as regras");
     }
   };
 
   const historicoRecente = useMemo(() => historico.slice(0, 10), [historico]);
+
 
   if (isError) {
     return (
@@ -158,21 +233,26 @@ export default function DpConfiguracoesJornada() {
       />
 
       <Section
-        title="Regra aplicada a"
-        description="A regra da unidade prevalece sobre a regra padrão da empresa. Unidades sem exceção seguem o padrão."
+        title="Unidade"
+        description="Cada unidade tem suas próprias regras — normalmente negociadas com sindicatos diferentes. Ao salvar você pode replicar a configuração para outras lojas."
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1 space-y-1.5">
-            <Label htmlFor="alvo-regra">Escopo</Label>
+            <Label htmlFor="alvo-regra">Configurando as regras de</Label>
             <Select
-              value={unidadeId ?? PADRAO}
-              onValueChange={(v) => setUnidadeId(v === PADRAO ? null : v)}
+              value={unidadeId ?? ""}
+              onValueChange={(v) => setUnidadeId(v)}
+              disabled={unidades.length === 0}
             >
-              <SelectTrigger id="alvo-regra"><SelectValue /></SelectTrigger>
+              <SelectTrigger id="alvo-regra">
+                <SelectValue placeholder="Nenhuma unidade cadastrada" />
+              </SelectTrigger>
               <SelectContent>
-                <SelectItem value={PADRAO}>Todas as unidades (padrão da empresa)</SelectItem>
                 {unidades.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.nome}
+                    {unidadesConfiguradas.has(u.id) ? "" : " — ainda não configurada"}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -180,32 +260,59 @@ export default function DpConfiguracoesJornada() {
 
           {unidadeId && (
             <div className="flex flex-wrap items-center gap-2">
-              {herdando ? (
+              {naoConfigurada ? (
                 <Badge variant="outline" className="gap-1">
-                  <Store className="h-3.5 w-3.5" aria-hidden="true" /> Herdando o padrão da empresa
+                  <Store className="h-3.5 w-3.5" aria-hidden="true" /> Ainda não configurada
                 </Badge>
               ) : (
                 <>
                   <Badge className="gap-1">
-                    <Store className="h-3.5 w-3.5" aria-hidden="true" /> Exceção própria
+                    <Store className="h-3.5 w-3.5" aria-hidden="true" /> Regras configuradas
                   </Badge>
                   <Button
                     variant="outline" size="sm" className="gap-2"
-                    onClick={() => void handleRemoverExcecao()} disabled={removendo}
+                    onClick={() => setLimparAberto(true)} disabled={removendo}
                   >
-                    <Trash2 className="h-4 w-4" aria-hidden="true" /> Remover exceção
+                    <Trash2 className="h-4 w-4" aria-hidden="true" /> Limpar Regras
                   </Button>
                 </>
               )}
             </div>
           )}
         </div>
-        {herdando && (
+
+        {unidades.length === 0 && (
+          <p className="text-xs text-destructive">
+            Cadastre ao menos uma unidade em Cadastros → Unidades para definir as regras de folgas.
+          </p>
+        )}
+
+        {unidadeId && (
+          <div className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
+            <p className="flex items-center gap-2 font-medium text-foreground">
+              <Landmark className="h-4 w-4" aria-hidden="true" /> Contexto sindical desta unidade
+            </p>
+            <p className="mt-1">
+              {contextoSindical?.sindicatos.length
+                ? contextoSindical.sindicatos.join(" • ")
+                : "Nenhum sindicato vinculado a esta unidade."}
+            </p>
+            {contextoSindical?.negociacao && (
+              <p className="mt-1">
+                Última negociação registrada: {contextoSindical.negociacao.tipo_documento?.toUpperCase() ?? "Documento"}
+                {contextoSindical.negociacao.ano ? ` — vigência ${contextoSindical.negociacao.ano}` : ""}
+              </p>
+            )}
+          </div>
+        )}
+
+        {naoConfigurada && unidadeId && (
           <p className="text-xs text-muted-foreground">
-            Ajuste os campos abaixo e clique em Salvar para criar uma exceção só para esta unidade.
+            Os campos abaixo partem do padrão legal (CLT). Ajuste e clique em Salvar para gravar as regras desta unidade.
           </p>
         )}
       </Section>
+
 
       <Section
         title="Descanso Dominical"
@@ -485,13 +592,41 @@ export default function DpConfiguracoesJornada() {
         )}
       </Section>
 
+      <ReplicarRegrasDialog
+        open={replicarAberto}
+        unidadeAtualNome={unidadeAtual?.nome ?? "esta unidade"}
+        outrasUnidades={outrasUnidades}
+        saving={saving}
+        onCancel={() => setReplicarAberto(false)}
+        onConfirm={(alvos) => concluirSalvamento(alvos)}
+      />
+
+      <AlertDialog open={limparAberto} onOpenChange={setLimparAberto}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Limpar Regras Desta Unidade?</AlertDialogTitle>
+            <AlertDialogDescription>
+              As regras de {unidadeAtual?.nome ?? "esta unidade"} serão apagadas e a unidade voltará
+              a seguir o padrão legal (CLT) até ser configurada novamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={removendo}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); void handleLimparRegras(); }} disabled={removendo}>
+              {removendo ? "Removendo..." : "Limpar Regras"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <CienciaLegalDialog
         open={alertas.length > 0}
         alertas={alertas}
         confirming={saving}
         onCancel={() => setAlertas([])}
-        onConfirm={(justificativa) => void persist(true, justificativa)}
+        onConfirm={(justificativa) => void persist(alvosPendentes, true, justificativa)}
       />
+
     </DpPage>
   );
 }
