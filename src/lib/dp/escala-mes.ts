@@ -14,7 +14,7 @@ import { cargaLiquidaHoras, turnoViraODia, type TurnoHorario } from "@/lib/dp/tu
 import { turnoDoDia, type ConfigTrabalho, type TurnoResolvido } from "@/lib/dp/config-trabalho";
 
 export type EscalaItemTipo = "trabalho" | "folga" | "ferias" | "afastamento" | "feriado";
-export type EscalaItemOrigem = "gerado" | "manual" | "troca";
+export type EscalaItemOrigem = "gerado" | "manual" | "troca" | "convocacao";
 export type EscalaStatus = "rascunho" | "publicada" | "arquivada";
 
 export interface EscalaItem {
