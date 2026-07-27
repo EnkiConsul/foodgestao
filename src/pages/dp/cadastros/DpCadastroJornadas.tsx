@@ -8,6 +8,8 @@ import { ValidacaoMenorCard } from "@/components/dp/ValidacaoMenorCard";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { JornadaTemplates, type JornadaTemplate } from "@/components/dp/JornadaTemplates";
 import { HorariosSemanaEditor } from "@/components/dp/HorariosSemanaEditor";
+import { JornadaCargaResumo } from "@/components/dp/JornadaCargaResumo";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
