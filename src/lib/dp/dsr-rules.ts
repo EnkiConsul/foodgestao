@@ -14,6 +14,8 @@ export const MODO_FREQUENCIA_LABEL: Record<ModoFrequencia, string> = {
 
 export const DIA_SEMANA_LABEL = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 export const DIA_SEMANA_CURTO = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+/** Ordem de exibição dos dias da semana: segunda-feira a domingo. */
+export const ORDEM_DIAS_SEG_DOM = [1, 2, 3, 4, 5, 6, 0];
 
 /** Média de semanas por mês, usada para converter "X por mês" em intervalo de semanas. */
 export const SEMANAS_POR_MES = 4.345;
