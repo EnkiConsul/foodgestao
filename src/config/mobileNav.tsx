@@ -292,7 +292,11 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
       {
         label: "DP 360°",
         accent: "primary",
-        items: [],
+        items: [
+          { icon: ShieldCheck, label: "Conformidade", to: "/dp/conformidade" },
+          { icon: Gift, label: "Benefícios", to: "/dp/beneficios" },
+          { icon: BarChart3, label: "Analytics de RH", to: "/dp/analytics" },
+        ],
         subgroups: [
           {
             kind: "collapsible",
@@ -305,6 +309,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
               { icon: Briefcase, label: "Cargos", to: "/dp/cadastros/cargos" },
               { icon: Building2, label: "Unidades", to: "/dp/cadastros/unidades" },
               { icon: Scale, label: "Sindicatos", to: "/dp/cadastros/sindicatos" },
+              { icon: Clock, label: "Jornadas e Escalas", to: "/dp/cadastros/jornadas" },
               { icon: BellRing, label: "Pendências", to: "/dp/cadastros/pendencias" },
             ],
           },
@@ -319,6 +324,9 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
               "/dp/aprovacoes",
               "/dp/trocas",
               "/dp/bloqueios",
+              "/dp/ferias",
+              "/dp/escalas",
+              "/dp/conformidade-dsr",
             ],
             items: [
               { icon: Calendar, label: "Calendário Geral", to: "/dp/folgas/calendario" },
@@ -326,6 +334,10 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
               { icon: UserCheck, label: "Aprovações", to: "/dp/aprovacoes" },
               { icon: ArrowLeftRight, label: "Trocas", to: "/dp/trocas" },
               { icon: Ban, label: "Datas Bloqueadas", to: "/dp/bloqueios" },
+              { icon: Palmtree, label: "Férias", to: "/dp/ferias" },
+              { icon: CalendarRange, label: "Gerador de Escala", to: "/dp/escalas" },
+              { icon: Scale, label: "Conformidade DSR", to: "/dp/conformidade-dsr" },
+              { icon: Settings, label: "Regras de Folgas", to: "/dp/folgas/configuracoes/regras" },
             ],
           },
           {
@@ -334,6 +346,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
             icon: FileText,
             hubTo: "/dp/documentos",
             matchPrefixes: ["/dp/documentos", "/dp/disciplinar", "/dp/atestados"],
+
             items: [
               { icon: FileText, label: "Contracheques", to: "/dp/documentos/contracheque" },
               { icon: Coins, label: "Adiantamentos", to: "/dp/documentos/adiantamento" },
