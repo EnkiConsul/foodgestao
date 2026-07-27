@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles, UserMinus, RotateCcw, Clock } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles, UserMinus, RotateCcw, Clock, MoreHorizontal } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -331,43 +334,53 @@ export default function DpColaboradores() {
           </div>
       </DpFilterCard>
 
-      <DpContentCard contentClassName="overflow-x-auto hidden md:block">
+      <DpContentCard contentClassName="hidden md:block">
           {list.isLoading ? (
             <TableSkeleton
-              columns={9}
-              headers={["Colaborador", "CPF", "Cargo", "Unidade", "Vínculo", "Status", "Perfil", "Folha Ponto", ""]}
+              columns={6}
+              headers={["Colaborador", "Cargo", "Unidade", "Status", "Perfil", ""]}
             />
           ) : (
-            <Table>
+            <Table className="w-full table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="uppercase text-xs tracking-wider">Colaborador</TableHead>
-                  <TableHead className="uppercase text-xs tracking-wider">CPF</TableHead>
-                  <TableHead className="uppercase text-xs tracking-wider">Cargo</TableHead>
-                  <TableHead className="uppercase text-xs tracking-wider">Unidade</TableHead>
-                  <TableHead className="uppercase text-xs tracking-wider">Vínculo</TableHead>
-                  <TableHead className="uppercase text-xs tracking-wider">Status</TableHead>
-                  <TableHead className="uppercase text-xs tracking-wider">Perfil</TableHead>
-                  <TableHead className="uppercase text-xs tracking-wider">Folha Ponto</TableHead>
-                  <TableHead className="uppercase text-xs tracking-wider text-right">Ações</TableHead>
+                  <TableHead className="uppercase text-xs tracking-wider w-[26%]">Colaborador</TableHead>
+                  <TableHead className="uppercase text-xs tracking-wider w-[16%]">Cargo</TableHead>
+                  <TableHead className="uppercase text-xs tracking-wider w-[16%]">Unidade</TableHead>
+                  <TableHead className="uppercase text-xs tracking-wider w-[20%]">Status</TableHead>
+                  <TableHead className="uppercase text-xs tracking-wider w-[12%]">Perfil</TableHead>
+                  <TableHead className="uppercase text-xs tracking-wider text-right w-[10%]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map((c) => {
                   const perfil = (c as any).perfil_acesso as string | null;
                   const folha = (c as any).possui_folha_ponto as boolean | null;
+                  const adiantamento = (c as any).optante_adiantamento as boolean | null;
                   return (
                     <TableRow key={c.id}>
-                      <TableCell className="font-semibold uppercase">{c.nome}</TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">{c.cpf ?? "—"}</TableCell>
-                      <TableCell>{c.cargo_nome ?? c.cargo ?? "—"}</TableCell>
-                      <TableCell>{c.unidade_nome ?? "—"}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="uppercase border-primary/30 text-primary bg-primary/5">
-                          {REGIME_LABEL[c.regime ?? ""] ?? c.regime ?? "—"}
-                        </Badge>
+                      <TableCell className="align-top">
+                        <div className="font-semibold uppercase truncate" title={c.nome}>{c.nome}</div>
+                        <div className="font-mono text-[11px] text-muted-foreground">{c.cpf ?? "—"}</div>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          <Badge variant="outline" className="h-4 px-1 text-[10px] uppercase border-primary/30 text-primary bg-primary/5">
+                            {REGIME_LABEL[c.regime ?? ""] ?? c.regime ?? "—"}
+                          </Badge>
+                          {folha && (
+                            <Badge variant="outline" className="h-4 px-1 text-[10px]">Ponto</Badge>
+                          )}
+                          {adiantamento && (
+                            <Badge variant="outline" className="h-4 px-1 text-[10px]">Adiantamento</Badge>
+                          )}
+                        </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="align-top truncate" title={c.cargo_nome ?? c.cargo ?? ""}>
+                        {c.cargo_nome ?? c.cargo ?? "—"}
+                      </TableCell>
+                      <TableCell className="align-top truncate" title={c.unidade_nome ?? ""}>
+                        {c.unidade_nome ?? "—"}
+                      </TableCell>
+                      <TableCell className="align-top">
                         {c.ativo ? (
                           <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
                             Ativo
@@ -377,7 +390,7 @@ export default function DpColaboradores() {
                             <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
                               Desligado em {fmtDate(c.data_desligamento)}
                             </Badge>
-                            <div className="text-[11px] text-muted-foreground whitespace-nowrap">
+                            <div className="text-[11px] text-muted-foreground">
                               {(c as any).motivo_desligamento
                                 ? MOTIVO_DESLIGAMENTO_LABEL[(c as any).motivo_desligamento as keyof typeof MOTIVO_DESLIGAMENTO_LABEL]
                                 : "Motivo não informado"}
@@ -385,7 +398,7 @@ export default function DpColaboradores() {
                                 ? ` • ${ELEGIBILIDADE_LABEL[(c as any).elegivel_recontratacao as keyof typeof ELEGIBILIDADE_LABEL]}`
                                 : ""}
                             </div>
-                            <div className="text-[11px] text-muted-foreground whitespace-nowrap">
+                            <div className="text-[11px] text-muted-foreground">
                               {acessoPortalAtivo((c as any).acesso_portal_ate)
                                 ? `Portal até ${fmtDate((c as any).acesso_portal_ate)} (${diasRestantesCarencia((c as any).acesso_portal_ate)} d)`
                                 : "Portal encerrado"}
@@ -393,8 +406,7 @@ export default function DpColaboradores() {
                           </div>
                         )}
                       </TableCell>
-
-                      <TableCell>
+                      <TableCell className="align-top">
                         <Badge
                           variant="outline"
                           className={
@@ -406,69 +418,50 @@ export default function DpColaboradores() {
                           {PERFIL_LABEL[perfil ?? "colaborador"]}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={folha
-                            ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400"
-                            : "text-muted-foreground"}
-                        >
-                          {folha ? "Sim" : "Não"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1 justify-end">
-                          <Button size="icon" variant="ghost" onClick={() => { setEditing(c); setDialogOpen(true); }} title="Editar">
+                      <TableCell className="align-top">
+                        <div className="flex gap-0.5 justify-end">
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditing(c); setDialogOpen(true); }} title="Editar">
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button size="icon" variant="ghost" onClick={() => setJornadaTarget(c)} title="Jornada e escala">
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setJornadaTarget(c)} title="Jornada e escala">
                             <Clock className="h-4 w-4" />
                           </Button>
-                          {c.user_id ? (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              title="Resetar senha para 6 últimos do CPF"
-                              disabled={resetting === c.id}
-                              onClick={() => handleReset(c)}
-                            >
-                              <KeyRound className="h-4 w-4" />
-                            </Button>
-                          ) : null}
-                          {c.user_id && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              title="Definir senha customizada"
-                              onClick={() => openSetPwd(c)}
-                            >
-                              <Lock className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {!c.user_id && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              title="Gerar acesso ao portal (login por CPF)"
-                              disabled={granting === c.id}
-                              onClick={() => handleGrantAccess(c)}
-                            >
-                              <UserPlus className="h-4 w-4 text-primary" />
-                            </Button>
-                          )}
-                          {c.ativo ? (
-                            <Button size="icon" variant="ghost" onClick={() => setToDesligar(c)} title="Desligar colaborador">
-                              <UserMinus className="h-4 w-4 text-destructive" />
-                            </Button>
-                          ) : (
-                            <Button size="icon" variant="ghost" onClick={() => setToReintegrar(c)} title="Reintegrar colaborador">
-                              <RotateCcw className="h-4 w-4" />
-                            </Button>
-                          )}
-                          <Button size="icon" variant="ghost" onClick={() => setToDelete(c)} title="Remover">
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="icon" variant="ghost" className="h-8 w-8" title="Mais ações">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                              {c.user_id && (
+                                <DropdownMenuItem disabled={resetting === c.id} onSelect={() => handleReset(c)}>
+                                  <KeyRound className="h-4 w-4 mr-2" /> Resetar Senha (CPF)
+                                </DropdownMenuItem>
+                              )}
+                              {c.user_id && (
+                                <DropdownMenuItem onSelect={() => openSetPwd(c)}>
+                                  <Lock className="h-4 w-4 mr-2" /> Definir Senha
+                                </DropdownMenuItem>
+                              )}
+                              {!c.user_id && (
+                                <DropdownMenuItem disabled={granting === c.id} onSelect={() => handleGrantAccess(c)}>
+                                  <UserPlus className="h-4 w-4 mr-2" /> Gerar Acesso Ao Portal
+                                </DropdownMenuItem>
+                              )}
+                              {c.ativo ? (
+                                <DropdownMenuItem onSelect={() => setToDesligar(c)}>
+                                  <UserMinus className="h-4 w-4 mr-2 text-destructive" /> Desligar Colaborador
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem onSelect={() => setToReintegrar(c)}>
+                                  <RotateCcw className="h-4 w-4 mr-2" /> Reintegrar Colaborador
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem onSelect={() => setToDelete(c)}>
+                                <Trash2 className="h-4 w-4 mr-2 text-destructive" /> Remover
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -476,7 +469,7 @@ export default function DpColaboradores() {
                 })}
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       Nenhum colaborador encontrado.
                     </TableCell>
                   </TableRow>
@@ -485,6 +478,7 @@ export default function DpColaboradores() {
             </Table>
           )}
       </DpContentCard>
+
 
       {/* Mobile: lista de cards */}
       <div className="md:hidden space-y-3">

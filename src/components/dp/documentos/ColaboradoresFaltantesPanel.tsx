@@ -1,5 +1,5 @@
 import { AlertTriangle, CheckCircle2, ChevronDown } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { CoverageColaborador } from "@/lib/dp/bulk-coverage";
@@ -9,13 +9,41 @@ export interface ColaboradoresFaltantesPanelProps {
   faltantes: CoverageColaborador[];
   totalEsperados: number;
   competencia: string | null;
+  /** nenhuma unidade identificada no lote */
+  unidadeIndefinida?: boolean;
+  /** seletor de unidade renderizado quando a unidade não foi identificada */
+  unidadeSlot?: ReactNode;
   className?: string;
 }
 
 export function ColaboradoresFaltantesPanel({
-  faltantes, totalEsperados, competencia, className,
+  faltantes, totalEsperados, competencia, unidadeIndefinida, unidadeSlot, className,
 }: ColaboradoresFaltantesPanelProps) {
   const [open, setOpen] = useState(false);
+
+  if (unidadeIndefinida) {
+    return (
+      <div className={cn(
+        "rounded-md border border-amber-500/40 bg-amber-500/10 p-2.5 text-xs",
+        className,
+      )}>
+        <div className="flex items-start gap-2">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+          <div className="min-w-0 flex-1">
+            <p className="font-medium text-amber-700 dark:text-amber-400">
+              Unidade Não Identificada
+            </p>
+            <p className="text-muted-foreground mt-0.5">
+              Não conseguimos identificar a unidade deste lote. Vincule manualmente uma unidade
+              (ou cadastre uma nova) para conferir os colaboradores sem documento.
+            </p>
+            {unidadeSlot && <div className="mt-2">{unidadeSlot}</div>}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (totalEsperados === 0) return null;
 
   const cobertos = totalEsperados - faltantes.length;

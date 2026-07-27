@@ -22,7 +22,9 @@ import { BulkProgressBanner } from "./BulkProgressBanner";
 import { ConfirmarSubstituicaoDialog, type DuplicateCollision } from "./ConfirmarSubstituicaoDialog";
 import { detectDuplicates } from "@/lib/dp/bulk-duplicates";
 import { ColaboradoresFaltantesPanel } from "./ColaboradoresFaltantesPanel";
-import { competenciaPredominante, computeCoverage } from "@/lib/dp/bulk-coverage";
+import { competenciaPredominante, computeCoverage, resolveUnidadesLote } from "@/lib/dp/bulk-coverage";
+import { VincularUnidadeLote } from "./VincularUnidadeLote";
+import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { cn } from "@/lib/utils";
 
 // Setup pdfjs worker once
@@ -39,6 +41,7 @@ export interface BulkReviewDialogProps {
 export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: BulkReviewDialogProps) {
   const qc = useQueryClient();
   const { data: colaboradores = [] } = useDpColaboradores();
+  const { data: unidades = [] } = useDpUnidades();
   const [currentIdx, setCurrentIdx] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const previewBoxRef = useRef<HTMLDivElement | null>(null);
@@ -59,7 +62,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_bulk_import_batches" as any)
-        .select("id,status,total_pages,processed_pages,approved_count,company_id,tipo,referencia_data")
+        .select("id,status,total_pages,processed_pages,approved_count,company_id,tipo,referencia_data,unidade_id")
         .eq("id", batchId)
         .maybeSingle();
       if (error) throw error;
@@ -297,10 +300,17 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
     rows.map((r: any) => r.detected_competencia),
     (batchInfo.data as any)?.referencia_data,
   );
+  const unidadesLote = resolveUnidadesLote({
+    rows: rows as any,
+    colaboradores: colaboradores as any,
+    unidades: unidades as any,
+    manualUnidadeId: (batchInfo.data as any)?.unidade_id ?? null,
+  });
   const coverage = computeCoverage({
     colaboradores: colaboradores as any,
     vinculados: new Set(rows.map((r: any) => r.matched_colaborador_id).filter(Boolean)),
     competencia: competenciaLote,
+    unidadeIds: unidadesLote,
     tipo: (batchInfo.data as any)?.tipo ?? null,
   });
 
@@ -347,6 +357,13 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
             faltantes={coverage.faltantes}
             totalEsperados={coverage.esperados.length}
             competencia={competenciaLote}
+            unidadeIndefinida={coverage.unidadeIndefinida}
+            unidadeSlot={
+              <VincularUnidadeLote
+                batchId={batchId}
+                companyId={(batchInfo.data as any)?.company_id ?? null}
+              />
+            }
           />
         </div>
         <div className="flex-1 min-h-0 grid grid-cols-[1fr_420px] gap-0 overflow-hidden">

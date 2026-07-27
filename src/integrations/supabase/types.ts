@@ -2520,6 +2520,7 @@ export type Database = {
           status: string
           tipo: Database["public"]["Enums"]["dp_documento_tipo"]
           total_pages: number
+          unidade_id: string | null
           updated_at: string
           uploaded_by: string | null
         }
@@ -2537,6 +2538,7 @@ export type Database = {
           status?: string
           tipo?: Database["public"]["Enums"]["dp_documento_tipo"]
           total_pages?: number
+          unidade_id?: string | null
           updated_at?: string
           uploaded_by?: string | null
         }
@@ -2554,6 +2556,7 @@ export type Database = {
           status?: string
           tipo?: Database["public"]["Enums"]["dp_documento_tipo"]
           total_pages?: number
+          unidade_id?: string | null
           updated_at?: string
           uploaded_by?: string | null
         }
@@ -2563,6 +2566,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_bulk_import_batches_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -7243,6 +7253,11 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_escala_auto_gerar: {
+        Args: { p_company_id: string; p_mes: string }
+        Returns: number
+      }
+      dp_escala_auto_gerar_todas: { Args: never; Returns: number }
       dp_ferias_gerar_periodos: {
         Args: { _colaborador_id: string }
         Returns: number

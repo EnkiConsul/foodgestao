@@ -464,6 +464,47 @@ export function useDpPendencias() {
         console.warn("pendencias/conformidade:", e);
       }
 
+      // 9. Escala do próximo mês — cobrar o gestor nos últimos dias do mês
+      try {
+        const ultimoDia = new Date(anoVigente, mesVigente, 0).getDate();
+        if (diaHoje >= ultimoDia - 4) {
+          const inicioProx = new Date(anoVigente, mesVigente, 1);
+          const fimProx = new Date(anoVigente, mesVigente + 1, 0);
+          const [{ data: colabs }, { data: folgas }] = await Promise.all([
+            supabase
+              .from("dp_colaboradores")
+              .select("id")
+              .eq("company_id", selectedCompanyId!)
+              .eq("ativo", true),
+            supabase
+              .from("dp_folgas")
+              .select("colaborador_id")
+              .eq("company_id", selectedCompanyId!)
+              .neq("status", "cancelada")
+              .gte("data", ymd(inicioProx))
+              .lte("data", ymd(fimProx)),
+          ]);
+          const comFolga = new Set((folgas ?? []).map((f: any) => f.colaborador_id));
+          const semEscala = (colabs ?? []).filter((c: any) => !comFolga.has(c.id)).length;
+          if (semEscala > 0) {
+            const prazo = new Date(anoVigente, mesVigente - 1, ultimoDia);
+            results.push({
+              id: `escala-${anoVigente}-${mesVigente + 1}`,
+              icon: Clock,
+              titulo: "Definir Escala Do Próximo Mês",
+              subtitulo: `${semEscala} colaborador(es) sem folgas em ${MES_NOME[inicioProx.getMonth()]} — o sistema gera automaticamente às 23:59 do dia ${ultimoDia}`,
+              tipo: "Escala",
+              vencimento: ymd(prazo),
+              atrasoDias: differenceInCalendarDays(today, prazo),
+              url: "/dp/escalas",
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("pendencias/escala:", e);
+      }
+
+
       // Ordenar: mais atrasado primeiro; empate → vencimento mais próximo
       results.sort((a, b) => {
         if (b.atrasoDias !== a.atrasoDias) return b.atrasoDias - a.atrasoDias;

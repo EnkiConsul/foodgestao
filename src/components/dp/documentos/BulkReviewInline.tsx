@@ -20,7 +20,9 @@ import { ConfirmarSubstituicaoDialog, type DuplicateCollision } from "./Confirma
 import { ConfirmarFaltantesDialog } from "./ConfirmarFaltantesDialog";
 import { detectDuplicates } from "@/lib/dp/bulk-duplicates";
 import { ColaboradoresFaltantesPanel } from "./ColaboradoresFaltantesPanel";
-import { competenciaPredominante, computeCoverage } from "@/lib/dp/bulk-coverage";
+import { competenciaPredominante, computeCoverage, resolveUnidadesLote } from "@/lib/dp/bulk-coverage";
+import { VincularUnidadeLote } from "./VincularUnidadeLote";
+import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { cn } from "@/lib/utils";
 
 // Setup pdfjs worker once (shared with BulkReviewDialog)
@@ -51,6 +53,7 @@ export interface BulkReviewInlineProps {
 export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkReviewInlineProps) {
   const qc = useQueryClient();
   const { data: colaboradores = [] } = useDpColaboradores();
+  const { data: unidades = [] } = useDpUnidades();
   const [currentIdx, setCurrentIdx] = useState(0);
   const [zoom, setZoom] = useState(1);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -75,7 +78,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_bulk_import_batches" as any)
-        .select("id,status,total_pages,processed_pages,approved_count,company_id,tipo")
+        .select("id,status,total_pages,processed_pages,approved_count,company_id,tipo,unidade_id,referencia_data")
         .eq("id", batchId)
         .maybeSingle();
       if (error) throw error;
@@ -377,20 +380,17 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
     rows.map((r: any) => r.detected_competencia),
     bInfo?.referencia_data,
   );
-  const unidadeLote = (() => {
-    const cnpjs = rows.map((r: any) => r.detected_cnpj).filter(Boolean);
-    if (cnpjs.length === 0) return null;
-    const ids = new Set(
-      rows.map((r: any) => colaboradores.find((c: any) => c.id === r.matched_colaborador_id)?.unidade_id)
-        .filter(Boolean),
-    );
-    return ids.size === 1 ? ([...ids][0] as string) : null;
-  })();
+  const unidadesLote = resolveUnidadesLote({
+    rows: rows as any,
+    colaboradores: colaboradores as any,
+    unidades: unidades as any,
+    manualUnidadeId: bInfo?.unidade_id ?? null,
+  });
   const coverage = computeCoverage({
     colaboradores: colaboradores as any,
     vinculados: new Set(rows.map((r: any) => r.matched_colaborador_id).filter(Boolean)),
     competencia: competenciaLote,
-    unidadeId: unidadeLote,
+    unidadeIds: unidadesLote,
     tipo: bInfo?.tipo ?? null,
   });
 
@@ -429,6 +429,10 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
             faltantes={coverage.faltantes}
             totalEsperados={coverage.esperados.length}
             competencia={competenciaLote}
+            unidadeIndefinida={coverage.unidadeIndefinida}
+            unidadeSlot={
+              <VincularUnidadeLote batchId={batchId} companyId={bInfo?.company_id ?? null} />
+            }
           />
         )}
       </div>
