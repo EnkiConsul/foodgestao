@@ -39,13 +39,18 @@ const diaSemanaLabel = (iso: string) =>
 
 export default function DpEscalas() {
   const { selectedCompanyId } = useCompanyContext();
-  const { config } = useDpConfigDp();
   const qc = useQueryClient();
 
   const [competencia, setCompetencia] = useState(competenciaAtual);
   const [unidade, setUnidade] = useState("todas");
   const [resultado, setResultado] = useState<{ propostas: EscalaProposta[]; alertas: EscalaAlerta[] } | null>(null);
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
+
+  // Regra vigente: exceção da unidade selecionada, senão o padrão da empresa.
+  const { config } = useDpConfigDp(unidade === "todas" ? null : unidade);
+  const semanasDsr = semanasEfetivas(config);
+  const semanasDsrMulher = semanasEfetivasMulher(config);
+
 
   const { inicio, fim } = useMemo(() => limitesDoMes(competencia), [competencia]);
 
