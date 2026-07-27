@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "react-router-dom";
-import { Download, Printer, Receipt, Search, Wallet } from "lucide-react";
+import { Download, Printer, Receipt, Search, SlidersHorizontal, Wallet } from "lucide-react";
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { FolhaDespesaDialog } from "@/components/dp/FolhaDespesaDialog";
+import { FolhaRubricasDialog } from "@/components/dp/FolhaRubricasDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,7 @@ import {
 import { useDpFolhaPeriodo } from "@/hooks/useDpFolha";
 import {
   FOLHA_TIPO_LABEL, LANCAMENTO_STATUS_LABEL, PERIODO_STATUS_LABEL,
-  folhaParaCsv, formatarBRL, podeGerarDespesa, proximoStatusPeriodo, totaisDaFolha,
+  folhaParaCsv, formatarBRL, podeGerarDespesa, proximoStatusPeriodo, totaisDaFolha, totaisDosExtras,
   type FolhaPeriodoStatus,
 } from "@/lib/dp/folha";
 import { imprimirHolerite, type HoleriteDados } from "@/lib/dp/holerite";
@@ -42,13 +43,14 @@ export default function DpFolhaPeriodo() {
   const { id } = useParams<{ id: string }>();
   const {
     periodo, linhas, transactionId, isLoading, error,
-    alterarStatus, cancelarLancamento, gerarDespesa, desfazerDespesa,
+    alterarStatus, cancelarLancamento, gerarDespesa, desfazerDespesa, salvarRubricas,
   } = useDpFolhaPeriodo(id);
   const [busca, setBusca] = useState("");
   const [confirmar, setConfirmar] = useState<FolhaPeriodoStatus | null>(null);
   const [cancelar, setCancelar] = useState<string | null>(null);
   const [despesaAberta, setDespesaAberta] = useState(false);
   const [desfazerAberto, setDesfazerAberto] = useState(false);
+  const [rubricasDe, setRubricasDe] = useState<string | null>(null);
 
   const filtradas = useMemo(
     () => linhas.filter((l) => !busca.trim() || l.nome.toLowerCase().includes(busca.trim().toLowerCase())),
@@ -209,6 +211,14 @@ export default function DpFolhaPeriodo() {
                     {formatarBRL(l.detalhe.proventos.extras50 + l.detalhe.proventos.extras100)} · Noturno{" "}
                     {formatarBRL(l.detalhe.proventos.noturno)} · Descontos{" "}
                     {formatarBRL(l.detalhe.faltas + l.detalhe.dsr)}
+                    {l.detalhe.extras.length > 0 && (
+                      <>
+                        {" · Avulsas +"}
+                        {formatarBRL(totaisDosExtras(l.detalhe.extras).proventos)}
+                        {" / -"}
+                        {formatarBRL(totaisDosExtras(l.detalhe.extras).descontos)}
+                      </>
+                    )}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -216,6 +226,16 @@ export default function DpFolhaPeriodo() {
                     <p className="text-xs text-muted-foreground">Líquido</p>
                     <p className="text-sm font-semibold">{formatarBRL(l.valor_liquido)}</p>
                   </div>
+                  {l.status === "rascunho" && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Rubricas avulsas de ${l.nome}`}
+                      onClick={() => setRubricasDe(l.id)}
+                    >
+                      <SlidersHorizontal className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -287,6 +307,18 @@ export default function DpFolhaPeriodo() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <FolhaRubricasDialog
+        open={!!rubricasDe}
+        onOpenChange={(o) => !o && setRubricasDe(null)}
+        nome={linhas.find((l) => l.id === rubricasDe)?.nome ?? ""}
+        extras={linhas.find((l) => l.id === rubricasDe)?.detalhe.extras ?? []}
+        isPending={salvarRubricas.isPending}
+        onConfirm={(extras) => {
+          if (!rubricasDe) return;
+          salvarRubricas.mutate({ id: rubricasDe, extras }, { onSuccess: () => setRubricasDe(null) });
+        }}
+      />
 
       <FolhaDespesaDialog
         open={despesaAberta}
