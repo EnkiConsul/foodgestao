@@ -3649,6 +3649,59 @@ export type Database = {
           },
         ]
       }
+      dp_ferias_bloqueios: {
+        Row: {
+          ativo: boolean
+          company_id: string
+          created_at: string
+          data_fim: string
+          data_inicio: string
+          id: string
+          nome: string
+          observacao: string | null
+          permite_excecao: boolean
+          recorrente_anual: boolean
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          company_id: string
+          created_at?: string
+          data_fim: string
+          data_inicio: string
+          id?: string
+          nome: string
+          observacao?: string | null
+          permite_excecao?: boolean
+          recorrente_anual?: boolean
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          company_id?: string
+          created_at?: string
+          data_fim?: string
+          data_inicio?: string
+          id?: string
+          nome?: string
+          observacao?: string | null
+          permite_excecao?: boolean
+          recorrente_anual?: boolean
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_ferias_bloqueios_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_ferias_gozos: {
         Row: {
           adiantar_13: boolean
@@ -3810,6 +3863,60 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_ferias_regras: {
+        Row: {
+          ativo: boolean
+          cargo_id: string | null
+          company_id: string
+          created_at: string
+          id: string
+          max_simultaneos: number
+          observacao: string | null
+          turno: Database["public"]["Enums"]["dp_turno"] | null
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cargo_id?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          max_simultaneos?: number
+          observacao?: string | null
+          turno?: Database["public"]["Enums"]["dp_turno"] | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cargo_id?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          max_simultaneos?: number
+          observacao?: string | null
+          turno?: Database["public"]["Enums"]["dp_turno"] | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_ferias_regras_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ferias_regras_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
             referencedColumns: ["id"]
           },
         ]
