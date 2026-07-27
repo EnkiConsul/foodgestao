@@ -208,7 +208,8 @@ export default function DpEscalas() {
         alertasCarga.push({
           colaboradorId: s.colaboradorId,
           nome: s.nome,
-          mensagem: `Semana de ${format(parseIso(s.semana), "dd/MM")}: carga escalada de ${formatarHoras(validacao.carga)} excede ${validacao.limite}h.`,
+          tipo: "carga",
+
         });
       }
     }
