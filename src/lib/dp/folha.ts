@@ -213,13 +213,17 @@ export function folhaParaCsv(competencia: string, linhas: LinhaFolha[]): string 
     "Desconto DSR",
     "Outros proventos",
     "Outros descontos",
+    "INSS",
+    "IRRF",
+    "FGTS",
     "Bruto",
     "Liquido",
     "Status",
   ];
   const n = (v: number) => v.toFixed(2).replace(".", ",");
-  const corpo = linhas.map((l) =>
-    [
+  const corpo = linhas.map((l) => {
+    const enc = encargosDoLancamento(l.detalhe);
+    return [
       l.nome,
       competencia,
       n(l.detalhe.proventos.normais),
@@ -230,6 +234,9 @@ export function folhaParaCsv(competencia: string, linhas: LinhaFolha[]): string 
       n(l.detalhe.dsr),
       n(totaisDosExtras(l.detalhe.extras).proventos),
       n(totaisDosExtras(l.detalhe.extras).descontos),
+      n(enc.inss),
+      n(enc.irrf),
+      n(enc.fgts),
       n(l.valor_bruto),
       n(l.valor_liquido),
       LANCAMENTO_STATUS_LABEL[l.status],
