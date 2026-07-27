@@ -139,37 +139,38 @@ const financeiroShortcuts: NavLeaf[] = [
   { icon: PiggyBank, label: "Orçamento", to: "/orcamento" },
 ];
 
-// ── DP ───────────────────────────────────────────────────────────────────
-const dpHome: NavLeaf = { icon: Home, label: "Início", to: "/dp", end: true };
-const dpShortcuts: NavLeaf[] = [
-  { icon: Calendar, label: "Calendário", to: "/dp/folgas" },
-  { icon: FileText, label: "Documentos", to: "/dp/documentos" },
-  { icon: Users, label: "Colaboradores", to: "/dp/colaboradores" },
-  { icon: CheckSquare, label: "Aprovações", to: "/dp/aprovacoes" },
-  { icon: BellRing, label: "Comunicação", to: "/dp/comunicacao" },
-  { icon: Inbox, label: "Solicitações", to: "/dp/solicitacoes" },
-  { icon: FileBarChart, label: "Histórico", to: "/dp/documentos/historico" },
-  { icon: Palmtree, label: "Férias", to: "/dp/ferias" },
-  { icon: CalendarRange, label: "Escalas", to: "/dp/escalas" },
-  { icon: Clock, label: "Jornadas", to: "/dp/cadastros/jornadas" },
-  { icon: ShieldCheck, label: "Conformidade", to: "/dp/conformidade" },
-  { icon: Gift, label: "Benefícios", to: "/dp/beneficios" },
-  { icon: BarChart3, label: "Analytics", to: "/dp/analytics" },
-];
+// ── DP + Portal (derivados de src/config/dpNavigation.tsx) ───────────────
+/** Converte um item da config compartilhada em NavLeaf do menu mobile. */
+function toLeaf(item: DpNavItem): NavLeaf {
+  return { icon: item.icon, label: item.label, to: item.to, end: item.end };
+}
 
-// ── Portal do colaborador ────────────────────────────────────────────────
-const portalHome: NavLeaf = { icon: Home, label: "Início", to: "/dp/meu", end: true };
+/** Versão curta, usada nas opções de atalho da BottomNav. */
+function toShortcutLeaf(item: DpNavItem): NavLeaf {
+  return { icon: item.icon, label: item.shortLabel ?? item.label, to: item.to };
+}
+
+function toSubGroup(group: DpNavGroup): MoreSubGroup {
+  return {
+    kind: "collapsible",
+    label: group.label,
+    icon: group.icon,
+    hubTo: group.hubTo,
+    matchPrefixes: group.matchPrefixes,
+    items: group.items.map(toLeaf),
+  };
+}
+
+const dpHome: NavLeaf = toLeaf(DP_ADMIN_NAV.home);
+const dpShortcuts: NavLeaf[] = surfaceShortcuts(DP_ADMIN_NAV).map(toShortcutLeaf);
+
+const portalHome: NavLeaf = toLeaf(DP_PORTAL_NAV.home);
 const portalShortcuts: NavLeaf[] = [
   { icon: Home, label: "Financeiro", to: "/dashboard" },
   { icon: Users, label: "DP", to: "/dp" },
-  { icon: Megaphone, label: "Mural", to: "/dp/meu/mural" },
-  { icon: Calendar, label: "Calendário", to: "/dp/meu/calendario" },
-  { icon: Inbox, label: "Solicitações", to: "/dp/meu/solicitacoes" },
-  { icon: FileText, label: "Documentos", to: "/dp/meu/documentos" },
-  { icon: ArrowLeftRight, label: "Trocas", to: "/dp/meu/trocas" },
-  { icon: FileBarChart, label: "Histórico", to: "/dp/meu/historico" },
-  { icon: User, label: "Perfil", to: "/dp/meu/perfil" },
+  ...surfaceShortcuts(DP_PORTAL_NAV).map(toShortcutLeaf),
 ];
+
 
 // ── Hub ──────────────────────────────────────────────────────────────────
 const hubHome: NavLeaf = { icon: LayoutGrid, label: "Módulos", to: "/hub", end: true };
