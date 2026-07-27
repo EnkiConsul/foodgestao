@@ -79,14 +79,52 @@ export default function ContasBancarias() {
 
   useEffect(() => { fetchAccounts(); }, [fetchAccounts]);
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Controle mutuamente exclusivo entre os 3 modais de conta.
+  // Só um dos três (methodOpen / dialogOpen / ofWizardOpen) pode estar aberto.
+  // Cada helper limpa os outros antes de abrir o próprio fluxo.
+  // ─────────────────────────────────────────────────────────────────────────
+  const openMethodDialog = useCallback(() => {
+    setDialogOpen(false);
+    setOfWizardOpen(false);
+    setEditAccount(null);
+    setMethodOpen(true);
+  }, []);
+
+  const openManualForm = useCallback((account: Account | null) => {
+    setMethodOpen(false);
+    setOfWizardOpen(false);
+    setEditAccount(account);
+    setDialogOpen(true);
+  }, []);
+
+  const openOfWizard = useCallback(() => {
+    setMethodOpen(false);
+    setDialogOpen(false);
+    setEditAccount(null);
+    setOfWizardOpen(true);
+  }, []);
+
+  // Fechamentos individuais — limpam apenas o estado do próprio fluxo.
+  const handleMethodOpenChange = useCallback((open: boolean) => {
+    setMethodOpen(open);
+  }, []);
+  const handleFormOpenChange = useCallback((open: boolean) => {
+    setDialogOpen(open);
+    if (!open) setEditAccount(null);
+  }, []);
+  const handleOfWizardOpenChange = useCallback((open: boolean) => {
+    setOfWizardOpen(open);
+  }, []);
+
   // Auto-open Open Finance wizard from ?openFinance=1 (e.g., voltando da tela de Conexões)
   useEffect(() => {
     if (searchParams.get("openFinance") === "1" && contextType === "pj" && selectedCompanyId) {
-      setOfWizardOpen(true);
+      openOfWizard();
       searchParams.delete("openFinance");
       setSearchParams(searchParams, { replace: true });
     }
-  }, [searchParams, setSearchParams, contextType, selectedCompanyId]);
+  }, [searchParams, setSearchParams, contextType, selectedCompanyId, openOfWizard]);
 
   // Reset detector quando muda o perfil de acesso
   useEffect(() => {
@@ -198,7 +236,7 @@ export default function ContasBancarias() {
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${resyncing ? "animate-spin" : ""}`} /> Recalcular saldos
           </Button>
-          <Button onClick={() => { setEditAccount(null); setMethodOpen(true); }} className="hidden md:flex">
+          <Button onClick={openMethodDialog} className="hidden md:flex">
             <Plus className="h-4 w-4 mr-2" /> Nova Conta
           </Button>
         </div>
@@ -277,7 +315,7 @@ export default function ContasBancarias() {
             <CardContent className="flex flex-col items-center py-12 text-muted-foreground">
               <Landmark className="h-10 w-10 mb-3 opacity-40" />
               <p className="text-sm">Nenhuma conta bancária encontrada</p>
-              <Button variant="link" onClick={() => { setEditAccount(null); setMethodOpen(true); }} className="mt-2">
+              <Button variant="link" onClick={openMethodDialog} className="mt-2">
                 Criar primeira conta
               </Button>
             </CardContent>
@@ -347,7 +385,7 @@ export default function ContasBancarias() {
                       variant="ghost"
                       size="icon"
                       className="h-10 w-10 text-muted-foreground hover:text-primary hover:bg-primary/10"
-                      onClick={() => { setEditAccount(a); setDialogOpen(true); }}
+                      onClick={() => openManualForm(a)}
                       aria-label="Editar conta"
                     >
                       <Pencil className="h-4 w-4" />
@@ -371,7 +409,7 @@ export default function ContasBancarias() {
 
       {/* FAB mobile */}
       <button
-        onClick={() => { setEditAccount(null); setMethodOpen(true); }}
+        onClick={openMethodDialog}
         className="fixed bottom-20 right-4 z-50 md:hidden flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
       >
         <Plus className="h-6 w-6" />
@@ -379,30 +417,29 @@ export default function ContasBancarias() {
 
       <AccountCreationMethodDialog
         open={methodOpen}
-        onOpenChange={setMethodOpen}
+        onOpenChange={handleMethodOpenChange}
         openFinanceEnabled={contextType === "pj" && !!selectedCompanyId}
         openFinanceDisabledReason="Selecione uma empresa antes de conectar uma conta via Open Finance."
-        onSelectManual={() => { setMethodOpen(false); setEditAccount(null); setDialogOpen(true); }}
+        onSelectManual={() => openManualForm(null)}
         onSelectOpenFinance={() => {
           if (contextType !== "pj" || !selectedCompanyId) {
             // Card está desabilitado — não deveria disparar. Mantém o modal aberto.
             return;
           }
-          setMethodOpen(false);
-          setOfWizardOpen(true);
+          openOfWizard();
         }}
       />
 
       <OpenFinanceWizard
         open={ofWizardOpen}
-        onOpenChange={setOfWizardOpen}
+        onOpenChange={handleOfWizardOpenChange}
         companyId={contextType === "pj" ? selectedCompanyId : null}
         onFinished={fetchAccounts}
       />
 
       <AccountFormDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={handleFormOpenChange}
         onSaved={(newId) => {
           fetchAccounts();
           if (newId && !editAccount) setPostCreateAccountId(newId);
