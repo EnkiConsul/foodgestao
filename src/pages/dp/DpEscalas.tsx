@@ -174,9 +174,49 @@ export default function DpEscalas() {
       periodicidadeDomingoMulher: semanasDsrMulher,
     });
 
-    setResultado({ propostas: r.propostas, alertas: r.alertas });
+    // Carga semanal na semana efetivamente montada: conta só os dias escalados (sem folgas/ausências).
+    const folgasFinais = new Set(folgasExistentes);
+    for (const p of r.propostas) folgasFinais.add(`${p.colaboradorId}|${p.data}`);
+
+    const porSemana = new Map<string, { colaboradorId: string; nome: string; semana: string; dias: number[] }>();
+    for (const c of colaboradores) {
+      const horarios = horariosPorColaborador.get(c.id) ?? [];
+      if (!horarios.length) continue;
+      const cur = parseIso(inicio);
+      const ate = parseIso(fim);
+      while (cur <= ate) {
+        const iso = format(cur, "yyyy-MM-dd");
+        const chaveDia = `${c.id}|${iso}`;
+        if (!folgasFinais.has(chaveDia) && !ausencias.has(chaveDia)) {
+          const inicioSemana = new Date(cur);
+          inicioSemana.setDate(inicioSemana.getDate() - ((inicioSemana.getDay() + 6) % 7));
+          const semana = format(inicioSemana, "yyyy-MM-dd");
+          const chave = `${c.id}|${semana}`;
+          const atual = porSemana.get(chave) ?? { colaboradorId: c.id, nome: c.nome, semana, dias: [] };
+          atual.dias.push(cur.getDay());
+          porSemana.set(chave, atual);
+        }
+        cur.setDate(cur.getDate() + 1);
+      }
+    }
+
+    const alertasCarga: EscalaAlerta[] = [];
+    for (const s of porSemana.values()) {
+      const horarios = horariosPorColaborador.get(s.colaboradorId) ?? [];
+      const validacao = validarCargaSemanal(calcularCargaDaEscala(horarios, s.dias));
+      if (validacao.excede) {
+        alertasCarga.push({
+          colaboradorId: s.colaboradorId,
+          nome: s.nome,
+          mensagem: `Semana de ${format(parseIso(s.semana), "dd/MM")}: carga escalada de ${formatarHoras(validacao.carga)} excede ${validacao.limite}h.`,
+        });
+      }
+    }
+
+    setResultado({ propostas: r.propostas, alertas: [...r.alertas, ...alertasCarga] });
     setSelecionadas(new Set(r.propostas.map((p) => `${p.colaboradorId}|${p.data}`)));
     if (r.propostas.length === 0) toast.info("Nenhuma folga nova a propor para este período.");
+
   };
 
   const publicar = useMutation({
