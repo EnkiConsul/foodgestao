@@ -224,8 +224,8 @@ export default function DpCadastroJornadas() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="flex max-h-[92vh] max-w-2xl flex-col gap-4 overflow-hidden p-0">
-          <DialogHeader className="space-y-3 border-b p-4 text-left">
+        <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-auto sm:max-h-[92vh] sm:w-full sm:max-w-2xl sm:rounded-lg">
+          <DialogHeader className="shrink-0 space-y-3 border-b p-4 text-left">
             <div>
               <DialogTitle>{editing ? "Editar Jornada" : "Nova Jornada"}</DialogTitle>
               <DialogDescription>
@@ -235,7 +235,7 @@ export default function DpCadastroJornadas() {
             <Progress value={((passo + 1) / PASSOS.length) * 100} aria-label="Progresso do cadastro" />
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto px-4 pb-2">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
             {passo === 0 && (
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">
@@ -246,8 +246,28 @@ export default function DpCadastroJornadas() {
             )}
 
             {passo === 1 && (
-              <HorariosSemanaEditor horarios={form.horarios} onChange={(h) => set("horarios", h)} />
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="j-escala-semana">Regime da jornada</Label>
+                  <Select value={form.tipo_escala} onValueChange={(v) => set("tipo_escala", v as DpJornadaForm["tipo_escala"])}>
+                    <SelectTrigger id="j-escala-semana" className="h-12"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {ESCALAS.map((e) => <SelectItem key={e} value={e}>{TIPO_ESCALA_LABEL[e] ?? e}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    O regime define quantas folgas semanais são estimadas. A folga de cada colaborador é definida no
+                    vínculo ou na escala.
+                  </p>
+                </div>
+                <HorariosSemanaEditor
+                  horarios={form.horarios}
+                  onChange={(h) => set("horarios", h)}
+                  tipoEscala={form.tipo_escala}
+                />
+              </div>
             )}
+
 
             {passo === 2 && (
               <div className="grid gap-4 sm:grid-cols-2">
