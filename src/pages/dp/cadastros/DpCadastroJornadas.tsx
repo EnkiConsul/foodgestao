@@ -49,14 +49,6 @@ export default function DpCadastroJornadas() {
 
   const set = <K extends keyof DpJornadaForm>(k: K, v: DpJornadaForm[K]) => setForm((f) => ({ ...f, [k]: v }));
 
-  const abrirNova = () => {
-    setEditing(null);
-    setTemplateId(null);
-    setForm(JORNADA_FORM_DEFAULT);
-    setPasso(0);
-    setOpen(true);
-  };
-
   const abrirEdicao = (j: DpJornada) => {
     setEditing(j);
     setTemplateId(null);
@@ -73,21 +65,6 @@ export default function DpCadastroJornadas() {
     setOpen(true);
   };
 
-  const duplicarJornada = (j: DpJornada) => {
-    setEditing(null);
-    setTemplateId(null);
-    setForm({
-      nome: `${j.nome} (cópia)`,
-      descricao: j.descricao ?? null,
-      tipo_escala: j.tipo_escala,
-      turno: j.turno,
-      ativo: true,
-      observacoes: j.observacoes,
-      horarios: j.horarios,
-    });
-    setPasso(1);
-    setOpen(true);
-  };
 
   const escolherTemplate = (t: JornadaTemplate) => {
     setTemplateId(t.id);
