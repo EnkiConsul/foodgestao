@@ -9205,6 +9205,7 @@ export type Database = {
         | "ferias"
         | "vale_alimentacao"
         | "vale_transporte"
+        | "rescisao"
       dp_mensagem_canal: "whatsapp" | "email" | "sms"
       dp_motivo_desligamento:
         | "pedido_demissao"
@@ -9566,6 +9567,7 @@ export const Constants = {
         "ferias",
         "vale_alimentacao",
         "vale_transporte",
+        "rescisao",
       ],
       dp_mensagem_canal: ["whatsapp", "email", "sms"],
       dp_motivo_desligamento: [
