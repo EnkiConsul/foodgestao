@@ -483,6 +483,8 @@ export default function Relatorios() {
               )}
             </tbody>
           </table>
+          </div>
+
           {filteredTransactions.length === 0 && (
             <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
               {fluxoTransactions.length === 0 ? "Nenhuma movimentação no período selecionado" : "Nenhum resultado com os filtros selecionados"}
