@@ -81,6 +81,7 @@ const DpEscalaMes = lazyWithRetry(() => import("./pages/dp/DpEscalaMes"));
 const DpOperacaoDia = lazyWithRetry(() => import("./pages/dp/DpOperacaoDia"));
 const DpConvocacoes = lazyWithRetry(() => import("./pages/dp/DpConvocacoes"));
 const DpPonto = lazyWithRetry(() => import("./pages/dp/DpPonto"));
+const DpPontoConsolidado = lazyWithRetry(() => import("./pages/dp/DpPontoConsolidado"));
 const DpUnidades = lazyWithRetry(() => import("./pages/dp/DpUnidades"));
 const DpCargos = lazyWithRetry(() => import("./pages/dp/DpCargos"));
 const DpSindicatos = lazyWithRetry(() => import("./pages/dp/DpSindicatos"));
@@ -412,6 +413,7 @@ const AppRoutes = () => (
         <Route path="operacao" element={<DpOperacaoDia />} />
         <Route path="convocacoes" element={<DpConvocacoes />} />
         <Route path="ponto" element={<DpPonto />} />
+        <Route path="ponto/time" element={<DpPontoConsolidado />} />
         <Route path="documentos/act-cct" element={<DpSindicatoNegociacoes />} />
         <Route path="configuracoes" element={<DpConfiguracoes />} />
         <Route path="sindicatos" element={<Navigate to="/dp/cadastros/sindicatos" replace />} />

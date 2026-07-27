@@ -278,3 +278,74 @@ export function espelhoParaCsv(colaborador: string, competencia: string, dias: R
   );
   return [cab.join(";"), ...linhas].join("\n");
 }
+
+// ------------------------------------------------------------------
+// Fase 10 — Consolidação do time (fechamento em lote)
+// ------------------------------------------------------------------
+
+import type { HorarioPrevisto as _HP } from "@/lib/dp/horario-previsto";
+
+export interface ResumoColaboradorMes {
+  colaborador_id: string;
+  nome: string;
+  dias: ResumoPontoDia[];
+  totais: TotaisPeriodo;
+  pendencias: number;
+  fechado: boolean;
+  saldoAnteriorMinutos: number;
+  saldoAcumuladoMinutos: number;
+}
+
+/** Consolida os dias de um colaborador em um período. */
+export function consolidarPeriodo(
+  datas: string[],
+  previstoPorData: Map<string, _HP>,
+  marcacoesPorData: Map<string, Marcacao[]>,
+  hoje: string,
+  toleranciaMinutos?: number,
+): ResumoPontoDia[] {
+  return datas.map((data) =>
+    consolidarDia({
+      data,
+      previsto: previstoPorData.get(data) ?? null,
+      marcacoes: marcacoesPorData.get(data) ?? [],
+      encerrado: data < hoje,
+      toleranciaMinutos,
+    }),
+  );
+}
+
+/** CSV consolidado do time (uma linha por colaborador). */
+export function equipeParaCsv(competencia: string, linhas: ResumoColaboradorMes[]): string {
+  const cab = [
+    "Colaborador",
+    "Competencia",
+    "Trabalhado",
+    "Previsto",
+    "Saldo do mes",
+    "Saldo anterior",
+    "Banco de horas",
+    "Faltas",
+    "Atraso",
+    "Pendencias",
+    "Status",
+  ];
+  const corpo = linhas.map((l) =>
+    [
+      l.nome,
+      competencia,
+      formatarDuracao(l.totais.minutosTrabalhados),
+      formatarDuracao(l.totais.minutosPrevistos),
+      formatarSaldo(l.totais.saldoMinutos),
+      formatarSaldo(l.saldoAnteriorMinutos),
+      formatarSaldo(l.saldoAcumuladoMinutos),
+      String(l.totais.faltas),
+      l.totais.atrasoMinutos ? formatarDuracao(l.totais.atrasoMinutos) : "",
+      String(l.pendencias),
+      l.fechado ? "Fechado" : "Aberto",
+    ]
+      .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+      .join(";"),
+  );
+  return [cab.join(";"), ...corpo].join("\n");
+}
