@@ -399,6 +399,10 @@ export default function ConexoesOpenFinance() {
         </Button>
       </div>
 
+      {inPJ && selectedCompanyId && (
+        <OpenFinanceHealthPanel companyId={selectedCompanyId} />
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-12 text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando conexões...
