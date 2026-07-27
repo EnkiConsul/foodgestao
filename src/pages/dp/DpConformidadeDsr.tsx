@@ -89,6 +89,8 @@ export default function DpConformidadeDsr() {
   });
 
 
+  const porAcordo = config.tipo_descanso_domingo === "acordo_coletivo";
+
   const linhas = useMemo(
     () => avaliarConformidade(query.data ?? [], config),
     [query.data, config],
@@ -98,6 +100,7 @@ export default function DpConformidadeDsr() {
   const exportarCsv = () => {
     const headers = [
       "Colaborador", "Sexo", "Domingos no mês", "Domingos folgados",
+      "Sábados aproveitados (acordo)", "Folgas consideradas",
       "Periodicidade aplicada (semanas)", "Mínimo esperado", "Situação",
     ];
     const rows = linhas.map((l) => [
@@ -105,10 +108,13 @@ export default function DpConformidadeDsr() {
       l.sexo === "F" ? "Feminino" : l.sexo === "M" ? "Masculino" : "—",
       String(l.domingosNoPeriodo),
       String(l.domingosFolgados.length),
+      String(l.sabadosAproveitados),
+      String(l.folgasConsideradas),
       String(l.periodicidadeAplicada),
       String(l.esperado),
       l.conforme ? "Conforme" : "Fora de conformidade",
     ]);
+
     const csv = [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
