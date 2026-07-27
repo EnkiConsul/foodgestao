@@ -40,6 +40,18 @@ const dataExtenso = (iso: string) =>
     weekday: "long", day: "2-digit", month: "long",
   });
 
+function Secao({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
+  return (
+    <Secao contentClassName="p-4">
+      <div className="mb-2">
+        <h2 className="text-sm font-semibold">{title}</h2>
+        {description && <p className="text-xs text-muted-foreground">{description}</p>}
+      </div>
+      {children}
+    </Secao>
+  );
+}
+
 export default function DpOperacaoDia() {
   const { selectedCompanyId } = useCompanyContext();
   const [data, setData] = useState(hojeIso);
@@ -195,7 +207,7 @@ export default function DpOperacaoDia() {
           </div>
 
           {alertas.length > 0 && (
-            <DpContentCard title="Pontos de atenção">
+            <Secao title="Pontos de atenção">
               <ul className="space-y-2">
                 {alertas.map((a, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm">
@@ -206,18 +218,18 @@ export default function DpOperacaoDia() {
                   </li>
                 ))}
               </ul>
-            </DpContentCard>
+            </Secao>
           )}
 
           {!itens.length ? (
-            <DpContentCard title="Sem escala para este mês">
+            <Secao title="Sem escala para este mês">
               <p className="text-sm text-muted-foreground">
                 Gere a escala do mês para acompanhar a operação do dia.
               </p>
-            </DpContentCard>
+            </Secao>
           ) : (
             dia.blocos.map((bloco) => (
-              <DpContentCard
+              <Secao
                 key={bloco.turno_id ?? "sem-turno"}
                 title={bloco.nome}
                 description={
@@ -246,12 +258,12 @@ export default function DpOperacaoDia() {
                     <li className="py-2 text-sm text-muted-foreground">Ninguém escalado neste turno.</li>
                   )}
                 </ul>
-              </DpContentCard>
+              </Secao>
             ))
           )}
 
           {dia.ausentes.length > 0 && (
-            <DpContentCard title="Ausentes" description={`${dia.ausentes.length} pessoa(s) fora da operação`}>
+            <Secao title="Ausentes" description={`${dia.ausentes.length} pessoa(s) fora da operação`}>
               <ul className="divide-y">
                 {dia.ausentes.map((p) => (
                   <li key={p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
@@ -263,17 +275,17 @@ export default function DpOperacaoDia() {
                   </li>
                 ))}
               </ul>
-            </DpContentCard>
+            </Secao>
           )}
 
           {dia.semEscala.length > 0 && (
-            <DpContentCard title="Sem registro na escala" description="Colaboradores sem configuração de trabalho vigente">
+            <Secao title="Sem registro na escala" description="Colaboradores sem configuração de trabalho vigente">
               <ul className="divide-y">
                 {dia.semEscala.map((c) => (
                   <li key={c.id} className="py-2 text-sm">{c.nome}</li>
                 ))}
               </ul>
-            </DpContentCard>
+            </Secao>
           )}
         </>
       )}
