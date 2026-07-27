@@ -7253,6 +7253,11 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_escala_auto_gerar: {
+        Args: { p_company_id: string; p_mes: string }
+        Returns: number
+      }
+      dp_escala_auto_gerar_todas: { Args: never; Returns: number }
       dp_ferias_gerar_periodos: {
         Args: { _colaborador_id: string }
         Returns: number
