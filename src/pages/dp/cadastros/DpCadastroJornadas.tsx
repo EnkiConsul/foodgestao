@@ -295,8 +295,6 @@ export default function DpCadastroJornadas() {
 
                 <div className="space-y-1.5 sm:col-span-2">
 
-
-                <div className="space-y-1.5">
                   <Label htmlFor="j-turno">Turno</Label>
                   <Select value={form.turno} onValueChange={(v) => set("turno", v as DpJornadaForm["turno"])}>
                     <SelectTrigger id="j-turno" className="h-12"><SelectValue /></SelectTrigger>
