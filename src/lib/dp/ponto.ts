@@ -204,3 +204,77 @@ export function totalizarPeriodo(dias: ResumoPontoDia[]): TotaisPeriodo {
     },
   );
 }
+
+// ------------------------------------------------------------------
+// Fase 8 — Fechamento mensal e banco de horas
+// ------------------------------------------------------------------
+
+export interface FechamentoCalculado {
+  competencia: string;
+  minutosTrabalhados: number;
+  minutosPrevistos: number;
+  saldoMinutos: number;
+  saldoAnteriorMinutos: number;
+  saldoAcumuladoMinutos: number;
+  faltas: number;
+  atrasoMinutos: number;
+}
+
+/** Consolida o mês para fechamento, somando o saldo anterior (banco de horas). */
+export function calcularFechamento(
+  competencia: string,
+  dias: ResumoPontoDia[],
+  saldoAnteriorMinutos = 0,
+): FechamentoCalculado {
+  const t = totalizarPeriodo(dias);
+  return {
+    competencia,
+    minutosTrabalhados: t.minutosTrabalhados,
+    minutosPrevistos: t.minutosPrevistos,
+    saldoMinutos: t.saldoMinutos,
+    saldoAnteriorMinutos,
+    saldoAcumuladoMinutos: saldoAnteriorMinutos + t.saldoMinutos,
+    faltas: t.faltas,
+    atrasoMinutos: t.atrasoMinutos,
+  };
+}
+
+/** Dias que impedem um fechamento confiável (marcações faltando ou faltas em aberto). */
+export function pendenciasDoFechamento(dias: ResumoPontoDia[]): ResumoPontoDia[] {
+  return dias.filter((d) => d.status === "incompleto" || d.status === "em_andamento");
+}
+
+/** Espelho em CSV (Excel pt-BR: separador ";"). Sem BOM — quem baixa adiciona. */
+export function espelhoParaCsv(colaborador: string, competencia: string, dias: ResumoPontoDia[]): string {
+  const cab = [
+    "Colaborador",
+    "Competencia",
+    "Data",
+    "Status",
+    "Entrada",
+    "Saida",
+    "Intervalo",
+    "Trabalhado",
+    "Previsto",
+    "Saldo",
+    "Atraso",
+  ];
+  const linhas = dias.map((d) =>
+    [
+      colaborador,
+      competencia,
+      d.data,
+      STATUS_DIA_LABEL[d.status],
+      d.entrada ?? "",
+      d.saida ?? "",
+      formatarDuracao(d.intervaloMinutos),
+      formatarDuracao(d.minutosTrabalhados),
+      formatarDuracao(d.minutosPrevistos),
+      formatarSaldo(d.saldoMinutos),
+      d.atrasoMinutos ? formatarDuracao(d.atrasoMinutos) : "",
+    ]
+      .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+      .join(";"),
+  );
+  return [cab.join(";"), ...linhas].join("\n");
+}
