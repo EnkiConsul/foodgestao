@@ -89,14 +89,12 @@ async def restore_session(context, page) -> None:
         for c in cookies:
             c["url"] = BASE_URL
         await context.add_cookies(cookies)
+    # 1) primeira ida ao origin p/ conseguir escrever localStorage
     await page.goto(BASE_URL, wait_until="domcontentloaded")
     await page.evaluate(
-        f"window.localStorage.setItem({json.dumps(storage_key)}, {json.dumps(session_json)})"
-    )
-    # Força o contexto Pessoal — contas semeadas são context='pf'.
-    await page.evaluate(
+        f"window.localStorage.setItem({json.dumps(storage_key)}, {json.dumps(session_json)});"
         "window.localStorage.setItem('app-company-context', "
-        "JSON.stringify({contextType:'pf', selectedCompanyId:null}))"
+        "JSON.stringify({contextType:'pf', selectedCompanyId:null}));"
     )
 
 
