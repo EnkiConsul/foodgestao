@@ -58,6 +58,14 @@ import {
   Fingerprint,
 } from "lucide-react";
 import type { ActiveModule } from "@/hooks/useActiveModule";
+import {
+  DP_ADMIN_NAV,
+  DP_PORTAL_NAV,
+  surfaceShortcuts,
+  type DpNavGroup,
+  type DpNavItem,
+} from "@/config/dpNavigation";
+
 
 /** Item de navegação simples (link). */
 export type NavLeaf = {
