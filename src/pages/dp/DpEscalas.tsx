@@ -13,6 +13,10 @@ import { expandRegraNoIntervalo, type RegraRow } from "@/lib/dp/bloqueio-rules";
 import {
   gerarEscala, parseIso, type EscalaProposta, type EscalaAlerta, type EscalaColaborador,
 } from "@/lib/dp/escala-generator";
+import {
+  calcularCargaDaEscala, formatarHoras, validarCargaSemanal, type HorarioDia,
+} from "@/lib/dp/jornada-utils";
+
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { Button } from "@/components/ui/button";
