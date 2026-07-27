@@ -26,7 +26,7 @@ import {
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { DesligamentoDialog } from "@/components/dp/DesligamentoDialog";
-import { ColaboradorJornadaDialog } from "@/components/dp/ColaboradorJornadaDialog";
+import { ColaboradorConfigTrabalhoDialog } from "@/components/dp/ColaboradorConfigTrabalhoDialog";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { supabase } from "@/integrations/supabase/client";
@@ -586,7 +586,7 @@ export default function DpColaboradores() {
 
       <ColaboradorFormDialog open={dialogOpen} onOpenChange={setDialogOpen} colaborador={editing} />
 
-      <ColaboradorJornadaDialog
+      <ColaboradorConfigTrabalhoDialog
         colaborador={jornadaTarget}
         open={!!jornadaTarget}
         onOpenChange={(o) => !o && setJornadaTarget(null)}
