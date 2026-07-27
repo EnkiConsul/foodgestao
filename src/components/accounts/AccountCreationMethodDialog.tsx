@@ -31,6 +31,25 @@ export function AccountCreationMethodDialog({
   openFinanceEnabled = true,
   openFinanceDisabledReason = "Selecione uma empresa antes de conectar uma conta via Open Finance.",
 }: Props) {
+  const [selecting, setSelecting] = useState(false);
+
+  // Reset lock whenever the modal is (re)opened
+  useEffect(() => {
+    if (open) setSelecting(false);
+  }, [open]);
+
+  const handleSelectOpenFinance = () => {
+    if (selecting || !openFinanceEnabled) return;
+    setSelecting(true);
+    onSelectOpenFinance();
+  };
+
+  const handleSelectManual = () => {
+    if (selecting) return;
+    setSelecting(true);
+    onSelectManual();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[calc(100%-2rem)] max-w-2xl max-h-[90vh] overflow-y-auto">
