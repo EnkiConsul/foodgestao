@@ -31,7 +31,6 @@ export function useDpRegrasColaborador(companyId?: string | null, unidadeId?: st
         modo_frequencia_domingo: row.modo_frequencia_domingo === "por_mes" ? "por_mes" : "semanas",
         periodicidade_domingo: Number(row.periodicidade_domingo ?? 3),
         domingos_por_mes: Number(row.domingos_por_mes ?? 1),
-        folgas_fds_por_mes: Number(row.folgas_fds_por_mes ?? 1),
         tipo_descanso_domingo:
           row.tipo_descanso_domingo === "acordo_coletivo" ? "acordo_coletivo" : "legal",
         dias_descanso_negociados: ((row.dias_descanso_negociados as number[] | null) ?? [0]).map(Number),

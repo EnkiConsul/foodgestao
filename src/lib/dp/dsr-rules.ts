@@ -54,8 +54,6 @@ export interface DpConfigDp {
   periodicidade_domingo_mulher: number;
   /** Domingos por mês para mulheres (quando o modelo é `por_mes`). */
   domingos_por_mes_mulher: number;
-  /** Teto de folgas de fim de semana que o colaborador pode marcar por mês. */
-  folgas_fds_por_mes: number;
   regra_dsr: RegraDsr;
   exige_validacao_menor: boolean;
   tipo_descanso_domingo: TipoDescansoDomingo;
@@ -73,7 +71,6 @@ export const DP_CONFIG_DP_DEFAULT: Omit<DpConfigDp, "company_id" | "unidade_id">
   modo_frequencia_domingo_mulher: "semanas",
   periodicidade_domingo_mulher: 2,
   domingos_por_mes_mulher: 2,
-  folgas_fds_por_mes: 1,
   regra_dsr: "clt",
   exige_validacao_menor: true,
   tipo_descanso_domingo: "legal",
