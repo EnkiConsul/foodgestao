@@ -55,6 +55,7 @@ import {
   CalendarRange,
   Gift,
   type LucideIcon,
+  Fingerprint,
 } from "lucide-react";
 import type { ActiveModule } from "@/hooks/useActiveModule";
 
