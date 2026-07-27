@@ -131,7 +131,7 @@ export default function DpMinhasConvocacoes() {
         open={!!recusa}
         onOpenChange={(v) => !v && setRecusa(null)}
         onConfirm={(motivo) => recusa && responderConvocacao(recusa, false, motivo)}
-        isPending={responder.isPending}
+        loading={responder.isPending}
       />
     </div>
   );
