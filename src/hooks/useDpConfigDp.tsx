@@ -228,9 +228,15 @@ export function useDpConfigDp(unidadeId: string | null = null) {
     configPadrao,
     /** Todas as regras cadastradas (padrão + exceções). */
     rows,
-    /** A unidade selecionada possui exceção própria? */
+    /** A unidade selecionada possui regra própria? */
     temExcecao: !!unidadeRow,
+    /** Ids das unidades que já possuem regra própria. */
+    unidadesConfiguradas: useMemo(
+      () => new Set(rows.map((r) => r.unidade_id).filter((v): v is string => !!v)),
+      [rows],
+    ),
     temMulheres: mulheres.data ?? false,
+
     
     historico: historico.data ?? [],
 
