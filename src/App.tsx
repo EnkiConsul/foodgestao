@@ -115,6 +115,7 @@ const DpMeuCalendario = lazyWithRetry(() => import("./pages/dp/portal/DpMeuCalen
 const DpMeuEscala = lazyWithRetry(() => import("./pages/dp/portal/DpMeuEscala"));
 const DpMinhasConvocacoes = lazyWithRetry(() => import("./pages/dp/portal/DpMinhasConvocacoes"));
 const DpMeuPonto = lazyWithRetry(() => import("./pages/dp/portal/DpMeuPonto"));
+const DpMeuContracheque = lazyWithRetry(() => import("./pages/dp/portal/DpMeuContracheque"));
 const DpMeuHistorico = lazyWithRetry(() => import("./pages/dp/portal/DpMeuHistorico"));
 
 // Admin
