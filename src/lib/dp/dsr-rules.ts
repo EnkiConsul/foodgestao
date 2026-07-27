@@ -120,6 +120,57 @@ export function padraoLegalDomingo(setorComercio: boolean): number {
 /** Padrão legal para colaboradoras mulheres: domingo quinzenal (Art. 386 CLT). */
 export const PADRAO_LEGAL_DOMINGO_MULHER = 2;
 
+/** Valores que a base "CLT" fixa para a frequência de folga dominical. */
+export function padroesCltDe(setorComercio: boolean): Pick<
+  DpConfigDp,
+  | "modo_frequencia_domingo"
+  | "periodicidade_domingo"
+  | "modo_frequencia_domingo_mulher"
+  | "periodicidade_domingo_mulher"
+> {
+  return {
+    modo_frequencia_domingo: "semanas",
+    periodicidade_domingo: padraoLegalDomingo(setorComercio),
+    modo_frequencia_domingo_mulher: "semanas",
+    periodicidade_domingo_mulher: PADRAO_LEGAL_DOMINGO_MULHER,
+  };
+}
+
+export interface BaseLegal {
+  titulo: string;
+  texto: string;
+  fonte: string;
+}
+
+/** Explicação jurídica exibida no popover de "menos protetiva". */
+export function baseLegalDe(
+  campo: AlertaCiencia["campo"],
+  setorComercio: boolean,
+): BaseLegal {
+  if (campo === "periodicidade_domingo_mulher") {
+    return {
+      titulo: "Folga dominical — mulheres",
+      texto:
+        "O Art. 386 da CLT determina que, no trabalho aos domingos, a escala de revezamento das mulheres deve ser quinzenal — ou seja, ao menos 1 domingo de folga a cada 2 semanas. Uma frequência menor é menos protetiva e exige registro de ciência do responsável.",
+      fonte: "Art. 386 da CLT",
+    };
+  }
+  if (setorComercio) {
+    return {
+      titulo: "Folga dominical — comércio / food service",
+      texto:
+        "Para o comércio em geral (incluindo food service), a lei exige que o repouso semanal coincida com o domingo pelo menos uma vez a cada 3 semanas. Configurar um intervalo maior é menos protetivo e exige registro de ciência do responsável.",
+      fonte: "Lei 10.101/2000, art. 6º, parágrafo único (redação da Lei 11.603/2007)",
+    };
+  }
+  return {
+    titulo: "Folga dominical — demais setores",
+    texto:
+      "Fora do comércio, a referência consolidada na jurisprudência é de 1 domingo de folga a cada 7 semanas. Atenção: a Portaria 417/1966, historicamente citada como fonte dessa regra, foi revogada pela Portaria MTP 671/2021 — mantendo-se a exigência de revezamento pela CLT.",
+    fonte: "Art. 67 da CLT e jurisprudência consolidada",
+  };
+}
+
 /**
  * Uma periodicidade é MENOS protetiva quando o intervalo entre domingos de
  * folga é maior que o padrão legal. `0` significa "nunca exigir domingo" e é,
