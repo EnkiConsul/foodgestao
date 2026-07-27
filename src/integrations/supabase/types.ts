@@ -7188,6 +7188,7 @@ export type Database = {
       }
     }
     Functions: {
+      _test_delete_account_authz: { Args: never; Returns: string }
       adjust_account_balance: {
         Args: {
           _account_id: string
