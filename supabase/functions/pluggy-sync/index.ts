@@ -53,7 +53,16 @@ async function runSync(
   from?: string,
   to?: string,
 ): Promise<{ ok: boolean; stats: Record<string, number>; error?: string }> {
-  const stats = { accounts: 0, transactions_raw: 0, pages: 0 };
+  const stats = {
+    accounts: 0,
+    transactions_raw: 0,
+    pages: 0,
+    incremental_accounts: 0,
+    full_backfill_accounts: 0,
+  };
+  const OVERLAP_DAYS = 3; // safety window for late-posted / edited transactions
+  const BACKFILL_DAYS = 90;
+  const isoDate = (d: Date) => d.toISOString().slice(0, 10);
 
   // refresh item (status + consent)
   const itemResp = await getItem(itemId);
@@ -117,27 +126,64 @@ async function runSync(
       .not("pluggy_account_id", "in", `(${activePluggyIds.map((id) => `"${id}"`).join(",")})`);
   }
 
-  // Resolve internal OF account ids (only active ones for the tx loop)
+
+  // Resolve internal OF account ids (only active ones) with their cursors
   const { data: ofAccts } = await supabase
     .from("open_finance_accounts")
-    .select("id, pluggy_account_id")
+    .select("id, pluggy_account_id, sync_cursor_date, sync_cursor_updated_at, first_sync_completed_at")
     .eq("connection_id", connectionId)
     .is("removed_at", null);
-  const idByPluggy = new Map<string, string>((ofAccts ?? []).map((r: any) => [r.pluggy_account_id, r.id]));
+  const acctMeta = new Map<string, {
+    id: string;
+    cursorDate: string | null;
+    cursorUpdatedAt: string | null;
+    firstSync: string | null;
+  }>((ofAccts ?? []).map((r: any) => [
+    r.pluggy_account_id,
+    {
+      id: r.id,
+      cursorDate: r.sync_cursor_date,
+      cursorUpdatedAt: r.sync_cursor_updated_at,
+      firstSync: r.first_sync_completed_at,
+    },
+  ]));
 
-  const defaultFrom = from ?? new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString().slice(0, 10);
-  const defaultTo = to ?? new Date().toISOString().slice(0, 10);
+  const today = new Date();
+  const globalTo = to ?? isoDate(today);
 
   for (const acc of accounts) {
-    const ofAccountId = idByPluggy.get(acc.id);
-    if (!ofAccountId) continue;
+    const meta = acctMeta.get(acc.id);
+    if (!meta) continue;
+
+    // Incremental window: from = cursor - overlap; if never synced, backfill 90 days.
+    let fromDate: string;
+    let isIncremental: boolean;
+    if (from) {
+      fromDate = from;
+      isIncremental = false;
+    } else if (meta.cursorDate) {
+      const c = new Date(meta.cursorDate + "T00:00:00Z");
+      c.setUTCDate(c.getUTCDate() - OVERLAP_DAYS);
+      fromDate = isoDate(c);
+      isIncremental = true;
+    } else {
+      const c = new Date(today);
+      c.setUTCDate(c.getUTCDate() - BACKFILL_DAYS);
+      fromDate = isoDate(c);
+      isIncremental = false;
+    }
+    if (isIncremental) stats.incremental_accounts += 1;
+    else stats.full_backfill_accounts += 1;
+
+    let maxTxDate: string | null = meta.cursorDate;
+    let maxUpdatedAt: string | null = meta.cursorUpdatedAt;
 
     let page = 1;
     while (true) {
       const txResp = await listTransactions({
         accountId: acc.id,
-        from: defaultFrom,
-        to: defaultTo,
+        from: fromDate,
+        to: globalTo,
         pageSize: 500,
         page,
       });
@@ -149,24 +195,40 @@ async function runSync(
       if (!results.length) break;
 
       const rows = await Promise.all(
-        results.map(async (t: PluggyTransaction) => ({
-          connection_id: connectionId,
-          of_account_id: ofAccountId,
-          company_id: companyId,
-          pluggy_transaction_id: t.id,
-          import_hash: await importHash(companyId, t.id),
-          raw: t as any,
-        })),
+        results.map(async (t: PluggyTransaction) => {
+          if (t.date && (!maxTxDate || t.date > maxTxDate)) maxTxDate = t.date.slice(0, 10);
+          if (t.updatedAt && (!maxUpdatedAt || t.updatedAt > maxUpdatedAt)) maxUpdatedAt = t.updatedAt;
+          return {
+            connection_id: connectionId,
+            of_account_id: meta.id,
+            company_id: companyId,
+            pluggy_transaction_id: t.id,
+            import_hash: await importHash(companyId, t.id),
+            raw: t as any,
+          };
+        }),
       );
 
+      // Upsert dedup by (of_account_id, pluggy_transaction_id) — updates raw payload
+      // so edits/enrichments from Pluggy are captured on incremental re-fetches.
       const { error } = await supabase
         .from("open_finance_transactions_raw")
-        .upsert(rows, { onConflict: "company_id,import_hash", ignoreDuplicates: true });
+        .upsert(rows, { onConflict: "of_account_id,pluggy_transaction_id", ignoreDuplicates: false });
       if (error) console.error("[pluggy-sync] upsert raw error:", error.message);
       stats.transactions_raw += rows.length;
 
       if (page >= (txResp.data.totalPages ?? page)) break;
       page += 1;
+    }
+
+    // Persist per-account cursor after successful account traversal
+    const patch: Record<string, unknown> = {};
+    if (maxTxDate && maxTxDate !== meta.cursorDate) patch.sync_cursor_date = maxTxDate;
+    if (maxUpdatedAt && maxUpdatedAt !== meta.cursorUpdatedAt) patch.sync_cursor_updated_at = maxUpdatedAt;
+    if (maxTxDate) patch.last_transaction_at = new Date(maxTxDate + "T00:00:00Z").toISOString();
+    if (!meta.firstSync) patch.first_sync_completed_at = new Date().toISOString();
+    if (Object.keys(patch).length) {
+      await supabase.from("open_finance_accounts").update(patch).eq("id", meta.id);
     }
   }
 

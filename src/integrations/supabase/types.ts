@@ -5983,6 +5983,7 @@ export type Database = {
           credit_level: string | null
           credit_limit: number | null
           currency: string
+          first_sync_completed_at: string | null
           id: string
           ignored: boolean
           last_transaction_at: string | null
@@ -5994,6 +5995,8 @@ export type Database = {
           raw: Json
           removed_at: string | null
           subtype: string | null
+          sync_cursor_date: string | null
+          sync_cursor_updated_at: string | null
           tax_number: string | null
           transfer_number: string | null
           type: string | null
@@ -6012,6 +6015,7 @@ export type Database = {
           credit_level?: string | null
           credit_limit?: number | null
           currency?: string
+          first_sync_completed_at?: string | null
           id?: string
           ignored?: boolean
           last_transaction_at?: string | null
@@ -6023,6 +6027,8 @@ export type Database = {
           raw?: Json
           removed_at?: string | null
           subtype?: string | null
+          sync_cursor_date?: string | null
+          sync_cursor_updated_at?: string | null
           tax_number?: string | null
           transfer_number?: string | null
           type?: string | null
@@ -6041,6 +6047,7 @@ export type Database = {
           credit_level?: string | null
           credit_limit?: number | null
           currency?: string
+          first_sync_completed_at?: string | null
           id?: string
           ignored?: boolean
           last_transaction_at?: string | null
@@ -6052,6 +6059,8 @@ export type Database = {
           raw?: Json
           removed_at?: string | null
           subtype?: string | null
+          sync_cursor_date?: string | null
+          sync_cursor_updated_at?: string | null
           tax_number?: string | null
           transfer_number?: string | null
           type?: string | null
