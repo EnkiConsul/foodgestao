@@ -5972,10 +5972,16 @@ export type Database = {
       open_finance_accounts: {
         Row: {
           auto_import: boolean
+          available_credit_limit: number | null
           balance: number | null
+          balance_close_date: string | null
+          balance_due_date: string | null
           company_id: string
           connection_id: string
           created_at: string
+          credit_brand: string | null
+          credit_level: string | null
+          credit_limit: number | null
           currency: string
           id: string
           ignored: boolean
@@ -5983,18 +5989,28 @@ export type Database = {
           local_account_id: string | null
           name: string | null
           number: string | null
+          owner_name: string | null
           pluggy_account_id: string
           raw: Json
+          removed_at: string | null
           subtype: string | null
+          tax_number: string | null
+          transfer_number: string | null
           type: string | null
           updated_at: string
         }
         Insert: {
           auto_import?: boolean
+          available_credit_limit?: number | null
           balance?: number | null
+          balance_close_date?: string | null
+          balance_due_date?: string | null
           company_id: string
           connection_id: string
           created_at?: string
+          credit_brand?: string | null
+          credit_level?: string | null
+          credit_limit?: number | null
           currency?: string
           id?: string
           ignored?: boolean
@@ -6002,18 +6018,28 @@ export type Database = {
           local_account_id?: string | null
           name?: string | null
           number?: string | null
+          owner_name?: string | null
           pluggy_account_id: string
           raw?: Json
+          removed_at?: string | null
           subtype?: string | null
+          tax_number?: string | null
+          transfer_number?: string | null
           type?: string | null
           updated_at?: string
         }
         Update: {
           auto_import?: boolean
+          available_credit_limit?: number | null
           balance?: number | null
+          balance_close_date?: string | null
+          balance_due_date?: string | null
           company_id?: string
           connection_id?: string
           created_at?: string
+          credit_brand?: string | null
+          credit_level?: string | null
+          credit_limit?: number | null
           currency?: string
           id?: string
           ignored?: boolean
@@ -6021,9 +6047,13 @@ export type Database = {
           local_account_id?: string | null
           name?: string | null
           number?: string | null
+          owner_name?: string | null
           pluggy_account_id?: string
           raw?: Json
+          removed_at?: string | null
           subtype?: string | null
+          tax_number?: string | null
+          transfer_number?: string | null
           type?: string | null
           updated_at?: string
         }
