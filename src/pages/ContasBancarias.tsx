@@ -17,11 +17,12 @@ import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
 import { AccountCreationMethodDialog } from "@/components/accounts/AccountCreationMethodDialog";
 import { OpenFinanceWizard } from "@/components/accounts/OpenFinanceWizard";
 import { ImportStatementDialog } from "@/components/transactions/ImportStatementDialog";
+import { AdjustAccountBalanceDialog } from "@/components/accounts/AdjustAccountBalanceDialog";
 
 
 
 import { BankLogo } from "@/components/accounts/BankLogo";
-import { Plus, Search, Landmark, Pencil, Trash2, Wallet, RefreshCw, AlertTriangle, Upload, Zap } from "lucide-react";
+import { Plus, Search, Landmark, Pencil, Trash2, Wallet, RefreshCw, AlertTriangle, Upload, Zap, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -55,6 +56,7 @@ export default function ContasBancarias() {
   const [postCreateAccountId, setPostCreateAccountId] = useState<string | null>(null);
   const [deleteAccount, setDeleteAccount] = useState<Account | null>(null);
   const [deleteHasTx, setDeleteHasTx] = useState<boolean | null>(null);
+  const [adjustAccount, setAdjustAccount] = useState<Account | null>(null);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [staleBalance, setStaleBalance] = useState(false);
@@ -396,6 +398,16 @@ export default function ContasBancarias() {
                       variant="ghost"
                       size="icon"
                       className="h-10 w-10 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                      onClick={() => setAdjustAccount(a)}
+                      aria-label="Ajustar saldo"
+                      title="Ajustar saldo"
+                    >
+                      <SlidersHorizontal className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 text-muted-foreground hover:text-primary hover:bg-primary/10"
                       onClick={() => openManualForm(a)}
                       aria-label="Editar conta"
                     >
@@ -525,6 +537,13 @@ export default function ContasBancarias() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AdjustAccountBalanceDialog
+        open={!!adjustAccount}
+        onOpenChange={(o) => { if (!o) setAdjustAccount(null); }}
+        account={adjustAccount}
+        onAdjusted={fetchAccounts}
+      />
     </div>
   );
 }

@@ -44,8 +44,6 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
   const [name, setName] = useState("");
   const [accountType, setAccountType] = useState<AccountType>("corrente");
   const [initialBalance, setInitialBalance] = useState("");
-  const [currentBalance, setCurrentBalance] = useState("");
-  const [originalCurrentBalance, setOriginalCurrentBalance] = useState<number>(0);
   const [ownerType, setOwnerType] = useState<"pf" | "pj">("pf");
   const [ownerCompanyId, setOwnerCompanyId] = useState<string | null>(null);
   const [bankSlug, setBankSlug] = useState<string | null>(null);
@@ -65,8 +63,6 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
       setName(account.name);
       setAccountType(account.account_type);
       setInitialBalance(formatCurrency(String(Math.round(account.initial_balance * 100))));
-      setCurrentBalance(formatCurrency(String(Math.round(account.current_balance * 100))));
-      setOriginalCurrentBalance(Number(account.current_balance));
       setOwnerType(account.context as "pf" | "pj");
       setOwnerCompanyId(account.company_id);
       setAgency(a.agency ?? "");
@@ -75,8 +71,6 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
       setName("");
       setAccountType("corrente");
       setInitialBalance("");
-      setCurrentBalance("");
-      setOriginalCurrentBalance(0);
       setOwnerType(contextType);
       setOwnerCompanyId(contextType === "pj" ? selectedCompanyId : null);
       setBankSlug(null);
@@ -103,15 +97,11 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
     const accountNumberValue = showBankFields ? accountNumber.trim() || null : null;
 
     if (isEdit && account) {
-      const newCurrent = parseCurrencyToNumber(currentBalance);
-      const balanceAdjusted = Math.abs(newCurrent - originalCurrentBalance) > 0.005;
       const { error } = await supabase
         .from("accounts")
         .update({
           name: name.trim(),
           account_type: accountType,
-          initial_balance: balance,
-          current_balance: newCurrent,
           context: ownerType,
           company_id: ownerType === "pj" ? ownerCompanyId : null,
           bank_slug: bankSlug,
@@ -125,7 +115,7 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
           _action: "account_updated",
           _entity_type: "account",
           _entity_id: account.id,
-          _details: { target_name: name.trim(), balance_adjusted: balanceAdjusted },
+          _details: { target_name: name.trim() },
         });
         toast.success("Conta atualizada");
         onSaved();
@@ -265,23 +255,14 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
                 </p>
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>Saldo inicial</Label>
-                    <CurrencyInput value={initialBalance} onValueChange={setInitialBalance} placeholder="0,00" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Saldo atual</Label>
-                    <CurrencyInput value={currentBalance} onValueChange={setCurrentBalance} placeholder="0,00" />
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  O saldo atual normalmente é calculado pelos lançamentos. Altere apenas para ajustes manuais.
-                </p>
+              <div className="rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
+                O saldo desta conta é controlado automaticamente pelo motor financeiro a partir dos lançamentos.
+                Para acertar uma divergência, use <strong>Ajustar saldo</strong> na página de contas — o ajuste
+                gera um lançamento auditável com justificativa.
               </div>
             )}
           </section>
+
 
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="h-11 sm:h-10">Cancelar</Button>
