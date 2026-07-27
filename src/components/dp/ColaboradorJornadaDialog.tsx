@@ -123,14 +123,17 @@ export function ColaboradorJornadaDialog({ colaborador, open, onOpenChange }: Pr
               </Select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="cj-ent">Entrada (override)</Label>
-              <Input id="cj-ent" type="time" value={entrada} onChange={(e) => setEntrada(e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="cj-sai">Saída (override)</Label>
-              <Input id="cj-sai" type="time" value={saida} onChange={(e) => setSaida(e.target.value)} />
-            </div>
+            {jornadaSelecionada && (
+              <div className="rounded-lg border bg-muted/30 p-3 text-xs sm:col-span-2">
+                <p className="font-medium text-foreground">Horários da jornada</p>
+                <p className="text-muted-foreground">
+                  {jornadaSelecionada.horarios.length
+                    ? resumoJornadaTexto(jornadaSelecionada.horarios)
+                    : "Nenhum horário cadastrado nesta jornada."}
+                </p>
+              </div>
+            )}
+
 
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="cj-obs">Observações</Label>
