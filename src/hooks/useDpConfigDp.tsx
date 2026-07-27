@@ -77,6 +77,11 @@ export function useDpConfigDp(unidadeId: string | null = null) {
     [rows, unidadeId],
   );
 
+  const unidadesConfiguradas = useMemo(
+    () => new Set(rows.map((r) => r.unidade_id).filter((v): v is string => !!v)),
+    [rows],
+  );
+
   const configPadrao: DpConfigDpForm = useMemo(
     () => (padraoRow ? stripIdentity(padraoRow) : DP_CONFIG_DP_DEFAULT),
     [padraoRow],
