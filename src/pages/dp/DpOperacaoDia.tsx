@@ -79,6 +79,18 @@ export default function DpOperacaoDia() {
   });
 
   const { escala, itens, colaboradores, turnos } = escalaMes;
+  const { regras: regrasCobertura } = useDpCoberturaMinima();
+
+  const coberturaMinima = useMemo(
+    () =>
+      resolverCoberturaMinima({
+        regras: regrasCobertura,
+        data,
+        unidadeId,
+        turnoIds: turnos.map((t) => t.id),
+      }),
+    [regrasCobertura, data, unidadeId, turnos],
+  );
 
   const dia = useMemo(
     () =>
@@ -89,8 +101,9 @@ export default function DpOperacaoDia() {
         turnos: turnos.map((t) => ({
           id: t.id, nome: t.nome, cor: t.cor, entrada: t.entrada, saida: t.saida,
         })),
+        coberturaMinima,
       }),
-    [data, itens, colaboradores, turnos],
+    [data, itens, colaboradores, turnos, coberturaMinima],
   );
 
   const alertas = useMemo(() => alertasDoDia(dia), [dia]);
