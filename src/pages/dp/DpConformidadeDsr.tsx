@@ -17,28 +17,29 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 
-/** Lista os domingos (ISO yyyy-mm-dd) de um mês de referência 'yyyy-mm'. */
-function domingosDoMes(competencia: string): string[] {
+/** Lista os dias da semana informados (0=dom, 6=sáb) de um mês 'yyyy-mm', em ISO. */
+function diasDaSemanaDoMes(competencia: string, weekday: number): string[] {
   const [y, m] = competencia.split("-").map(Number);
   if (!y || !m) return [];
   const out: string[] = [];
   const last = new Date(y, m, 0).getDate();
   for (let d = 1; d <= last; d++) {
     const date = new Date(y, m - 1, d);
-    if (date.getDay() === 0) out.push(`${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`);
+    if (date.getDay() === weekday) out.push(`${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`);
   }
   return out;
 }
 
 const competenciaAtual = () => new Date().toISOString().slice(0, 7);
 
+
 export default function DpConformidadeDsr() {
   const { selectedCompanyId } = useCompanyContext();
   const { config } = useDpConfigDp();
   const [competencia, setCompetencia] = useState(competenciaAtual);
 
-  const domingos = useMemo(() => domingosDoMes(competencia), [competencia]);
-  const inicio = domingos[0] ?? `${competencia}-01`;
+  const domingos = useMemo(() => diasDaSemanaDoMes(competencia, 0), [competencia]);
+  const sabados = useMemo(() => diasDaSemanaDoMes(competencia, 6), [competencia]);
   const fim = `${competencia}-31`;
 
   const query = useQuery({
@@ -62,12 +63,18 @@ export default function DpConformidadeDsr() {
       if (fErr) throw fErr;
 
       const porColab = new Map<string, string[]>();
+      const sabadosPorColab = new Map<string, string[]>();
       for (const f of folgas ?? []) {
         if (f.status === "cancelada") continue;
-        if (!domingos.includes(f.data)) continue;
-        const arr = porColab.get(f.colaborador_id) ?? [];
-        arr.push(f.data);
-        porColab.set(f.colaborador_id, arr);
+        if (domingos.includes(f.data)) {
+          const arr = porColab.get(f.colaborador_id) ?? [];
+          arr.push(f.data);
+          porColab.set(f.colaborador_id, arr);
+        } else if (sabados.includes(f.data)) {
+          const arr = sabadosPorColab.get(f.colaborador_id) ?? [];
+          arr.push(f.data);
+          sabadosPorColab.set(f.colaborador_id, arr);
+        }
       }
 
       return (colaboradores ?? []).map((c) => ({
@@ -75,10 +82,14 @@ export default function DpConformidadeDsr() {
         nome: c.nome,
         sexo: c.sexo,
         domingosFolgados: porColab.get(c.id) ?? [],
+        sabadosFolgados: sabadosPorColab.get(c.id) ?? [],
         domingosNoPeriodo: domingos.length,
       }));
     },
   });
+
+
+  const porAcordo = config.tipo_descanso_domingo === "acordo_coletivo";
 
   const linhas = useMemo(
     () => avaliarConformidade(query.data ?? [], config),
@@ -89,6 +100,7 @@ export default function DpConformidadeDsr() {
   const exportarCsv = () => {
     const headers = [
       "Colaborador", "Sexo", "Domingos no mês", "Domingos folgados",
+      "Sábados aproveitados (acordo)", "Folgas consideradas",
       "Periodicidade aplicada (semanas)", "Mínimo esperado", "Situação",
     ];
     const rows = linhas.map((l) => [
@@ -96,10 +108,13 @@ export default function DpConformidadeDsr() {
       l.sexo === "F" ? "Feminino" : l.sexo === "M" ? "Masculino" : "—",
       String(l.domingosNoPeriodo),
       String(l.domingosFolgados.length),
+      String(l.sabadosAproveitados),
+      String(l.folgasConsideradas),
       String(l.periodicidadeAplicada),
       String(l.esperado),
       l.conforme ? "Conforme" : "Fora de conformidade",
     ]);
+
     const csv = [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -143,7 +158,13 @@ export default function DpConformidadeDsr() {
               Regra geral: 1 a cada {config.periodicidade_domingo} semana(s) · Mulheres: 1 a cada{" "}
               {config.periodicidade_domingo_mulher} semana(s).
             </p>
+            <p>
+              {porAcordo
+                ? "Modo acordo coletivo: o sábado folgado pode substituir o domingo."
+                : "Modo legislação: apenas domingos folgados são considerados."}
+            </p>
           </div>
+
           {linhas.length > 0 && (
             <Badge variant={foraDeConformidade > 0 ? "destructive" : "default"} className="ml-auto">
               {foraDeConformidade > 0
@@ -166,6 +187,7 @@ export default function DpConformidadeDsr() {
                 <TableHead>Colaborador</TableHead>
                 <TableHead className="text-center">Domingos no mês</TableHead>
                 <TableHead className="text-center">Folgados</TableHead>
+                {porAcordo && <TableHead className="text-center">Sábados (acordo)</TableHead>}
                 <TableHead className="text-center">Mínimo esperado</TableHead>
                 <TableHead className="text-center">Periodicidade</TableHead>
                 <TableHead className="text-right">Situação</TableHead>
@@ -174,7 +196,7 @@ export default function DpConformidadeDsr() {
             <TableBody>
               {linhas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={porAcordo ? 7 : 6} className="py-8 text-center text-sm text-muted-foreground">
                     Nenhum colaborador ativo no período.
                   </TableCell>
                 </TableRow>
@@ -189,10 +211,12 @@ export default function DpConformidadeDsr() {
                     </TableCell>
                     <TableCell className="text-center">{l.domingosNoPeriodo}</TableCell>
                     <TableCell className="text-center font-semibold">{l.domingosFolgados.length}</TableCell>
+                    {porAcordo && <TableCell className="text-center">{l.sabadosAproveitados}</TableCell>}
                     <TableCell className="text-center">{l.esperado}</TableCell>
                     <TableCell className="text-center">
                       {l.periodicidadeAplicada > 0 ? `${l.periodicidadeAplicada} sem.` : "sem exigência"}
                     </TableCell>
+
                     <TableCell className="text-right">
                       {l.conforme ? (
                         <Badge variant="outline" className="gap-1 border-emerald-500/30 text-emerald-700 dark:text-emerald-400">

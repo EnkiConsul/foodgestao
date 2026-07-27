@@ -7,7 +7,7 @@ import { DP_CONFIG_DP_DEFAULT, type DpConfigDp } from "@/lib/dp/dsr-rules";
 export type DpConfigDpForm = Omit<DpConfigDp, "company_id">;
 
 const COLUNAS =
-  "company_id, setor_comercio, periodicidade_domingo, periodicidade_domingo_mulher, folgas_fds_por_mes, politica_sabado, politica_feriado, regra_dsr, exige_validacao_menor";
+  "company_id, setor_comercio, periodicidade_domingo, periodicidade_domingo_mulher, folgas_fds_por_mes, politica_sabado, politica_feriado, regra_dsr, exige_validacao_menor, tipo_descanso_domingo, negociacao_id";
 
 export function useDpConfigDp() {
   const { selectedCompanyId } = useCompanyContext();
@@ -33,9 +33,28 @@ export function useDpConfigDp() {
         politica_feriado: data.politica_feriado,
         regra_dsr: data.regra_dsr,
         exige_validacao_menor: data.exige_validacao_menor,
+        tipo_descanso_domingo:
+          data.tipo_descanso_domingo === "acordo_coletivo" ? "acordo_coletivo" : "legal",
+        negociacao_id: data.negociacao_id ?? null,
       };
     },
   });
+
+  /** Negociações sindicais (ACT/CCT) disponíveis para embasar o acordo coletivo. */
+  const negociacoes = useQuery({
+    queryKey: ["dp_sindicato_negociacoes_opcoes", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_sindicato_negociacoes")
+        .select("id, tipo_documento, vigencia_inicio, vigencia_fim")
+        .eq("company_id", selectedCompanyId!)
+        .order("vigencia_inicio", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
 
   /** Existem colaboradoras mulheres cadastradas? Controla a exibição da regra do Art. 386. */
   const mulheres = useQuery({
@@ -107,7 +126,9 @@ export function useDpConfigDp() {
   return {
     config,
     temMulheres: mulheres.data ?? false,
+    negociacoes: negociacoes.data ?? [],
     historico: historico.data ?? [],
+
     isLoading: query.isLoading,
     isError: query.isError,
     refetch: () => {

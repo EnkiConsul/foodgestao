@@ -3193,12 +3193,14 @@ export type Database = {
           exige_validacao_menor: boolean
           folgas_fds_por_mes: number
           id: string
+          negociacao_id: string | null
           periodicidade_domingo: number
           periodicidade_domingo_mulher: number
           politica_feriado: Database["public"]["Enums"]["dp_politica_feriado"]
           politica_sabado: Database["public"]["Enums"]["dp_politica_sabado"]
           regra_dsr: Database["public"]["Enums"]["dp_regra_dsr"]
           setor_comercio: boolean
+          tipo_descanso_domingo: string
           updated_at: string
         }
         Insert: {
@@ -3207,12 +3209,14 @@ export type Database = {
           exige_validacao_menor?: boolean
           folgas_fds_por_mes?: number
           id?: string
+          negociacao_id?: string | null
           periodicidade_domingo?: number
           periodicidade_domingo_mulher?: number
           politica_feriado?: Database["public"]["Enums"]["dp_politica_feriado"]
           politica_sabado?: Database["public"]["Enums"]["dp_politica_sabado"]
           regra_dsr?: Database["public"]["Enums"]["dp_regra_dsr"]
           setor_comercio?: boolean
+          tipo_descanso_domingo?: string
           updated_at?: string
         }
         Update: {
@@ -3221,12 +3225,14 @@ export type Database = {
           exige_validacao_menor?: boolean
           folgas_fds_por_mes?: number
           id?: string
+          negociacao_id?: string | null
           periodicidade_domingo?: number
           periodicidade_domingo_mulher?: number
           politica_feriado?: Database["public"]["Enums"]["dp_politica_feriado"]
           politica_sabado?: Database["public"]["Enums"]["dp_politica_sabado"]
           regra_dsr?: Database["public"]["Enums"]["dp_regra_dsr"]
           setor_comercio?: boolean
+          tipo_descanso_domingo?: string
           updated_at?: string
         }
         Relationships: [
@@ -3235,6 +3241,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: true
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_config_dp_negociacao_id_fkey"
+            columns: ["negociacao_id"]
+            isOneToOne: false
+            referencedRelation: "dp_sindicato_negociacoes"
             referencedColumns: ["id"]
           },
         ]
