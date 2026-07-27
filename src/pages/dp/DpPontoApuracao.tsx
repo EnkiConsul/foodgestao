@@ -29,6 +29,9 @@ const somarMes = (comp: string, delta: number) => {
 const rotuloMes = (comp: string) =>
   new Date(`${comp}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
+const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+
 const baixarCsv = (nome: string, conteudo: string) => {
   const url = URL.createObjectURL(new Blob(["\ufeff", conteudo], { type: "text/csv;charset=utf-8;" }));
   const a = document.createElement("a");
