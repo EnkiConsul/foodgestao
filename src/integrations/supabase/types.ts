@@ -7188,6 +7188,19 @@ export type Database = {
       }
     }
     Functions: {
+      _e2e_cleanup_delete_accounts: {
+        Args: { _names: string[] }
+        Returns: undefined
+      }
+      _e2e_seed_delete_accounts: {
+        Args: { _empty_name: string; _history_name: string }
+        Returns: {
+          company_id: string
+          empty_id: string
+          history_id: string
+          tx_id: string
+        }[]
+      }
       _test_delete_account_authz: { Args: never; Returns: string }
       adjust_account_balance: {
         Args: {
