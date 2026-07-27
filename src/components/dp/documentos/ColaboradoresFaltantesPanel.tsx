@@ -1,5 +1,5 @@
 import { AlertTriangle, CheckCircle2, ChevronDown } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { CoverageColaborador } from "@/lib/dp/bulk-coverage";
