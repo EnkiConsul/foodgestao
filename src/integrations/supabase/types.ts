@@ -7202,6 +7202,7 @@ export type Database = {
         }[]
       }
       _test_delete_account_authz: { Args: never; Returns: string }
+      _test_delete_account_hard_regression: { Args: never; Returns: Json }
       adjust_account_balance: {
         Args: {
           _account_id: string
