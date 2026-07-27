@@ -6,7 +6,7 @@ import {
   CalendarClock, ClipboardList, UserCheck, ArrowLeftRight, Ban, Palmtree, ShieldCheck, Gift, BarChart3,
   FileText, Coins, Clock, HeartPulse, ShieldAlert, ListChecks,
   MessageSquare, Bell, BellRing, ChevronDown, LogOut, ArrowLeft, Settings, Repeat,
-} from "lucide-react";
+, Fingerprint } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import assinatura360 from "@/assets/360food-assinatura.png.asset.json";
 import symbol360 from "@/assets/360food-symbol.png.asset.json";
@@ -45,7 +45,7 @@ const ADMIN_ITEMS: Item[] = [
   },
   {
     kind: "group", title: "Folgas", icon: Calendar,
-    prefixes: ["/dp/folgas", "/dp/solicitacoes", "/dp/aprovacoes", "/dp/trocas", "/dp/bloqueios", "/dp/ferias", "/dp/operacao", "/dp/convocacoes", "/dp/conformidade-dsr", "/dp/escalas"],
+    prefixes: ["/dp/folgas", "/dp/solicitacoes", "/dp/aprovacoes", "/dp/trocas", "/dp/bloqueios", "/dp/ferias", "/dp/operacao", "/dp/convocacoes", "/dp/ponto", "/dp/conformidade-dsr", "/dp/escalas"],
     hubUrl: "/dp/folgas",
     items: [
       { title: "Calendário Geral", url: "/dp/folgas/calendario", icon: Calendar },
@@ -57,6 +57,7 @@ const ADMIN_ITEMS: Item[] = [
       { title: "Escala do Mês", url: "/dp/escalas/mes", icon: CalendarRange },
       { title: "Operação do Dia", url: "/dp/operacao", icon: CalendarClock },
       { title: "Convocações", url: "/dp/convocacoes", icon: BellRing },
+      { title: "Espelho de Ponto", url: "/dp/ponto", icon: Fingerprint },
       { title: "Gerador de Escala", url: "/dp/escalas", icon: CalendarRange },
       { title: "Conformidade DSR", url: "/dp/conformidade-dsr", icon: Scale },
       { title: "Regras De Folgas", url: "/dp/folgas/configuracoes/regras", icon: Settings },

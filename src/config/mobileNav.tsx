@@ -55,6 +55,7 @@ import {
   CalendarRange,
   Gift,
   type LucideIcon,
+  Fingerprint,
 } from "lucide-react";
 import type { ActiveModule } from "@/hooks/useActiveModule";
 
@@ -329,6 +330,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
               "/dp/escalas",
               "/dp/operacao",
               "/dp/convocacoes",
+              "/dp/ponto",
               "/dp/conformidade-dsr",
             ],
             items: [
@@ -341,6 +343,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
               { icon: Palmtree, label: "Férias", to: "/dp/ferias" },
               { icon: CalendarRange, label: "Escala do Mês", to: "/dp/escalas/mes" },
               { icon: BellRing, label: "Convocações", to: "/dp/convocacoes" },
+              { icon: Fingerprint, label: "Espelho de Ponto", to: "/dp/ponto" },
               { icon: CalendarRange, label: "Gerador de Escala", to: "/dp/escalas" },
               { icon: Scale, label: "Conformidade DSR", to: "/dp/conformidade-dsr" },
               { icon: Settings, label: "Regras de Folgas", to: "/dp/folgas/configuracoes/regras" },

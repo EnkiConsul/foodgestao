@@ -5251,6 +5251,89 @@ export type Database = {
           },
         ]
       }
+      dp_pontos: {
+        Row: {
+          ajustado_por: string | null
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          data: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          observacao: string | null
+          origem: Database["public"]["Enums"]["dp_ponto_origem"]
+          registrado_em: string
+          registrado_por: string | null
+          tipo: Database["public"]["Enums"]["dp_ponto_tipo"]
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ajustado_por?: string | null
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          data: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          observacao?: string | null
+          origem?: Database["public"]["Enums"]["dp_ponto_origem"]
+          registrado_em?: string
+          registrado_por?: string | null
+          tipo: Database["public"]["Enums"]["dp_ponto_tipo"]
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ajustado_por?: string | null
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          data?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          observacao?: string | null
+          origem?: Database["public"]["Enums"]["dp_ponto_origem"]
+          registrado_em?: string
+          registrado_por?: string | null
+          tipo?: Database["public"]["Enums"]["dp_ponto_tipo"]
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_pontos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_pontos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_pontos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_pontos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_prioridade_aniversario: {
         Row: {
           aniversariante: boolean
@@ -8977,6 +9060,8 @@ export type Database = {
       dp_perfil_acesso: "colaborador" | "gestor" | "admin"
       dp_politica_feriado: "compensa" | "dobro"
       dp_politica_sabado: "trabalha" | "folga" | "alterna" | "especifica"
+      dp_ponto_origem: "portal" | "admin" | "importado"
+      dp_ponto_tipo: "entrada" | "intervalo_inicio" | "intervalo_fim" | "saida"
       dp_regime_trabalho:
         | "clt"
         | "pj"
@@ -9338,6 +9423,8 @@ export const Constants = {
       dp_perfil_acesso: ["colaborador", "gestor", "admin"],
       dp_politica_feriado: ["compensa", "dobro"],
       dp_politica_sabado: ["trabalha", "folga", "alterna", "especifica"],
+      dp_ponto_origem: ["portal", "admin", "importado"],
+      dp_ponto_tipo: ["entrada", "intervalo_inicio", "intervalo_fim", "saida"],
       dp_regime_trabalho: [
         "clt",
         "pj",
