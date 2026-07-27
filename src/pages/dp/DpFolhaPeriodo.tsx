@@ -56,6 +56,32 @@ export default function DpFolhaPeriodo() {
   );
   const totais = useMemo(() => totaisDaFolha(linhas), [linhas]);
 
+  const { companies, selectedCompanyId } = useCompanyContext();
+  const empresa =
+    companies.find((c) => c.id === selectedCompanyId)?.trade_name ||
+    companies.find((c) => c.id === selectedCompanyId)?.name ||
+    "360°FOOD";
+
+  const imprimir = (alvo: typeof linhas) => {
+    if (!periodo) return;
+    const itens: HoleriteDados[] = alvo
+      .filter((l) => l.status !== "cancelado")
+      .map((l) => ({
+        empresa,
+        colaborador: l.nome,
+        competencia: periodo.competencia,
+        tipo: periodo.tipo,
+        detalhe: l.detalhe,
+        valorBruto: l.valor_bruto,
+        valorLiquido: l.valor_liquido,
+        dataPagamento: periodo.data_pagamento,
+      }));
+    const titulo = `Demonstrativos ${periodo.competencia.slice(0, 7)}`;
+    if (!imprimirHolerite(titulo, itens)) {
+      toast.error("Não foi possível abrir a impressão. Verifique o bloqueio de pop-ups.");
+    }
+  };
+
   if (error) return <DpErrorState message="Não foi possível carregar o período da folha." />;
   if (isLoading) return <DpPage><Skeleton className="h-64 w-full" /></DpPage>;
   if (!periodo) return <DpErrorState message="Período da folha não encontrado." />;
