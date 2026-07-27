@@ -16,8 +16,9 @@ import {
 } from "@/components/ui/select";
 import { useDpConfigDp, type DpConfigDpForm } from "@/hooks/useDpConfigDp";
 import {
-  DP_CONFIG_DP_DEFAULT, alertasDeCiencia, padraoLegalDomingo,
-  PADRAO_LEGAL_DOMINGO_MULHER, isMenosProtetiva, type AlertaCiencia,
+  DP_CONFIG_DP_DEFAULT, alertasDeCiencia, padraoLegalDomingo, MODO_DOMINGO_LABEL,
+  periodicidadeDoModo, PADRAO_LEGAL_DOMINGO_MULHER, isMenosProtetiva,
+  type AlertaCiencia, type ModoDomingo,
 } from "@/lib/dp/dsr-rules";
 
 function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
@@ -159,21 +160,52 @@ export default function DpConfiguracoesJornada() {
             <div>
               <Label htmlFor="setor-comercio" className="text-sm font-medium">Empresa do comércio / food service</Label>
               <p className="text-xs text-muted-foreground">
-                Define o padrão legal de referência: {padrao} semana(s) entre folgas dominicais.
+                Consequência do modo escolhido: define o padrão legal de referência ({padrao} semana(s)).
               </p>
             </div>
             <Switch
               id="setor-comercio"
               checked={form.setor_comercio}
-              onCheckedChange={(v) => set("setor_comercio", v)}
+              onCheckedChange={(v) => {
+                setForm((f) => {
+                  const derivada = periodicidadeDoModo(f.modo_domingo, v);
+                  return { ...f, setor_comercio: v, periodicidade_domingo: derivada ?? f.periodicidade_domingo };
+                });
+              }}
             />
           </div>
 
+          <div className="space-y-1.5">
+            <Label htmlFor="modo-domingo">Modo da folga dominical</Label>
+            <Select
+              value={form.modo_domingo}
+              onValueChange={(v) => {
+                const modo = v as DpConfigDpForm["modo_domingo"];
+                setForm((f) => {
+                  const derivada = periodicidadeDoModo(modo, f.setor_comercio);
+                  return { ...f, modo_domingo: modo, periodicidade_domingo: derivada ?? f.periodicidade_domingo };
+                });
+              }}
+            >
+              <SelectTrigger id="modo-domingo"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(Object.keys(MODO_DOMINGO_LABEL) as ModoDomingo[]).map((m) => (
+                  <SelectItem key={m} value={m}>{MODO_DOMINGO_LABEL[m]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {form.modo_domingo === "sete_semanas" && form.setor_comercio && !form.negociacao_id && (
+              <p className="text-xs text-destructive">
+                O modo de 7 semanas no comércio exige acordo/convenção coletiva vinculada.
+              </p>
+            )}
+          </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="per-domingo">Domingo de folga a cada (semanas)</Label>
             <Input
               id="per-domingo" type="number" min={0} max={12}
+              disabled={form.modo_domingo !== "personalizado"}
               value={form.periodicidade_domingo}
               onChange={(e) => set("periodicidade_domingo", num(e.target.value, padrao))}
             />
@@ -184,6 +216,7 @@ export default function DpConfiguracoesJornada() {
               )}
             </p>
           </div>
+
 
           <div className="space-y-1.5">
             <Label htmlFor="per-domingo-mulher">Domingo de folga — mulheres (semanas)</Label>

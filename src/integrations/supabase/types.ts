@@ -3193,6 +3193,7 @@ export type Database = {
           exige_validacao_menor: boolean
           folgas_fds_por_mes: number
           id: string
+          modo_domingo: string
           negociacao_id: string | null
           periodicidade_domingo: number
           periodicidade_domingo_mulher: number
@@ -3209,6 +3210,7 @@ export type Database = {
           exige_validacao_menor?: boolean
           folgas_fds_por_mes?: number
           id?: string
+          modo_domingo?: string
           negociacao_id?: string | null
           periodicidade_domingo?: number
           periodicidade_domingo_mulher?: number
@@ -3225,6 +3227,7 @@ export type Database = {
           exige_validacao_menor?: boolean
           folgas_fds_por_mes?: number
           id?: string
+          modo_domingo?: string
           negociacao_id?: string | null
           periodicidade_domingo?: number
           periodicidade_domingo_mulher?: number

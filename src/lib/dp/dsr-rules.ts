@@ -6,10 +6,29 @@ export type PoliticaFeriado = "compensa" | "dobro";
 export type RegraDsr = "clt" | "cct" | "propria";
 /** `legal` = folga dominical estrita. `acordo_coletivo` = domingo pode ser substituído por sábado. */
 export type TipoDescansoDomingo = "legal" | "acordo_coletivo";
+/** Modo de definição da periodicidade da folga dominical. */
+export type ModoDomingo = "legislacao" | "tres_semanas" | "sete_semanas" | "personalizado";
+
+export const MODO_DOMINGO_LABEL: Record<ModoDomingo, string> = {
+  legislacao: "Conforme Legislação",
+  tres_semanas: "A Cada 3 Semanas",
+  sete_semanas: "A Cada 7 Semanas",
+  personalizado: "Personalizado",
+};
+
+/** Periodicidade (em semanas) derivada do modo; `null` quando personalizado. */
+export function periodicidadeDoModo(modo: ModoDomingo, setorComercio: boolean): number | null {
+  if (modo === "legislacao") return padraoLegalDomingo(setorComercio);
+  if (modo === "tres_semanas") return 3;
+  if (modo === "sete_semanas") return 7;
+  return null;
+}
 
 export interface DpConfigDp {
   company_id: string;
   setor_comercio: boolean;
+  /** Modo de definição da folga dominical. */
+  modo_domingo: ModoDomingo;
   /** Periodicidade de folga dominical, em semanas. 0 = nunca exigir. */
   periodicidade_domingo: number;
   /** Periodicidade específica para mulheres (Art. 386 CLT), em semanas. */
@@ -27,6 +46,7 @@ export interface DpConfigDp {
 
 export const DP_CONFIG_DP_DEFAULT: Omit<DpConfigDp, "company_id"> = {
   setor_comercio: true,
+  modo_domingo: "legislacao",
   periodicidade_domingo: 3,
   periodicidade_domingo_mulher: 2,
   folgas_fds_por_mes: 1,
