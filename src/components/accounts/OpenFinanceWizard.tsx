@@ -32,7 +32,10 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   companyId: string | null;
   onFinished: () => void;
+  /** Quando informado, o widget abre em modo de reconexão (atualizar credenciais/MFA do item). */
+  reconnectItemId?: string | null;
 }
+
 
 function loadPluggyScript(): Promise<void> {
   return new Promise((resolve, reject) => {
