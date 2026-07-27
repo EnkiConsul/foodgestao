@@ -1,0 +1,1 @@
+ALTER TABLE public.dp_config_dp DROP CONSTRAINT IF EXISTS dp_config_dp_acordo_requer_negociacao_chk;
