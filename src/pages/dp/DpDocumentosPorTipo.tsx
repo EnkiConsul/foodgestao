@@ -348,16 +348,16 @@ export default function DpDocumentosPorTipo({ tipo: tipoProp }: { tipo?: Tipo } 
             </div>
           ) : (
             <>
-            <div className="bg-card border border-border rounded-2xl overflow-x-auto hidden md:block">
-              <table className="w-full text-sm">
+            <div className="bg-card border border-border rounded-2xl hidden md:block">
+              <table className="w-full table-fixed text-sm">
                 <thead className="border-b border-border">
                   <tr>
-                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Colaborador</th>
-                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Competência</th>
-                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Unidade</th>
-                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Status</th>
-                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground">Aprovado em</th>
-                    <th className="text-right p-4 font-bold uppercase text-[10px] text-muted-foreground">Ações</th>
+                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground w-[24%]">Colaborador</th>
+                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground w-[20%]">Competência</th>
+                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground w-[16%]">Unidade</th>
+                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground w-[14%]">Status</th>
+                    <th className="text-left p-4 font-bold uppercase text-[10px] text-muted-foreground w-[14%]">Aprovado em</th>
+                    <th className="text-right p-4 font-bold uppercase text-[10px] text-muted-foreground w-[12%]">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -367,7 +367,7 @@ export default function DpDocumentosPorTipo({ tipo: tipoProp }: { tipo?: Tipo } 
                     const isEditing = editando === doc.id;
                     return (
                       <tr key={doc.id} className="hover:bg-muted/30 transition-colors">
-                        <td className="p-4 font-semibold">
+                        <td className="p-4 font-semibold truncate" title={colab?.nome ?? ""}>
                           {colab?.nome ?? "—"}
                         </td>
                         <td className="p-4">
