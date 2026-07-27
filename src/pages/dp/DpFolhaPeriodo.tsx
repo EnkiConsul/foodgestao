@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "react-router-dom";
-import { Download, Receipt, Search, Wallet } from "lucide-react";
+import { Download, Printer, Receipt, Search, Wallet } from "lucide-react";
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
@@ -21,6 +21,9 @@ import {
   folhaParaCsv, formatarBRL, podeGerarDespesa, proximoStatusPeriodo, totaisDaFolha,
   type FolhaPeriodoStatus,
 } from "@/lib/dp/folha";
+import { imprimirHolerite, type HoleriteDados } from "@/lib/dp/holerite";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { toast } from "sonner";
 
 
 const rotuloCompetencia = (iso: string) =>
@@ -52,6 +55,32 @@ export default function DpFolhaPeriodo() {
     [linhas, busca],
   );
   const totais = useMemo(() => totaisDaFolha(linhas), [linhas]);
+
+  const { companies, selectedCompanyId } = useCompanyContext();
+  const empresa =
+    companies.find((c) => c.id === selectedCompanyId)?.trade_name ||
+    companies.find((c) => c.id === selectedCompanyId)?.name ||
+    "360°FOOD";
+
+  const imprimir = (alvo: typeof linhas) => {
+    if (!periodo) return;
+    const itens: HoleriteDados[] = alvo
+      .filter((l) => l.status !== "cancelado")
+      .map((l) => ({
+        empresa,
+        colaborador: l.nome,
+        competencia: periodo.competencia,
+        tipo: periodo.tipo,
+        detalhe: l.detalhe,
+        valorBruto: l.valor_bruto,
+        valorLiquido: l.valor_liquido,
+        dataPagamento: periodo.data_pagamento,
+      }));
+    const titulo = `Demonstrativos ${periodo.competencia.slice(0, 7)}`;
+    if (!imprimirHolerite(titulo, itens)) {
+      toast.error("Não foi possível abrir a impressão. Verifique o bloqueio de pop-ups.");
+    }
+  };
 
   if (error) return <DpErrorState message="Não foi possível carregar o período da folha." />;
   if (isLoading) return <DpPage><Skeleton className="h-64 w-full" /></DpPage>;
@@ -85,6 +114,10 @@ export default function DpFolhaPeriodo() {
             >
               <Download className="mr-2 h-4 w-4" />
               Exportar CSV
+            </Button>
+            <Button variant="outline" size="sm" disabled={!linhas.length} onClick={() => imprimir(linhas)}>
+              <Printer className="mr-2 h-4 w-4" />
+              Imprimir Demonstrativos
             </Button>
             {status !== "aberto" && (
               <Button variant="outline" size="sm" onClick={() => setConfirmar("aberto")} disabled={alterarStatus.isPending}>
@@ -183,6 +216,15 @@ export default function DpFolhaPeriodo() {
                     <p className="text-xs text-muted-foreground">Líquido</p>
                     <p className="text-sm font-semibold">{formatarBRL(l.valor_liquido)}</p>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Imprimir demonstrativo de ${l.nome}`}
+                    disabled={l.status === "cancelado"}
+                    onClick={() => imprimir([l])}
+                  >
+                    <Printer className="h-4 w-4" />
+                  </Button>
                   <Badge variant={l.status === "rascunho" ? "secondary" : "default"}>
                     {LANCAMENTO_STATUS_LABEL[l.status]}
                   </Badge>
