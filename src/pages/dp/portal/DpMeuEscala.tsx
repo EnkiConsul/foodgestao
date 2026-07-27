@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDpHorarioPrevisto } from "@/hooks/useDpHorarioPrevisto";
+import { FONTE_LABEL, textoPrevisto } from "@/lib/dp/horario-previsto";
 
 const competenciaAtual = () => new Date().toISOString().slice(0, 7);
 
@@ -45,6 +47,8 @@ export default function DpMeuEscala() {
 
   const colaboradorId = me.data ?? null;
   const dias = useMemo(() => diasDaCompetencia(competencia), [competencia]);
+  const { proximo, hoje: previstoHoje } = useDpHorarioPrevisto(colaboradorId, competencia);
+  const destaque = previstoHoje?.trabalha ? previstoHoje : proximo;
 
   const escala = useQuery({
     queryKey: ["dp_meu_escala", colaboradorId, competencia],
@@ -111,6 +115,20 @@ export default function DpMeuEscala() {
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
+
+      {destaque && (
+        <Card className="border-primary/40 bg-primary/5">
+          <CardContent className="flex items-center justify-between gap-3 p-4">
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">
+                {destaque.data === hojeIso() ? "Seu turno de hoje" : `Próximo turno · ${rotuloDia(destaque.data)}`}
+              </p>
+              <p className="text-base font-semibold">{textoPrevisto(destaque)}</p>
+            </div>
+            <Badge variant="outline" className="shrink-0">{FONTE_LABEL[destaque.fonte]}</Badge>
+          </CardContent>
+        </Card>
+      )}
 
       {escala.isLoading || me.isLoading ? (
         <Skeleton className="h-64 w-full" />
