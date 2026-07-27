@@ -88,6 +88,7 @@ export function lerDetalhe(raw: unknown): DetalheFolha {
       dsrPerdidos: num(h.dsrPerdidos),
     },
     extras: lerExtras(d.extras),
+    dependentes: Math.max(0, Math.trunc(num(d.dependentes))),
   };
 }
 
