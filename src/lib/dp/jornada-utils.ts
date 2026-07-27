@@ -80,6 +80,104 @@ export function calcularCargaSemanal(horarios: HorarioDia[]): number {
   return Math.round(total * 100) / 100;
 }
 
+/** Alias explícito: carga somada de todos os dias cadastrados na jornada. */
+export function calcularCargaTotalCadastrada(horarios: HorarioDia[]): number {
+  return calcularCargaSemanal(horarios);
+}
+
+const arred = (n: number) => Math.round(n * 100) / 100;
+
+/** Carga semanal descontando um único dia de folga fixa. */
+export function calcularCargaComFolgaFixa(horarios: HorarioDia[], diaFolga: number | null | undefined): number {
+  if (diaFolga == null) return calcularCargaSemanal(horarios);
+  return calcularCargaComFolgas(horarios, [diaFolga]);
+}
+
+/** Carga semanal descontando um conjunto de dias de folga. */
+export function calcularCargaComFolgas(horarios: HorarioDia[], diasFolga: number[]): number {
+  const folgas = new Set(diasFolga);
+  return arred(
+    horarios.reduce((acc, h) => (folgas.has(h.dia_semana) ? acc : acc + calcularCargaDia(h)), 0),
+  );
+}
+
+export interface SimulacaoFolga {
+  dia: number;
+  rotulo: string;
+  carga: number;
+}
+
+/** Carga resultante ao folgar em cada um dos dias cadastrados. */
+export function simularCargaPorDiaDeFolga(horarios: HorarioDia[]): SimulacaoFolga[] {
+  return ORDEM_EXIBICAO.filter((d) => horarios.some((h) => h.dia_semana === d)).map((d) => ({
+    dia: d,
+    rotulo: DIAS_SEMANA.find((x) => x.v === d)!.longo,
+    carga: calcularCargaComFolgas(horarios, [d]),
+  }));
+}
+
+/** Carga da semana efetivamente montada na escala: soma apenas os dias escalados. */
+export function calcularCargaDaEscala(
+  horarios: HorarioDia[],
+  diasEscalados: number[],
+): number {
+  const escalados = new Set(diasEscalados);
+  return arred(
+    horarios.reduce((acc, h) => (escalados.has(h.dia_semana) ? acc + calcularCargaDia(h) : acc), 0),
+  );
+}
+
+export interface ValidacaoCarga {
+  carga: number;
+  limite: number;
+  excede: boolean;
+  excedente: number;
+}
+
+/** Valida a carga semanal contra o limite legal (padrão 44h). */
+export function validarCargaSemanal(carga: number, limite: number = LIMITE_SEMANAL): ValidacaoCarga {
+  const excede = arred(carga) > limite;
+  return { carga: arred(carga), limite, excede, excedente: excede ? arred(carga - limite) : 0 };
+}
+
+/** Quantidade de folgas semanais previstas pelo regime. Null = indefinido/variável. */
+export function folgasPorRegime(tipoEscala: string): number | null {
+  switch (tipoEscala) {
+    case "6x1":
+    case "5x1":
+      return 1;
+    case "5x2":
+    case "4x2":
+      return 2;
+    default:
+      return null; // 12x36, intermitente, personalizada
+  }
+}
+
+export interface CargaEstimada {
+  /** Menor carga possível (folga nos dias mais pesados). */
+  minima: number;
+  /** Maior carga possível (folga nos dias mais leves). */
+  maxima: number;
+  folgas: number;
+}
+
+/**
+ * Faixa estimada de carga semanal conforme o regime.
+ * Retorna null quando o regime não define um número fixo de folgas (12x36, personalizada…).
+ */
+export function cargaEstimadaPorRegime(horarios: HorarioDia[], tipoEscala: string): CargaEstimada | null {
+  const folgas = folgasPorRegime(tipoEscala);
+  if (!folgas || horarios.length === 0) return null;
+  const cargas = horarios.map(calcularCargaDia).sort((a, b) => a - b);
+  if (cargas.length <= folgas) return null;
+  const total = cargas.reduce((a, b) => a + b, 0);
+  const maisPesados = cargas.slice(-folgas).reduce((a, b) => a + b, 0);
+  const maisLeves = cargas.slice(0, folgas).reduce((a, b) => a + b, 0);
+  return { minima: arred(total - maisPesados), maxima: arred(total - maisLeves), folgas };
+}
+
+
 /** Formata horas decimais como "8h" ou "7h30". */
 export function formatarHoras(horas: number): string {
   if (!Number.isFinite(horas) || horas <= 0) return "0h";
