@@ -48,7 +48,7 @@ export default function DpConfiguracoesJornada() {
   const { selectedCompanyId } = useCompanyContext();
   const [unidadeId, setUnidadeId] = useState<string | null>(null);
   const {
-    config, configPadrao, temExcecao, temMulheres, negociacoes, historico,
+    config, configPadrao, temExcecao, temMulheres, historico,
     isLoading, isError, refetch, save, saving, removerExcecao, removendo,
   } = useDpConfigDp(unidadeId);
   const { data: todasUnidades = [] } = useDpUnidades();
