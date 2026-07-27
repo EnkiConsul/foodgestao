@@ -338,6 +338,10 @@ export default function DpMeuSolicitacoes() {
                   <DateField label="Data" value={form.data_alvo} onChange={(d) => setForm({ ...form, data_alvo: d })} />
                   <DateField label="Data fim" value={form.data_fim} onChange={(d) => setForm({ ...form, data_fim: d })} />
                 </div>
+                {form.tipo === "folga" && (
+                  <p className="text-xs text-muted-foreground">{resumoFolgas.texto}</p>
+                )}
+
                 {bloqueioAtivo != null && (
                   <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">
                     <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
