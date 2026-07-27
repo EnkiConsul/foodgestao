@@ -16,8 +16,9 @@ import {
 } from "@/components/ui/select";
 import { useDpConfigDp, type DpConfigDpForm } from "@/hooks/useDpConfigDp";
 import {
-  DP_CONFIG_DP_DEFAULT, alertasDeCiencia, padraoLegalDomingo,
-  PADRAO_LEGAL_DOMINGO_MULHER, isMenosProtetiva, type AlertaCiencia,
+  DP_CONFIG_DP_DEFAULT, alertasDeCiencia, padraoLegalDomingo, MODO_DOMINGO_LABEL,
+  periodicidadeDoModo, PADRAO_LEGAL_DOMINGO_MULHER, isMenosProtetiva,
+  type AlertaCiencia, type ModoDomingo,
 } from "@/lib/dp/dsr-rules";
 
 function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
