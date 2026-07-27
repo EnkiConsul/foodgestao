@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Zap, Pencil, Check, Info } from "lucide-react";
@@ -30,6 +31,25 @@ export function AccountCreationMethodDialog({
   openFinanceEnabled = true,
   openFinanceDisabledReason = "Selecione uma empresa antes de conectar uma conta via Open Finance.",
 }: Props) {
+  const [selecting, setSelecting] = useState(false);
+
+  // Reset lock whenever the modal is (re)opened
+  useEffect(() => {
+    if (open) setSelecting(false);
+  }, [open]);
+
+  const handleSelectOpenFinance = () => {
+    if (selecting || !openFinanceEnabled) return;
+    setSelecting(true);
+    onSelectOpenFinance();
+  };
+
+  const handleSelectManual = () => {
+    if (selecting) return;
+    setSelecting(true);
+    onSelectManual();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[calc(100%-2rem)] max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -45,12 +65,13 @@ export function AccountCreationMethodDialog({
           <button
             type="button"
             aria-label="Conectar por Open Finance"
-            aria-disabled={!openFinanceEnabled}
-            disabled={!openFinanceEnabled}
-            onClick={onSelectOpenFinance}
+            aria-disabled={!openFinanceEnabled || selecting}
+            disabled={!openFinanceEnabled || selecting}
+            aria-busy={selecting}
+            onClick={handleSelectOpenFinance}
             className={
               "group relative flex flex-col text-left rounded-lg border bg-card p-4 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary " +
-              (openFinanceEnabled
+              (openFinanceEnabled && !selecting
                 ? "cursor-pointer hover:border-primary hover:shadow-md"
                 : "cursor-not-allowed opacity-60")
             }
@@ -98,8 +119,16 @@ export function AccountCreationMethodDialog({
           <button
             type="button"
             aria-label="Cadastrar conta manualmente"
-            onClick={onSelectManual}
-            className="group relative flex flex-col text-left cursor-pointer rounded-lg border bg-card p-4 transition-all hover:border-primary hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            aria-disabled={selecting}
+            disabled={selecting}
+            aria-busy={selecting}
+            onClick={handleSelectManual}
+            className={
+              "group relative flex flex-col text-left rounded-lg border bg-card p-4 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary " +
+              (selecting
+                ? "cursor-not-allowed opacity-60"
+                : "cursor-pointer hover:border-primary hover:shadow-md")
+            }
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
