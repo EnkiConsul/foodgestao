@@ -353,7 +353,46 @@ export default function Relatorios() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent className="px-3 md:px-6">
+          {/* Mobile: um card por mês, sem rolagem lateral */}
+          <div className="space-y-2 md:hidden">
+            {fluxoCaixaData.MONTH_LABELS.map((m, i) => {
+              const rec = fluxoCaixaData.totalReceitas[i] ?? 0;
+              const desp = fluxoCaixaData.totalDespesas[i] ?? 0;
+              const sal = fluxoCaixaData.totalSaldo[i] ?? 0;
+              return (
+                <div key={m} className="rounded-xl border p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{m}</span>
+                    <span className={cn("text-base font-bold tabular-nums", sal >= 0 ? "text-primary" : "text-destructive")}>
+                      {formatBRL(sal)}
+                    </span>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                    <div className="rounded-lg bg-success/5 px-2 py-1.5">
+                      <p className="text-muted-foreground">Receitas</p>
+                      <p className="font-semibold text-success tabular-nums">{formatBRL(rec)}</p>
+                    </div>
+                    <div className="rounded-lg bg-destructive/5 px-2 py-1.5">
+                      <p className="text-muted-foreground">Despesas</p>
+                      <p className="font-semibold text-destructive tabular-nums">{formatBRL(desp)}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-3 flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wide">Total do período</span>
+              <span className="text-base font-bold tabular-nums">
+                {formatBRL(fluxoCaixaData.sumArr(fluxoCaixaData.totalSaldo))}
+              </span>
+            </div>
+            <p className="pt-1 text-[11px] text-muted-foreground">
+              Detalhamento por categoria disponível no computador ou no PDF.
+            </p>
+          </div>
+
+          <div className="hidden md:block overflow-x-auto">
           <table id="fluxo-caixa-table" className="w-full text-xs border-collapse">
             <thead>
               <tr className="border-b">
