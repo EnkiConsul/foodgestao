@@ -83,6 +83,8 @@ const DpConvocacoes = lazyWithRetry(() => import("./pages/dp/DpConvocacoes"));
 const DpPonto = lazyWithRetry(() => import("./pages/dp/DpPonto"));
 const DpPontoConsolidado = lazyWithRetry(() => import("./pages/dp/DpPontoConsolidado"));
 const DpPontoApuracao = lazyWithRetry(() => import("./pages/dp/DpPontoApuracao"));
+const DpFolha = lazyWithRetry(() => import("./pages/dp/DpFolha"));
+const DpFolhaPeriodo = lazyWithRetry(() => import("./pages/dp/DpFolhaPeriodo"));
 const DpUnidades = lazyWithRetry(() => import("./pages/dp/DpUnidades"));
 const DpCargos = lazyWithRetry(() => import("./pages/dp/DpCargos"));
 const DpSindicatos = lazyWithRetry(() => import("./pages/dp/DpSindicatos"));
