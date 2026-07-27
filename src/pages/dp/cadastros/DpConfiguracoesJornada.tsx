@@ -56,25 +56,53 @@ const STORAGE_KEY = "dp:regras-folgas:unidade";
 
 export default function DpConfiguracoesJornada() {
   const { selectedCompanyId } = useCompanyContext();
-  const [unidadeId, setUnidadeId] = useState<string | null>(null);
+  const [unidadeId, setUnidadeId] = useState<string | null>(
+    () => localStorage.getItem(STORAGE_KEY) || null,
+  );
   const {
-    config, configPadrao, temExcecao, temMulheres, historico,
-    isLoading, isError, refetch, save, saving, removerExcecao, removendo,
+    config, configPadrao, temExcecao, unidadesConfiguradas, temMulheres, historico,
+    isLoading, isError, refetch, save, saveMany, saving, removerExcecao, removendo,
   } = useDpConfigDp(unidadeId);
   const { data: todasUnidades = [] } = useDpUnidades();
   const unidades = useMemo(
     () => todasUnidades.filter((u) => u.company_id === selectedCompanyId),
     [todasUnidades, selectedCompanyId],
   );
+  const { data: contextoSindical } = useSindicatoContextoUnidade(unidadeId);
 
   const [form, setForm] = useState<DpConfigDpForm>(DP_CONFIG_DP_DEFAULT);
   const [alertas, setAlertas] = useState<AlertaCiencia[]>([]);
+  const [replicarAberto, setReplicarAberto] = useState(false);
+  const [limparAberto, setLimparAberto] = useState(false);
+
+  /** Seleciona a primeira unidade quando não há escolha válida guardada. */
+  useEffect(() => {
+    if (unidades.length === 0) return;
+    if (!unidadeId || !unidades.some((u) => u.id === unidadeId)) {
+      setUnidadeId(unidades[0].id);
+    }
+  }, [unidades, unidadeId]);
+
+  useEffect(() => {
+    if (unidadeId) localStorage.setItem(STORAGE_KEY, unidadeId);
+  }, [unidadeId]);
 
   useEffect(() => { setForm(config); }, [config]);
 
+  const unidadeAtual = useMemo(
+    () => unidades.find((u) => u.id === unidadeId) ?? null,
+    [unidades, unidadeId],
+  );
+  const outrasUnidades = useMemo(
+    () => unidades
+      .filter((u) => u.id !== unidadeId)
+      .map((u) => ({ id: u.id, nome: u.nome, configurada: unidadesConfiguradas.has(u.id) })),
+    [unidades, unidadeId, unidadesConfiguradas],
+  );
+
   const padrao = padraoLegalDomingo(form.setor_comercio);
   const semanas = semanasDaConfig(form);
-  const herdando = !!unidadeId && !temExcecao;
+  const naoConfigurada = !!unidadeId && !temExcecao;
   const porAcordo = form.tipo_descanso_domingo === "acordo_coletivo";
   const resumoFolgas = useMemo(() => resumoEscolhaFolgas(form), [form]);
 
@@ -102,39 +130,79 @@ export default function DpConfiguracoesJornada() {
     });
   };
 
-  const persist = async (cienciaConfirmada: boolean, justificativa?: string) => {
+  /** Grava nas unidades alvo; mantém a retaguarda da empresa quando replica para todas. */
+  const persist = async (
+    alvosExtras: string[],
+    cienciaConfirmada: boolean,
+    justificativa?: string,
+  ) => {
+    if (!unidadeId) return;
+    const nomes: Record<string, string> = {};
+    unidades.forEach((u) => { nomes[u.id] = u.nome; });
+
+    const alvos: (string | null)[] = [unidadeId, ...alvosExtras];
+    // Replicou para todas as unidades: atualiza também a retaguarda da empresa.
+    const todas = unidades.length > 0 && alvos.length === unidades.length;
+    if (todas) alvos.push(null);
+
     try {
-      await save({ patch: form, unidadeId, cienciaConfirmada, justificativa: justificativa || null });
+      await saveMany({ patch: form, alvos, nomes, cienciaConfirmada, justificativa: justificativa || null });
       setAlertas([]);
-      toast.success(unidadeId ? "Regras da unidade atualizadas" : "Regras da empresa atualizadas");
+      setReplicarAberto(false);
+      toast.success(
+        alvosExtras.length > 0
+          ? `Regras salvas em ${alvosExtras.length + 1} unidades`
+          : `Regras de ${unidadeAtual?.nome ?? "unidade"} atualizadas`,
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível salvar as regras");
     }
   };
 
+  const [alvosPendentes, setAlvosPendentes] = useState<string[]>([]);
+
+  /** Etapa final: exige ciência legal quando a regra é menos protetiva. */
+  const concluirSalvamento = (alvosExtras: string[]) => {
+    setAlvosPendentes(alvosExtras);
+    const pendentes = alertasDeCiencia(form, { temMulheres });
+    if (pendentes.length > 0) {
+      setReplicarAberto(false);
+      setAlertas(pendentes);
+      return;
+    }
+    void persist(alvosExtras, false);
+  };
+
   const handleSave = () => {
+    if (!unidadeId) {
+      toast.error("Cadastre uma unidade antes de configurar as regras de folgas.");
+      return;
+    }
     if (porAcordo && (form.dias_descanso_negociados ?? []).length === 0) {
       toast.error("Selecione ao menos um dia de descanso negociado.");
       return;
     }
-
-    const pendentes = alertasDeCiencia(form, { temMulheres });
-    if (pendentes.length > 0) { setAlertas(pendentes); return; }
-    void persist(false);
+    if (outrasUnidades.length > 0) {
+      setReplicarAberto(true);
+      return;
+    }
+    concluirSalvamento([]);
   };
 
-  const handleRemoverExcecao = async () => {
+  const handleLimparRegras = async () => {
     if (!unidadeId) return;
     try {
       await removerExcecao(unidadeId);
       setForm(configPadrao);
-      toast.success("Exceção removida — a unidade volta a seguir a regra da empresa.");
+      setLimparAberto(false);
+      toast.success("Regras da unidade removidas.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível remover a exceção");
+      toast.error(e instanceof Error ? e.message : "Não foi possível remover as regras");
     }
   };
 
   const historicoRecente = useMemo(() => historico.slice(0, 10), [historico]);
+
 
   if (isError) {
     return (
