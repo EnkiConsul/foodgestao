@@ -70,6 +70,14 @@ export function linhasDoHolerite(d: HoleriteDados): LinhaHolerite[] {
       desconto: detalhe.dsr,
     },
   ];
+  for (const e of detalhe.extras) {
+    linhas.push({
+      descricao: e.descricao,
+      referencia: "—",
+      provento: e.natureza === "provento" ? e.valor : 0,
+      desconto: e.natureza === "desconto" ? e.valor : 0,
+    });
+  }
   return linhas.filter((l, i) => i === 0 || l.provento > 0 || l.desconto > 0);
 }
 

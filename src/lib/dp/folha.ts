@@ -34,6 +34,13 @@ export const FOLHA_TIPO_LABEL: Record<string, string> = {
   vale_transporte: "Vale-transporte",
 };
 
+/** Fase 16 — rubrica avulsa lançada manualmente pelo DP no contracheque. */
+export interface RubricaExtra {
+  descricao: string;
+  natureza: "provento" | "desconto";
+  valor: number;
+}
+
 export interface DetalheFolha {
   faltas: number;
   dsr: number;
@@ -48,6 +55,8 @@ export interface DetalheFolha {
     diasFalta: number;
     dsrPerdidos: number;
   };
+  /** Fase 16 — rubricas avulsas (adiantamentos, prêmios, descontos etc.). */
+  extras: RubricaExtra[];
 }
 
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
@@ -76,8 +85,48 @@ export function lerDetalhe(raw: unknown): DetalheFolha {
       diasFalta: num(h.diasFalta),
       dsrPerdidos: num(h.dsrPerdidos),
     },
+    extras: lerExtras(d.extras),
   };
 }
+
+/** Normaliza a lista de rubricas avulsas vinda do JSON. */
+export function lerExtras(raw: unknown): RubricaExtra[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((e) => {
+      const r = (e ?? {}) as Record<string, unknown>;
+      const descricao = typeof r.descricao === "string" ? r.descricao.trim() : "";
+      const natureza = r.natureza === "desconto" ? "desconto" : "provento";
+      const valor = Math.max(0, num(r.valor));
+      return { descricao, natureza, valor } as RubricaExtra;
+    })
+    .filter((e) => e.descricao.length > 0 && e.valor > 0);
+}
+
+/** Soma das rubricas avulsas por natureza. */
+export function totaisDosExtras(extras: RubricaExtra[]): { proventos: number; descontos: number } {
+  return extras.reduce(
+    (acc, e) =>
+      e.natureza === "provento"
+        ? { ...acc, proventos: acc.proventos + e.valor }
+        : { ...acc, descontos: acc.descontos + e.valor },
+    { proventos: 0, descontos: 0 },
+  );
+}
+
+/**
+ * Fase 16 — recalcula bruto/líquido do lançamento a partir do detalhe
+ * (proventos apurados + rubricas avulsas − descontos).
+ */
+export function valoresDoLancamento(detalhe: DetalheFolha): { bruto: number; liquido: number } {
+  const p = detalhe.proventos;
+  const extras = totaisDosExtras(detalhe.extras);
+  const bruto = p.normais + p.extras50 + p.extras100 + p.noturno + extras.proventos;
+  const liquido = bruto - detalhe.faltas - detalhe.dsr - extras.descontos;
+  return { bruto: round2(bruto), liquido: round2(Math.max(0, liquido)) };
+}
+
+const round2 = (v: number) => Math.round(v * 100) / 100;
 
 export interface LinhaFolha {
   id: string;
@@ -143,6 +192,8 @@ export function folhaParaCsv(competencia: string, linhas: LinhaFolha[]): string 
     "Adicional noturno",
     "Desconto faltas",
     "Desconto DSR",
+    "Outros proventos",
+    "Outros descontos",
     "Bruto",
     "Liquido",
     "Status",
@@ -158,6 +209,8 @@ export function folhaParaCsv(competencia: string, linhas: LinhaFolha[]): string 
       n(l.detalhe.proventos.noturno),
       n(l.detalhe.faltas),
       n(l.detalhe.dsr),
+      n(totaisDosExtras(l.detalhe.extras).proventos),
+      n(totaisDosExtras(l.detalhe.extras).descontos),
       n(l.valor_bruto),
       n(l.valor_liquido),
       LANCAMENTO_STATUS_LABEL[l.status],
