@@ -467,6 +467,7 @@ const AppRoutes = () => (
         <Route path="/admin/documentos-legais" element={<AdminDocumentosLegais />} />
         <Route path="/admin/bancos" element={<AdminBancos />} />
         <Route path="/admin/auditoria-saldos" element={<AdminDriftSaldos />} />
+        <Route path="/admin/pluggy-conexoes" element={<AdminPluggyConexoes />} />
         
         <Route path="/admin/seo-indexacao" element={<AdminSeoIndexacao />} />
         <Route path="/admin/modulos" element={<AdminModulos />} />
