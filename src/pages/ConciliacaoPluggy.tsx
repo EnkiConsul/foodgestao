@@ -36,7 +36,7 @@ interface Connection {
 }
 
 interface AccountOpt { id: string; name: string; }
-interface CategoryOpt { id: string; name: string; type: string; }
+interface CategoryOpt { id: string; name: string; transaction_type: string; }
 
 export default function ConciliacaoPluggy() {
   const navigate = useNavigate();
