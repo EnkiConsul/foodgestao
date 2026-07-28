@@ -6858,6 +6858,7 @@ export type Database = {
           removed_at: string | null
           subtype: string | null
           sync_cursor_date: string | null
+          sync_cursor_next: string | null
           sync_cursor_updated_at: string | null
           tax_number: string | null
           transfer_number: string | null
@@ -6890,6 +6891,7 @@ export type Database = {
           removed_at?: string | null
           subtype?: string | null
           sync_cursor_date?: string | null
+          sync_cursor_next?: string | null
           sync_cursor_updated_at?: string | null
           tax_number?: string | null
           transfer_number?: string | null
@@ -6922,6 +6924,7 @@ export type Database = {
           removed_at?: string | null
           subtype?: string | null
           sync_cursor_date?: string | null
+          sync_cursor_next?: string | null
           sync_cursor_updated_at?: string | null
           tax_number?: string | null
           transfer_number?: string | null
@@ -7053,7 +7056,9 @@ export type Database = {
           last_error_code: string | null
           last_synced_at: string | null
           metadata: Json
+          needs_remote_delete: boolean
           pluggy_item_id: string
+          remote_deleted_at: string | null
           requires_user_action: boolean
           status: string
           status_detail: string | null
@@ -7077,7 +7082,9 @@ export type Database = {
           last_error_code?: string | null
           last_synced_at?: string | null
           metadata?: Json
+          needs_remote_delete?: boolean
           pluggy_item_id: string
+          remote_deleted_at?: string | null
           requires_user_action?: boolean
           status?: string
           status_detail?: string | null
@@ -7101,7 +7108,9 @@ export type Database = {
           last_error_code?: string | null
           last_synced_at?: string | null
           metadata?: Json
+          needs_remote_delete?: boolean
           pluggy_item_id?: string
+          remote_deleted_at?: string | null
           requires_user_action?: boolean
           status?: string
           status_detail?: string | null
@@ -7199,6 +7208,7 @@ export type Database = {
           company_id: string
           connection_id: string
           created_at: string
+          deleted_at: string | null
           error: string | null
           id: string
           import_hash: string
@@ -7213,6 +7223,7 @@ export type Database = {
           company_id: string
           connection_id: string
           created_at?: string
+          deleted_at?: string | null
           error?: string | null
           id?: string
           import_hash: string
@@ -7227,6 +7238,7 @@ export type Database = {
           company_id?: string
           connection_id?: string
           created_at?: string
+          deleted_at?: string | null
           error?: string | null
           id?: string
           import_hash?: string
