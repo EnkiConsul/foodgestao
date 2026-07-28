@@ -7507,6 +7507,548 @@ export type Database = {
         }
         Relationships: []
       }
+      pluggy_v2_accounts: {
+        Row: {
+          balance: number | null
+          bank_data: Json
+          company_id: string
+          connection_id: string
+          created_at: string
+          credit_data: Json
+          currency_code: string | null
+          id: string
+          last_synced_at: string | null
+          marketing_name: string | null
+          name: string | null
+          number_masked: string | null
+          owner_masked: string | null
+          pluggy_account_id: string
+          pluggy_item_id: string
+          promoted_account_id: string | null
+          promoted_at: string | null
+          raw_snapshot: Json
+          subtype: string | null
+          tax_number_masked: string | null
+          type: string | null
+          updated_at: string
+        }
+        Insert: {
+          balance?: number | null
+          bank_data?: Json
+          company_id: string
+          connection_id: string
+          created_at?: string
+          credit_data?: Json
+          currency_code?: string | null
+          id?: string
+          last_synced_at?: string | null
+          marketing_name?: string | null
+          name?: string | null
+          number_masked?: string | null
+          owner_masked?: string | null
+          pluggy_account_id: string
+          pluggy_item_id: string
+          promoted_account_id?: string | null
+          promoted_at?: string | null
+          raw_snapshot?: Json
+          subtype?: string | null
+          tax_number_masked?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          balance?: number | null
+          bank_data?: Json
+          company_id?: string
+          connection_id?: string
+          created_at?: string
+          credit_data?: Json
+          currency_code?: string | null
+          id?: string
+          last_synced_at?: string | null
+          marketing_name?: string | null
+          name?: string | null
+          number_masked?: string | null
+          owner_masked?: string | null
+          pluggy_account_id?: string
+          pluggy_item_id?: string
+          promoted_account_id?: string | null
+          promoted_at?: string | null
+          raw_snapshot?: Json
+          subtype?: string | null
+          tax_number_masked?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pluggy_v2_accounts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pluggy_v2_accounts_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "pluggy_v2_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pluggy_v2_accounts_promoted_account_id_fkey"
+            columns: ["promoted_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pluggy_v2_connect_requests: {
+        Row: {
+          client_user_id: string
+          company_id: string
+          completed_at: string | null
+          connector_id: number | null
+          connector_name: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          intent: string
+          last_error: string | null
+          metadata: Json
+          pluggy_item_id: string | null
+          status: string
+          target_item_id: string | null
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_user_id: string
+          company_id: string
+          completed_at?: string | null
+          connector_id?: number | null
+          connector_name?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          intent?: string
+          last_error?: string | null
+          metadata?: Json
+          pluggy_item_id?: string | null
+          status?: string
+          target_item_id?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_user_id?: string
+          company_id?: string
+          completed_at?: string | null
+          connector_id?: number | null
+          connector_name?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          intent?: string
+          last_error?: string | null
+          metadata?: Json
+          pluggy_item_id?: string | null
+          status?: string
+          target_item_id?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pluggy_v2_connect_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pluggy_v2_connections: {
+        Row: {
+          company_id: string
+          connector_country: string | null
+          connector_id: number
+          connector_name: string | null
+          connector_type: string | null
+          created_at: string
+          created_by: string | null
+          credentials_expires_at: string | null
+          deleted_at: string | null
+          execution_status: string | null
+          id: string
+          is_oauth: boolean
+          last_sync_at: string | null
+          last_updated_at: string | null
+          metadata: Json
+          mfa_pending: boolean
+          next_auto_sync_at: string | null
+          parameter: Json
+          pluggy_item_id: string
+          remote_deletion_attempts: number
+          remote_deletion_last_error: string | null
+          remote_deletion_next_at: string | null
+          remote_deletion_status: string | null
+          status: Database["public"]["Enums"]["pluggy_v2_connection_status"]
+          status_detail: Json
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          connector_country?: string | null
+          connector_id: number
+          connector_name?: string | null
+          connector_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          credentials_expires_at?: string | null
+          deleted_at?: string | null
+          execution_status?: string | null
+          id?: string
+          is_oauth?: boolean
+          last_sync_at?: string | null
+          last_updated_at?: string | null
+          metadata?: Json
+          mfa_pending?: boolean
+          next_auto_sync_at?: string | null
+          parameter?: Json
+          pluggy_item_id: string
+          remote_deletion_attempts?: number
+          remote_deletion_last_error?: string | null
+          remote_deletion_next_at?: string | null
+          remote_deletion_status?: string | null
+          status?: Database["public"]["Enums"]["pluggy_v2_connection_status"]
+          status_detail?: Json
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          connector_country?: string | null
+          connector_id?: number
+          connector_name?: string | null
+          connector_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          credentials_expires_at?: string | null
+          deleted_at?: string | null
+          execution_status?: string | null
+          id?: string
+          is_oauth?: boolean
+          last_sync_at?: string | null
+          last_updated_at?: string | null
+          metadata?: Json
+          mfa_pending?: boolean
+          next_auto_sync_at?: string | null
+          parameter?: Json
+          pluggy_item_id?: string
+          remote_deletion_attempts?: number
+          remote_deletion_last_error?: string | null
+          remote_deletion_next_at?: string | null
+          remote_deletion_status?: string | null
+          status?: Database["public"]["Enums"]["pluggy_v2_connection_status"]
+          status_detail?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pluggy_v2_connections_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pluggy_v2_sync_runs: {
+        Row: {
+          accounts_synced: number
+          company_id: string
+          connection_id: string
+          created_at: string
+          cursor_after: string | null
+          cursor_before: string | null
+          error_details: Json | null
+          error_message: string | null
+          finished_at: string | null
+          from_date: string | null
+          id: string
+          metadata: Json
+          pages_processed: number
+          source_webhook_event_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["pluggy_v2_sync_status"]
+          to_date: string | null
+          transactions_ingested: number
+          triggered_by: string
+          updated_at: string
+        }
+        Insert: {
+          accounts_synced?: number
+          company_id: string
+          connection_id: string
+          created_at?: string
+          cursor_after?: string | null
+          cursor_before?: string | null
+          error_details?: Json | null
+          error_message?: string | null
+          finished_at?: string | null
+          from_date?: string | null
+          id?: string
+          metadata?: Json
+          pages_processed?: number
+          source_webhook_event_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["pluggy_v2_sync_status"]
+          to_date?: string | null
+          transactions_ingested?: number
+          triggered_by?: string
+          updated_at?: string
+        }
+        Update: {
+          accounts_synced?: number
+          company_id?: string
+          connection_id?: string
+          created_at?: string
+          cursor_after?: string | null
+          cursor_before?: string | null
+          error_details?: Json | null
+          error_message?: string | null
+          finished_at?: string | null
+          from_date?: string | null
+          id?: string
+          metadata?: Json
+          pages_processed?: number
+          source_webhook_event_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["pluggy_v2_sync_status"]
+          to_date?: string | null
+          transactions_ingested?: number
+          triggered_by?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pluggy_v2_sync_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pluggy_v2_sync_runs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "pluggy_v2_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pluggy_v2_transactions_raw: {
+        Row: {
+          account_id: string
+          amount: number
+          amount_in_account_currency: number | null
+          balance: number | null
+          category: string | null
+          category_id: string | null
+          company_id: string
+          connection_id: string
+          created_at: string
+          credit_card_metadata: Json | null
+          currency_code: string | null
+          date: string
+          description: string | null
+          description_raw: string | null
+          id: string
+          ignored: boolean
+          merchant: Json | null
+          payment_data: Json | null
+          pluggy_account_id: string
+          pluggy_transaction_id: string
+          promoted_at: string | null
+          promoted_transaction_id: string | null
+          raw: Json
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          type: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          amount_in_account_currency?: number | null
+          balance?: number | null
+          category?: string | null
+          category_id?: string | null
+          company_id: string
+          connection_id: string
+          created_at?: string
+          credit_card_metadata?: Json | null
+          currency_code?: string | null
+          date: string
+          description?: string | null
+          description_raw?: string | null
+          id?: string
+          ignored?: boolean
+          merchant?: Json | null
+          payment_data?: Json | null
+          pluggy_account_id: string
+          pluggy_transaction_id: string
+          promoted_at?: string | null
+          promoted_transaction_id?: string | null
+          raw?: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          amount_in_account_currency?: number | null
+          balance?: number | null
+          category?: string | null
+          category_id?: string | null
+          company_id?: string
+          connection_id?: string
+          created_at?: string
+          credit_card_metadata?: Json | null
+          currency_code?: string | null
+          date?: string
+          description?: string | null
+          description_raw?: string | null
+          id?: string
+          ignored?: boolean
+          merchant?: Json | null
+          payment_data?: Json | null
+          pluggy_account_id?: string
+          pluggy_transaction_id?: string
+          promoted_at?: string | null
+          promoted_transaction_id?: string | null
+          raw?: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pluggy_v2_transactions_raw_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "pluggy_v2_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pluggy_v2_transactions_raw_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pluggy_v2_transactions_raw_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "pluggy_v2_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pluggy_v2_transactions_raw_promoted_transaction_id_fkey"
+            columns: ["promoted_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_sources"
+            referencedColumns: ["transaction_id"]
+          },
+          {
+            foreignKeyName: "pluggy_v2_transactions_raw_promoted_transaction_id_fkey"
+            columns: ["promoted_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pluggy_v2_webhook_events: {
+        Row: {
+          attempts: number
+          claim_expires_at: string | null
+          claimed_by: string | null
+          created_at: string
+          event_id: string | null
+          event_type: string
+          headers: Json
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          max_attempts: number
+          metadata: Json
+          next_attempt_at: string
+          payload: Json
+          pluggy_item_id: string | null
+          processed_at: string | null
+          received_at: string
+          status: Database["public"]["Enums"]["pluggy_v2_webhook_status"]
+          triggered_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          claim_expires_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          event_id?: string | null
+          event_type: string
+          headers?: Json
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          max_attempts?: number
+          metadata?: Json
+          next_attempt_at?: string
+          payload: Json
+          pluggy_item_id?: string | null
+          processed_at?: string | null
+          received_at?: string
+          status?: Database["public"]["Enums"]["pluggy_v2_webhook_status"]
+          triggered_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          claim_expires_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          event_id?: string | null
+          event_type?: string
+          headers?: Json
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          max_attempts?: number
+          metadata?: Json
+          next_attempt_at?: string
+          payload?: Json
+          pluggy_item_id?: string | null
+          processed_at?: string | null
+          received_at?: string
+          status?: Database["public"]["Enums"]["pluggy_v2_webhook_status"]
+          triggered_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           asaas_customer_id: string | null
@@ -9447,6 +9989,29 @@ export type Database = {
         | "not_contracted"
         | "trial_expirado"
       parcel_direction: "entrada" | "saida"
+      pluggy_v2_connection_status:
+        | "created"
+        | "updating"
+        | "login_error"
+        | "waiting_user_input"
+        | "outdated"
+        | "updated"
+        | "deleted"
+        | "error"
+      pluggy_v2_sync_status:
+        | "pending"
+        | "running"
+        | "success"
+        | "partial"
+        | "error"
+        | "dead_letter"
+      pluggy_v2_webhook_status:
+        | "pending"
+        | "processing"
+        | "success"
+        | "error"
+        | "dead_letter"
+        | "skipped"
       profile_type: "pf" | "mei" | "microempresa" | "hibrido"
       recurrence_type:
         | "diario"
@@ -9820,6 +10385,32 @@ export const Constants = {
         "trial_expirado",
       ],
       parcel_direction: ["entrada", "saida"],
+      pluggy_v2_connection_status: [
+        "created",
+        "updating",
+        "login_error",
+        "waiting_user_input",
+        "outdated",
+        "updated",
+        "deleted",
+        "error",
+      ],
+      pluggy_v2_sync_status: [
+        "pending",
+        "running",
+        "success",
+        "partial",
+        "error",
+        "dead_letter",
+      ],
+      pluggy_v2_webhook_status: [
+        "pending",
+        "processing",
+        "success",
+        "error",
+        "dead_letter",
+        "skipped",
+      ],
       profile_type: ["pf", "mei", "microempresa", "hibrido"],
       recurrence_type: [
         "diario",
