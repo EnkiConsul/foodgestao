@@ -397,15 +397,6 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
     setSaving(false);
   };
 
-  const Section = ({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) => (
-    <section className="space-y-4">
-      <div className="space-y-0.5">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
-        {description && <p className="text-xs text-muted-foreground/80">{description}</p>}
-      </div>
-      {children}
-    </section>
-  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
