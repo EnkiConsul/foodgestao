@@ -43,12 +43,19 @@ export function CategoryMobileRow({
   const companies = catCompanyMap.get(cat.id) || [];
 
   return (
-    <li className={`flex items-stretch gap-2 px-2 py-2 ${isGroup ? "bg-muted/40" : ""}`}>
+    <li
+      role="treeitem"
+      aria-level={cat.depth + 1}
+      aria-selected={isSelected}
+      aria-expanded={cat.hasChildren ? !isCollapsed : undefined}
+      className={`flex items-stretch gap-2 px-2 py-2 ${isGroup ? "bg-muted/40" : ""}`}
+    >
       <div className="flex items-center pl-1">
         <Checkbox
           checked={isSelected}
           onCheckedChange={() => onToggleSelect(cat.id)}
           aria-label={`Selecionar categoria ${cat.name}`}
+          className="h-5 w-5"
         />
       </div>
 
@@ -67,23 +74,25 @@ export function CategoryMobileRow({
           onClick={() => onToggleCollapse(cat.id)}
           aria-label={isCollapsed ? `Expandir ${cat.name}` : `Recolher ${cat.name}`}
           aria-expanded={!isCollapsed}
-          className="flex h-11 w-8 shrink-0 items-center justify-center rounded text-muted-foreground"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
-          <ChevronRight className={`h-4 w-4 transition-transform ${isCollapsed ? "" : "rotate-90"}`} />
+          <ChevronRight aria-hidden className={`h-4 w-4 transition-transform ${isCollapsed ? "" : "rotate-90"}`} />
         </button>
       ) : (
-        <span className="w-8 shrink-0" />
+        <span className="w-8 shrink-0" aria-hidden />
       )}
 
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 py-0.5">
         <div className="flex min-w-0 items-center gap-1.5">
           <span
+            aria-hidden
             className="h-2.5 w-2.5 shrink-0 rounded-full"
             style={{ backgroundColor: cat.color ?? "hsl(var(--primary))" }}
           />
           <span className={`truncate text-sm ${isGroup ? "font-semibold uppercase tracking-wide" : ""}`}>
             {isGroup ? cat.name.toUpperCase() : cat.name}
           </span>
+          <span className="sr-only">, nível {cat.depth + 1}</span>
         </div>
         <div className="flex flex-wrap items-center gap-1">
           <CategoryTypeBadge type={cat.transaction_type} />
@@ -100,6 +109,7 @@ export function CategoryMobileRow({
           )}
         </div>
       </div>
+
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
