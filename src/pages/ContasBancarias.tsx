@@ -14,8 +14,6 @@ import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
-import { AccountCreationMethodDialog } from "@/components/accounts/AccountCreationMethodDialog";
-import { OpenFinanceWizard } from "@/components/accounts/OpenFinanceWizard";
 import { ImportStatementDialog } from "@/components/transactions/ImportStatementDialog";
 import { AdjustAccountBalanceDialog } from "@/components/accounts/AdjustAccountBalanceDialog";
 
