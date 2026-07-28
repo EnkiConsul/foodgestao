@@ -231,10 +231,15 @@ export default function ConciliacaoPluggy() {
     ignored: rows.filter((r) => r.status === "ignored").length,
   }), [rows]);
 
+  const pendingFiltered = useMemo(() => filtered.filter((r) => r.status === "pending"), [filtered]);
+  const allPendingSelected = pendingFiltered.length > 0 && pendingFiltered.every((r) => selected.has(r.id));
+  const somePendingSelected = pendingFiltered.some((r) => selected.has(r.id));
+
   const toggleAll = () => {
-    if (selected.size === filtered.length) setSelected(new Set());
-    else setSelected(new Set(filtered.filter((r) => r.status === "pending").map((r) => r.id)));
+    if (allPendingSelected) setSelected(new Set());
+    else setSelected(new Set(pendingFiltered.map((r) => r.id)));
   };
+
 
   const confirmIds = async (ids: string[]) => {
     if (ids.length === 0) return;
