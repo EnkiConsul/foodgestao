@@ -194,6 +194,7 @@ export default function ConciliacaoPluggy() {
     if (targets.length === 0) return;
     setSyncing(true);
     let total = 0;
+    let needsAction = false;
     for (const c of targets) {
       const { data: conn } = await supabase.from("pluggy_connections").select("pluggy_item_id").eq("id", c.id).single();
       if (!conn) continue;
@@ -201,11 +202,17 @@ export default function ConciliacaoPluggy() {
         body: { item_id: conn.pluggy_item_id, company_id: selectedCompanyId },
       });
       if (error) { toast.error(`Erro ao sincronizar ${c.connector_name ?? ""}`); continue; }
+      const st = String(data?.item_status ?? "").toUpperCase();
+      if (st === "WAITING_USER_INPUT" || st === "LOGIN_ERROR") {
+        needsAction = true;
+        toast.error(`${c.connector_name ?? "Conexão"}: reconecte o banco (${st === "LOGIN_ERROR" ? "credenciais inválidas" : "confirmação pendente no app do banco"})`);
+      }
       total += data?.transactions ?? 0;
     }
     setSyncing(false);
-    toast.success(`Sincronização concluída (${total} lançamentos)`);
+    if (!needsAction) toast.success(`Sincronização concluída (${total} lançamentos)`);
     load();
+
   };
 
   const filtered = useMemo(() => {
