@@ -457,19 +457,51 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
                 <Label>Categoria Pai (opcional)</Label>
                 <Select value={parentId ?? "__none__"} onValueChange={(v) => setParentId(!v || v === "__none__" ? null : v)}>
                   <SelectTrigger className="h-11">
-                    <span className="truncate">
-                      {parentId ? (parentNameById(parentId) ?? "Carregando...") : "Nenhuma (raiz)"}
-                    </span>
+                    {parentId ? (
+                      (() => {
+                        const sel = allCategories.find((c: any) => c.id === parentId) as any;
+                        return (
+                          <span className="flex items-center gap-2 min-w-0">
+                            <span
+                              className="h-2.5 w-2.5 rounded-full shrink-0"
+                              style={{ backgroundColor: sel?.color ?? "#94a3b8" }}
+                              aria-hidden
+                            />
+                            <span className="truncate">{sel?.name ?? "Carregando..."}</span>
+                          </span>
+                        );
+                      })()
+                    ) : (
+                      <span className="truncate">Nenhuma (raiz)</span>
+                    )}
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-72">
                     <SelectItem value="__none__">Nenhuma (raiz)</SelectItem>
-                    {parentOptions.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
+                    {parentOptions.map(({ cat, depth }) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span className="flex shrink-0" aria-hidden>
+                            {categoryGuideLevels(depth).map((i) => (
+                              <span
+                                key={i}
+                                className="inline-block border-l border-border/60 h-4"
+                                style={{ width: CATEGORY_INDENT_STEP }}
+                              />
+                            ))}
+                          </span>
+                          <span
+                            className="h-2.5 w-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: cat.color ?? "#94a3b8" }}
+                            aria-hidden
+                          />
+                          <span className={cn("truncate", depth === 0 && "font-semibold")}>{cat.name}</span>
+                          <CategoryTypeBadge type={cat.transaction_type} className="ml-1 shrink-0" />
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+
                 {parentOptions.length === 0 && (
                   <p className="text-xs text-muted-foreground">Crie categorias raiz do mesmo tipo primeiro</p>
                 )}
