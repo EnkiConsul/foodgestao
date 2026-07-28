@@ -43,6 +43,7 @@ function loadScript(): Promise<void> {
 function buildOauthRedirectUri(): string {
   const url = new URL(window.location.href);
   // Limpa quaisquer params antigos para evitar loops.
+  url.search = "";
   url.hash = "";
   return url.toString();
 }
