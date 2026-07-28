@@ -193,22 +193,9 @@ Deno.serve(async (req) => {
       const txs = await listTransactions(acc.id, fmt(from), fmt(to));
       if (txs.length === 0) continue;
       const rows = txs.map((t: any) => {
-        const rawDesc: string = t.description ?? t.descriptionRaw ?? '';
         const amt = Number(t.amount ?? 0);
-        const pd = t.paymentData ?? null;
-        const receiverName: string | null = pd?.receiver?.name ?? null;
-        const payerName: string | null = pd?.payer?.name ?? null;
-        const method: string | null = pd?.paymentMethod ?? null;
-        const counterparty = amt < 0 ? receiverName : payerName;
-
-        // If bank returned a generic label, rewrite using paymentData counterparty
-        const generic = /^\s*(transf(er[eê]ncia)?\s+(enviada|recebida)\s+pix|pix\s+(enviado|recebido)|ted|doc)\b/i;
-        let description = rawDesc;
-        if (counterparty && (generic.test(rawDesc) || !rawDesc.trim())) {
-          const verb = amt < 0 ? 'enviado para' : 'recebido de';
-          const label = method === 'PIX' || /pix/i.test(rawDesc) ? 'Pix' : (method ? method : 'Transferência');
-          description = `${label} ${verb} ${counterparty}`;
-        }
+        const counterparty = counterpartyName(t);
+        const description = buildDescription(t);
 
         return {
           company_id: effectiveCompanyId,
@@ -226,6 +213,7 @@ Deno.serve(async (req) => {
           status: 'pending' as const,
         };
       });
+
 
       // Chunked upsert to avoid oversized payloads
       const chunkSize = 200;
