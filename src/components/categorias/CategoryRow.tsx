@@ -104,23 +104,6 @@ export function CategoryRow({
                   </Badge>
                 );
               })()}
-              {(cat as any).template_code && (
-                <TooltipProvider delayDuration={300}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Badge variant="outline" className="hidden md:inline-flex text-[10px] h-4 px-1.5 ml-1 font-mono cursor-help">
-                        {(cat as any).template_code}
-                      </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      <p>
-                        ID Interno {(cat as any).template_code?.startsWith("USR-") ? "(gerado)" : "(plano padrão 360°FOOD)"} —
-                        imutável, preserva o histórico dos lançamentos.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
             </div>
           </TableCell>
           <TableCell className="hidden md:table-cell py-1.5 text-center">
