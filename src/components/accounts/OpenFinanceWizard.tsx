@@ -100,8 +100,61 @@ export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished, r
       setConnectionId(null);
       setAccounts([]);
       setInstitutionName(null);
+      setRequestId(null);
+      setAwaitingAuth(false);
     }
   }, [open]);
+
+  // P0 — Polling da solicitação: se onSuccess não rodar, o webhook conclui
+  // a materialização e o polling detecta status='connected'.
+  useEffect(() => {
+    if (!open || !requestId || step === "accounts" || step === "done") return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const tick = async () => {
+      const { data } = await supabase
+        .from("open_finance_connection_requests")
+        .select("id, status, pluggy_item_id, error_code, correlation_expires_at, cancelled_at")
+        .eq("id", requestId)
+        .maybeSingle();
+      if (cancelled || !data) {
+        if (!cancelled) timer = setTimeout(tick, 3000);
+        return;
+      }
+      if (data.status === "awaiting_authorization") {
+        setAwaitingAuth(true);
+      }
+      if (data.status === "connected" && data.pluggy_item_id) {
+        const { data: conn } = await supabase
+          .from("open_finance_connections")
+          .select("id, institution_name")
+          .eq("pluggy_item_id", data.pluggy_item_id)
+          .maybeSingle();
+        if (conn?.id && !cancelled) {
+          setConnectionId(conn.id);
+          setInstitutionName(conn.institution_name ?? null);
+          await loadAccounts(conn.id);
+          setStep("accounts");
+          try { pluggyRef.current?.destroy?.(); } catch { /* noop */ }
+          return;
+        }
+      }
+      if (data.status === "cancelled" || data.status === "failed") {
+        if (!cancelled) {
+          setError(data.error_code || "Solicitação encerrada.");
+          setStep("error");
+        }
+        return;
+      }
+      timer = setTimeout(tick, 3000);
+    };
+    timer = setTimeout(tick, 2000);
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [open, requestId, step]);
+
 
   const startConnect = useCallback(async () => {
     if (!companyId) {
