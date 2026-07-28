@@ -37,6 +37,7 @@ interface Connection {
 
 interface AccountOpt { id: string; name: string; }
 interface CategoryOpt { id: string; name: string; transaction_type: string; }
+interface ScopeInfo { pluggyAccountId: string; connectionId: string; name: string | null; }
 
 export default function ConciliacaoPluggy() {
   const navigate = useNavigate();
