@@ -126,12 +126,16 @@ Deno.serve(async (req) => {
 
   const requestId = reqRow.id as string;
   const clientUserId = `ofreq:${requestId}`;
-  const webhookUrl = `${url}/functions/v1/pluggy-webhook`;
+  // Depois que o webhook global (pluggy-webhook-configure) estiver ativo e
+  // confirmado, defina PLUGGY_USE_GLOBAL_WEBHOOK=true para parar de enviar
+  // webhookUrl por Connect Token e evitar entregas duplicadas.
+  const useGlobalWebhook = (Deno.env.get("PLUGGY_USE_GLOBAL_WEBHOOK") ?? "").toLowerCase() === "true";
+  const webhookUrl = useGlobalWebhook ? undefined : `${url}/functions/v1/pluggy-webhook`;
 
   // 3) Cria o Connect Token na Pluggy com payload em `options`.
   const result = await createConnectToken({
     clientUserId,
-    webhookUrl,
+    ...(webhookUrl ? { webhookUrl } : {}),
     avoidDuplicates: true,
     itemId: parsed.item_id,
   });
