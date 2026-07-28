@@ -121,23 +121,53 @@ Deno.serve(async (req) => {
         const ownerUserId = userId ?? (await admin
           .from('pluggy_connections').select('created_by').eq('id', conn.id).maybeSingle()).data?.created_by;
         if (ownerUserId) {
-          const { data: newAcc } = await admin.from('accounts').insert({
-            user_id: ownerUserId,
-            company_id: effectiveCompanyId,
-            name: acc.name ?? acc.marketingName ?? item?.connector?.name ?? 'Conta bancária',
-            account_type: 'corrente',
-            context: 'pj',
-            initial_balance: 0,
-            current_balance: 0,
-            color: '#1B3A5C',
-            icon: 'wallet',
-            is_active: true,
-            bank_slug: bankSlug,
-            account_number: acc.number ?? null,
-          }).select('id').single();
-          if (newAcc?.id) {
+          // Dedup: 1) check if another pluggy_account in the same company already links to a local account
+          //        matching this connector (bank_slug + account_number). Reuse that link.
+          let existingAccountId: string | null = null;
+          const accNumber = acc.number ?? null;
+
+          // 1a) Prior pluggy_accounts row already linked (e.g., previous connection for the same bank/number)
+          const { data: priorLinked } = await admin
+            .from('pluggy_accounts')
+            .select('linked_account_id')
+            .eq('company_id', effectiveCompanyId)
+            .eq('number_masked', accNumber)
+            .not('linked_account_id', 'is', null)
+            .limit(1)
+            .maybeSingle();
+          if (priorLinked?.linked_account_id) existingAccountId = priorLinked.linked_account_id;
+
+          // 1b) Local accounts table match by company + bank_slug + account_number
+          if (!existingAccountId && (bankSlug || accNumber)) {
+            let q = admin.from('accounts').select('id').eq('company_id', effectiveCompanyId).eq('is_active', true);
+            if (bankSlug) q = q.eq('bank_slug', bankSlug);
+            if (accNumber) q = q.eq('account_number', accNumber);
+            const { data: match } = await q.limit(1).maybeSingle();
+            if (match?.id) existingAccountId = match.id;
+          }
+
+          let targetAccountId = existingAccountId;
+          if (!targetAccountId) {
+            const { data: newAcc } = await admin.from('accounts').insert({
+              user_id: ownerUserId,
+              company_id: effectiveCompanyId,
+              name: acc.name ?? acc.marketingName ?? item?.connector?.name ?? 'Conta bancária',
+              account_type: 'corrente',
+              context: 'pj',
+              initial_balance: 0,
+              current_balance: 0,
+              color: '#1B3A5C',
+              icon: 'wallet',
+              is_active: true,
+              bank_slug: bankSlug,
+              account_number: accNumber,
+            }).select('id').single();
+            targetAccountId = newAcc?.id ?? null;
+          }
+
+          if (targetAccountId) {
             await admin.from('pluggy_accounts')
-              .update({ linked_account_id: newAcc.id })
+              .update({ linked_account_id: targetAccountId })
               .eq('id', upserted.id);
           }
         }
