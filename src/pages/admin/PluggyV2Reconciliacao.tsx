@@ -360,6 +360,18 @@ function CutoverPanel() {
                             <DownloadCloud className="mr-2 h-4 w-4" />
                             Backfill V2
                           </Button>
+                          {c.pluggy_version === "v2" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={cleanupV1.isPending}
+                              onClick={() => cleanupV1.mutate({ companyId: c.id, confirm: false })}
+                              title="Cleanup V1: arquiva conexões e apaga raw_transactions V1"
+                            >
+                              <Archive className="mr-2 h-4 w-4" />
+                              Cleanup V1
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="outline"
