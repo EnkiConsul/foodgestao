@@ -20,7 +20,7 @@ import { AdjustAccountBalanceDialog } from "@/components/accounts/AdjustAccountB
 
 
 import { BankLogo } from "@/components/accounts/BankLogo";
-import { Plus, Search, Landmark, Pencil, Trash2, Wallet, RefreshCw, AlertTriangle, Upload, Zap, SlidersHorizontal } from "lucide-react";
+import { Plus, Search, Landmark, Pencil, Trash2, Wallet, RefreshCw, AlertTriangle, Upload, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
