@@ -235,8 +235,7 @@ export default function ConciliacaoPluggy() {
     else setSelected(new Set(filtered.filter((r) => r.status === "pending").map((r) => r.id)));
   };
 
-  const confirmSelected = async () => {
-    const ids = Array.from(selected);
+  const confirmIds = async (ids: string[]) => {
     if (ids.length === 0) return;
 
     // Group by target account
@@ -267,20 +266,33 @@ export default function ConciliacaoPluggy() {
         ok += Array.isArray(data) ? data.length : 0;
       }
     }
-    toast.success(`${ok} lançamentos confirmados`);
+    toast.success(ok === 1 ? "Lançamento confirmado" : `${ok} lançamentos confirmados`);
     setSelected(new Set());
     load();
   };
 
-  const ignoreSelected = async () => {
-    const ids = Array.from(selected);
+  const ignoreIds = async (ids: string[]) => {
     if (ids.length === 0) return;
     const { error } = await supabase.rpc("pluggy_ignore_staging", { p_staging_ids: ids });
     if (error) { toast.error("Falha ao ignorar"); return; }
-    toast.success(`${ids.length} lançamentos ignorados`);
+    toast.success(ids.length === 1 ? "Lançamento ignorado" : `${ids.length} lançamentos ignorados`);
     setSelected(new Set());
     load();
   };
+
+  const confirmSelected = () => confirmIds(Array.from(selected));
+  const ignoreSelected = () => ignoreIds(Array.from(selected));
+
+  const handleRowAction = async (id: string, action: "confirm" | "ignore") => {
+    setRowBusy(id);
+    try {
+      if (action === "confirm") await confirmIds([id]);
+      else await ignoreIds([id]);
+    } finally {
+      setRowBusy(null);
+    }
+  };
+
 
   if (contextType !== "pj") {
     return (
