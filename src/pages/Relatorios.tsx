@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { applyFinancialScope, assertFinancialScope, isFinancialScopeReady } from "@/lib/financialScope";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChevronLeft,
   ChevronRight,
@@ -14,6 +15,10 @@ import {
   ChevronsUpDown,
   Filter,
   CalendarIcon,
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  BarChart3,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -148,7 +153,7 @@ export default function Relatorios() {
   const startDate = format(activeRange.from, "yyyy-MM-dd");
   const endDate = format(activeRange.to, "yyyy-MM-dd");
 
-  const { data: fluxoTransactions = [] } = useQuery({
+  const { data: fluxoTransactions = [], isLoading: isLoadingFluxo } = useQuery({
     queryKey: ["relatorios-fluxo", user?.id, startDate, endDate, contextType, selectedCompanyId],
     enabled: !!user && isFinancialScopeReady(contextType, user?.id, selectedCompanyId),
     queryFn: async () => {
@@ -227,6 +232,14 @@ export default function Relatorios() {
     [fluxoCaixaData.despesaTree, collapsedIds]
   );
 
+  const kpis = useMemo(() => {
+    const receitas = fluxoCaixaData.sumArr(fluxoCaixaData.totalReceitas);
+    const despesas = fluxoCaixaData.sumArr(fluxoCaixaData.totalDespesas);
+    const saldo = fluxoCaixaData.sumArr(fluxoCaixaData.totalSaldo);
+    const mediaSaldo = fluxoCaixaData.avgArr(fluxoCaixaData.totalSaldo);
+    return { receitas, despesas, saldo, mediaSaldo };
+  }, [fluxoCaixaData]);
+
   const clearFilters = () => {
     setFilterAccountId("all");
     setFilterCategoryId("all");
@@ -235,77 +248,165 @@ export default function Relatorios() {
     setFilterStatus("all");
   };
 
+  const periodLabel = `${format(activeRange.from, "dd/MM/yy", { locale: ptBR })} — ${format(activeRange.to, "dd/MM/yy", { locale: ptBR })}`;
+
   return (
     <div className="space-y-4 md:space-y-6" ref={reportRef}>
-      <div className="flex flex-col gap-3 md:gap-4">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Relatórios</h1>
-          <p className="text-xs md:text-sm text-muted-foreground">Analise Suas Finanças com Relatórios Detalhados</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setFluxoYear((y) => y - 1)}>
-              <ChevronLeft className="h-4 w-4" />
+      {/* Cabeçalho */}
+      <div className="flex flex-col gap-1">
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Relatórios</h1>
+        <p className="text-xs md:text-sm text-muted-foreground">
+          Analise suas finanças com relatórios detalhados · <span className="font-medium text-foreground/70">{periodLabel}</span>
+        </p>
+      </div>
+
+      {/* Barra de controles */}
+      <div className="sticky top-0 z-20 -mx-3 md:-mx-6 bg-background/95 px-3 md:px-6 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/70 border-b">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+          {/* Período */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-0.5 lg:overflow-visible">
+            <div className="inline-flex shrink-0 rounded-lg border bg-muted/40 p-0.5">
+              {([
+                { key: "month", label: "Mês" },
+                { key: "3months", label: "3M" },
+                { key: "6months", label: "6M" },
+                { key: "year", label: "Ano" },
+              ] as { key: PeriodPreset; label: string }[]).map((p) => (
+                <Button
+                  key={p.key}
+                  variant="ghost"
+                  size="sm"
+                  aria-pressed={periodPreset === p.key}
+                  className={cn(
+                    "h-8 rounded-md px-3 text-xs font-medium",
+                    periodPreset === p.key
+                      ? "bg-background shadow-sm text-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                  onClick={() => setPeriodPreset(p.key)}
+                >
+                  {p.label}
+                </Button>
+              ))}
+            </div>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={periodPreset === "custom" ? "default" : "outline"}
+                  size="sm"
+                  className="h-8 shrink-0 gap-1.5 text-xs"
+                >
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                  {periodPreset === "custom"
+                    ? `${format(customRange.from, "dd/MM/yy")} - ${format(customRange.to, "dd/MM/yy")}`
+                    : "Personalizado"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="range"
+                  selected={{ from: customRange.from, to: customRange.to }}
+                  onSelect={(range) => {
+                    if (range?.from) {
+                      setCustomRange({ from: range.from, to: range.to ?? range.from });
+                      setPeriodPreset("custom");
+                    }
+                  }}
+                  numberOfMonths={2}
+                  locale={ptBR}
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+
+            {periodPreset === "year" && (
+              <div className="flex shrink-0 items-center gap-1 rounded-lg border px-1 py-0.5">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  aria-label="Ano anterior"
+                  onClick={() => setFluxoYear((y) => y - 1)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="min-w-[2.75rem] text-center text-sm font-semibold tabular-nums">{fluxoYear}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  aria-label="Próximo ano"
+                  onClick={() => setFluxoYear((y) => y + 1)}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Ações */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant={showFilters ? "default" : "outline"}
+              size="sm"
+              className="h-8 flex-1 gap-1.5 text-xs lg:flex-none"
+              aria-expanded={showFilters}
+              onClick={() => setShowFilters((v) => !v)}
+            >
+              <Filter className="h-3.5 w-3.5" /> Filtros
+              {activeFilterCount > 0 && (
+                <span className="ml-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-foreground px-1 text-[10px] font-bold text-primary">
+                  {activeFilterCount}
+                </span>
+              )}
             </Button>
-            <span className="text-sm font-semibold min-w-[3rem] text-center">{fluxoYear}</span>
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setFluxoYear((y) => y + 1)}>
-              <ChevronRight className="h-4 w-4" />
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 flex-1 gap-1.5 text-xs lg:flex-none"
+              onClick={() => exportFluxoCaixaPdf(activeRange)}
+            >
+              <Download className="h-3.5 w-3.5" /> Exportar PDF
             </Button>
           </div>
-          <Button
-            variant={showFilters ? "default" : "outline"}
-            size="sm"
-            className="gap-1.5"
-            onClick={() => setShowFilters((v) => !v)}
-          >
-            <Filter className="h-3.5 w-3.5" /> Filtros
-            {activeFilterCount > 0 && (
-              <span className="ml-1 h-5 w-5 rounded-full bg-primary-foreground text-primary text-xs flex items-center justify-center font-bold">
-                {activeFilterCount}
-              </span>
-            )}
-          </Button>
-          {([
-            { key: "month", label: "Mês" },
-            { key: "3months", label: "3 Meses" },
-            { key: "6months", label: "6 Meses" },
-            { key: "year", label: "Ano" },
-          ] as { key: PeriodPreset; label: string }[]).map((p) => (
-            <Button
-              key={p.key}
-              variant={periodPreset === p.key ? "default" : "outline"}
-              size="sm"
-              onClick={() => setPeriodPreset(p.key)}
-            >
-              {p.label}
-            </Button>
-          ))}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant={periodPreset === "custom" ? "default" : "outline"} size="sm" className="gap-1">
-                <CalendarIcon className="h-3.5 w-3.5" />
-                {periodPreset === "custom"
-                  ? `${format(customRange.from, "dd/MM/yy")} - ${format(customRange.to, "dd/MM/yy")}`
-                  : "Personalizado"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="range"
-                selected={{ from: customRange.from, to: customRange.to }}
-                onSelect={(range) => {
-                  if (range?.from) {
-                    setCustomRange({ from: range.from, to: range.to ?? range.from });
-                    setPeriodPreset("custom");
-                  }
-                }}
-                numberOfMonths={2}
-                locale={ptBR}
-                className={cn("p-3 pointer-events-auto")}
-              />
-            </PopoverContent>
-          </Popover>
         </div>
+      </div>
+
+      {/* Resumo do período */}
+      <div className="grid grid-cols-2 gap-2 md:gap-3 xl:grid-cols-4">
+        {[
+          { label: "Receitas", value: kpis.receitas, icon: TrendingUp, cls: "text-success", bg: "bg-success/10" },
+          { label: "Despesas", value: kpis.despesas, icon: TrendingDown, cls: "text-destructive", bg: "bg-destructive/10" },
+          {
+            label: "Saldo do período",
+            value: kpis.saldo,
+            icon: Wallet,
+            cls: kpis.saldo >= 0 ? "text-primary" : "text-destructive",
+            bg: kpis.saldo >= 0 ? "bg-primary/10" : "bg-destructive/10",
+          },
+          { label: "Média mensal", value: kpis.mediaSaldo, icon: BarChart3, cls: "text-foreground", bg: "bg-muted" },
+        ].map((k) => (
+          <Card key={k.label} className="shadow-sm">
+            <CardContent className="flex items-center gap-3 p-3 md:p-4">
+              <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", k.bg)}>
+                <k.icon className={cn("h-4 w-4", k.cls)} />
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground md:text-xs">
+                  {k.label}
+                </p>
+                {isLoadingFluxo ? (
+                  <Skeleton className="mt-1 h-5 w-20" />
+                ) : (
+                  <p className={cn("truncate text-base font-bold tabular-nums md:text-lg", k.cls)}>
+                    {formatBRL(k.value)}
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {showFilters && (
@@ -330,51 +431,43 @@ export default function Relatorios() {
       )}
 
       <Card className="shadow-sm">
-        <CardHeader className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 pb-4">
-          <div className="space-y-1.5 min-w-0">
-            <CardTitle className="text-sm md:text-base flex items-center gap-2 flex-wrap">
+        <CardHeader className="flex flex-col gap-2 pb-3 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0 space-y-1">
+            <CardTitle className="flex flex-wrap items-center gap-2 text-sm md:text-base">
               <span>Fluxo de Caixa</span>
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-2 py-0.5 text-[11px] md:text-xs font-medium text-primary">
-                <CalendarIcon className="h-3 w-3" />
-                {format(activeRange.from, "dd/MM/yy", { locale: ptBR })}
-                <span className="opacity-60">→</span>
-                {format(activeRange.to, "dd/MM/yy", { locale: ptBR })}
-              </span>
-              <span className="text-[11px] md:text-xs font-normal text-muted-foreground">
-                ({fluxoCaixaData.MONTH_LABELS.length} {fluxoCaixaData.MONTH_LABELS.length === 1 ? "mês" : "meses"})
+              <span className="rounded-md border border-primary/20 bg-primary/5 px-2 py-0.5 text-[11px] font-medium text-primary md:text-xs">
+                {fluxoCaixaData.MONTH_LABELS.length} {fluxoCaixaData.MONTH_LABELS.length === 1 ? "mês" : "meses"}
               </span>
             </CardTitle>
-            <p className="text-[11px] md:text-xs text-muted-foreground line-clamp-2 md:line-clamp-none">
-              Meses incluídos no recorte:{" "}
-              <span className="font-medium text-foreground/80">
-                {fluxoCaixaData.MONTH_LABELS.join(" · ")}
-              </span>
+            <p className="line-clamp-1 text-[11px] text-muted-foreground md:text-xs">
+              {fluxoCaixaData.MONTH_LABELS.join(" · ")}
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button variant="outline" size="sm" className="gap-1 flex-1 md:flex-none min-h-9" onClick={expandAll}>
+          <div className="hidden items-center gap-2 md:flex">
+            <Button variant="outline" size="sm" className="min-h-9 gap-1" onClick={expandAll}>
               <ChevronsUpDown className="h-3.5 w-3.5" /> Expandir
             </Button>
-            <Button variant="outline" size="sm" className="gap-1 flex-1 md:flex-none min-h-9" onClick={collapseAll}>
+            <Button variant="outline" size="sm" className="min-h-9 gap-1" onClick={collapseAll}>
               <ChevronsUpDown className="h-3.5 w-3.5 rotate-90" /> Colapsar
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1 flex-1 md:flex-none min-h-9"
-              onClick={() => exportFluxoCaixaPdf(activeRange)}
-            >
-              <Download className="h-3.5 w-3.5" /> PDF
             </Button>
           </div>
         </CardHeader>
         <CardContent className="px-3 md:px-6">
+          {isLoadingFluxo && (
+            <div className="space-y-2" aria-busy="true" aria-label="Carregando relatório">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
+          )}
+
           {/* Mobile: um card por mês, sem rolagem lateral */}
-          <div className="space-y-2 md:hidden">
+          <div className={cn("space-y-2 md:hidden", isLoadingFluxo && "hidden")}>
             {fluxoCaixaData.MONTH_LABELS.map((m, i) => {
               const rec = fluxoCaixaData.totalReceitas[i] ?? 0;
               const desp = fluxoCaixaData.totalDespesas[i] ?? 0;
               const sal = fluxoCaixaData.totalSaldo[i] ?? 0;
+              const base = Math.max(rec, desp) || 1;
               return (
                 <div key={m} className="rounded-xl border p-3">
                   <div className="flex items-center justify-between gap-2">
@@ -383,20 +476,26 @@ export default function Relatorios() {
                       {formatBRL(sal)}
                     </span>
                   </div>
-                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-lg bg-success/5 px-2 py-1.5">
-                      <p className="text-muted-foreground">Receitas</p>
-                      <p className="font-semibold text-success tabular-nums">{formatBRL(rec)}</p>
+                  <div className="mt-2 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="w-16 shrink-0 text-[11px] text-muted-foreground">Receitas</span>
+                      <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                        <span className="block h-full rounded-full bg-success" style={{ width: `${(rec / base) * 100}%` }} />
+                      </span>
+                      <span className="shrink-0 text-xs font-semibold tabular-nums text-success">{formatBRL(rec)}</span>
                     </div>
-                    <div className="rounded-lg bg-destructive/5 px-2 py-1.5">
-                      <p className="text-muted-foreground">Despesas</p>
-                      <p className="font-semibold text-destructive tabular-nums">{formatBRL(desp)}</p>
+                    <div className="flex items-center gap-2">
+                      <span className="w-16 shrink-0 text-[11px] text-muted-foreground">Despesas</span>
+                      <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                        <span className="block h-full rounded-full bg-destructive" style={{ width: `${(desp / base) * 100}%` }} />
+                      </span>
+                      <span className="shrink-0 text-xs font-semibold tabular-nums text-destructive">{formatBRL(desp)}</span>
                     </div>
                   </div>
                 </div>
               );
             })}
-            <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-3 flex items-center justify-between">
+            <div className="flex items-center justify-between rounded-xl border-2 border-primary/30 bg-primary/5 p-3">
               <span className="text-xs font-bold uppercase tracking-wide">Total do período</span>
               <span className="text-base font-bold tabular-nums">
                 {formatBRL(fluxoCaixaData.sumArr(fluxoCaixaData.totalSaldo))}
@@ -407,11 +506,11 @@ export default function Relatorios() {
             </p>
           </div>
 
-          <div className="hidden md:block overflow-x-auto">
+          <div className={cn("hidden md:block overflow-x-auto", isLoadingFluxo && "md:hidden")}>
           <table id="fluxo-caixa-table" className="w-full text-xs border-collapse">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-card">
               <tr className="border-b">
-                <th className="text-left py-2 px-2 font-semibold text-muted-foreground sticky left-0 bg-card min-w-[180px]"></th>
+                <th className="text-left py-2 px-2 font-semibold text-muted-foreground sticky left-0 z-20 bg-card min-w-[180px]"></th>
                 {fluxoCaixaData.MONTH_LABELS.map((m) => (
                   <th key={m} className="text-right py-2 px-2 font-semibold text-muted-foreground min-w-[90px]">{m}</th>
                 ))}
@@ -500,9 +599,26 @@ export default function Relatorios() {
           </table>
           </div>
 
-          {filteredTransactions.length === 0 && (
-            <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
-              {fluxoTransactions.length === 0 ? "Nenhuma movimentação no período selecionado" : "Nenhum resultado com os filtros selecionados"}
+          {!isLoadingFluxo && filteredTransactions.length === 0 && (
+            <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-muted">
+                <BarChart3 className="h-5 w-5 text-muted-foreground" />
+              </span>
+              <p className="text-sm font-medium">
+                {fluxoTransactions.length === 0
+                  ? "Nenhuma movimentação no período selecionado"
+                  : "Nenhum resultado com os filtros selecionados"}
+              </p>
+              <p className="max-w-xs text-xs text-muted-foreground">
+                {fluxoTransactions.length === 0
+                  ? "Ajuste o período acima para visualizar outros meses."
+                  : "Limpe os filtros para voltar a ver todos os lançamentos."}
+              </p>
+              {fluxoTransactions.length > 0 && activeFilterCount > 0 && (
+                <Button variant="outline" size="sm" className="mt-1" onClick={clearFilters}>
+                  Limpar filtros
+                </Button>
+              )}
             </div>
           )}
         </CardContent>
