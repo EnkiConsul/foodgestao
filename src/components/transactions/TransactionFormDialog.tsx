@@ -1394,7 +1394,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                 size="icon"
                 className="shrink-0"
                 title="Criar nova conta"
-                onClick={() => { setAccountTarget("origin"); setAccountMethodOpen(true); }}
+                onClick={() => { setAccountTarget("origin"); setAccountDialogOpen(true); }}
               >
                 <Plus className="h-4 w-4" />
               </Button>
@@ -1454,7 +1454,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                   size="icon"
                   className="shrink-0"
                   title="Criar nova conta"
-                  onClick={() => { setAccountTarget("destination"); setAccountMethodOpen(true); }}
+                  onClick={() => { setAccountTarget("destination"); setAccountDialogOpen(true); }}
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
