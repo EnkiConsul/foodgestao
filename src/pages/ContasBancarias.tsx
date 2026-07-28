@@ -46,6 +46,7 @@ export default function ContasBancarias() {
   const navigate = useNavigate();
 
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [ofAccountIds, setOfAccountIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [methodDialogOpen, setMethodDialogOpen] = useState(false);
@@ -86,6 +87,18 @@ export default function ContasBancarias() {
     });
     if (error) toast.error("Erro ao carregar contas bancárias");
     else setAccounts((data ?? []) as any);
+
+    // Contas vinculadas a uma conexão Open Finance (para exibir a conciliação no card)
+    if (contextType === "pj" && selectedCompanyId) {
+      const { data: ofAccs } = await supabase
+        .from("pluggy_accounts")
+        .select("linked_account_id")
+        .eq("company_id", selectedCompanyId)
+        .not("linked_account_id", "is", null);
+      setOfAccountIds(new Set((ofAccs ?? []).map((r) => r.linked_account_id as string)));
+    } else {
+      setOfAccountIds(new Set());
+    }
     setLoading(false);
   }, [user, contextType, selectedCompanyId]);
 
@@ -401,6 +414,18 @@ export default function ContasBancarias() {
                     />
                   </div>
                   <div className="flex items-center gap-1">
+                    {ofAccountIds.has(a.id) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9"
+                        onClick={() => navigate("/contas-bancarias/conciliacao")}
+                        title="Conciliação bancária"
+                      >
+                        <Link2 className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Conciliação</span>
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"

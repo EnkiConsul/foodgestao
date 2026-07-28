@@ -112,9 +112,6 @@ export default function ConexoesPluggy() {
             Gerencie os bancos conectados via Pluggy e sincronize lançamentos.
           </p>
         </div>
-        <Button variant="outline" onClick={() => navigate("/contas-bancarias/conciliacao")}>
-          Ir para conciliação
-        </Button>
         <Button onClick={() => { setReconnectItemId(undefined); setConnectOpen(true); }}>
           <Plus className="h-4 w-4 mr-2" /> Conectar banco
         </Button>
