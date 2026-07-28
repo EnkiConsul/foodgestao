@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { applyFinancialScope, assertFinancialScope, isFinancialScopeReady } from "@/lib/financialScope";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChevronLeft,
   ChevronRight,
@@ -14,6 +15,10 @@ import {
   ChevronsUpDown,
   Filter,
   CalendarIcon,
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  BarChart3,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
