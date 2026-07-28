@@ -142,6 +142,7 @@ const AdminPluggyConexoes = lazyWithRetry(() => import("./pages/admin/PluggyCone
 const AdminPluggyWebhookLogs = lazyWithRetry(() => import("./pages/admin/PluggyWebhookLogs"));
 const AdminPluggyV2Conexoes = lazyWithRetry(() => import("./pages/admin/PluggyV2Conexoes"));
 const AdminPluggyV2WebhookLogs = lazyWithRetry(() => import("./pages/admin/PluggyV2WebhookLogs"));
+const AdminPluggyV2Reconciliacao = lazyWithRetry(() => import("./pages/admin/PluggyV2Reconciliacao"));
 
 const AdminSeoIndexacao = lazyWithRetry(() => import("./pages/admin/SeoIndexacao"));
 
