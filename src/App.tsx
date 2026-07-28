@@ -45,6 +45,8 @@ const Contatos = lazyWithRetry(() => import("./pages/Contatos"));
 const Categorias = lazyWithRetry(() => import("./pages/Categorias"));
 const ContasContabeis = lazyWithRetry(() => import("./pages/ContasContabeis"));
 const ContasBancarias = lazyWithRetry(() => import("./pages/ContasBancarias"));
+const ConciliacaoPluggy = lazyWithRetry(() => import("./pages/ConciliacaoPluggy"));
+const ConexoesPluggy = lazyWithRetry(() => import("./pages/ConexoesPluggy"));
 const Configuracoes = lazyWithRetry(() => import("./pages/Configuracoes"));
 const GestaoUsuarios = lazyWithRetry(() => import("./pages/GestaoUsuarios"));
 const Empresas = lazyWithRetry(() => import("./pages/Empresas"));
