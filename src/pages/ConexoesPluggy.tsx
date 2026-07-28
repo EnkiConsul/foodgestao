@@ -120,7 +120,6 @@ export default function ConexoesPluggy() {
         </Button>
       </div>
 
-      <WebhookConfigCard />
 
 
 
