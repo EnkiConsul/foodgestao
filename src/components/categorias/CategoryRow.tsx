@@ -91,11 +91,6 @@ export function CategoryRow({
               <span className={`text-sm truncate ${cat.depth === 0 ? "font-semibold uppercase" : ""}`}>
                 {cat.depth === 0 ? cat.name.toUpperCase() : cat.name}
               </span>
-              {(cat as any).chart_account_id && chartAccountMap.get((cat as any).chart_account_id) && (
-                <Badge variant="outline" className="hidden md:inline-flex text-[10px] h-4 px-1.5 ml-1 font-mono">
-                  {chartAccountMap.get((cat as any).chart_account_id)}
-                </Badge>
-              )}
               {(cat as any).category_subtype && (() => {
                 const s = (cat as any).category_subtype as string;
                 return (
