@@ -21,19 +21,21 @@ const fmtDate = (v: string | null | undefined) =>
   v ? format(new Date(v), "dd/MM/yyyy HH:mm", { locale: ptBR }) : "—";
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  connected: "default",
-  active: "default",
-  awaiting_authorization: "secondary",
-  processing: "secondary",
-  materializing: "secondary",
-  token_created: "secondary",
+  updated: "default",
+  updating: "secondary",
+  waiting_user_input: "secondary",
   created: "outline",
-  pending: "secondary",
-  retry: "outline",
-  processed: "default",
-  failed: "destructive",
-  disconnected: "outline",
+  outdated: "outline",
+  login_error: "destructive",
   error: "destructive",
+  deleted: "outline",
+  pending: "secondary",
+  processing: "secondary",
+  success: "default",
+  dead_letter: "destructive",
+  skipped: "outline",
+  completed: "default",
+  expired: "outline",
   cancelled: "outline",
 };
 
@@ -45,31 +47,33 @@ function StatusBadge({ status }: { status: string | null | undefined }) {
 type ConnectionRow = {
   id: string;
   company_id: string;
-  pluggy_item_id: string | null;
-  connector_id: number | null;
-  status: string | null;
-  last_error_code?: string | null;
-  requires_user_action?: boolean | null;
-  last_synced_at?: string | null;
-  consent_expires_at?: string | null;
+  pluggy_item_id: string;
+  connector_id: number;
+  connector_name: string | null;
+  status: string;
+  execution_status: string | null;
+  mfa_pending: boolean;
+  last_sync_at: string | null;
+  credentials_expires_at: string | null;
+  next_auto_sync_at: string | null;
+  deleted_at: string | null;
+  remote_deletion_status: string | null;
+  remote_deletion_attempts: number;
   created_at: string;
   updated_at: string;
-  disconnected_at?: string | null;
 };
-
 
 type WebhookEventRow = {
   id: string;
-  event_id: string;
+  event_id: string | null;
   event_type: string;
   pluggy_item_id: string | null;
   status: string;
-  attempt_count: number;
-  last_error_code: string | null;
-  next_attempt_at: string | null;
-  connection_id: string | null;
-  company_id: string | null;
-  created_at: string;
+  attempts: number;
+  max_attempts: number;
+  last_error: string | null;
+  next_attempt_at: string;
+  received_at: string;
   processed_at: string | null;
 };
 
@@ -78,11 +82,12 @@ type RequestRow = {
   company_id: string;
   pluggy_item_id: string | null;
   status: string;
-  mode: string | null;
-  error_code: string | null;
-  correlation_expires_at: string | null;
+  intent: string;
+  connector_id: number | null;
+  connector_name: string | null;
+  last_error: string | null;
+  expires_at: string;
   completed_at: string | null;
-  cancelled_at: string | null;
   created_at: string;
 };
 
@@ -91,13 +96,14 @@ type AccountRow = {
   connection_id: string;
   pluggy_account_id: string;
   name: string | null;
-  number: string | null;
+  marketing_name: string | null;
+  number_masked: string | null;
   type: string | null;
   subtype: string | null;
   balance: number | null;
-  local_account_id: string | null;
-  removed_at: string | null;
-  last_transaction_at: string | null;
+  currency_code: string | null;
+  promoted_account_id: string | null;
+  last_synced_at: string | null;
 };
 
 export default function AdminPluggyV2Conexoes() {
@@ -114,7 +120,7 @@ export default function AdminPluggyV2Conexoes() {
         .order("updated_at", { ascending: false })
         .limit(500);
       if (error) throw error;
-      return (data ?? []) as ConnectionRow[];
+      return (data ?? []) as unknown as ConnectionRow[];
     },
   });
 
@@ -123,11 +129,11 @@ export default function AdminPluggyV2Conexoes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pluggy_v2_webhook_events")
-        .select("id,event_id,event_type,pluggy_item_id,status,attempt_count,last_error_code,next_attempt_at,connection_id,company_id,created_at,processed_at")
-        .order("created_at", { ascending: false })
+        .select("id,event_id,event_type,pluggy_item_id,status,attempts,max_attempts,last_error,next_attempt_at,received_at,processed_at")
+        .order("received_at", { ascending: false })
         .limit(300);
       if (error) throw error;
-      return (data ?? []) as WebhookEventRow[];
+      return (data ?? []) as unknown as WebhookEventRow[];
     },
   });
 
@@ -136,11 +142,11 @@ export default function AdminPluggyV2Conexoes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pluggy_v2_connect_requests")
-        .select("id,company_id,pluggy_item_id,status,mode,error_code,correlation_expires_at,completed_at,cancelled_at,created_at")
+        .select("id,company_id,pluggy_item_id,status,intent,connector_id,connector_name,last_error,expires_at,completed_at,created_at")
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
-      return (data ?? []) as RequestRow[];
+      return (data ?? []) as unknown as RequestRow[];
     },
   });
 
@@ -150,11 +156,11 @@ export default function AdminPluggyV2Conexoes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pluggy_v2_accounts")
-        .select("id,connection_id,pluggy_account_id,name,number,type,subtype,balance,local_account_id,removed_at,last_transaction_at")
+        .select("id,connection_id,pluggy_account_id,name,marketing_name,number_masked,type,subtype,balance,currency_code,promoted_account_id,last_synced_at")
         .eq("connection_id", detail!.id)
         .order("created_at", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as AccountRow[];
+      return (data ?? []) as unknown as AccountRow[];
     },
   });
 
@@ -168,29 +174,26 @@ export default function AdminPluggyV2Conexoes() {
   const filterFn = <T extends Record<string, unknown>>(rows: T[], keys: (keyof T)[]) =>
     !q ? rows : rows.filter((r) => keys.some((k) => String(r[k] ?? "").toLowerCase().includes(q)));
 
-  const conns = filterFn(connectionsQ.data ?? [], ["pluggy_item_id", "status", "company_id"]);
-  const events = filterFn(webhookQ.data ?? [], ["event_type", "pluggy_item_id", "status", "company_id"]);
-  const requests = filterFn(requestsQ.data ?? [], ["pluggy_item_id", "status", "company_id", "mode"]);
+  const conns = filterFn(connectionsQ.data ?? [], ["pluggy_item_id", "status", "company_id", "connector_name"]);
+  const events = filterFn(webhookQ.data ?? [], ["event_type", "pluggy_item_id", "status"]);
+  const requests = filterFn(requestsQ.data ?? [], ["pluggy_item_id", "status", "company_id", "connector_name", "intent"]);
 
-  const pendingCount = (webhookQ.data ?? []).filter((e) => e.status === "pending" || e.status === "retry").length;
-  const failedCount = (webhookQ.data ?? []).filter((e) => e.status === "failed").length;
-  const connectedCount = (connectionsQ.data ?? []).filter(
-    (c) => c.status === "connected" || c.status === "active" || c.status === null && !c.disconnected_at,
-  ).length;
+  const pendingCount = (webhookQ.data ?? []).filter((e) => e.status === "pending" || e.status === "processing").length;
+  const failedCount = (webhookQ.data ?? []).filter((e) => e.status === "error" || e.status === "dead_letter").length;
+  const connectedCount = (connectionsQ.data ?? []).filter((c) => c.status === "updated" && !c.deleted_at).length;
 
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-start justify-between gap-4">
         <AdminPageHeader
           title="Conexões Pluggy V2"
-          description="V2 (isolado). Estados de conexões Open Finance, requests e eventos de webhook."
+          description="V2 (isolado). Estados de conexões, solicitações e eventos de webhook do stack novo."
         />
         <Button variant="outline" size="sm" onClick={refreshAll} disabled={connectionsQ.isFetching}>
           <RefreshCw className={`h-4 w-4 mr-2 ${connectionsQ.isFetching ? "animate-spin" : ""}`} />
           Atualizar
         </Button>
       </div>
-
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
@@ -202,14 +205,14 @@ export default function AdminPluggyV2Conexoes() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Webhooks pendentes/retry</CardTitle>
+            <CardTitle className="text-sm font-medium">Webhooks pendentes</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent><div className="text-2xl font-bold">{pendingCount}</div></CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Webhooks falhos</CardTitle>
+            <CardTitle className="text-sm font-medium">Webhooks c/ erro</CardTitle>
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent><div className="text-2xl font-bold">{failedCount}</div></CardContent>
@@ -239,29 +242,33 @@ export default function AdminPluggyV2Conexoes() {
                     <TableHead>Item / Conector</TableHead>
                     <TableHead>Empresa</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Erro</TableHead>
+                    <TableHead>Execução</TableHead>
                     <TableHead>Último sync</TableHead>
-                    <TableHead>Consentimento</TableHead>
+                    <TableHead>Credenciais</TableHead>
+                    <TableHead>Remote delete</TableHead>
                     <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {conns.map((c) => (
-                    <TableRow key={c.id}>
+                    <TableRow key={c.id} className={c.deleted_at ? "opacity-50" : ""}>
                       <TableCell>
-                        <div className="font-mono text-xs">{c.pluggy_item_id ?? "—"}</div>
-                        <div className="text-xs text-muted-foreground">{`#${c.connector_id ?? "—"}`}</div>
+                        <div className="font-mono text-xs">{c.pluggy_item_id}</div>
+                        <div className="text-xs text-muted-foreground">{c.connector_name ?? `#${c.connector_id}`}</div>
                       </TableCell>
                       <TableCell className="font-mono text-xs">{c.company_id.slice(0, 8)}…</TableCell>
                       <TableCell>
                         <StatusBadge status={c.status} />
-                        {c.requires_user_action && (
-                          <Badge variant="destructive" className="ml-2">ação</Badge>
-                        )}
+                        {c.mfa_pending && <Badge variant="destructive" className="ml-2">MFA</Badge>}
                       </TableCell>
-                      <TableCell className="text-xs">{c.last_error_code ?? "—"}</TableCell>
-                      <TableCell className="text-xs">{fmtDate(c.last_synced_at)}</TableCell>
-                      <TableCell className="text-xs">{fmtDate(c.consent_expires_at)}</TableCell>
+                      <TableCell className="text-xs">{c.execution_status ?? "—"}</TableCell>
+                      <TableCell className="text-xs">{fmtDate(c.last_sync_at)}</TableCell>
+                      <TableCell className="text-xs">{fmtDate(c.credentials_expires_at)}</TableCell>
+                      <TableCell className="text-xs">
+                        {c.remote_deletion_status
+                          ? <><StatusBadge status={c.remote_deletion_status} /> <span className="text-muted-foreground">({c.remote_deletion_attempts})</span></>
+                          : "—"}
+                      </TableCell>
                       <TableCell>
                         <Button variant="ghost" size="sm" onClick={() => setDetail(c)}>
                           <LinkIcon className="h-4 w-4 mr-1" /> Contas
@@ -270,7 +277,7 @@ export default function AdminPluggyV2Conexoes() {
                     </TableRow>
                   ))}
                   {conns.length === 0 && (
-                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhuma conexão.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma conexão.</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -299,10 +306,10 @@ export default function AdminPluggyV2Conexoes() {
                       <TableCell className="text-xs">{e.event_type}</TableCell>
                       <TableCell className="font-mono text-xs">{e.pluggy_item_id ?? "—"}</TableCell>
                       <TableCell><StatusBadge status={e.status} /></TableCell>
-                      <TableCell className="text-xs">{e.attempt_count}</TableCell>
-                      <TableCell className="text-xs">{e.last_error_code ?? "—"}</TableCell>
+                      <TableCell className="text-xs">{e.attempts}/{e.max_attempts}</TableCell>
+                      <TableCell className="text-xs max-w-[240px] truncate" title={e.last_error ?? ""}>{e.last_error ?? "—"}</TableCell>
                       <TableCell className="text-xs">{fmtDate(e.next_attempt_at)}</TableCell>
-                      <TableCell className="text-xs">{fmtDate(e.created_at)}</TableCell>
+                      <TableCell className="text-xs">{fmtDate(e.received_at)}</TableCell>
                     </TableRow>
                   ))}
                   {events.length === 0 && (
@@ -322,7 +329,8 @@ export default function AdminPluggyV2Conexoes() {
                   <TableRow>
                     <TableHead>Solicitação</TableHead>
                     <TableHead>Empresa</TableHead>
-                    <TableHead>Modo</TableHead>
+                    <TableHead>Intent</TableHead>
+                    <TableHead>Conector</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Item</TableHead>
                     <TableHead>Erro</TableHead>
@@ -335,16 +343,17 @@ export default function AdminPluggyV2Conexoes() {
                     <TableRow key={r.id}>
                       <TableCell className="font-mono text-xs">{r.id.slice(0, 8)}…</TableCell>
                       <TableCell className="font-mono text-xs">{r.company_id.slice(0, 8)}…</TableCell>
-                      <TableCell className="text-xs">{r.mode ?? "—"}</TableCell>
+                      <TableCell className="text-xs">{r.intent}</TableCell>
+                      <TableCell className="text-xs">{r.connector_name ?? (r.connector_id ? `#${r.connector_id}` : "—")}</TableCell>
                       <TableCell><StatusBadge status={r.status} /></TableCell>
                       <TableCell className="font-mono text-xs">{r.pluggy_item_id ?? "—"}</TableCell>
-                      <TableCell className="text-xs">{r.error_code ?? "—"}</TableCell>
+                      <TableCell className="text-xs max-w-[200px] truncate" title={r.last_error ?? ""}>{r.last_error ?? "—"}</TableCell>
                       <TableCell className="text-xs">{fmtDate(r.created_at)}</TableCell>
-                      <TableCell className="text-xs">{fmtDate(r.completed_at ?? r.cancelled_at)}</TableCell>
+                      <TableCell className="text-xs">{fmtDate(r.completed_at)}</TableCell>
                     </TableRow>
                   ))}
                   {requests.length === 0 && (
-                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma solicitação.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Nenhuma solicitação.</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -358,37 +367,37 @@ export default function AdminPluggyV2Conexoes() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Landmark className="h-5 w-5" />
-              Contas — {detail?.pluggy_item_id ?? `#${detail?.connector_id ?? ""}`}
+              Contas — {detail?.pluggy_item_id}
             </DialogTitle>
           </DialogHeader>
           <div className="text-xs text-muted-foreground mb-2">
-            Item: <span className="font-mono">{detail?.pluggy_item_id ?? "—"}</span> · Empresa:{" "}
+            Conector: <span className="font-mono">{detail?.connector_name ?? `#${detail?.connector_id}`}</span> · Empresa:{" "}
             <span className="font-mono">{detail?.company_id}</span>
           </div>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
-                <TableHead>Nº</TableHead>
+                <TableHead>Número</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Saldo</TableHead>
-                <TableHead>Local</TableHead>
-                <TableHead>Última tx</TableHead>
+                <TableHead>Promovida</TableHead>
+                <TableHead>Último sync</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {(accountsQ.data ?? []).map((a) => (
-                <TableRow key={a.id} className={a.removed_at ? "opacity-50" : ""}>
-                  <TableCell className="text-xs">{a.name ?? "—"}</TableCell>
-                  <TableCell className="text-xs">{a.number ?? "—"}</TableCell>
+                <TableRow key={a.id}>
+                  <TableCell className="text-xs">{a.marketing_name ?? a.name ?? "—"}</TableCell>
+                  <TableCell className="text-xs font-mono">{a.number_masked ?? "—"}</TableCell>
                   <TableCell className="text-xs">{a.type}{a.subtype ? `/${a.subtype}` : ""}</TableCell>
                   <TableCell className="text-xs">
                     {a.balance != null
-                      ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(a.balance))
+                      ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: a.currency_code ?? "BRL" }).format(Number(a.balance))
                       : "—"}
                   </TableCell>
-                  <TableCell className="font-mono text-xs">{a.local_account_id ? `${a.local_account_id.slice(0, 8)}…` : "—"}</TableCell>
-                  <TableCell className="text-xs">{fmtDate(a.last_transaction_at)}</TableCell>
+                  <TableCell className="font-mono text-xs">{a.promoted_account_id ? `${a.promoted_account_id.slice(0, 8)}…` : "—"}</TableCell>
+                  <TableCell className="text-xs">{fmtDate(a.last_synced_at)}</TableCell>
                 </TableRow>
               ))}
               {(accountsQ.data ?? []).length === 0 && (
