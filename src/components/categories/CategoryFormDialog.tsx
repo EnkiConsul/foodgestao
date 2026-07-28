@@ -16,6 +16,8 @@ import { Check, ChevronsUpDown, Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { categorySchema, validateWithToast } from "@/lib/validations";
+import { CATEGORY_INDENT_STEP, categoryGuideLevels } from "@/lib/categories/display";
+import { CategoryTypeBadge } from "@/components/categorias/CategoryTypeBadge";
 import type { Tables } from "@/integrations/supabase/types";
 
 
