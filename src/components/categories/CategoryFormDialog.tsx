@@ -601,20 +601,42 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
                             <Check className={cn("mr-2 h-4 w-4", !chartAccountId ? "opacity-100" : "opacity-0")} />
                             Nenhuma
                           </CommandItem>
-                          {chartAccounts.map((ca) => (
+                          {chartAccountOptions.map(({ acc, depth }) => (
                             <CommandItem
-                              key={ca.id}
-                              value={`${ca.code} ${ca.name}`}
+                              key={acc.id}
+                              value={`${acc.code} ${acc.name}`}
+                              disabled={!acc.allow_transactions}
+                              className={cn(!acc.allow_transactions && "opacity-60")}
                               onSelect={() => {
-                                setChartAccountId(ca.id);
+                                if (!acc.allow_transactions) return;
+                                setChartAccountId(acc.id);
                                 setChartAccountPopoverOpen(false);
                               }}
                             >
-                              <Check className={cn("mr-2 h-4 w-4", chartAccountId === ca.id ? "opacity-100" : "opacity-0")} />
-                              <span className="font-mono text-xs mr-2">{ca.code}</span>
-                              <span className="truncate">{ca.name}</span>
+                              <Check className={cn("mr-2 h-4 w-4 shrink-0", chartAccountId === acc.id ? "opacity-100" : "opacity-0")} />
+                              <span className="flex shrink-0" aria-hidden>
+                                {categoryGuideLevels(depth).map((i) => (
+                                  <span
+                                    key={i}
+                                    className="inline-block border-l border-border/60 h-4"
+                                    style={{ width: CATEGORY_INDENT_STEP }}
+                                  />
+                                ))}
+                              </span>
+                              <span className="font-mono text-[10px] md:text-xs text-muted-foreground mr-2 shrink-0">{acc.code}</span>
+                              <span className={cn("truncate", !acc.allow_transactions && "font-semibold")}>{acc.name}</span>
+                              <span className="ml-auto flex items-center gap-1 shrink-0">
+                                {acc.short_code && (
+                                  <Badge variant="outline" className="text-[10px] font-mono">{acc.short_code}</Badge>
+                                )}
+                                {acc.is_tax && <Badge variant="secondary" className="text-[10px]">Imposto</Badge>}
+                                <Badge variant={acc.allow_transactions ? "default" : "outline"} className="text-[10px]">
+                                  {acc.allow_transactions ? "Analítica" : "Sintética"}
+                                </Badge>
+                              </span>
                             </CommandItem>
                           ))}
+
                         </CommandGroup>
                       </CommandList>
                     </Command>
