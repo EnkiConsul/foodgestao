@@ -129,7 +129,9 @@ export default function ConciliacaoPluggy() {
   useEffect(() => { load(); }, [load]);
 
   const syncNow = async () => {
-    const targets = connectionId === "all" ? connections : connections.filter((c) => c.id === connectionId);
+    const targets = scope
+      ? connections.filter((c) => c.id === scope.connectionId)
+      : connectionId === "all" ? connections : connections.filter((c) => c.id === connectionId);
     if (targets.length === 0) return;
     setSyncing(true);
     let total = 0;
