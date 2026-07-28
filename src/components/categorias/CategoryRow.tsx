@@ -30,7 +30,6 @@ interface Props {
   onEdit: (cat: Category) => void;
   onAddChild: (cat: Category) => void;
   onDelete: (id: string) => void;
-  chartAccountMap: Map<string, string>;
   companyMap: Map<string, string>;
   catCompanyMap: Map<string, string[]>;
 }
@@ -45,7 +44,6 @@ export function CategoryRow({
   onEdit,
   onAddChild,
   onDelete,
-  chartAccountMap,
   companyMap,
   catCompanyMap,
 }: Props) {

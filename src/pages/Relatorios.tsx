@@ -86,7 +86,7 @@ export default function Relatorios() {
       return (data ?? []).map((c: any): FluxoCategory => ({
         id: c.id, name: c.name, color: c.color,
         transaction_type: c.transaction_type, parent_id: c.parent_id,
-        hierarchy_index: c.hierarchy_index, sort_order: c.sort_order,
+        sort_order: c.sort_order,
       }));
     },
   });

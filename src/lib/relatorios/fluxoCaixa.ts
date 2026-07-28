@@ -8,7 +8,6 @@ export type FluxoCategory = {
   color?: string | null;
   transaction_type: string;
   parent_id: string | null;
-  hierarchy_index: string | null;
   sort_order: number | null;
 };
 
@@ -28,7 +27,6 @@ export type FluxoTransaction = {
 export type FluxoNode = {
   id: string;
   name: string;
-  hierarchyIndex: string;
   type: string;
   months: number[];
   children: FluxoNode[];
@@ -137,18 +135,6 @@ export function computeFluxoCaixa(
         return (a.name || "").localeCompare(b.name || "");
       });
 
-    const indexMap: Record<string, string> = {};
-    const assignAll = (parentId: string | null, parentIndex: string) => {
-      const siblings = sortSiblings(relevantCats.filter((c) => c.parent_id === parentId));
-      siblings.forEach((c, i) => {
-        const idx = parentIndex ? `${parentIndex}.${i + 1}` : `${i + 1}`;
-        indexMap[c.id] = idx;
-        assignAll(c.id, idx);
-      });
-    };
-    assignAll(null, "");
-
-    // 2) Constrói só os nós com movimento, preservando o índice original.
     const buildNodes = (parentId: string | null): FluxoNode[] => {
       const siblings = sortSiblings(
         relevantCats.filter((c) => c.parent_id === parentId && catsWithData.has(c.id))
@@ -162,7 +148,6 @@ export function computeFluxoCaixa(
         return {
           id: c.id,
           name: c.name,
-          hierarchyIndex: indexMap[c.id] || "",
           type,
           months,
           children,
