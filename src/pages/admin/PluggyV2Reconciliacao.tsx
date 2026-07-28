@@ -204,3 +204,112 @@ export default function PluggyV2Reconciliacao() {
     </div>
   );
 }
+
+type CompanyRow = { id: string; name: string; pluggy_version: string };
+
+function CutoverPanel() {
+  const qc = useQueryClient();
+  const [q, setQ] = useState("");
+
+  const { data: companies, isLoading } = useQuery({
+    queryKey: ["companies-pluggy-version"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("companies")
+        .select("id, name, pluggy_version")
+        .order("name");
+      if (error) throw error;
+      return (data ?? []) as CompanyRow[];
+    },
+  });
+
+  const setVersion = useMutation({
+    mutationFn: async (args: { id: string; version: "v1" | "v2" }) => {
+      const { error } = await supabase.rpc("set_company_pluggy_version" as never, {
+        _company_id: args.id,
+        _version: args.version,
+      } as never);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Versão atualizada");
+      qc.invalidateQueries({ queryKey: ["companies-pluggy-version"] });
+    },
+    onError: (e: unknown) => {
+      toast.error("Falha ao atualizar", { description: (e as Error).message });
+    },
+  });
+
+  const filtered = useMemo(() => {
+    const list = companies ?? [];
+    if (!q.trim()) return list;
+    const term = q.trim().toLowerCase();
+    return list.filter((c) => c.name?.toLowerCase().includes(term) || c.id.includes(term));
+  }, [companies, q]);
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <CardTitle>Cutover por empresa</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Alterna a versão da integração Pluggy usada por cada empresa (feature flag).
+          </p>
+        </div>
+        <Input
+          placeholder="Buscar empresa…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          className="w-full md:w-64"
+        />
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">Carregando…</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Empresa</TableHead>
+                  <TableHead>Versão atual</TableHead>
+                  <TableHead className="text-right">Ação</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((c) => {
+                  const target: "v1" | "v2" = c.pluggy_version === "v2" ? "v1" : "v2";
+                  return (
+                    <TableRow key={c.id}>
+                      <TableCell>
+                        <div className="font-medium">{c.name}</div>
+                        <div className="font-mono text-xs text-muted-foreground">{c.id}</div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={c.pluggy_version === "v2" ? "default" : "outline"}>
+                          {c.pluggy_version}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={setVersion.isPending}
+                          onClick={() => setVersion.mutate({ id: c.id, version: target })}
+                        >
+                          <ArrowRightLeft className="mr-2 h-4 w-4" />
+                          Mudar para {target}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
