@@ -16,6 +16,8 @@ import { Check, ChevronsUpDown, Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { categorySchema, validateWithToast } from "@/lib/validations";
+import { CATEGORY_INDENT_STEP, categoryGuideLevels } from "@/lib/categories/display";
+import { CategoryTypeBadge } from "@/components/categorias/CategoryTypeBadge";
 import type { Tables } from "@/integrations/supabase/types";
 
 
@@ -187,10 +189,51 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
     }
   }, [editCategory, open, defaultParentId, defaultType, defaultName]);
 
-  // Filter parent options: same type, exclude self
-  const parentOptions = allCategories.filter(
-    (c) => c.transaction_type === type && c.id !== editCategory?.id
-  );
+  // Filter parent options: same type, exclude self (e descendentes, para evitar ciclos)
+  const sameTypeCategories = allCategories.filter((c: any) => c.transaction_type === type);
+
+  const descendantIds = (() => {
+    const ids = new Set<string>();
+    if (!editCategory) return ids;
+    const walk = (parent: string) => {
+      sameTypeCategories.forEach((c: any) => {
+        if (c.parent_id === parent && !ids.has(c.id)) {
+          ids.add(c.id);
+          walk(c.id);
+        }
+      });
+    };
+    walk(editCategory.id);
+    return ids;
+  })();
+
+  // Ordena em árvore (raiz -> filhos), respeitando sort_order/nome, com profundidade
+  const parentOptions = (() => {
+    const byParent = new Map<string | null, any[]>();
+    sameTypeCategories.forEach((c: any) => {
+      const key = c.parent_id ?? null;
+      if (!byParent.has(key)) byParent.set(key, []);
+      byParent.get(key)!.push(c);
+    });
+    byParent.forEach((list) =>
+      list.sort(
+        (a, b) =>
+          (a.sort_order ?? 0) - (b.sort_order ?? 0) ||
+          (a.name ?? "").localeCompare(b.name ?? "", "pt-BR")
+      )
+    );
+    const out: { cat: any; depth: number }[] = [];
+    const walk = (parent: string | null, depth: number) => {
+      (byParent.get(parent) ?? []).forEach((c: any) => {
+        if (c.id === editCategory?.id || descendantIds.has(c.id)) return;
+        out.push({ cat: c, depth });
+        walk(c.id, depth + 1);
+      });
+    };
+    walk(null, 0);
+    return out;
+  })();
+
 
   const toggleCompany = (companyId: string) => {
     setSelectedCompanies((prev) => {
@@ -416,19 +459,51 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
                 <Label>Categoria Pai (opcional)</Label>
                 <Select value={parentId ?? "__none__"} onValueChange={(v) => setParentId(!v || v === "__none__" ? null : v)}>
                   <SelectTrigger className="h-11">
-                    <span className="truncate">
-                      {parentId ? (parentNameById(parentId) ?? "Carregando...") : "Nenhuma (raiz)"}
-                    </span>
+                    {parentId ? (
+                      (() => {
+                        const sel = allCategories.find((c: any) => c.id === parentId) as any;
+                        return (
+                          <span className="flex items-center gap-2 min-w-0">
+                            <span
+                              className="h-2.5 w-2.5 rounded-full shrink-0"
+                              style={{ backgroundColor: sel?.color ?? "#94a3b8" }}
+                              aria-hidden
+                            />
+                            <span className="truncate">{sel?.name ?? "Carregando..."}</span>
+                          </span>
+                        );
+                      })()
+                    ) : (
+                      <span className="truncate">Nenhuma (raiz)</span>
+                    )}
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-72">
                     <SelectItem value="__none__">Nenhuma (raiz)</SelectItem>
-                    {parentOptions.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
+                    {parentOptions.map(({ cat, depth }) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span className="flex shrink-0" aria-hidden>
+                            {categoryGuideLevels(depth).map((i) => (
+                              <span
+                                key={i}
+                                className="inline-block border-l border-border/60 h-4"
+                                style={{ width: CATEGORY_INDENT_STEP }}
+                              />
+                            ))}
+                          </span>
+                          <span
+                            className="h-2.5 w-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: cat.color ?? "#94a3b8" }}
+                            aria-hidden
+                          />
+                          <span className={cn("truncate", depth === 0 && "font-semibold")}>{cat.name}</span>
+                          <CategoryTypeBadge type={cat.transaction_type} className="ml-1 shrink-0" />
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+
                 {parentOptions.length === 0 && (
                   <p className="text-xs text-muted-foreground">Crie categorias raiz do mesmo tipo primeiro</p>
                 )}
