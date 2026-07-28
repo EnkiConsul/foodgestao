@@ -431,41 +431,24 @@ export default function Relatorios() {
       )}
 
       <Card className="shadow-sm">
-        <CardHeader className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 pb-4">
-          <div className="space-y-1.5 min-w-0">
-            <CardTitle className="text-sm md:text-base flex items-center gap-2 flex-wrap">
+        <CardHeader className="flex flex-col gap-2 pb-3 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0 space-y-1">
+            <CardTitle className="flex flex-wrap items-center gap-2 text-sm md:text-base">
               <span>Fluxo de Caixa</span>
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-2 py-0.5 text-[11px] md:text-xs font-medium text-primary">
-                <CalendarIcon className="h-3 w-3" />
-                {format(activeRange.from, "dd/MM/yy", { locale: ptBR })}
-                <span className="opacity-60">→</span>
-                {format(activeRange.to, "dd/MM/yy", { locale: ptBR })}
-              </span>
-              <span className="text-[11px] md:text-xs font-normal text-muted-foreground">
-                ({fluxoCaixaData.MONTH_LABELS.length} {fluxoCaixaData.MONTH_LABELS.length === 1 ? "mês" : "meses"})
+              <span className="rounded-md border border-primary/20 bg-primary/5 px-2 py-0.5 text-[11px] font-medium text-primary md:text-xs">
+                {fluxoCaixaData.MONTH_LABELS.length} {fluxoCaixaData.MONTH_LABELS.length === 1 ? "mês" : "meses"}
               </span>
             </CardTitle>
-            <p className="text-[11px] md:text-xs text-muted-foreground line-clamp-2 md:line-clamp-none">
-              Meses incluídos no recorte:{" "}
-              <span className="font-medium text-foreground/80">
-                {fluxoCaixaData.MONTH_LABELS.join(" · ")}
-              </span>
+            <p className="line-clamp-1 text-[11px] text-muted-foreground md:text-xs">
+              {fluxoCaixaData.MONTH_LABELS.join(" · ")}
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button variant="outline" size="sm" className="gap-1 flex-1 md:flex-none min-h-9" onClick={expandAll}>
+          <div className="hidden items-center gap-2 md:flex">
+            <Button variant="outline" size="sm" className="min-h-9 gap-1" onClick={expandAll}>
               <ChevronsUpDown className="h-3.5 w-3.5" /> Expandir
             </Button>
-            <Button variant="outline" size="sm" className="gap-1 flex-1 md:flex-none min-h-9" onClick={collapseAll}>
+            <Button variant="outline" size="sm" className="min-h-9 gap-1" onClick={collapseAll}>
               <ChevronsUpDown className="h-3.5 w-3.5 rotate-90" /> Colapsar
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1 flex-1 md:flex-none min-h-9"
-              onClick={() => exportFluxoCaixaPdf(activeRange)}
-            >
-              <Download className="h-3.5 w-3.5" /> PDF
             </Button>
           </div>
         </CardHeader>
