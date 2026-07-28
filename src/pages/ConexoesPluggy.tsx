@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { PluggyConnectDialog } from "@/components/accounts/PluggyConnectDialog";
-import { ArrowLeft, Plus, RefreshCw, Trash2, RotateCw, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Trash2, RotateCw, Loader2, Copy, Eye, EyeOff, Webhook } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -120,6 +120,10 @@ export default function ConexoesPluggy() {
         </Button>
       </div>
 
+      <WebhookConfigCard />
+
+
+
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : connections.length === 0 ? (
@@ -207,3 +211,82 @@ export default function ConexoesPluggy() {
     </div>
   );
 }
+
+function WebhookConfigCard() {
+  const [loading, setLoading] = useState(false);
+  const [url, setUrl] = useState<string | null>(null);
+  const [baseUrl, setBaseUrl] = useState<string | null>(null);
+  const [reveal, setReveal] = useState(false);
+  const [forbidden, setForbidden] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("pluggy-webhook-config");
+      if (error) {
+        const status = (error as any)?.context?.status;
+        if (status === 403) { setForbidden(true); return; }
+        throw error;
+      }
+      setUrl(data?.url ?? null);
+      setBaseUrl(data?.base_url ?? null);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Não foi possível carregar a URL do webhook");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (forbidden) return null;
+
+  const masked = url ? url.replace(/(secret=)[^&]+/, "$1••••••••") : "";
+  const shown = reveal ? url : masked;
+
+  const copy = async (value: string | null) => {
+    if (!value) return;
+    try { await navigator.clipboard.writeText(value); toast.success("Copiado"); }
+    catch { toast.error("Falha ao copiar"); }
+  };
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Webhook className="h-4 w-4 text-primary" />
+          <p className="text-sm font-semibold">Webhook da Pluggy</p>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Cole a URL abaixo no painel da Pluggy em <strong>Applications → Webhooks</strong>. Ela inclui
+          o segredo <code>PLUGGY_WEBHOOK_SECRET</code> como query string e é validada em cada evento.
+        </p>
+        {loading ? (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-3 w-3 animate-spin" /> Carregando…
+          </div>
+        ) : url ? (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <code className="flex-1 truncate rounded bg-muted px-2 py-1.5 text-xs">{shown}</code>
+              <Button size="sm" variant="ghost" onClick={() => setReveal((r) => !r)} aria-label={reveal ? "Ocultar" : "Mostrar"}>
+                {reveal ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => copy(url)} aria-label="Copiar URL completa">
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+            {baseUrl && (
+              <p className="text-[11px] text-muted-foreground">
+                URL base (sem segredo): <code>{baseUrl}</code>
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs text-destructive">URL indisponível.</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
