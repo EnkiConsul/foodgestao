@@ -16,7 +16,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
-import { createConnectToken, safePluggyError } from "../_shared/pluggy-client.ts";
+import { createConnectToken, getItem, safePluggyError } from "../_shared/pluggy-client.ts";
 
 // Connect Token vive por ~30 min (curto). Correlação (autorização bancária
 // assíncrona) precisa continuar válida por muito mais tempo — o usuário pode
@@ -28,6 +28,7 @@ const BodySchema = z.object({
   company_id: z.string().uuid(),
   item_id: z.string().min(1).max(128).optional(),
   idempotency_key: z.string().min(1).max(128).optional(),
+  oauth_redirect_url: z.string().url().max(2048).optional(),
 });
 
 function json(status: number, body: unknown) {
