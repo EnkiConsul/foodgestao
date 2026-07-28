@@ -1,39 +1,20 @@
-Sim, pode testar. Segue o roteiro rápido de validação da integração Pluggy ponta a ponta.
+## Contexto
 
-## Pré-requisitos
+Você trocou, no painel da Pluggy, a URL do webhook pela versão **sem `?secret=`**. Nossa Edge Function `pluggy-webhook` hoje valida esse parâmetro contra `PLUGGY_WEBHOOK_SECRET` e rejeita qualquer chamada sem ele — então nenhum evento vai chegar ao banco enquanto estiver assim.
 
-1. Confirmar no painel Pluggy (*Applications → Webhooks*) que a URL copiada de `/admin/pluggy-webhook` está cadastrada e ativa.
-2. Estar logado como usuário de uma empresa PJ (o fluxo Open Finance só aparece em PJ).
+Você respondeu que quer **manter a validação com secret** (mais seguro). Portanto, não vamos alterar o backend; vamos voltar a URL correta no painel da Pluggy.
 
-## Roteiro de teste
+Também confirmando: **não preciso de `client_id`/`client_secret`**. Ambos já estão salvos como secrets do projeto (`PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET`) e as Edge Functions leem direto de lá.
 
-1. **Conectar banco**
-   - Ir em `/contas-bancarias` → **Nova Conta** → escolher **Open Finance**.
-   - Selecionar um banco sandbox da Pluggy (ex.: *Pluggy Bank BR*) e concluir o widget.
-   - Esperado: dialog fecha, toast de sucesso, e sincronização inicial dispara automaticamente.
+## Plano
 
-2. **Verificar conexão**
-   - Abrir `/contas-bancarias/conexoes`.
-   - Esperado: item aparece com status `UPDATED` e contas descobertas listadas.
+1. Abrir `/admin/pluggy-webhook` no 360°FOOD e clicar em **Copiar URL** — ela sai já com `?secret=<token assinado>` embutido.
+2. No painel da Pluggy → Webhooks, **substituir a URL atual** (sem segredo) pela copiada no passo 1 e salvar.
+3. Disparar um evento de teste pela Pluggy (ou reconectar uma conta) e voltar aqui.
+4. Eu consulto `pluggy_webhook_events` e os logs da função `pluggy-webhook` para confirmar recebimento e assinatura válida.
 
-3. **Conciliar lançamentos (últimos 30 dias)**
-   - Abrir `/contas-bancarias/conciliacao`.
-   - Esperado: transações em staging aparecem agrupadas por conta, com sugestão de categoria.
-   - Selecionar em lote → escolher conta de destino → **Confirmar**.
-   - Esperado: entradas viram `transactions` reais e somem do staging; ignoradas ficam marcadas.
+Nenhuma alteração de código ou migration é necessária neste passo.
 
-4. **Webhook**
-   - Em `/admin/pluggy-webhook`, opcionalmente disparar um evento de teste no painel Pluggy.
-   - Conferir em `pluggy_webhook_events` (via backoffice/DB) se o evento foi registrado com `processed = true`.
+## Observação técnica
 
-5. **Desconectar**
-   - Voltar em `/contas-bancarias/conexoes` e clicar em **Desconectar** em uma conexão de teste.
-   - Esperado: item some da lista e é removido também na Pluggy.
-
-## O que reportar se falhar
-
-- Passo exato que quebrou + mensagem de erro exibida.
-- Console do navegador (aba Network → resposta da Edge Function envolvida).
-- Se possível, o `item_id` retornado pela Pluggy para eu correlacionar com os logs da função.
-
-Se preferir, posso já iniciar um teste automatizado do webhook via `curl` para validar a autenticação antes de você tocar no widget — é só confirmar.
+O token no `?secret=` é um JWT curto assinado com `PLUGGY_WEBHOOK_SECRET`, com validade de ~2h. A página `/admin/pluggy-webhook` regenera sob demanda, então basta recopiar se expirar antes de você configurar na Pluggy.
