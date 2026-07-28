@@ -93,8 +93,12 @@ export default function ContasBancarias() {
   }, []);
 
   const openMethodDialog = useCallback(() => {
-    openManualForm(null);
-  }, [openManualForm]);
+    if (contextType === "pj" && selectedCompanyId) {
+      setMethodDialogOpen(true);
+    } else {
+      openManualForm(null);
+    }
+  }, [openManualForm, contextType, selectedCompanyId]);
 
   const handleFormOpenChange = useCallback((open: boolean) => {
     setDialogOpen(open);
