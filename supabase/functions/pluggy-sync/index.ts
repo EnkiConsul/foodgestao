@@ -278,6 +278,8 @@ async function runSync(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json(405, { error: "Method not allowed" });
+  const { isPluggyV1Frozen, pluggyV1FrozenResponse } = await import("../_shared/pluggy-v1-freeze.ts");
+  if (isPluggyV1Frozen()) return pluggyV1FrozenResponse(corsHeaders);
 
   const url = Deno.env.get("SUPABASE_URL")!;
   const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

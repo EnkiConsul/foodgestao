@@ -21,6 +21,8 @@ function json(status: number, body: unknown) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json(405, { error: "Method not allowed" });
+  const { isPluggyV1Frozen, pluggyV1FrozenResponse } = await import("../_shared/pluggy-v1-freeze.ts");
+  if (isPluggyV1Frozen()) return pluggyV1FrozenResponse(corsHeaders);
 
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader.startsWith("Bearer ")) return json(401, { error: "unauthenticated" });
