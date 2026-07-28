@@ -32,9 +32,10 @@ export function BatchActionBar({
   onClearSelection,
 }: Props) {
   return (
-    <div className="flex flex-wrap items-center gap-3 p-3 rounded-lg border bg-muted/50">
+    <div className="fixed inset-x-2 bottom-20 z-40 flex flex-wrap items-center gap-3 rounded-lg border bg-background p-3 shadow-lg md:static md:inset-auto md:bottom-auto md:z-auto md:bg-muted/50 md:shadow-none">
       <span className="text-sm font-medium">{selectedCount} selecionada(s)</span>
       <div className="flex items-center gap-2">
+
         <FolderTree className="h-4 w-4 text-muted-foreground" />
         <Select value={batchParentId} onValueChange={onBatchParentChange}>
           <SelectTrigger className="h-8 w-[200px] text-xs">
