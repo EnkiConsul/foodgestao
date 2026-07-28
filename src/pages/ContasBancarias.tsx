@@ -544,6 +544,23 @@ export default function ContasBancarias() {
         account={adjustAccount}
         onAdjusted={fetchAccounts}
       />
+
+      <AccountCreationMethodDialog
+        open={methodDialogOpen}
+        onOpenChange={setMethodDialogOpen}
+        showOpenFinance={contextType === "pj" && !!selectedCompanyId}
+        onSelectManual={() => { setMethodDialogOpen(false); openManualForm(null); }}
+        onSelectOpenFinance={() => { setMethodDialogOpen(false); setPluggyOpen(true); }}
+      />
+
+      {selectedCompanyId && (
+        <PluggyConnectDialog
+          open={pluggyOpen}
+          onOpenChange={setPluggyOpen}
+          companyId={selectedCompanyId}
+          onConnected={() => navigate("/contas-bancarias/conciliacao")}
+        />
+      )}
     </div>
   );
 }
