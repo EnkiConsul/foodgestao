@@ -67,8 +67,27 @@ Deno.serve(async (req) => {
 
     const effectiveCompanyId = existing?.company_id ?? companyId!;
 
-    // 1) Fetch item metadata
-    const item = await getItem(itemId);
+    // 1) Fetch item metadata (e, quando aplicável, dispara uma nova coleta no banco)
+    let item = await getItem(itemId);
+    const skipRefresh = body?.refresh === false || isFirstConnect;
+    const itemStatus = String(item?.status ?? '').toUpperCase();
+    const itemExec = String(item?.executionStatus ?? '').toUpperCase();
+    const isRunning = itemStatus === 'UPDATING' || itemExec === 'CREATED' || itemExec === 'UPDATING';
+
+    if (!skipRefresh && itemStatus !== 'WAITING_USER_INPUT') {
+      try {
+        if (!isRunning) {
+          await refreshItem(itemId);
+        }
+        item = await waitForItem(itemId, 45000);
+      } catch (e) {
+        console.error('pluggy refresh failed', e);
+        item = await getItem(itemId);
+      }
+    } else if (isRunning) {
+      item = await waitForItem(itemId, 45000);
+    }
+
 
     const connectionPayload = {
       company_id: effectiveCompanyId,
