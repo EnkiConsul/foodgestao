@@ -91,9 +91,12 @@ export default function Dashboard() {
           .select("amount, amount_paid, transaction_type, transaction_date, category_id, status, due_date"),
         scope,
       )
-        .gte("transaction_date", startDate)
-        .lte("transaction_date", endDate)
+        // Mesmo critério de Lançamentos: quando existe vencimento, o período é o do due_date.
+        .or(
+          `and(due_date.is.null,transaction_date.gte.${startDate},transaction_date.lte.${endDate}),and(due_date.gte.${startDate},due_date.lte.${endDate})`,
+        )
         .neq("status", "cancelado");
+
       if (paymentStatus !== "todos") q = q.eq("status", paymentStatus);
       const { data } = await q;
       return data ?? [];
