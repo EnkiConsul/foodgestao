@@ -10,14 +10,18 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
-import { Plus, Search, Tag, ChevronsUpDown, Filter, Sparkles } from "lucide-react";
+import { Plus, Search, Tag, ChevronsUpDown, Sparkles, MoreHorizontal, X } from "lucide-react";
 import { DragDropContext, Droppable, type DropResult } from "@hello-pangea/dnd";
 import { toast } from "sonner";
 import { buildCategoryTree, type Category, type TreeNode } from "@/lib/categories/tree";
 import { CategoryRow } from "@/components/categorias/CategoryRow";
+import { CategoryMobileRow } from "@/components/categorias/CategoryMobileRow";
 import { BatchActionBar } from "@/components/categorias/BatchActionBar";
 import { BatchVisibilityDialog } from "@/components/categorias/BatchVisibilityDialog";
+
 
 
 export default function Categorias() {
@@ -146,7 +150,7 @@ export default function Categorias() {
     refetchAll();
   };
 
-  const { data: categories = [], refetch } = useQuery({
+  const { data: categories = [], refetch, isLoading } = useQuery({
     queryKey: ["categories-page", user?.id, contextType, selectedCompanyId],
     enabled: !!user && (contextType === "pf" || !!selectedCompanyId),
     queryFn: async () => {
@@ -348,73 +352,126 @@ export default function Categorias() {
     else setSelected(new Set(tree.map((c) => c.id)));
   };
 
+  const counts = useMemo(() => {
+    let receitas = 0;
+    let despesas = 0;
+    for (const c of categories) {
+      if (c.transaction_type === "receita") receitas++;
+      else if (c.transaction_type === "despesa") despesas++;
+    }
+    return { total: categories.length, receitas, despesas };
+  }, [categories]);
+
+  const hasFilters = !!search || filterType !== "all";
+  const clearFilters = () => {
+    setSearch("");
+    setFilterType("all");
+  };
+  const allCollapsed = (() => {
+    const parents = tree.filter((c) => c.hasChildren).map((c) => c.id);
+    return parents.length > 0 && collapsed.size >= parents.length;
+  })();
+  const toggleCollapseAll = () => {
+    const parents = tree.filter((c) => c.hasChildren).map((c) => c.id);
+    if (allCollapsed) setCollapsed(new Set());
+    else setCollapsed(new Set(parents));
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl sm:text-2xl font-bold tracking-tight">Categorias</h1>
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold tracking-tight">Categorias</h1>
+        <p className="text-sm text-muted-foreground">
+          Organize seu plano de contas por grupos e subcategorias.
+        </p>
+        {counts.total > 0 && (
+          <p className="text-xs text-muted-foreground">
+            {counts.total} categoria(s) · {counts.receitas} de receita · {counts.despesas} de despesa
+          </p>
+        )}
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Button onClick={openNew} variant="outline" size="sm" className="gap-1.5">
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Adicionar</span>
-        </Button>
-        {contextType === "pj" && selectedCompanyId && (
-          <Button
-            onClick={handleSeedDefaults}
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            disabled={seeding}
-            title="Importa as 69 categorias do plano padrão 360°FOOD. Categorias já importadas não são duplicadas."
-          >
-            <Sparkles className="h-4 w-4" />
-            <span className="hidden sm:inline">{seeding ? "Importando..." : "Importar plano 360°FOOD"}</span>
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button onClick={openNew} size="sm" className="gap-1.5">
+            <Plus className="h-4 w-4" />
+            Nova categoria
           </Button>
-        )}
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5"
-          onClick={() => {
-            const parents = tree.filter((c) => c.hasChildren).map((c) => c.id);
-            if (collapsed.size >= parents.length && parents.length > 0) {
-              setCollapsed(new Set());
-            } else {
-              setCollapsed(new Set(parents));
-            }
-          }}
-        >
-          <ChevronsUpDown className="h-4 w-4" />
-          <span className="hidden sm:inline">{collapsed.size > 0 ? "Expandir" : "Colapsar"}</span>
-        </Button>
 
-        <Tabs value={filterType} onValueChange={setFilterType} className="max-w-full">
-          <TabsList className="h-8 overflow-x-auto flex w-auto">
-            <TabsTrigger value="all" className="text-xs px-2.5 h-7">Todas</TabsTrigger>
-            <TabsTrigger value="despesa" className="text-xs px-2.5 h-7">Despesas</TabsTrigger>
-            <TabsTrigger value="receita" className="text-xs px-2.5 h-7">Receitas</TabsTrigger>
-          </TabsList>
-        </Tabs>
+          {/* Ações secundárias: visíveis no desktop */}
+          <div className="hidden md:flex items-center gap-2">
+            {contextType === "pj" && selectedCompanyId && (
+              <Button
+                onClick={handleSeedDefaults}
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                disabled={seeding}
+                title="Importa as categorias do plano padrão 360°FOOD. Categorias já importadas não são duplicadas."
+              >
+                <Sparkles className="h-4 w-4" />
+                {seeding ? "Importando..." : "Importar plano 360°FOOD"}
+              </Button>
+            )}
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={toggleCollapseAll}>
+              <ChevronsUpDown className="h-4 w-4" />
+              {allCollapsed ? "Expandir tudo" : "Recolher tudo"}
+            </Button>
+          </div>
 
-        <div className="flex-1" />
+          {/* Ações secundárias: menu no mobile */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" aria-label="Mais ações" className="h-9 w-9 md:hidden">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              {contextType === "pj" && selectedCompanyId && (
+                <DropdownMenuItem onClick={handleSeedDefaults} disabled={seeding}>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  {seeding ? "Importando..." : "Importar plano 360°FOOD"}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={toggleCollapseAll}>
+                <ChevronsUpDown className="mr-2 h-4 w-4" />
+                {allCollapsed ? "Expandir tudo" : "Recolher tudo"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-        <div className="relative min-w-[160px] max-w-[260px]">
+          <Tabs value={filterType} onValueChange={setFilterType} className="max-w-full">
+            <TabsList className="h-8 overflow-x-auto flex w-auto">
+              <TabsTrigger value="all" className="text-xs px-2.5 h-7">Todas ({counts.total})</TabsTrigger>
+              <TabsTrigger value="despesa" className="text-xs px-2.5 h-7">Despesas ({counts.despesas})</TabsTrigger>
+              <TabsTrigger value="receita" className="text-xs px-2.5 h-7">Receitas ({counts.receitas})</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+
+        <div className="relative w-full md:max-w-[280px] md:ml-auto">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
-            placeholder="Buscar..."
+            placeholder="Buscar categoria..."
+            aria-label="Buscar categoria"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 h-8 text-xs"
+            className="pl-8 pr-8 h-9 text-sm md:h-8 md:text-xs"
             maxLength={50}
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              aria-label="Limpar busca"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
-        <Button variant="outline" size="sm" className="h-8 gap-1.5">
-          <Filter className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Filtrar</span>
-        </Button>
       </div>
 
       {/* Batch action bar */}
@@ -438,9 +495,14 @@ export default function Categorias() {
         />
       )}
 
-
-      {/* Table */}
-      {categories.length === 0 ? (
+      {/* Lista */}
+      {isLoading ? (
+        <div className="space-y-2 rounded-lg border p-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-8 w-full" />
+          ))}
+        </div>
+      ) : categories.length === 0 ? (
         <div className="flex flex-col items-center py-16 text-muted-foreground border rounded-lg">
           <Tag className="h-10 w-10 mb-3 opacity-40" />
           <p className="text-sm">Nenhuma categoria criada</p>
@@ -449,59 +511,109 @@ export default function Categorias() {
           </Button>
         </div>
       ) : (
-        <div className="border rounded-lg overflow-hidden">
-          <Table className="w-full table-fixed">
-            <TableHeader>
-              <TableRow className="bg-muted/50">
-                <TableHead className="w-8 md:w-10 px-2 md:px-4">
-                  <Checkbox
-                    checked={selected.size === tree.length && tree.length > 0}
-                    onCheckedChange={toggleAll}
-                  />
-                </TableHead>
-                <TableHead className="hidden md:table-cell w-10 text-xs"></TableHead>
-                <TableHead className="text-xs">Descrição</TableHead>
-                <TableHead className="hidden md:table-cell w-24 text-xs text-center">Tipo</TableHead>
-                <TableHead className="text-xs hidden md:table-cell">Visibilidade</TableHead>
-                <TableHead className="w-[104px] md:w-24 text-xs text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <DragDropContext onDragEnd={onDragEnd}>
-              <Droppable droppableId="categories">
-                {(provided) => (
-                  <TableBody ref={provided.innerRef} {...provided.droppableProps}>
-                    {visibleTree.map((cat, index) => (
-                      <CategoryRow
-                        key={cat.id}
-                        cat={cat}
-                        index={index}
-                        isSelected={selected.has(cat.id)}
-                        isCollapsed={collapsed.has(cat.id)}
-                        onToggleSelect={toggleSelect}
-                        onToggleCollapse={toggleCollapse}
-                        onEdit={openEdit}
-                        onAddChild={openAddChild}
-                        onDelete={setDeleteId}
-                        companyMap={companyMap}
-                        catCompanyMap={catCompanyMap}
-                      />
-                    ))}
-
-                    {provided.placeholder}
-                    {visibleTree.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8 text-sm text-muted-foreground">
-                          Nenhuma categoria encontrada
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
+        <>
+          {/* Mobile: lista compacta */}
+          <div className="md:hidden rounded-lg border overflow-hidden">
+            <div className="flex items-center gap-2 border-b bg-muted/50 px-3 py-2">
+              <Checkbox
+                checked={selected.size === tree.length && tree.length > 0}
+                onCheckedChange={toggleAll}
+                aria-label="Selecionar todas as categorias"
+              />
+              <span className="text-xs text-muted-foreground">
+                {visibleTree.length} categoria(s)
+              </span>
+            </div>
+            {visibleTree.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-10 text-sm text-muted-foreground">
+                Nenhuma categoria encontrada
+                {hasFilters && (
+                  <Button variant="outline" size="sm" onClick={clearFilters}>Limpar filtros</Button>
                 )}
-              </Droppable>
-            </DragDropContext>
-          </Table>
-        </div>
+              </div>
+            ) : (
+              <ul className="divide-y">
+                {visibleTree.map((cat) => (
+                  <CategoryMobileRow
+                    key={cat.id}
+                    cat={cat}
+                    isSelected={selected.has(cat.id)}
+                    isCollapsed={collapsed.has(cat.id)}
+                    onToggleSelect={toggleSelect}
+                    onToggleCollapse={toggleCollapse}
+                    onEdit={openEdit}
+                    onAddChild={openAddChild}
+                    onDelete={setDeleteId}
+                    companyMap={companyMap}
+                    catCompanyMap={catCompanyMap}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Desktop: tabela com drag-and-drop */}
+          <div className="hidden md:block border rounded-lg overflow-hidden">
+            <Table className="w-full table-fixed">
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="w-8 md:w-10 px-2 md:px-4">
+                    <Checkbox
+                      checked={selected.size === tree.length && tree.length > 0}
+                      onCheckedChange={toggleAll}
+                      aria-label="Selecionar todas as categorias"
+                    />
+                  </TableHead>
+                  <TableHead className="hidden md:table-cell w-10 text-xs"></TableHead>
+                  <TableHead className="text-xs">Descrição</TableHead>
+                  <TableHead className="hidden md:table-cell w-24 text-xs text-center">Tipo</TableHead>
+                  <TableHead className="text-xs hidden md:table-cell">Visibilidade</TableHead>
+                  <TableHead className="w-[104px] md:w-28 text-xs text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <DragDropContext onDragEnd={onDragEnd}>
+                <Droppable droppableId="categories">
+                  {(provided) => (
+                    <TableBody ref={provided.innerRef} {...provided.droppableProps}>
+                      {visibleTree.map((cat, index) => (
+                        <CategoryRow
+                          key={cat.id}
+                          cat={cat}
+                          index={index}
+                          isSelected={selected.has(cat.id)}
+                          isCollapsed={collapsed.has(cat.id)}
+                          onToggleSelect={toggleSelect}
+                          onToggleCollapse={toggleCollapse}
+                          onEdit={openEdit}
+                          onAddChild={openAddChild}
+                          onDelete={setDeleteId}
+                          companyMap={companyMap}
+                          catCompanyMap={catCompanyMap}
+                        />
+                      ))}
+
+                      {provided.placeholder}
+                      {visibleTree.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">
+                            <div className="flex flex-col items-center gap-2">
+                              Nenhuma categoria encontrada
+                              {hasFilters && (
+                                <Button variant="outline" size="sm" onClick={clearFilters}>Limpar filtros</Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  )}
+                </Droppable>
+              </DragDropContext>
+            </Table>
+          </div>
+        </>
       )}
+
 
       {/* FAB mobile */}
       <button

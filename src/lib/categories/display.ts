@@ -12,6 +12,15 @@ export function categoryIndent(depth: number, basePx = 0): number {
   return basePx + Math.max(0, depth) * CATEGORY_INDENT_STEP;
 }
 
+/**
+ * Níveis de guia vertical a desenhar antes do conteúdo de uma linha.
+ * Um nível 0 não tem guias; nível 2 tem duas guias (uma por ancestral).
+ */
+export function categoryGuideLevels(depth: number): number[] {
+  const d = Math.max(0, Math.floor(depth || 0));
+  return Array.from({ length: d }, (_, i) => i);
+}
+
 export type CategoryTransactionType = "receita" | "despesa" | string;
 
 export const CATEGORY_TYPE_LABEL: Record<string, string> = {
