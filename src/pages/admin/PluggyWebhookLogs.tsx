@@ -92,6 +92,16 @@ export default function PluggyWebhookLogs() {
     refetchInterval: 15_000,
   });
 
+  const { data: health } = useQuery({
+    queryKey: ["admin-pluggy-webhook-health"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("pluggy_webhook_health" as never);
+      if (error) throw error;
+      return (data ?? {}) as HealthSummary;
+    },
+    refetchInterval: 15_000,
+  });
+
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
     if (!s) return rows;
