@@ -231,9 +231,15 @@ export default function ConciliacaoPluggy() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold tracking-tight">Conciliação Open Finance</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {scope
+              ? `Conciliação — ${scope.name ?? connections.find((c) => c.id === scope.connectionId)?.connector_name ?? "Conta"}`
+              : "Conciliação Open Finance"}
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Revise, categorize e confirme os lançamentos importados dos bancos conectados.
+            {scope
+              ? "Lançamentos importados apenas desta conta bancária."
+              : "Revise, categorize e confirme os lançamentos importados dos bancos conectados."}
           </p>
         </div>
         <Button onClick={syncNow} disabled={syncing || connections.length === 0} variant="outline">
