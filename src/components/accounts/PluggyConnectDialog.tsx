@@ -100,7 +100,10 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
 
         if (!accessToken) {
           const { data, error: e } = await supabase.functions.invoke("pluggy-connect-token", {
-            body: { item_id: itemIdToUpdate },
+            body: {
+              item_id: itemIdToUpdate,
+              oauth_redirect_uri: buildOauthRedirectUri(),
+            },
           });
           if (e || !data?.accessToken) throw new Error(e?.message ?? "connect_token_failed");
           accessToken = data.accessToken as string;

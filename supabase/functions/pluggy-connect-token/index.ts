@@ -13,7 +13,9 @@ function isAllowedOauthRedirectUri(value: unknown): value is string {
       'gestor360food.com',
       'www.gestor360food.com',
     ]);
-    return allowedHosts.has(url.hostname) || url.hostname.endsWith('.lovable.app');
+    return allowedHosts.has(url.hostname)
+      || url.hostname.endsWith('.lovable.app')
+      || url.hostname.endsWith('.lovableproject.com');
   } catch {
     return false;
   }
