@@ -52,6 +52,9 @@ async function processEvent(supabase: any, eventRowId: string, payload: any, eve
       "transactions/deleted",
     ]);
 
+    // Bloco 1 (P0-1): materializa conexão a partir do webhook item/created|updated.
+    // Se não existir conexão para este pluggy_item_id ainda, chama pluggy-item-materialize
+    // (que resolve o tenant via clientUserId="ofreq:<request_id>").
     let conn: { id: string; company_id: string; requires_user_action?: boolean } | null = null;
     if (pluggyItemId) {
       const { data } = await supabase
@@ -62,7 +65,53 @@ async function processEvent(supabase: any, eventRowId: string, payload: any, eve
       conn = data ?? null;
     }
 
-    // Bloco 8 — classifica o estado do item (LOGIN_ERROR, MFA, consentimento) antes de enfileirar.
+    if (!conn && pluggyItemId && (eventType === "item/created" || eventType === "item/updated")) {
+      const url = Deno.env.get("SUPABASE_URL")!;
+      const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const item = (payload as any)?.item ?? {};
+      try {
+        const resp = await fetch(`${url}/functions/v1/pluggy-item-materialize`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${service}`,
+          },
+          body: JSON.stringify({
+            item_id: pluggyItemId,
+            client_user_id: item.clientUserId ?? (payload as any)?.clientUserId ?? null,
+            triggered_by: `webhook:${eventType}`,
+          }),
+        });
+        if (resp.ok) {
+          const { data } = await supabase
+            .from("open_finance_connections")
+            .select("id, company_id, requires_user_action")
+            .eq("pluggy_item_id", pluggyItemId)
+            .maybeSingle();
+          conn = data ?? null;
+        } else {
+          console.warn("[pluggy-webhook] materialize failed", resp.status, await resp.text().catch(() => ""));
+        }
+      } catch (err) {
+        console.error("[pluggy-webhook] materialize error", err);
+      }
+    }
+
+    // Bloco 5 (P0-5): item/deleted -> confirma remoção remota
+    if (conn && eventType === "item/deleted") {
+      await supabase
+        .from("open_finance_connections")
+        .update({
+          status: "disconnected",
+          needs_remote_delete: false,
+          remote_deleted_at: new Date().toISOString(),
+          disconnected_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", conn.id);
+    }
+
+    // Bloco 8 — classifica estado do item.
     let requiresUserAction = false;
     if (conn && (eventType.startsWith("item/") || eventType === "connector/status_updated")) {
       const item = (payload as any)?.item ?? {};
@@ -79,14 +128,12 @@ async function processEvent(supabase: any, eventRowId: string, payload: any, eve
     }
 
     if (conn && !requiresUserAction && dataChangingEvents.has(eventType)) {
-      {
-        await supabase.from("open_finance_sync_runs").insert({
-          connection_id: conn.id,
-          company_id: conn.company_id,
-          status: "queued",
-          triggered_by: `webhook:${eventType}`,
-        });
-      }
+      await supabase.from("open_finance_sync_runs").insert({
+        connection_id: conn.id,
+        company_id: conn.company_id,
+        status: "queued",
+        triggered_by: `webhook:${eventType}`,
+      });
     }
 
     await supabase

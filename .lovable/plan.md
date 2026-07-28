@@ -1,74 +1,81 @@
-# Auditoria — Sincronização Pluggy / Open Finance
+# Plano de Correção P0 — Sincronização Pluggy / Open Finance
 
-Objetivo: verificar, sem alterar código, se a entrega dos 10 blocos atende aos critérios de aceite do prompt P0 e produzir um relatório de conformidade com evidências.
+Objetivo: fechar os 5 gaps críticos identificados na auditoria para tornar a integração Pluggy homologável em produção, sem depender do navegador, sem transações fantasmas e com agendamento real de sync.
 
-## Escopo
+## Ordem de execução
 
-Somente leitura: código, migrations, banco (via `supabase--read_query`), linter, secrets, cron. Nenhuma alteração de arquivo, schema ou dado.
-
-## Etapas
-
-1. **Inventário de código** — ler:
-   - `supabase/functions/_shared/pluggy-client.ts`
-   - `supabase/functions/_shared/materialize-pluggy-item.ts` (se existir)
-   - `supabase/functions/pluggy-connect-token/index.ts`
-   - `supabase/functions/pluggy-item-register/index.ts`
-   - `supabase/functions/pluggy-webhook/index.ts`
-   - `supabase/functions/pluggy-worker/index.ts`
-   - `supabase/functions/pluggy-sync/index.ts`
-   - `supabase/functions/pluggy-item-delete/index.ts` (se existir)
-   - `supabase/config.toml`
-   - `src/components/accounts/OpenFinanceWizard.tsx`
-   - `src/pages/ConexoesOpenFinance.tsx`, `src/pages/ConciliacaoOpenFinance.tsx`
-   - `src/hooks/useOpenFinance.ts`, `src/hooks/useRealtimeSync.tsx`
-
-2. **Inventário de schema** — via `supabase--read_query`:
-   - Colunas, índices e constraints de `open_finance_connection_requests`, `open_finance_connections`, `open_finance_accounts`, `open_finance_webhook_events`, `open_finance_sync_runs`, `open_finance_transactions_raw`
-   - Uniques exigidos: `(provider, event_id)`, `(provider, pluggy_item_id)`, `(connection_id, pluggy_account_id)`, `(provider, company_id, pluggy_transaction_id)`
-   - RLS/GRANTs de cada tabela (anon/authenticated/service_role)
-   - Funções: `claim_open_finance_sync`, `release_open_finance_sync`, `create_and_link_open_finance_account`, `promote_open_finance_raw_ids`, `ignore_open_finance_raw`, `disconnect_open_finance_connection`, `classify_open_finance_item_state`
-
-3. **Cron real** — `SELECT jobname, schedule, active FROM cron.job WHERE jobname LIKE '%pluggy%'` e histórico recente em `cron.job_run_details`.
-
-4. **Estado runtime** — contagens agregadas (sem dados sensíveis): eventos por status, sync_runs por status, dead_letter > 0, idade do evento pendente mais antigo, conexões por status.
-
-5. **Secrets** — `fetch_secrets` para confirmar `PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET`, `PLUGGY_WEBHOOK_TOKEN`/`PLUGGY_WEBHOOK_SECRET`.
-
-6. **Linter** — `supabase--linter` filtrando achados relacionados ao domínio Open Finance.
-
-## Entregável
-
-Um único relatório em chat com uma tabela por critério do item 32 do prompt:
+Segue o critério "desbloqueia o próximo passo primeiro". Cada bloco é independente e verificável isoladamente.
 
 ```text
-Critério                                     | Status | Evidência
----------------------------------------------|--------|---------------------------
-Request criado antes do Connect Token         | ok/gap | arquivo:linhas
-clientUserId = ofreq:<request_id>             | ok/gap | ...
-Payload usa options                           | ok/gap |
-Webhook com header secreto                    | ok/gap |
-eventId idempotente (unique)                  | ok/gap | constraint
-Receiver responde <500ms (waitUntil)          | ok/gap |
-Conexão independente do navegador             | ok/gap |
-Item consultado pelo backend                  | ok/gap |
-Contas atualizadas                            | ok/gap |
-Transações por cursor                         | ok/gap |
-transactions/updated refletido                | ok/gap |
-transactions/deleted tratado                  | ok/gap |
-Worker com retry + backoff                    | ok/gap |
-Recuperação de lease expirado                 | ok/gap |
-Dead letter                                   | ok/gap |
-Cron agendado (evidência em cron.job)         | ok/gap |
-Desconexão remota DELETE /items               | ok/gap |
-Status canônicos consistentes                 | ok/gap |
-Cross-tenant bloqueado                        | ok/gap |
-Uniques cross-tenant no schema                | ok/gap |
+1. Materialização de conexão (server-side)
+2. Paginação por cursor (/v2/transactions)
+3. Tratamento de deleções na origem
+4. Cron real via pg_cron + pg_net
+5. Desconexão remota (DELETE /items na Pluggy)
 ```
 
-Cada linha com gap terá recomendação objetiva e severidade (P0/P1/P2). Nenhuma correção será aplicada nesta rodada — a próxima decisão fica com você a partir do relatório.
+---
 
-## Fora de escopo
+## Bloco 1 — Materialização de conexão server-side (P0-1)
 
-- Qualquer edição de código, migration ou dado
-- Alterar wizard, conciliação, DP, DRE, motor financeiro
-- Testes end-to-end em produção (item separado)
+Problema: hoje a linha em `open_finance_connections` só é criada se o callback do widget rodar no navegador. Se o usuário fechar a aba ou a rede cair, o item existe na Pluggy mas some do nosso sistema.
+
+Ações:
+- Nova edge function `pluggy-item-materialize` que recebe `{ item_id }`, chama `GET /items/{id}` na Pluggy e faz upsert em `open_finance_connections` + `open_finance_accounts` (idempotente por `pluggy_item_id`).
+- Chamada a partir de dois pontos:
+  1. Callback do widget (fluxo feliz) — mantém UX atual.
+  2. Webhook `item/created` e `item/updated` — garante materialização mesmo sem callback.
+- `pluggy-connect-token` passa a persistir `open_finance_connection_requests` com o `client_user_id` para amarrar o item ao tenant quando o webhook chegar antes do callback.
+
+## Bloco 2 — Paginação por cursor v2 (P0-2)
+
+Problema: o worker atual usa `GET /transactions?page=N`, que é a API legada. A v2 usa cursor (`from`, `pageSize`, `next`), é mais rápida e é a única que expõe `deletedAt`.
+
+Ações:
+- Refatorar `pluggy-sync` para consumir `GET /v2/transactions/{accountId}` com cursor.
+- Guardar o `next` cursor em `open_finance_accounts.sync_cursor` (nova coluna) para retomar de onde parou entre execuções.
+- Fallback: se a Pluggy responder 404 na v2 para uma conta legada, cair no endpoint antigo apenas para aquele item, logando em `open_finance_sync_runs.notes`.
+
+## Bloco 3 — Deleções na origem (P0-3)
+
+Problema: quando a Pluggy marca uma transação como deletada (estorno, ajuste do banco), nosso staging mantém a linha, e a promoção para `transactions` cria duplicata.
+
+Ações:
+- Nova coluna `open_finance_transactions_raw.deleted_at timestamptz`.
+- Worker marca `deleted_at = now()` quando a v2 devolve `deletedAt != null` (match por `pluggy_transaction_id`).
+- `auto_promote_open_finance_raw` passa a ignorar linhas com `deleted_at` e, se a transação já foi promovida, marca o `transactions.status = 'cancelado'` com origem `open_finance_delete` (não deleta o registro para preservar auditoria).
+
+## Bloco 4 — Cron real (P0-4)
+
+Problema: existe a função `enqueue_open_finance_scheduled_syncs`, mas não há job `pg_cron` ativo apontando para ela em produção. Sync depende de disparo manual.
+
+Ações:
+- Habilitar extensões `pg_cron` e `pg_net` se ainda não estiverem.
+- Agendar `enqueue-open-finance` a cada 15 minutos chamando a edge function via `net.http_post` com header `apikey` = anon key (o dispatch interno usa `service_role`).
+- Adicionar métrica: última execução aparece em `/admin/open-finance` (painel de observabilidade já existente).
+
+## Bloco 5 — Desconexão remota (P0-5)
+
+Problema: `disconnect_open_finance_connection` só marca a linha como inativa localmente; o item continua vivo na Pluggy consumindo cota.
+
+Ações:
+- Nova edge function `pluggy-item-delete` que chama `DELETE /items/{id}` com retry (429/5xx).
+- RPC de desconexão passa a agendar a edge function via `pg_net`; se falhar, marca `open_finance_connections.needs_remote_delete = true` para retry manual.
+- Botão "Desconectar" na UI passa a mostrar estado "aguardando remoção remota" até o webhook `item/deleted` confirmar.
+
+---
+
+## Detalhes técnicos
+
+- Todas as edge functions novas usam o cliente compartilhado em `supabase/functions/_shared/pluggy.ts` (rate limit, retry com backoff exponencial e assinatura HMAC do webhook já implementados).
+- Migrations adicionam apenas colunas nullable e um índice em `open_finance_transactions_raw(deleted_at)` — não há breaking change.
+- Testes: cenários novos em `supabase/functions/pluggy-sync/index.test.ts` cobrindo cursor v2, deleção e retomada.
+- Observabilidade: cada bloco grava em `open_finance_sync_runs` (status, contadores, erros) e em `audit_logs` quando afeta transações já confirmadas.
+
+## Fora deste plano (fica para P1 depois)
+
+- Endurecimento extra do webhook (rotação de segredo, verificação estrita de replay).
+- Retry/backoff por conta com dead-letter queue visível na UI.
+- Rastreabilidade cross-tenant (correlação `client_user_id` × `company_id` em logs unificados).
+
+Confirma para eu executar bloco a bloco?

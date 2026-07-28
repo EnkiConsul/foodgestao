@@ -206,9 +206,13 @@ async function runSync(
       if (!results.length) break;
 
       const rows = await Promise.all(
-        results.map(async (t: PluggyTransaction) => {
+        results.map(async (t: PluggyTransaction & { deletedAt?: string; isDeleted?: boolean; updatedAt?: string }) => {
           if (t.date && (!maxTxDate || t.date > maxTxDate)) maxTxDate = t.date.slice(0, 10);
           if (t.updatedAt && (!maxUpdatedAt || t.updatedAt > maxUpdatedAt)) maxUpdatedAt = t.updatedAt;
+          // Bloco 3 (P0-3): captura deleções vindas da Pluggy.
+          const deletedAt = t.deletedAt
+            ? new Date(t.deletedAt).toISOString()
+            : (t.isDeleted ? new Date().toISOString() : null);
           return {
             connection_id: connectionId,
             of_account_id: meta.id,
@@ -216,17 +220,20 @@ async function runSync(
             pluggy_transaction_id: t.id,
             import_hash: await importHash(companyId, t.id),
             raw: t as any,
+            deleted_at: deletedAt,
           };
         }),
       );
 
       // Upsert dedup by (of_account_id, pluggy_transaction_id) — updates raw payload
-      // so edits/enrichments from Pluggy are captured on incremental re-fetches.
+      // so edits/enrichments and soft-deletes from Pluggy são capturados nas próximas rodadas.
       const { error } = await supabase
         .from("open_finance_transactions_raw")
         .upsert(rows, { onConflict: "of_account_id,pluggy_transaction_id", ignoreDuplicates: false });
       if (error) console.error("[pluggy-sync] upsert raw error:", error.message);
       stats.transactions_raw += rows.length;
+      const deletedCount = rows.filter((r) => r.deleted_at).length;
+      if (deletedCount > 0) (stats as any).deleted_flagged = ((stats as any).deleted_flagged ?? 0) + deletedCount;
 
       if (page >= (txResp.data.totalPages ?? page)) break;
       page += 1;
@@ -285,7 +292,10 @@ Deno.serve(async (req) => {
   if ("drain" in body) {
     const expected = Deno.env.get("PLUGGY_SYNC_ALL_SECRET");
     const cronSecret = Deno.env.get("PLUGGY_CRON_SECRET");
-    const ok = (expected && body.secret === expected) || (cronSecret && body.secret === cronSecret);
+    const cronTick = Deno.env.get("PLUGGY_CRON_TICK_SECRET");
+    const ok = (expected && body.secret === expected)
+      || (cronSecret && body.secret === cronSecret)
+      || (cronTick && body.secret === cronTick);
     if (!ok) return json(401, { error: "forbidden" });
 
     const max = body.max_runs ?? 5;

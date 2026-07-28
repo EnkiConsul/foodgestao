@@ -266,8 +266,13 @@ export default function ConexoesOpenFinance() {
         _connection_id: confirmDisconnect.id,
       });
       if (error) throw error;
+      // Bloco 5 (P0-5): dispara remoção remota do item na Pluggy (fire-and-forget).
+      // Se falhar, needs_remote_delete=true fica marcado para o cron retry.
+      supabase.functions
+        .invoke("pluggy-item-delete", { body: { connection_id: confirmDisconnect.id } })
+        .catch((e) => console.warn("[disconnect] remote delete deferred:", e?.message));
       toast.success("Conexão desconectada", {
-        description: "Suas contas locais e histórico permanecem preservados.",
+        description: "Suas contas locais e histórico permanecem preservados. Removendo item na Pluggy…",
       });
       setConfirmDisconnect(null);
       fetchConnections();
