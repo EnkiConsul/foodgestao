@@ -166,8 +166,15 @@ export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished, r
     setError(null);
     try {
       await loadPluggyScript();
+      const oauthRedirect = typeof window !== "undefined"
+        ? `${window.location.origin}/contas-bancarias`
+        : undefined;
       const { data, error: tokenErr } = await supabase.functions.invoke("pluggy-connect-token", {
-        body: { company_id: companyId, ...(reconnectItemId ? { item_id: reconnectItemId } : {}) },
+        body: {
+          company_id: companyId,
+          ...(reconnectItemId ? { item_id: reconnectItemId } : {}),
+          ...(oauthRedirect ? { oauth_redirect_url: oauthRedirect } : {}),
+        },
       });
       if (tokenErr || !data?.access_token) {
         throw new Error(tokenErr?.message || (data as any)?.error || "connect_token_failed");
