@@ -1,19 +1,19 @@
 ## Objetivo
-Remover da interface de Categorias a exibição do código interno da categoria (`template_code`), mantendo o campo intacto no banco, pois ele continua servindo para organização/rastreio interno do sistema.
+Remover a numeração posicional (1., 4.2., …) exibida na frente do nome das categorias — ela é apenas um rótulo visual e não representa nenhum código real.
 
 ## O que muda
 
-1. **Lista de categorias** (`src/components/categorias/CategoryRow.tsx`)
-   - Remover o badge com o `template_code` e seu tooltip "ID Interno … imutável, preserva o histórico dos lançamentos".
-   - Manter: bolinha de cor, numeração hierárquica (1., 1.1.), nome, badge de conta contábil e badge de subtipo.
+1. **Linha da categoria** (`src/components/categorias/CategoryRow.tsx`)
+   - Remover o `<span>` que exibe `{cat.index}.` antes do nome.
+   - A hierarquia continua evidente pela indentação, pelo chevron de expandir/colapsar e pelo destaque em maiúsculas das categorias raiz.
 
-2. **Formulário de categoria** (`src/components/categories/CategoryFormDialog.tsx`)
-   - Remover o bloco de exibição do "ID Interno" (`template_code`) mostrado na edição.
-   - Manter o seletor de Categoria Pai e o vínculo de conta contábil como estão.
+2. **Ajuste de espaçamento**
+   - Compensar a largura liberada (`w-10 md:w-20`) para o nome não ficar colado na bolinha de cor, mantendo o alinhamento em desktop e mobile.
 
 ## Detalhes técnicos
-- Nenhuma alteração de banco, RPC ou RLS. O campo `template_code` continua sendo gravado e usado internamente (herança de plano padrão, histórico de lançamentos).
-- Remoção também dos imports de Tooltip que ficarem sem uso em `CategoryRow.tsx`, para não deixar código morto.
+- O campo `index` continua sendo calculado em `src/lib/categories/tree.ts` (`buildCategoryTree`), pois é usado como chave/ordenação interna — só deixa de ser renderizado.
+- Nenhuma alteração de banco, RPC ou RLS.
 
 ## Fora de escopo
-- Códigos de **contas contábeis** (badge com o código do plano de contas) continuam visíveis, pois são informação contábil usada pelo usuário. Caso você também queira escondê-los, é só avisar.
+- A ordenação e o drag-and-drop de categorias continuam funcionando como hoje.
+- O badge de conta contábil (código do plano de contas) permanece visível.
