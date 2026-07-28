@@ -51,7 +51,6 @@ export default function ContasBancarias() {
   const [methodDialogOpen, setMethodDialogOpen] = useState(false);
   const [pluggyOpen, setPluggyOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<Account | null>(null);
-  const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [importAccountId, setImportAccountId] = useState<string | null>(null);
   const [postCreateAccountId, setPostCreateAccountId] = useState<string | null>(null);
