@@ -104,6 +104,7 @@ export default function ConciliacaoPluggy() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [rowAccount, setRowAccount] = useState<Record<string, string>>({});
   const [rowCategory, setRowCategory] = useState<Record<string, string>>({});
+  const [rowBusy, setRowBusy] = useState<string | null>(null);
   // Escopo travado por conta (quando entrou pelo card da conta bancária)
   const [scope, setScope] = useState<ScopeInfo | null>(null);
   const [scopeUnresolved, setScopeUnresolved] = useState(false);
