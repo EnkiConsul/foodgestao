@@ -95,20 +95,34 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
   };
 
   const { data: allCategories = [] } = useQuery({
-    queryKey: ["categories-for-parent", user?.id, contextType],
-    enabled: !!user && open,
+    queryKey: ["categories-for-parent", user?.id, contextType, selectedCompanyId],
+    enabled: !!user && open && (contextType === "pf" || !!selectedCompanyId),
     queryFn: async () => {
+      if (contextType === "pj") {
+        // Somente categorias vinculadas à empresa ativa
+        const { data } = await supabase
+          .from("categories")
+          .select("*, category_companies!inner(company_id)")
+          .or("context.is.null,context.eq.pj")
+          .eq("category_companies.company_id", selectedCompanyId!)
+          .order("sort_order")
+          .order("transaction_type")
+          .order("name");
+        return data ?? [];
+      }
       const { data } = await supabase
         .from("categories")
         .select("*")
         .eq("user_id", user!.id)
-        .or(contextType === "pf" ? "context.is.null,context.eq.pf" : "context.is.null,context.eq.pj")
+        .or("context.is.null,context.eq.pf")
+        .eq("visible_pf", true)
         .order("sort_order")
         .order("transaction_type")
         .order("name");
       return data ?? [];
     },
   });
+
 
   const { data: companies = [] } = useQuery({
     queryKey: ["companies-for-category", user?.id],
