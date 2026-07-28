@@ -2,7 +2,6 @@
 // Grava metadados em pluggy_v2_connect_requests SEM persistir o access_token
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { getClaims } from "../_shared/pluggy-client.ts";
 import { createConnectToken } from "../_shared/pluggy-client.ts";
 
 Deno.serve(async (req) => {
@@ -19,13 +18,18 @@ Deno.serve(async (req) => {
       return json({ error: "pluggy_v2_disabled" }, 503);
     }
 
-    // Auth
+    // Auth via getClaims (validação local do JWT)
     const authHeader = req.headers.get("authorization") ?? "";
     const token = authHeader.replace(/^Bearer\s+/i, "");
     if (!token) return json({ error: "unauthenticated" }, 401);
-    const claims = await getClaims(token);
-    if (!claims?.sub) return json({ error: "unauthenticated" }, 401);
-    const userId = claims.sub as string;
+    const supabaseUser = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: `Bearer ${token}` } } },
+    );
+    const { data: claimsData, error: claimsErr } = await supabaseUser.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims?.sub) return json({ error: "unauthenticated" }, 401);
+    const userId = claimsData.claims.sub as string;
 
     const body = await req.json().catch(() => ({}));
     const companyId: string | undefined = body?.companyId;
@@ -63,7 +67,8 @@ Deno.serve(async (req) => {
       avoidDuplicates: intent === "create",
     });
 
-    // Grava metadados (sem token)
+    // Grava metadados (sem token). token_expires_at é ~30min pela Pluggy.
+    const tokenExpiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
     const { data: reqRow } = await supabase
       .from("pluggy_v2_connect_requests")
       .insert({
@@ -74,7 +79,7 @@ Deno.serve(async (req) => {
         intent,
         target_item_id: targetItemId ?? null,
         status: "token_created",
-        token_expires_at: tokenResp.expiresAt ?? null,
+        token_expires_at: tokenExpiresAt,
         metadata: { oauth_redirect_url: oauthRedirectUrl },
       })
       .select("id")
@@ -83,7 +88,6 @@ Deno.serve(async (req) => {
     return json({
       requestId: reqRow?.id,
       accessToken: tokenResp.accessToken,
-      expiresAt: tokenResp.expiresAt,
       clientUserId,
     });
   } catch (e) {

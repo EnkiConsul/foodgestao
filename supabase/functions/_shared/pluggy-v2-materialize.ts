@@ -1,6 +1,6 @@
 // V2 — Materialização isolada de item Pluggy em pluggy_v2_*
 // Nenhuma leitura/escrita nas tabelas V1.
-import { getItem, getAccounts, listTransactionsV2 } from "./pluggy-client.ts";
+import { getItem, listAccounts, listTransactionsV2 } from "./pluggy-client.ts";
 
 // Máscara simples para dados sensíveis
 function maskAccountNumber(n?: string): string | null {
@@ -102,7 +102,8 @@ export async function materializePluggyItemV2(params: {
   const syncRunId = syncRow?.id as string | undefined;
 
   // 4. Sincroniza contas
-  const accounts = await getAccounts(item.id);
+  const accountsResp = await listAccounts(item.id);
+  const accounts = accountsResp?.results ?? [];
   let accountsSynced = 0;
   const accountIdMap = new Map<string, string>(); // pluggy_account_id -> internal id
 

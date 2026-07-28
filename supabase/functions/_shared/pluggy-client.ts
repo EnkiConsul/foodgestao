@@ -266,6 +266,29 @@ export async function listTransactions(params: {
   }>("GET", `/transactions?${qs.toString()}`);
 }
 
+/**
+ * V2 — /v2/transactions com paginação por cursor.
+ * Docs: https://docs.pluggy.ai/reference/get-transactions-v2
+ */
+export async function listTransactionsV2(params: {
+  accountId: string;
+  from?: string;
+  to?: string;
+  pageSize?: number;
+  pageCursor?: string;
+}) {
+  const qs = new URLSearchParams();
+  qs.set("accountId", params.accountId);
+  if (params.from) qs.set("from", params.from);
+  if (params.to) qs.set("to", params.to);
+  qs.set("pageSize", String(params.pageSize ?? 500));
+  if (params.pageCursor) qs.set("pageCursor", params.pageCursor);
+  return await request<{
+    results: PluggyTransaction[];
+    nextCursor: string | null;
+  }>("GET", `/v2/transactions?${qs.toString()}`);
+}
+
 export async function deleteItem(itemId: string) {
   return await request<{ id: string }>("DELETE", `/items/${itemId}`);
 }
