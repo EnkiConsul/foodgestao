@@ -89,6 +89,14 @@ export default function ConciliacaoPluggy() {
   const [rows, setRows] = useState<StagingRow[]>([]);
   const [accounts, setAccounts] = useState<AccountOpt[]>([]);
   const [categories, setCategories] = useState<CategoryOpt[]>([]);
+  const categoryOptionsReceita = useMemo(
+    () => buildCategoryOptions(categories.filter((c) => c.transaction_type === "receita")),
+    [categories]
+  );
+  const categoryOptionsDespesa = useMemo(
+    () => buildCategoryOptions(categories.filter((c) => c.transaction_type === "despesa")),
+    [categories]
+  );
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("pending");
