@@ -475,6 +475,7 @@ const AppRoutes = () => (
         <Route path="/admin/pluggy-webhook-logs" element={<AdminPluggyWebhookLogs />} />
         <Route path="/admin/pluggy-v2-conexoes" element={<AdminPluggyV2Conexoes />} />
         <Route path="/admin/pluggy-v2-webhook-logs" element={<AdminPluggyV2WebhookLogs />} />
+        <Route path="/admin/pluggy-v2-reconciliacao" element={<AdminPluggyV2Reconciliacao />} />
         
         <Route path="/admin/seo-indexacao" element={<AdminSeoIndexacao />} />
         <Route path="/admin/modulos" element={<AdminModulos />} />
