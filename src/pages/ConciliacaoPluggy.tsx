@@ -43,6 +43,9 @@ export default function ConciliacaoPluggy() {
   const { contextType, selectedCompanyId } = useCompanyContext();
   const { maskBRL } = usePrivacy();
 
+  const [searchParams] = useSearchParams();
+  const scopedLocalAccountId = searchParams.get("account");
+
   const [connections, setConnections] = useState<Connection[]>([]);
   const [connectionId, setConnectionId] = useState<string>("all");
   const [rows, setRows] = useState<StagingRow[]>([]);
@@ -55,19 +58,47 @@ export default function ConciliacaoPluggy() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [rowAccount, setRowAccount] = useState<Record<string, string>>({});
   const [rowCategory, setRowCategory] = useState<Record<string, string>>({});
+  // Escopo travado por conta (quando entrou pelo card da conta bancária)
+  const [scope, setScope] = useState<ScopeInfo | null>(null);
+  const [scopeUnresolved, setScopeUnresolved] = useState(false);
 
   const load = useCallback(async () => {
     if (!selectedCompanyId) { setLoading(false); return; }
     setLoading(true);
 
+    // Resolve o escopo por conta antes de montar a query de staging
+    let resolvedScope: ScopeInfo | null = null;
+    if (scopedLocalAccountId) {
+      const { data: pa } = await supabase
+        .from("pluggy_accounts")
+        .select("pluggy_account_id, connection_id, name")
+        .eq("company_id", selectedCompanyId)
+        .eq("linked_account_id", scopedLocalAccountId)
+        .maybeSingle();
+      if (pa) {
+        resolvedScope = {
+          pluggyAccountId: pa.pluggy_account_id,
+          connectionId: pa.connection_id,
+          name: pa.name ?? null,
+        };
+      }
+    }
+    setScope(resolvedScope);
+    setScopeUnresolved(!!scopedLocalAccountId && !resolvedScope);
+    setConnectionId(resolvedScope ? resolvedScope.connectionId : "all");
+
+    let stagingQuery = supabase.from("pluggy_staging_transactions")
+      .select("*")
+      .eq("company_id", selectedCompanyId);
+    if (resolvedScope) {
+      stagingQuery = stagingQuery.eq("pluggy_account_id", resolvedScope.pluggyAccountId);
+    }
+
     const [{ data: conns }, { data: staging }, { data: accs }, { data: cats }] = await Promise.all([
       supabase.from("pluggy_connections")
         .select("id, connector_name, connector_image_url, status, last_synced_at")
         .eq("company_id", selectedCompanyId).order("created_at", { ascending: false }),
-      supabase.from("pluggy_staging_transactions")
-        .select("*")
-        .eq("company_id", selectedCompanyId)
-        .order("date", { ascending: false }).limit(500),
+      stagingQuery.order("date", { ascending: false }).limit(500),
       supabase.rpc("get_accessible_accounts", {
         _context: "pj", _company_id: selectedCompanyId, _include_inactive: false,
       }),
@@ -92,7 +123,7 @@ export default function ConciliacaoPluggy() {
     setRowAccount((prev) => ({ ...acctMap, ...prev }));
     setRowCategory((prev) => ({ ...catMap, ...prev }));
     setLoading(false);
-  }, [selectedCompanyId]);
+  }, [selectedCompanyId, scopedLocalAccountId]);
 
   useEffect(() => { load(); }, [load]);
 
