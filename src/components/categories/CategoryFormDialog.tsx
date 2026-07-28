@@ -187,10 +187,51 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
     }
   }, [editCategory, open, defaultParentId, defaultType, defaultName]);
 
-  // Filter parent options: same type, exclude self
-  const parentOptions = allCategories.filter(
-    (c) => c.transaction_type === type && c.id !== editCategory?.id
-  );
+  // Filter parent options: same type, exclude self (e descendentes, para evitar ciclos)
+  const sameTypeCategories = allCategories.filter((c: any) => c.transaction_type === type);
+
+  const descendantIds = (() => {
+    const ids = new Set<string>();
+    if (!editCategory) return ids;
+    const walk = (parent: string) => {
+      sameTypeCategories.forEach((c: any) => {
+        if (c.parent_id === parent && !ids.has(c.id)) {
+          ids.add(c.id);
+          walk(c.id);
+        }
+      });
+    };
+    walk(editCategory.id);
+    return ids;
+  })();
+
+  // Ordena em árvore (raiz -> filhos), respeitando sort_order/nome, com profundidade
+  const parentOptions = (() => {
+    const byParent = new Map<string | null, any[]>();
+    sameTypeCategories.forEach((c: any) => {
+      const key = c.parent_id ?? null;
+      if (!byParent.has(key)) byParent.set(key, []);
+      byParent.get(key)!.push(c);
+    });
+    byParent.forEach((list) =>
+      list.sort(
+        (a, b) =>
+          (a.sort_order ?? 0) - (b.sort_order ?? 0) ||
+          (a.name ?? "").localeCompare(b.name ?? "", "pt-BR")
+      )
+    );
+    const out: { cat: any; depth: number }[] = [];
+    const walk = (parent: string | null, depth: number) => {
+      (byParent.get(parent) ?? []).forEach((c: any) => {
+        if (c.id === editCategory?.id || descendantIds.has(c.id)) return;
+        out.push({ cat: c, depth });
+        walk(c.id, depth + 1);
+      });
+    };
+    walk(null, 0);
+    return out;
+  })();
+
 
   const toggleCompany = (companyId: string) => {
     setSelectedCompanies((prev) => {
