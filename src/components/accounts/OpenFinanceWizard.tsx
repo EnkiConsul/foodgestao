@@ -65,7 +65,30 @@ export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished, r
   const [accounts, setAccounts] = useState<OpenFinanceAccountRow[]>([]);
   const [institutionName, setInstitutionName] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [purging, setPurging] = useState(false);
   const pluggyRef = useRef<any>(null);
+
+  const purgeOrphans = useCallback(async () => {
+    if (!companyId) return;
+    setPurging(true);
+    try {
+      const { data, error: err } = await supabase.functions.invoke("pluggy-items-purge-orphans", {
+        body: { company_id: companyId },
+      });
+      if (err) throw new Error(err.message);
+      const deleted = (data as any)?.deleted_count ?? 0;
+      toast.success(`${deleted} acesso(s) órfão(s) removido(s) da Pluggy.`, {
+        description: "Você já pode tentar conectar novamente.",
+      });
+      setStep("intro");
+      setError(null);
+    } catch (e: any) {
+      toast.error("Falha ao limpar acessos órfãos.", { description: e?.message });
+    } finally {
+      setPurging(false);
+    }
+  }, [companyId]);
+
 
   // Reset when reopened
   useEffect(() => {
@@ -287,6 +310,18 @@ export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished, r
               <li className="flex gap-2"><Check className="h-3.5 w-3.5 text-primary mt-0.5" /> Você pode desconectar a qualquer momento</li>
               <li className="flex gap-2"><Check className="h-3.5 w-3.5 text-primary mt-0.5" /> Lançamentos ficam pendentes de aprovação na Central de Conciliação</li>
             </ul>
+            <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground space-y-2">
+              <p>
+                <strong className="text-foreground">O widget acusou "Você já possui uma conexão com este acesso"?</strong> Isso
+                pode indicar acessos órfãos criados na Pluggy em tentativas anteriores. Use o botão abaixo para removê-los antes
+                de tentar novamente.
+              </p>
+              <Button size="sm" variant="outline" onClick={purgeOrphans} disabled={purging || busy}>
+                {purging ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <RefreshCw className="h-3.5 w-3.5 mr-2" />}
+                Limpar acessos órfãos na Pluggy
+              </Button>
+            </div>
+
           </div>
         )}
 
