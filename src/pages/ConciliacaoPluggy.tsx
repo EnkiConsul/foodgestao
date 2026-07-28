@@ -263,16 +263,27 @@ export default function ConciliacaoPluggy() {
         </CardContent></Card>
       </div>
 
+      {scopeUnresolved && (
+        <Card className="border-warning/50 bg-warning/10">
+          <CardContent className="p-3 text-sm text-foreground flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+            Esta conta não possui vínculo com uma conexão Open Finance. Exibindo a fila completa da empresa.
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex flex-wrap gap-2">
-        <Select value={connectionId} onValueChange={setConnectionId}>
-          <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas as conexões</SelectItem>
-            {connections.map((c) => (
-              <SelectItem key={c.id} value={c.id}>{c.connector_name ?? "Banco"}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {!scope && (
+          <Select value={connectionId} onValueChange={setConnectionId}>
+            <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as conexões</SelectItem>
+              {connections.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.connector_name ?? "Banco"}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
           <SelectContent>
