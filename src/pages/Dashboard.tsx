@@ -152,8 +152,10 @@ export default function Dashboard() {
       t.status === "confirmado" || (t.due_date && Number(t.amount_paid) >= Number(t.amount));
 
     for (const t of transactions) {
-      const month = t.transaction_date.slice(0, 7); // YYYY-MM
-      const day = t.transaction_date.slice(0, 10); // YYYY-MM-DD
+      const refDate = t.due_date ?? t.transaction_date;
+      const month = refDate.slice(0, 7); // YYYY-MM
+      const day = refDate.slice(0, 10); // YYYY-MM-DD
+
       if (!months[month]) months[month] = { receitas: 0, despesas: 0 };
       if (!confirmedMonths[month]) confirmedMonths[month] = { receitas: 0, despesas: 0 };
       if (!days[day]) days[day] = { receitas: 0, despesas: 0 };
