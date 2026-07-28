@@ -1,6 +1,8 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { getItem, listAccounts, listTransactions } from '../_shared/pluggy.ts';
+import { buildDescription, counterpartyName } from '../_shared/tx-description.ts';
+
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -193,22 +195,9 @@ Deno.serve(async (req) => {
       const txs = await listTransactions(acc.id, fmt(from), fmt(to));
       if (txs.length === 0) continue;
       const rows = txs.map((t: any) => {
-        const rawDesc: string = t.description ?? t.descriptionRaw ?? '';
         const amt = Number(t.amount ?? 0);
-        const pd = t.paymentData ?? null;
-        const receiverName: string | null = pd?.receiver?.name ?? null;
-        const payerName: string | null = pd?.payer?.name ?? null;
-        const method: string | null = pd?.paymentMethod ?? null;
-        const counterparty = amt < 0 ? receiverName : payerName;
-
-        // If bank returned a generic label, rewrite using paymentData counterparty
-        const generic = /^\s*(transf(er[eê]ncia)?\s+(enviada|recebida)\s+pix|pix\s+(enviado|recebido)|ted|doc)\b/i;
-        let description = rawDesc;
-        if (counterparty && (generic.test(rawDesc) || !rawDesc.trim())) {
-          const verb = amt < 0 ? 'enviado para' : 'recebido de';
-          const label = method === 'PIX' || /pix/i.test(rawDesc) ? 'Pix' : (method ? method : 'Transferência');
-          description = `${label} ${verb} ${counterparty}`;
-        }
+        const counterparty = counterpartyName(t);
+        const description = buildDescription(t);
 
         return {
           company_id: effectiveCompanyId,
@@ -236,7 +225,20 @@ Deno.serve(async (req) => {
           .upsert(chunk, { onConflict: 'pluggy_transaction_id', ignoreDuplicates: true });
         if (error) console.error('staging upsert error', error);
       }
+
+      // Reprocessa a descrição de itens ainda pendentes que foram importados
+      // antes com rótulo genérico (o upsert acima ignora duplicados).
+      for (const r of rows) {
+        const { error } = await admin
+          .from('pluggy_staging_transactions')
+          .update({ description: r.description, counterparty_name: r.counterparty_name })
+          .eq('pluggy_transaction_id', r.pluggy_transaction_id)
+          .eq('status', 'pending')
+          .neq('description', r.description);
+        if (error) console.error('staging re-enrich error', error);
+      }
       staged += rows.length;
+
     }
 
     return new Response(JSON.stringify({
