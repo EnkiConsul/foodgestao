@@ -41,3 +41,7 @@ project_id = "grtxmbffgmgnkawlvqhm"
     verify_jwt = false
   [functions.pluggy-remote-delete-worker]
     verify_jwt = false
+  [functions.pluggy-v2-webhook]
+    verify_jwt = false
+  [functions.pluggy-v2-worker]
+    verify_jwt = false
