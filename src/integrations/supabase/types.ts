@@ -7142,6 +7142,7 @@ export type Database = {
           max_attempts: number
           next_attempt_at: string
           queued_at: string
+          source_webhook_event_id: string | null
           started_at: string | null
           stats: Json
           status: string
@@ -7161,6 +7162,7 @@ export type Database = {
           max_attempts?: number
           next_attempt_at?: string
           queued_at?: string
+          source_webhook_event_id?: string | null
           started_at?: string | null
           stats?: Json
           status?: string
@@ -7180,6 +7182,7 @@ export type Database = {
           max_attempts?: number
           next_attempt_at?: string
           queued_at?: string
+          source_webhook_event_id?: string | null
           started_at?: string | null
           stats?: Json
           status?: string
@@ -7199,6 +7202,13 @@ export type Database = {
             columns: ["connection_id"]
             isOneToOne: false
             referencedRelation: "open_finance_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "open_finance_sync_runs_source_webhook_event_id_fkey"
+            columns: ["source_webhook_event_id"]
+            isOneToOne: false
+            referencedRelation: "open_finance_webhook_events"
             referencedColumns: ["id"]
           },
         ]
@@ -7290,6 +7300,8 @@ export type Database = {
       open_finance_webhook_events: {
         Row: {
           attempt_count: number
+          claim_expires_at: string | null
+          claimed_by: string | null
           client_user_id: string | null
           company_id: string | null
           connection_id: string | null
@@ -7299,7 +7311,9 @@ export type Database = {
           event_id: string | null
           event_type: string
           id: string
+          last_attempt_at: string | null
           last_error_code: string | null
+          max_attempts: number
           next_attempt_at: string | null
           payload: Json
           pluggy_item_id: string | null
@@ -7310,6 +7324,8 @@ export type Database = {
         }
         Insert: {
           attempt_count?: number
+          claim_expires_at?: string | null
+          claimed_by?: string | null
           client_user_id?: string | null
           company_id?: string | null
           connection_id?: string | null
@@ -7319,7 +7335,9 @@ export type Database = {
           event_id?: string | null
           event_type: string
           id?: string
+          last_attempt_at?: string | null
           last_error_code?: string | null
+          max_attempts?: number
           next_attempt_at?: string | null
           payload: Json
           pluggy_item_id?: string | null
@@ -7330,6 +7348,8 @@ export type Database = {
         }
         Update: {
           attempt_count?: number
+          claim_expires_at?: string | null
+          claimed_by?: string | null
           client_user_id?: string | null
           company_id?: string | null
           connection_id?: string | null
@@ -7339,7 +7359,9 @@ export type Database = {
           event_id?: string | null
           event_type?: string
           id?: string
+          last_attempt_at?: string | null
           last_error_code?: string | null
+          max_attempts?: number
           next_attempt_at?: string | null
           payload?: Json
           pluggy_item_id?: string | null
