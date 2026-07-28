@@ -7290,42 +7290,63 @@ export type Database = {
       open_finance_webhook_events: {
         Row: {
           attempt_count: number
+          client_user_id: string | null
+          company_id: string | null
+          connection_id: string | null
+          connection_request_id: string | null
           created_at: string
           error: string | null
           event_id: string | null
           event_type: string
           id: string
+          last_error_code: string | null
+          next_attempt_at: string | null
           payload: Json
           pluggy_item_id: string | null
           processed_at: string | null
           received_ip: string | null
           signature: string | null
+          status: string
         }
         Insert: {
           attempt_count?: number
+          client_user_id?: string | null
+          company_id?: string | null
+          connection_id?: string | null
+          connection_request_id?: string | null
           created_at?: string
           error?: string | null
           event_id?: string | null
           event_type: string
           id?: string
+          last_error_code?: string | null
+          next_attempt_at?: string | null
           payload: Json
           pluggy_item_id?: string | null
           processed_at?: string | null
           received_ip?: string | null
           signature?: string | null
+          status?: string
         }
         Update: {
           attempt_count?: number
+          client_user_id?: string | null
+          company_id?: string | null
+          connection_id?: string | null
+          connection_request_id?: string | null
           created_at?: string
           error?: string | null
           event_id?: string | null
           event_type?: string
           id?: string
+          last_error_code?: string | null
+          next_attempt_at?: string | null
           payload?: Json
           pluggy_item_id?: string | null
           processed_at?: string | null
           received_ip?: string | null
           signature?: string | null
+          status?: string
         }
         Relationships: []
       }
