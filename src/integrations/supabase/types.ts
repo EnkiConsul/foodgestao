@@ -9627,6 +9627,107 @@ export type Database = {
           pending: number
         }[]
       }
+      pluggy_v2_claim_remote_deletion: {
+        Args: {
+          p_batch_size?: number
+          p_lease_seconds?: number
+          p_worker_id: string
+        }
+        Returns: {
+          company_id: string
+          connector_country: string | null
+          connector_id: number
+          connector_name: string | null
+          connector_type: string | null
+          created_at: string
+          created_by: string | null
+          credentials_expires_at: string | null
+          deleted_at: string | null
+          execution_status: string | null
+          id: string
+          is_oauth: boolean
+          last_sync_at: string | null
+          last_updated_at: string | null
+          metadata: Json
+          mfa_pending: boolean
+          next_auto_sync_at: string | null
+          parameter: Json
+          pluggy_item_id: string
+          remote_deletion_attempts: number
+          remote_deletion_last_error: string | null
+          remote_deletion_next_at: string | null
+          remote_deletion_status: string | null
+          status: Database["public"]["Enums"]["pluggy_v2_connection_status"]
+          status_detail: Json
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "pluggy_v2_connections"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      pluggy_v2_expire_stale_requests: { Args: never; Returns: number }
+      pluggy_v2_finalize_remote_deletion: {
+        Args: { p_connection_id: string; p_error?: string; p_success: boolean }
+        Returns: boolean
+      }
+      pluggy_v2_webhook_claim: {
+        Args: {
+          p_batch_size?: number
+          p_lease_seconds?: number
+          p_worker_id: string
+        }
+        Returns: {
+          attempts: number
+          claim_expires_at: string | null
+          claimed_by: string | null
+          created_at: string
+          event_id: string | null
+          event_type: string
+          headers: Json
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          max_attempts: number
+          metadata: Json
+          next_attempt_at: string
+          payload: Json
+          pluggy_item_id: string | null
+          processed_at: string | null
+          received_at: string
+          status: Database["public"]["Enums"]["pluggy_v2_webhook_status"]
+          triggered_by: string | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "pluggy_v2_webhook_events"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      pluggy_v2_webhook_finalize_failure: {
+        Args: { p_error: string; p_event_id: string; p_worker_id: string }
+        Returns: boolean
+      }
+      pluggy_v2_webhook_finalize_success: {
+        Args: { p_event_id: string; p_worker_id: string }
+        Returns: boolean
+      }
+      pluggy_v2_webhook_health: {
+        Args: never
+        Returns: {
+          dead_letter_count: number
+          error_last_24h: number
+          oldest_pending_age_seconds: number
+          oldest_processing_age_seconds: number
+          pending_count: number
+          processing_count: number
+          success_last_24h: number
+        }[]
+      }
       pluggy_webhook_claim: {
         Args: {
           p_batch_size?: number
