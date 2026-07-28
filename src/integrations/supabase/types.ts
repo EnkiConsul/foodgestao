@@ -1493,6 +1493,7 @@ export type Database = {
           name: string
           numero: string | null
           phone: string | null
+          pluggy_version: string
           profile_type: string
           segmento_id: string | null
           status_tenant: string
@@ -1519,6 +1520,7 @@ export type Database = {
           name: string
           numero?: string | null
           phone?: string | null
+          pluggy_version?: string
           profile_type?: string
           segmento_id?: string | null
           status_tenant?: string
@@ -1545,6 +1547,7 @@ export type Database = {
           name?: string
           numero?: string | null
           phone?: string | null
+          pluggy_version?: string
           profile_type?: string
           segmento_id?: string | null
           status_tenant?: string
@@ -9371,6 +9374,10 @@ export type Database = {
         }
         Returns: number
       }
+      get_company_pluggy_version: {
+        Args: { _company_id: string }
+        Returns: string
+      }
       get_ia_usage_today: {
         Args: { _user_id?: string }
         Returns: {
@@ -9892,6 +9899,10 @@ export type Database = {
         }[]
       }
       seed_default_categories: { Args: { _company_id: string }; Returns: Json }
+      set_company_pluggy_version: {
+        Args: { _company_id: string; _version: string }
+        Returns: string
+      }
       set_open_finance_auto_import: {
         Args: { _enabled: boolean; _of_account_id: string }
         Returns: undefined
