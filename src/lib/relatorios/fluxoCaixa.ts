@@ -20,6 +20,8 @@ export type FluxoTransaction = {
   account_id: string | null;
   status: string;
   due_date?: string | null;
+  parcel_direction?: string | null;
+
   payment_method_id?: string | null;
   contact_id?: string | null;
 };
