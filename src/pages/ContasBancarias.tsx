@@ -434,27 +434,6 @@ export default function ContasBancarias() {
         <Plus aria-hidden="true" className="h-6 w-6" />
       </button>
 
-      <AccountCreationMethodDialog
-        open={methodOpen}
-        onOpenChange={handleMethodOpenChange}
-        openFinanceEnabled={contextType === "pj" && !!selectedCompanyId}
-        openFinanceDisabledReason="Selecione uma empresa antes de conectar uma conta via Open Finance."
-        onSelectManual={() => openManualForm(null)}
-        onSelectOpenFinance={() => {
-          if (contextType !== "pj" || !selectedCompanyId) {
-            // Card está desabilitado — não deveria disparar. Mantém o modal aberto.
-            return;
-          }
-          openOfWizard();
-        }}
-      />
-
-      <OpenFinanceWizard
-        open={ofWizardOpen}
-        onOpenChange={handleOfWizardOpenChange}
-        companyId={contextType === "pj" ? selectedCompanyId : null}
-        onFinished={fetchAccounts}
-      />
 
       <AccountFormDialog
         open={dialogOpen}
