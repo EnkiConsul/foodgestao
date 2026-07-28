@@ -1,19 +1,19 @@
-## Problema
+## Objetivo
+Remover da interface de Categorias a exibição do código interno da categoria (`template_code`), mantendo o campo intacto no banco, pois ele continua servindo para organização/rastreio interno do sistema.
 
-Na tela de Conciliação, cada lançamento vem de uma conta bancária já conectada via Open Finance, mas o campo "Conta de destino" fica vazio: hoje ele só é pré-preenchido quando o registro em staging tem `suggested_account_id`, o que nem sempre acontece. O usuário precisa escolher manualmente a conta que já é conhecida.
+## O que muda
 
-## Solução
+1. **Lista de categorias** (`src/components/categorias/CategoryRow.tsx`)
+   - Remover o badge com o `template_code` e seu tooltip "ID Interno … imutável, preserva o histórico dos lançamentos".
+   - Manter: bolinha de cor, numeração hierárquica (1., 1.1.), nome, badge de conta contábil e badge de subtipo.
 
-Usar o vínculo que já existe entre a conta Pluggy e a conta local (`pluggy_accounts.linked_account_id`) como destino automático.
-
-1. Ao carregar a tela, buscar todas as linhas de `pluggy_accounts` da empresa (`pluggy_account_id`, `linked_account_id`, `name`) e montar um mapa.
-2. Ao pré-carregar as seleções de cada linha de staging, definir a conta na ordem: `suggested_account_id` → conta local vinculada ao `pluggy_account_id` da linha → vazio.
-3. Manter a possibilidade de o usuário trocar a conta manualmente (o preenchimento é apenas o padrão).
-4. Quando a conta Pluggy ainda não tiver `linked_account_id`, exibir o seletor vazio como hoje.
+2. **Formulário de categoria** (`src/components/categories/CategoryFormDialog.tsx`)
+   - Remover o bloco de exibição do "ID Interno" (`template_code`) mostrado na edição.
+   - Manter o seletor de Categoria Pai e o vínculo de conta contábil como estão.
 
 ## Detalhes técnicos
+- Nenhuma alteração de banco, RPC ou RLS. O campo `template_code` continua sendo gravado e usado internamente (herança de plano padrão, histórico de lançamentos).
+- Remoção também dos imports de Tooltip que ficarem sem uso em `CategoryRow.tsx`, para não deixar código morto.
 
-- Arquivo: `src/pages/ConciliacaoPluggy.tsx`.
-- No `load()`, incluir a consulta de `pluggy_accounts` no `Promise.all` (no modo escopado, ela já é consultada; reaproveitar a busca ampliando o `select` para todas as contas da empresa).
-- Novo estado `linkedByPluggyAccount: Record<string, string>` usado na montagem de `acctMap`.
-- Sem mudanças de banco de dados nem de Edge Functions.
+## Fora de escopo
+- Códigos de **contas contábeis** (badge com o código do plano de contas) continuam visíveis, pois são informação contábil usada pelo usuário. Caso você também queira escondê-los, é só avisar.
