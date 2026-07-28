@@ -70,17 +70,17 @@ function retryCountdown(next: string | null | undefined, status: string | null |
   return `em ${formatDistanceToNowStrict(new Date(next), { locale: ptBR })}`;
 }
 
-export default function PluggyWebhookLogs() {
+export default function PluggyV2WebhookLogs() {
   const qc = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<WebhookRow | null>(null);
 
   const { data: rows = [], isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["admin-pluggy-webhook-logs", statusFilter],
+    queryKey: ["admin-pluggy-v2-webhook-logs", statusFilter],
     queryFn: async () => {
       let q = supabase
-        .from("open_finance_webhook_events")
+        .from("pluggy_v2_webhook_events")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(500);
@@ -93,9 +93,9 @@ export default function PluggyWebhookLogs() {
   });
 
   const { data: health } = useQuery({
-    queryKey: ["admin-pluggy-webhook-health"],
+    queryKey: ["admin-pluggy-v2-webhook-health"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("pluggy_webhook_health" as never);
+      const { data, error } = await supabase.rpc("pluggy_v2_webhook_health" as never);
       if (error) throw error;
       return (data ?? {}) as HealthSummary;
     },
@@ -139,10 +139,10 @@ export default function PluggyWebhookLogs() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <AdminPageHeader
-          title="Logs de Webhooks Pluggy"
-          description="Worker durável: eventos reservados via claim atômico, backoff exponencial e dead-letter após esgotar tentativas."
+          title="Logs de Webhooks Pluggy V2"
+          description="V2 (isolado). Worker durável: eventos reservados via claim atômico, backoff exponencial e dead-letter após esgotar tentativas."
         />
-        <Button variant="outline" size="sm" onClick={() => { refetch(); qc.invalidateQueries({ queryKey: ["admin-pluggy-webhook-logs"] }); qc.invalidateQueries({ queryKey: ["admin-pluggy-webhook-health"] }); }}>
+        <Button variant="outline" size="sm" onClick={() => { refetch(); qc.invalidateQueries({ queryKey: ["admin-pluggy-v2-webhook-logs"] }); qc.invalidateQueries({ queryKey: ["admin-pluggy-v2-webhook-health"] }); }}>
           <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
           Atualizar
         </Button>

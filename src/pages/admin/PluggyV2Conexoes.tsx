@@ -100,16 +100,16 @@ type AccountRow = {
   last_transaction_at: string | null;
 };
 
-export default function AdminPluggyConexoes() {
+export default function AdminPluggyV2Conexoes() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [detail, setDetail] = useState<ConnectionRow | null>(null);
 
   const connectionsQ = useQuery({
-    queryKey: ["admin-pluggy-connections"],
+    queryKey: ["admin-pluggy-v2-connections"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("open_finance_connections")
+        .from("pluggy_v2_connections")
         .select("*")
         .order("updated_at", { ascending: false })
         .limit(500);
@@ -119,10 +119,10 @@ export default function AdminPluggyConexoes() {
   });
 
   const webhookQ = useQuery({
-    queryKey: ["admin-pluggy-webhooks"],
+    queryKey: ["admin-pluggy-v2-webhooks"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("open_finance_webhook_events")
+        .from("pluggy_v2_webhook_events")
         .select("id,event_id,event_type,pluggy_item_id,status,attempt_count,last_error_code,next_attempt_at,connection_id,company_id,created_at,processed_at")
         .order("created_at", { ascending: false })
         .limit(300);
@@ -132,10 +132,10 @@ export default function AdminPluggyConexoes() {
   });
 
   const requestsQ = useQuery({
-    queryKey: ["admin-pluggy-requests"],
+    queryKey: ["admin-pluggy-v2-requests"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("open_finance_connection_requests")
+        .from("pluggy_v2_connect_requests")
         .select("id,company_id,pluggy_item_id,status,mode,error_code,correlation_expires_at,completed_at,cancelled_at,created_at")
         .order("created_at", { ascending: false })
         .limit(200);
@@ -145,11 +145,11 @@ export default function AdminPluggyConexoes() {
   });
 
   const accountsQ = useQuery({
-    queryKey: ["admin-pluggy-accounts", detail?.id],
+    queryKey: ["admin-pluggy-v2-accounts", detail?.id],
     enabled: !!detail?.id,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("open_finance_accounts")
+        .from("pluggy_v2_accounts")
         .select("id,connection_id,pluggy_account_id,name,number,type,subtype,balance,local_account_id,removed_at,last_transaction_at")
         .eq("connection_id", detail!.id)
         .order("created_at", { ascending: true });
@@ -159,9 +159,9 @@ export default function AdminPluggyConexoes() {
   });
 
   const refreshAll = () => {
-    qc.invalidateQueries({ queryKey: ["admin-pluggy-connections"] });
-    qc.invalidateQueries({ queryKey: ["admin-pluggy-webhooks"] });
-    qc.invalidateQueries({ queryKey: ["admin-pluggy-requests"] });
+    qc.invalidateQueries({ queryKey: ["admin-pluggy-v2-connections"] });
+    qc.invalidateQueries({ queryKey: ["admin-pluggy-v2-webhooks"] });
+    qc.invalidateQueries({ queryKey: ["admin-pluggy-v2-requests"] });
   };
 
   const q = search.trim().toLowerCase();
@@ -182,8 +182,8 @@ export default function AdminPluggyConexoes() {
     <div className="space-y-6 p-6">
       <div className="flex items-start justify-between gap-4">
         <AdminPageHeader
-          title="Conexões Pluggy"
-          description="Estados de conexões Open Finance, requests e eventos de webhook."
+          title="Conexões Pluggy V2"
+          description="V2 (isolado). Estados de conexões Open Finance, requests e eventos de webhook."
         />
         <Button variant="outline" size="sm" onClick={refreshAll} disabled={connectionsQ.isFetching}>
           <RefreshCw className={`h-4 w-4 mr-2 ${connectionsQ.isFetching ? "animate-spin" : ""}`} />
