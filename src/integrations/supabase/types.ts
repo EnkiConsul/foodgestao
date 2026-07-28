@@ -7058,6 +7058,11 @@ export type Database = {
           metadata: Json
           needs_remote_delete: boolean
           pluggy_item_id: string
+          remote_delete_attempts: number
+          remote_delete_claimed_until: string | null
+          remote_delete_dead_letter: boolean
+          remote_delete_last_error: string | null
+          remote_delete_next_attempt_at: string | null
           remote_deleted_at: string | null
           requires_user_action: boolean
           status: string
@@ -7084,6 +7089,11 @@ export type Database = {
           metadata?: Json
           needs_remote_delete?: boolean
           pluggy_item_id: string
+          remote_delete_attempts?: number
+          remote_delete_claimed_until?: string | null
+          remote_delete_dead_letter?: boolean
+          remote_delete_last_error?: string | null
+          remote_delete_next_attempt_at?: string | null
           remote_deleted_at?: string | null
           requires_user_action?: boolean
           status?: string
@@ -7110,6 +7120,11 @@ export type Database = {
           metadata?: Json
           needs_remote_delete?: boolean
           pluggy_item_id?: string
+          remote_delete_attempts?: number
+          remote_delete_claimed_until?: string | null
+          remote_delete_dead_letter?: boolean
+          remote_delete_last_error?: string | null
+          remote_delete_next_attempt_at?: string | null
           remote_deleted_at?: string | null
           requires_user_action?: boolean
           status?: string
@@ -9034,6 +9049,33 @@ export type Database = {
           id: string
           status: Database["public"]["Enums"]["transaction_status"]
           transaction_type: Database["public"]["Enums"]["transaction_type"]
+        }[]
+      }
+      pluggy_remote_delete_claim: {
+        Args: { _batch?: number; _lease_seconds?: number }
+        Returns: {
+          id: string
+          pluggy_item_id: string
+          remote_delete_attempts: number
+        }[]
+      }
+      pluggy_remote_delete_finalize_failure: {
+        Args: { _error: string; _id: string; _max_attempts?: number }
+        Returns: undefined
+      }
+      pluggy_remote_delete_finalize_success: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      pluggy_remote_delete_health: {
+        Args: never
+        Returns: {
+          dead_letter: number
+          leased: number
+          max_dead_letter_attempts: number
+          oldest_pending_seconds: number
+          overdue: number
+          pending: number
         }[]
       }
       pluggy_webhook_claim: {

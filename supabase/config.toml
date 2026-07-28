@@ -39,3 +39,5 @@ project_id = "grtxmbffgmgnkawlvqhm"
     verify_jwt = false
   [functions.pluggy-webhook-configure]
     verify_jwt = false
+  [functions.pluggy-remote-delete-worker]
+    verify_jwt = false
