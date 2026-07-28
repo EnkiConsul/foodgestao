@@ -115,20 +115,41 @@ Deno.serve(async (req) => {
     for (const acc of accounts) {
       const txs = await listTransactions(acc.id, fmt(from), fmt(to));
       if (txs.length === 0) continue;
-      const rows = txs.map((t: any) => ({
-        company_id: effectiveCompanyId,
-        connection_id: conn.id,
-        pluggy_account_id: acc.id,
-        pluggy_transaction_id: t.id,
-        date: (t.date ?? t.transactionDate ?? '').slice(0, 10),
-        description: t.description ?? t.descriptionRaw ?? null,
-        amount: t.amount ?? 0,
-        currency_code: t.currencyCode ?? 'BRL',
-        category_pluggy: t.category ?? null,
-        type: t.type ?? (Number(t.amount) >= 0 ? 'CREDIT' : 'DEBIT'),
-        raw: t,
-        status: 'pending' as const,
-      }));
+      const rows = txs.map((t: any) => {
+        const rawDesc: string = t.description ?? t.descriptionRaw ?? '';
+        const amt = Number(t.amount ?? 0);
+        const pd = t.paymentData ?? null;
+        const receiverName: string | null = pd?.receiver?.name ?? null;
+        const payerName: string | null = pd?.payer?.name ?? null;
+        const method: string | null = pd?.paymentMethod ?? null;
+        const counterparty = amt < 0 ? receiverName : payerName;
+
+        // If bank returned a generic label, rewrite using paymentData counterparty
+        const generic = /^\s*(transf(er[eê]ncia)?\s+(enviada|recebida)\s+pix|pix\s+(enviado|recebido)|ted|doc)\b/i;
+        let description = rawDesc;
+        if (counterparty && (generic.test(rawDesc) || !rawDesc.trim())) {
+          const verb = amt < 0 ? 'enviado para' : 'recebido de';
+          const label = method === 'PIX' || /pix/i.test(rawDesc) ? 'Pix' : (method ? method : 'Transferência');
+          description = `${label} ${verb} ${counterparty}`;
+        }
+
+        return {
+          company_id: effectiveCompanyId,
+          connection_id: conn.id,
+          pluggy_account_id: acc.id,
+          pluggy_transaction_id: t.id,
+          date: (t.date ?? t.transactionDate ?? '').slice(0, 10),
+          description,
+          counterparty_name: counterparty,
+          amount: t.amount ?? 0,
+          currency_code: t.currencyCode ?? 'BRL',
+          category_pluggy: t.category ?? null,
+          type: t.type ?? (amt >= 0 ? 'CREDIT' : 'DEBIT'),
+          raw: t,
+          status: 'pending' as const,
+        };
+      });
+
       // Chunked upsert to avoid oversized payloads
       const chunkSize = 200;
       for (let i = 0; i < rows.length; i += chunkSize) {
