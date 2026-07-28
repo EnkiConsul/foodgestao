@@ -6,7 +6,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ChevronRight, GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import { Draggable } from "@hello-pangea/dnd";
 import type { Category, TreeNode } from "@/lib/categories/tree";
-import { CATEGORY_SUBTYPE_CLS, CATEGORY_SUBTYPE_LABEL, categoryIndent } from "@/lib/categories/display";
+import { categoryIndent } from "@/lib/categories/display";
 import { CategoryTypeBadge } from "@/components/categorias/CategoryTypeBadge";
 
 
