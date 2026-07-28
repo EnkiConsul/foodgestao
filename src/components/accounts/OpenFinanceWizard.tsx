@@ -193,19 +193,28 @@ export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished, r
           // o webhook + polling concluem a materialização em segundo plano.
           try {
             const itemId = payload?.item?.id;
-            if (!itemId) return;
+            if (!itemId) {
+              // OAuth redirect flow: item chega sem id — polling assume.
+              toast.info("Aguardando confirmação do banco...", {
+                description: "Não feche esta janela. A conta aparece automaticamente em alguns segundos.",
+              });
+              return;
+            }
             setBusy(true);
-            const { data: reg } = await supabase.functions.invoke("pluggy-item-register", {
+            const { data: reg, error: regErr } = await supabase.functions.invoke("pluggy-item-register", {
               body: { company_id: companyId, item_id: itemId, request_id: newRequestId },
             });
+            if (regErr) throw regErr;
             if (reg?.connection_id) {
               setConnectionId(reg.connection_id);
               await loadAccounts(reg.connection_id);
               setStep("accounts");
             }
-            // Se falhar, o polling do requestId cuidará da conclusão.
           } catch (e: any) {
             console.warn("[of-wizard] fast-path register failed, polling will take over", e?.message);
+            toast.warning("Confirmando conexão em segundo plano...", {
+              description: "Se a conta não aparecer em 30s, feche e abra novamente.",
+            });
           } finally {
             setBusy(false);
           }

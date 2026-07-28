@@ -1,83 +1,41 @@
-## Auditoria — integração Pluggy vs. `docs.pluggy.ai/docs/authentication`
+## Reativar `PLUGGY_USE_GLOBAL_WEBHOOK` e fechar a transição
 
-Comparei o que a doc oficial define com o que já está no projeto (`supabase/functions/_shared/pluggy-client.ts`, `pluggy-connect-token`, `pluggy-webhook-configure` e o widget em `OpenFinanceWizard.tsx`).
+Escopo confirmado: **sem** Fase 1 (não vou recuperar o item já criado do C6). Novas conexões passam a funcionar; a conexão atual do C6 fica órfã e será marcada como `error` para não poluir os painéis — se depois quiser trazê-la, refazemos pelo wizard.
 
-### O que já está correto
-- Fluxo `POST /auth` com `clientId`/`clientSecret` → `apiKey`, mantido apenas no servidor.
-- `POST /connect_token` roda em edge function autenticada; o widget só recebe o `accessToken` de curta duração.
-- TTL do Connect Token tratado como 30 min e um token por conexão (novo `request_id` a cada abertura do wizard).
-- `X-API-KEY` no header para chamadas server-side (aceito pela Pluggy).
-- Credenciais nunca são retornadas ao cliente; `safePluggyError` filtra mensagens que carreguem tokens/secret.
+### Fase 2 — Reativar o webhook global autenticado
+1. `set_secret PLUGGY_USE_GLOBAL_WEBHOOK=true` no cofre (runtime secret).
+2. Invocar `pluggy-webhook-configure` com `PLUGGY_CRON_TICK_SECRET` para (re)registrar o webhook global no Pluggy com o `PLUGGY_WEBHOOK_TOKEN` atual. Se já existir, a função faz update idempotente do token e da URL.
+3. Redeploy de `pluggy-connect-token` (passa a **omitir** `webhookUrl` por item quando a flag global está `true`) e de `pluggy-webhook` (garante versão fail-closed atual). Sem alterações de código nesta fase — só flag + deploy.
 
-### Divergências encontradas (a corrigir)
+### Fase 3 — Rede de segurança no wizard
+Em `src/components/accounts/OpenFinanceWizard.tsx`:
+- No callback `onSuccess({ item })` do SDK Pluggy, **sempre** invocar `supabase.functions.invoke('pluggy-item-materialize', { item_id, company_id })` e exibir toast de erro visível quando falhar (hoje falha silenciosamente).
+- Se `item` vier sem `id` (fluxos OAuth que retornam pelo redirect `oauthRedirectUrl`), fazer polling curto (até 20 s, intervalo 2 s) na tabela `open_finance_connections` filtrando por `client_user_id = ofreq:<request_id>` antes de fechar o wizard como sucesso. Se estourar o tempo, mensagem clara: "banco conectado, aguardando confirmação — atualize em instantes".
 
-**P1 — `oauthRedirectUrl` ausente no Connect Token**
-A doc lista `oauthRedirectUrl` entre os `ItemOptions`. Bancos com fluxo OAuth (Itaú, Bradesco, Santander etc.) exigem esse retorno para reentregar o usuário após o consentimento no app do banco. Hoje `createConnectToken` envia só `clientUserId`, `avoidDuplicates` e `webhookUrl`. Efeito prático: em conectores OAuth o usuário pode ficar preso na tela do banco ou o item não sair de `WAITING_USER_ACTION`.
+### Fase 4 — Prevenção de estado órfão
+Migração + job:
+- Função `pluggy_expire_stale_connect_requests()` que marca como `expired` toda `open_finance_connection_requests` com `status='token_created'`, `pluggy_item_id IS NULL` e `created_at < now() - interval '30 minutes'`.
+- Antes de expirar, chamar `GET /items?clientUserId=<request.clientUserId>` (via `pluggy-remote-reconcile` — novo micro-endpoint interno ou reaproveitando o worker de purge) e, se achar o `itemId`, disparar `pluggy-item-materialize` — resgate automático de quem só perdeu o `onSuccess`.
+- Agendar no cron existente `pluggy-cleanup-weekly` **e** um tick de 15 min no `pg_cron` já usado por outros workers.
 
-**P1 — `avoidDuplicates: true` também em reconexão**
-Em `pluggy-connect-token/index.ts` (linhas 136-141) enviamos `avoidDuplicates: true` mesmo quando `itemId` está presente (modo reconnect). A doc de `items-update` orienta não combinar as duas opções — o correto é aplicar `avoidDuplicates` só quando `mode === 'new'`. Sem isso, reconexões podem ser rejeitadas pela Pluggy como duplicadas do item que estamos justamente atualizando.
-
-**P2 — `clientUserId` novo a cada reconexão**
-Hoje geramos `ofreq:<request_id>` em todo request, inclusive em reconnect. A doc recomenda preservar o `clientUserId` original vinculado ao item para manter a rastreabilidade Pluggy↔usuário. Em reconnect devemos ler o `clientUserId` já registrado em `open_finance_connections.metadata` (ou `client_user_id` da conexão original) e reutilizá-lo.
-
-**P2 — `access_token` do Connect Token persiste indefinidamente**
-`pluggy-connect-token` guarda `access_token` em `open_finance_connection_requests.metadata` para permitir reuso por `idempotency_key`. O registro fica na tabela para sempre; após os 30 min da doc o token está inválido mas o campo permanece. Deve haver uma limpeza: sanear `metadata.access_token` quando `token_expires_at < now()` (via job leve ou trigger de leitura em `pluggy-webhook-drain` / cleanup semanal já existente).
-
-**P3 — Retry não considera `429 Too Many Requests`**
-`request()` em `_shared/pluggy-client.ts` só re-tenta em `network_error` e HTTP ≥ 500. A doc/reference cita rate limit; incluir `429` no conjunto transiente com backoff exponencial (respeitando `Retry-After` quando presente) evita falhas duras em rajadas do worker/sync.
-
-**P3 — TTL da API key hardcoded em 90 min**
-`AUTH_TTL_MS = 90 * 60 * 1000` assume o valor citado na doc (~2h) sem validar. O `apiKey` retornado é um JWT com `exp` real — se a Pluggy encurtar o TTL num plano específico, teremos 401 antes do refresh. Melhor decodificar `exp` do JWT e programar renovação uns 5 min antes do vencimento real, mantendo o teto atual como fallback.
-
-### Escopo NÃO incluído
-- Verificação de assinatura de webhook (P0 já resolvido).
-- Cursor v2 real (fase separada).
+Também nesta fase: marcar as 4 requests órfãs atuais da Raptor como `expired` para higienizar o painel.
 
 ### Detalhes técnicos
 
-Arquivos afetados:
-
+Arquivos/objetos tocados:
 ```text
-supabase/functions/_shared/pluggy-client.ts
-  · createConnectToken: aceitar oauthRedirectUrl opcional; só injetar
-    avoidDuplicates quando NÃO há itemId.
-  · authenticate: extrair `exp` do JWT apiKey (base64 do payload) e
-    definir expiresAt = min(exp*1000 - 5min, now + 90min).
-  · request/requestOnce: tratar 429 como transiente e ler Retry-After.
-
-supabase/functions/pluggy-connect-token/index.ts
-  · Novo campo no BodySchema: oauth_redirect_url (opcional, string url).
-  · Em modo reconnect: buscar clientUserId da conexão original em
-    open_finance_connections.client_user_id (ou metadata) e reutilizar,
-    caindo para ofreq:<request_id> só se ausente.
-  · Repassar oauth_redirect_url ao createConnectToken; default = URL pública
-    do app (VITE-like via env PLUGGY_OAUTH_REDIRECT_URL), fallback para o
-    domínio publicado (foodgestao.lovable.app / gestor360food.com).
-
-Migração leve:
-  · Função pluggy_purge_expired_connect_tokens() que limpa
-    metadata->>'access_token' onde token_expires_at < now() - 5 min.
-  · Agenda no cron pluggy-cleanup-weekly (já existente) para reaproveitar.
-
-src/components/accounts/OpenFinanceWizard.tsx
-  · Enviar oauth_redirect_url = `${window.location.origin}/contas-bancarias`
-    no supabase.functions.invoke('pluggy-connect-token', ...).
-```
-
-Fluxo esperado em conectores OAuth após a correção:
-
-```text
-Usuário → Widget → connect_token (com oauthRedirectUrl)
-                          ↓
-                    Pluggy /connect_token
-                          ↓
-       redireciona ao app do banco (OAuth) → volta a /contas-bancarias
-                          ↓
-              webhook item/created + materialize normal
+supabase/functions/pluggy-connect-token/index.ts    (respeita PLUGGY_USE_GLOBAL_WEBHOOK=true)
+supabase/functions/pluggy-webhook/index.ts          (redeploy — sem mudança)
+supabase/functions/pluggy-webhook-configure/…       (invocação de registro)
+src/components/accounts/OpenFinanceWizard.tsx       (materialize + polling de reconciliação)
+Nova função SQL: public.pluggy_expire_stale_connect_requests()
+Novo cron: pluggy-expire-stale-requests (a cada 15 min)
 ```
 
 ### Verificação após implementar
-1. `supabase functions invoke pluggy-connect-token` novo/reconnect e conferir o payload enviado (logs) — sem `avoidDuplicates` quando `item_id` presente.
-2. Conectar um banco OAuth (Itaú sandbox) pelo wizard e confirmar retorno automático à página.
-3. Rodar duas conexões seguidas com forced 429 (mock) para validar que o cliente re-tenta.
-4. Consultar `open_finance_connection_requests` 1h depois de um token e conferir que `metadata.access_token` foi zerado.
+1. Nova conexão de teste (banco simples — Nubank ou C6 PF) deve criar linha em `open_finance_webhook_events` com `status='success'` em poucos segundos.
+2. `open_finance_connections` recebe o item e a conta aparece em `/contas-bancarias` sem clique manual.
+3. `/admin/pluggy-webhook-logs` sem backlog e com health "verde".
+4. Rodar manualmente `select pluggy_expire_stale_connect_requests();` e conferir que as 4 requests órfãs da Raptor viram `expired`.
+
+Confirma para eu partir para o build?
