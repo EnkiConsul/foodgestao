@@ -92,3 +92,39 @@ export async function deleteItem(itemId: string): Promise<void> {
   const res = await pluggyFetch(`/items/${itemId}`, { method: "DELETE" });
   if (!res.ok && res.status !== 404) throw new Error(`delete_item_failed: ${res.status}`);
 }
+
+/** Dispara uma nova coleta no banco (refresh do item). */
+export async function refreshItem(itemId: string) {
+  const res = await pluggyFetch(`/items/${itemId}`, { method: "PATCH", body: JSON.stringify({}) });
+  if (!res.ok) throw new Error(`refresh_item_failed: ${res.status} ${await res.text()}`);
+  return res.json();
+}
+
+const FINAL_EXEC_STATUSES = [
+  "SUCCESS",
+  "PARTIAL_SUCCESS",
+  "LOGIN_ERROR",
+  "INVALID_CREDENTIALS",
+  "ALREADY_LOGGED_IN",
+  "USER_INPUT_TIMEOUT",
+  "ERROR",
+  "SITE_NOT_AVAILABLE",
+  "CONNECTION_ERROR",
+  "ACCOUNT_LOCKED",
+  "USER_AUTHORIZATION_PENDING",
+  "USER_AUTHORIZATION_NOT_GRANTED",
+];
+
+/** Aguarda o item terminar a coleta (ou o timeout). Retorna o item mais recente. */
+export async function waitForItem(itemId: string, timeoutMs = 45000) {
+  const started = Date.now();
+  let item = await getItem(itemId);
+  while (Date.now() - started < timeoutMs) {
+    const exec = String(item?.executionStatus ?? "").toUpperCase();
+    const status = String(item?.status ?? "").toUpperCase();
+    if (status === "WAITING_USER_INPUT" || FINAL_EXEC_STATUSES.includes(exec)) break;
+    await new Promise((r) => setTimeout(r, 3000));
+    item = await getItem(itemId);
+  }
+  return item;
+}
