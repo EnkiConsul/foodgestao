@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { PluggyConnectDialog } from "@/components/accounts/PluggyConnectDialog";
-import { ArrowLeft, Plus, RefreshCw, Trash2, RotateCw, Loader2, Copy, Eye, EyeOff, Webhook } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Trash2, RotateCw, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
