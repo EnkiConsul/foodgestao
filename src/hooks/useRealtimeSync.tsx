@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 
-type RealtimeTable = "transactions" | "accounts" | "categories" | "contacts" | "payment_methods" | "category_companies" | "contact_companies" | "bank_connections" | "bank_connection_accounts" | "chart_accounts" | "chart_account_companies" | "credit_cards" | "credit_card_invoices" | "open_finance_connections" | "open_finance_sync_runs" | "open_finance_accounts";
+type RealtimeTable = "transactions" | "accounts" | "categories" | "contacts" | "payment_methods" | "category_companies" | "contact_companies" | "bank_connections" | "bank_connection_accounts" | "chart_accounts" | "chart_account_companies" | "credit_cards" | "credit_card_invoices";
 
 interface Options {
   /** Tabelas a monitorar */
