@@ -100,16 +100,16 @@ export default function PluggyWebhookLogs() {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader
-        title="Logs de Webhooks Pluggy"
-        description="Registros de open_finance_webhook_events com última tentativa, erro e próximo retry."
-        actions={
-          <Button variant="outline" size="sm" onClick={() => { refetch(); qc.invalidateQueries({ queryKey: ["admin-pluggy-webhook-logs"] }); }}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
-            Atualizar
-          </Button>
-        }
-      />
+      <div className="flex items-start justify-between gap-4">
+        <AdminPageHeader
+          title="Logs de Webhooks Pluggy"
+          description="Registros de open_finance_webhook_events com última tentativa, erro e próximo retry."
+        />
+        <Button variant="outline" size="sm" onClick={() => { refetch(); qc.invalidateQueries({ queryKey: ["admin-pluggy-webhook-logs"] }); }}>
+          <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
+          Atualizar
+        </Button>
+      </div>
 
       <div className="grid gap-3 md:grid-cols-4">
         <Card><CardContent className="p-4 flex items-center gap-3">
