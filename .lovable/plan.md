@@ -1,52 +1,24 @@
-## Diagnóstico
+## Objetivo
 
-O motivo é o próprio banco: para transferências PIX enviadas, o C6/Sicoob devolve à Pluggy apenas o rótulo genérico `TRANSF ENVIADA PIX` no campo `description` (`descriptionRaw` também vem igual). Confirmei em 3 registros no staging.
+Hoje a conciliação é conjunta: `/contas-bancarias/conciliacao` mostra a fila de todos os bancos conectados da empresa, com um filtro "Conexão" iniciando em "Todas". A mudança: quando o usuário entrar pelo botão **Conciliação** do card de uma conta bancária, a tela deve exibir apenas os lançamentos daquela conta, sem opção de trocar para as demais.
 
-O detalhe da contraparte está em `raw.paymentData.receiver`, com:
-- `receiver.name` — ex.: `EMPRESA CINEMAS SAO LUIZ S.A.`, `MILANO COMERCIO VAREJISTA DE ALIMENTOS`, `FARMACIA E DROGARIA NISSEI S.A`
-- `receiver.documentNumber.value` — CNPJ/CPF do destinatário
-- `paymentMethod: "PIX"`
+## Como vai funcionar
 
-Ou seja, os dados existem — só não estão sendo aproveitados na coluna `description` que a tela de conciliação mostra.
+1. No card da conta (Contas Bancárias), o botão passa a navegar para a conciliação levando a identificação da conta integrada.
+2. Na tela de conciliação, ao chegar com esse escopo:
+   - Título indica a conta (ex.: "Conciliação — C6 BANK"), com o logo/badge do banco.
+   - A lista traz somente os lançamentos daquela conta Open Finance.
+   - O seletor de conexão fica oculto (escopo travado).
+   - O botão de sincronizar age apenas na conexão daquela conta.
+   - O botão voltar retorna para Contas Bancárias.
+3. Acessando a conciliação sem escopo (por link direto ou pelo menu), o comportamento atual continua: fila completa da empresa com filtro "Todas".
 
-## Correção proposta
+## Detalhes técnicos
 
-Enriquecer a descrição no momento da ingestão (Edge Function `pluggy-sync-item`) e também na exibição em `/contas-bancarias/conciliacao`, sem tocar em nenhuma outra parte do sistema.
-
-### 1. Backend — `supabase/functions/pluggy-sync-item/index.ts`
-
-Ao montar as linhas para `pluggy_staging_transactions`, calcular um `description` composto quando o texto original for genérico (`TRANSF ENVIADA/RECEBIDA PIX`, `PIX ENVIADO`, `PIX RECEBIDO`, `TED`, `DOC`, etc.):
-
-```text
-"PIX enviado — EMPRESA CINEMAS SAO LUIZ S.A."
-"PIX recebido — NAGASUBIAS CORPORATE LTDA"
-```
-
-Regra:
-- Se `paymentData.receiver.name` existir e a transação for saída (`amount < 0`), usar `PIX enviado para <name>`.
-- Se `paymentData.payer.name` existir e for entrada, usar `PIX recebido de <name>`.
-- Guardar o `descriptionRaw` original em `raw` (já é preservado hoje) e um novo campo derivado `counterparty_name` na linha de staging para consulta rápida.
-- Fallback: manter o texto atual quando não houver `payer/receiver`.
-
-### 2. Coluna auxiliar (staging apenas)
-
-Adicionar `counterparty_name text` em `pluggy_staging_transactions` (opcional, nullable) para acelerar filtros/exibição. Migration curta, sem alterar RLS existente.
-
-### 3. Backfill dos 64 registros já sincronizados
-
-Um `UPDATE ... SET description = ..., counterparty_name = raw#>>'{paymentData,receiver,name}'` para as linhas com `description ILIKE 'TRANSF %PIX%'` do usuário atual. Idempotente.
-
-### 4. Frontend — `/contas-bancarias/conciliacao`
-
-Na célula de descrição, mostrar `description` já enriquecido; se houver `counterparty_name`, exibi-lo em segunda linha menor (mesma linha do valor, tipografia secundária).
-
-## O que NÃO muda
-
-- Nenhuma alteração no motor de saldos, nas categorias, no schema de `transactions`, em RLS, em outras Edge Functions ou em outros bancos.
-- Nenhum reprocessamento de webhook / re-sync remoto — o dado bruto já está no staging, o enriquecimento é local.
-
-## Validação
-
-1. Rodar o backfill e conferir na tela de conciliação que as linhas passam de `TRANSF ENVIADA PIX` para `PIX enviado para <nome>`.
-2. Nova sincronização (`pluggy-sync-item`) para outra conta / novo período deve nascer já enriquecida.
-3. Registros que já vinham descritivos (ex.: `NAGASUBIAS CORPORATE LTDA`, `BANCO SICOOB S.A.`) devem permanecer intactos.
+- `src/pages/ContasBancarias.tsx`: o botão do card navega para `/contas-bancarias/conciliacao?account=<accounts.id>`. Para isso, a busca em `pluggy_accounts` passa a guardar o mapa `linked_account_id → { pluggy_account_id, connection_id, name }` em vez de apenas o Set de ids.
+- `src/pages/ConciliacaoPluggy.tsx`:
+  - Lê `account` via `useSearchParams`; resolve em `pluggy_accounts` (por `linked_account_id` + `company_id`) o `pluggy_account_id` e o `connection_id`.
+  - Com escopo ativo: filtra `pluggy_staging_transactions` por `pluggy_account_id` (filtro no servidor, na própria query), fixa `connectionId` e não renderiza o `Select` de conexões.
+  - `syncNow` usa só a conexão resolvida.
+  - Se o parâmetro não resolver (conta sem vínculo Open Finance), mostra aviso e cai no modo conjunto.
+- Sem mudanças de banco de dados, RLS ou Edge Functions.
