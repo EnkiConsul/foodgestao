@@ -28,7 +28,7 @@ export function FluxoCaixaCategoryRow({ node, isCollapsed, onToggle, formatBRL, 
           {hasChildren && (
             <ChevronRight className={cn("h-3.5 w-3.5 transition-transform shrink-0", !isCollapsed && "rotate-90")} />
           )}
-          {node.hierarchyIndex ? `${node.hierarchyIndex}. ` : ""}
+          
           {node.name}
         </span>
       </td>
