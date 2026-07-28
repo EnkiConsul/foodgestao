@@ -141,7 +141,10 @@ async function requestOnce<T>(
   path: string,
   body?: unknown,
   retryOn401 = true,
-): Promise<{ ok: true; data: T } | { ok: false; error: string; httpStatus?: number }> {
+): Promise<
+  | { ok: true; data: T }
+  | { ok: false; error: string; httpStatus?: number; retryAfterMs?: number }
+> {
   const apiKey = await getApiKey();
   if (!apiKey) return { ok: false, error: "pluggy_not_configured" };
   try {
@@ -163,7 +166,15 @@ async function requestOnce<T>(
     if (!resp.ok) {
       const err = safePluggyError(parsed?.message ?? parsed?.error ?? raw, resp.status);
       console.error(`[pluggy] ${method} ${path} non-2xx:`, resp.status, err);
-      return { ok: false, error: err, httpStatus: resp.status };
+      let retryAfterMs: number | undefined;
+      if (resp.status === 429) {
+        const header = resp.headers.get("retry-after");
+        if (header) {
+          const asInt = parseInt(header, 10);
+          if (Number.isFinite(asInt) && asInt >= 0) retryAfterMs = Math.min(asInt * 1000, 30_000);
+        }
+      }
+      return { ok: false, error: err, httpStatus: resp.status, retryAfterMs };
     }
     return { ok: true, data: parsed as T };
   } catch (e) {
@@ -173,13 +184,15 @@ async function requestOnce<T>(
 }
 
 async function request<T>(method: string, path: string, body?: unknown) {
-  const delays = [0, 500, 1500];
+  const delays = [0, 500, 1500, 4000];
   let last: any = { ok: false, error: "unknown" };
   for (let i = 0; i < delays.length; i++) {
-    if (delays[i] > 0) await sleep(delays[i]);
+    const wait = last?.retryAfterMs ?? delays[i];
+    if (wait > 0) await sleep(wait);
     last = await requestOnce<T>(method, path, body);
     if (last.ok) return last as { ok: true; data: T };
     const transient = last.error === "network_error"
+      || last.httpStatus === 429
       || (typeof last.httpStatus === "number" && last.httpStatus >= 500);
     if (!transient) return last as { ok: false; error: string; httpStatus?: number };
   }
@@ -189,26 +202,33 @@ async function request<T>(method: string, path: string, body?: unknown) {
 /**
  * Create a short-lived connect token for the widget.
  *
- * Contract (Pluggy):
+ * Contract (Pluggy — https://docs.pluggy.ai/docs/authentication):
  *   POST /connect_token
- *   Body: { itemId?: string, options?: { clientUserId?, avoidDuplicates?, webhookUrl? } }
+ *   Body: { itemId?: string, options?: { clientUserId?, avoidDuplicates?, webhookUrl?, oauthRedirectUrl? } }
  *
- * - `itemId` (root) is only used for update/reconnect flows.
- * - `clientUserId`, `avoidDuplicates` and `webhookUrl` belong under `options`.
+ * - `itemId` (root) só em fluxos update/reconnect.
+ * - `avoidDuplicates` NÃO é enviado quando `itemId` está presente (a Pluggy
+ *   pode rejeitar reconnects como duplicados do próprio item que estamos
+ *   atualizando).
+ * - `oauthRedirectUrl` é necessário para conectores OAuth (Itaú, Bradesco, …).
  */
 export async function createConnectToken(input: {
   clientUserId: string;
   webhookUrl?: string;
   avoidDuplicates?: boolean;
   itemId?: string; // update/reconnect
+  oauthRedirectUrl?: string;
 }) {
-  const body: Record<string, unknown> = {
-    options: {
-      clientUserId: input.clientUserId,
-      avoidDuplicates: input.avoidDuplicates ?? true,
-      ...(input.webhookUrl ? { webhookUrl: input.webhookUrl } : {}),
-    },
+  const isReconnect = !!input.itemId;
+  const options: Record<string, unknown> = {
+    clientUserId: input.clientUserId,
+    ...(input.webhookUrl ? { webhookUrl: input.webhookUrl } : {}),
+    ...(input.oauthRedirectUrl ? { oauthRedirectUrl: input.oauthRedirectUrl } : {}),
   };
+  if (!isReconnect) {
+    options.avoidDuplicates = input.avoidDuplicates ?? true;
+  }
+  const body: Record<string, unknown> = { options };
   if (input.itemId) body.itemId = input.itemId;
   return await request<{ accessToken: string }>("POST", "/connect_token", body);
 }
