@@ -18,7 +18,7 @@ declare global {
   }
 }
 
-const SCRIPT_SRC = "https://cdn.pluggy.ai/pluggy-connect/v2.9.0/pluggy-connect.js";
+const SCRIPT_SRC = "https://cdn.pluggy.ai/pluggy-connect/v2.11.0/pluggy-connect.js";
 
 function loadScript(): Promise<void> {
   return new Promise((resolve, reject) => {
