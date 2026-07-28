@@ -466,10 +466,11 @@ export default function Categorias() {
               type="button"
               onClick={() => setSearch("")}
               aria-label="Limpar busca"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-3.5 w-3.5" aria-hidden />
             </button>
+
           )}
         </div>
       </div>
@@ -497,14 +498,15 @@ export default function Categorias() {
 
       {/* Lista */}
       {isLoading ? (
-        <div className="space-y-2 rounded-lg border p-3">
+        <div className="space-y-2 rounded-lg border p-3" role="status" aria-busy="true" aria-live="polite">
+          <span className="sr-only">Carregando categorias...</span>
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-8 w-full" />
           ))}
         </div>
       ) : categories.length === 0 ? (
         <div className="flex flex-col items-center py-16 text-muted-foreground border rounded-lg">
-          <Tag className="h-10 w-10 mb-3 opacity-40" />
+          <Tag className="h-10 w-10 mb-3 opacity-40" aria-hidden />
           <p className="text-sm">Nenhuma categoria criada</p>
           <Button variant="link" onClick={openNew} className="mt-2">
             Criar primeira categoria
@@ -512,6 +514,10 @@ export default function Categorias() {
         </div>
       ) : (
         <>
+          <p className="sr-only" role="status" aria-live="polite">
+            {visibleTree.length} categoria(s) listada(s)
+          </p>
+
           {/* Mobile: lista compacta */}
           <div className="md:hidden rounded-lg border overflow-hidden">
             <div className="flex items-center gap-2 border-b bg-muted/50 px-3 py-2">
@@ -519,6 +525,7 @@ export default function Categorias() {
                 checked={selected.size === tree.length && tree.length > 0}
                 onCheckedChange={toggleAll}
                 aria-label="Selecionar todas as categorias"
+                className="h-5 w-5"
               />
               <span className="text-xs text-muted-foreground">
                 {visibleTree.length} categoria(s)
@@ -532,7 +539,7 @@ export default function Categorias() {
                 )}
               </div>
             ) : (
-              <ul className="divide-y">
+              <ul className="divide-y" role="tree" aria-label="Árvore de categorias">
                 {visibleTree.map((cat) => (
                   <CategoryMobileRow
                     key={cat.id}
@@ -551,6 +558,7 @@ export default function Categorias() {
               </ul>
             )}
           </div>
+
 
           {/* Desktop: tabela com drag-and-drop */}
           <div className="hidden md:block border rounded-lg overflow-hidden">
@@ -618,10 +626,13 @@ export default function Categorias() {
       {/* FAB mobile */}
       <button
         onClick={openNew}
-        className="fixed bottom-20 right-4 z-50 md:hidden flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
+        type="button"
+        aria-label="Nova categoria"
+        className="fixed bottom-20 right-4 z-50 md:hidden flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
-        <Plus className="h-6 w-6" />
+        <Plus className="h-6 w-6" aria-hidden />
       </button>
+
 
       <CategoryFormDialog
         open={dialogOpen}

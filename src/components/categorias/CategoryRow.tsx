@@ -59,9 +59,9 @@ export function CategoryRow({
             <div
               {...provided.dragHandleProps}
               aria-label={`Reordenar ${cat.name}`}
-              className="flex items-center justify-center cursor-grab active:cursor-grabbing text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+              className="flex items-center justify-center rounded cursor-grab active:cursor-grabbing text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-opacity"
             >
-              <GripVertical className="h-4 w-4" />
+              <GripVertical className="h-4 w-4" aria-hidden />
             </div>
           </TableCell>
           <TableCell className="py-1.5 min-w-0">
@@ -77,17 +77,22 @@ export function CategoryRow({
               <div className="flex min-w-0 flex-1 items-center gap-1">
                 {cat.hasChildren ? (
                   <button
+                    type="button"
                     onClick={() => onToggleCollapse(cat.id)}
                     aria-label={isCollapsed ? `Expandir ${cat.name}` : `Recolher ${cat.name}`}
                     aria-expanded={!isCollapsed}
-                    className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
+                    className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   >
-                    <ChevronRight className={`h-3.5 w-3.5 transition-transform ${isCollapsed ? "" : "rotate-90"}`} />
+                    <ChevronRight
+                      aria-hidden
+                      className={`h-3.5 w-3.5 transition-transform ${isCollapsed ? "" : "rotate-90"}`}
+                    />
                   </button>
                 ) : (
                   <span className="w-[22px]" />
                 )}
                 <div
+                  aria-hidden
                   className="h-3 w-3 shrink-0 rounded-full"
                   style={{ backgroundColor: cat.color ?? "hsl(var(--primary))" }}
                 />
@@ -95,6 +100,8 @@ export function CategoryRow({
                 {cat.hasChildren ? (
                   <button
                     type="button"
+                    tabIndex={-1}
+                    aria-hidden
                     onClick={() => onToggleCollapse(cat.id)}
                     className={`text-left text-sm truncate hover:underline ${isGroup ? "font-semibold uppercase tracking-wide" : ""}`}
                   >
@@ -105,9 +112,12 @@ export function CategoryRow({
                     {isGroup ? cat.name.toUpperCase() : cat.name}
                   </span>
                 )}
+                {cat.hasChildren && <span className="sr-only">{cat.name}</span>}
+                <span className="sr-only">, nível {cat.depth + 1}</span>
               </div>
             </div>
           </TableCell>
+
           <TableCell className="hidden md:table-cell py-1.5 text-center">
             <CategoryTypeBadge type={cat.transaction_type} />
           </TableCell>
