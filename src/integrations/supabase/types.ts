@@ -8896,6 +8896,10 @@ export type Database = {
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       soft_delete_account: { Args: { _account_id: string }; Returns: undefined }
+      sync_of_account_balance: {
+        Args: { _account_id: string; _new_balance: number }
+        Returns: undefined
+      }
       unaccent: { Args: { "": string }; Returns: string }
     }
     Enums: {

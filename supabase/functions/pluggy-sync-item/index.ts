@@ -147,6 +147,7 @@ Deno.serve(async (req) => {
           }
 
           let targetAccountId = existingAccountId;
+          const ofBalance = typeof acc.balance === 'number' ? acc.balance : null;
           if (!targetAccountId) {
             const { data: newAcc } = await admin.from('accounts').insert({
               user_id: ownerUserId,
@@ -154,8 +155,8 @@ Deno.serve(async (req) => {
               name: acc.name ?? acc.marketingName ?? item?.connector?.name ?? 'Conta bancária',
               account_type: 'corrente',
               context: 'pj',
-              initial_balance: 0,
-              current_balance: 0,
+              initial_balance: ofBalance ?? 0,
+              current_balance: ofBalance ?? 0,
               color: '#1B3A5C',
               icon: 'wallet',
               is_active: true,
@@ -163,6 +164,13 @@ Deno.serve(async (req) => {
               account_number: accNumber,
             }).select('id').single();
             targetAccountId = newAcc?.id ?? null;
+          } else if (ofBalance !== null) {
+            // Atualiza o saldo da conta local a partir do saldo reportado pelo Open Finance.
+            // Usa RPC que habilita a flag do motor financeiro para contornar o guard.
+            await admin.rpc('sync_of_account_balance', {
+              _account_id: targetAccountId,
+              _new_balance: ofBalance,
+            });
           }
 
           if (targetAccountId) {
