@@ -204,12 +204,28 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
+    if (saving) return;
     const catValidated = validateWithToast(categorySchema, { name, transaction_type: type, color, category_subtype: subtype || undefined }, toast.error);
     if (!catValidated) return;
 
-    setSaving(true);
     // Categorias raiz (sem pai) são salvas em CAIXA ALTA
     const finalName = parentId ? name.trim() : name.trim().toUpperCase();
+
+    // Impede duplicidade de nome entre irmãos no mesmo escopo
+    const duplicate = allCategories.find(
+      (c: any) =>
+        c.id !== editCategory?.id &&
+        (c.parent_id ?? null) === (parentId || null) &&
+        c.transaction_type === type &&
+        (c.name ?? "").trim().toLowerCase() === finalName.toLowerCase()
+    );
+    if (duplicate) {
+      toast.error("Já existe uma categoria com esse nome no mesmo nível");
+      return;
+    }
+
+    setSaving(true);
+
 
     // Compute next sort_order for the target parent (append at end of siblings)
     const computeNextSortOrder = async (parentIdVal: string | null) => {
