@@ -261,7 +261,13 @@ Deno.serve(async (req) => {
     }
 
     return new Response(JSON.stringify({
-      ok: true, connection_id: conn.id, accounts: accounts.length, transactions: staged, first_connect: !!isFirstConnect,
+      ok: true,
+      connection_id: conn.id,
+      accounts: accounts.length,
+      transactions: staged,
+      first_connect: !!isFirstConnect,
+      item_status: item?.status ?? null,
+      execution_status: item?.executionStatus ?? null,
     }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
