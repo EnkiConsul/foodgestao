@@ -131,6 +131,7 @@ const AdminFaturamento = lazyWithRetry(() => import("./pages/admin/Faturamento")
 const AdminCuponsPage = lazyWithRetry(() => import("./pages/admin/Cupons"));
 const AdminFaturasPage = lazyWithRetry(() => import("./pages/admin/Faturas"));
 const AdminWebhooksAsaasPage = lazyWithRetry(() => import("./pages/admin/WebhooksAsaas"));
+const AdminPluggyWebhook = lazyWithRetry(() => import("./pages/admin/PluggyWebhook"));
 const AdminPerfisAcesso = lazyWithRetry(() => import("./pages/admin/PerfisAcesso"));
 const AdminAuditoria = lazyWithRetry(() => import("./pages/admin/Auditoria"));
 const AdminResetarDados = lazyWithRetry(() => import("./pages/admin/ResetarDados"));
