@@ -9673,6 +9673,25 @@ export type Database = {
         Args: { p_connection_id: string; p_error?: string; p_success: boolean }
         Returns: boolean
       }
+      pluggy_v2_reconciliation: {
+        Args: never
+        Returns: {
+          divergences: string[]
+          pluggy_item_id: string
+          v1_accounts_count: number
+          v1_company_id: string
+          v1_connection_id: string
+          v1_last_synced_at: string
+          v1_status: string
+          v1_transactions_count: number
+          v2_accounts_count: number
+          v2_company_id: string
+          v2_connection_id: string
+          v2_last_synced_at: string
+          v2_status: string
+          v2_transactions_count: number
+        }[]
+      }
       pluggy_v2_webhook_claim: {
         Args: {
           p_batch_size?: number
