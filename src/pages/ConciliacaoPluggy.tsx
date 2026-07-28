@@ -104,6 +104,7 @@ export default function ConciliacaoPluggy() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [rowAccount, setRowAccount] = useState<Record<string, string>>({});
   const [rowCategory, setRowCategory] = useState<Record<string, string>>({});
+  const [rowBusy, setRowBusy] = useState<string | null>(null);
   // Escopo travado por conta (quando entrou pelo card da conta bancária)
   const [scope, setScope] = useState<ScopeInfo | null>(null);
   const [scopeUnresolved, setScopeUnresolved] = useState(false);
@@ -235,8 +236,7 @@ export default function ConciliacaoPluggy() {
     else setSelected(new Set(filtered.filter((r) => r.status === "pending").map((r) => r.id)));
   };
 
-  const confirmSelected = async () => {
-    const ids = Array.from(selected);
+  const confirmIds = async (ids: string[]) => {
     if (ids.length === 0) return;
 
     // Group by target account
@@ -267,20 +267,33 @@ export default function ConciliacaoPluggy() {
         ok += Array.isArray(data) ? data.length : 0;
       }
     }
-    toast.success(`${ok} lançamentos confirmados`);
+    toast.success(ok === 1 ? "Lançamento confirmado" : `${ok} lançamentos confirmados`);
     setSelected(new Set());
     load();
   };
 
-  const ignoreSelected = async () => {
-    const ids = Array.from(selected);
+  const ignoreIds = async (ids: string[]) => {
     if (ids.length === 0) return;
     const { error } = await supabase.rpc("pluggy_ignore_staging", { p_staging_ids: ids });
     if (error) { toast.error("Falha ao ignorar"); return; }
-    toast.success(`${ids.length} lançamentos ignorados`);
+    toast.success(ids.length === 1 ? "Lançamento ignorado" : `${ids.length} lançamentos ignorados`);
     setSelected(new Set());
     load();
   };
+
+  const confirmSelected = () => confirmIds(Array.from(selected));
+  const ignoreSelected = () => ignoreIds(Array.from(selected));
+
+  const handleRowAction = async (id: string, action: "confirm" | "ignore") => {
+    setRowBusy(id);
+    try {
+      if (action === "confirm") await confirmIds([id]);
+      else await ignoreIds([id]);
+    } finally {
+      setRowBusy(null);
+    }
+  };
+
 
   if (contextType !== "pj") {
     return (
@@ -403,6 +416,7 @@ export default function ConciliacaoPluggy() {
                 <th className="p-2 text-left">Conta destino</th>
                 <th className="p-2 text-left">Categoria</th>
                 <th className="p-2 text-center">Status</th>
+                <th className="p-2 text-right">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -484,6 +498,37 @@ export default function ConciliacaoPluggy() {
                         <Badge className="bg-warning/15 text-warning border-warning/30">
                           <AlertTriangle className="h-3 w-3 mr-1" />Duplicado
                         </Badge>
+                      )}
+                    </td>
+                    <td className="p-2">
+                      {r.status === "pending" ? (
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 px-2 text-muted-foreground hover:text-destructive"
+                            disabled={rowBusy === r.id}
+                            onClick={() => handleRowAction(r.id, "ignore")}
+                            aria-label="Ignorar lançamento"
+                            title="Ignorar"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="h-8 px-2"
+                            disabled={rowBusy === r.id}
+                            onClick={() => handleRowAction(r.id, "confirm")}
+                            aria-label="Confirmar conciliação deste lançamento"
+                            title="Confirmar"
+                          >
+                            {rowBusy === r.id
+                              ? <Loader2 className="h-4 w-4 animate-spin" />
+                              : <><Check className="h-4 w-4 mr-1" />Confirmar</>}
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="block text-right text-xs text-muted-foreground">—</span>
                       )}
                     </td>
                   </tr>
