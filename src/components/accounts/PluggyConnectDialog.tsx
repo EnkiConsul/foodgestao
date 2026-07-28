@@ -19,6 +19,7 @@ declare global {
 }
 
 const SCRIPT_SRC = "https://cdn.pluggy.ai/pluggy-connect/v2.11.0/pluggy-connect.js";
+const RESUME_KEY = "pluggy_connect_resume_v1";
 
 function loadScript(): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -35,6 +36,15 @@ function loadScript(): Promise<void> {
     s.onerror = () => reject(new Error("script_load_failed"));
     document.head.appendChild(s);
   });
+}
+
+// URL de retorno após o consent de Open Finance no site do banco.
+// Precisa ser same-origin com a página que abriu o Connect.
+function buildOauthRedirectUri(): string {
+  const url = new URL(window.location.href);
+  // Limpa quaisquer params antigos para evitar loops.
+  url.hash = "";
+  return url.toString();
 }
 
 export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpdate, onConnected }: Props) {
@@ -61,17 +71,59 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
       setError(null);
       try {
         await loadScript();
-        const { data, error: e } = await supabase.functions.invoke("pluggy-connect-token", {
-          body: { item_id: itemIdToUpdate },
-        });
-        if (e || !data?.accessToken) throw new Error(e?.message ?? "connect_token_failed");
+
+        // Se estamos retomando de um redirect de Open Finance, reutiliza o
+        // connectToken salvo para que o SDK conclua o item; caso contrário
+        // pede um novo token ao backend.
+        let accessToken: string | undefined;
+        let resumeItemId: string | undefined = itemIdToUpdate;
+        const resumeRaw = sessionStorage.getItem(RESUME_KEY);
+        const url = new URL(window.location.href);
+        const hasOauthReturn =
+          url.searchParams.has("item_id") ||
+          url.searchParams.has("pluggy_item_id") ||
+          url.searchParams.has("oauth") ||
+          url.searchParams.has("code");
+        if (resumeRaw && hasOauthReturn) {
+          try {
+            const resume = JSON.parse(resumeRaw) as {
+              accessToken?: string;
+              companyId?: string;
+              itemIdToUpdate?: string;
+            };
+            if (resume?.accessToken && resume.companyId === companyId) {
+              accessToken = resume.accessToken;
+              resumeItemId = resume.itemIdToUpdate ?? itemIdToUpdate;
+            }
+          } catch { /* noop */ }
+        }
+
+        if (!accessToken) {
+          const { data, error: e } = await supabase.functions.invoke("pluggy-connect-token", {
+            body: { item_id: itemIdToUpdate },
+          });
+          if (e || !data?.accessToken) throw new Error(e?.message ?? "connect_token_failed");
+          accessToken = data.accessToken as string;
+        }
+
+        // Persiste dados para conseguir retomar após redirect de OF.
+        sessionStorage.setItem(
+          RESUME_KEY,
+          JSON.stringify({ accessToken, companyId, itemIdToUpdate: resumeItemId }),
+        );
 
         const PluggyConnect = window.PluggyConnect!;
         const pc = new PluggyConnect({
-          connectToken: data.accessToken,
+          connectToken: accessToken,
           includeSandbox: false,
-          updateItem: itemIdToUpdate,
+          updateItem: resumeItemId,
+          // Conectores Open Finance (C6, Itaú OF, etc.) exigem redirecionar o
+          // topo do navegador para data.of.pluggy.ai / site do banco. Sem
+          // oauthRedirectUri o widget tenta abrir em iframe e o banco
+          // recusa via X-Frame-Options (ERR_BLOCKED_BY_RESPONSE).
+          oauthRedirectUri: buildOauthRedirectUri(),
           onSuccess: async (itemData: any) => {
+            sessionStorage.removeItem(RESUME_KEY);
             const itemId = itemData?.item?.id ?? itemData?.itemId ?? itemData?.id;
             if (!itemId) { toast.error("Conexão sem item retornado"); onOpenChange(false); return; }
             toast.info("Conta conectada. Sincronizando últimos 30 dias…");
@@ -95,6 +147,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
             setWidgetReady(false);
           },
           onClose: () => {
+            sessionStorage.removeItem(RESUME_KEY);
             onOpenChange(false);
           },
         });
@@ -102,6 +155,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
         pc.init();
         setWidgetReady(true);
       } catch (e: any) {
+        sessionStorage.removeItem(RESUME_KEY);
         setError(e?.message ?? "Falha ao iniciar Pluggy Connect");
       } finally {
         setLoading(false);
