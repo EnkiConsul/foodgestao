@@ -169,7 +169,11 @@ export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished, r
       const oauthRedirect = typeof window !== "undefined"
         ? `${window.location.origin}/contas-bancarias`
         : undefined;
-      const { data, error: tokenErr } = await supabase.functions.invoke("pluggy-connect-token", {
+      // Cutover progressivo: super_admin pode marcar companies.pluggy_version='v2'
+      const { data: verData } = await supabase.rpc("get_company_pluggy_version" as never, { _company_id: companyId } as never);
+      const version = (verData as unknown as string) ?? "v1";
+      const fnName = version === "v2" ? "pluggy-v2-connect-token" : "pluggy-connect-token";
+      const { data, error: tokenErr } = await supabase.functions.invoke(fnName, {
         body: {
           company_id: companyId,
           ...(reconnectItemId ? { item_id: reconnectItemId } : {}),
