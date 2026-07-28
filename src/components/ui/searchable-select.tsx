@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronsUpDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { categoryIndent } from "@/lib/categories/display";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -198,9 +199,8 @@ export function SearchableSelect({
                   className={cn(
                     "flex w-full cursor-pointer items-center gap-2 px-2 py-2 text-sm",
                     isActive && "bg-accent text-accent-foreground",
-                    depth === 1 && "pl-6",
-                    depth >= 2 && "pl-10",
                   )}
+                  style={depth > 0 ? { paddingLeft: 8 + categoryIndent(depth) } : undefined}
                 >
                   <Check
                     className={cn(
