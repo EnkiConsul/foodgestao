@@ -150,7 +150,7 @@ export default function Categorias() {
     refetchAll();
   };
 
-  const { data: categories = [], refetch } = useQuery({
+  const { data: categories = [], refetch, isLoading } = useQuery({
     queryKey: ["categories-page", user?.id, contextType, selectedCompanyId],
     enabled: !!user && (contextType === "pf" || !!selectedCompanyId),
     queryFn: async () => {
