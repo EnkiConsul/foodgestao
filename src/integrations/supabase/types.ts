@@ -9051,6 +9051,7 @@ export type Database = {
           transaction_type: Database["public"]["Enums"]["transaction_type"]
         }[]
       }
+      pluggy_purge_expired_connect_tokens: { Args: never; Returns: number }
       pluggy_remote_delete_claim: {
         Args: { _batch?: number; _lease_seconds?: number }
         Returns: {
