@@ -46,6 +46,7 @@ export default function ContasBancarias() {
   const navigate = useNavigate();
 
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [ofAccountIds, setOfAccountIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [methodDialogOpen, setMethodDialogOpen] = useState(false);
