@@ -47,8 +47,6 @@ export default function ContasBancarias() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<Account | null>(null);
-  const [methodOpen, setMethodOpen] = useState(false);
-  const [ofWizardOpen, setOfWizardOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importAccountId, setImportAccountId] = useState<string | null>(null);
   const [postCreateAccountId, setPostCreateAccountId] = useState<string | null>(null);
