@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { usePrivacy } from "@/hooks/usePrivacy";
@@ -37,11 +37,15 @@ interface Connection {
 
 interface AccountOpt { id: string; name: string; }
 interface CategoryOpt { id: string; name: string; transaction_type: string; }
+interface ScopeInfo { pluggyAccountId: string; connectionId: string; name: string | null; }
 
 export default function ConciliacaoPluggy() {
   const navigate = useNavigate();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const { maskBRL } = usePrivacy();
+
+  const [searchParams] = useSearchParams();
+  const scopedLocalAccountId = searchParams.get("account");
 
   const [connections, setConnections] = useState<Connection[]>([]);
   const [connectionId, setConnectionId] = useState<string>("all");
@@ -55,19 +59,47 @@ export default function ConciliacaoPluggy() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [rowAccount, setRowAccount] = useState<Record<string, string>>({});
   const [rowCategory, setRowCategory] = useState<Record<string, string>>({});
+  // Escopo travado por conta (quando entrou pelo card da conta bancária)
+  const [scope, setScope] = useState<ScopeInfo | null>(null);
+  const [scopeUnresolved, setScopeUnresolved] = useState(false);
 
   const load = useCallback(async () => {
     if (!selectedCompanyId) { setLoading(false); return; }
     setLoading(true);
 
+    // Resolve o escopo por conta antes de montar a query de staging
+    let resolvedScope: ScopeInfo | null = null;
+    if (scopedLocalAccountId) {
+      const { data: pa } = await supabase
+        .from("pluggy_accounts")
+        .select("pluggy_account_id, connection_id, name")
+        .eq("company_id", selectedCompanyId)
+        .eq("linked_account_id", scopedLocalAccountId)
+        .maybeSingle();
+      if (pa) {
+        resolvedScope = {
+          pluggyAccountId: pa.pluggy_account_id,
+          connectionId: pa.connection_id,
+          name: pa.name ?? null,
+        };
+      }
+    }
+    setScope(resolvedScope);
+    setScopeUnresolved(!!scopedLocalAccountId && !resolvedScope);
+    setConnectionId(resolvedScope ? resolvedScope.connectionId : "all");
+
+    let stagingQuery = supabase.from("pluggy_staging_transactions")
+      .select("*")
+      .eq("company_id", selectedCompanyId);
+    if (resolvedScope) {
+      stagingQuery = stagingQuery.eq("pluggy_account_id", resolvedScope.pluggyAccountId);
+    }
+
     const [{ data: conns }, { data: staging }, { data: accs }, { data: cats }] = await Promise.all([
       supabase.from("pluggy_connections")
         .select("id, connector_name, connector_image_url, status, last_synced_at")
         .eq("company_id", selectedCompanyId).order("created_at", { ascending: false }),
-      supabase.from("pluggy_staging_transactions")
-        .select("*")
-        .eq("company_id", selectedCompanyId)
-        .order("date", { ascending: false }).limit(500),
+      stagingQuery.order("date", { ascending: false }).limit(500),
       supabase.rpc("get_accessible_accounts", {
         _context: "pj", _company_id: selectedCompanyId, _include_inactive: false,
       }),
@@ -92,12 +124,14 @@ export default function ConciliacaoPluggy() {
     setRowAccount((prev) => ({ ...acctMap, ...prev }));
     setRowCategory((prev) => ({ ...catMap, ...prev }));
     setLoading(false);
-  }, [selectedCompanyId]);
+  }, [selectedCompanyId, scopedLocalAccountId]);
 
   useEffect(() => { load(); }, [load]);
 
   const syncNow = async () => {
-    const targets = connectionId === "all" ? connections : connections.filter((c) => c.id === connectionId);
+    const targets = scope
+      ? connections.filter((c) => c.id === scope.connectionId)
+      : connectionId === "all" ? connections : connections.filter((c) => c.id === connectionId);
     if (targets.length === 0) return;
     setSyncing(true);
     let total = 0;
@@ -197,9 +231,15 @@ export default function ConciliacaoPluggy() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold tracking-tight">Conciliação Open Finance</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {scope
+              ? `Conciliação — ${scope.name ?? connections.find((c) => c.id === scope.connectionId)?.connector_name ?? "Conta"}`
+              : "Conciliação Open Finance"}
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Revise, categorize e confirme os lançamentos importados dos bancos conectados.
+            {scope
+              ? "Lançamentos importados apenas desta conta bancária."
+              : "Revise, categorize e confirme os lançamentos importados dos bancos conectados."}
           </p>
         </div>
         <Button onClick={syncNow} disabled={syncing || connections.length === 0} variant="outline">
@@ -223,16 +263,27 @@ export default function ConciliacaoPluggy() {
         </CardContent></Card>
       </div>
 
+      {scopeUnresolved && (
+        <Card className="border-warning/50 bg-warning/10">
+          <CardContent className="p-3 text-sm text-foreground flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+            Esta conta não possui vínculo com uma conexão Open Finance. Exibindo a fila completa da empresa.
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex flex-wrap gap-2">
-        <Select value={connectionId} onValueChange={setConnectionId}>
-          <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas as conexões</SelectItem>
-            {connections.map((c) => (
-              <SelectItem key={c.id} value={c.id}>{c.connector_name ?? "Banco"}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {!scope && (
+          <Select value={connectionId} onValueChange={setConnectionId}>
+            <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as conexões</SelectItem>
+              {connections.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.connector_name ?? "Banco"}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
           <SelectContent>

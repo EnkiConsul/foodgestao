@@ -419,7 +419,7 @@ export default function ContasBancarias() {
                         variant="outline"
                         size="sm"
                         className="h-9"
-                        onClick={() => navigate("/contas-bancarias/conciliacao")}
+                        onClick={() => navigate(`/contas-bancarias/conciliacao?account=${a.id}`)}
                         title="Conciliação bancária"
                       >
                         <Link2 className="h-4 w-4 sm:mr-2" />
