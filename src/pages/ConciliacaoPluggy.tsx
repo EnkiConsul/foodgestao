@@ -12,6 +12,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { cn } from "@/lib/utils";
+import { CATEGORY_INDENT_STEP, categoryGuideLevels } from "@/lib/categories/display";
+import { CategoryTypeBadge } from "@/components/categorias/CategoryTypeBadge";
 
 interface StagingRow {
   id: string;
@@ -36,8 +39,42 @@ interface Connection {
 }
 
 interface AccountOpt { id: string; name: string; }
-interface CategoryOpt { id: string; name: string; transaction_type: string; }
+interface CategoryOpt {
+  id: string;
+  name: string;
+  transaction_type: string;
+  parent_id: string | null;
+  sort_order: number | null;
+  color: string | null;
+}
 interface ScopeInfo { pluggyAccountId: string; connectionId: string; name: string | null; }
+
+/** Ordena categorias em árvore (raiz -> filhos) respeitando sort_order/nome. */
+function buildCategoryOptions(cats: CategoryOpt[]): { cat: CategoryOpt; depth: number }[] {
+  const byParent = new Map<string | null, CategoryOpt[]>();
+  const ids = new Set(cats.map((c) => c.id));
+  cats.forEach((c) => {
+    const key = c.parent_id && ids.has(c.parent_id) ? c.parent_id : null;
+    if (!byParent.has(key)) byParent.set(key, []);
+    byParent.get(key)!.push(c);
+  });
+  byParent.forEach((list) =>
+    list.sort(
+      (a, b) =>
+        (a.sort_order ?? 0) - (b.sort_order ?? 0) ||
+        (a.name ?? "").localeCompare(b.name ?? "", "pt-BR")
+    )
+  );
+  const out: { cat: CategoryOpt; depth: number }[] = [];
+  const walk = (parent: string | null, depth: number) => {
+    (byParent.get(parent) ?? []).forEach((c) => {
+      out.push({ cat: c, depth });
+      walk(c.id, depth + 1);
+    });
+  };
+  walk(null, 0);
+  return out;
+}
 
 export default function ConciliacaoPluggy() {
   const navigate = useNavigate();
@@ -52,6 +89,14 @@ export default function ConciliacaoPluggy() {
   const [rows, setRows] = useState<StagingRow[]>([]);
   const [accounts, setAccounts] = useState<AccountOpt[]>([]);
   const [categories, setCategories] = useState<CategoryOpt[]>([]);
+  const categoryOptionsReceita = useMemo(
+    () => buildCategoryOptions(categories.filter((c) => c.transaction_type === "receita")),
+    [categories]
+  );
+  const categoryOptionsDespesa = useMemo(
+    () => buildCategoryOptions(categories.filter((c) => c.transaction_type === "despesa")),
+    [categories]
+  );
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("pending");
@@ -105,10 +150,10 @@ export default function ConciliacaoPluggy() {
         _context: "pj", _company_id: selectedCompanyId, _include_inactive: false,
       }),
       supabase.from("categories")
-        .select("id, name, transaction_type, category_companies!inner(company_id)")
+        .select("id, name, transaction_type, parent_id, sort_order, color, category_companies!inner(company_id)")
         .eq("category_companies.company_id", selectedCompanyId)
         .eq("is_active", true)
-        .order("name"),
+        .order("sort_order"),
       supabase.from("pluggy_accounts")
         .select("pluggy_account_id, linked_account_id")
         .eq("company_id", selectedCompanyId),
@@ -398,12 +443,29 @@ export default function ConciliacaoPluggy() {
                         disabled={disabled}
                       >
                         <SelectTrigger className="h-8 min-w-[160px] text-xs"><SelectValue placeholder="Sem categoria" /></SelectTrigger>
-                        <SelectContent>
-                          {categories
-                            .filter((c) => (isEntrada ? c.transaction_type === "receita" : c.transaction_type === "despesa"))
-                            .map((c) => (
-                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                            ))}
+                        <SelectContent className="max-h-72">
+                          {(isEntrada ? categoryOptionsReceita : categoryOptionsDespesa).map(({ cat, depth }) => (
+                            <SelectItem key={cat.id} value={cat.id}>
+                              <span className="flex items-center gap-2 min-w-0">
+                                <span className="flex shrink-0" aria-hidden>
+                                  {categoryGuideLevels(depth).map((i) => (
+                                    <span
+                                      key={i}
+                                      className="inline-block border-l border-border/60 h-4"
+                                      style={{ width: CATEGORY_INDENT_STEP }}
+                                    />
+                                  ))}
+                                </span>
+                                <span
+                                  className="h-2.5 w-2.5 rounded-full shrink-0"
+                                  style={{ backgroundColor: cat.color ?? "#94a3b8" }}
+                                  aria-hidden
+                                />
+                                <span className={cn("truncate", depth === 0 && "font-semibold")}>{cat.name}</span>
+                                <CategoryTypeBadge type={cat.transaction_type} className="ml-1 shrink-0" />
+                              </span>
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </td>
