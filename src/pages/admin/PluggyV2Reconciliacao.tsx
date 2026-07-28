@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { RefreshCw, AlertTriangle, CheckCircle2, ArrowRightLeft, DownloadCloud } from "lucide-react";
+import { RefreshCw, AlertTriangle, CheckCircle2, ArrowRightLeft, DownloadCloud, Archive } from "lucide-react";
 import { toast } from "sonner";
 
 type Row = {
@@ -256,6 +256,41 @@ function CutoverPanel() {
     },
     onError: (e: unknown) => {
       toast.error("Falha no backfill", { description: (e as Error).message });
+    },
+  });
+
+  const cleanupV1 = useMutation({
+    mutationFn: async (args: { companyId: string; confirm: boolean }) => {
+      const { data, error } = await supabase.functions.invoke("pluggy-v1-cleanup", {
+        body: { company_id: args.companyId, confirm: args.confirm },
+      });
+      if (error) throw error;
+      return data as {
+        dry_run: boolean;
+        counts?: { connections: number; raw_transactions: number; accounts: number };
+        archived?: { connections: number; raw_transactions_deleted: number };
+      };
+    },
+    onSuccess: (data) => {
+      if (data.dry_run && data.counts) {
+        const c = data.counts;
+        const proceed = confirm(
+          `Cleanup V1 (dry-run):\n\n• Conexões: ${c.connections}\n• Contas: ${c.accounts}\n• Raw transactions: ${c.raw_transactions}\n\nConfirmar arquivamento? Conexões viram 'archived' e raw_transactions serão apagadas (reproduzíveis via Backfill V2).`,
+        );
+        if (proceed) {
+          // dispara execução real reusando a mutation
+          const companyId = (data as unknown as { company: { id: string } }).company.id;
+          cleanupV1.mutate({ companyId, confirm: true });
+        }
+      } else if (data.archived) {
+        toast.success("Cleanup V1 concluído", {
+          description: `${data.archived.connections} conexões arquivadas · ${data.archived.raw_transactions_deleted} raw apagadas`,
+        });
+        qc.invalidateQueries({ queryKey: ["pluggy-v2-reconciliation"] });
+      }
+    },
+    onError: (e: unknown) => {
+      toast.error("Falha no cleanup", { description: (e as Error).message });
     },
   });
 
