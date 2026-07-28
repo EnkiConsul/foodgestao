@@ -47,18 +47,16 @@ type ConnectionRow = {
   company_id: string;
   pluggy_item_id: string | null;
   connector_id: number | null;
-  connector_name: string | null;
   status: string | null;
-  execution_status: string | null;
-  last_error_code: string | null;
-  last_error_message: string | null;
-  requires_user_action: boolean | null;
-  last_synced_at: string | null;
-  consent_expires_at: string | null;
+  last_error_code?: string | null;
+  requires_user_action?: boolean | null;
+  last_synced_at?: string | null;
+  consent_expires_at?: string | null;
   created_at: string;
   updated_at: string;
-  disconnected_at: string | null;
+  disconnected_at?: string | null;
 };
+
 
 type WebhookEventRow = {
   id: string;
