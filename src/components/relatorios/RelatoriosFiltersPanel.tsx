@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { SearchableFilterSelect } from "@/components/relatorios/SearchableFilterSelect";
 
 type Account = { id: string; name: string };
-type Category = { id: string; name: string; hierarchy_index: string | null };
+type Category = { id: string; name: string };
 type PaymentMethod = { id: string; name: string };
 type Contact = { id: string; name: string };
 
