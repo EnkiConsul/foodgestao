@@ -77,7 +77,6 @@ export default function PluggyV2Reconciliacao() {
       <AdminPageHeader
         title="Reconciliação Pluggy V1 ↔ V2"
         description="Shadow mode: compara conexões, contas e transações materializadas entre as integrações V1 e V2 antes do cutover."
-        icon={GitCompareArrows}
       />
 
       <div className="grid gap-4 md:grid-cols-4">
