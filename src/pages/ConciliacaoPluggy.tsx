@@ -62,6 +62,7 @@ export default function ConciliacaoPluggy() {
   // Escopo travado por conta (quando entrou pelo card da conta bancária)
   const [scope, setScope] = useState<ScopeInfo | null>(null);
   const [scopeUnresolved, setScopeUnresolved] = useState(false);
+  const [linkedByPluggyAccount, setLinkedByPluggyAccount] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     if (!selectedCompanyId) { setLoading(false); return; }
@@ -95,7 +96,7 @@ export default function ConciliacaoPluggy() {
       stagingQuery = stagingQuery.eq("pluggy_account_id", resolvedScope.pluggyAccountId);
     }
 
-    const [{ data: conns }, { data: staging }, { data: accs }, { data: cats }] = await Promise.all([
+    const [{ data: conns }, { data: staging }, { data: accs }, { data: cats }, { data: pluggyAccts }] = await Promise.all([
       supabase.from("pluggy_connections")
         .select("id, connector_name, connector_image_url, status, last_synced_at")
         .eq("company_id", selectedCompanyId).order("created_at", { ascending: false }),
@@ -107,6 +108,9 @@ export default function ConciliacaoPluggy() {
         .select("id, name, transaction_type")
         .or(`company_id.eq.${selectedCompanyId},and(user_id.is.null,company_id.is.null)`)
         .order("name"),
+      supabase.from("pluggy_accounts")
+        .select("pluggy_account_id, linked_account_id")
+        .eq("company_id", selectedCompanyId),
     ]);
 
     setConnections((conns ?? []) as Connection[]);
@@ -114,11 +118,20 @@ export default function ConciliacaoPluggy() {
     setAccounts(((accs ?? []) as any[]).map((a) => ({ id: a.id, name: a.name })));
     setCategories((cats ?? []) as CategoryOpt[]);
 
+    // Mapa: conta Pluggy -> conta bancária local vinculada
+    const linkedMap: Record<string, string> = {};
+    for (const pa of (pluggyAccts ?? []) as { pluggy_account_id: string; linked_account_id: string | null }[]) {
+      if (pa.linked_account_id) linkedMap[pa.pluggy_account_id] = pa.linked_account_id;
+    }
+    setLinkedByPluggyAccount(linkedMap);
+
     // preload suggested selections
     const acctMap: Record<string, string> = {};
     const catMap: Record<string, string> = {};
     for (const r of (staging ?? []) as StagingRow[]) {
-      if (r.suggested_account_id) acctMap[r.id] = r.suggested_account_id;
+      const fallback = linkedMap[r.pluggy_account_id];
+      const target = r.suggested_account_id ?? fallback;
+      if (target) acctMap[r.id] = target;
       if (r.suggested_category_id) catMap[r.id] = r.suggested_category_id;
     }
     setRowAccount((prev) => ({ ...acctMap, ...prev }));
@@ -176,7 +189,7 @@ export default function ConciliacaoPluggy() {
     // Group by target account
     const byAccount: Record<string, string[]> = {};
     for (const id of ids) {
-      const acctId = rowAccount[id];
+      const acctId = rowAccount[id] ?? linkedByPluggyAccount[rows.find((r) => r.id === id)?.pluggy_account_id ?? ""];
       if (!acctId) { toast.error("Selecione a conta de destino para todos os itens"); return; }
       byAccount[acctId] = byAccount[acctId] ?? [];
       byAccount[acctId].push(id);
@@ -365,7 +378,7 @@ export default function ConciliacaoPluggy() {
                     </td>
                     <td className="p-2">
                       <Select
-                        value={rowAccount[r.id] ?? ""}
+                        value={rowAccount[r.id] ?? linkedByPluggyAccount[r.pluggy_account_id] ?? ""}
                         onValueChange={(v) => setRowAccount((p) => ({ ...p, [r.id]: v }))}
                         disabled={disabled}
                       >
