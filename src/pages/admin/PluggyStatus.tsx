@@ -274,25 +274,20 @@ export default function AdminPluggyStatus() {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader
-        title="Status da Conexão Pluggy"
-        description="Diagnóstico das etapas de integração Open Finance: credenciais, webhook e conexões ativas."
-        actions={
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={runChecks}
-            disabled={refreshing}
-          >
-            {refreshing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-            <span className="ml-2">Reexecutar</span>
-          </Button>
-        }
-      />
+      <div className="flex items-start justify-between gap-3">
+        <AdminPageHeader
+          title="Status da Conexão Pluggy"
+          description="Diagnóstico das etapas de integração Open Finance: credenciais, webhook e conexões ativas."
+        />
+        <Button size="sm" variant="outline" onClick={runChecks} disabled={refreshing}>
+          {refreshing ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
+          <span className="ml-2">Reexecutar</span>
+        </Button>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         <StepCard
