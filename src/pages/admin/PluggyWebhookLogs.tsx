@@ -25,8 +25,21 @@ const fmt = (v: string | null | undefined) =>
 const statusVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   processed: "default",
   pending: "secondary",
+  claimed: "secondary",
   retry: "outline",
   failed: "destructive",
+  dead_letter: "destructive",
+};
+
+type HealthSummary = {
+  pending?: number;
+  claimed?: number;
+  retry?: number;
+  dead_letter?: number;
+  processed_last_hour?: number;
+  processed_last_24h?: number;
+  oldest_pending_age_seconds?: number | null;
+  expired_claims?: number;
 };
 
 type WebhookRow = {
