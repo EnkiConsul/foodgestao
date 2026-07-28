@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { RefreshCw, AlertTriangle, CheckCircle2, ArrowRightLeft } from "lucide-react";
+import { RefreshCw, AlertTriangle, CheckCircle2, ArrowRightLeft, DownloadCloud } from "lucide-react";
 import { toast } from "sonner";
 
 type Row = {
@@ -240,6 +240,25 @@ function CutoverPanel() {
     },
   });
 
+  const backfill = useMutation({
+    mutationFn: async (companyId: string) => {
+      const { data, error } = await supabase.functions.invoke("pluggy-v2-backfill", {
+        body: { company_id: companyId },
+      });
+      if (error) throw error;
+      return data as { items_found: number; processed: number; failed: number };
+    },
+    onSuccess: (data) => {
+      toast.success("Backfill concluído", {
+        description: `${data.processed}/${data.items_found} itens re-materializados${data.failed ? ` — ${data.failed} falharam` : ""}`,
+      });
+      qc.invalidateQueries({ queryKey: ["pluggy-v2-reconciliation"] });
+    },
+    onError: (e: unknown) => {
+      toast.error("Falha no backfill", { description: (e as Error).message });
+    },
+  });
+
   const filtered = useMemo(() => {
     const list = companies ?? [];
     if (!q.trim()) return list;
@@ -291,15 +310,31 @@ function CutoverPanel() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={setVersion.isPending}
-                          onClick={() => setVersion.mutate({ id: c.id, version: target })}
-                        >
-                          <ArrowRightLeft className="mr-2 h-4 w-4" />
-                          Mudar para {target}
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={backfill.isPending}
+                            onClick={() => {
+                              if (confirm(`Re-materializar todos os itens Pluggy V1 desta empresa no stack V2?\n\n${c.name}`)) {
+                                backfill.mutate(c.id);
+                              }
+                            }}
+                            title="Backfill V1→V2: busca itens existentes na Pluggy e materializa no V2"
+                          >
+                            <DownloadCloud className="mr-2 h-4 w-4" />
+                            Backfill V2
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={setVersion.isPending}
+                            onClick={() => setVersion.mutate({ id: c.id, version: target })}
+                          >
+                            <ArrowRightLeft className="mr-2 h-4 w-4" />
+                            Mudar para {target}
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
