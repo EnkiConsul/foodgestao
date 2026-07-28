@@ -43,10 +43,14 @@ export default function ContasBancarias() {
   const { user } = useAuth();
   const { contextType, selectedCompanyId, companies } = useCompanyContext();
   const { maskBRL } = usePrivacy();
-  
+  const navigate = useNavigate();
+
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [methodDialogOpen, setMethodDialogOpen] = useState(false);
+  const [pluggyOpen, setPluggyOpen] = useState(false);
+  const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [importAccountId, setImportAccountId] = useState<string | null>(null);
