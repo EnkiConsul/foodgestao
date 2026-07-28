@@ -50,6 +50,7 @@ const billingItems = [
   { title: "Cupons", url: "/admin/cupons", icon: Tag },
   { title: "Faturas", url: "/admin/faturas", icon: Receipt },
   { title: "Webhooks Asaas", url: "/admin/webhooks-asaas", icon: Webhook },
+  { title: "Webhook Pluggy", url: "/admin/pluggy-webhook", icon: Webhook },
 ];
 
 const tenantItems = [
