@@ -91,9 +91,12 @@ export default function Dashboard() {
           .select("amount, amount_paid, transaction_type, transaction_date, category_id, status, due_date"),
         scope,
       )
-        .gte("transaction_date", startDate)
-        .lte("transaction_date", endDate)
+        // Mesmo critério de Lançamentos: quando existe vencimento, o período é o do due_date.
+        .or(
+          `and(due_date.is.null,transaction_date.gte.${startDate},transaction_date.lte.${endDate}),and(due_date.gte.${startDate},due_date.lte.${endDate})`,
+        )
         .neq("status", "cancelado");
+
       if (paymentStatus !== "todos") q = q.eq("status", paymentStatus);
       const { data } = await q;
       return data ?? [];
@@ -149,8 +152,10 @@ export default function Dashboard() {
       t.status === "confirmado" || (t.due_date && Number(t.amount_paid) >= Number(t.amount));
 
     for (const t of transactions) {
-      const month = t.transaction_date.slice(0, 7); // YYYY-MM
-      const day = t.transaction_date.slice(0, 10); // YYYY-MM-DD
+      const refDate = t.due_date ?? t.transaction_date;
+      const month = refDate.slice(0, 7); // YYYY-MM
+      const day = refDate.slice(0, 10); // YYYY-MM-DD
+
       if (!months[month]) months[month] = { receitas: 0, despesas: 0 };
       if (!confirmedMonths[month]) confirmedMonths[month] = { receitas: 0, despesas: 0 };
       if (!days[day]) days[day] = { receitas: 0, despesas: 0 };
