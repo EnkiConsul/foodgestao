@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   open: boolean;
@@ -40,6 +40,7 @@ function loadScript(): Promise<void> {
 export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpdate, onConnected }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [widgetReady, setWidgetReady] = useState(false);
   const instanceRef = useRef<any>(null);
   const launchedRef = useRef(false);
 
@@ -47,6 +48,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
     if (!open) {
       launchedRef.current = false;
       setError(null);
+      setWidgetReady(false);
       try { instanceRef.current?.destroy?.(); } catch { /* noop */ }
       instanceRef.current = null;
       return;
@@ -90,6 +92,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
           onError: (err: any) => {
             console.error("PluggyConnect error", err);
             setError(err?.message ?? "Erro na conexão");
+            setWidgetReady(false);
           },
           onClose: () => {
             onOpenChange(false);
@@ -97,6 +100,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
         });
         instanceRef.current = pc;
         pc.init();
+        setWidgetReady(true);
       } catch (e: any) {
         setError(e?.message ?? "Falha ao iniciar Pluggy Connect");
       } finally {
@@ -105,24 +109,40 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
     })();
   }, [open, companyId, itemIdToUpdate, onConnected, onOpenChange]);
 
+  // Widget da Pluggy gerencia seu próprio modal fullscreen.
+  // Só renderizamos overlay próprio para os estados de loading inicial e erro,
+  // evitando qualquer wrapper (ex.: Radix Dialog) que capture cliques como "outside".
+  if (!open) return null;
+  if (widgetReady && !error) return null;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Conectar via Open Finance</DialogTitle>
-          <DialogDescription>
-            {loading
-              ? "Preparando conexão segura…"
-              : error
-              ? "Não foi possível iniciar a conexão."
-              : "Uma janela segura será aberta para você autenticar-se no seu banco."}
-          </DialogDescription>
-        </DialogHeader>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Conectar via Open Finance"
+    >
+      <div className="mx-4 w-full max-w-md rounded-lg border bg-card p-6 shadow-lg">
+        <h2 className="text-lg font-semibold">Conectar via Open Finance</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {loading
+            ? "Preparando conexão segura…"
+            : error
+            ? "Não foi possível iniciar a conexão."
+            : "Uma janela segura será aberta para você autenticar-se no seu banco."}
+        </p>
         <div className="flex items-center justify-center py-6">
           {loading && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
           {error && <p className="text-sm text-destructive text-center">{error}</p>}
         </div>
-      </DialogContent>
-    </Dialog>
+        {error && (
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Fechar
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
