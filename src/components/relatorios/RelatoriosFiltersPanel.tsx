@@ -97,7 +97,6 @@ export function RelatoriosFiltersPanel({
     .map((cat) => ({
       id: cat.id,
       name: cat.name,
-      prefix: cat.hierarchy_index ? `${cat.hierarchy_index} ` : undefined,
     }));
 
   return (
