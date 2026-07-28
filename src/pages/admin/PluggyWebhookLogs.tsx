@@ -204,8 +204,10 @@ export default function PluggyWebhookLogs() {
           <SelectContent>
             <SelectItem value="all">Todos os status</SelectItem>
             <SelectItem value="pending">Pendentes</SelectItem>
+            <SelectItem value="claimed">Reservados</SelectItem>
             <SelectItem value="retry">Em retry</SelectItem>
-            <SelectItem value="failed">Falhos</SelectItem>
+            <SelectItem value="dead_letter">Dead-letter</SelectItem>
+            <SelectItem value="failed">Falhos (legado)</SelectItem>
             <SelectItem value="processed">Processados</SelectItem>
           </SelectContent>
         </Select>
