@@ -1,8 +1,8 @@
-// P0 — Receiver do webhook Pluggy. ACK rápido + background processing recuperável.
-// Logica de processamento em _shared/pluggy-webhook-processor.ts.
+// Receiver lean: valida assinatura, persiste o evento e dispara o worker
+// (fire-and-forget). Toda a lógica de materialização/sync roda no worker
+// durável (pluggy-worker), com retry pelo cron pluggy-webhook-drain.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { processWebhookEvent } from "../_shared/pluggy-webhook-processor.ts";
 
 // deno-lint-ignore no-explicit-any
 declare const EdgeRuntime: any;
@@ -28,6 +28,24 @@ function timingSafeEqual(a: string, b: string): boolean {
   let out = 0;
   for (let i = 0; i < a.length; i++) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return out === 0;
+}
+
+async function triggerWorker() {
+  const url = Deno.env.get("SUPABASE_URL");
+  const secret = Deno.env.get("PLUGGY_CRON_TICK_SECRET");
+  if (!url || !secret) return;
+  try {
+    await fetch(`${url}/functions/v1/pluggy-worker`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-worker-secret": secret,
+      },
+      body: JSON.stringify({ batch: 5 }),
+    });
+  } catch (err) {
+    console.warn("[pluggy-webhook] worker trigger failed (cron will retry)", err);
+  }
 }
 
 Deno.serve(async (req) => {
@@ -72,7 +90,7 @@ Deno.serve(async (req) => {
   const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(url, service);
 
-  const { data: inserted, error: insertErr } = await supabase
+  const { error: insertErr } = await supabase
     .from("open_finance_webhook_events")
     .insert({
       event_id: eventId,
@@ -82,9 +100,7 @@ Deno.serve(async (req) => {
       payload,
       received_ip: receivedIp,
       status: "pending",
-    })
-    .select("id, attempt_count, status")
-    .maybeSingle();
+    });
 
   if (insertErr) {
     if ((insertErr as { code?: string }).code === "23505") {
@@ -94,11 +110,10 @@ Deno.serve(async (req) => {
     return json(500, { error: "persist_failed" });
   }
 
-  const bg = processWebhookEvent(supabase, inserted as any, payload, eventType, pluggyItemId);
+  // Dispara o worker sem bloquear a resposta ao Pluggy.
+  const bg = triggerWorker();
   if (typeof EdgeRuntime !== "undefined" && typeof EdgeRuntime.waitUntil === "function") {
     EdgeRuntime.waitUntil(bg);
-  } else {
-    await bg;
   }
 
   return json(200, { received: true, event_id: eventId });

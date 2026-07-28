@@ -1,7 +1,7 @@
-// Drain: reprocessa eventos pending/retry cujo next_attempt_at já venceu.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// Drain: cron a cada minuto que aciona o worker durável (pluggy-worker) para
+// reprocessar eventos com next_attempt_at vencido ou leases expiradas. O
+// processamento em si roda no worker via RPC pluggy_webhook_claim.
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { processWebhookEvent } from "../_shared/pluggy-webhook-processor.ts";
 
 function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
@@ -19,34 +19,19 @@ Deno.serve(async (req) => {
   if (!expected || provided !== expected) return json(401, { error: "unauthenticated" });
 
   const url = Deno.env.get("SUPABASE_URL")!;
-  const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const supabase = createClient(url, service);
-
-  const nowIso = new Date().toISOString();
-  const { data: events } = await supabase
-    .from("open_finance_webhook_events")
-    .select("id, attempt_count, status, event_type, pluggy_item_id, payload")
-    .in("status", ["pending", "retry"])
-    .or(`next_attempt_at.is.null,next_attempt_at.lte.${nowIso}`)
-    .lt("attempt_count", 10)
-    .order("created_at", { ascending: true })
-    .limit(50);
-
-  let processed = 0;
-  for (const ev of events ?? []) {
-    try {
-      await processWebhookEvent(
-        supabase,
-        { id: (ev as any).id, attempt_count: (ev as any).attempt_count, status: (ev as any).status },
-        (ev as any).payload,
-        (ev as any).event_type,
-        (ev as any).pluggy_item_id,
-      );
-      processed++;
-    } catch (err) {
-      console.error("[pluggy-webhook-drain] failure", err);
-    }
+  try {
+    const resp = await fetch(`${url}/functions/v1/pluggy-worker`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-worker-secret": expected,
+      },
+      body: JSON.stringify({ batch: 10 }),
+    });
+    const body = await resp.json().catch(() => ({}));
+    return json(resp.ok ? 200 : 502, { worker_status: resp.status, worker_response: body });
+  } catch (err) {
+    console.error("[pluggy-webhook-drain] worker invoke failed", err);
+    return json(500, { error: "worker_invoke_failed", detail: String((err as Error)?.message ?? err) });
   }
-
-  return json(200, { processed, checked: events?.length ?? 0 });
 });
