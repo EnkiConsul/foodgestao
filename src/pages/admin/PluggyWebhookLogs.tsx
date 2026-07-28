@@ -15,7 +15,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { RefreshCw, Search, AlertTriangle, Clock, CheckCircle2 } from "lucide-react";
+import { RefreshCw, Search, AlertTriangle } from "lucide-react";
 import { format, formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
