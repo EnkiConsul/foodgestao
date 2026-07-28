@@ -2,6 +2,25 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { createConnectToken } from '../_shared/pluggy.ts';
 
+function isAllowedOauthRedirectUri(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:') return false;
+    if (url.username || url.password || url.hash) return false;
+    const allowedHosts = new Set([
+      'foodgestao.lovable.app',
+      'gestor360food.com',
+      'www.gestor360food.com',
+    ]);
+    return allowedHosts.has(url.hostname)
+      || url.hostname.endsWith('.lovable.app')
+      || url.hostname.endsWith('.lovableproject.com');
+  } catch {
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -27,8 +46,14 @@ Deno.serve(async (req) => {
 
     const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
     const itemId = typeof body?.item_id === 'string' ? body.item_id : undefined;
+    const oauthRedirectUri = isAllowedOauthRedirectUri(body?.oauth_redirect_uri)
+      ? body.oauth_redirect_uri
+      : undefined;
 
-    const result = await createConnectToken(itemId);
+    const result = await createConnectToken(itemId, {
+      oauthRedirectUri,
+      clientUserId: claims.claims.sub,
+    });
     return new Response(JSON.stringify({ accessToken: result.accessToken }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
