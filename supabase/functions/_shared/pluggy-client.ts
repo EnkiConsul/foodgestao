@@ -229,3 +229,16 @@ export async function listTransactions(params: {
 export async function deleteItem(itemId: string) {
   return await request<{ id: string }>("DELETE", `/items/${itemId}`);
 }
+
+export async function listItems(params: { page?: number; pageSize?: number } = {}) {
+  const qs = new URLSearchParams();
+  qs.set("page", String(params.page ?? 1));
+  qs.set("pageSize", String(params.pageSize ?? 100));
+  return await request<{
+    total: number;
+    page: number;
+    totalPages: number;
+    results: PluggyItem[];
+  }>("GET", `/items?${qs.toString()}`);
+}
+
