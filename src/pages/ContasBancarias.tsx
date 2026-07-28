@@ -414,6 +414,18 @@ export default function ContasBancarias() {
                     />
                   </div>
                   <div className="flex items-center gap-1">
+                    {ofAccountIds.has(a.id) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9"
+                        onClick={() => navigate("/contas-bancarias/conciliacao")}
+                        title="Conciliação bancária"
+                      >
+                        <Link2 className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Conciliação</span>
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
