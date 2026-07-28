@@ -453,12 +453,21 @@ export default function Relatorios() {
           </div>
         </CardHeader>
         <CardContent className="px-3 md:px-6">
+          {isLoadingFluxo && (
+            <div className="space-y-2" aria-busy="true" aria-label="Carregando relatório">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
+          )}
+
           {/* Mobile: um card por mês, sem rolagem lateral */}
-          <div className="space-y-2 md:hidden">
+          <div className={cn("space-y-2 md:hidden", isLoadingFluxo && "hidden")}>
             {fluxoCaixaData.MONTH_LABELS.map((m, i) => {
               const rec = fluxoCaixaData.totalReceitas[i] ?? 0;
               const desp = fluxoCaixaData.totalDespesas[i] ?? 0;
               const sal = fluxoCaixaData.totalSaldo[i] ?? 0;
+              const base = Math.max(rec, desp) || 1;
               return (
                 <div key={m} className="rounded-xl border p-3">
                   <div className="flex items-center justify-between gap-2">
@@ -467,20 +476,26 @@ export default function Relatorios() {
                       {formatBRL(sal)}
                     </span>
                   </div>
-                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-lg bg-success/5 px-2 py-1.5">
-                      <p className="text-muted-foreground">Receitas</p>
-                      <p className="font-semibold text-success tabular-nums">{formatBRL(rec)}</p>
+                  <div className="mt-2 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="w-16 shrink-0 text-[11px] text-muted-foreground">Receitas</span>
+                      <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                        <span className="block h-full rounded-full bg-success" style={{ width: `${(rec / base) * 100}%` }} />
+                      </span>
+                      <span className="shrink-0 text-xs font-semibold tabular-nums text-success">{formatBRL(rec)}</span>
                     </div>
-                    <div className="rounded-lg bg-destructive/5 px-2 py-1.5">
-                      <p className="text-muted-foreground">Despesas</p>
-                      <p className="font-semibold text-destructive tabular-nums">{formatBRL(desp)}</p>
+                    <div className="flex items-center gap-2">
+                      <span className="w-16 shrink-0 text-[11px] text-muted-foreground">Despesas</span>
+                      <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                        <span className="block h-full rounded-full bg-destructive" style={{ width: `${(desp / base) * 100}%` }} />
+                      </span>
+                      <span className="shrink-0 text-xs font-semibold tabular-nums text-destructive">{formatBRL(desp)}</span>
                     </div>
                   </div>
                 </div>
               );
             })}
-            <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-3 flex items-center justify-between">
+            <div className="flex items-center justify-between rounded-xl border-2 border-primary/30 bg-primary/5 p-3">
               <span className="text-xs font-bold uppercase tracking-wide">Total do período</span>
               <span className="text-base font-bold tabular-nums">
                 {formatBRL(fluxoCaixaData.sumArr(fluxoCaixaData.totalSaldo))}
@@ -491,11 +506,11 @@ export default function Relatorios() {
             </p>
           </div>
 
-          <div className="hidden md:block overflow-x-auto">
+          <div className={cn("hidden md:block overflow-x-auto", isLoadingFluxo && "md:hidden")}>
           <table id="fluxo-caixa-table" className="w-full text-xs border-collapse">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-card">
               <tr className="border-b">
-                <th className="text-left py-2 px-2 font-semibold text-muted-foreground sticky left-0 bg-card min-w-[180px]"></th>
+                <th className="text-left py-2 px-2 font-semibold text-muted-foreground sticky left-0 z-20 bg-card min-w-[180px]"></th>
                 {fluxoCaixaData.MONTH_LABELS.map((m) => (
                   <th key={m} className="text-right py-2 px-2 font-semibold text-muted-foreground min-w-[90px]">{m}</th>
                 ))}
