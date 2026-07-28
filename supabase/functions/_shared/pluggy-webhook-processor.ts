@@ -1,5 +1,6 @@
-// Shared logic to process an open_finance_webhook_events row.
-// Used by pluggy-webhook (background after ACK) and pluggy-webhook-drain (retry).
+// Pure processor: given a webhook event row + payload, executa a lógica de
+// materialização/sync e retorna um resultado. NÃO altera o status do evento —
+// isso é feito pelo worker via RPCs atômicas (pluggy_webhook_finalize_*).
 
 import { materializePluggyItem } from "./materialize-pluggy-item.ts";
 
@@ -16,23 +17,30 @@ const USER_ACTION_ERRORS = new Set([
   "USER_NOT_SUPPORTED",
 ]);
 
-export function backoffFor(attempt: number): Date {
-  const seconds = Math.min(60 * 30, Math.pow(2, attempt) * 30);
-  return new Date(Date.now() + seconds * 1000);
-}
-
 export interface WebhookRow {
   id: string;
   attempt_count: number;
   status: string;
+  event_type: string;
+  pluggy_item_id: string | null;
+  payload: Record<string, unknown> | null;
+}
+
+export interface ProcessResult {
+  ok: boolean;
+  transient?: boolean;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+  connectionId?: string | null;
+  companyId?: string | null;
+  clientUserId?: string | null;
 }
 
 // deno-lint-ignore no-explicit-any
-export async function processWebhookEvent(supabase: any, row: WebhookRow, payload: any, eventType: string, pluggyItemId: string | null) {
-  await supabase
-    .from("open_finance_webhook_events")
-    .update({ status: "processing", attempt_count: (row.attempt_count ?? 0) + 1 })
-    .eq("id", row.id);
+export async function processWebhookEvent(supabase: any, row: WebhookRow): Promise<ProcessResult> {
+  const eventType = row.event_type;
+  const pluggyItemId = row.pluggy_item_id;
+  const payload = (row.payload ?? {}) as Record<string, unknown>;
 
   try {
     const rawItem = (payload as any)?.item ?? {};
@@ -44,6 +52,7 @@ export async function processWebhookEvent(supabase: any, row: WebhookRow, payloa
     const errCode: string | null =
       rawItem?.error?.code ?? (payload as any)?.error?.code ?? null;
 
+    // Erros de ação do usuário: marca a request e finaliza como processado.
     if (eventType === "item/error" && errCode && USER_ACTION_ERRORS.has(errCode)) {
       if (clientUserId && clientUserId.startsWith("ofreq:")) {
         const requestId = clientUserId.substring("ofreq:".length);
@@ -53,18 +62,10 @@ export async function processWebhookEvent(supabase: any, row: WebhookRow, payloa
           .eq("id", requestId)
           .in("status", ["created", "token_created", "processing", "materializing"]);
       }
-      await supabase
-        .from("open_finance_webhook_events")
-        .update({
-          status: "processed",
-          processed_at: new Date().toISOString(),
-          client_user_id: clientUserId,
-          last_error_code: errCode,
-        })
-        .eq("id", row.id);
-      return;
+      return { ok: true, clientUserId, errorCode: errCode };
     }
 
+    // Localiza conexão existente (para casos que não passam por materialize).
     let conn: { id: string; company_id: string } | null = null;
     if (pluggyItemId) {
       const { data } = await supabase
@@ -75,6 +76,7 @@ export async function processWebhookEvent(supabase: any, row: WebhookRow, payloa
       conn = data ?? null;
     }
 
+    // Materialização (item/created + item/updated).
     if (pluggyItemId && MATERIALIZE_EVENTS.has(eventType)) {
       const requestId = clientUserId?.startsWith("ofreq:")
         ? clientUserId.substring("ofreq:".length)
@@ -87,29 +89,13 @@ export async function processWebhookEvent(supabase: any, row: WebhookRow, payloa
         trigger: eventType === "item/created" ? "webhook:item/created" : "webhook:item/updated",
       });
       if (!result.ok) {
-        if (result.transient) {
-          const nextAttempt = backoffFor(row.attempt_count ?? 0);
-          await supabase
-            .from("open_finance_webhook_events")
-            .update({
-              status: "retry",
-              next_attempt_at: nextAttempt.toISOString(),
-              last_error_code: result.errorCode,
-              client_user_id: clientUserId,
-            })
-            .eq("id", row.id);
-          return;
-        }
-        await supabase
-          .from("open_finance_webhook_events")
-          .update({
-            status: "failed",
-            processed_at: new Date().toISOString(),
-            last_error_code: result.errorCode,
-            client_user_id: clientUserId,
-          })
-          .eq("id", row.id);
-        return;
+        return {
+          ok: false,
+          transient: Boolean(result.transient),
+          errorCode: result.errorCode,
+          errorMessage: (result as any).detail ?? result.errorCode,
+          clientUserId,
+        };
       }
       conn = { id: result.connectionId, company_id: result.companyId };
     }
@@ -127,6 +113,7 @@ export async function processWebhookEvent(supabase: any, row: WebhookRow, payloa
         .eq("id", conn.id);
     }
 
+    // Verifica se o item exige ação do usuário antes de agendar sync.
     let requiresUserAction = false;
     if (conn && (eventType.startsWith("item/") || eventType === "connector/status_updated")) {
       const item = rawItem;
@@ -143,35 +130,36 @@ export async function processWebhookEvent(supabase: any, row: WebhookRow, payloa
     }
 
     if (conn && !requiresUserAction && SYNC_EVENTS.has(eventType)) {
-      await supabase.from("open_finance_sync_runs").insert({
-        connection_id: conn.id,
-        company_id: conn.company_id,
-        status: "queued",
-        triggered_by: `webhook:${eventType}`,
-      });
+      // Idempotência: só enfileira 1 sync por evento de webhook.
+      const { data: existing } = await supabase
+        .from("open_finance_sync_runs")
+        .select("id")
+        .eq("source_webhook_event_id", row.id)
+        .maybeSingle();
+      if (!existing) {
+        await supabase.from("open_finance_sync_runs").insert({
+          connection_id: conn.id,
+          company_id: conn.company_id,
+          status: "queued",
+          triggered_by: `webhook:${eventType}`,
+          source_webhook_event_id: row.id,
+        });
+      }
     }
 
-    await supabase
-      .from("open_finance_webhook_events")
-      .update({
-        status: "processed",
-        processed_at: new Date().toISOString(),
-        connection_id: conn?.id ?? null,
-        company_id: conn?.company_id ?? null,
-        client_user_id: clientUserId,
-      })
-      .eq("id", row.id);
+    return {
+      ok: true,
+      connectionId: conn?.id ?? null,
+      companyId: conn?.company_id ?? null,
+      clientUserId,
+    };
   } catch (err) {
-    console.error("[pluggy-webhook] processing failed", err);
-    const nextAttempt = backoffFor(row.attempt_count ?? 0);
-    await supabase
-      .from("open_finance_webhook_events")
-      .update({
-        status: "retry",
-        next_attempt_at: nextAttempt.toISOString(),
-        error: String((err as Error)?.message ?? err).slice(0, 500),
-        last_error_code: "internal_error",
-      })
-      .eq("id", row.id);
+    console.error("[pluggy-webhook-processor] failure", err);
+    return {
+      ok: false,
+      transient: true,
+      errorCode: "internal_error",
+      errorMessage: String((err as Error)?.message ?? err).slice(0, 500),
+    };
   }
 }
