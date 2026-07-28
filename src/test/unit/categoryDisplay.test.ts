@@ -68,3 +68,17 @@ describe("subtipos de categoria", () => {
     });
   });
 });
+
+describe("categoryGuideLevels", () => {
+  it("não desenha guias no nível raiz", () => {
+    expect(categoryGuideLevels(0)).toEqual([]);
+  });
+  it("desenha uma guia por ancestral", () => {
+    expect(categoryGuideLevels(1)).toEqual([0]);
+    expect(categoryGuideLevels(3)).toEqual([0, 1, 2]);
+  });
+  it("trata valores inválidos como raiz", () => {
+    expect(categoryGuideLevels(-2)).toEqual([]);
+    expect(categoryGuideLevels(NaN as unknown as number)).toEqual([]);
+  });
+});
