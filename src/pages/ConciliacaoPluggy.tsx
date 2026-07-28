@@ -105,8 +105,9 @@ export default function ConciliacaoPluggy() {
         _context: "pj", _company_id: selectedCompanyId, _include_inactive: false,
       }),
       supabase.from("categories")
-        .select("id, name, transaction_type")
-        .or(`company_id.eq.${selectedCompanyId},and(user_id.is.null,company_id.is.null)`)
+        .select("id, name, transaction_type, category_companies!inner(company_id)")
+        .eq("category_companies.company_id", selectedCompanyId)
+        .eq("is_active", true)
         .order("name"),
       supabase.from("pluggy_accounts")
         .select("pluggy_account_id, linked_account_id")
