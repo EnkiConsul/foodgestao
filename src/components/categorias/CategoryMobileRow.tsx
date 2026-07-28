@@ -119,7 +119,7 @@ export function CategoryMobileRow({
             aria-label={`Ações para ${cat.name}`}
             className="h-11 w-11 shrink-0 self-center text-muted-foreground"
           >
-            <MoreVertical className="h-4 w-4" />
+            <MoreVertical aria-hidden className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
