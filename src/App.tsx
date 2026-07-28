@@ -140,6 +140,8 @@ const AdminBancos = lazyWithRetry(() => import("./pages/admin/Bancos"));
 const AdminDriftSaldos = lazyWithRetry(() => import("./pages/admin/DriftSaldos"));
 const AdminPluggyConexoes = lazyWithRetry(() => import("./pages/admin/PluggyConexoes"));
 const AdminPluggyWebhookLogs = lazyWithRetry(() => import("./pages/admin/PluggyWebhookLogs"));
+const AdminPluggyV2Conexoes = lazyWithRetry(() => import("./pages/admin/PluggyV2Conexoes"));
+const AdminPluggyV2WebhookLogs = lazyWithRetry(() => import("./pages/admin/PluggyV2WebhookLogs"));
 
 const AdminSeoIndexacao = lazyWithRetry(() => import("./pages/admin/SeoIndexacao"));
 
