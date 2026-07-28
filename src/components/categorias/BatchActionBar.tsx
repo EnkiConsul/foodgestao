@@ -86,11 +86,11 @@ export function BatchActionBar({
         </Popover>
 
         <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={onOpenVisibility}>
-          <Eye className="h-3.5 w-3.5" />
+          <Eye className="h-3.5 w-3.5" aria-hidden />
           Visibilidade
         </Button>
         <Button variant="destructive" size="sm" className="h-8 text-xs gap-1" onClick={onOpenDelete}>
-          <Trash2 className="h-3.5 w-3.5" />
+          <Trash2 className="h-3.5 w-3.5" aria-hidden />
           Excluir
         </Button>
         <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={onClearSelection}>
