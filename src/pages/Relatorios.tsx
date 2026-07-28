@@ -153,17 +153,32 @@ export default function Relatorios() {
     enabled: !!user && isFinancialScopeReady(contextType, user?.id, selectedCompanyId),
     queryFn: async () => {
       const scope = assertFinancialScope({ context: contextType, userId: user!.id, companyId: selectedCompanyId });
-      const q = applyFinancialScope(
-        supabase
-          .from("transactions")
-          .select("amount, amount_paid, transaction_type, transaction_date, category_id, account_id, status, due_date, payment_method_id, contact_id"),
-        scope,
-      )
-        .gte("transaction_date", startDate)
-        .lte("transaction_date", endDate);
-      const { data } = await q;
-      return (data ?? []) as FluxoTransaction[];
+      // Mesma regra da tela de Lançamentos: o período considera o vencimento
+      // quando existe, senão a data do lançamento.
+      const sel = (s: string): string => s;
+      const all: FluxoTransaction[] = [];
+      const pageSize = 1000;
+      for (let page = 0; ; page++) {
+        const q = applyFinancialScope(
+          supabase
+            .from("transactions")
+            .select(sel("amount, amount_paid, transaction_type, transaction_date, category_id, account_id, status, due_date, payment_method_id, contact_id")),
+          scope,
+        )
+          .or(
+            `and(due_date.is.null,transaction_date.gte.${startDate},transaction_date.lte.${endDate}),and(due_date.gte.${startDate},due_date.lte.${endDate})`,
+          )
+          .order("transaction_date", { ascending: true })
+          .range(page * pageSize, page * pageSize + pageSize - 1);
+        const { data, error } = await q.returns<FluxoTransaction[]>();
+        if (error) throw error;
+        const rows = data ?? [];
+        all.push(...rows);
+        if (rows.length < pageSize) break;
+      }
+      return all;
     },
+
   });
 
   const filteredTransactions = useMemo(() => {
