@@ -288,8 +288,15 @@ export default function ConciliacaoPluggy() {
     load();
   };
 
-  const confirmSelected = () => confirmIds(Array.from(selected));
-  const ignoreSelected = () => ignoreIds(Array.from(selected));
+  const confirmSelected = async () => {
+    setBulkBusy("confirm");
+    try { await confirmIds(Array.from(selected)); } finally { setBulkBusy(null); }
+  };
+  const ignoreSelected = async () => {
+    setBulkBusy("ignore");
+    try { await ignoreIds(Array.from(selected)); } finally { setBulkBusy(null); }
+  };
+
 
   const handleRowAction = async (id: string, action: "confirm" | "ignore") => {
     setRowBusy(id);
