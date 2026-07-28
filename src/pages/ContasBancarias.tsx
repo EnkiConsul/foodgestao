@@ -56,6 +56,8 @@ export default function ContasBancarias() {
   const [postCreateAccountId, setPostCreateAccountId] = useState<string | null>(null);
   const [deleteAccount, setDeleteAccount] = useState<Account | null>(null);
   const [deleteHasTx, setDeleteHasTx] = useState<boolean | null>(null);
+  const [linkedCards, setLinkedCards] = useState<Array<{ id: string; brand: string | null; last4: string | null }>>([]);
+  const [unlinkingCards, setUnlinkingCards] = useState(false);
   const [adjustAccount, setAdjustAccount] = useState<Account | null>(null);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
@@ -170,17 +172,40 @@ export default function ContasBancarias() {
 
   useEffect(() => {
     let cancelled = false;
-    if (!deleteAccount) { setDeleteHasTx(null); return; }
+    if (!deleteAccount) { setDeleteHasTx(null); setLinkedCards([]); return; }
     setDeleteHasTx(null);
+    setLinkedCards([]);
     (async () => {
-      const { count } = await supabase
-        .from("transactions")
-        .select("id", { count: "exact", head: true })
-        .or(`account_id.eq.${deleteAccount.id},destination_account_id.eq.${deleteAccount.id},connection_account_id.eq.${deleteAccount.id}`);
-      if (!cancelled) setDeleteHasTx((count ?? 0) > 0);
+      const [{ count }, { data: cards }] = await Promise.all([
+        supabase
+          .from("transactions")
+          .select("id", { count: "exact", head: true })
+          .or(`account_id.eq.${deleteAccount.id},destination_account_id.eq.${deleteAccount.id},connection_account_id.eq.${deleteAccount.id}`),
+        supabase
+          .from("credit_cards")
+          .select("id, brand, last4")
+          .eq("default_payment_account_id", deleteAccount.id),
+      ]);
+      if (!cancelled) {
+        setDeleteHasTx((count ?? 0) > 0);
+        setLinkedCards((cards ?? []) as any);
+      }
     })();
     return () => { cancelled = true; };
   }, [deleteAccount]);
+
+  const handleUnlinkCards = async () => {
+    if (!deleteAccount || linkedCards.length === 0) return;
+    setUnlinkingCards(true);
+    const { error } = await supabase
+      .from("credit_cards")
+      .update({ default_payment_account_id: null })
+      .eq("default_payment_account_id", deleteAccount.id);
+    setUnlinkingCards(false);
+    if (error) { toast.error("Erro ao desvincular cartões"); return; }
+    toast.success("Cartões desvinculados. Agora você pode excluir a conta.");
+    setLinkedCards([]);
+  };
 
   const handleDelete = async () => {
     if (!deleteAccount) return;
@@ -189,6 +214,9 @@ export default function ContasBancarias() {
       const msg = (error.message || "").toLowerCase();
       if (msg.includes("open_finance") || msg.includes("conex") || msg.includes("desconect")) {
         toast.error("Desconecte o Open Finance desta conta antes de excluir.");
+      } else if (msg.includes("fatura") || msg.includes("cart")) {
+        toast.error("Esta conta é a conta de pagamento padrão de um cartão. Desvincule antes de excluir.");
+        return; // keep dialog open so the user can click "Desvincular cartões"
       } else if (msg.includes("permission denied") || (error as { code?: string }).code === "42501") {
         toast.error("Você não tem permissão para excluir esta conta.");
       } else {
@@ -529,9 +557,30 @@ export default function ContasBancarias() {
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {linkedCards.length > 0 && (
+            <div className="rounded-md border border-warning/50 bg-warning/10 p-3 text-sm">
+              <div className="font-medium mb-1 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+                Cartão(ões) usando esta conta como pagamento padrão
+              </div>
+              <ul className="list-disc pl-5 mb-2 text-muted-foreground">
+                {linkedCards.map((c) => (
+                  <li key={c.id}>{c.brand ?? "Cartão"}{c.last4 ? ` •••• ${c.last4}` : ""}</li>
+                ))}
+              </ul>
+              <p className="text-muted-foreground mb-2">Desvincule para poder excluir a conta.</p>
+              <Button size="sm" variant="outline" onClick={handleUnlinkCards} disabled={unlinkingCards}>
+                {unlinkingCards ? "Desvinculando…" : "Desvincular cartões"}
+              </Button>
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={linkedCards.length > 0}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
