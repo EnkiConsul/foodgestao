@@ -137,7 +137,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
 
   const [accountDialogOpen, setAccountDialogOpen] = useState(false);
-  const [accountMethodOpen, setAccountMethodOpen] = useState(false);
+  
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState(false);
