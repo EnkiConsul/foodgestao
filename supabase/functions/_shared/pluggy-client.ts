@@ -94,6 +94,19 @@ export function safePluggyError(raw: unknown, httpStatus?: number): string {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+function decodeJwtExpMs(jwt: string): number | null {
+  try {
+    const parts = jwt.split(".");
+    if (parts.length < 2) return null;
+    // atob-safe base64url decode
+    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+    const json = JSON.parse(atob(padded));
+    if (typeof json?.exp === "number") return json.exp * 1000;
+    return null;
+  } catch { return null; }
+}
+
 async function authenticate(): Promise<string | null> {
   const c = creds();
   if (!c) return null;
@@ -110,7 +123,11 @@ async function authenticate(): Promise<string | null> {
   const data = await resp.json().catch(() => null);
   const apiKey = data?.apiKey;
   if (!apiKey) return null;
-  cached = { apiKey, expiresAt: Date.now() + AUTH_TTL_MS };
+  const now = Date.now();
+  const expFromJwt = decodeJwtExpMs(apiKey);
+  const ttlFromJwt = expFromJwt ? Math.max(60_000, expFromJwt - now - 5 * 60_000) : null;
+  const ttl = Math.min(ttlFromJwt ?? AUTH_TTL_FALLBACK_MS, AUTH_TTL_MAX_MS);
+  cached = { apiKey, expiresAt: now + ttl };
   return apiKey;
 }
 
