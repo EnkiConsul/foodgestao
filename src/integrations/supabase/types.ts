@@ -6951,6 +6951,274 @@ export type Database = {
         }
         Relationships: []
       }
+      pluggy_accounts: {
+        Row: {
+          balance: number | null
+          company_id: string
+          connection_id: string
+          created_at: string
+          currency_code: string | null
+          id: string
+          linked_account_id: string | null
+          name: string | null
+          number_masked: string | null
+          pluggy_account_id: string
+          raw: Json | null
+          subtype: string | null
+          type: string | null
+          updated_at: string
+        }
+        Insert: {
+          balance?: number | null
+          company_id: string
+          connection_id: string
+          created_at?: string
+          currency_code?: string | null
+          id?: string
+          linked_account_id?: string | null
+          name?: string | null
+          number_masked?: string | null
+          pluggy_account_id: string
+          raw?: Json | null
+          subtype?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          balance?: number | null
+          company_id?: string
+          connection_id?: string
+          created_at?: string
+          currency_code?: string | null
+          id?: string
+          linked_account_id?: string | null
+          name?: string | null
+          number_masked?: string | null
+          pluggy_account_id?: string
+          raw?: Json | null
+          subtype?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pluggy_accounts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pluggy_accounts_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "pluggy_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pluggy_accounts_linked_account_id_fkey"
+            columns: ["linked_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pluggy_connections: {
+        Row: {
+          company_id: string
+          connector_id: number | null
+          connector_image_url: string | null
+          connector_name: string | null
+          created_at: string
+          created_by: string | null
+          execution_status: string | null
+          id: string
+          last_error: Json | null
+          last_synced_at: string | null
+          pluggy_item_id: string
+          status: Database["public"]["Enums"]["pluggy_connection_status"]
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          connector_id?: number | null
+          connector_image_url?: string | null
+          connector_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          execution_status?: string | null
+          id?: string
+          last_error?: Json | null
+          last_synced_at?: string | null
+          pluggy_item_id: string
+          status?: Database["public"]["Enums"]["pluggy_connection_status"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          connector_id?: number | null
+          connector_image_url?: string | null
+          connector_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          execution_status?: string | null
+          id?: string
+          last_error?: Json | null
+          last_synced_at?: string | null
+          pluggy_item_id?: string
+          status?: Database["public"]["Enums"]["pluggy_connection_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pluggy_connections_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pluggy_staging_transactions: {
+        Row: {
+          amount: number
+          category_pluggy: string | null
+          company_id: string
+          connection_id: string
+          created_at: string
+          currency_code: string | null
+          date: string
+          description: string | null
+          id: string
+          matched_transaction_id: string | null
+          pluggy_account_id: string
+          pluggy_transaction_id: string
+          raw: Json | null
+          status: Database["public"]["Enums"]["pluggy_staging_status"]
+          suggested_account_id: string | null
+          suggested_category_id: string | null
+          type: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category_pluggy?: string | null
+          company_id: string
+          connection_id: string
+          created_at?: string
+          currency_code?: string | null
+          date: string
+          description?: string | null
+          id?: string
+          matched_transaction_id?: string | null
+          pluggy_account_id: string
+          pluggy_transaction_id: string
+          raw?: Json | null
+          status?: Database["public"]["Enums"]["pluggy_staging_status"]
+          suggested_account_id?: string | null
+          suggested_category_id?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category_pluggy?: string | null
+          company_id?: string
+          connection_id?: string
+          created_at?: string
+          currency_code?: string | null
+          date?: string
+          description?: string | null
+          id?: string
+          matched_transaction_id?: string | null
+          pluggy_account_id?: string
+          pluggy_transaction_id?: string
+          raw?: Json | null
+          status?: Database["public"]["Enums"]["pluggy_staging_status"]
+          suggested_account_id?: string | null
+          suggested_category_id?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pluggy_staging_transactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pluggy_staging_transactions_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "pluggy_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pluggy_staging_transactions_matched_transaction_id_fkey"
+            columns: ["matched_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_sources"
+            referencedColumns: ["transaction_id"]
+          },
+          {
+            foreignKeyName: "pluggy_staging_transactions_matched_transaction_id_fkey"
+            columns: ["matched_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pluggy_staging_transactions_suggested_account_id_fkey"
+            columns: ["suggested_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pluggy_staging_transactions_suggested_category_id_fkey"
+            columns: ["suggested_category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pluggy_webhook_events: {
+        Row: {
+          created_at: string
+          error: string | null
+          event_id: string | null
+          event_type: string
+          id: string
+          payload: Json
+          pluggy_item_id: string | null
+          processed_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          event_id?: string | null
+          event_type: string
+          id?: string
+          payload: Json
+          pluggy_item_id?: string | null
+          processed_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          event_id?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json
+          pluggy_item_id?: string | null
+          processed_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           asaas_customer_id: string | null
@@ -8485,6 +8753,21 @@ export type Database = {
           transaction_type: Database["public"]["Enums"]["transaction_type"]
         }[]
       }
+      pluggy_confirm_staging: {
+        Args: {
+          p_account_id: string
+          p_category_id?: string
+          p_staging_ids: string[]
+        }
+        Returns: {
+          staging_id: string
+          transaction_id: string
+        }[]
+      }
+      pluggy_ignore_staging: {
+        Args: { p_staging_ids: string[] }
+        Returns: number
+      }
       pluggy_remote_delete_claim: {
         Args: { _batch?: number; _lease_seconds?: number }
         Returns: {
@@ -8816,6 +9099,16 @@ export type Database = {
         | "not_contracted"
         | "trial_expirado"
       parcel_direction: "entrada" | "saida"
+      pluggy_connection_status:
+        | "created"
+        | "updating"
+        | "waiting_user_input"
+        | "login_error"
+        | "outdated"
+        | "updated"
+        | "error"
+        | "deleted"
+      pluggy_staging_status: "pending" | "confirmed" | "ignored" | "duplicate"
       pluggy_v2_connection_status:
         | "created"
         | "updating"
@@ -9212,6 +9505,17 @@ export const Constants = {
         "trial_expirado",
       ],
       parcel_direction: ["entrada", "saida"],
+      pluggy_connection_status: [
+        "created",
+        "updating",
+        "waiting_user_input",
+        "login_error",
+        "outdated",
+        "updated",
+        "error",
+        "deleted",
+      ],
+      pluggy_staging_status: ["pending", "confirmed", "ignored", "duplicate"],
       pluggy_v2_connection_status: [
         "created",
         "updating",

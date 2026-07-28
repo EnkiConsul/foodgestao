@@ -16,11 +16,14 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
 import { ImportStatementDialog } from "@/components/transactions/ImportStatementDialog";
 import { AdjustAccountBalanceDialog } from "@/components/accounts/AdjustAccountBalanceDialog";
+import { AccountCreationMethodDialog } from "@/components/accounts/AccountCreationMethodDialog";
+import { PluggyConnectDialog } from "@/components/accounts/PluggyConnectDialog";
+import { useNavigate } from "react-router-dom";
 
 
 
 import { BankLogo } from "@/components/accounts/BankLogo";
-import { Plus, Search, Landmark, Pencil, Trash2, Wallet, RefreshCw, AlertTriangle, Upload, SlidersHorizontal } from "lucide-react";
+import { Plus, Search, Landmark, Pencil, Trash2, Wallet, RefreshCw, AlertTriangle, Upload, SlidersHorizontal, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -40,10 +43,13 @@ export default function ContasBancarias() {
   const { user } = useAuth();
   const { contextType, selectedCompanyId, companies } = useCompanyContext();
   const { maskBRL } = usePrivacy();
-  
+  const navigate = useNavigate();
+
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [methodDialogOpen, setMethodDialogOpen] = useState(false);
+  const [pluggyOpen, setPluggyOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [importAccountId, setImportAccountId] = useState<string | null>(null);
@@ -87,8 +93,12 @@ export default function ContasBancarias() {
   }, []);
 
   const openMethodDialog = useCallback(() => {
-    openManualForm(null);
-  }, [openManualForm]);
+    if (contextType === "pj" && selectedCompanyId) {
+      setMethodDialogOpen(true);
+    } else {
+      openManualForm(null);
+    }
+  }, [openManualForm, contextType, selectedCompanyId]);
 
   const handleFormOpenChange = useCallback((open: boolean) => {
     setDialogOpen(open);
@@ -222,6 +232,15 @@ export default function ContasBancarias() {
           <p className="text-sm text-muted-foreground">Gerencie suas contas e saldos</p>
         </div>
         <div className="flex items-center gap-2">
+          {contextType === "pj" && selectedCompanyId && (
+            <Button
+              variant="outline"
+              onClick={() => navigate("/contas-bancarias/conexoes")}
+              className="hidden md:flex"
+            >
+              <Link2 className="h-4 w-4 mr-2" /> Conexões Open Finance
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={handleResync}
@@ -525,6 +544,23 @@ export default function ContasBancarias() {
         account={adjustAccount}
         onAdjusted={fetchAccounts}
       />
+
+      <AccountCreationMethodDialog
+        open={methodDialogOpen}
+        onOpenChange={setMethodDialogOpen}
+        showOpenFinance={contextType === "pj" && !!selectedCompanyId}
+        onSelectManual={() => { setMethodDialogOpen(false); openManualForm(null); }}
+        onSelectOpenFinance={() => { setMethodDialogOpen(false); setPluggyOpen(true); }}
+      />
+
+      {selectedCompanyId && (
+        <PluggyConnectDialog
+          open={pluggyOpen}
+          onOpenChange={setPluggyOpen}
+          companyId={selectedCompanyId}
+          onConnected={() => navigate("/contas-bancarias/conciliacao")}
+        />
+      )}
     </div>
   );
 }
