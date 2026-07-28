@@ -35,3 +35,5 @@ project_id = "grtxmbffgmgnkawlvqhm"
     verify_jwt = false
   [functions.pluggy-consent-notifier]
     verify_jwt = false
+  [functions.pluggy-webhook-drain]
+    verify_jwt = false

@@ -66,6 +66,8 @@ export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished, r
   const [institutionName, setInstitutionName] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [purging, setPurging] = useState(false);
+  const [requestId, setRequestId] = useState<string | null>(null);
+  const [awaitingAuth, setAwaitingAuth] = useState(false);
   const pluggyRef = useRef<any>(null);
 
   const purgeOrphans = useCallback(async () => {
@@ -98,8 +100,61 @@ export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished, r
       setConnectionId(null);
       setAccounts([]);
       setInstitutionName(null);
+      setRequestId(null);
+      setAwaitingAuth(false);
     }
   }, [open]);
+
+  // P0 — Polling da solicitação: se onSuccess não rodar, o webhook conclui
+  // a materialização e o polling detecta status='connected'.
+  useEffect(() => {
+    if (!open || !requestId || step === "accounts" || step === "done") return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const tick = async () => {
+      const { data } = await supabase
+        .from("open_finance_connection_requests")
+        .select("id, status, pluggy_item_id, error_code, correlation_expires_at, cancelled_at")
+        .eq("id", requestId)
+        .maybeSingle();
+      if (cancelled || !data) {
+        if (!cancelled) timer = setTimeout(tick, 3000);
+        return;
+      }
+      if (data.status === "awaiting_authorization") {
+        setAwaitingAuth(true);
+      }
+      if (data.status === "connected" && data.pluggy_item_id) {
+        const { data: conn } = await supabase
+          .from("open_finance_connections")
+          .select("id, institution_name")
+          .eq("pluggy_item_id", data.pluggy_item_id)
+          .maybeSingle();
+        if (conn?.id && !cancelled) {
+          setConnectionId(conn.id);
+          setInstitutionName(conn.institution_name ?? null);
+          await loadAccounts(conn.id);
+          setStep("accounts");
+          try { pluggyRef.current?.destroy?.(); } catch { /* noop */ }
+          return;
+        }
+      }
+      if (data.status === "cancelled" || data.status === "failed") {
+        if (!cancelled) {
+          setError(data.error_code || "Solicitação encerrada.");
+          setStep("error");
+        }
+        return;
+      }
+      timer = setTimeout(tick, 3000);
+    };
+    timer = setTimeout(tick, 2000);
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [open, requestId, step]);
+
 
   const startConnect = useCallback(async () => {
     if (!companyId) {
@@ -117,7 +172,8 @@ export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished, r
       if (tokenErr || !data?.access_token) {
         throw new Error(tokenErr?.message || (data as any)?.error || "connect_token_failed");
       }
-      const requestId = (data as any).request_id as string | null;
+      const newRequestId = (data as any).request_id as string | null;
+      setRequestId(newRequestId);
 
       setStep("connecting");
       const PluggyConnect = (window as any).PluggyConnect;
@@ -126,22 +182,23 @@ export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished, r
         includeSandbox: false,
         ...(reconnectItemId ? { updateItem: reconnectItemId } : {}),
         onSuccess: async (payload: any) => {
+          // Fast-path: acelera a UX. Não é fonte de verdade — se falhar aqui,
+          // o webhook + polling concluem a materialização em segundo plano.
           try {
             const itemId = payload?.item?.id;
-            if (!itemId) throw new Error("no_item_id");
+            if (!itemId) return;
             setBusy(true);
-            const { data: reg, error: regErr } = await supabase.functions.invoke("pluggy-item-register", {
-              body: { company_id: companyId, item_id: itemId, request_id: requestId },
+            const { data: reg } = await supabase.functions.invoke("pluggy-item-register", {
+              body: { company_id: companyId, item_id: itemId, request_id: newRequestId },
             });
-            if (regErr || !reg?.connection_id) {
-              throw new Error(regErr?.message || (reg as any)?.error || "register_failed");
+            if (reg?.connection_id) {
+              setConnectionId(reg.connection_id);
+              await loadAccounts(reg.connection_id);
+              setStep("accounts");
             }
-            setConnectionId(reg.connection_id);
-            await loadAccounts(reg.connection_id);
-            setStep("accounts");
+            // Se falhar, o polling do requestId cuidará da conclusão.
           } catch (e: any) {
-            setError(e?.message || "Falha ao registrar conexão.");
-            setStep("error");
+            console.warn("[of-wizard] fast-path register failed, polling will take over", e?.message);
           } finally {
             setBusy(false);
           }
@@ -153,8 +210,8 @@ export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished, r
           setBusy(false);
         },
         onClose: () => {
-          // if not connected yet, go back to intro
-          setStep((prev) => (prev === "connecting" ? "intro" : prev));
+          // Autorização pode continuar em segundo plano — não declaramos falha.
+          setStep((prev) => (prev === "connecting" ? "connecting" : prev));
         },
       });
       pluggyRef.current.init();
@@ -326,9 +383,16 @@ export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished, r
         )}
 
         {step === "connecting" && (
-          <div className="flex items-center gap-3 py-6 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Aguardando autorização no widget da Pluggy...
+          <div className="space-y-3 py-4 text-sm">
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {awaitingAuth
+                ? "Autorize o acesso no aplicativo do banco. Assim que a instituição confirmar, a conexão será concluída automaticamente."
+                : "Aguardando autorização no widget da Pluggy..."}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Você pode fechar esta janela — a conexão aparecerá automaticamente quando o banco concluir a autorização.
+            </p>
           </div>
         )}
 
