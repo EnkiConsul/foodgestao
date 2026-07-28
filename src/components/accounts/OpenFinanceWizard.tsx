@@ -383,9 +383,16 @@ export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished, r
         )}
 
         {step === "connecting" && (
-          <div className="flex items-center gap-3 py-6 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Aguardando autorização no widget da Pluggy...
+          <div className="space-y-3 py-4 text-sm">
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {awaitingAuth
+                ? "Autorize o acesso no aplicativo do banco. Assim que a instituição confirmar, a conexão será concluída automaticamente."
+                : "Aguardando autorização no widget da Pluggy..."}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Você pode fechar esta janela — a conexão aparecerá automaticamente quando o banco concluir a autorização.
+            </p>
           </div>
         )}
 
