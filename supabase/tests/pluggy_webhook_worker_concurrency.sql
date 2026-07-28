@@ -62,13 +62,14 @@ SET claim_expires_at = now() - interval '10 seconds'
 WHERE claimed_by = 'worker-a'
   AND event_id LIKE 'test-concurrency-%';
 
+WITH reclaim AS (
+  SELECT id FROM public.pluggy_webhook_claim('worker-c', 10, 60)
+)
 SELECT
-  CASE
-    WHEN (public.pluggy_webhook_claim('worker-c', 10, 60))->>'reclaimed_count' IS NOT NULL
-      OR (SELECT count(*) FROM public.open_finance_webhook_events
-          WHERE claimed_by = 'worker-c' AND event_id LIKE 'test-concurrency-%') > 0
-    THEN 'PASS: reservas expiradas foram recuperadas'
-    ELSE 'FAIL: worker-c não recuperou eventos expirados'
+  (SELECT count(*) FROM reclaim) AS recuperados,
+  CASE WHEN (SELECT count(*) FROM reclaim) > 0
+       THEN 'PASS: reservas expiradas foram recuperadas'
+       ELSE 'FAIL: worker-c não recuperou eventos expirados'
   END AS t2_result;
 
 -- T3: finalize_failure após max_attempts move para dead_letter
