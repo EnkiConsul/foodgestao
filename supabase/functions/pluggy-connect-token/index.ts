@@ -16,7 +16,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
-import { createConnectToken, safePluggyError } from "../_shared/pluggy-client.ts";
+import { createConnectToken, getItem, safePluggyError } from "../_shared/pluggy-client.ts";
 
 // Connect Token vive por ~30 min (curto). Correlação (autorização bancária
 // assíncrona) precisa continuar válida por muito mais tempo — o usuário pode
@@ -28,6 +28,7 @@ const BodySchema = z.object({
   company_id: z.string().uuid(),
   item_id: z.string().min(1).max(128).optional(),
   idempotency_key: z.string().min(1).max(128).optional(),
+  oauth_redirect_url: z.string().url().max(2048).optional(),
 });
 
 function json(status: number, body: unknown) {
@@ -125,18 +126,35 @@ Deno.serve(async (req) => {
   }
 
   const requestId = reqRow.id as string;
-  const clientUserId = `ofreq:${requestId}`;
+
+  // clientUserId: em fluxo novo geramos "ofreq:<request_id>". Em reconexão,
+  // a doc recomenda preservar o clientUserId original do item — tentamos ler
+  // do próprio Item na Pluggy (fonte de verdade) e caímos para ofreq:<id>
+  // apenas se ausente.
+  let clientUserId = `ofreq:${requestId}`;
+  if (parsed.item_id) {
+    const itemResp = await getItem(parsed.item_id);
+    if (itemResp.ok && itemResp.data?.clientUserId) {
+      clientUserId = itemResp.data.clientUserId;
+    }
+  }
+
   // Depois que o webhook global (pluggy-webhook-configure) estiver ativo e
   // confirmado, defina PLUGGY_USE_GLOBAL_WEBHOOK=true para parar de enviar
   // webhookUrl por Connect Token e evitar entregas duplicadas.
   const useGlobalWebhook = (Deno.env.get("PLUGGY_USE_GLOBAL_WEBHOOK") ?? "").toLowerCase() === "true";
   const webhookUrl = useGlobalWebhook ? undefined : `${url}/functions/v1/pluggy-webhook`;
 
+  // oauthRedirectUrl: preferência do cliente > env default > URL publicada.
+  const envRedirect = Deno.env.get("PLUGGY_OAUTH_REDIRECT_URL") ?? "";
+  const oauthRedirectUrl = parsed.oauth_redirect_url
+    ?? (envRedirect || undefined);
+
   // 3) Cria o Connect Token na Pluggy com payload em `options`.
   const result = await createConnectToken({
     clientUserId,
     ...(webhookUrl ? { webhookUrl } : {}),
-    avoidDuplicates: true,
+    ...(oauthRedirectUrl ? { oauthRedirectUrl } : {}),
     itemId: parsed.item_id,
   });
 
