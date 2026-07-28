@@ -16,11 +16,14 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
 import { ImportStatementDialog } from "@/components/transactions/ImportStatementDialog";
 import { AdjustAccountBalanceDialog } from "@/components/accounts/AdjustAccountBalanceDialog";
+import { AccountCreationMethodDialog } from "@/components/accounts/AccountCreationMethodDialog";
+import { PluggyConnectDialog } from "@/components/accounts/PluggyConnectDialog";
+import { useNavigate } from "react-router-dom";
 
 
 
 import { BankLogo } from "@/components/accounts/BankLogo";
-import { Plus, Search, Landmark, Pencil, Trash2, Wallet, RefreshCw, AlertTriangle, Upload, SlidersHorizontal } from "lucide-react";
+import { Plus, Search, Landmark, Pencil, Trash2, Wallet, RefreshCw, AlertTriangle, Upload, SlidersHorizontal, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
