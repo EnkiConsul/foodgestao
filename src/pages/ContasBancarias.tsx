@@ -214,6 +214,9 @@ export default function ContasBancarias() {
       const msg = (error.message || "").toLowerCase();
       if (msg.includes("open_finance") || msg.includes("conex") || msg.includes("desconect")) {
         toast.error("Desconecte o Open Finance desta conta antes de excluir.");
+      } else if (msg.includes("fatura") || msg.includes("cart")) {
+        toast.error("Esta conta é a conta de pagamento padrão de um cartão. Desvincule antes de excluir.");
+        return; // keep dialog open so the user can click "Desvincular cartões"
       } else if (msg.includes("permission denied") || (error as { code?: string }).code === "42501") {
         toast.error("Você não tem permissão para excluir esta conta.");
       } else {
