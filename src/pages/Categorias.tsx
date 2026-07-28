@@ -232,8 +232,6 @@ export default function Categorias() {
 
   const tree = useMemo(() => buildCategoryTree(filtered), [filtered]);
 
-  // hierarchy_index é apenas um rótulo visual calculado em memória pelo buildTree.
-  // Não é mais persistido a cada render — evita loop de update + realtime + reordenação instável.
 
   // Filter out children of collapsed parents
   const visibleTree = useMemo(() => {
