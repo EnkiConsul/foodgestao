@@ -45,8 +45,6 @@ const Contatos = lazyWithRetry(() => import("./pages/Contatos"));
 const Categorias = lazyWithRetry(() => import("./pages/Categorias"));
 const ContasContabeis = lazyWithRetry(() => import("./pages/ContasContabeis"));
 const ContasBancarias = lazyWithRetry(() => import("./pages/ContasBancarias"));
-const ConexoesOpenFinance = lazyWithRetry(() => import("./pages/ConexoesOpenFinance"));
-const ConciliacaoOpenFinance = lazyWithRetry(() => import("./pages/ConciliacaoOpenFinance"));
 const Configuracoes = lazyWithRetry(() => import("./pages/Configuracoes"));
 const GestaoUsuarios = lazyWithRetry(() => import("./pages/GestaoUsuarios"));
 const Empresas = lazyWithRetry(() => import("./pages/Empresas"));
@@ -138,10 +136,6 @@ const AdminCadastros = lazyWithRetry(() => import("./pages/admin/Cadastros"));
 const AdminLandingPage = lazyWithRetry(() => import("./pages/admin/LandingPage"));
 const AdminBancos = lazyWithRetry(() => import("./pages/admin/Bancos"));
 const AdminDriftSaldos = lazyWithRetry(() => import("./pages/admin/DriftSaldos"));
-const AdminPluggyV2Conexoes = lazyWithRetry(() => import("./pages/admin/PluggyV2Conexoes"));
-const AdminPluggyV2WebhookLogs = lazyWithRetry(() => import("./pages/admin/PluggyV2WebhookLogs"));
-const AdminPluggyV2Reconciliacao = lazyWithRetry(() => import("./pages/admin/PluggyV2Reconciliacao"));
-const AdminPluggyV2Alertas = lazyWithRetry(() => import("./pages/admin/PluggyV2Alertas"));
 
 const AdminSeoIndexacao = lazyWithRetry(() => import("./pages/admin/SeoIndexacao"));
 
@@ -357,8 +351,6 @@ const AppRoutes = () => (
         
         <Route path="/contas-contabeis" element={<ContasContabeis />} />
         <Route path="/contas-bancarias" element={<ContasBancarias />} />
-        <Route path="/contas-bancarias/conexoes" element={<ConexoesOpenFinance />} />
-        <Route path="/contas-bancarias/conciliacao" element={<ConciliacaoOpenFinance />} />
         <Route path="/cartoes-credito" element={<CartoesCredito />} />
         
         <Route path="/configuracoes" element={<Configuracoes />} />
@@ -470,10 +462,6 @@ const AppRoutes = () => (
         <Route path="/admin/documentos-legais" element={<AdminDocumentosLegais />} />
         <Route path="/admin/bancos" element={<AdminBancos />} />
         <Route path="/admin/auditoria-saldos" element={<AdminDriftSaldos />} />
-        <Route path="/admin/pluggy-v2-conexoes" element={<AdminPluggyV2Conexoes />} />
-        <Route path="/admin/pluggy-v2-webhook-logs" element={<AdminPluggyV2WebhookLogs />} />
-        <Route path="/admin/pluggy-v2-reconciliacao" element={<AdminPluggyV2Reconciliacao />} />
-        <Route path="/admin/pluggy-v2-alertas" element={<AdminPluggyV2Alertas />} />
         
         <Route path="/admin/seo-indexacao" element={<AdminSeoIndexacao />} />
         <Route path="/admin/modulos" element={<AdminModulos />} />

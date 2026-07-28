@@ -59,10 +59,6 @@ const tenantItems = [
   { title: "Módulos", url: "/admin/modulos", icon: Sparkles },
   { title: "Bancos", url: "/admin/bancos", icon: Landmark },
   { title: "Auditoria de Saldos", url: "/admin/auditoria-saldos", icon: ShieldCheck },
-  { title: "Conexões Pluggy V2", url: "/admin/pluggy-v2-conexoes", icon: Webhook },
-  { title: "Logs de Webhooks V2", url: "/admin/pluggy-v2-webhook-logs", icon: ScrollText },
-  { title: "Reconciliação V1↔V2", url: "/admin/pluggy-v2-reconciliacao", icon: ScrollText },
-  { title: "Alertas Pluggy V2", url: "/admin/pluggy-v2-alertas", icon: AlertTriangle },
   
   { title: "Resetar Dados", url: "/admin/resetar-dados", icon: Database },
   { title: "Categorização IA", url: "/admin/categorizacao-ia", icon: Brain },

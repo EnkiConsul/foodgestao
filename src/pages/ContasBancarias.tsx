@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { usePrivacy } from "@/hooks/usePrivacy";
@@ -14,15 +14,13 @@ import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
-import { AccountCreationMethodDialog } from "@/components/accounts/AccountCreationMethodDialog";
-import { OpenFinanceWizard } from "@/components/accounts/OpenFinanceWizard";
 import { ImportStatementDialog } from "@/components/transactions/ImportStatementDialog";
 import { AdjustAccountBalanceDialog } from "@/components/accounts/AdjustAccountBalanceDialog";
 
 
 
 import { BankLogo } from "@/components/accounts/BankLogo";
-import { Plus, Search, Landmark, Pencil, Trash2, Wallet, RefreshCw, AlertTriangle, Upload, Zap, SlidersHorizontal } from "lucide-react";
+import { Plus, Search, Landmark, Pencil, Trash2, Wallet, RefreshCw, AlertTriangle, Upload, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -42,15 +40,11 @@ export default function ContasBancarias() {
   const { user } = useAuth();
   const { contextType, selectedCompanyId, companies } = useCompanyContext();
   const { maskBRL } = usePrivacy();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<Account | null>(null);
-  const [methodOpen, setMethodOpen] = useState(false);
-  const [ofWizardOpen, setOfWizardOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importAccountId, setImportAccountId] = useState<string | null>(null);
   const [postCreateAccountId, setPostCreateAccountId] = useState<string | null>(null);
@@ -86,50 +80,20 @@ export default function ContasBancarias() {
 
   // ─────────────────────────────────────────────────────────────────────────
   // Controle mutuamente exclusivo entre os 3 modais de conta.
-  // Só um dos três (methodOpen / dialogOpen / ofWizardOpen) pode estar aberto.
-  // Cada helper limpa os outros antes de abrir o próprio fluxo.
-  // ─────────────────────────────────────────────────────────────────────────
-  const openMethodDialog = useCallback(() => {
-    setDialogOpen(false);
-    setOfWizardOpen(false);
-    setEditAccount(null);
-    setMethodOpen(true);
-  }, []);
-
+  // Abrir formulário de conta (criação ou edição).
   const openManualForm = useCallback((account: Account | null) => {
-    setMethodOpen(false);
-    setOfWizardOpen(false);
     setEditAccount(account);
     setDialogOpen(true);
   }, []);
 
-  const openOfWizard = useCallback(() => {
-    setMethodOpen(false);
-    setDialogOpen(false);
-    setEditAccount(null);
-    setOfWizardOpen(true);
-  }, []);
+  const openMethodDialog = useCallback(() => {
+    openManualForm(null);
+  }, [openManualForm]);
 
-  // Fechamentos individuais — limpam apenas o estado do próprio fluxo.
-  const handleMethodOpenChange = useCallback((open: boolean) => {
-    setMethodOpen(open);
-  }, []);
   const handleFormOpenChange = useCallback((open: boolean) => {
     setDialogOpen(open);
     if (!open) setEditAccount(null);
   }, []);
-  const handleOfWizardOpenChange = useCallback((open: boolean) => {
-    setOfWizardOpen(open);
-  }, []);
-
-  // Auto-open Open Finance wizard from ?openFinance=1 (e.g., voltando da tela de Conexões)
-  useEffect(() => {
-    if (searchParams.get("openFinance") === "1" && contextType === "pj" && selectedCompanyId) {
-      openOfWizard();
-      searchParams.delete("openFinance");
-      setSearchParams(searchParams, { replace: true });
-    }
-  }, [searchParams, setSearchParams, contextType, selectedCompanyId, openOfWizard]);
 
   // Reset detector quando muda o perfil de acesso
   useEffect(() => {
@@ -212,9 +176,7 @@ export default function ContasBancarias() {
     const { data, error } = await supabase.rpc("delete_account", { _account_id: deleteAccount.id });
     if (error) {
       const msg = (error.message || "").toLowerCase();
-      if (msg.includes("open_finance") || msg.includes("conex") || msg.includes("desconect")) {
-        toast.error("Desconecte o Open Finance desta conta antes de excluir.");
-      } else if (msg.includes("fatura") || msg.includes("cart")) {
+      if (msg.includes("fatura") || msg.includes("cart")) {
         toast.error("Esta conta é a conta de pagamento padrão de um cartão. Desvincule antes de excluir.");
         return; // keep dialog open so the user can click "Desvincular cartões"
       } else if (msg.includes("permission denied") || (error as { code?: string }).code === "42501") {
@@ -260,15 +222,6 @@ export default function ContasBancarias() {
           <p className="text-sm text-muted-foreground">Gerencie suas contas e saldos</p>
         </div>
         <div className="flex items-center gap-2">
-          {contextType === "pj" && selectedCompanyId && (
-            <Button
-              variant="outline"
-              onClick={() => navigate("/contas-bancarias/conexoes")}
-              className="hidden md:flex"
-            >
-              <Zap className="h-4 w-4 mr-2" /> Conexões Open Finance
-            </Button>
-          )}
           <Button
             variant="outline"
             onClick={handleResync}
@@ -468,27 +421,6 @@ export default function ContasBancarias() {
         <Plus aria-hidden="true" className="h-6 w-6" />
       </button>
 
-      <AccountCreationMethodDialog
-        open={methodOpen}
-        onOpenChange={handleMethodOpenChange}
-        openFinanceEnabled={contextType === "pj" && !!selectedCompanyId}
-        openFinanceDisabledReason="Selecione uma empresa antes de conectar uma conta via Open Finance."
-        onSelectManual={() => openManualForm(null)}
-        onSelectOpenFinance={() => {
-          if (contextType !== "pj" || !selectedCompanyId) {
-            // Card está desabilitado — não deveria disparar. Mantém o modal aberto.
-            return;
-          }
-          openOfWizard();
-        }}
-      />
-
-      <OpenFinanceWizard
-        open={ofWizardOpen}
-        onOpenChange={handleOfWizardOpenChange}
-        companyId={contextType === "pj" ? selectedCompanyId : null}
-        onFinished={fetchAccounts}
-      />
 
       <AccountFormDialog
         open={dialogOpen}
