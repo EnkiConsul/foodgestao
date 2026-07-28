@@ -148,7 +148,7 @@ export default function Relatorios() {
   const startDate = format(activeRange.from, "yyyy-MM-dd");
   const endDate = format(activeRange.to, "yyyy-MM-dd");
 
-  const { data: fluxoTransactions = [] } = useQuery({
+  const { data: fluxoTransactions = [], isLoading: isLoadingFluxo } = useQuery({
     queryKey: ["relatorios-fluxo", user?.id, startDate, endDate, contextType, selectedCompanyId],
     enabled: !!user && isFinancialScopeReady(contextType, user?.id, selectedCompanyId),
     queryFn: async () => {
