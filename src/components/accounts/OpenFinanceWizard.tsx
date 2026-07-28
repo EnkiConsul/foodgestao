@@ -172,7 +172,8 @@ export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished, r
       if (tokenErr || !data?.access_token) {
         throw new Error(tokenErr?.message || (data as any)?.error || "connect_token_failed");
       }
-      const requestId = (data as any).request_id as string | null;
+      const newRequestId = (data as any).request_id as string | null;
+      setRequestId(newRequestId);
 
       setStep("connecting");
       const PluggyConnect = (window as any).PluggyConnect;
@@ -181,22 +182,23 @@ export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished, r
         includeSandbox: false,
         ...(reconnectItemId ? { updateItem: reconnectItemId } : {}),
         onSuccess: async (payload: any) => {
+          // Fast-path: acelera a UX. Não é fonte de verdade — se falhar aqui,
+          // o webhook + polling concluem a materialização em segundo plano.
           try {
             const itemId = payload?.item?.id;
-            if (!itemId) throw new Error("no_item_id");
+            if (!itemId) return;
             setBusy(true);
-            const { data: reg, error: regErr } = await supabase.functions.invoke("pluggy-item-register", {
-              body: { company_id: companyId, item_id: itemId, request_id: requestId },
+            const { data: reg } = await supabase.functions.invoke("pluggy-item-register", {
+              body: { company_id: companyId, item_id: itemId, request_id: newRequestId },
             });
-            if (regErr || !reg?.connection_id) {
-              throw new Error(regErr?.message || (reg as any)?.error || "register_failed");
+            if (reg?.connection_id) {
+              setConnectionId(reg.connection_id);
+              await loadAccounts(reg.connection_id);
+              setStep("accounts");
             }
-            setConnectionId(reg.connection_id);
-            await loadAccounts(reg.connection_id);
-            setStep("accounts");
+            // Se falhar, o polling do requestId cuidará da conclusão.
           } catch (e: any) {
-            setError(e?.message || "Falha ao registrar conexão.");
-            setStep("error");
+            console.warn("[of-wizard] fast-path register failed, polling will take over", e?.message);
           } finally {
             setBusy(false);
           }
@@ -208,8 +210,8 @@ export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished, r
           setBusy(false);
         },
         onClose: () => {
-          // if not connected yet, go back to intro
-          setStep((prev) => (prev === "connecting" ? "intro" : prev));
+          // Autorização pode continuar em segundo plano — não declaramos falha.
+          setStep((prev) => (prev === "connecting" ? "connecting" : prev));
         },
       });
       pluggyRef.current.init();
