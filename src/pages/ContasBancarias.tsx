@@ -557,9 +557,30 @@ export default function ContasBancarias() {
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {linkedCards.length > 0 && (
+            <div className="rounded-md border border-warning/50 bg-warning/10 p-3 text-sm">
+              <div className="font-medium mb-1 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+                Cartão(ões) usando esta conta como pagamento padrão
+              </div>
+              <ul className="list-disc pl-5 mb-2 text-muted-foreground">
+                {linkedCards.map((c) => (
+                  <li key={c.id}>{c.brand ?? "Cartão"}{c.last4 ? ` •••• ${c.last4}` : ""}</li>
+                ))}
+              </ul>
+              <p className="text-muted-foreground mb-2">Desvincule para poder excluir a conta.</p>
+              <Button size="sm" variant="outline" onClick={handleUnlinkCards} disabled={unlinkingCards}>
+                {unlinkingCards ? "Desvinculando…" : "Desvincular cartões"}
+              </Button>
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={linkedCards.length > 0}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
