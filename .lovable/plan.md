@@ -1,81 +1,98 @@
-# Plano de Correção P0 — Sincronização Pluggy / Open Finance
+# P0 — Materializar Item Pluggy pelo Webhook (sem depender do onSuccess)
 
-Objetivo: fechar os 5 gaps críticos identificados na auditoria para tornar a integração Pluggy homologável em produção, sem depender do navegador, sem transações fantasmas e com agendamento real de sync.
+## 1. Diagnóstico da estrutura atual
 
-## Ordem de execução
+**Já existe** (não vamos duplicar):
+- `pluggy-item-materialize` já é um helper server-side com upsert idempotente de conexão + contas + sync_run inicial.
+- Webhook (`pluggy-webhook`) já chama `pluggy-item-materialize` para `item/created`/`item/updated` quando não há conexão local.
+- Tabelas com colunas certas: `open_finance_connection_requests` já tem `correlation_expires_at`, `mode`, `existing_connection_id`, `error_code`, `cancelled_at`, `completed_at`. `open_finance_accounts` tem `removed_at` + unique(connection_id, pluggy_account_id). `open_finance_webhook_events` tem unique(event_id) + `processed_at`.
+- `pluggy-item-register` (fast-path do onSuccess) mantém uma **segunda implementação** de materialização, que precisa convergir com o helper.
 
-Segue o critério "desbloqueia o próximo passo primeiro". Cada bloco é independente e verificável isoladamente.
+**Faltando / incorreto:**
+- `pluggy_item_id` em `open_finance_connections` só é único **por company** (`unique(company_id, pluggy_item_id)`). Não há proteção global cross-tenant.
+- Webhook resolve a request só se **já existe** conexão; se webhook chega antes do onSuccess (ou onSuccess nunca chega), a resolução de tenant depende de `client_user_id` passado no payload — mas o payload nem sempre traz `clientUserId` e não é chamado `GET /items/{itemId}` antes de decidir company.
+- `open_finance_webhook_events` não tem `status/attempt_count/next_attempt_at/company_id/connection_id/connection_request_id/client_user_id/last_error_code` — sem isso não dá para reprocessar de forma recuperável.
+- `pluggy-item-materialize` faz `.upsert` em `open_finance_sync_runs` **sem verificar** se já existe queued/running — pode enfileirar múltiplos syncs iniciais.
+- `pluggy-item-materialize` não valida `correlation_expires_at`, `cancelled_at`, nem detecta conflito cross-tenant antes de escrever.
+- Frontend (`OpenFinanceWizard.tsx`) hoje só confia no `onSuccess`. Não faz polling do `request_id`.
+- `pluggy-item-register` continua fazendo a materialização inline em vez de chamar o helper.
 
+## 2. Arquivos que serão modificados
+
+**Backend (Edge Functions):**
+- `supabase/functions/_shared/materialize-pluggy-item.ts` — **novo** helper compartilhado
+- `supabase/functions/pluggy-webhook/index.ts` — persistência com `status`, chamada do helper, retry
+- `supabase/functions/pluggy-item-materialize/index.ts` — refatorado para invocar o helper (mantém contrato HTTP)
+- `supabase/functions/pluggy-item-register/index.ts` — passa a chamar o helper compartilhado
+- `supabase/functions/pluggy-webhook-drain/index.ts` — **novo** endpoint para cron reprocessar eventos `pending`/`retry`
+
+**Migration (uma só):**
+- `supabase/migrations/<ts>_pluggy_webhook_recovery.sql`
+
+**Frontend:**
+- `src/components/accounts/OpenFinanceWizard.tsx` — polling da solicitação (`open_finance_connection_requests`) via Realtime + fallback com `setInterval`; mensagens quando fecha widget/USER_AUTHORIZATION_PENDING; `onSuccess` continua chamando `pluggy-item-register` como atalho mas sem ser fonte de verdade.
+
+**Testes (Deno):**
+- `supabase/functions/_shared/materialize-pluggy-item_test.ts` cobrindo os 12 casos exigidos com mocks do cliente Pluggy e supabase-js.
+
+## 3. Migration necessária
+
+Único arquivo SQL contendo, com `IF NOT EXISTS` para ser reexecutável:
+
+1. Colunas em `open_finance_webhook_events`: `status text default 'pending'` (values: pending/processing/processed/retry/failed), `company_id uuid`, `connection_id uuid`, `connection_request_id uuid`, `client_user_id text`, `next_attempt_at timestamptz`, `attempt_count int default 0`, `last_error_code text`. Backfill: `processed_at not null` → `status='processed'`.
+2. Índice `idx_of_webhook_events_ready` em `(next_attempt_at)` where status in ('pending','retry').
+3. **Unique global** em `open_finance_connections(pluggy_item_id)` — antes, `SELECT` de diagnóstico; se retornar linhas, a migration aborta com `RAISE EXCEPTION` (não apaga dados). A constraint existente `(company_id, pluggy_item_id)` continua.
+4. Partial unique em `open_finance_sync_runs(connection_id) WHERE status IN ('queued','running') AND triggered_by IN ('webhook:item/created','item_register','materialize')`.
+5. Enum-check em `open_finance_connection_requests.status` incluindo `materializing`, `awaiting_authorization`.
+
+Nenhum `DELETE`/`UPDATE` destrutivo — só `ALTER TABLE ADD COLUMN` idempotente e criação de índices.
+
+## 4. Fluxo antes × depois
+
+**Antes**
 ```text
-1. Materialização de conexão (server-side)
-2. Paginação por cursor (/v2/transactions)
-3. Tratamento de deleções na origem
-4. Cron real via pg_cron + pg_net
-5. Desconexão remota (DELETE /items na Pluggy)
+widget -> onSuccess -> pluggy-item-register -> materializa
+                                             \-> se falhar, tudo trava
+webhook -> se conexão existe: enfileira sync
+        -> senão: chama materialize com client_user_id do payload
+                  (que pode não vir)
 ```
 
----
+**Depois**
+```text
+widget -> onSuccess (opcional, fast-path)
+                \-> pluggy-item-register -> materializePluggyItem()
+                                                  \-> alreadyMaterialized OK
+webhook -> insere event(status=pending) -> ACK 2XX
+        -> processEvent:
+             GET /items/{id}
+             clientUserId = item.clientUserId ?? payload.clientUserId
+             valida ofreq:<uuid> -> request -> company_id
+             materializePluggyItem() (mesmo helper)
+             marca event.processed / event.retry
+drain cron -> reprocessa events status in (pending, retry)
+frontend -> polling/realtime em open_finance_connection_requests
+         -> quando status='connected' avança sem esperar onSuccess
+```
 
-## Bloco 1 — Materialização de conexão server-side (P0-1)
+## 5. Riscos de compatibilidade
 
-Problema: hoje a linha em `open_finance_connections` só é criada se o callback do widget rodar no navegador. Se o usuário fechar a aba ou a rede cair, o item existe na Pluggy mas some do nosso sistema.
+- Adicionar unique global em `pluggy_item_id`: só passa se hoje não houver o mesmo item em empresas distintas. Migration faz `SELECT` de diagnóstico e aborta em vez de forçar. Já verifiquei: hoje a tabela está vazia.
+- Novas colunas em `webhook_events` têm default seguro; backfill preserva histórico.
+- Contrato HTTP das funções existentes não muda; só a implementação interna.
+- Frontend continua funcionando com `onSuccess`; polling é aditivo.
 
-Ações:
-- Nova edge function `pluggy-item-materialize` que recebe `{ item_id }`, chama `GET /items/{id}` na Pluggy e faz upsert em `open_finance_connections` + `open_finance_accounts` (idempotente por `pluggy_item_id`).
-- Chamada a partir de dois pontos:
-  1. Callback do widget (fluxo feliz) — mantém UX atual.
-  2. Webhook `item/created` e `item/updated` — garante materialização mesmo sem callback.
-- `pluggy-connect-token` passa a persistir `open_finance_connection_requests` com o `client_user_id` para amarrar o item ao tenant quando o webhook chegar antes do callback.
+## 6. Confirmação de não-destruição
 
-## Bloco 2 — Paginação por cursor v2 (P0-2)
-
-Problema: o worker atual usa `GET /transactions?page=N`, que é a API legada. A v2 usa cursor (`from`, `pageSize`, `next`), é mais rápida e é a única que expõe `deletedAt`.
-
-Ações:
-- Refatorar `pluggy-sync` para consumir `GET /v2/transactions/{accountId}` com cursor.
-- Guardar o `next` cursor em `open_finance_accounts.sync_cursor` (nova coluna) para retomar de onde parou entre execuções.
-- Fallback: se a Pluggy responder 404 na v2 para uma conta legada, cair no endpoint antigo apenas para aquele item, logando em `open_finance_sync_runs.notes`.
-
-## Bloco 3 — Deleções na origem (P0-3)
-
-Problema: quando a Pluggy marca uma transação como deletada (estorno, ajuste do banco), nosso staging mantém a linha, e a promoção para `transactions` cria duplicata.
-
-Ações:
-- Nova coluna `open_finance_transactions_raw.deleted_at timestamptz`.
-- Worker marca `deleted_at = now()` quando a v2 devolve `deletedAt != null` (match por `pluggy_transaction_id`).
-- `auto_promote_open_finance_raw` passa a ignorar linhas com `deleted_at` e, se a transação já foi promovida, marca o `transactions.status = 'cancelado'` com origem `open_finance_delete` (não deleta o registro para preservar auditoria).
-
-## Bloco 4 — Cron real (P0-4)
-
-Problema: existe a função `enqueue_open_finance_scheduled_syncs`, mas não há job `pg_cron` ativo apontando para ela em produção. Sync depende de disparo manual.
-
-Ações:
-- Habilitar extensões `pg_cron` e `pg_net` se ainda não estiverem.
-- Agendar `enqueue-open-finance` a cada 15 minutos chamando a edge function via `net.http_post` com header `apikey` = anon key (o dispatch interno usa `service_role`).
-- Adicionar métrica: última execução aparece em `/admin/open-finance` (painel de observabilidade já existente).
-
-## Bloco 5 — Desconexão remota (P0-5)
-
-Problema: `disconnect_open_finance_connection` só marca a linha como inativa localmente; o item continua vivo na Pluggy consumindo cota.
-
-Ações:
-- Nova edge function `pluggy-item-delete` que chama `DELETE /items/{id}` com retry (429/5xx).
-- RPC de desconexão passa a agendar a edge function via `pg_net`; se falhar, marca `open_finance_connections.needs_remote_delete = true` para retry manual.
-- Botão "Desconectar" na UI passa a mostrar estado "aguardando remoção remota" até o webhook `item/deleted` confirmar.
+Nenhum `DELETE`, `TRUNCATE`, `DROP TABLE` ou `DROP COLUMN`. Migrations somente aditivas + índices. Se detectar duplicidade cross-tenant existente, aborta e devolve o diagnóstico para revisão manual.
 
 ---
 
-## Detalhes técnicos
+## Detalhes técnicos (referência de implementação)
 
-- Todas as edge functions novas usam o cliente compartilhado em `supabase/functions/_shared/pluggy.ts` (rate limit, retry com backoff exponencial e assinatura HMAC do webhook já implementados).
-- Migrations adicionam apenas colunas nullable e um índice em `open_finance_transactions_raw(deleted_at)` — não há breaking change.
-- Testes: cenários novos em `supabase/functions/pluggy-sync/index.test.ts` cobrindo cursor v2, deleção e retomada.
-- Observabilidade: cada bloco grava em `open_finance_sync_runs` (status, contadores, erros) e em `audit_logs` quando afeta transações já confirmadas.
-
-## Fora deste plano (fica para P1 depois)
-
-- Endurecimento extra do webhook (rotação de segredo, verificação estrita de replay).
-- Retry/backoff por conta com dead-letter queue visível na UI.
-- Rastreabilidade cross-tenant (correlação `client_user_id` × `company_id` em logs unificados).
-
-Confirma para eu executar bloco a bloco?
+- Helper `materializePluggyItem` idempotente por `pluggy_item_id`, valida `ofreq:` regex, checa `correlation_expires_at > now()` e `cancelled_at IS NULL`, faz upsert de connection/accounts e enfileira sync inicial somente se não existir queued/running.
+- Códigos de erro seguros: `missing_client_user_id`, `invalid_client_user_id`, `request_not_found`, `correlation_expired`, `request_cancelled`, `request_item_mismatch`, `item_company_conflict`, `item_fetch_failed`, `accounts_fetch_failed`, `connection_upsert_failed`.
+- `pluggy-webhook` marca `status='processing'` ao iniciar; em falha transitória `status='retry'`, `attempt_count++`, `next_attempt_at = now() + exp_backoff(attempt)`; em sucesso `status='processed'`, `processed_at=now()` e preenche `connection_id`/`company_id`.
+- Drain: `pluggy-webhook-drain` seleciona eventos `pending`/`retry` com `next_attempt_at <= now()` e reexecuta o mesmo `processEvent`.
+- Testes Deno usam stubs de `getItem`/`listAccounts` e client Supabase mockado; rodam via `bunx vitest` ou `deno test` conforme padrão do projeto (o helper é puro o suficiente para testar sem rede).
+- Consultas de validação (A–E do prompt) rodadas ao final via `supabase--read_query` e reportadas.
