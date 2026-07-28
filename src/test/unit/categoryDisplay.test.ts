@@ -4,6 +4,7 @@ import {
   CATEGORY_SUBTYPE_CLS,
   CATEGORY_SUBTYPE_LABEL,
   CATEGORY_TYPE_LABEL,
+  categoryGuideLevels,
   categoryIndent,
   categoryTypeClass,
   categoryTypeLabel,
