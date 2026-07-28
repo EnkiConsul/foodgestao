@@ -378,7 +378,7 @@ export default function ConciliacaoPluggy() {
                     </td>
                     <td className="p-2">
                       <Select
-                        value={rowAccount[r.id] ?? ""}
+                        value={rowAccount[r.id] ?? linkedByPluggyAccount[r.pluggy_account_id] ?? ""}
                         onValueChange={(v) => setRowAccount((p) => ({ ...p, [r.id]: v }))}
                         disabled={disabled}
                       >
