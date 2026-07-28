@@ -87,7 +87,7 @@ export function CategoryRow({
                 className="h-3 w-3 shrink-0 rounded-full"
                 style={{ backgroundColor: cat.color ?? "hsl(var(--primary))" }}
               />
-              <span className="font-mono text-[10px] md:text-xs text-muted-foreground w-10 md:w-20 shrink-0 truncate">{cat.index}.</span>
+              <span className="w-1 shrink-0" />
               <span className={`text-sm truncate ${cat.depth === 0 ? "font-semibold uppercase" : ""}`}>
                 {cat.depth === 0 ? cat.name.toUpperCase() : cat.name}
               </span>
