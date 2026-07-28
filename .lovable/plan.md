@@ -1,20 +1,36 @@
-## Contexto
+## Objetivo
 
-Você trocou, no painel da Pluggy, a URL do webhook pela versão **sem `?secret=`**. Nossa Edge Function `pluggy-webhook` hoje valida esse parâmetro contra `PLUGGY_WEBHOOK_SECRET` e rejeita qualquer chamada sem ele — então nenhum evento vai chegar ao banco enquanto estiver assim.
+Impedir que o widget da Pluggy Connect seja fechado ao clicar em "Continuar" — o Radix `Dialog` que envolve o widget captura cliques como "outside" e destrói a instância.
 
-Você respondeu que quer **manter a validação com secret** (mais seguro). Portanto, não vamos alterar o backend; vamos voltar a URL correta no painel da Pluggy.
+## Causa
 
-Também confirmando: **não preciso de `client_id`/`client_secret`**. Ambos já estão salvos como secrets do projeto (`PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET`) e as Edge Functions leem direto de lá.
+`PluggyConnectDialog.tsx` renderiza o widget dentro de um `<Dialog>` do Radix. O widget da Pluggy é injetado no `document.body` (fora do portal do Radix), então cliques dentro dele são interpretados como "interact outside" → o Radix dispara `onOpenChange(false)` → `useEffect` de cleanup chama `instance.destroy()` e o modal da Pluggy some.
 
-## Plano
+## Solução (apenas frontend, arquivo único)
 
-1. Abrir `/admin/pluggy-webhook` no 360°FOOD e clicar em **Copiar URL** — ela sai já com `?secret=<token assinado>` embutido.
-2. No painel da Pluggy → Webhooks, **substituir a URL atual** (sem segredo) pela copiada no passo 1 e salvar.
-3. Disparar um evento de teste pela Pluggy (ou reconectar uma conta) e voltar aqui.
-4. Eu consulto `pluggy_webhook_events` e os logs da função `pluggy-webhook` para confirmar recebimento e assinatura válida.
+Refatorar `src/components/accounts/PluggyConnectDialog.tsx`:
 
-Nenhuma alteração de código ou migration é necessária neste passo.
+1. **Remover o wrapper `<Dialog>` do Radix.** O widget da Pluggy já é fullscreen e gerencia o próprio modal/foco.
+2. **Substituir por um overlay leve próprio** (`fixed inset-0 z-50` com backdrop) exibido apenas enquanto `loading` ou `error` — nunca sobreposto ao widget da Pluggy. Assim que `pc.init()` resolve e o widget aparece, o overlay some (basta condicionar a `loading && !instanceRef.current`).
+3. **Fechamento controlado só pelos callbacks do SDK**:
+   - `onSuccess` → chama sync, notifica e `onOpenChange(false)`.
+   - `onClose` → `onOpenChange(false)` (usuário fechou o widget).
+   - `onError` → mantém overlay com mensagem; usuário pode fechar via botão "Fechar" do overlay.
+4. **Sem `onInteractOutside`, sem `DialogContent`, sem trap de foco competindo** com o widget.
+5. **Cleanup**: manter `instanceRef.current?.destroy?.()` no unmount / quando `open` vira `false`, exatamente como hoje.
+6. **Estados visuais**: caixa central com spinner "Preparando conexão segura…" (loading) ou mensagem de erro + botão "Fechar" (error). Nenhum título/descrição obstruindo o widget.
 
-## Observação técnica
+## Detalhes técnicos
 
-O token no `?secret=` é um JWT curto assinado com `PLUGGY_WEBHOOK_SECRET`, com validade de ~2h. A página `/admin/pluggy-webhook` regenera sob demanda, então basta recopiar se expirar antes de você configurar na Pluggy.
+- Arquivo alterado: `src/components/accounts/PluggyConnectDialog.tsx`.
+- Nenhuma mudança de API do componente — assinatura de `Props` preservada; todos os consumidores continuam funcionando.
+- Nenhuma alteração de backend, Edge Functions, RLS, secrets ou rotas.
+- Sem impacto em `/admin/pluggy-status`, `/admin/pluggy-webhook`, `/contas-bancarias/conexoes` ou `/contas-bancarias/conciliacao`.
+
+## Validação
+
+1. Abrir "Conectar via Open Finance" em `/contas-bancarias`.
+2. Clicar em "Continuar" no modal da Pluggy → deve avançar para a seleção do banco, sem fechar.
+3. Concluir o consent com uma instituição sandbox/produção → callback `onSuccess` dispara, sync roda, toast de sucesso.
+4. Cancelar no widget → `onClose` fecha limpo, sem estados órfãos.
+5. Forçar erro (token inválido) → overlay mostra mensagem e botão "Fechar".
