@@ -139,6 +139,7 @@ const AdminLandingPage = lazyWithRetry(() => import("./pages/admin/LandingPage")
 const AdminBancos = lazyWithRetry(() => import("./pages/admin/Bancos"));
 const AdminDriftSaldos = lazyWithRetry(() => import("./pages/admin/DriftSaldos"));
 const AdminPluggyConexoes = lazyWithRetry(() => import("./pages/admin/PluggyConexoes"));
+const AdminPluggyWebhookLogs = lazyWithRetry(() => import("./pages/admin/PluggyWebhookLogs"));
 
 const AdminSeoIndexacao = lazyWithRetry(() => import("./pages/admin/SeoIndexacao"));
 
@@ -468,6 +469,7 @@ const AppRoutes = () => (
         <Route path="/admin/bancos" element={<AdminBancos />} />
         <Route path="/admin/auditoria-saldos" element={<AdminDriftSaldos />} />
         <Route path="/admin/pluggy-conexoes" element={<AdminPluggyConexoes />} />
+        <Route path="/admin/pluggy-webhook-logs" element={<AdminPluggyWebhookLogs />} />
         
         <Route path="/admin/seo-indexacao" element={<AdminSeoIndexacao />} />
         <Route path="/admin/modulos" element={<AdminModulos />} />
