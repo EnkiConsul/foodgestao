@@ -168,7 +168,7 @@ export default function AdminPluggyConexoes() {
   const filterFn = <T extends Record<string, unknown>>(rows: T[], keys: (keyof T)[]) =>
     !q ? rows : rows.filter((r) => keys.some((k) => String(r[k] ?? "").toLowerCase().includes(q)));
 
-  const conns = filterFn(connectionsQ.data ?? [], ["pluggy_item_id", "connector_name", "status", "company_id"]);
+  const conns = filterFn(connectionsQ.data ?? [], ["pluggy_item_id", "status", "company_id"]);
   const events = filterFn(webhookQ.data ?? [], ["event_type", "pluggy_item_id", "status", "company_id"]);
   const requests = filterFn(requestsQ.data ?? [], ["pluggy_item_id", "status", "company_id", "mode"]);
 
@@ -249,7 +249,7 @@ export default function AdminPluggyConexoes() {
                     <TableRow key={c.id}>
                       <TableCell>
                         <div className="font-mono text-xs">{c.pluggy_item_id ?? "—"}</div>
-                        <div className="text-xs text-muted-foreground">{c.connector_name ?? `#${c.connector_id ?? "—"}`}</div>
+                        <div className="text-xs text-muted-foreground">{`#${c.connector_id ?? "—"}`}</div>
                       </TableCell>
                       <TableCell className="font-mono text-xs">{c.company_id.slice(0, 8)}…</TableCell>
                       <TableCell>
@@ -357,7 +357,7 @@ export default function AdminPluggyConexoes() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Landmark className="h-5 w-5" />
-              Contas — {detail?.connector_name ?? detail?.pluggy_item_id}
+              Contas — {detail?.pluggy_item_id ?? `#${detail?.connector_id ?? ""}`}
             </DialogTitle>
           </DialogHeader>
           <div className="text-xs text-muted-foreground mb-2">
