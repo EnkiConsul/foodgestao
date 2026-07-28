@@ -4,7 +4,10 @@
 // Auth flow: POST /auth with { clientId, clientSecret } -> { apiKey } (short lived, ~2h).
 
 const PLUGGY_BASE = "https://api.pluggy.ai";
-const AUTH_TTL_MS = 90 * 60 * 1000; // renew ~30min before expiry
+// Fallback (a doc cita ~2h). Se o /auth retornar um JWT com `exp`, usamos ele
+// menos 5 min como TTL real (ver authenticate()).
+const AUTH_TTL_FALLBACK_MS = 90 * 60 * 1000;
+const AUTH_TTL_MAX_MS = 2 * 60 * 60 * 1000;
 
 type Cached = { apiKey: string; expiresAt: number };
 let cached: Cached | null = null;
