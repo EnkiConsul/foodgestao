@@ -599,9 +599,26 @@ export default function Relatorios() {
           </table>
           </div>
 
-          {filteredTransactions.length === 0 && (
-            <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
-              {fluxoTransactions.length === 0 ? "Nenhuma movimentação no período selecionado" : "Nenhum resultado com os filtros selecionados"}
+          {!isLoadingFluxo && filteredTransactions.length === 0 && (
+            <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-muted">
+                <BarChart3 className="h-5 w-5 text-muted-foreground" />
+              </span>
+              <p className="text-sm font-medium">
+                {fluxoTransactions.length === 0
+                  ? "Nenhuma movimentação no período selecionado"
+                  : "Nenhum resultado com os filtros selecionados"}
+              </p>
+              <p className="max-w-xs text-xs text-muted-foreground">
+                {fluxoTransactions.length === 0
+                  ? "Ajuste o período acima para visualizar outros meses."
+                  : "Limpe os filtros para voltar a ver todos os lançamentos."}
+              </p>
+              {fluxoTransactions.length > 0 && activeFilterCount > 0 && (
+                <Button variant="outline" size="sm" className="mt-1" onClick={clearFilters}>
+                  Limpar filtros
+                </Button>
+              )}
             </div>
           )}
         </CardContent>
