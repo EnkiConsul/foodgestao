@@ -232,6 +232,15 @@ export default function ContasBancarias() {
           <p className="text-sm text-muted-foreground">Gerencie suas contas e saldos</p>
         </div>
         <div className="flex items-center gap-2">
+          {contextType === "pj" && selectedCompanyId && (
+            <Button
+              variant="outline"
+              onClick={() => navigate("/contas-bancarias/conexoes")}
+              className="hidden md:flex"
+            >
+              <Link2 className="h-4 w-4 mr-2" /> Conexões Open Finance
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={handleResync}
