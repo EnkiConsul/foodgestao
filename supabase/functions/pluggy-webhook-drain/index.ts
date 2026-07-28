@@ -1,8 +1,7 @@
-// Drain: reprocessa eventos com status pending|retry cujo next_attempt_at já venceu.
-// Chamado por pg_cron ou manualmente. Autenticação: PLUGGY_CRON_TICK_SECRET no header.
+// Drain: reprocessa eventos pending/retry cujo next_attempt_at já venceu.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { processEvent } from "../pluggy-webhook/index.ts";
+import { processWebhookEvent } from "../_shared/pluggy-webhook-processor.ts";
 
 function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
@@ -36,7 +35,7 @@ Deno.serve(async (req) => {
   let processed = 0;
   for (const ev of events ?? []) {
     try {
-      await processEvent(
+      await processWebhookEvent(
         supabase,
         { id: (ev as any).id, attempt_count: (ev as any).attempt_count, status: (ev as any).status },
         (ev as any).payload,
