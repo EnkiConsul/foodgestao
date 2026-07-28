@@ -32,13 +32,19 @@ export function BatchActionBar({
   onClearSelection,
 }: Props) {
   return (
-    <div className="fixed inset-x-2 bottom-20 z-40 flex flex-wrap items-center gap-3 rounded-lg border bg-background p-3 shadow-lg md:static md:inset-auto md:bottom-auto md:z-auto md:bg-muted/50 md:shadow-none">
-      <span className="text-sm font-medium">{selectedCount} selecionada(s)</span>
+    <div
+      role="region"
+      aria-label="Ações em lote de categorias"
+      className="fixed inset-x-2 bottom-20 z-40 flex flex-wrap items-center gap-3 rounded-lg border bg-background p-3 shadow-lg md:static md:inset-auto md:bottom-auto md:z-auto md:bg-muted/50 md:shadow-none"
+    >
+      <span className="text-sm font-medium" role="status" aria-live="polite">
+        {selectedCount} selecionada(s)
+      </span>
       <div className="flex items-center gap-2">
 
-        <FolderTree className="h-4 w-4 text-muted-foreground" />
+        <FolderTree className="h-4 w-4 text-muted-foreground" aria-hidden />
         <Select value={batchParentId} onValueChange={onBatchParentChange}>
-          <SelectTrigger className="h-8 w-[200px] text-xs">
+          <SelectTrigger className="h-8 w-[200px] text-xs" aria-label="Categoria pai de destino">
             <SelectValue placeholder="Categoria Raiz" />
           </SelectTrigger>
           <SelectContent>
@@ -58,7 +64,7 @@ export function BatchActionBar({
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
-              <div className="h-3.5 w-3.5 rounded-full border" style={{ backgroundColor: "#3b82f6" }} />
+              <div aria-hidden className="h-3.5 w-3.5 rounded-full border" style={{ backgroundColor: "#3b82f6" }} />
               Cor
             </Button>
           </PopoverTrigger>
@@ -70,13 +76,15 @@ export function BatchActionBar({
                   key={c}
                   type="button"
                   onClick={() => onBatchColor(c)}
-                  className="h-7 w-7 rounded-full border-2 border-transparent hover:border-foreground transition-transform hover:scale-110"
+                  aria-label={`Aplicar cor ${c}`}
+                  className="h-7 w-7 rounded-full border-2 border-transparent hover:border-foreground transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   style={{ backgroundColor: c }}
                 />
               ))}
             </div>
           </PopoverContent>
         </Popover>
+
         <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={onOpenVisibility}>
           <Eye className="h-3.5 w-3.5" />
           Visibilidade
