@@ -451,23 +451,13 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
             </p>
           </div>
 
-          {editCategory && (
-            <div className="grid grid-cols-2 gap-2 rounded-md border bg-muted/40 p-3 text-xs">
-              <div>
-                <p className="text-muted-foreground">ID Interno</p>
-                <p className="font-mono">{(editCategory as any).template_code ?? "—"}</p>
-              </div>
-              {(editCategory as any).previous_index && (
-                <div>
-                  <p className="text-muted-foreground">Índice anterior</p>
-                  <p className="font-mono">{(editCategory as any).previous_index}</p>
-                </div>
-              )}
-              <p className="col-span-2 text-[10px] text-muted-foreground">
-                ID Interno é imutável — preserva o histórico dos lançamentos vinculados.
-              </p>
+          {editCategory && (editCategory as any).previous_index && (
+            <div className="rounded-md border bg-muted/40 p-3 text-xs">
+              <p className="text-muted-foreground">Índice anterior</p>
+              <p className="font-mono">{(editCategory as any).previous_index}</p>
             </div>
           )}
+
           {!editCategory && (
             <div className="rounded-md border bg-muted/40 p-3 text-xs">
               <p className="text-muted-foreground">ID Interno</p>
