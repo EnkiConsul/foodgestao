@@ -9036,6 +9036,57 @@ export type Database = {
           transaction_type: Database["public"]["Enums"]["transaction_type"]
         }[]
       }
+      pluggy_webhook_claim: {
+        Args: {
+          p_batch_size?: number
+          p_lease_seconds?: number
+          p_worker_id: string
+        }
+        Returns: {
+          attempt_count: number
+          claim_expires_at: string | null
+          claimed_by: string | null
+          client_user_id: string | null
+          company_id: string | null
+          connection_id: string | null
+          connection_request_id: string | null
+          created_at: string
+          error: string | null
+          event_id: string | null
+          event_type: string
+          id: string
+          last_attempt_at: string | null
+          last_error_code: string | null
+          max_attempts: number
+          next_attempt_at: string | null
+          payload: Json
+          pluggy_item_id: string | null
+          processed_at: string | null
+          received_ip: string | null
+          signature: string | null
+          status: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "open_finance_webhook_events"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      pluggy_webhook_finalize_failure: {
+        Args: {
+          p_error: string
+          p_error_code?: string
+          p_event_id: string
+          p_worker_id: string
+        }
+        Returns: string
+      }
+      pluggy_webhook_finalize_success: {
+        Args: { p_event_id: string; p_worker_id: string }
+        Returns: boolean
+      }
+      pluggy_webhook_health: { Args: never; Returns: Json }
       promote_open_finance_raw_ids: {
         Args: { _raw_ids: string[] }
         Returns: Json
