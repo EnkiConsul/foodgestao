@@ -113,7 +113,7 @@ export default function PluggyWebhookLogs() {
   }, [rows, search]);
 
   const counters = useMemo(() => {
-    const c = { pending: 0, retry: 0, failed: 0, processed: 0 };
+    const c = { pending: 0, claimed: 0, retry: 0, failed: 0, dead_letter: 0, processed: 0 };
     for (const r of rows) {
       const s = (r.status ?? "") as keyof typeof c;
       if (s in c) c[s] += 1;
@@ -121,37 +121,73 @@ export default function PluggyWebhookLogs() {
     return c;
   }, [rows]);
 
+  const oldestPending = health?.oldest_pending_age_seconds ?? null;
+  const oldestPendingLabel =
+    oldestPending == null
+      ? "—"
+      : oldestPending < 60
+      ? `${Math.round(oldestPending)}s`
+      : oldestPending < 3600
+      ? `${Math.round(oldestPending / 60)}min`
+      : `${(oldestPending / 3600).toFixed(1)}h`;
+
+  const alertPending = (health?.pending ?? 0) > 20 || (oldestPending ?? 0) > 300;
+  const alertDeadLetter = (health?.dead_letter ?? 0) > 0;
+  const alertExpired = (health?.expired_claims ?? 0) > 0;
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <AdminPageHeader
           title="Logs de Webhooks Pluggy"
-          description="Registros de open_finance_webhook_events com última tentativa, erro e próximo retry."
+          description="Worker durável: eventos reservados via claim atômico, backoff exponencial e dead-letter após esgotar tentativas."
         />
-        <Button variant="outline" size="sm" onClick={() => { refetch(); qc.invalidateQueries({ queryKey: ["admin-pluggy-webhook-logs"] }); }}>
+        <Button variant="outline" size="sm" onClick={() => { refetch(); qc.invalidateQueries({ queryKey: ["admin-pluggy-webhook-logs"] }); qc.invalidateQueries({ queryKey: ["admin-pluggy-webhook-health"] }); }}>
           <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
           Atualizar
         </Button>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-4">
-        <Card><CardContent className="p-4 flex items-center gap-3">
-          <Clock className="h-5 w-5 text-muted-foreground" />
-          <div><div className="text-xs text-muted-foreground">Pendentes</div><div className="text-xl font-semibold">{counters.pending}</div></div>
+      {(alertPending || alertDeadLetter || alertExpired) && (
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardContent className="p-4 flex flex-wrap gap-4 text-sm">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            <div className="flex flex-wrap gap-4">
+              {alertPending && <span><strong>Backlog:</strong> {health?.pending ?? 0} pendentes (mais antigo há {oldestPendingLabel})</span>}
+              {alertExpired && <span><strong>Reservas expiradas:</strong> {health?.expired_claims ?? 0} (serão retomadas no próximo tick)</span>}
+              {alertDeadLetter && <span><strong>Dead-letter:</strong> {health?.dead_letter ?? 0} eventos exigem análise manual</span>}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid gap-3 md:grid-cols-6">
+        <Card><CardContent className="p-4">
+          <div className="text-xs text-muted-foreground">Pendentes</div>
+          <div className="text-xl font-semibold">{health?.pending ?? counters.pending}</div>
         </CardContent></Card>
-        <Card><CardContent className="p-4 flex items-center gap-3">
-          <RefreshCw className="h-5 w-5 text-muted-foreground" />
-          <div><div className="text-xs text-muted-foreground">Em retry</div><div className="text-xl font-semibold">{counters.retry}</div></div>
+        <Card><CardContent className="p-4">
+          <div className="text-xs text-muted-foreground">Reservados</div>
+          <div className="text-xl font-semibold">{health?.claimed ?? counters.claimed}</div>
         </CardContent></Card>
-        <Card><CardContent className="p-4 flex items-center gap-3">
-          <AlertTriangle className="h-5 w-5 text-destructive" />
-          <div><div className="text-xs text-muted-foreground">Falhos</div><div className="text-xl font-semibold">{counters.failed}</div></div>
+        <Card><CardContent className="p-4">
+          <div className="text-xs text-muted-foreground">Em retry</div>
+          <div className="text-xl font-semibold">{health?.retry ?? counters.retry}</div>
         </CardContent></Card>
-        <Card><CardContent className="p-4 flex items-center gap-3">
-          <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-          <div><div className="text-xs text-muted-foreground">Processados</div><div className="text-xl font-semibold">{counters.processed}</div></div>
+        <Card><CardContent className="p-4">
+          <div className="text-xs text-muted-foreground">Dead-letter</div>
+          <div className="text-xl font-semibold text-destructive">{health?.dead_letter ?? counters.dead_letter}</div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4">
+          <div className="text-xs text-muted-foreground">Processados / 1h</div>
+          <div className="text-xl font-semibold">{health?.processed_last_hour ?? 0}</div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4">
+          <div className="text-xs text-muted-foreground">Mais antigo pendente</div>
+          <div className="text-xl font-semibold">{oldestPendingLabel}</div>
         </CardContent></Card>
       </div>
+
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[220px]">
