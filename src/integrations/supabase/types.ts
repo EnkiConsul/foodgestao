@@ -7086,6 +7086,7 @@ export type Database = {
           category_pluggy: string | null
           company_id: string
           connection_id: string
+          counterparty_name: string | null
           created_at: string
           currency_code: string | null
           date: string
@@ -7106,6 +7107,7 @@ export type Database = {
           category_pluggy?: string | null
           company_id: string
           connection_id: string
+          counterparty_name?: string | null
           created_at?: string
           currency_code?: string | null
           date: string
@@ -7126,6 +7128,7 @@ export type Database = {
           category_pluggy?: string | null
           company_id?: string
           connection_id?: string
+          counterparty_name?: string | null
           created_at?: string
           currency_code?: string | null
           date?: string
