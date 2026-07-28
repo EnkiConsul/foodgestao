@@ -460,6 +460,7 @@ const AppRoutes = () => (
         <Route path="/admin/cupons" element={<AdminCuponsPage />} />
         <Route path="/admin/faturas" element={<AdminFaturasPage />} />
         <Route path="/admin/webhooks-asaas" element={<AdminWebhooksAsaasPage />} />
+        <Route path="/admin/pluggy-webhook" element={<AdminPluggyWebhook />} />
         <Route path="/admin/perfis-acesso" element={<AdminPerfisAcesso />} />
         <Route path="/admin/auditoria" element={<AdminAuditoria />} />
         <Route path="/admin/resetar-dados" element={<AdminResetarDados />} />
