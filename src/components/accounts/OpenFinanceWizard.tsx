@@ -65,7 +65,30 @@ export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished, r
   const [accounts, setAccounts] = useState<OpenFinanceAccountRow[]>([]);
   const [institutionName, setInstitutionName] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [purging, setPurging] = useState(false);
   const pluggyRef = useRef<any>(null);
+
+  const purgeOrphans = useCallback(async () => {
+    if (!companyId) return;
+    setPurging(true);
+    try {
+      const { data, error: err } = await supabase.functions.invoke("pluggy-items-purge-orphans", {
+        body: { company_id: companyId },
+      });
+      if (err) throw new Error(err.message);
+      const deleted = (data as any)?.deleted_count ?? 0;
+      toast.success(`${deleted} acesso(s) órfão(s) removido(s) da Pluggy.`, {
+        description: "Você já pode tentar conectar novamente.",
+      });
+      setStep("intro");
+      setError(null);
+    } catch (e: any) {
+      toast.error("Falha ao limpar acessos órfãos.", { description: e?.message });
+    } finally {
+      setPurging(false);
+    }
+  }, [companyId]);
+
 
   // Reset when reopened
   useEffect(() => {
