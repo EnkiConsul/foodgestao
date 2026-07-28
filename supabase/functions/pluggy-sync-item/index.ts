@@ -88,10 +88,21 @@ Deno.serve(async (req) => {
       .single();
     if (connErr) throw connErr;
 
-    // 2) Accounts
+    // 2) Accounts — mirror to pluggy_accounts and auto-materialize local `accounts` for BANK type
     const accounts = await listAccounts(itemId);
+    const connectorName: string = (item?.connector?.name ?? '').toLowerCase();
+    let bankSlug: string | null = null;
+    if (connectorName) {
+      const { data: bankRows } = await admin.from('banks').select('slug, name').eq('is_active', true);
+      const match = (bankRows ?? []).find((b: any) =>
+        connectorName.includes(String(b.slug).toLowerCase()) ||
+        connectorName.includes(String(b.name).toLowerCase()),
+      );
+      bankSlug = match?.slug ?? null;
+    }
+
     for (const acc of accounts) {
-      await admin.from('pluggy_accounts').upsert({
+      const { data: upserted } = await admin.from('pluggy_accounts').upsert({
         connection_id: conn.id,
         company_id: effectiveCompanyId,
         pluggy_account_id: acc.id,
@@ -102,7 +113,35 @@ Deno.serve(async (req) => {
         balance: acc.balance ?? null,
         currency_code: acc.currencyCode ?? 'BRL',
         raw: acc,
-      }, { onConflict: 'pluggy_account_id' });
+      }, { onConflict: 'pluggy_account_id' })
+        .select('id, linked_account_id')
+        .single();
+
+      if (upserted && !upserted.linked_account_id && (acc.type ?? '').toUpperCase() === 'BANK') {
+        const ownerUserId = userId ?? (await admin
+          .from('pluggy_connections').select('created_by').eq('id', conn.id).maybeSingle()).data?.created_by;
+        if (ownerUserId) {
+          const { data: newAcc } = await admin.from('accounts').insert({
+            user_id: ownerUserId,
+            company_id: effectiveCompanyId,
+            name: acc.name ?? acc.marketingName ?? item?.connector?.name ?? 'Conta bancária',
+            account_type: 'corrente',
+            context: 'pj',
+            initial_balance: 0,
+            current_balance: 0,
+            color: '#1B3A5C',
+            icon: 'wallet',
+            is_active: true,
+            bank_slug: bankSlug,
+            account_number: acc.number ?? null,
+          }).select('id').single();
+          if (newAcc?.id) {
+            await admin.from('pluggy_accounts')
+              .update({ linked_account_id: newAcc.id })
+              .eq('id', upserted.id);
+          }
+        }
+      }
     }
 
     // 3) Transactions — últimos 30 dias
