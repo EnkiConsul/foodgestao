@@ -32,19 +32,16 @@ FROM generate_series(1, 10) i;
 
 -- T1: Dois claims concorrentes NÃO devem sobrepor
 WITH
-  worker_a AS (SELECT (public.pluggy_webhook_claim('worker-a', 5, 60))->>'event_id' AS eid),
-  worker_b AS (SELECT (public.pluggy_webhook_claim('worker-b', 5, 60))->>'event_id' AS eid)
+  worker_a AS (SELECT id FROM public.pluggy_webhook_claim('worker-a', 5, 60)),
+  worker_b AS (SELECT id FROM public.pluggy_webhook_claim('worker-b', 5, 60))
 SELECT
   (SELECT count(*) FROM worker_a) AS a_count,
   (SELECT count(*) FROM worker_b) AS b_count,
   CASE
+    WHEN EXISTS (SELECT 1 FROM worker_a INTERSECT SELECT 1 FROM worker_b WHERE false)
+    THEN 'FAIL'
     WHEN EXISTS (
-      SELECT 1
-      FROM public.open_finance_webhook_events
-      WHERE event_id LIKE 'test-concurrency-%'
-        AND status = 'claimed'
-      GROUP BY id
-      HAVING count(*) > 1
+      SELECT wa.id FROM worker_a wa JOIN worker_b wb ON wa.id = wb.id
     ) THEN 'FAIL: overlap detectado'
     ELSE 'PASS: sem overlap'
   END AS t1_result;
