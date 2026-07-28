@@ -17,6 +17,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { createConnectToken, getItem, safePluggyError } from "../_shared/pluggy-client.ts";
+import { isPluggyV1Frozen, pluggyV1FrozenResponse } from "../_shared/pluggy-v1-freeze.ts";
 
 // Connect Token vive por ~30 min (curto). Correlação (autorização bancária
 // assíncrona) precisa continuar válida por muito mais tempo — o usuário pode
@@ -41,6 +42,7 @@ function json(status: number, body: unknown) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
+  if (isPluggyV1Frozen()) return pluggyV1FrozenResponse(corsHeaders);
 
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader.startsWith("Bearer ")) return json(401, { error: "unauthenticated" });
