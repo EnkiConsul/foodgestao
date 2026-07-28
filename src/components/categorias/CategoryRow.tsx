@@ -6,19 +6,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ChevronRight, GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import { Draggable } from "@hello-pangea/dnd";
 import type { Category, TreeNode } from "@/lib/categories/tree";
+import { CATEGORY_SUBTYPE_CLS, CATEGORY_SUBTYPE_LABEL, categoryIndent } from "@/lib/categories/display";
+import { CategoryTypeBadge } from "@/components/categorias/CategoryTypeBadge";
 
-const SUBTYPE_CLS: Record<string, string> = {
-  receita: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-  saida: "bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400",
-  custo: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-  despesa: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-  imposto: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-  investimento: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-};
-const SUBTYPE_LABEL: Record<string, string> = {
-  receita: "Receita", saida: "Saída", custo: "Custo",
-  despesa: "Despesa", imposto: "Imposto", investimento: "Investimento",
-};
 
 interface Props {
   cat: TreeNode;
@@ -68,8 +58,8 @@ export function CategoryRow({
           </TableCell>
           <TableCell className="py-1.5 min-w-0">
             <div
-              className="flex min-w-0 items-center gap-1 pl-[var(--cat-indent)] md:pl-[calc(var(--cat-indent)*2)]"
-              style={{ ["--cat-indent" as string]: `${cat.depth * 12}px` }}
+              className="flex min-w-0 items-center gap-1"
+              style={{ paddingLeft: categoryIndent(cat.depth) }}
             >
               {cat.hasChildren ? (
                 <button
@@ -92,24 +82,15 @@ export function CategoryRow({
               {(cat as any).category_subtype && (() => {
                 const s = (cat as any).category_subtype as string;
                 return (
-                  <Badge variant="secondary" className={`hidden md:inline-flex text-[10px] h-4 px-1.5 ml-1 ${SUBTYPE_CLS[s] ?? ""}`}>
-                    {SUBTYPE_LABEL[s] ?? s}
+                  <Badge variant="secondary" className={`hidden md:inline-flex text-[10px] h-4 px-1.5 ml-1 ${CATEGORY_SUBTYPE_CLS[s] ?? ""}`}>
+                    {CATEGORY_SUBTYPE_LABEL[s] ?? s}
                   </Badge>
                 );
               })()}
             </div>
           </TableCell>
           <TableCell className="hidden md:table-cell py-1.5 text-center">
-            <Badge
-              variant="secondary"
-              className={`text-[10px] h-5 px-1.5 ${
-                cat.transaction_type === "receita"
-                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                  : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-              }`}
-            >
-              {cat.transaction_type === "despesa" ? "Despesa" : "Receita"}
-            </Badge>
+            <CategoryTypeBadge type={cat.transaction_type} />
           </TableCell>
           <TableCell className="py-1.5 hidden md:table-cell">
             <div className="flex items-center gap-1 flex-wrap">

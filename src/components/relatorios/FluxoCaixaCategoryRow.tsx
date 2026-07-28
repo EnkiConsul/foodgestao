@@ -1,6 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { FluxoNode } from "@/lib/relatorios/fluxoCaixa";
+import { categoryIndent } from "@/lib/categories/display";
 
 interface Props {
   node: FluxoNode;
@@ -13,7 +14,7 @@ interface Props {
 
 export function FluxoCaixaCategoryRow({ node, isCollapsed, onToggle, formatBRL, avg, sum }: Props) {
   const hasChildren = node.children.length > 0;
-  const paddingLeft = 12 + node.depth * 16;
+  const paddingLeft = categoryIndent(node.depth, 12);
   return (
     <tr className={cn("border-b hover:bg-muted/30", hasChildren && "bg-muted/10")}>
       <td
@@ -28,7 +29,6 @@ export function FluxoCaixaCategoryRow({ node, isCollapsed, onToggle, formatBRL, 
           {hasChildren && (
             <ChevronRight className={cn("h-3.5 w-3.5 transition-transform shrink-0", !isCollapsed && "rotate-90")} />
           )}
-          
           {node.name}
         </span>
       </td>
