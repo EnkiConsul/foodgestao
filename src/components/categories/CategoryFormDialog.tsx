@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -320,233 +320,288 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
     setSaving(false);
   };
 
+  const Section = ({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) => (
+    <section className="space-y-4">
+      <div className="space-y-0.5">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
+        {description && <p className="text-xs text-muted-foreground/80">{description}</p>}
+      </div>
+      {children}
+    </section>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{editCategory ? "Editar Categoria" : "Nova Categoria"}</DialogTitle>
+      <DialogContent className="sm:max-w-lg p-0 gap-0 flex flex-col max-h-[92dvh] overflow-hidden">
+        <DialogHeader className="px-5 py-4 border-b text-left space-y-1">
+          <DialogTitle className="text-base">{editCategory ? "Editar Categoria" : "Nova Categoria"}</DialogTitle>
+          <DialogDescription className="text-xs">
+            {parentId
+              ? <>Subcategoria de <span className="font-medium text-foreground">{parentNameById(parentId) ?? "..."}</span></>
+              : "Categoria raiz — o nome será salvo em caixa alta"}
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Nome</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Alimentação" maxLength={50} />
-          </div>
 
-          <div className="space-y-2">
-            <Label>Tipo</Label>
-            <Select value={type} onValueChange={(v) => setType(v as "receita" | "despesa")}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="despesa">Despesa</SelectItem>
-                <SelectItem value="receita">Receita</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Categoria Pai (opcional)</Label>
-            <Select value={parentId ?? "__none__"} onValueChange={(v) => setParentId(!v || v === "__none__" ? null : v)}>
-              <SelectTrigger>
-                <span className="truncate">
-                  {parentId ? (parentNameById(parentId) ?? "Carregando...") : "Nenhuma (raiz)"}
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">Nenhuma (raiz)</SelectItem>
-                {parentOptions.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {parentOptions.length === 0 && (
-              <p className="text-xs text-muted-foreground">Crie categorias raiz do mesmo tipo primeiro</p>
-            )}
-          </div>
-
-
-          <div className="space-y-2">
-            <Label>Conta Contábil (opcional)</Label>
-            <Popover open={chartAccountPopoverOpen} onOpenChange={setChartAccountPopoverOpen}>
-
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  role="combobox"
-                  className="w-full justify-between font-normal"
-                >
-                  <span className="truncate">
-                    {chartAccountId
-                      ? (() => {
-                          const ca = chartAccounts.find((c) => c.id === chartAccountId);
-                          return ca ? `${ca.code} — ${ca.name}` : "Nenhuma";
-                        })()
-                      : "Nenhuma"}
-                  </span>
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                <Command
-                  filter={(value, search) => {
-                    if (!search) return 1;
-                    return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
-                  }}
-                >
-                  <CommandInput placeholder="Buscar por código ou nome..." />
-                  <CommandList>
-                    <CommandEmpty>Nenhuma conta encontrada</CommandEmpty>
-                    <CommandGroup>
-                      <CommandItem
-                        value="__none__ nenhuma"
-                        onSelect={() => {
-                          setChartAccountId(null);
-                          setChartAccountPopoverOpen(false);
-                        }}
-                      >
-                        <Check className={cn("mr-2 h-4 w-4", !chartAccountId ? "opacity-100" : "opacity-0")} />
-                        Nenhuma
-                      </CommandItem>
-                      {chartAccounts.map((ca) => (
-                        <CommandItem
-                          key={ca.id}
-                          value={`${ca.code} ${ca.name}`}
-                          onSelect={() => {
-                            setChartAccountId(ca.id);
-                            setChartAccountPopoverOpen(false);
-                          }}
-                        >
-                          <Check className={cn("mr-2 h-4 w-4", chartAccountId === ca.id ? "opacity-100" : "opacity-0")} />
-                          <span className="font-mono text-xs mr-2">{ca.code}</span>
-                          <span className="truncate">{ca.name}</span>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-            {chartAccounts.length === 0 && (
-              <p className="text-xs text-muted-foreground">Cadastre em Contas Contábeis para vincular</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label>Subtipo <span className="text-destructive">*</span></Label>
-            <Select value={subtype} onValueChange={(v) => setSubtype(v)}>
-              <SelectTrigger><SelectValue placeholder="Selecione o subtipo" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="receita">Receita</SelectItem>
-                <SelectItem value="saida">Saída</SelectItem>
-                <SelectItem value="custo">Custo</SelectItem>
-                <SelectItem value="despesa">Despesa</SelectItem>
-                <SelectItem value="imposto">Imposto</SelectItem>
-                <SelectItem value="investimento">Investimento</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">Obrigatório. Usado para agrupar Receitas, Custos, Despesas, Impostos e Investimentos nos relatórios contábeis (DRE, Balanço).</p>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <Label>Descrição da Categoria para a IA (opcional)</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleGenerateAiDescription}
-                disabled={generatingAi || !name.trim() || !subtype}
-                className="h-7 gap-1.5 text-xs"
-              >
-                {generatingAi ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Sparkles className="h-3.5 w-3.5" />
-                )}
-                {generatingAi ? "Gerando..." : "Gerar com IA"}
-              </Button>
-            </div>
-            <Textarea
-              value={aiDescription}
-              onChange={(e) => setAiDescription(e.target.value)}
-              placeholder="Contexto para o agente classificar lançamentos automaticamente nesta categoria."
-              rows={3}
-              maxLength={500}
-              disabled={generatingAi}
-            />
-            <p className="text-[10px] text-muted-foreground">
-              A IA usa o nome e o subtipo para sugerir a descrição. Você pode editar antes de salvar.
-            </p>
-          </div>
-
-          {editCategory && (editCategory as any).previous_index && (
-            <div className="rounded-md border bg-muted/40 p-3 text-xs">
-              <p className="text-muted-foreground">Índice anterior</p>
-              <p className="font-mono">{(editCategory as any).previous_index}</p>
-            </div>
-          )}
-
-          {!editCategory && (
-            <div className="rounded-md border bg-muted/40 p-3 text-xs">
-              <p className="text-muted-foreground">ID Interno</p>
-              <p className="font-mono">Será gerado automaticamente (USR-####)</p>
-            </div>
-          )}
-
-
-
-
-
-          <div className="space-y-2">
-            <Label>Cor</Label>
-            <div className="flex gap-2 flex-wrap">
-              {COLOR_OPTIONS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setColor(c)}
-                  className={`h-7 w-7 rounded-full border-2 transition-transform ${
-                    color === c ? "border-foreground scale-110" : "border-transparent"
-                  }`}
-                  style={{ backgroundColor: c }}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Visibility section */}
-          <div className="space-y-3 border-t pt-4">
-            <Label className="text-sm font-semibold">Visibilidade</Label>
-            <p className="text-xs text-muted-foreground">Selecione onde esta categoria ficará disponível</p>
-
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={visiblePf} onCheckedChange={(v) => setVisiblePf(!!v)} />
-              Pessoa Física (PF)
-            </label>
-
-            {companies.length > 0 && (
+        <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
+          <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
+            <Section title="Identificação">
               <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Empresas</p>
-                {companies.map((company) => (
-                  <label key={company.id} className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={selectedCompanies.has(company.id)}
-                      onCheckedChange={() => toggleCompany(company.id)}
+                <Label htmlFor="cat-name">Nome</Label>
+                <Input
+                  id="cat-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ex: Alimentação"
+                  maxLength={50}
+                  autoComplete="off"
+                  className="h-11"
+                />
+                <p className="text-[11px] text-muted-foreground text-right tabular-nums">{name.length}/50</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Tipo</Label>
+                <div role="radiogroup" aria-label="Tipo da categoria" className="grid grid-cols-2 gap-2">
+                  {([
+                    { value: "despesa", label: "Despesa" },
+                    { value: "receita", label: "Receita" },
+                  ] as const).map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={type === opt.value}
+                      onClick={() => setType(opt.value)}
+                      className={cn(
+                        "h-11 rounded-md border text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                        type === opt.value
+                          ? opt.value === "receita"
+                            ? "border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                            : "border-destructive bg-destructive/10 text-destructive"
+                          : "border-input bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Cor</Label>
+                <div className="flex gap-2 flex-wrap" role="radiogroup" aria-label="Cor da categoria">
+                  {COLOR_OPTIONS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      role="radio"
+                      aria-checked={color === c}
+                      aria-label={`Cor ${c}`}
+                      onClick={() => setColor(c)}
+                      className={cn(
+                        "h-8 w-8 rounded-full border-2 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                        color === c ? "border-foreground scale-110" : "border-transparent"
+                      )}
+                      style={{ backgroundColor: c }}
                     />
-                    {company.name}
-                  </label>
-                ))}
+                  ))}
+                </div>
+              </div>
+            </Section>
+
+            <div className="border-t" />
+
+            <Section title="Classificação" description="Define onde a categoria aparece na hierarquia e nos relatórios.">
+              <div className="space-y-2">
+                <Label>Categoria Pai (opcional)</Label>
+                <Select value={parentId ?? "__none__"} onValueChange={(v) => setParentId(!v || v === "__none__" ? null : v)}>
+                  <SelectTrigger className="h-11">
+                    <span className="truncate">
+                      {parentId ? (parentNameById(parentId) ?? "Carregando...") : "Nenhuma (raiz)"}
+                    </span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Nenhuma (raiz)</SelectItem>
+                    {parentOptions.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {parentOptions.length === 0 && (
+                  <p className="text-xs text-muted-foreground">Crie categorias raiz do mesmo tipo primeiro</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>
+                  Subtipo <span className="text-destructive" aria-hidden>*</span>
+                </Label>
+                <Select value={subtype} onValueChange={(v) => setSubtype(v)}>
+                  <SelectTrigger className="h-11"><SelectValue placeholder="Selecione o subtipo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="receita">Receita</SelectItem>
+                    <SelectItem value="saida">Saída</SelectItem>
+                    <SelectItem value="custo">Custo</SelectItem>
+                    <SelectItem value="despesa">Despesa</SelectItem>
+                    <SelectItem value="imposto">Imposto</SelectItem>
+                    <SelectItem value="investimento">Investimento</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Usado para agrupar valores no DRE e no Balanço.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Conta Contábil (opcional)</Label>
+                <Popover open={chartAccountPopoverOpen} onOpenChange={setChartAccountPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between font-normal h-11"
+                    >
+                      <span className="truncate">
+                        {chartAccountId
+                          ? (() => {
+                              const ca = chartAccounts.find((c) => c.id === chartAccountId);
+                              return ca ? `${ca.code} — ${ca.name}` : "Nenhuma";
+                            })()
+                          : "Nenhuma"}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                    <Command
+                      filter={(value, search) => {
+                        if (!search) return 1;
+                        return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+                      }}
+                    >
+                      <CommandInput placeholder="Buscar por código ou nome..." />
+                      <CommandList>
+                        <CommandEmpty>Nenhuma conta encontrada</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            value="__none__ nenhuma"
+                            onSelect={() => {
+                              setChartAccountId(null);
+                              setChartAccountPopoverOpen(false);
+                            }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", !chartAccountId ? "opacity-100" : "opacity-0")} />
+                            Nenhuma
+                          </CommandItem>
+                          {chartAccounts.map((ca) => (
+                            <CommandItem
+                              key={ca.id}
+                              value={`${ca.code} ${ca.name}`}
+                              onSelect={() => {
+                                setChartAccountId(ca.id);
+                                setChartAccountPopoverOpen(false);
+                              }}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", chartAccountId === ca.id ? "opacity-100" : "opacity-0")} />
+                              <span className="font-mono text-xs mr-2">{ca.code}</span>
+                              <span className="truncate">{ca.name}</span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {chartAccounts.length === 0 && (
+                  <p className="text-xs text-muted-foreground">Cadastre em Contas Contábeis para vincular</p>
+                )}
+              </div>
+            </Section>
+
+            <div className="border-t" />
+
+            <Section title="Automação com IA" description="Ajuda o sistema a classificar lançamentos automaticamente.">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor="cat-ai-desc" className="text-sm">Descrição (opcional)</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateAiDescription}
+                    disabled={generatingAi || !name.trim() || !subtype}
+                    className="h-8 gap-1.5 text-xs"
+                  >
+                    {generatingAi ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                    ) : (
+                      <Sparkles className="h-3.5 w-3.5" aria-hidden />
+                    )}
+                    {generatingAi ? "Gerando..." : "Gerar com IA"}
+                  </Button>
+                </div>
+                <Textarea
+                  id="cat-ai-desc"
+                  value={aiDescription}
+                  onChange={(e) => setAiDescription(e.target.value)}
+                  placeholder="Contexto para o agente classificar lançamentos automaticamente nesta categoria."
+                  rows={3}
+                  maxLength={500}
+                  disabled={generatingAi}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Informe nome e subtipo para habilitar a geração automática. Você pode editar o texto antes de salvar.
+                </p>
+              </div>
+            </Section>
+
+            <div className="border-t" />
+
+            <Section title="Visibilidade" description="Selecione onde esta categoria ficará disponível.">
+              <label className="flex items-center gap-3 rounded-md border p-3 text-sm cursor-pointer hover:bg-accent/50 transition-colors">
+                <Checkbox checked={visiblePf} onCheckedChange={(v) => setVisiblePf(!!v)} />
+                Pessoa Física (PF)
+              </label>
+
+              {companies.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Empresas</p>
+                  {companies.map((company) => (
+                    <label
+                      key={company.id}
+                      className="flex items-center gap-3 rounded-md border p-3 text-sm cursor-pointer hover:bg-accent/50 transition-colors"
+                    >
+                      <Checkbox
+                        checked={selectedCompanies.has(company.id)}
+                        onCheckedChange={() => toggleCompany(company.id)}
+                      />
+                      <span className="truncate">{company.name}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </Section>
+
+            {editCategory && (editCategory as any).previous_index && (
+              <div className="rounded-md border bg-muted/40 p-3 text-xs">
+                <p className="text-muted-foreground">Índice anterior</p>
+                <p className="font-mono">{(editCategory as any).previous_index}</p>
               </div>
             )}
           </div>
 
-          <Button type="submit" className="w-full" disabled={saving}>
-            {saving ? "Salvando..." : editCategory ? "Atualizar" : "Criar Categoria"}
-          </Button>
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 border-t px-5 py-4 bg-background">
+            <Button type="button" variant="outline" className="h-11 sm:h-10" onClick={() => onOpenChange(false)} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button type="submit" className="h-11 sm:h-10 sm:min-w-40" disabled={saving}>
+              {saving ? "Salvando..." : editCategory ? "Salvar Alterações" : "Criar Categoria"}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
   );
 }
+
