@@ -71,26 +71,23 @@ Deno.serve(async (req) => {
   }
 
   const result = await deleteItem(conn.pluggy_item_id);
-  if (!result.ok) {
-    // Pluggy retorna 404 se o item já foi removido do lado deles — tratamos como sucesso.
-    const notFound = result.httpStatus === 404;
-    if (!notFound) {
-      await supabase
-        .from("open_finance_connections")
-        .update({ last_error: safePluggyError(result.error, result.httpStatus), last_error_at: new Date().toISOString() })
-        .eq("id", conn.id);
-      return json(502, { error: safePluggyError(result.error, result.httpStatus) });
-    }
+  const notFound = !result.ok && result.httpStatus === 404;
+  if (!result.ok && !notFound) {
+    // Falha transitória → agenda retry pelo worker durável.
+    const errMsg = safePluggyError(result.error, result.httpStatus);
+    await supabase.rpc("pluggy_remote_delete_finalize_failure", {
+      _id: conn.id,
+      _error: errMsg,
+      _max_attempts: 10,
+    });
+    return json(202, {
+      ok: false,
+      queued_for_retry: true,
+      connection_id: conn.id,
+      error: errMsg,
+    });
   }
 
-  await supabase
-    .from("open_finance_connections")
-    .update({
-      needs_remote_delete: false,
-      remote_deleted_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", conn.id);
-
-  return json(200, { ok: true, connection_id: conn.id });
+  await supabase.rpc("pluggy_remote_delete_finalize_success", { _id: conn.id });
+  return json(200, { ok: true, connection_id: conn.id, already_deleted: notFound });
 });
