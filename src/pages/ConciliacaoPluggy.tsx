@@ -189,7 +189,7 @@ export default function ConciliacaoPluggy() {
     // Group by target account
     const byAccount: Record<string, string[]> = {};
     for (const id of ids) {
-      const acctId = rowAccount[id];
+      const acctId = rowAccount[id] ?? linkedByPluggyAccount[rows.find((r) => r.id === id)?.pluggy_account_id ?? ""];
       if (!acctId) { toast.error("Selecione a conta de destino para todos os itens"); return; }
       byAccount[acctId] = byAccount[acctId] ?? [];
       byAccount[acctId].push(id);
