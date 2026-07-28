@@ -66,6 +66,8 @@ export function OpenFinanceWizard({ open, onOpenChange, companyId, onFinished, r
   const [institutionName, setInstitutionName] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [purging, setPurging] = useState(false);
+  const [requestId, setRequestId] = useState<string | null>(null);
+  const [awaitingAuth, setAwaitingAuth] = useState(false);
   const pluggyRef = useRef<any>(null);
 
   const purgeOrphans = useCallback(async () => {
