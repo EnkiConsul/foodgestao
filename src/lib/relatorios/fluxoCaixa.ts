@@ -88,12 +88,18 @@ export function computeFluxoCaixa(
 
   for (const t of filteredTransactions) {
     if (t.transaction_type === "transferencia") continue;
-    const key = t.transaction_date.slice(0, 7);
+    // Data efetiva: vencimento quando existe, senão a data do lançamento
+    // (mesma regra usada em Lançamentos e no Dashboard).
+    const key = (t.due_date ?? t.transaction_date).slice(0, 7);
     const idx = monthIndexMap[key];
     if (idx === undefined) continue;
     const amt = Number(t.amount);
-    if (t.transaction_type === "receita") totalReceitas[idx] += amt;
+    const isReceita =
+      t.transaction_type === "receita" ||
+      (t.transaction_type === "parcelado" && t.parcel_direction === "entrada");
+    if (isReceita) totalReceitas[idx] += amt;
     else totalDespesas[idx] += amt;
+
 
     if (t.category_id) {
       if (!catMonthly[t.category_id]) catMonthly[t.category_id] = new Array(numMonths).fill(0);
