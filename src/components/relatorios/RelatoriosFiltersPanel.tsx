@@ -84,16 +84,7 @@ export function RelatoriosFiltersPanel({
 
   const sortedCategories = categories
     .slice()
-    .sort((a, b) => {
-      const partsA = (a.hierarchy_index || "").split(".").map(Number);
-      const partsB = (b.hierarchy_index || "").split(".").map(Number);
-      for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
-        const na = partsA[i] ?? 0;
-        const nb = partsB[i] ?? 0;
-        if (na !== nb) return na - nb;
-      }
-      return partsA.length - partsB.length;
-    })
+    .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
     .map((cat) => ({
       id: cat.id,
       name: cat.name,
