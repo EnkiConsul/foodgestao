@@ -86,6 +86,18 @@ export default function ContasBancarias() {
     });
     if (error) toast.error("Erro ao carregar contas bancárias");
     else setAccounts((data ?? []) as any);
+
+    // Contas vinculadas a uma conexão Open Finance (para exibir a conciliação no card)
+    if (contextType === "pj" && selectedCompanyId) {
+      const { data: ofAccs } = await supabase
+        .from("pluggy_accounts")
+        .select("linked_account_id")
+        .eq("company_id", selectedCompanyId)
+        .not("linked_account_id", "is", null);
+      setOfAccountIds(new Set((ofAccs ?? []).map((r) => r.linked_account_id as string)));
+    } else {
+      setOfAccountIds(new Set());
+    }
     setLoading(false);
   }, [user, contextType, selectedCompanyId]);
 
