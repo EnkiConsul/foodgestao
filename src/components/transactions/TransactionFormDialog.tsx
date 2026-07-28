@@ -1684,19 +1684,6 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
         </form>
       </DialogContent>
 
-      <AccountCreationMethodDialog
-        open={accountMethodOpen}
-        onOpenChange={setAccountMethodOpen}
-        openFinanceEnabled={contextType === "pj" && !!selectedCompanyId}
-        openFinanceDisabledReason="Selecione uma empresa antes de conectar uma conta via Open Finance."
-        onSelectManual={() => { setAccountMethodOpen(false); setAccountDialogOpen(true); }}
-        onSelectOpenFinance={() => {
-          if (contextType !== "pj" || !selectedCompanyId) return;
-          setAccountMethodOpen(false);
-          onOpenChange(false);
-          navigate("/contas-bancarias?openFinance=1");
-        }}
-      />
 
       <AccountFormDialog
         open={accountDialogOpen}
