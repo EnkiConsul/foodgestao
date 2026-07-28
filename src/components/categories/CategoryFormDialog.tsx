@@ -146,15 +146,47 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
     queryFn: async () => {
       const { data } = await supabase
         .from("chart_accounts")
-        .select("id, code, name")
+        .select("id, code, name, parent_id, allow_transactions, short_code, is_tax")
         .eq("user_id", user!.id)
         .eq("context", contextType)
         .eq("is_active", true)
-        .eq("allow_transactions", true)
         .order("code");
-      return data ?? [];
+      return (data ?? []) as any[];
     },
   });
+
+  // Mesma ordenação e hierarquia da tela de Contas Contábeis
+  const chartAccountOptions = (() => {
+    const compareCodes = (a: string, b: string) => {
+      const pa = String(a).split(".").map((s) => parseInt(s, 10));
+      const pb = String(b).split(".").map((s) => parseInt(s, 10));
+      const len = Math.max(pa.length, pb.length);
+      for (let i = 0; i < len; i++) {
+        const va = pa[i] ?? 0;
+        const vb = pb[i] ?? 0;
+        if (va !== vb) return va - vb;
+      }
+      return String(a).localeCompare(String(b));
+    };
+    const byParent = new Map<string | null, any[]>();
+    const ids = new Set(chartAccounts.map((c: any) => c.id));
+    chartAccounts.forEach((c: any) => {
+      const key = c.parent_id && ids.has(c.parent_id) ? c.parent_id : null;
+      if (!byParent.has(key)) byParent.set(key, []);
+      byParent.get(key)!.push(c);
+    });
+    byParent.forEach((list) => list.sort((a, b) => compareCodes(a.code, b.code)));
+    const out: { acc: any; depth: number }[] = [];
+    const walk = (parent: string | null, depth: number) => {
+      (byParent.get(parent) ?? []).forEach((acc: any) => {
+        out.push({ acc, depth });
+        walk(acc.id, depth + 1);
+      });
+    };
+    walk(null, 0);
+    return out;
+  })();
+
 
 
   useEffect(() => {
