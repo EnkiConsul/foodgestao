@@ -180,16 +180,17 @@ export default function AdminPluggyConexoes() {
 
   return (
     <div className="space-y-6 p-6">
-      <AdminPageHeader
-        title="Conexões Pluggy"
-        description="Estados de conexões Open Finance, requests e eventos de webhook."
-        actions={
-          <Button variant="outline" size="sm" onClick={refreshAll} disabled={connectionsQ.isFetching}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${connectionsQ.isFetching ? "animate-spin" : ""}`} />
-            Atualizar
-          </Button>
-        }
-      />
+      <div className="flex items-start justify-between gap-4">
+        <AdminPageHeader
+          title="Conexões Pluggy"
+          description="Estados de conexões Open Finance, requests e eventos de webhook."
+        />
+        <Button variant="outline" size="sm" onClick={refreshAll} disabled={connectionsQ.isFetching}>
+          <RefreshCw className={`h-4 w-4 mr-2 ${connectionsQ.isFetching ? "animate-spin" : ""}`} />
+          Atualizar
+        </Button>
+      </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
