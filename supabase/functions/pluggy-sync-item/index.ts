@@ -214,7 +214,6 @@ Deno.serve(async (req) => {
         };
       });
 
-
       // Chunked upsert to avoid oversized payloads
       const chunkSize = 200;
       for (let i = 0; i < rows.length; i += chunkSize) {
@@ -224,7 +223,20 @@ Deno.serve(async (req) => {
           .upsert(chunk, { onConflict: 'pluggy_transaction_id', ignoreDuplicates: true });
         if (error) console.error('staging upsert error', error);
       }
+
+      // Reprocessa a descrição de itens ainda pendentes que foram importados
+      // antes com rótulo genérico (o upsert acima ignora duplicados).
+      for (const r of rows) {
+        const { error } = await admin
+          .from('pluggy_staging_transactions')
+          .update({ description: r.description, counterparty_name: r.counterparty_name })
+          .eq('pluggy_transaction_id', r.pluggy_transaction_id)
+          .eq('status', 'pending')
+          .neq('description', r.description);
+        if (error) console.error('staging re-enrich error', error);
+      }
       staged += rows.length;
+
     }
 
     return new Response(JSON.stringify({
