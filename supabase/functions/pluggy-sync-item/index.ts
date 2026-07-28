@@ -1,6 +1,6 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { getItem, listAccounts, listTransactions } from '../_shared/pluggy.ts';
+import { getItem, listAccounts, listTransactions, refreshItem, waitForItem } from '../_shared/pluggy.ts';
 import { buildDescription, counterpartyName } from '../_shared/tx-description.ts';
 
 
@@ -67,8 +67,27 @@ Deno.serve(async (req) => {
 
     const effectiveCompanyId = existing?.company_id ?? companyId!;
 
-    // 1) Fetch item metadata
-    const item = await getItem(itemId);
+    // 1) Fetch item metadata (e, quando aplicável, dispara uma nova coleta no banco)
+    let item = await getItem(itemId);
+    const skipRefresh = body?.refresh === false || isFirstConnect;
+    const itemStatus = String(item?.status ?? '').toUpperCase();
+    const itemExec = String(item?.executionStatus ?? '').toUpperCase();
+    const isRunning = itemStatus === 'UPDATING' || itemExec === 'CREATED' || itemExec === 'UPDATING';
+
+    if (!skipRefresh && itemStatus !== 'WAITING_USER_INPUT') {
+      try {
+        if (!isRunning) {
+          await refreshItem(itemId);
+        }
+        item = await waitForItem(itemId, 45000);
+      } catch (e) {
+        console.error('pluggy refresh failed', e);
+        item = await getItem(itemId);
+      }
+    } else if (isRunning) {
+      item = await waitForItem(itemId, 45000);
+    }
+
 
     const connectionPayload = {
       company_id: effectiveCompanyId,
@@ -242,7 +261,13 @@ Deno.serve(async (req) => {
     }
 
     return new Response(JSON.stringify({
-      ok: true, connection_id: conn.id, accounts: accounts.length, transactions: staged, first_connect: !!isFirstConnect,
+      ok: true,
+      connection_id: conn.id,
+      accounts: accounts.length,
+      transactions: staged,
+      first_connect: !!isFirstConnect,
+      item_status: item?.status ?? null,
+      execution_status: item?.executionStatus ?? null,
     }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
