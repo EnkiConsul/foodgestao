@@ -60,6 +60,7 @@ const tenantItems = [
   { title: "Módulos", url: "/admin/modulos", icon: Sparkles },
   { title: "Bancos", url: "/admin/bancos", icon: Landmark },
   { title: "Auditoria de Saldos", url: "/admin/auditoria-saldos", icon: ShieldCheck },
+  { title: "Conexões Pluggy", url: "/admin/pluggy-conexoes", icon: Webhook },
   
   { title: "Resetar Dados", url: "/admin/resetar-dados", icon: Database },
   { title: "Categorização IA", url: "/admin/categorizacao-ia", icon: Brain },
