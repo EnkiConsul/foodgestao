@@ -138,8 +138,6 @@ const AdminCadastros = lazyWithRetry(() => import("./pages/admin/Cadastros"));
 const AdminLandingPage = lazyWithRetry(() => import("./pages/admin/LandingPage"));
 const AdminBancos = lazyWithRetry(() => import("./pages/admin/Bancos"));
 const AdminDriftSaldos = lazyWithRetry(() => import("./pages/admin/DriftSaldos"));
-const AdminPluggyConexoes = lazyWithRetry(() => import("./pages/admin/PluggyConexoes"));
-const AdminPluggyWebhookLogs = lazyWithRetry(() => import("./pages/admin/PluggyWebhookLogs"));
 const AdminPluggyV2Conexoes = lazyWithRetry(() => import("./pages/admin/PluggyV2Conexoes"));
 const AdminPluggyV2WebhookLogs = lazyWithRetry(() => import("./pages/admin/PluggyV2WebhookLogs"));
 const AdminPluggyV2Reconciliacao = lazyWithRetry(() => import("./pages/admin/PluggyV2Reconciliacao"));
@@ -472,8 +470,6 @@ const AppRoutes = () => (
         <Route path="/admin/documentos-legais" element={<AdminDocumentosLegais />} />
         <Route path="/admin/bancos" element={<AdminBancos />} />
         <Route path="/admin/auditoria-saldos" element={<AdminDriftSaldos />} />
-        <Route path="/admin/pluggy-conexoes" element={<AdminPluggyConexoes />} />
-        <Route path="/admin/pluggy-webhook-logs" element={<AdminPluggyWebhookLogs />} />
         <Route path="/admin/pluggy-v2-conexoes" element={<AdminPluggyV2Conexoes />} />
         <Route path="/admin/pluggy-v2-webhook-logs" element={<AdminPluggyV2WebhookLogs />} />
         <Route path="/admin/pluggy-v2-reconciliacao" element={<AdminPluggyV2Reconciliacao />} />
