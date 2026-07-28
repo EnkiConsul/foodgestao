@@ -500,6 +500,37 @@ export default function ConciliacaoPluggy() {
                         </Badge>
                       )}
                     </td>
+                    <td className="p-2">
+                      {r.status === "pending" ? (
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 px-2 text-muted-foreground hover:text-destructive"
+                            disabled={rowBusy === r.id}
+                            onClick={() => handleRowAction(r.id, "ignore")}
+                            aria-label="Ignorar lançamento"
+                            title="Ignorar"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="h-8 px-2"
+                            disabled={rowBusy === r.id}
+                            onClick={() => handleRowAction(r.id, "confirm")}
+                            aria-label="Confirmar conciliação deste lançamento"
+                            title="Confirmar"
+                          >
+                            {rowBusy === r.id
+                              ? <Loader2 className="h-4 w-4 animate-spin" />
+                              : <><Check className="h-4 w-4 mr-1" />Confirmar</>}
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="block text-right text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
                   </tr>
                 );
               })}
