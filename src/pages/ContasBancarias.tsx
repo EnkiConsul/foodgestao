@@ -172,17 +172,40 @@ export default function ContasBancarias() {
 
   useEffect(() => {
     let cancelled = false;
-    if (!deleteAccount) { setDeleteHasTx(null); return; }
+    if (!deleteAccount) { setDeleteHasTx(null); setLinkedCards([]); return; }
     setDeleteHasTx(null);
+    setLinkedCards([]);
     (async () => {
-      const { count } = await supabase
-        .from("transactions")
-        .select("id", { count: "exact", head: true })
-        .or(`account_id.eq.${deleteAccount.id},destination_account_id.eq.${deleteAccount.id},connection_account_id.eq.${deleteAccount.id}`);
-      if (!cancelled) setDeleteHasTx((count ?? 0) > 0);
+      const [{ count }, { data: cards }] = await Promise.all([
+        supabase
+          .from("transactions")
+          .select("id", { count: "exact", head: true })
+          .or(`account_id.eq.${deleteAccount.id},destination_account_id.eq.${deleteAccount.id},connection_account_id.eq.${deleteAccount.id}`),
+        supabase
+          .from("credit_cards")
+          .select("id, brand, last4")
+          .eq("default_payment_account_id", deleteAccount.id),
+      ]);
+      if (!cancelled) {
+        setDeleteHasTx((count ?? 0) > 0);
+        setLinkedCards((cards ?? []) as any);
+      }
     })();
     return () => { cancelled = true; };
   }, [deleteAccount]);
+
+  const handleUnlinkCards = async () => {
+    if (!deleteAccount || linkedCards.length === 0) return;
+    setUnlinkingCards(true);
+    const { error } = await supabase
+      .from("credit_cards")
+      .update({ default_payment_account_id: null })
+      .eq("default_payment_account_id", deleteAccount.id);
+    setUnlinkingCards(false);
+    if (error) { toast.error("Erro ao desvincular cartões"); return; }
+    toast.success("Cartões desvinculados. Agora você pode excluir a conta.");
+    setLinkedCards([]);
+  };
 
   const handleDelete = async () => {
     if (!deleteAccount) return;
