@@ -72,7 +72,7 @@ export default function ConciliacaoPluggy() {
         _context: "pj", _company_id: selectedCompanyId, _include_inactive: false,
       }),
       supabase.from("categories")
-        .select("id, name, type")
+        .select("id, name, transaction_type")
         .or(`company_id.eq.${selectedCompanyId},and(user_id.is.null,company_id.is.null)`)
         .order("name"),
     ]);
@@ -335,7 +335,7 @@ export default function ConciliacaoPluggy() {
                         <SelectTrigger className="h-8 min-w-[160px] text-xs"><SelectValue placeholder="Sem categoria" /></SelectTrigger>
                         <SelectContent>
                           {categories
-                            .filter((c) => (isEntrada ? c.type === "receita" : c.type === "despesa"))
+                            .filter((c) => (isEntrada ? c.transaction_type === "receita" : c.transaction_type === "despesa"))
                             .map((c) => (
                               <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                             ))}
