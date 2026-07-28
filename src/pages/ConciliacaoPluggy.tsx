@@ -105,6 +105,8 @@ export default function ConciliacaoPluggy() {
   const [rowAccount, setRowAccount] = useState<Record<string, string>>({});
   const [rowCategory, setRowCategory] = useState<Record<string, string>>({});
   const [rowBusy, setRowBusy] = useState<string | null>(null);
+  const [bulkBusy, setBulkBusy] = useState<null | "confirm" | "ignore">(null);
+
   // Escopo travado por conta (quando entrou pelo card da conta bancária)
   const [scope, setScope] = useState<ScopeInfo | null>(null);
   const [scopeUnresolved, setScopeUnresolved] = useState(false);
@@ -231,10 +233,15 @@ export default function ConciliacaoPluggy() {
     ignored: rows.filter((r) => r.status === "ignored").length,
   }), [rows]);
 
+  const pendingFiltered = useMemo(() => filtered.filter((r) => r.status === "pending"), [filtered]);
+  const allPendingSelected = pendingFiltered.length > 0 && pendingFiltered.every((r) => selected.has(r.id));
+  const somePendingSelected = pendingFiltered.some((r) => selected.has(r.id));
+
   const toggleAll = () => {
-    if (selected.size === filtered.length) setSelected(new Set());
-    else setSelected(new Set(filtered.filter((r) => r.status === "pending").map((r) => r.id)));
+    if (allPendingSelected) setSelected(new Set());
+    else setSelected(new Set(pendingFiltered.map((r) => r.id)));
   };
+
 
   const confirmIds = async (ids: string[]) => {
     if (ids.length === 0) return;
@@ -281,8 +288,15 @@ export default function ConciliacaoPluggy() {
     load();
   };
 
-  const confirmSelected = () => confirmIds(Array.from(selected));
-  const ignoreSelected = () => ignoreIds(Array.from(selected));
+  const confirmSelected = async () => {
+    setBulkBusy("confirm");
+    try { await confirmIds(Array.from(selected)); } finally { setBulkBusy(null); }
+  };
+  const ignoreSelected = async () => {
+    setBulkBusy("ignore");
+    try { await ignoreIds(Array.from(selected)); } finally { setBulkBusy(null); }
+  };
+
 
   const handleRowAction = async (id: string, action: "confirm" | "ignore") => {
     setRowBusy(id);
@@ -378,15 +392,33 @@ export default function ConciliacaoPluggy() {
         </div>
       </div>
 
-      {selected.size > 0 && (
-        <div className="flex items-center gap-2 rounded-md border border-primary/40 bg-primary/5 p-2">
-          <span className="text-sm">{selected.size} selecionado(s)</span>
-          <div className="ml-auto flex gap-2">
-            <Button size="sm" variant="outline" onClick={ignoreSelected}>
-              <X className="h-4 w-4 mr-1" /> Ignorar
+      {pendingFiltered.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-primary/40 bg-primary/5 p-2">
+          <span className="text-sm" role="status" aria-live="polite">
+            {selected.size > 0
+              ? `${selected.size} de ${pendingFiltered.length} pendente(s) selecionado(s)`
+              : `${pendingFiltered.length} lançamento(s) pendente(s)`}
+          </span>
+          {!allPendingSelected && (
+            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setSelected(new Set(pendingFiltered.map((r) => r.id)))}>
+              Selecionar todos os pendentes
             </Button>
-            <Button size="sm" onClick={confirmSelected}>
-              <Check className="h-4 w-4 mr-1" /> Confirmar
+          )}
+          {selected.size > 0 && (
+            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setSelected(new Set())}>
+              Limpar seleção
+            </Button>
+          )}
+          <div className="ml-auto flex gap-2">
+            <Button size="sm" variant="outline" onClick={ignoreSelected} disabled={selected.size === 0 || bulkBusy !== null}>
+              {bulkBusy === "ignore"
+                ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                : <X className="h-4 w-4 mr-1" />} Ignorar
+            </Button>
+            <Button size="sm" onClick={confirmSelected} disabled={selected.size === 0 || bulkBusy !== null}>
+              {bulkBusy === "confirm"
+                ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                : <Check className="h-4 w-4 mr-1" />} Confirmar selecionados
             </Button>
           </div>
         </div>
@@ -405,10 +437,12 @@ export default function ConciliacaoPluggy() {
               <tr>
                 <th className="w-10 p-2">
                   <Checkbox
-                    checked={filtered.length > 0 && filtered.every((r) => selected.has(r.id))}
+                    checked={allPendingSelected ? true : somePendingSelected ? "indeterminate" : false}
+                    disabled={pendingFiltered.length === 0}
                     onCheckedChange={toggleAll}
-                    aria-label="Selecionar todos"
+                    aria-label="Selecionar todos os pendentes"
                   />
+
                 </th>
                 <th className="p-2 text-left">Data</th>
                 <th className="p-2 text-left">Descrição</th>
