@@ -7607,6 +7607,48 @@ export type Database = {
           },
         ]
       }
+      pluggy_v2_alerts: {
+        Row: {
+          alert_key: string
+          created_at: string
+          id: string
+          message: string
+          metric_value: number | null
+          notified_at: string
+          payload: Json
+          resolved_at: string | null
+          severity: string
+          threshold: number | null
+          updated_at: string
+        }
+        Insert: {
+          alert_key: string
+          created_at?: string
+          id?: string
+          message: string
+          metric_value?: number | null
+          notified_at?: string
+          payload?: Json
+          resolved_at?: string | null
+          severity: string
+          threshold?: number | null
+          updated_at?: string
+        }
+        Update: {
+          alert_key?: string
+          created_at?: string
+          id?: string
+          message?: string
+          metric_value?: number | null
+          notified_at?: string
+          payload?: Json
+          resolved_at?: string | null
+          severity?: string
+          threshold?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pluggy_v2_connect_requests: {
         Row: {
           client_user_id: string
@@ -9699,6 +9741,7 @@ export type Database = {
           v2_transactions_count: number
         }[]
       }
+      pluggy_v2_slo_snapshot: { Args: never; Returns: Json }
       pluggy_v2_webhook_claim: {
         Args: {
           p_batch_size?: number

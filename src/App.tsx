@@ -143,6 +143,7 @@ const AdminPluggyWebhookLogs = lazyWithRetry(() => import("./pages/admin/PluggyW
 const AdminPluggyV2Conexoes = lazyWithRetry(() => import("./pages/admin/PluggyV2Conexoes"));
 const AdminPluggyV2WebhookLogs = lazyWithRetry(() => import("./pages/admin/PluggyV2WebhookLogs"));
 const AdminPluggyV2Reconciliacao = lazyWithRetry(() => import("./pages/admin/PluggyV2Reconciliacao"));
+const AdminPluggyV2Alertas = lazyWithRetry(() => import("./pages/admin/PluggyV2Alertas"));
 
 const AdminSeoIndexacao = lazyWithRetry(() => import("./pages/admin/SeoIndexacao"));
 
@@ -476,6 +477,7 @@ const AppRoutes = () => (
         <Route path="/admin/pluggy-v2-conexoes" element={<AdminPluggyV2Conexoes />} />
         <Route path="/admin/pluggy-v2-webhook-logs" element={<AdminPluggyV2WebhookLogs />} />
         <Route path="/admin/pluggy-v2-reconciliacao" element={<AdminPluggyV2Reconciliacao />} />
+        <Route path="/admin/pluggy-v2-alertas" element={<AdminPluggyV2Alertas />} />
         
         <Route path="/admin/seo-indexacao" element={<AdminSeoIndexacao />} />
         <Route path="/admin/modulos" element={<AdminModulos />} />
