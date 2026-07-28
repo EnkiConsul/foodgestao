@@ -62,6 +62,8 @@ const tenantItems = [
   { title: "Auditoria de Saldos", url: "/admin/auditoria-saldos", icon: ShieldCheck },
   { title: "Conexões Pluggy", url: "/admin/pluggy-conexoes", icon: Webhook },
   { title: "Logs de Webhooks", url: "/admin/pluggy-webhook-logs", icon: ScrollText },
+  { title: "Conexões Pluggy V2", url: "/admin/pluggy-v2-conexoes", icon: Webhook },
+  { title: "Logs de Webhooks V2", url: "/admin/pluggy-v2-webhook-logs", icon: ScrollText },
   
   { title: "Resetar Dados", url: "/admin/resetar-dados", icon: Database },
   { title: "Categorização IA", url: "/admin/categorizacao-ia", icon: Brain },
