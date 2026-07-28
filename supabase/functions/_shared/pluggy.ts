@@ -63,19 +63,27 @@ export async function listAccounts(itemId: string) {
 }
 
 export async function listTransactions(accountId: string, from: string, to: string) {
+  // Uses Pluggy's cursor-based /v2/transactions endpoint.
+  // Params: accountId, dateFrom (yyyy-mm-dd), dateTo (yyyy-mm-dd), after (cursor).
   const all: any[] = [];
-  let page = 1;
-  const pageSize = 500;
+  let after: string | null = null;
+  let safety = 0;
   while (true) {
-    const url = `/transactions?accountId=${accountId}&from=${from}&to=${to}&pageSize=${pageSize}&page=${page}`;
-    const res = await pluggyFetch(url);
-    if (!res.ok) throw new Error(`list_transactions_failed: ${res.status}`);
+    const params = new URLSearchParams({
+      accountId,
+      dateFrom: from,
+      dateTo: to,
+    });
+    if (after) params.set("after", after);
+    const res = await pluggyFetch(`/v2/transactions?${params.toString()}`);
+    if (!res.ok) throw new Error(`list_transactions_failed: ${res.status} ${await res.text()}`);
     const j = await res.json();
     const rows = j.results ?? [];
     all.push(...rows);
-    if (rows.length < pageSize) break;
-    page++;
-    if (page > 40) break; // hard safety cap
+    const next: string | null = j.next ?? j.nextCursor ?? null;
+    if (!next || rows.length === 0) break;
+    after = next;
+    if (++safety > 40) break; // hard safety cap
   }
   return all;
 }
