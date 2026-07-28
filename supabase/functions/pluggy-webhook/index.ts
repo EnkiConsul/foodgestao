@@ -1,11 +1,13 @@
-// Receiver lean: valida assinatura, persiste o evento e dispara o worker
-// (fire-and-forget). Toda a lógica de materialização/sync roda no worker
-// durável (pluggy-worker), com retry pelo cron pluggy-webhook-drain.
+// Receiver fail-closed: exige o header X-360FOOD-WEBHOOK-TOKEN configurado
+// no webhook da Pluggy. Sem PLUGGY_WEBHOOK_TOKEN no ambiente ou sem header
+// válido, nenhuma linha é persistida e nenhum worker é acionado.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 // deno-lint-ignore no-explicit-any
 declare const EdgeRuntime: any;
+
+const WEBHOOK_HEADER = "x-360food-webhook-token";
 
 function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
@@ -18,16 +20,26 @@ async function sha256Hex(input: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
-async function hmacSha256Hex(secret: string, message: string): Promise<string> {
-  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message));
-  return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-function timingSafeEqual(a: string, b: string): boolean {
+
+function timingSafeEqualText(expected: string, provided: string): boolean {
+  const enc = new TextEncoder();
+  const a = enc.encode(expected);
+  const b = enc.encode(provided);
   if (a.length !== b.length) return false;
   let out = 0;
-  for (let i = 0; i < a.length; i++) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  for (let i = 0; i < a.length; i++) out |= a[i] ^ b[i];
   return out === 0;
+}
+
+function readToken(): { current: string | null; previous: string | null } {
+  const norm = (v: string | undefined) => {
+    const s = (v ?? "").trim();
+    return s.length > 0 ? s : null;
+  };
+  return {
+    current: norm(Deno.env.get("PLUGGY_WEBHOOK_TOKEN")),
+    previous: norm(Deno.env.get("PLUGGY_WEBHOOK_TOKEN_PREVIOUS")),
+  };
 }
 
 async function triggerWorker() {
@@ -37,43 +49,58 @@ async function triggerWorker() {
   try {
     await fetch(`${url}/functions/v1/pluggy-worker`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-worker-secret": secret,
-      },
+      headers: { "Content-Type": "application/json", "x-worker-secret": secret },
       body: JSON.stringify({ batch: 5 }),
     });
-  } catch (err) {
-    console.warn("[pluggy-webhook] worker trigger failed (cron will retry)", err);
+  } catch (_err) {
+    console.warn("[pluggy-webhook] worker trigger failed (cron will retry)");
   }
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json(405, { error: "Method not allowed" });
+  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
-  const rawBody = await req.text();
-
-  const sharedSecret = Deno.env.get("PLUGGY_WEBHOOK_SECRET");
-  const hmacSecret = Deno.env.get("PLUGGY_WEBHOOK_HMAC_SECRET");
-  const providedSig = req.headers.get("x-pluggy-signature") ?? req.headers.get("x-webhook-secret") ?? "";
-
-  if (hmacSecret) {
-    const expected = await hmacSha256Hex(hmacSecret, rawBody);
-    if (!timingSafeEqual(expected, providedSig.replace(/^sha256=/, ""))) {
-      return json(401, { error: "invalid_signature" });
-    }
-  } else if (sharedSecret) {
-    if (!timingSafeEqual(sharedSecret, providedSig)) {
-      return json(401, { error: "invalid_signature" });
-    }
+  // 1) Confirmar que o secret está configurado no servidor. Fail-closed.
+  const { current, previous } = readToken();
+  if (!current) {
+    console.error("[pluggy-webhook] webhook_auth_not_configured");
+    return json(500, { error: "webhook_auth_not_configured" });
   }
 
-  let payload: Record<string, unknown>;
-  try { payload = JSON.parse(rawBody); }
-  catch { return json(400, { error: "invalid_json" }); }
+  // 2) Ler header canônico. Sem fallback para signature/authorization/query.
+  const provided = (req.headers.get(WEBHOOK_HEADER) ?? "").trim();
+  if (!provided) {
+    console.warn("[pluggy-webhook] webhook_auth_failed");
+    return json(401, { error: "invalid_webhook_token" });
+  }
 
-  const eventType = String((payload as any)?.event ?? (payload as any)?.eventType ?? "unknown");
+  const matchesCurrent = timingSafeEqualText(current, provided);
+  const matchesPrevious = previous ? timingSafeEqualText(previous, provided) : false;
+  if (!matchesCurrent && !matchesPrevious) {
+    console.warn("[pluggy-webhook] webhook_auth_failed");
+    return json(401, { error: "invalid_webhook_token" });
+  }
+  if (matchesPrevious && !matchesCurrent) {
+    console.warn("[pluggy-webhook] webhook_authenticated previous_token_used");
+  }
+
+  // 3) Content-Type + body
+  const ct = req.headers.get("content-type") ?? "";
+  if (!ct.toLowerCase().includes("application/json")) {
+    return json(415, { error: "unsupported_media_type" });
+  }
+  const rawBody = await req.text();
+  let payload: Record<string, unknown>;
+  try {
+    payload = JSON.parse(rawBody);
+  } catch {
+    return json(400, { error: "invalid_json" });
+  }
+
+  const eventType = String((payload as any)?.event ?? (payload as any)?.eventType ?? "").trim();
+  if (!eventType) return json(400, { error: "invalid_event" });
+
   const pluggyItemId: string | null =
     (payload as any)?.itemId ?? (payload as any)?.item?.id ?? null;
 
@@ -90,13 +117,14 @@ Deno.serve(async (req) => {
   const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(url, service);
 
+  // 4) Persistir SEM signature (a autenticação já foi validada acima).
   const { error: insertErr } = await supabase
     .from("open_finance_webhook_events")
     .insert({
       event_id: eventId,
       event_type: eventType,
       pluggy_item_id: pluggyItemId,
-      signature: providedSig || null,
+      signature: null,
       payload,
       received_ip: receivedIp,
       status: "pending",
@@ -104,13 +132,15 @@ Deno.serve(async (req) => {
 
   if (insertErr) {
     if ((insertErr as { code?: string }).code === "23505") {
+      console.info("[pluggy-webhook] duplicate_event", eventId);
       return json(200, { received: true, duplicate: true });
     }
-    console.error("[pluggy-webhook] insert error", insertErr);
+    console.error("[pluggy-webhook] persist_failed", (insertErr as { code?: string }).code);
     return json(500, { error: "persist_failed" });
   }
 
-  // Dispara o worker sem bloquear a resposta ao Pluggy.
+  console.info("[pluggy-webhook] event_persisted", eventType);
+
   const bg = triggerWorker();
   if (typeof EdgeRuntime !== "undefined" && typeof EdgeRuntime.waitUntil === "function") {
     EdgeRuntime.waitUntil(bg);
