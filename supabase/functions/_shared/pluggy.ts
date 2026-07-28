@@ -34,9 +34,16 @@ export async function pluggyFetch(path: string, init: RequestInit = {}): Promise
   return fetch(`${PLUGGY_API}${path}`, { ...init, headers });
 }
 
-export async function createConnectToken(itemId?: string): Promise<{ accessToken: string }> {
+export async function createConnectToken(
+  itemId?: string,
+  options?: { oauthRedirectUri?: string; clientUserId?: string },
+): Promise<{ accessToken: string }> {
   const body: Record<string, unknown> = {};
   if (itemId) body.itemId = itemId;
+  const tokenOptions: Record<string, unknown> = {};
+  if (options?.oauthRedirectUri) tokenOptions.oauthRedirectUri = options.oauthRedirectUri;
+  if (options?.clientUserId) tokenOptions.clientUserId = options.clientUserId;
+  if (Object.keys(tokenOptions).length > 0) body.options = tokenOptions;
   const res = await pluggyFetch("/connect_token", { method: "POST", body: JSON.stringify(body) });
   if (!res.ok) throw new Error(`connect_token_failed: ${res.status} ${await res.text()}`);
   return res.json();
