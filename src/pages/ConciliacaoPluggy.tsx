@@ -62,6 +62,7 @@ export default function ConciliacaoPluggy() {
   // Escopo travado por conta (quando entrou pelo card da conta bancária)
   const [scope, setScope] = useState<ScopeInfo | null>(null);
   const [scopeUnresolved, setScopeUnresolved] = useState(false);
+  const [linkedByPluggyAccount, setLinkedByPluggyAccount] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     if (!selectedCompanyId) { setLoading(false); return; }
