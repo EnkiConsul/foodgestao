@@ -162,7 +162,7 @@ export default function Relatorios() {
         const q = applyFinancialScope(
           supabase
             .from("transactions")
-            .select(sel("amount, amount_paid, transaction_type, transaction_date, category_id, account_id, status, due_date, payment_method_id, contact_id")),
+            .select(sel("amount, amount_paid, transaction_type, transaction_date, category_id, account_id, status, due_date, parcel_direction, payment_method_id, contact_id")),
           scope,
         )
           .or(
