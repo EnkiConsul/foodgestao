@@ -316,7 +316,11 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
           <div className="space-y-2">
             <Label>Categoria Pai (opcional)</Label>
             <Select value={parentId ?? "__none__"} onValueChange={(v) => setParentId(!v || v === "__none__" ? null : v)}>
-              <SelectTrigger><SelectValue placeholder="Nenhuma (raiz)" /></SelectTrigger>
+              <SelectTrigger>
+                <span className="truncate">
+                  {parentId ? (parentNameById(parentId) ?? "Carregando...") : "Nenhuma (raiz)"}
+                </span>
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">Nenhuma (raiz)</SelectItem>
                 {parentOptions.map((c) => (
@@ -330,6 +334,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
               <p className="text-xs text-muted-foreground">Crie categorias raiz do mesmo tipo primeiro</p>
             )}
           </div>
+
 
           <div className="space-y-2">
             <Label>Conta Contábil (opcional)</Label>
