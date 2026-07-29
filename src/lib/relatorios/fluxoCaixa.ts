@@ -155,7 +155,11 @@ export function computeFluxoCaixa(
 
     const buildNodes = (parentId: string | null): FluxoNode[] => {
       const siblings = sortSiblings(
-        categories.filter((c) => (c.parent_id ?? null) === parentId && catsWithData.has(c.id))
+        categories.filter(
+          (c) =>
+            (c.parent_id && catMap[c.parent_id] ? c.parent_id : null) === parentId &&
+            catsWithData.has(c.id)
+        )
       );
       return siblings.map((c) => {
         const children = buildNodes(c.id);
