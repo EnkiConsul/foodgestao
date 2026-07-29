@@ -84,17 +84,40 @@ export default function Relatorios() {
     queryKey: ["relatorios-cats", user?.id, contextType, selectedCompanyId],
     enabled: !!user && (contextType === "pf" || !!selectedCompanyId),
     queryFn: async () => {
-      const { data } = await supabase.rpc("get_accessible_categories", {
-        _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
-      });
-      return (data ?? []).map((c: any): FluxoCategory => ({
-        id: c.id, name: c.name, color: c.color,
-        transaction_type: c.transaction_type, parent_id: c.parent_id,
-        sort_order: c.sort_order,
-      }));
+      // Mesma origem e ordenação da página /categorias, para que nomes e
+      // hierarquia do relatório coincidam exatamente com o cadastro.
+      const map = (rows: any[]): FluxoCategory[] =>
+        rows.map((c) => ({
+          id: c.id, name: c.name, color: c.color,
+          transaction_type: c.transaction_type, parent_id: c.parent_id,
+          sort_order: c.sort_order,
+        }));
+
+      if (contextType === "pj") {
+        const { data } = await supabase
+          .from("categories")
+          .select("id, name, color, transaction_type, parent_id, sort_order, category_companies!inner(company_id)")
+          .or("context.is.null,context.eq.pj")
+          .eq("category_companies.company_id", selectedCompanyId!)
+          .order("parent_id", { nullsFirst: true })
+          .order("sort_order")
+          .order("name");
+        return map((data ?? []) as any[]);
+      }
+
+      const { data } = await supabase
+        .from("categories")
+        .select("id, name, color, transaction_type, parent_id, sort_order")
+        .eq("user_id", user!.id)
+        .or("context.is.null,context.eq.pf")
+        .eq("visible_pf", true)
+        .order("parent_id", { nullsFirst: true })
+        .order("sort_order")
+        .order("name");
+      return map((data ?? []) as any[]);
     },
   });
+
 
   const { data: accounts = [] } = useQuery({
     queryKey: ["relatorios-accounts", user?.id, contextType, selectedCompanyId],
