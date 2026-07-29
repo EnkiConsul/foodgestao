@@ -24,6 +24,7 @@ export type FluxoTransaction = {
 
   payment_method_id?: string | null;
   contact_id?: string | null;
+  categories?: FluxoCategory | FluxoCategory[] | null;
 };
 
 export type FluxoNode = {
@@ -79,7 +80,69 @@ export function computeFluxoCaixa(
   });
   const numMonths = monthKeys.length;
 
+  const mergedCategories: FluxoCategory[] = [...categories];
   const catMap: Record<string, FluxoCategory> = Object.fromEntries(categories.map((c) => [c.id, c]));
+
+  const getTransactionCategory = (t: FluxoTransaction): FluxoCategory | null => {
+    const related = Array.isArray(t.categories) ? t.categories[0] : t.categories;
+    return related?.id ? related : null;
+  };
+
+  for (const t of filteredTransactions) {
+    const related = getTransactionCategory(t);
+    if (related && !catMap[related.id]) {
+      catMap[related.id] = related;
+      mergedCategories.push(related);
+    }
+  }
+
+  const canonicalIdBySignature = new Map<string, string>();
+  const signatureCache = new Map<string, string>();
+  const normalizeName = (name: string) => name.trim().replace(/\s+/g, " ").toLocaleLowerCase("pt-BR");
+  const categorySignature = (cat: FluxoCategory, seen = new Set<string>()): string => {
+    const cached = signatureCache.get(cat.id);
+    if (cached) return cached;
+    if (seen.has(cat.id)) return `${cat.transaction_type}:cycle:${normalizeName(cat.name)}`;
+    seen.add(cat.id);
+    const parent = cat.parent_id ? catMap[cat.parent_id] : null;
+    const parentSignature = parent ? categorySignature(parent, seen) : "root";
+    seen.delete(cat.id);
+    const signature = `${cat.transaction_type}:${parentSignature}:${normalizeName(cat.name)}`;
+    signatureCache.set(cat.id, signature);
+    return signature;
+  };
+
+  const sortCategories = (arr: FluxoCategory[]) =>
+    arr.slice().sort((a, b) => {
+      const da = a.parent_id ? 1 : 0;
+      const db = b.parent_id ? 1 : 0;
+      if (da !== db) return da - db;
+      const sa = a.sort_order ?? Number.POSITIVE_INFINITY;
+      const sb = b.sort_order ?? Number.POSITIVE_INFINITY;
+      if (sa !== sb) return sa - sb;
+      return (a.name || "").localeCompare(b.name || "");
+    });
+
+  for (const cat of sortCategories(mergedCategories)) {
+    const signature = categorySignature(cat);
+    const existing = canonicalIdBySignature.get(signature);
+    if (!existing) {
+      canonicalIdBySignature.set(signature, cat.id);
+    }
+  }
+
+  const resolveCategoryId = (categoryId: string): string => {
+    const cat = catMap[categoryId];
+    if (!cat) return categoryId;
+    return canonicalIdBySignature.get(categorySignature(cat)) ?? categoryId;
+  };
+
+  const resolveParentId = (cat: FluxoCategory): string | null => {
+    if (!cat.parent_id) return null;
+    const parent = catMap[cat.parent_id];
+    if (!parent) return null;
+    return resolveCategoryId(parent.id);
+  };
 
   const monthIndexMap: Record<string, number> = {};
   monthKeys.forEach((k, i) => { monthIndexMap[k] = i; });
@@ -114,9 +177,10 @@ export function computeFluxoCaixa(
     else totalDespesas[idx] += amt;
 
     if (t.category_id && catMap[t.category_id]) {
+      const resolvedId = resolveCategoryId(t.category_id);
       const bucket = catMonthly[type];
-      if (!bucket[t.category_id]) bucket[t.category_id] = new Array(numMonths).fill(0);
-      bucket[t.category_id][idx] += amt;
+      if (!bucket[resolvedId]) bucket[resolvedId] = new Array(numMonths).fill(0);
+      bucket[resolvedId][idx] += amt;
     } else {
       uncategorized[type][idx] += amt;
     }
@@ -135,9 +199,13 @@ export function computeFluxoCaixa(
     const catsWithData = new Set<string>();
     for (const catId of Object.keys(monthlyByCat)) {
       let current: string | null = catId;
-      while (current) {
-        catsWithData.add(current);
-        current = catMap[current]?.parent_id ?? null;
+      const seen = new Set<string>();
+      while (current && !seen.has(current)) {
+        seen.add(current);
+        const resolvedCurrent = resolveCategoryId(current);
+        catsWithData.add(resolvedCurrent);
+        const cat = catMap[current];
+        current = cat ? resolveParentId(cat) : null;
       }
     }
 
@@ -155,9 +223,9 @@ export function computeFluxoCaixa(
 
     const buildNodes = (parentId: string | null): FluxoNode[] => {
       const siblings = sortSiblings(
-        categories.filter(
+        mergedCategories.filter(
           (c) =>
-            (c.parent_id && catMap[c.parent_id] ? c.parent_id : null) === parentId &&
+          resolveParentId(c) === parentId &&
             catsWithData.has(c.id)
         )
       );
