@@ -141,7 +141,7 @@ const financeiroShortcuts: NavLeaf[] = [
   { icon: Wallet, label: "Contas", to: "/contas-bancarias" },
   { icon: CreditCard, label: "Cartões", to: "/cartoes-credito" },
   { icon: TrendingUp, label: "Fluxo caixa", to: "/fluxo-caixa" },
-  { icon: FileBarChart, label: "Relatórios", to: "/relatorios" },
+  { icon: FileBarChart, label: "Relatórios", to: "/relatorios/contabeis" },
   { icon: Tags, label: "Categorias", to: "/categorias" },
   { icon: Contact, label: "Contatos", to: "/contatos" },
   { icon: PiggyBank, label: "Orçamento", to: "/orcamento" },
@@ -260,19 +260,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
           { icon: ArrowLeftRight, label: "Lançamentos", to: "/lancamentos", end: true },
           { icon: TrendingUp, label: "Fluxo de Caixa", to: "/fluxo-caixa", end: true },
           { icon: PiggyBank, label: "Orçamento", to: "/orcamento", end: true },
-        ],
-        subgroups: [
-          {
-            kind: "collapsible",
-            label: "Relatórios",
-            icon: FileBarChart,
-            hubTo: "/relatorios",
-            matchPrefixes: ["/relatorios"],
-            items: [
-              { icon: FileBarChart, label: "Financeiros", to: "/relatorios", end: true },
-              { icon: BookOpen, label: "Contábeis", to: "/relatorios/contabeis", end: true },
-            ],
-          },
+          { icon: BookOpen, label: "Relatórios Contábeis", to: "/relatorios/contabeis", end: true },
         ],
       },
       {
