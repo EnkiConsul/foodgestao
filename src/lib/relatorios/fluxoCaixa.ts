@@ -24,6 +24,7 @@ export type FluxoTransaction = {
 
   payment_method_id?: string | null;
   contact_id?: string | null;
+  categories?: FluxoCategory | FluxoCategory[] | null;
 };
 
 export type FluxoNode = {
@@ -79,7 +80,21 @@ export function computeFluxoCaixa(
   });
   const numMonths = monthKeys.length;
 
+  const mergedCategories: FluxoCategory[] = [...categories];
   const catMap: Record<string, FluxoCategory> = Object.fromEntries(categories.map((c) => [c.id, c]));
+
+  const getTransactionCategory = (t: FluxoTransaction): FluxoCategory | null => {
+    const related = Array.isArray(t.categories) ? t.categories[0] : t.categories;
+    return related?.id ? related : null;
+  };
+
+  for (const t of filteredTransactions) {
+    const related = getTransactionCategory(t);
+    if (related && !catMap[related.id]) {
+      catMap[related.id] = related;
+      mergedCategories.push(related);
+    }
+  }
 
   const monthIndexMap: Record<string, number> = {};
   monthKeys.forEach((k, i) => { monthIndexMap[k] = i; });
@@ -155,7 +170,7 @@ export function computeFluxoCaixa(
 
     const buildNodes = (parentId: string | null): FluxoNode[] => {
       const siblings = sortSiblings(
-        categories.filter(
+        mergedCategories.filter(
           (c) =>
             (c.parent_id && catMap[c.parent_id] ? c.parent_id : null) === parentId &&
             catsWithData.has(c.id)

@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { SearchableFilterSelect } from "@/components/relatorios/SearchableFilterSelect";
 
 type Account = { id: string; name: string };
-type Category = { id: string; name: string };
+type Category = { id: string; name: string; parent_id?: string | null; sort_order?: number | null };
 type PaymentMethod = { id: string; name: string };
 type Contact = { id: string; name: string };
 
@@ -82,13 +82,31 @@ export function RelatoriosFiltersPanel({
     };
   }, [accounts, categories, paymentMethods, contacts]);
 
-  const sortedCategories = categories
-    .slice()
-    .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
-    .map((cat) => ({
-      id: cat.id,
-      name: cat.name,
-    }));
+  const sortedCategories = (() => {
+    const byParent = new Map<string | null, Category[]>();
+    for (const cat of categories) {
+      const parentId = cat.parent_id ?? null;
+      const list = byParent.get(parentId) ?? [];
+      list.push(cat);
+      byParent.set(parentId, list);
+    }
+    const sortSiblings = (items: Category[]) =>
+      items.slice().sort((a, b) => {
+        const sa = a.sort_order ?? Number.POSITIVE_INFINITY;
+        const sb = b.sort_order ?? Number.POSITIVE_INFINITY;
+        if (sa !== sb) return sa - sb;
+        return (a.name || "").localeCompare(b.name || "");
+      });
+    const out: { id: string; name: string; prefix?: string }[] = [];
+    const walk = (parentId: string | null, depth: number) => {
+      for (const cat of sortSiblings(byParent.get(parentId) ?? [])) {
+        out.push({ id: cat.id, name: cat.name, prefix: depth > 0 ? `${"— ".repeat(depth)}` : undefined });
+        walk(cat.id, depth + 1);
+      }
+    };
+    walk(null, 0);
+    return out;
+  })();
 
   return (
     <Card className="shadow-sm">

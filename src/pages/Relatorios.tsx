@@ -84,8 +84,9 @@ export default function Relatorios() {
     queryKey: ["relatorios-cats", user?.id, contextType, selectedCompanyId],
     enabled: !!user && (contextType === "pf" || !!selectedCompanyId),
     queryFn: async () => {
-      // Mesma origem e ordenação da página /categorias, para que nomes e
-      // hierarquia do relatório coincidam exatamente com o cadastro.
+      // Mesma origem canônica usada nos formulários financeiros. No contexto PJ,
+      // a função também devolve os ancestrais das categorias vinculadas para
+      // preservar a hierarquia e os nomes cadastrados no relatório.
       const map = (rows: any[]): FluxoCategory[] =>
         rows.map((c) => ({
           id: c.id, name: c.name, color: c.color,
@@ -93,27 +94,11 @@ export default function Relatorios() {
           sort_order: c.sort_order,
         }));
 
-      if (contextType === "pj") {
-        const { data } = await supabase
-          .from("categories")
-          .select("id, name, color, transaction_type, parent_id, sort_order, category_companies!inner(company_id)")
-          .or("context.is.null,context.eq.pj")
-          .eq("category_companies.company_id", selectedCompanyId!)
-          .order("parent_id", { nullsFirst: true })
-          .order("sort_order")
-          .order("name");
-        return map((data ?? []) as any[]);
-      }
-
-      const { data } = await supabase
-        .from("categories")
-        .select("id, name, color, transaction_type, parent_id, sort_order")
-        .eq("user_id", user!.id)
-        .or("context.is.null,context.eq.pf")
-        .eq("visible_pf", true)
-        .order("parent_id", { nullsFirst: true })
-        .order("sort_order")
-        .order("name");
+      const { data, error } = await supabase.rpc("get_accessible_categories", {
+        _context: contextType,
+        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
+      });
+      if (error) throw error;
       return map((data ?? []) as any[]);
     },
   });
@@ -190,7 +175,7 @@ export default function Relatorios() {
         const q = applyFinancialScope(
           supabase
             .from("transactions")
-            .select(sel("amount, amount_paid, transaction_type, transaction_date, category_id, account_id, status, due_date, parcel_direction, payment_method_id, contact_id")),
+            .select(sel("amount, amount_paid, transaction_type, transaction_date, category_id, account_id, status, due_date, parcel_direction, payment_method_id, contact_id, categories!fk_transactions_category(id, name, color, transaction_type, parent_id, sort_order)")),
           scope,
         )
           .or(
