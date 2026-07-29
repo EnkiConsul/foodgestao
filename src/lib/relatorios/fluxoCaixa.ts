@@ -202,8 +202,10 @@ export function computeFluxoCaixa(
       const seen = new Set<string>();
       while (current && !seen.has(current)) {
         seen.add(current);
-        catsWithData.add(current);
-        current = catMap[current]?.parent_id ?? null;
+        const resolvedCurrent = resolveCategoryId(current);
+        catsWithData.add(resolvedCurrent);
+        const cat = catMap[current];
+        current = cat ? resolveParentId(cat) : null;
       }
     }
 
