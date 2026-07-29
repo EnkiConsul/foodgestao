@@ -84,7 +84,17 @@ export function computeFluxoCaixa(
   const monthIndexMap: Record<string, number> = {};
   monthKeys.forEach((k, i) => { monthIndexMap[k] = i; });
 
-  const catMonthly: Record<string, number[]> = {};
+  // Acumula por TIPO efetivo do lançamento (receita/despesa), não pelo tipo
+  // cadastrado na categoria — assim categorias "ambos" ou de tipo divergente
+  // continuam aparecendo no detalhamento.
+  const catMonthly: Record<"receita" | "despesa", Record<string, number[]>> = {
+    receita: {},
+    despesa: {},
+  };
+  const uncategorized: Record<"receita" | "despesa", number[]> = {
+    receita: new Array(numMonths).fill(0),
+    despesa: new Array(numMonths).fill(0),
+  };
   const totalReceitas = new Array(numMonths).fill(0);
   const totalDespesas = new Array(numMonths).fill(0);
 
@@ -99,13 +109,16 @@ export function computeFluxoCaixa(
     const isReceita =
       t.transaction_type === "receita" ||
       (t.transaction_type === "parcelado" && t.parcel_direction === "entrada");
+    const type: "receita" | "despesa" = isReceita ? "receita" : "despesa";
     if (isReceita) totalReceitas[idx] += amt;
     else totalDespesas[idx] += amt;
 
-
-    if (t.category_id) {
-      if (!catMonthly[t.category_id]) catMonthly[t.category_id] = new Array(numMonths).fill(0);
-      catMonthly[t.category_id][idx] += amt;
+    if (t.category_id && catMap[t.category_id]) {
+      const bucket = catMonthly[type];
+      if (!bucket[t.category_id]) bucket[t.category_id] = new Array(numMonths).fill(0);
+      bucket[t.category_id][idx] += amt;
+    } else {
+      uncategorized[type][idx] += amt;
     }
   }
 
@@ -116,13 +129,11 @@ export function computeFluxoCaixa(
     return nonZero.length > 0 ? sumArr(nonZero) / nonZero.length : 0;
   };
 
-  const buildTree = (type: string): FluxoNode[] => {
-    const relevantCats = categories.filter((c) => c.transaction_type === type);
+  const buildTree = (type: "receita" | "despesa"): FluxoNode[] => {
+    const monthlyByCat = catMonthly[type];
 
     const catsWithData = new Set<string>();
-    for (const catId of Object.keys(catMonthly)) {
-      const cat = catMap[catId];
-      if (!cat || cat.transaction_type !== type) continue;
+    for (const catId of Object.keys(monthlyByCat)) {
       let current: string | null = catId;
       while (current) {
         catsWithData.add(current);
@@ -130,9 +141,8 @@ export function computeFluxoCaixa(
       }
     }
 
-    // 1) Monta a árvore COMPLETA (todas as categorias do tipo), ordenada
-    //    do mesmo modo que a página de Categorias (sort_order, depois name),
-    //    para que o índice hierárquico coincida com o cadastro.
+    // Ordena do mesmo modo que a página de Categorias (sort_order, depois name),
+    // para que a hierarquia coincida com o cadastro.
     const sortSiblings = (arr: FluxoCategory[]) =>
       arr.slice().sort((a, b) => {
         // Postgres ORDER BY sort_order ASC coloca NULL por último — replicamos aqui
@@ -145,16 +155,20 @@ export function computeFluxoCaixa(
 
     const buildNodes = (parentId: string | null): FluxoNode[] => {
       const siblings = sortSiblings(
-        relevantCats.filter((c) => c.parent_id === parentId && catsWithData.has(c.id))
+        categories.filter(
+          (c) =>
+            (c.parent_id && catMap[c.parent_id] ? c.parent_id : null) === parentId &&
+            catsWithData.has(c.id)
+        )
       );
       return siblings.map((c) => {
         const children = buildNodes(c.id);
-        const leafMonths = catMonthly[c.id] || new Array(numMonths).fill(0);
+        const leafMonths = monthlyByCat[c.id] || new Array(numMonths).fill(0);
         const months = children.length > 0
           ? leafMonths.map((v: number, i: number) => v + children.reduce((sum, ch) => sum + ch.months[i], 0))
           : [...leafMonths];
         return {
-          id: c.id,
+          id: `${type}:${c.id}`,
           name: c.name,
           type,
           months,
@@ -164,8 +178,20 @@ export function computeFluxoCaixa(
       });
     };
 
-    return buildNodes(null);
+    const nodes = buildNodes(null);
+    if (uncategorized[type].some((v) => v !== 0)) {
+      nodes.push({
+        id: `${type}:sem-categoria`,
+        name: "Sem categoria",
+        type,
+        months: [...uncategorized[type]],
+        children: [],
+        depth: 0,
+      });
+    }
+    return nodes;
   };
+
 
 
   return {
