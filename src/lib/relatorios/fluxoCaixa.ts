@@ -97,14 +97,20 @@ export function computeFluxoCaixa(
   }
 
   const canonicalIdBySignature = new Map<string, string>();
-  const parentSignatureOf = (cat: FluxoCategory): string => {
-    const parent = cat.parent_id ? catMap[cat.parent_id] : null;
-    if (!parent) return "root";
-    return categorySignature(parent);
-  };
+  const signatureCache = new Map<string, string>();
   const normalizeName = (name: string) => name.trim().replace(/\s+/g, " ").toLocaleLowerCase("pt-BR");
-  const categorySignature = (cat: FluxoCategory): string =>
-    `${cat.transaction_type}:${parentSignatureOf(cat)}:${normalizeName(cat.name)}`;
+  const categorySignature = (cat: FluxoCategory, seen = new Set<string>()): string => {
+    const cached = signatureCache.get(cat.id);
+    if (cached) return cached;
+    if (seen.has(cat.id)) return `${cat.transaction_type}:cycle:${normalizeName(cat.name)}`;
+    seen.add(cat.id);
+    const parent = cat.parent_id ? catMap[cat.parent_id] : null;
+    const parentSignature = parent ? categorySignature(parent, seen) : "root";
+    seen.delete(cat.id);
+    const signature = `${cat.transaction_type}:${parentSignature}:${normalizeName(cat.name)}`;
+    signatureCache.set(cat.id, signature);
+    return signature;
+  };
 
   const sortCategories = (arr: FluxoCategory[]) =>
     arr.slice().sort((a, b) => {
@@ -193,7 +199,9 @@ export function computeFluxoCaixa(
     const catsWithData = new Set<string>();
     for (const catId of Object.keys(monthlyByCat)) {
       let current: string | null = catId;
-      while (current) {
+      const seen = new Set<string>();
+      while (current && !seen.has(current)) {
+        seen.add(current);
         catsWithData.add(current);
         current = catMap[current]?.parent_id ?? null;
       }
