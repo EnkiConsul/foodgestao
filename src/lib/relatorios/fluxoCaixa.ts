@@ -96,6 +96,52 @@ export function computeFluxoCaixa(
     }
   }
 
+  const canonicalIdBySignature = new Map<string, string>();
+  const displayCategoryById: Record<string, FluxoCategory> = {};
+  const parentSignatureOf = (cat: FluxoCategory): string => {
+    const parent = cat.parent_id ? catMap[cat.parent_id] : null;
+    if (!parent) return "root";
+    return categorySignature(parent);
+  };
+  const normalizeName = (name: string) => name.trim().replace(/\s+/g, " ").toLocaleLowerCase("pt-BR");
+  const categorySignature = (cat: FluxoCategory): string =>
+    `${cat.transaction_type}:${parentSignatureOf(cat)}:${normalizeName(cat.name)}`;
+
+  const sortCategories = (arr: FluxoCategory[]) =>
+    arr.slice().sort((a, b) => {
+      const da = a.parent_id ? 1 : 0;
+      const db = b.parent_id ? 1 : 0;
+      if (da !== db) return da - db;
+      const sa = a.sort_order ?? Number.POSITIVE_INFINITY;
+      const sb = b.sort_order ?? Number.POSITIVE_INFINITY;
+      if (sa !== sb) return sa - sb;
+      return (a.name || "").localeCompare(b.name || "");
+    });
+
+  for (const cat of sortCategories(mergedCategories)) {
+    const signature = categorySignature(cat);
+    const existing = canonicalIdBySignature.get(signature);
+    if (!existing) {
+      canonicalIdBySignature.set(signature, cat.id);
+      displayCategoryById[cat.id] = cat;
+    } else if (!displayCategoryById[cat.id]) {
+      displayCategoryById[cat.id] = { ...cat, parent_id: catMap[existing]?.parent_id ?? cat.parent_id };
+    }
+  }
+
+  const resolveCategoryId = (categoryId: string): string => {
+    const cat = catMap[categoryId];
+    if (!cat) return categoryId;
+    return canonicalIdBySignature.get(categorySignature(cat)) ?? categoryId;
+  };
+
+  const resolveParentId = (cat: FluxoCategory): string | null => {
+    if (!cat.parent_id) return null;
+    const parent = catMap[cat.parent_id];
+    if (!parent) return null;
+    return resolveCategoryId(parent.id);
+  };
+
   const monthIndexMap: Record<string, number> = {};
   monthKeys.forEach((k, i) => { monthIndexMap[k] = i; });
 
@@ -129,9 +175,10 @@ export function computeFluxoCaixa(
     else totalDespesas[idx] += amt;
 
     if (t.category_id && catMap[t.category_id]) {
+      const resolvedId = resolveCategoryId(t.category_id);
       const bucket = catMonthly[type];
-      if (!bucket[t.category_id]) bucket[t.category_id] = new Array(numMonths).fill(0);
-      bucket[t.category_id][idx] += amt;
+      if (!bucket[resolvedId]) bucket[resolvedId] = new Array(numMonths).fill(0);
+      bucket[resolvedId][idx] += amt;
     } else {
       uncategorized[type][idx] += amt;
     }
@@ -172,7 +219,7 @@ export function computeFluxoCaixa(
       const siblings = sortSiblings(
         mergedCategories.filter(
           (c) =>
-            (c.parent_id && catMap[c.parent_id] ? c.parent_id : null) === parentId &&
+          resolveParentId(c) === parentId &&
             catsWithData.has(c.id)
         )
       );
