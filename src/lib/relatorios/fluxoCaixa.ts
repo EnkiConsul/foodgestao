@@ -97,7 +97,6 @@ export function computeFluxoCaixa(
   }
 
   const canonicalIdBySignature = new Map<string, string>();
-  const displayCategoryById: Record<string, FluxoCategory> = {};
   const parentSignatureOf = (cat: FluxoCategory): string => {
     const parent = cat.parent_id ? catMap[cat.parent_id] : null;
     if (!parent) return "root";
@@ -123,9 +122,6 @@ export function computeFluxoCaixa(
     const existing = canonicalIdBySignature.get(signature);
     if (!existing) {
       canonicalIdBySignature.set(signature, cat.id);
-      displayCategoryById[cat.id] = cat;
-    } else if (!displayCategoryById[cat.id]) {
-      displayCategoryById[cat.id] = { ...cat, parent_id: catMap[existing]?.parent_id ?? cat.parent_id };
     }
   }
 
