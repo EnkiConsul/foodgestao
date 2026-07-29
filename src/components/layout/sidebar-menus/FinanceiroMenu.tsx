@@ -2,7 +2,7 @@ import {
   LayoutDashboard, ArrowLeftRight, TrendingUp, Target, FileBarChart,
   Landmark, CreditCard, Users, FolderTree, BookOpen,
 } from "lucide-react";
-import { SidebarSection, SidebarNavItem, SidebarCollapsibleGroup, type MenuItem } from "./shared";
+import { SidebarSection, SidebarNavItem, type MenuItem } from "./shared";
 
 const items: MenuItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, end: true },
