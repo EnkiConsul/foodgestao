@@ -26,14 +26,8 @@ export function FinanceiroMenu() {
     <>
       <SidebarSection label="Financeiro 360°">
         {items.map((i) => <SidebarNavItem key={i.url} item={i} />)}
-        <SidebarCollapsibleGroup
-          label="Relatórios"
-          icon={FileBarChart}
-          matchPrefix="/relatorios"
-          items={[
-            { title: "Financeiros", url: "/relatorios", end: true },
-            { title: "Contábeis", url: "/relatorios/contabeis", end: true },
-          ]}
+        <SidebarNavItem
+          item={{ title: "Relatórios Contábeis", url: "/relatorios/contabeis", icon: FileBarChart, end: true }}
         />
       </SidebarSection>
 
