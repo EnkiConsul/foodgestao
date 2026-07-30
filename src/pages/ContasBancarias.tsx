@@ -625,7 +625,7 @@ export default function ContasBancarias() {
       </AlertDialog>
 
       {/* Confirmação de desativação */}
-      <AlertDialog open={!!deactivateAccount} onOpenChange={(open) => { if (!open) { setDeactivateAccount(null); setDeactivateOfBank(null); setDeactivateOfLast(false); } }}>
+      <AlertDialog open={!!deactivateAccount} onOpenChange={(open) => { if (!open) { setDeactivateAccount(null); setDeactivateOfBank(null); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Desativar conta bancária</AlertDialogTitle>
@@ -637,17 +637,11 @@ export default function ContasBancarias() {
           <div className="rounded-md border border-warning/50 bg-warning/10 p-3 text-sm">
             <div className="font-medium mb-1 flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-warning" />
-              {deactivateOfBank && deactivateOfLast
-                ? "A conexão Open Finance será encerrada"
-                : "A conexão Open Finance não é removida"}
+              A conexão Open Finance não é removida
             </div>
             <p className="text-muted-foreground">
               {deactivateOfBank ? (
-                deactivateOfLast ? (
-                  <>Esta é a última conta ativa da conexão com o <strong>{deactivateOfBank}</strong>. Ao desativá-la, a conexão será <strong>encerrada na Pluggy</strong> e deixará de aparecer no painel do Open Finance. Os lançamentos já importados são preservados, mas para voltar a sincronizar será preciso <strong>reconectar o banco</strong>.</>
-                ) : (
-                  <>Esta conta é sincronizada via Open Finance com o <strong>{deactivateOfBank}</strong>. Como a conexão tem outras contas ativas, ela <strong>não</strong> é removida: apenas a sincronização desta conta fica <strong>pausada</strong> — e volta automaticamente ao reativar.</>
-                )
+                <>Esta conta é sincronizada via Open Finance com o <strong>{deactivateOfBank}</strong>. A conexão <strong>permanece ativa</strong> e continua aparecendo no painel do Open Finance: apenas a sincronização desta conta fica <strong>pausada</strong> — e volta automaticamente ao reativar.</>
               ) : (
                 <>Desativar uma conta <strong>não</strong> remove nenhuma conexão Open Finance. Se houver vínculo, a sincronização daquela conta fica apenas pausada até a reativação.</>
               )}
@@ -661,13 +655,13 @@ export default function ContasBancarias() {
                 if (deactivateAccount) await applyToggleActive(deactivateAccount);
                 setDeactivateAccount(null);
                 setDeactivateOfBank(null);
-                setDeactivateOfLast(false);
               }}
             >
 
               Desativar conta
             </AlertDialogAction>
           </AlertDialogFooter>
+
         </AlertDialogContent>
       </AlertDialog>
 
