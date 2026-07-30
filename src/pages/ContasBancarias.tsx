@@ -63,6 +63,8 @@ export default function ContasBancarias() {
   const [importAccountId, setImportAccountId] = useState<string | null>(null);
   const [postCreateAccountId, setPostCreateAccountId] = useState<string | null>(null);
   const [deleteAccount, setDeleteAccount] = useState<Account | null>(null);
+  const [deactivateAccount, setDeactivateAccount] = useState<Account | null>(null);
+  const [deactivateOfBank, setDeactivateOfBank] = useState<string | null>(null);
   const [deleteHasTx, setDeleteHasTx] = useState<boolean | null>(null);
   const [linkedCards, setLinkedCards] = useState<Array<{ id: string; brand: string | null; last4: string | null }>>([]);
   const [linkedOf, setLinkedOf] = useState<{ pluggyAccountId: string; connectionId: string; bankName: string; multi: boolean } | null>(null);
