@@ -21,24 +21,24 @@ export function categoryGuideLevels(depth: number): number[] {
   return Array.from({ length: d }, (_, i) => i);
 }
 
-export type CategoryTransactionType = "receita" | "despesa" | string;
+export type CategoryTransactionType = "entrada" | "saida" | string;
 
 export const CATEGORY_TYPE_LABEL: Record<string, string> = {
-  receita: "Receita",
-  despesa: "Despesa",
+  entrada: "Entrada",
+  saida: "Saída",
 };
 
 export const CATEGORY_TYPE_CLS: Record<string, string> = {
-  receita: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-  despesa: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  entrada: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  saida: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };
 
 export function categoryTypeLabel(type: CategoryTransactionType): string {
-  return CATEGORY_TYPE_LABEL[type] ?? CATEGORY_TYPE_LABEL.receita;
+  return CATEGORY_TYPE_LABEL[type] ?? CATEGORY_TYPE_LABEL.entrada;
 }
 
 export function categoryTypeClass(type: CategoryTransactionType): string {
-  return CATEGORY_TYPE_CLS[type] ?? CATEGORY_TYPE_CLS.receita;
+  return CATEGORY_TYPE_CLS[type] ?? CATEGORY_TYPE_CLS.entrada;
 }
 
 export const CATEGORY_SUBTYPE_LABEL: Record<string, string> = {
