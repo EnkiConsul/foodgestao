@@ -40,7 +40,7 @@ export function BudgetFormDialog({ open, onOpenChange, onCreated }: Props) {
       .rpc("get_accessible_categories", {
         _context: contextType,
         _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
-        _transaction_type: "despesa",
+        _transaction_type: "saida",
       })
       .then(({ data }) => setCategories((data ?? []) as any));
   }, [user, open, contextType, selectedCompanyId]);

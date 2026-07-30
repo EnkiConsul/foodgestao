@@ -94,7 +94,7 @@ describe("parseLinesToEntries", () => {
     expect(entries[0]).toMatchObject({
       date: "2026-06-05",
       amount: 150,
-      transaction_type: "receita",
+      transaction_type: "entrada",
       counterparty_document: "12.345.678/0001-90",
       counterparty_name: "João Silva",
     });
@@ -110,7 +110,7 @@ describe("parseLinesToEntries", () => {
     ]);
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatchObject({
-      transaction_type: "despesa",
+      transaction_type: "saida",
       amount: 75.5,
       counterparty_document: "123.456.789-00",
     });
@@ -124,8 +124,8 @@ describe("parseLinesToEntries", () => {
       "Pix enviado Fornecedor B 40,00",
     ]);
     expect(entries).toHaveLength(2);
-    expect(entries[0].transaction_type).toBe("receita");
-    expect(entries[1].transaction_type).toBe("despesa");
+    expect(entries[0].transaction_type).toBe("entrada");
+    expect(entries[1].transaction_type).toBe("saida");
   });
 
   it("carries date across multiple days", async () => {
@@ -136,7 +136,7 @@ describe("parseLinesToEntries", () => {
       "Pix enviado B 20,00",
     ]);
     expect(entries.map((e) => e.date)).toEqual(["2026-06-05", "2026-06-06"]);
-    expect(entries.map((e) => e.transaction_type)).toEqual(["receita", "despesa"]);
+    expect(entries.map((e) => e.transaction_type)).toEqual(["entrada", "saida"]);
   });
 
   it("appends counterparty document from a continuation line", async () => {
@@ -158,7 +158,7 @@ describe("parseLinesToEntries", () => {
       "Pix recebido B 20,00",
     ]);
     expect(entries).toHaveLength(2);
-    expect(entries.every((e) => e.transaction_type === "receita")).toBe(true);
+    expect(entries.every((e) => e.transaction_type === "entrada")).toBe(true);
   });
 
   it("produces deterministic import_hash for identical entries", async () => {
@@ -212,7 +212,7 @@ describe("sign inference from explicit +/-", () => {
       "Compra no débito Padaria X -12,50",
     ]);
     expect(entries).toHaveLength(1);
-    expect(entries[0].transaction_type).toBe("despesa");
+    expect(entries[0].transaction_type).toBe("saida");
     expect(entries[0].amount).toBe(12.5);
   });
 
@@ -222,7 +222,7 @@ describe("sign inference from explicit +/-", () => {
       "Pix recebido Cliente A +200,00",
     ]);
     expect(entries).toHaveLength(1);
-    expect(entries[0].transaction_type).toBe("receita");
+    expect(entries[0].transaction_type).toBe("entrada");
     expect(entries[0].amount).toBe(200);
   });
 
@@ -233,8 +233,8 @@ describe("sign inference from explicit +/-", () => {
       "Pix recebido A 50,00",
     ]);
     expect(entries).toHaveLength(2);
-    expect(entries[0]).toMatchObject({ transaction_type: "despesa", amount: 30 });
-    expect(entries[1]).toMatchObject({ transaction_type: "receita", amount: 50 });
+    expect(entries[0]).toMatchObject({ transaction_type: "saida", amount: 30 });
+    expect(entries[1]).toMatchObject({ transaction_type: "entrada", amount: 50 });
   });
 
   it("always stores amount as positive magnitude", async () => {

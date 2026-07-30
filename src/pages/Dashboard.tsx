@@ -160,17 +160,17 @@ export default function Dashboard() {
       if (!confirmedMonths[month]) confirmedMonths[month] = { receitas: 0, despesas: 0 };
       if (!days[day]) days[day] = { receitas: 0, despesas: 0 };
 
-      const effType: "receita" | "despesa" | null =
-        t.transaction_type === "receita" || t.transaction_type === "despesa"
+      const effType: "entrada" | "saida" | null =
+        t.transaction_type === "entrada" || t.transaction_type === "saida"
           ? t.transaction_type
           : null;
 
-      if (effType === "receita") {
+      if (effType === "entrada") {
         months[month].receitas += Number(t.amount);
         days[day].receitas += Number(t.amount);
         totalR += Number(t.amount);
         if (isEffective(t)) confirmedMonths[month].receitas += Number(t.amount);
-      } else if (effType === "despesa") {
+      } else if (effType === "saida") {
         months[month].despesas += Number(t.amount);
         days[day].despesas += Number(t.amount);
         totalD += Number(t.amount);

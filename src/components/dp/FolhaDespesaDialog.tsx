@@ -41,7 +41,7 @@ export function FolhaDespesaDialog({
   useEffect(() => setDataPagamento(vencimentoPadrao), [vencimentoPadrao]);
 
   const categoriasDespesa = (categories as Array<{ id: string; name: string; type?: string }>).filter(
-    (c) => !c.type || c.type === "despesa",
+    (c) => !c.type || c.type === "saida",
   );
 
   return (

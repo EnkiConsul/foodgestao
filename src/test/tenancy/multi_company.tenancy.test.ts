@@ -102,7 +102,7 @@ suite("Tenancy: multiempresa (Bloco I)", () => {
       context: "pj",
       description: "tenancy-test-viewer",
       amount: 1,
-      type: "despesa",
+      type: "saida",
       due_date: "2026-01-01",
       status: "pendente",
     } as never);

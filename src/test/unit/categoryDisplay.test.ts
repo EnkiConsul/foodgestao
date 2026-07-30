@@ -40,19 +40,19 @@ describe("categoryIndent", () => {
 
 describe("categoryTypeLabel / categoryTypeClass", () => {
   it("retorna os rótulos Receita e Despesa", () => {
-    expect(categoryTypeLabel("receita")).toBe("Receita");
-    expect(categoryTypeLabel("despesa")).toBe("Despesa");
+    expect(categoryTypeLabel("entrada")).toBe("Receita");
+    expect(categoryTypeLabel("saida")).toBe("Despesa");
   });
 
   it("usa Receita como fallback para tipos desconhecidos", () => {
     expect(categoryTypeLabel("outro")).toBe(CATEGORY_TYPE_LABEL.receita);
-    expect(categoryTypeClass("outro")).toBe(categoryTypeClass("receita"));
+    expect(categoryTypeClass("outro")).toBe(categoryTypeClass("entrada"));
   });
 
   it("diferencia visualmente receita de despesa", () => {
-    expect(categoryTypeClass("receita")).not.toBe(categoryTypeClass("despesa"));
-    expect(categoryTypeClass("receita")).toContain("emerald");
-    expect(categoryTypeClass("despesa")).toContain("red");
+    expect(categoryTypeClass("entrada")).not.toBe(categoryTypeClass("saida"));
+    expect(categoryTypeClass("entrada")).toContain("emerald");
+    expect(categoryTypeClass("saida")).toContain("red");
   });
 
   it("não expõe numeração posicional nos rótulos", () => {

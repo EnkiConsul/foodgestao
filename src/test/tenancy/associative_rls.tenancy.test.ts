@@ -70,7 +70,7 @@ const specs: Spec[] = [
     fixturePayload: (uid) => ({
       user_id: uid,
       name: `rls-fixture-cat-${Date.now()}`,
-      transaction_type: "despesa",
+      transaction_type: "saida",
       context: "pj",
     }),
   },

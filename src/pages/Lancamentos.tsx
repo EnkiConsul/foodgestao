@@ -59,7 +59,7 @@ type Transaction = {
   id: string;
   description: string;
   amount: number;
-  transaction_type: "receita" | "despesa" | "transferencia";
+  transaction_type: "entrada" | "saida" | "transferencia";
   transaction_date: string;
   status: string;
   category_id: string | null;
@@ -87,7 +87,7 @@ type DisplayRow = {
   description: string;
   amount: number;
   date: string;
-  transactionType: "receita" | "despesa" | "transferencia";
+  transactionType: "entrada" | "saida" | "transferencia";
   installmentNumber: number | null;
   installmentTotal: number | null;
   categoryName: string | null;
@@ -159,7 +159,7 @@ export default function Lancamentos() {
   
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-  const [dialogInitialType, setDialogInitialType] = useState<"receita" | "despesa" | "transferencia" | undefined>(undefined);
+  const [dialogInitialType, setDialogInitialType] = useState<"entrada" | "saida" | "transferencia" | undefined>(undefined);
   const [batchCategorizing, setBatchCategorizing] = useState(false);
 
   const handleBatchCategorize = useCallback(async () => {
@@ -612,8 +612,8 @@ export default function Lancamentos() {
       const matchSearch = !search || t.description.toLowerCase().includes(search.toLowerCase());
       if (!matchSearch) return;
       const eff = t.transaction_type;
-      if (eff === "receita" && !filterCredito) return;
-      if (eff === "despesa" && !filterDebito) return;
+      if (eff === "entrada" && !filterCredito) return;
+      if (eff === "saida" && !filterDebito) return;
       if (eff === "transferencia" && !filterTransferencia) return;
       if (filterAccount.length > 0 && !filterAccount.includes(t.account_id)) return;
       if (filterPaymentMethod.length > 0 && (!t.payment_method_id || !filterPaymentMethod.includes(t.payment_method_id))) return;
@@ -677,8 +677,8 @@ export default function Lancamentos() {
     rows.forEach((r) => {
       const isPaid = r.hasDueDate && r.amountPaid >= r.amount;
       if (r.txStatus === "confirmado" || isPaid) {
-        if (r.transactionType === "receita") running += r.amount;
-        else if (r.transactionType === "despesa") running -= r.amount;
+        if (r.transactionType === "entrada") running += r.amount;
+        else if (r.transactionType === "saida") running -= r.amount;
       }
       r.runningBalance = running;
     });
@@ -689,16 +689,16 @@ export default function Lancamentos() {
   // Totals
   const totals = useMemo(() => {
     const effectiveRows = displayRows.filter((r) => r.txStatus === "confirmado" || (r.hasDueDate && r.amountPaid >= r.amount));
-    const receitas = effectiveRows.filter((r) => r.transactionType === "receita").reduce((s, r) => s + r.amount, 0);
-    const despesas = effectiveRows.filter((r) => r.transactionType === "despesa").reduce((s, r) => s + r.amount, 0);
+    const receitas = effectiveRows.filter((r) => r.transactionType === "entrada").reduce((s, r) => s + r.amount, 0);
+    const despesas = effectiveRows.filter((r) => r.transactionType === "saida").reduce((s, r) => s + r.amount, 0);
 
     const pending = displayRows.filter((r) => r.billStatus !== "pago");
-    const aPagar = pending.filter((r) => r.transactionType === "despesa").reduce((s, r) => s + r.amount - r.amountPaid, 0);
-    const aReceber = pending.filter((r) => r.transactionType === "receita").reduce((s, r) => s + r.amount - r.amountPaid, 0);
+    const aPagar = pending.filter((r) => r.transactionType === "saida").reduce((s, r) => s + r.amount - r.amountPaid, 0);
+    const aReceber = pending.filter((r) => r.transactionType === "entrada").reduce((s, r) => s + r.amount - r.amountPaid, 0);
     const atrasadas = displayRows.filter((r) => r.billStatus === "atrasado").length;
 
-    const allReceitas = displayRows.filter((r) => r.transactionType === "receita").reduce((s, r) => s + r.amount, 0);
-    const allDespesas = displayRows.filter((r) => r.transactionType === "despesa").reduce((s, r) => s + r.amount, 0);
+    const allReceitas = displayRows.filter((r) => r.transactionType === "entrada").reduce((s, r) => s + r.amount, 0);
+    const allDespesas = displayRows.filter((r) => r.transactionType === "saida").reduce((s, r) => s + r.amount, 0);
     const saldoPeriodo = allReceitas - allDespesas;
     const saldoAcumulado = previousBalance + saldoPeriodo;
 
@@ -712,7 +712,7 @@ export default function Lancamentos() {
     const csvRows = displayRows.map((r) => [
       formatTransactionDate(r.date, "dd/MM/yyyy", ""),
       `"${r.description.replace(/"/g, '""')}"`,
-      r.transactionType === "receita" ? "Crédito" : r.transactionType === "despesa" ? "Débito" : "Transferência",
+      r.transactionType === "entrada" ? "Crédito" : r.transactionType === "saida" ? "Débito" : "Transferência",
       r.amount.toFixed(2).replace(".", ","),
       displayStatusConfig[r.billStatus].label,
       formatTransactionDate(r.dueDate, "dd/MM/yyyy", ""),
@@ -1176,7 +1176,7 @@ export default function Lancamentos() {
           description: paymentTx.description,
           amount: paymentTx.amount,
           amount_paid: paymentTx.amount_paid,
-          transaction_type: paymentTx.transaction_type as "receita" | "despesa",
+          transaction_type: paymentTx.transaction_type as "entrada" | "saida",
           account_id: paymentTx.account_id,
           category_id: paymentTx.category_id,
           contact_id: paymentTx.contact_id,

@@ -13,7 +13,7 @@ type QueueMsg = {
     transaction_id: string;
     user_id: string;
     description: string;
-    transaction_type: "receita" | "despesa" | "transferencia";
+    transaction_type: "entrada" | "saida" | "transferencia";
     context: "pf" | "pj" | null;
     company_id: string | null;
     amount: number | string;

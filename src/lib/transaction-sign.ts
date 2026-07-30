@@ -20,8 +20,8 @@ type SignInput = {
 
 /** Efeito algébrico do lançamento no saldo. */
 export function transactionSignedAmount(t: SignInput): number {
-  if (t.transaction_type === "receita") return t.amount;
-  if (t.transaction_type === "despesa") return -t.amount;
+  if (t.transaction_type === "entrada") return t.amount;
+  if (t.transaction_type === "saida") return -t.amount;
   return t.amount;
 }
 

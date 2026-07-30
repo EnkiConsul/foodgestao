@@ -47,7 +47,7 @@ describe("RLS: categories (Bloco F)", () => {
       .insert({
         user_id: "00000000-0000-0000-0000-000000000000",
         name: "rls-probe",
-        transaction_type: "despesa",
+        transaction_type: "saida",
         context: "pf",
       } as never)
       .select();

@@ -11,7 +11,7 @@ const BodySchema = z.object({
     id: z.string(),
     description: z.string(),
     amount: z.number(),
-    type: z.enum(["receita", "despesa"]).optional(),
+    type: z.enum(["entrada", "saida"]).optional(),
   })).min(1).max(50),
 });
 
@@ -58,14 +58,14 @@ Deno.serve(async (req) => {
 
 Regras:
 - category_id deve ser exatamente um dos ids fornecidos abaixo.
-- Se o tipo do lançamento é "receita", escolha categoria de tipo "receita"; se "despesa", tipo "despesa".
+- Se o tipo do lançamento é "entrada", escolha categoria de tipo "entrada"; se "saida", tipo "saida".
 - Se não houver match confiável (>0.4), omita a linha.
 
 CATEGORIAS:
 ${catList}
 
 LANÇAMENTOS:
-${items.map(i => `${i.id}|${i.type ?? "despesa"}|${i.amount}|${i.description}`).join("\n")}`;
+${items.map(i => `${i.id}|${i.type ?? "saida"}|${i.amount}|${i.description}`).join("\n")}`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) return json({ error: "LOVABLE_API_KEY missing" }, 500);

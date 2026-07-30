@@ -13,7 +13,7 @@
  * - Somente lançamentos pagos entram no saldo realizado.
  */
 
-export type TransactionType = "receita" | "despesa" | "transferencia";
+export type TransactionType = "entrada" | "saida" | "transferencia";
 export type TransactionStatus = "pendente" | "confirmado" | "cancelado";
 export type DisplayStatus = "pago" | "a_vencer" | "atrasado";
 export type BalanceRegime = "caixa" | "competencia";
@@ -95,8 +95,8 @@ export function belongsToRegime(tx: TxLike, regime: BalanceRegime): boolean {
 
 /** Efeito algébrico no saldo (positivo = entra dinheiro). */
 export function signedEffect(tx: TxLike): number {
-  if (tx.transaction_type === "receita") return tx.amount;
-  if (tx.transaction_type === "despesa") return -tx.amount;
+  if (tx.transaction_type === "entrada") return tx.amount;
+  if (tx.transaction_type === "saida") return -tx.amount;
   return 0;
 }
 
@@ -158,27 +158,27 @@ export function computePeriodTotals(
   const scoped = txs.filter((t) => belongsToRegime(t, regime));
   const realized = scoped.filter(isRealized);
   const receitas = realized
-    .filter((t) => t.transaction_type === "receita")
+    .filter((t) => t.transaction_type === "entrada")
     .reduce((s, t) => s + t.amount, 0);
   const despesas = realized
-    .filter((t) => t.transaction_type === "despesa")
+    .filter((t) => t.transaction_type === "saida")
     .reduce((s, t) => s + t.amount, 0);
 
   const withStatus = scoped.map((t) => ({ tx: t, status: computeDisplayStatus(t, today) }));
   const pending = withStatus.filter((r) => r.status !== "pago");
   const aPagar = pending
-    .filter((r) => r.tx.transaction_type === "despesa")
+    .filter((r) => r.tx.transaction_type === "saida")
     .reduce((s, r) => s + Math.max(0, r.tx.amount - r.tx.amount_paid), 0);
   const aReceber = pending
-    .filter((r) => r.tx.transaction_type === "receita")
+    .filter((r) => r.tx.transaction_type === "entrada")
     .reduce((s, r) => s + Math.max(0, r.tx.amount - r.tx.amount_paid), 0);
   const atrasadas = withStatus.filter((r) => r.status === "atrasado").length;
 
   const allReceitas = scoped
-    .filter((t) => t.transaction_type === "receita")
+    .filter((t) => t.transaction_type === "entrada")
     .reduce((s, t) => s + t.amount, 0);
   const allDespesas = scoped
-    .filter((t) => t.transaction_type === "despesa")
+    .filter((t) => t.transaction_type === "saida")
     .reduce((s, t) => s + t.amount, 0);
   const saldoPeriodo = allReceitas - allDespesas;
 

@@ -91,7 +91,7 @@ export async function sha1(input: string): Promise<string> {
 export async function parseLinesToEntries(lines: string[]): Promise<ParsedStatementEntry[]> {
   const entries: ParsedStatementEntry[] = [];
   let currentDate: string | null = null;
-  let currentSign: "receita" | "despesa" | null = null;
+  let currentSign: "entrada" | "saida" | null = null;
   let sawFirstDate = false;
 
   for (let i = 0; i < lines.length; i++) {
@@ -108,18 +108,18 @@ export async function parseLinesToEntries(lines: string[]): Promise<ParsedStatem
         currentDate = `${yyyy}-${mm}-${dd}`;
         sawFirstDate = true;
         const rest = line.slice(dm[0].length).trim();
-        if (/^total de entradas/i.test(rest)) currentSign = "receita";
-        else if (/^total de sa[ií]das/i.test(rest)) currentSign = "despesa";
+        if (/^total de entradas/i.test(rest)) currentSign = "entrada";
+        else if (/^total de sa[ií]das/i.test(rest)) currentSign = "saida";
         continue;
       }
     }
 
     if (sawFirstDate && /^total de entradas\b/i.test(line)) {
-      currentSign = "receita";
+      currentSign = "entrada";
       continue;
     }
     if (sawFirstDate && /^total de sa[ií]das\b/i.test(line)) {
-      currentSign = "despesa";
+      currentSign = "saida";
       continue;
     }
     if (/^saldo\b/i.test(line)) continue;
@@ -143,9 +143,9 @@ export async function parseLinesToEntries(lines: string[]): Promise<ParsedStatem
     if (!signed) continue;
 
     // Sign resolution: explicit +/- on the line wins over the section header.
-    const explicitSign: "receita" | "despesa" | null =
-      rawAmount.startsWith("-") ? "despesa"
-      : rawAmount.startsWith("+") ? "receita"
+    const explicitSign: "entrada" | "saida" | null =
+      rawAmount.startsWith("-") ? "saida"
+      : rawAmount.startsWith("+") ? "entrada"
       : null;
     const type = explicitSign ?? currentSign;
     if (!type) continue;
@@ -272,10 +272,10 @@ export function reconcileEntries(
   summary: StatementSummary,
 ): Reconciliation {
   const parsed_entradas = entries
-    .filter((e) => e.transaction_type === "receita")
+    .filter((e) => e.transaction_type === "entrada")
     .reduce((s, e) => s + e.amount, 0);
   const parsed_saidas = entries
-    .filter((e) => e.transaction_type === "despesa")
+    .filter((e) => e.transaction_type === "saida")
     .reduce((s, e) => s + e.amount, 0);
 
   const round2 = (n: number) => Math.round(n * 100) / 100;

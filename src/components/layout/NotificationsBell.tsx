@@ -88,7 +88,7 @@ export function NotificationsBell() {
           .select("amount")
           .eq("user_id", user!.id)
           .eq("context", contextType)
-          .eq("transaction_type", "despesa")
+          .eq("transaction_type", "saida")
           .eq("status", "confirmado")
           .eq("category_id", b.category_id)
           .gte("transaction_date", b.start_date)

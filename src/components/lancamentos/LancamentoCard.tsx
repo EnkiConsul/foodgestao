@@ -26,8 +26,8 @@ export interface LancamentoCardProps {
 
 export function LancamentoCard({ row: r, isSelected, formatBRL, callbacks }: LancamentoCardProps) {
   const isInstallment = r.installmentNumber != null && r.installmentTotal != null;
-  const isReceita = r.transactionType === "receita";
-  const isDespesa = r.transactionType === "despesa";
+  const isReceita = r.transactionType === "entrada";
+  const isDespesa = r.transactionType === "saida";
   const isTransf = r.transactionType === "transferencia";
   const signedEffect = isReceita ? r.amount : isDespesa ? -r.amount : 0;
   const valueColorClass = isTransf ? "text-foreground" : amountColorClass(signedEffect);

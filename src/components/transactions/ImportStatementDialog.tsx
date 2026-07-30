@@ -24,7 +24,7 @@ import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 
 type Account = { id: string; name: string };
-type Category = { id: string; name: string; transaction_type: "receita" | "despesa" };
+type Category = { id: string; name: string; transaction_type: "entrada" | "saida" };
 type Contact = { id: string; name: string; contact_type: "cliente" | "fornecedor" | "ambos" | string };
 
 interface Props {
@@ -56,7 +56,7 @@ export function ImportStatementDialog({ open, onOpenChange, onImported, defaultA
   const [duplicateDecision, setDuplicateDecision] = useState<DuplicateDecision>("none");
 
   // Quick-create state (reuses full CategoryFormDialog / ContactFormDialog)
-  const [quickCat, setQuickCat] = useState<{ rowIdx: number; type: "receita" | "despesa"; name: string } | null>(null);
+  const [quickCat, setQuickCat] = useState<{ rowIdx: number; type: "entrada" | "saida"; name: string } | null>(null);
   const [quickContact, setQuickContact] = useState<{ rowIdx: number; name: string; contactType: "cliente" | "fornecedor" | "ambos" } | null>(null);
 
   const reset = useCallback(() => {
@@ -87,7 +87,7 @@ export function ImportStatementDialog({ open, onOpenChange, onImported, defaultA
         _transaction_type: undefined,
       });
       setCategories(((cats ?? []) as Array<{ id: string; name: string; transaction_type: string }>).map((c) => ({
-        id: c.id, name: c.name, transaction_type: c.transaction_type as "receita" | "despesa",
+        id: c.id, name: c.name, transaction_type: c.transaction_type as "entrada" | "saida",
       })));
 
       const { data: cts } = await supabase.from("contacts").select("id, name, contact_type").eq("user_id", user.id);
@@ -133,8 +133,8 @@ export function ImportStatementDialog({ open, onOpenChange, onImported, defaultA
     const sel = rows.filter((r) => r.include);
     const dup = rows.filter((r) => r.duplicate).length;
     const dupSelected = rows.filter((r) => r.duplicate && r.include).length;
-    const receitas = sel.filter((r) => r.transaction_type === "receita").reduce((s, r) => s + r.amount, 0);
-    const despesas = sel.filter((r) => r.transaction_type === "despesa").reduce((s, r) => s + r.amount, 0);
+    const receitas = sel.filter((r) => r.transaction_type === "entrada").reduce((s, r) => s + r.amount, 0);
+    const despesas = sel.filter((r) => r.transaction_type === "saida").reduce((s, r) => s + r.amount, 0);
     return { selected: sel.length, dup, dupSelected, receitas, despesas };
   }, [rows]);
 
@@ -260,7 +260,7 @@ export function ImportStatementDialog({ open, onOpenChange, onImported, defaultA
       _transaction_type: undefined,
     });
     setCategories(((cats ?? []) as Array<{ id: string; name: string; transaction_type: string }>).map((c) => ({
-      id: c.id, name: c.name, transaction_type: c.transaction_type as "receita" | "despesa",
+      id: c.id, name: c.name, transaction_type: c.transaction_type as "entrada" | "saida",
     })));
   };
 
@@ -430,8 +430,8 @@ export function ImportStatementDialog({ open, onOpenChange, onImported, defaultA
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={r.transaction_type === "receita" ? "default" : "destructive"} className="text-[10px]">
-                          {r.transaction_type === "receita" ? "Receita" : "Despesa"}
+                        <Badge variant={r.transaction_type === "entrada" ? "default" : "destructive"} className="text-[10px]">
+                          {r.transaction_type === "entrada" ? "Receita" : "Despesa"}
                         </Badge>
                       </TableCell>
                       <TableCell className="min-w-[160px]">
@@ -466,7 +466,7 @@ export function ImportStatementDialog({ open, onOpenChange, onImported, defaultA
                               setQuickContact({
                                 rowIdx: i,
                                 name: suggested,
-                                contactType: r.transaction_type === "receita" ? "cliente" : "fornecedor",
+                                contactType: r.transaction_type === "entrada" ? "cliente" : "fornecedor",
                               });
                             } else {
                               updateRow(i, { contact_id: v || null });

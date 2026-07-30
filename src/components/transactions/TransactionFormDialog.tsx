@@ -47,7 +47,7 @@ import {
 } from "@/lib/transactions/formHelpers";
 import { assignPurchaseToInvoice, toYmd } from "@/lib/credit-card/cycle";
 
-type TransactionType = "receita" | "despesa" | "transferencia";
+type TransactionType = "entrada" | "saida" | "transferencia";
 
 interface EditableTransaction {
   id: string;
@@ -107,7 +107,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     paymentMethodCompanyIds,
     invalidateLookups,
   } = useTransactionFormLookups(open);
-  const [type, setType] = useState<TransactionType>("despesa");
+  const [type, setType] = useState<TransactionType>("saida");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(toYmd(new Date()));
@@ -378,7 +378,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   // Auto-switch away from transferência when picking a credit card account
   useEffect(() => {
     if (isCreditCardAccount && type === "transferencia") {
-      setType("despesa");
+      setType("saida");
       setCategoryId("");
     }
   }, [isCreditCardAccount, type]);
@@ -479,7 +479,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     useCategorizationSuggestion({
       description,
       transactionType:
-        type === "receita" ? "entrada" : type === "despesa" ? "saida" : null,
+        type === "entrada" ? "entrada" : type === "saida" ? "saida" : null,
       context: contextType,
       companyId: contextType === "pj" ? selectedCompanyId : null,
       enabled: open && type !== "transferencia" && !isEditing,
@@ -531,7 +531,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
 
   const resetForm = () => {
-    setType("despesa");
+    setType("saida");
     setDescription("");
     setAmount("");
     setDate(toYmd(new Date()));
@@ -643,7 +643,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     setSaving(true);
 
     // ---- Parcelado (modificador de receita/despesa): gera parent + N filhas ----
-    if (!isEditing && isInstallment && (type === "receita" || type === "despesa")) {
+    if (!isEditing && isInstallment && (type === "entrada" || type === "saida")) {
       try {
         if (installmentTotal < 2) {
           toast.error("Nº de parcelas deve ser ≥ 2");
@@ -959,10 +959,10 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           {/* Type tabs */}
           <Tabs value={type} onValueChange={(v) => { setType(v as TransactionType); setCategoryId(""); }}>
             <TabsList className="w-full grid grid-cols-3">
-              <TabsTrigger value="receita" className="data-[state=active]:bg-success data-[state=active]:text-success-foreground">
+              <TabsTrigger value="entrada" className="data-[state=active]:bg-success data-[state=active]:text-success-foreground">
                 Receita
               </TabsTrigger>
-              <TabsTrigger value="despesa" className="data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground">
+              <TabsTrigger value="saida" className="data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground">
                 Despesa
               </TabsTrigger>
               <TabsTrigger value="transferencia" disabled={isCreditCardAccount}>
@@ -1700,7 +1700,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       <CategoryFormDialog
         open={categoryDialogOpen}
         onOpenChange={setCategoryDialogOpen}
-        defaultType={type === "receita" ? "receita" : "despesa"}
+        defaultType={type === "entrada" ? "entrada" : "saida"}
         onSaved={(newId) => {
           invalidateLookups();
           if (newId) setCategoryId(newId);

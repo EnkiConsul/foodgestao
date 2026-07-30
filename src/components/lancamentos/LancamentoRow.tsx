@@ -46,8 +46,8 @@ export function LancamentoRow({
   row: r, isSelected, visibleColumns, formatBRL, callbacks,
 }: LancamentoRowProps) {
   const isInstallment = r.installmentNumber != null && r.installmentTotal != null;
-  const isReceita = r.transactionType === "receita";
-  const isDespesa = r.transactionType === "despesa";
+  const isReceita = r.transactionType === "entrada";
+  const isDespesa = r.transactionType === "saida";
   const isTransf = r.transactionType === "transferencia";
   const signedEffect = isReceita ? r.amount : isDespesa ? -r.amount : 0;
   const effectPositive = signedEffect > 0;
