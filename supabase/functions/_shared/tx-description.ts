@@ -68,7 +68,17 @@ export function counterpartyName(t: EnrichInput): string | null {
 /** Descrição final a ser exibida na conciliação. */
 export function buildDescription(t: EnrichInput): string {
   const raw = (t.description ?? t.descriptionRaw ?? '').trim();
-  if (!isGenericDescription(raw)) return raw;
+  if (!isGenericDescription(raw)) {
+    // "BANCO SICOOB S.A." não diz nada sobre o pagamento: se houver
+    // estabelecimento/contraparte identificado, usamos esse nome.
+    if (isBankLabelDescription(raw)) {
+      const merchantName: string | null =
+        t.merchant?.businessName ?? t.merchant?.name ?? null;
+      const better = (merchantName ?? counterpartyName(t) ?? '').trim();
+      if (better && !isBankLabelDescription(better)) return better;
+    }
+    return raw;
+  }
 
   const amt = Number(t.amount ?? 0);
   const pd = t.paymentData ?? null;
