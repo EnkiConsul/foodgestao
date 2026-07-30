@@ -1,10 +1,9 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { deleteItem } from '../_shared/pluggy.ts';
 
 // Chamada após a desativação de uma conta bancária local.
-// Se ainda existir alguma conta Open Finance ativa na mesma conexão, apenas
-// confirmamos a pausa. Se todas ficaram pausadas, encerramos o item na Pluggy.
+// Apenas garante que a conta vinculada fique com a sincronização pausada.
+// A conexão na Pluggy é preservada (nada é excluído no provedor).
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -49,33 +48,14 @@ Deno.serve(async (req) => {
       .eq('company_id', ofAcc.company_id).eq('user_id', userId).maybeSingle();
     if (!mem) return json({ error: 'forbidden' }, 403);
 
-    const { count: activeCount } = await admin
-      .from('pluggy_accounts')
-      .select('id', { head: true, count: 'exact' })
-      .eq('connection_id', ofAcc.connection_id)
+    // Desativar a conta NUNCA remove a conexão na Pluggy: garantimos apenas
+    // que a conta local vinculada esteja com a sincronização pausada.
+    await admin.from('pluggy_accounts')
+      .update({ sync_paused_at: new Date().toISOString(), sync_paused_reason: 'account_inactive' })
+      .eq('id', ofAcc.id)
       .is('sync_paused_at', null);
 
-    if ((activeCount ?? 0) > 0) return json({ ok: true, scope: 'paused' });
-
-    const { data: conn } = await admin
-      .from('pluggy_connections')
-      .select('id, pluggy_item_id')
-      .eq('id', ofAcc.connection_id)
-      .maybeSingle();
-    if (!conn) return json({ ok: true, scope: 'paused' });
-
-    try {
-      await deleteItem(conn.pluggy_item_id);
-    } catch (e) {
-      console.warn('pluggy deleteItem failed:', String(e));
-      return json({ ok: false, scope: 'delete_failed' });
-    }
-
-    await admin.from('pluggy_staging_transactions')
-      .delete().eq('connection_id', conn.id).eq('status', 'pending');
-    await admin.from('pluggy_connections').delete().eq('id', conn.id);
-
-    return json({ ok: true, scope: 'connection_deleted' });
+    return json({ ok: true, scope: 'paused' });
   } catch (e) {
     return json({ error: String(e) }, 400);
   }
