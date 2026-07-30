@@ -290,10 +290,15 @@ export default function ContasBancarias() {
       .eq("id", account.id);
     if (error) toast.error("Erro ao atualizar status");
     else {
-      toast.success(account.is_active ? "Conta desativada" : "Conta ativada");
+      toast.success(
+        account.is_active
+          ? "Conta desativada — sincronização Open Finance pausada, se houver"
+          : "Conta ativada — sincronização Open Finance retomada, se houver",
+      );
       fetchAccounts();
     }
   };
+
 
 
   const filtered = useMemo(() => {
