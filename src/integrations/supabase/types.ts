@@ -7101,6 +7101,7 @@ export type Database = {
           matched_transaction_id: string | null
           pluggy_account_id: string
           pluggy_transaction_id: string
+          provider_id: string | null
           raw: Json | null
           status: Database["public"]["Enums"]["pluggy_staging_status"]
           suggested_account_id: string | null
@@ -7122,6 +7123,7 @@ export type Database = {
           matched_transaction_id?: string | null
           pluggy_account_id: string
           pluggy_transaction_id: string
+          provider_id?: string | null
           raw?: Json | null
           status?: Database["public"]["Enums"]["pluggy_staging_status"]
           suggested_account_id?: string | null
@@ -7143,6 +7145,7 @@ export type Database = {
           matched_transaction_id?: string | null
           pluggy_account_id?: string
           pluggy_transaction_id?: string
+          provider_id?: string | null
           raw?: Json | null
           status?: Database["public"]["Enums"]["pluggy_staging_status"]
           suggested_account_id?: string | null

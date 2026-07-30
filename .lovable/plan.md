@@ -1,23 +1,34 @@
-## Objetivo
+## Resposta direta: de onde vem a descrição
 
-Na Conciliação Open Finance, o seletor de categoria deve mostrar exatamente as mesmas categorias que aparecem em **Categorias** para a empresa ativa — mesma filtragem, mesma ordem e mesma apresentação visual (indentação + badge de tipo). Sem alterar dados cadastrados.
+O sistema usa, nesta ordem (`supabase/functions/_shared/tx-description.ts`):
 
-## Causa confirmada
+1. `description` do Pluggy (campo do banco);
+2. se vazio, `descriptionRaw`;
+3. só se o texto for genérico ("PIX", "TED", "TRANSF ENVIADA"...) ele monta a descrição com `paymentData` / `merchant`.
 
-- A Conciliação busca as categorias sem o filtro de contexto que a página Categorias usa (`context is null or context = 'pj'`). Por isso entra a raiz **RECEITAS** do perfil Pessoal vinculada à empresa, aparecendo duplicada ao lado da RECEITAS empresarial.
-- As categorias **Comissão - RedFox** e **Comissão - SuitPay** estão vinculadas à empresa, mas a raiz "RECEITAS" delas não está. A Conciliação as promove a raiz (aparecem "soltas"), enquanto a página Categorias as omite por falta do pai — daí a sensação de "categorias que não estão cadastradas".
+## Por que apareceu duas vezes
 
-## Mudanças
+Conferi as duas linhas na base. É o **mesmo pagamento** (boleto Unimed, R$ 1.352,00, conta e data iguais) e o **mesmo `providerId` do banco** (`2007309726841016836779...`), mas o Pluggy devolveu **dois `id` diferentes**:
 
-Somente em `src/pages/ConciliacaoPluggy.tsx` (frontend/apresentação):
+| Pluggy id | Coletado em | `description` do banco |
+|---|---|---|
+| `bd181b9e…` | 28/07 05:29 | BANCO SICOOB S.A. |
+| `b85dc8da…` | 30/07 00:48 | UNIMED GOIANIA COOPERATIVA DE TRABALHO MEDICO |
 
-1. **Mesma consulta da página Categorias**: manter `category_companies!inner(company_id)` + `is_active`, e adicionar o filtro de contexto (`context.is.null,context.eq.pj`) e a mesma ordenação (`parent_id` com nulos primeiro, depois `sort_order`, depois `name`).
-2. **Mesma montagem de árvore**: substituir a função local `buildCategoryOptions` pelo helper compartilhado `buildCategoryTree` (`src/lib/categories/tree.ts`), já usado em Categorias. Com isso, itens cujo pai não está vinculado não são promovidos a raiz — a lista fica idêntica à de Categorias.
-3. **Mesmo visual dos itens**: manter o ponto de cor, o recuo por nível (`CATEGORY_INDENT_STEP` / `categoryGuideLevels`) e o `CategoryTypeBadge`, agora derivando `depth` do helper compartilhado, para o dropdown espelhar a hierarquia da tela de Categorias.
-4. **Filtro por tipo** (receita para entradas, despesa para saídas) aplicado sobre a árvore já montada, preservando pais quando um filho relevante existir, para não quebrar a hierarquia exibida.
+O banco reprocessou o registro e trocou a descrição; o Pluggy criou um novo `id`. Nosso anti-duplicidade usa **apenas** `pluggy_transaction_id`, então a segunda versão entrou como novo item pendente — e ambos foram confirmados, gerando 2 lançamentos (`0b8ab4f8…` e `7f8fe828…`). Em ambos os registros o `merchant.businessName` já era "UNIMED GOIANIA…", ou seja, a informação boa existia desde a primeira coleta.
 
-## Efeito para você
+## O que fazer
 
-- A raiz "RECEITAS" duplicada (do perfil Pessoal) deixa de aparecer na Conciliação.
-- "Comissão - RedFox/SuitPay" deixam de aparecer soltas — ficam consistentes com Categorias. Se você quiser vê-las nas duas telas, basta vincular a categoria-pai delas à empresa em **Categorias** (ou reapontá-las para a RECEITAS visível); posso fazer isso num passo separado se quiser.
-- Nenhuma categoria é criada, apagada ou renomeada; nenhum lançamento já conciliado é afetado.
+1. **Dedupe pelo ID do banco**: gravar `provider_id` (do `raw.providerId`) na staging e, na ingestão (`pluggy-sync-item` e o worker de webhook), tratar como o mesmo lançamento quando `company_id + pluggy_account_id + provider_id` coincidirem:
+   - se a versão anterior está **pendente** → atualiza descrição/valor/data no mesmo item (nada duplicado na tela);
+   - se já está **conciliada** → marca a nova versão como `duplicate` (não aparece na conciliação);
+   - sem `providerId`, cai num fallback por `data + valor + conta`.
+2. **Descrição melhor**: quando o `description` do banco for só o nome de instituição financeira (ex.: "BANCO SICOOB S.A.", "BANCO BRADESCO") e houver `merchant.businessName` / nome do recebedor, usar o nome do estabelecimento real. Isso evita o rótulo inútil já na primeira coleta.
+3. **Limpeza do caso atual**: marcar a staging `b85dc8da…` como duplicada e remover o lançamento repetido `7f8fe828…` (via caminho que ajusta o saldo pelo motor financeiro), mantendo um único lançamento com a descrição "UNIMED GOIANIA…".
+
+## Detalhes técnicos
+
+- Migração: coluna `provider_id text` em `pluggy_staging_transactions` + índice único parcial `(company_id, pluggy_account_id, provider_id)` onde `provider_id is not null`; backfill a partir de `raw->>'providerId'`.
+- `supabase/functions/_shared/tx-description.ts`: nova heurística "descrição é nome de banco" + preferência por `merchant.businessName`.
+- `supabase/functions/pluggy-sync-item/index.ts` (e worker de webhook, se aplicável): substituir o upsert só por `pluggy_transaction_id` pela resolução por `provider_id` descrita acima.
+- Sem mudanças na UI da Conciliação; o efeito é lista sem repetição.

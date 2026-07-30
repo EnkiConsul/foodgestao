@@ -17,6 +17,21 @@ export function isGenericDescription(raw: string | null | undefined): boolean {
   return GENERIC_RE.test(s);
 }
 
+/**
+ * Alguns bancos devolvem apenas o nome de uma instituição financeira como
+ * descrição (ex.: "BANCO SICOOB S.A."), sem qualquer referência ao
+ * estabelecimento real da compra/pagamento.
+ */
+const BANK_LABEL_RE =
+  /^\s*(banco|bco|caixa\s+econ[oô]mica|nu\s*pagamentos|coop(erativa)?\s+de\s+cr[eé]dito)\b.*$/i;
+
+export function isBankLabelDescription(raw: string | null | undefined): boolean {
+  const s = (raw ?? '').trim();
+  if (!s) return false;
+  return BANK_LABEL_RE.test(s);
+}
+
+
 /** Mascara CPF/CNPJ preservando apenas o miolo. */
 export function maskDocument(doc: string | null | undefined): string | null {
   const digits = (doc ?? '').replace(/\D/g, '');
@@ -53,7 +68,17 @@ export function counterpartyName(t: EnrichInput): string | null {
 /** Descrição final a ser exibida na conciliação. */
 export function buildDescription(t: EnrichInput): string {
   const raw = (t.description ?? t.descriptionRaw ?? '').trim();
-  if (!isGenericDescription(raw)) return raw;
+  if (!isGenericDescription(raw)) {
+    // "BANCO SICOOB S.A." não diz nada sobre o pagamento: se houver
+    // estabelecimento/contraparte identificado, usamos esse nome.
+    if (isBankLabelDescription(raw)) {
+      const merchantName: string | null =
+        t.merchant?.businessName ?? t.merchant?.name ?? null;
+      const better = (merchantName ?? counterpartyName(t) ?? '').trim();
+      if (better && !isBankLabelDescription(better)) return better;
+    }
+    return raw;
+  }
 
   const amt = Number(t.amount ?? 0);
   const pd = t.paymentData ?? null;
