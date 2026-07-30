@@ -32,7 +32,7 @@ const statusLabels: Record<string, { label: string; className: string }> = {
   outdated: { label: "Desatualizado", className: "bg-warning/15 text-warning border-warning/30" },
   error: { label: "Erro", className: "bg-destructive/15 text-destructive border-destructive/30" },
   waiting_user_input: { label: "Aguarda MFA", className: "bg-warning/15 text-warning border-warning/30" },
-  deleted: { label: "Removido", className: "bg-muted text-muted-foreground border-muted-foreground/20" },
+  deleted: { label: "Encerrada — reconectar", className: "bg-muted text-muted-foreground border-muted-foreground/20" },
 };
 
 export default function ConexoesPluggy() {
