@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
   );
 
   try {
-    const { connection_id } = await req.json();
+    const { connection_id, pluggy_account_id } = await req.json();
     if (!connection_id) throw new Error('connection_id_required');
 
     const { data: conn } = await admin
@@ -46,6 +46,24 @@ Deno.serve(async (req) => {
       .eq('company_id', conn.company_id).eq('user_id', userId).maybeSingle();
     if (!mem) throw new Error('forbidden');
 
+    // Quando a conexão possui mais de uma conta Open Finance e o chamador aponta
+    // uma conta específica, removemos apenas aquela conta — o banco (item Pluggy)
+    // continua conectado para as demais contas.
+    if (pluggy_account_id) {
+      const { count } = await admin
+        .from('pluggy_accounts')
+        .select('id', { head: true, count: 'exact' })
+        .eq('connection_id', conn.id);
+      if ((count ?? 0) > 1) {
+        await admin.from('pluggy_staging_transactions')
+          .delete().eq('pluggy_account_id', pluggy_account_id).eq('status', 'pending');
+        await admin.from('pluggy_accounts').delete().eq('id', pluggy_account_id);
+        return new Response(JSON.stringify({ ok: true, scope: 'account' }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
     try { await deleteItem(conn.pluggy_item_id); } catch (e) {
       console.warn('pluggy deleteItem failed (continuing):', e);
     }
@@ -54,7 +72,7 @@ Deno.serve(async (req) => {
       .delete().eq('connection_id', conn.id).eq('status', 'pending');
     await admin.from('pluggy_connections').delete().eq('id', conn.id);
 
-    return new Response(JSON.stringify({ ok: true }), {
+    return new Response(JSON.stringify({ ok: true, scope: 'connection' }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {
