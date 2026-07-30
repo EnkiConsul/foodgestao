@@ -65,7 +65,9 @@ export default function ContasBancarias() {
   const [deleteAccount, setDeleteAccount] = useState<Account | null>(null);
   const [deactivateAccount, setDeactivateAccount] = useState<Account | null>(null);
   const [deactivateOfBank, setDeactivateOfBank] = useState<string | null>(null);
-  const [deactivateOfLast, setDeactivateOfLast] = useState(false);
+  const [reconnectAccount, setReconnectAccount] = useState<Account | null>(null);
+  const [reconnectBank, setReconnectBank] = useState<string | null>(null);
+
 
   const [deleteHasTx, setDeleteHasTx] = useState<boolean | null>(null);
   const [linkedCards, setLinkedCards] = useState<Array<{ id: string; brand: string | null; last4: string | null }>>([]);
