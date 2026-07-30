@@ -49,31 +49,24 @@ interface CategoryOpt {
 }
 interface ScopeInfo { pluggyAccountId: string; connectionId: string; name: string | null; }
 
-/** Ordena categorias em árvore (raiz -> filhos) respeitando sort_order/nome. */
-function buildCategoryOptions(cats: CategoryOpt[]): { cat: CategoryOpt; depth: number }[] {
-  const byParent = new Map<string | null, CategoryOpt[]>();
-  const ids = new Set(cats.map((c) => c.id));
-  cats.forEach((c) => {
-    const key = c.parent_id && ids.has(c.parent_id) ? c.parent_id : null;
-    if (!byParent.has(key)) byParent.set(key, []);
-    byParent.get(key)!.push(c);
-  });
-  byParent.forEach((list) =>
-    list.sort(
-      (a, b) =>
-        (a.sort_order ?? 0) - (b.sort_order ?? 0) ||
-        (a.name ?? "").localeCompare(b.name ?? "", "pt-BR")
-    )
-  );
-  const out: { cat: CategoryOpt; depth: number }[] = [];
-  const walk = (parent: string | null, depth: number) => {
-    (byParent.get(parent) ?? []).forEach((c) => {
-      out.push({ cat: c, depth });
-      walk(c.id, depth + 1);
-    });
-  };
-  walk(null, 0);
-  return out;
+/**
+ * Monta as opções do seletor usando a MESMA árvore da página /categorias
+ * (helper compartilhado). Itens cujo pai não está vinculado à empresa não são
+ * promovidos a raiz — ficam de fora, exatamente como em /categorias.
+ * O filtro por tipo preserva os pais quando existe filho do tipo desejado.
+ */
+function buildCategoryOptions(cats: CategoryOpt[], type: string): { cat: CategoryOpt; depth: number }[] {
+  const nodes = buildCategoryTree(cats as unknown as Category[]) as unknown as (CategoryOpt & { depth: number })[];
+  const keep = new Set<string>();
+  // percorre de baixo para cima: se o nó é do tipo (ou tem filho mantido), mantém e sobe para o pai
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    const n = nodes[i];
+    if (n.transaction_type === type || keep.has(n.id)) {
+      keep.add(n.id);
+      if (n.parent_id) keep.add(n.parent_id);
+    }
+  }
+  return nodes.filter((n) => keep.has(n.id)).map((n) => ({ cat: n, depth: n.depth }));
 }
 
 export default function ConciliacaoPluggy() {
@@ -89,14 +82,9 @@ export default function ConciliacaoPluggy() {
   const [rows, setRows] = useState<StagingRow[]>([]);
   const [accounts, setAccounts] = useState<AccountOpt[]>([]);
   const [categories, setCategories] = useState<CategoryOpt[]>([]);
-  const categoryOptionsReceita = useMemo(
-    () => buildCategoryOptions(categories.filter((c) => c.transaction_type === "receita")),
-    [categories]
-  );
-  const categoryOptionsDespesa = useMemo(
-    () => buildCategoryOptions(categories.filter((c) => c.transaction_type === "despesa")),
-    [categories]
-  );
+  const categoryOptionsReceita = useMemo(() => buildCategoryOptions(categories, "receita"), [categories]);
+  const categoryOptionsDespesa = useMemo(() => buildCategoryOptions(categories, "despesa"), [categories]);
+
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("pending");
