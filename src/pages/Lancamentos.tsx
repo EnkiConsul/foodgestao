@@ -712,7 +712,7 @@ export default function Lancamentos() {
     const csvRows = displayRows.map((r) => [
       formatTransactionDate(r.date, "dd/MM/yyyy", ""),
       `"${r.description.replace(/"/g, '""')}"`,
-      r.transactionType === "entrada" ? "Crédito" : r.transactionType === "saida" ? "Débito" : "Transferência",
+      r.transactionType === "entrada" ? "Entrada" : r.transactionType === "saida" ? "Saída" : "Transferência",
       r.amount.toFixed(2).replace(".", ","),
       displayStatusConfig[r.billStatus].label,
       formatTransactionDate(r.dueDate, "dd/MM/yyyy", ""),

@@ -444,8 +444,8 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
                 <Label>Tipo</Label>
                 <div role="radiogroup" aria-label="Tipo da categoria" className="grid grid-cols-2 gap-2">
                   {([
-                    { value: "saida", label: "Despesa" },
-                    { value: "entrada", label: "Receita" },
+                    { value: "saida", label: "Saída" },
+                    { value: "entrada", label: "Entrada" },
                   ] as const).map((opt) => (
                     <button
                       key={opt.value}

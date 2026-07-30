@@ -431,7 +431,7 @@ export function ImportStatementDialog({ open, onOpenChange, onImported, defaultA
                       </TableCell>
                       <TableCell>
                         <Badge variant={r.transaction_type === "entrada" ? "default" : "destructive"} className="text-[10px]">
-                          {r.transaction_type === "entrada" ? "Receita" : "Despesa"}
+                          {r.transaction_type === "entrada" ? "Entrada" : "Saída"}
                         </Badge>
                       </TableCell>
                       <TableCell className="min-w-[160px]">
