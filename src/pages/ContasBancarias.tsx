@@ -262,13 +262,37 @@ export default function ContasBancarias() {
 
 
   const handleToggleActive = async (account: Account) => {
+    // Desativar é uma ação que pode confundir quem usa Open Finance: pedimos
+    // confirmação e explicamos que a conexão bancária continua ativa.
+    if (account.is_active) {
+      setDeactivateAccount(account);
+      setDeactivateOfBank(null);
+      if (contextType === "pj" && selectedCompanyId) {
+        const { data: ofAcc } = await supabase
+          .from("pluggy_accounts")
+          .select("id, pluggy_connections(connector_name)")
+          .eq("linked_account_id", account.id)
+          .eq("company_id", selectedCompanyId)
+          .maybeSingle();
+        if (ofAcc) setDeactivateOfBank((ofAcc as any).pluggy_connections?.connector_name ?? "banco conectado");
+      }
+      return;
+    }
+    await applyToggleActive(account);
+  };
+
+  const applyToggleActive = async (account: Account) => {
     const { error } = await supabase
       .from("accounts")
       .update({ is_active: !account.is_active })
       .eq("id", account.id);
     if (error) toast.error("Erro ao atualizar status");
-    else fetchAccounts();
+    else {
+      toast.success(account.is_active ? "Conta desativada" : "Conta ativada");
+      fetchAccounts();
+    }
   };
+
 
   const filtered = useMemo(() => {
     return accounts.filter((a) => {
