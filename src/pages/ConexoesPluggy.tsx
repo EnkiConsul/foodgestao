@@ -58,11 +58,12 @@ export default function ConexoesPluggy() {
 
     const m: AccountsMap = {};
     for (const c of list) {
-      const [{ count: accCount }, { count: pending }] = await Promise.all([
+      const [{ count: accCount }, { count: pending }, { count: paused }] = await Promise.all([
         supabase.from("pluggy_accounts").select("id", { head: true, count: "exact" }).eq("connection_id", c.id),
         supabase.from("pluggy_staging_transactions").select("id", { head: true, count: "exact" }).eq("connection_id", c.id).eq("status", "pending"),
+        supabase.from("pluggy_accounts").select("id", { head: true, count: "exact" }).eq("connection_id", c.id).not("sync_paused_at", "is", null),
       ]);
-      m[c.id] = { count: accCount ?? 0, pending: pending ?? 0 };
+      m[c.id] = { count: accCount ?? 0, pending: pending ?? 0, paused: paused ?? 0 };
     }
     setMeta(m);
     setLoading(false);
