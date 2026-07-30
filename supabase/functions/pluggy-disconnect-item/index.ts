@@ -50,19 +50,21 @@ Deno.serve(async (req) => {
     // uma conta específica, removemos apenas aquela conta — o banco (item Pluggy)
     // continua conectado para as demais contas.
     if (pluggy_account_id) {
-      const { count } = await admin
-        .from('pluggy_accounts')
-        .select('id', { head: true, count: 'exact' })
-        .eq('connection_id', conn.id);
-      if ((count ?? 0) > 1) {
+      const [{ count }, { data: pAcc }] = await Promise.all([
+        admin.from('pluggy_accounts').select('id', { head: true, count: 'exact' }).eq('connection_id', conn.id),
+        admin.from('pluggy_accounts').select('id, pluggy_account_id').eq('id', pluggy_account_id).maybeSingle(),
+      ]);
+      if ((count ?? 0) > 1 && pAcc) {
         await admin.from('pluggy_staging_transactions')
-          .delete().eq('pluggy_account_id', pluggy_account_id).eq('status', 'pending');
-        await admin.from('pluggy_accounts').delete().eq('id', pluggy_account_id);
+          .delete().eq('connection_id', conn.id)
+          .eq('pluggy_account_id', pAcc.pluggy_account_id).eq('status', 'pending');
+        await admin.from('pluggy_accounts').delete().eq('id', pAcc.id);
         return new Response(JSON.stringify({ ok: true, scope: 'account' }), {
           status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
     }
+
 
     try { await deleteItem(conn.pluggy_item_id); } catch (e) {
       console.warn('pluggy deleteItem failed (continuing):', e);
