@@ -6965,6 +6965,8 @@ export type Database = {
           pluggy_account_id: string
           raw: Json | null
           subtype: string | null
+          sync_paused_at: string | null
+          sync_paused_reason: string | null
           type: string | null
           updated_at: string
         }
@@ -6981,6 +6983,8 @@ export type Database = {
           pluggy_account_id: string
           raw?: Json | null
           subtype?: string | null
+          sync_paused_at?: string | null
+          sync_paused_reason?: string | null
           type?: string | null
           updated_at?: string
         }
@@ -6997,6 +7001,8 @@ export type Database = {
           pluggy_account_id?: string
           raw?: Json | null
           subtype?: string | null
+          sync_paused_at?: string | null
+          sync_paused_reason?: string | null
           type?: string | null
           updated_at?: string
         }
