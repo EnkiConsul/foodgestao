@@ -205,10 +205,16 @@ Deno.serve(async (req) => {
           }
 
           if (targetAccountId) {
+            // Religa e remove qualquer pausa herdada de um vínculo anterior.
             await admin.from('pluggy_accounts')
-              .update({ linked_account_id: targetAccountId })
+              .update({
+                linked_account_id: targetAccountId,
+                sync_paused_at: null,
+                sync_paused_reason: null,
+              })
               .eq('id', upserted.id);
           }
+
         }
       }
     }
