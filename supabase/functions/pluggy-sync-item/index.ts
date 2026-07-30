@@ -221,6 +221,7 @@ Deno.serve(async (req) => {
 
     let staged = 0;
     for (const acc of accounts) {
+      if (pausedIds.has(acc.id)) continue;
       const txs = await listTransactions(acc.id, fmt(from), fmt(to));
       if (txs.length === 0) continue;
       const rows = txs.map((t: any) => {
