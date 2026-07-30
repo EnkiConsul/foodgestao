@@ -1,56 +1,26 @@
-## Objetivo
+## Contexto verificado
 
-Melhorar a legibilidade, a hierarquia e a navegação da página **Categorias** (módulo financeiro) no notebook e no celular, mantendo 100% das funcionalidades atuais (criar, editar, excluir, filhos, arrastar para ordenar, seleção em lote, visibilidade, importar plano padrão).
-
-## Diagnóstico atual
-
-Observado em `src/pages/Categorias.tsx` e `src/components/categorias/CategoryRow.tsx`:
-
-1. **Sem contexto de topo** — o título "Categorias" aparece sozinho, sem subtítulo nem contadores (quantas receitas/despesas, quantos grupos). O usuário não sabe o tamanho do plano de contas que está vendo.
-2. **Toolbar plana** — 6 controles (Adicionar, Importar plano, Colapsar, Tabs de tipo, Busca, Filtrar) na mesma linha, com pesos visuais iguais. A ação principal (Adicionar) não se destaca, e o botão **Filtrar** não tem comportamento associado (botão morto).
-3. **Hierarquia fraca no desktop** — indentação de 16px por nível, sem guias visuais; pais e filhos competem. O nível 0 em CAIXA ALTA ajuda, mas não há separação de blocos Receitas/Despesas.
-4. **Mobile perde informação** — as colunas Tipo e Visibilidade ficam `hidden md:table-cell`, então no celular só sobram nome + 3 ícones pequenos (28px) em uma tabela horizontal apertada; drag handle some e não há alternativa de reordenação visível.
-5. **Estado vazio único** — só existe empty state quando não há nenhuma categoria; ao filtrar/buscar sem resultado, aparece uma linha de texto sem ação para limpar filtros.
-6. **Seleção em lote** — a barra aparece empurrando o conteúdo; no mobile pode ficar fora de vista ao rolar.
-7. **Acessibilidade** — botões de ícone sem `aria-label`, checkbox do cabeçalho sem rótulo, colspan do estado vazio com 5 em uma tabela de 6 colunas.
+- `handleToggleActive` (`src/pages/ContasBancarias.tsx`) só altera `accounts.is_active` — hoje **não** apaga nada de Open Finance. Confirmado também que os triggers de `accounts` (saldo, delete, updated_at) não tocam em Pluggy.
+- `pluggy_accounts.linked_account_id → accounts(id) ON DELETE SET NULL`: ao excluir a conta, o vínculo é apenas limpo; a conexão do banco continua ativa na Pluggy.
+- Já existe o fluxo completo de remoção por conexão: edge function `pluggy-disconnect-item` (apaga o item na Pluggy, staging pendente e a `pluggy_connections`, com cascade em `pluggy_accounts`), usada hoje em `/contas-bancarias/conexoes`.
 
 ## O que será feito
 
-### 1. Cabeçalho com contexto
-- Título + subtítulo curto ("Organize seu plano de contas por grupos e subcategorias").
-- Linha de resumo discreta: total de categorias, nº de receitas e nº de despesas (calculada no cliente com os dados já carregados).
+Quando o usuário **excluir uma conta bancária** que possui vínculo Open Finance, excluir também a conexão daquele banco — e somente dela. A desativação (toggle Ativa/Inativa) continua sem mexer em Open Finance.
 
-### 2. Toolbar reorganizada
-- **Ação primária** "Nova categoria" com botão `default` (destaque), demais em `ghost`/`outline`.
-- Agrupar ações secundárias (Importar plano 360°FOOD, Expandir/Colapsar) em um menu "..." no mobile e mantê-las visíveis no desktop.
-- Busca ganha largura total no mobile (linha própria) e botão de limpar (x).
-- Remover o botão **Filtrar** sem função ou transformá-lo em um popover que apenas reúne os filtros já existentes (tipo + busca). Recomendo remover para não criar funcionalidade nova.
-- Tabs Receitas/Despesas com contador ao lado do rótulo.
+### 1. Detectar o vínculo no diálogo de exclusão
+Em `ContasBancarias.tsx`, ao abrir o diálogo de exclusão, buscar em `pluggy_accounts` a linha com `linked_account_id = conta.id` (mesma empresa) e trazer `connection_id` + nome do banco.
 
-### 3. Hierarquia visual da lista (desktop)
-- Guias verticais sutis de indentação (border-left em cada nível) usando tokens semânticos.
-- Linhas de nível 0 com fundo levemente destacado (`bg-muted/30`) para funcionar como cabeçalho de grupo.
-- Aumentar levemente o alvo de clique do chevron e tornar a linha inteira clicável para expandir/colapsar quando tem filhos.
-- Zebra/hover consistente e `sticky` no cabeçalho da tabela ao rolar.
+### 2. Aviso claro no diálogo
+Se houver vínculo, mostrar um bloco de alerta: "Esta conta está conectada via Open Finance ao banco X. A conexão com este banco também será removida (o histórico já importado é mantido)." Sem vínculo, o diálogo permanece exatamente como está.
 
-### 4. Mobile: lista em cards em vez de tabela
-- Abaixo de `md`, renderizar a mesma árvore como uma lista de cards/linhas compactas com: bolinha de cor, nome (indentado por nível), badge de tipo, badges de visibilidade e um menu de ações (⋯) com Adicionar filho / Editar / Excluir — mesmas ações, alvos de toque ≥ 40px.
-- Chevron de expandir/colapsar visível e com área de toque adequada.
-- Barra de seleção em lote fixa na parte inferior (acima da BottomNav) quando houver seleção.
-- FAB atual mantido.
+### 3. Excluir a conexão junto
+No `handleDelete`, após o `delete_account` retornar sucesso (hard ou arquivamento), invocar `pluggy-disconnect-item` com o `connection_id` daquela conta. Se a conexão tiver outras contas vinculadas (mais de uma `pluggy_accounts` na mesma conexão), remover apenas o vínculo/registro daquela conta e **preservar a conexão** — assim nunca se derruba o banco inteiro por causa de uma conta secundária.
 
-### 5. Estados vazios e feedback
-- Estado vazio de busca/filtro com mensagem específica e botão "Limpar filtros".
-- Skeleton de carregamento enquanto a query roda (hoje a tabela aparece vazia).
-
-### 6. Acessibilidade
-- `aria-label` em todos os botões de ícone e no checkbox "selecionar tudo".
-- Corrigir `colSpan` do estado vazio.
-- Foco visível preservado nos controles.
+### 4. Tratamento de erro
+Falha ao remover a conexão não desfaz a exclusão da conta: exibir toast de aviso ("Conta excluída, mas a conexão Open Finance não pôde ser removida — tente em Conexões") e recarregar as listas.
 
 ## Detalhes técnicos
 
-- Arquivos afetados: `src/pages/Categorias.tsx` (header, toolbar, estados, render condicional desktop/mobile), `src/components/categorias/CategoryRow.tsx` (guias de indentação, aria-labels, linha clicável), novo `src/components/categorias/CategoryMobileRow.tsx`, `src/components/categorias/BatchActionBar.tsx` (posicionamento fixo no mobile), `src/lib/categories/display.ts` (helper para guias/indentação).
-- Nenhuma mudança em queries, RPCs, RLS, schema ou lógica de negócio; drag-and-drop permanece no desktop (comportamento atual, que já esconde o handle no mobile).
-- Apenas tokens semânticos de cor (sem `text-white`/`bg-[#...]`).
-- Os testes existentes de `display.ts` e `CategoryTypeBadge` continuam válidos; adiciono testes para o helper de guias, se ele for criado.
+- Arquivos: `src/pages/ContasBancarias.tsx` (estado do diálogo, consulta de vínculo, chamada da function) e, se necessário, um pequeno ajuste em `supabase/functions/pluggy-disconnect-item/index.ts` para aceitar exclusão apenas do `pluggy_account` quando a conexão tiver múltiplas contas.
+- Nenhuma alteração de schema, nenhuma mudança na página `/contas-bancarias/conexoes`, e a integração Pluggy permanece intacta.
