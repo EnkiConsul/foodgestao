@@ -65,6 +65,8 @@ export default function ContasBancarias() {
   const [deleteAccount, setDeleteAccount] = useState<Account | null>(null);
   const [deactivateAccount, setDeactivateAccount] = useState<Account | null>(null);
   const [deactivateOfBank, setDeactivateOfBank] = useState<string | null>(null);
+  const [deactivateOfLast, setDeactivateOfLast] = useState(false);
+
   const [deleteHasTx, setDeleteHasTx] = useState<boolean | null>(null);
   const [linkedCards, setLinkedCards] = useState<Array<{ id: string; brand: string | null; last4: string | null }>>([]);
   const [linkedOf, setLinkedOf] = useState<{ pluggyAccountId: string; connectionId: string; bankName: string; multi: boolean } | null>(null);
@@ -265,18 +267,27 @@ export default function ContasBancarias() {
 
   const handleToggleActive = async (account: Account) => {
     // Desativar é uma ação que pode confundir quem usa Open Finance: pedimos
-    // confirmação e explicamos que a conexão bancária continua ativa.
+    // confirmação e explicamos o que acontece com a conexão bancária.
     if (account.is_active) {
       setDeactivateAccount(account);
       setDeactivateOfBank(null);
+      setDeactivateOfLast(false);
       if (contextType === "pj" && selectedCompanyId) {
         const { data: ofAcc } = await supabase
           .from("pluggy_accounts")
-          .select("id, pluggy_connections(connector_name)")
+          .select("id, connection_id, pluggy_connections(connector_name)")
           .eq("linked_account_id", account.id)
           .eq("company_id", selectedCompanyId)
           .maybeSingle();
-        if (ofAcc) setDeactivateOfBank((ofAcc as any).pluggy_connections?.connector_name ?? "banco conectado");
+        if (ofAcc) {
+          setDeactivateOfBank((ofAcc as any).pluggy_connections?.connector_name ?? "banco conectado");
+          const { count } = await supabase
+            .from("pluggy_accounts")
+            .select("id", { head: true, count: "exact" })
+            .eq("connection_id", (ofAcc as any).connection_id)
+            .is("sync_paused_at", null);
+          setDeactivateOfLast((count ?? 0) <= 1);
+        }
       }
       return;
     }
@@ -288,16 +299,35 @@ export default function ContasBancarias() {
       .from("accounts")
       .update({ is_active: !account.is_active })
       .eq("id", account.id);
-    if (error) toast.error("Erro ao atualizar status");
-    else {
-      toast.success(
-        account.is_active
-          ? "Conta desativada — sincronização Open Finance pausada, se houver"
-          : "Conta ativada — sincronização Open Finance retomada, se houver",
-      );
-      fetchAccounts();
+    if (error) {
+      toast.error("Erro ao atualizar status");
+      return;
     }
+
+    if (!account.is_active) {
+      toast.success("Conta ativada");
+      fetchAccounts();
+      return;
+    }
+
+    // Desativação: a trigger já pausou a conta na sincronização. Se foi a última
+    // conta ativa da conexão, encerramos o item na Pluggy.
+    const { data, error: ofError } = await supabase.functions.invoke("pluggy-pause-or-delete", {
+      body: { account_id: account.id },
+    });
+    const scope = (data as any)?.scope;
+    if (ofError || scope === "delete_failed") {
+      toast.warning("Conta desativada, mas a conexão Open Finance não pôde ser encerrada — tente em Conexões.");
+    } else if (scope === "connection_deleted") {
+      toast.success("Conta desativada — conexão Open Finance encerrada no banco");
+    } else if (scope === "paused") {
+      toast.success("Conta desativada — sincronização Open Finance pausada");
+    } else {
+      toast.success("Conta desativada");
+    }
+    fetchAccounts();
   };
+
 
 
 
@@ -595,7 +625,7 @@ export default function ContasBancarias() {
       </AlertDialog>
 
       {/* Confirmação de desativação */}
-      <AlertDialog open={!!deactivateAccount} onOpenChange={(open) => { if (!open) { setDeactivateAccount(null); setDeactivateOfBank(null); } }}>
+      <AlertDialog open={!!deactivateAccount} onOpenChange={(open) => { if (!open) { setDeactivateAccount(null); setDeactivateOfBank(null); setDeactivateOfLast(false); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Desativar conta bancária</AlertDialogTitle>
@@ -607,11 +637,17 @@ export default function ContasBancarias() {
           <div className="rounded-md border border-warning/50 bg-warning/10 p-3 text-sm">
             <div className="font-medium mb-1 flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-warning" />
-              A conexão Open Finance não é removida
+              {deactivateOfBank && deactivateOfLast
+                ? "A conexão Open Finance será encerrada"
+                : "A conexão Open Finance não é removida"}
             </div>
             <p className="text-muted-foreground">
               {deactivateOfBank ? (
-                <>Esta conta é sincronizada via Open Finance com o <strong>{deactivateOfBank}</strong>. A conexão com o banco <strong>não</strong> é removida, mas a sincronização desta conta fica <strong>pausada</strong> enquanto ela estiver inativa — e volta automaticamente ao reativar. Para encerrar a conexão de vez, use a página <strong>Conexões Open Finance</strong>.</>
+                deactivateOfLast ? (
+                  <>Esta é a última conta ativa da conexão com o <strong>{deactivateOfBank}</strong>. Ao desativá-la, a conexão será <strong>encerrada na Pluggy</strong> e deixará de aparecer no painel do Open Finance. Os lançamentos já importados são preservados, mas para voltar a sincronizar será preciso <strong>reconectar o banco</strong>.</>
+                ) : (
+                  <>Esta conta é sincronizada via Open Finance com o <strong>{deactivateOfBank}</strong>. Como a conexão tem outras contas ativas, ela <strong>não</strong> é removida: apenas a sincronização desta conta fica <strong>pausada</strong> — e volta automaticamente ao reativar.</>
+                )
               ) : (
                 <>Desativar uma conta <strong>não</strong> remove nenhuma conexão Open Finance. Se houver vínculo, a sincronização daquela conta fica apenas pausada até a reativação.</>
               )}
@@ -625,8 +661,10 @@ export default function ContasBancarias() {
                 if (deactivateAccount) await applyToggleActive(deactivateAccount);
                 setDeactivateAccount(null);
                 setDeactivateOfBank(null);
+                setDeactivateOfLast(false);
               }}
             >
+
               Desativar conta
             </AlertDialogAction>
           </AlertDialogFooter>
