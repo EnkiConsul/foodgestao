@@ -131,7 +131,7 @@ export default function ConexoesPluggy() {
         <div className="grid gap-3">
           {connections.map((c) => {
             const st = statusLabels[c.status] ?? { label: c.status, className: "" };
-            const m = meta[c.id] ?? { count: 0, pending: 0 };
+            const m = meta[c.id] ?? { count: 0, pending: 0, paused: 0 };
             const isLoginErr = c.status === "login_error" || c.status === "waiting_user_input";
             return (
               <Card key={c.id}>
