@@ -9166,7 +9166,7 @@ export type Database = {
         | "expired"
         | "pending"
       transaction_status: "pendente" | "confirmado" | "cancelado"
-      transaction_type: "receita" | "despesa" | "transferencia" | "parcelado"
+      transaction_type: "entrada" | "saida" | "transferencia" | "parcelamento"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -9578,7 +9578,7 @@ export const Constants = {
         "pending",
       ],
       transaction_status: ["pendente", "confirmado", "cancelado"],
-      transaction_type: ["receita", "despesa", "transferencia", "parcelado"],
+      transaction_type: ["entrada", "saida", "transferencia", "parcelamento"],
     },
   },
 } as const
