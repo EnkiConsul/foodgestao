@@ -240,6 +240,7 @@ Deno.serve(async (req) => {
           connection_id: conn.id,
           pluggy_account_id: acc.id,
           pluggy_transaction_id: t.id,
+          provider_id: (t.providerId ?? null) || null,
           date: (t.date ?? t.transactionDate ?? '').slice(0, 10),
           description,
           counterparty_name: counterparty,
@@ -252,19 +253,82 @@ Deno.serve(async (req) => {
         };
       });
 
+      // Dedupe pelo identificador original do banco (providerId): quando o banco
+      // reprocessa um lançamento, o Pluggy emite um novo id para o MESMO
+      // lançamento. Sem isso ele entraria duas vezes na conciliação.
+      const providerIds = rows.map((r) => r.provider_id).filter((v): v is string => !!v);
+      const byProvider = new Map<string, { id: string; status: string; pluggy_transaction_id: string }>();
+      for (let i = 0; i < providerIds.length; i += 200) {
+        const slice = providerIds.slice(i, i + 200);
+        const { data: prev } = await admin
+          .from('pluggy_staging_transactions')
+          .select('id, status, provider_id, pluggy_transaction_id')
+          .eq('company_id', effectiveCompanyId)
+          .eq('pluggy_account_id', acc.id)
+          .in('provider_id', slice)
+          .neq('status', 'duplicate');
+        for (const p of prev ?? []) {
+          if (p.provider_id) byProvider.set(p.provider_id, p as never);
+        }
+      }
+
+      const toInsert: typeof rows = [];
+      for (const r of rows) {
+        const prev = r.provider_id ? byProvider.get(r.provider_id) : undefined;
+        if (!prev) {
+          toInsert.push(r);
+          continue;
+        }
+        if (prev.pluggy_transaction_id === r.pluggy_transaction_id) {
+          // Mesma versão: só reenriquece a descrição se ainda estiver pendente.
+          if (prev.status === 'pending') {
+            await admin
+              .from('pluggy_staging_transactions')
+              .update({ description: r.description, counterparty_name: r.counterparty_name, raw: r.raw })
+              .eq('id', prev.id);
+          }
+          continue;
+        }
+        if (prev.status === 'pending') {
+          // Versão nova do mesmo lançamento do banco: atualiza no lugar.
+          await admin
+            .from('pluggy_staging_transactions')
+            .update({
+              pluggy_transaction_id: r.pluggy_transaction_id,
+              description: r.description,
+              counterparty_name: r.counterparty_name,
+              amount: r.amount,
+              date: r.date,
+              category_pluggy: r.category_pluggy,
+              type: r.type,
+              raw: r.raw,
+            })
+            .eq('id', prev.id);
+        } else {
+          // Já conciliado: registra a nova versão como duplicada (fora da tela).
+          await admin
+            .from('pluggy_staging_transactions')
+            .upsert({ ...r, status: 'duplicate' as never }, {
+              onConflict: 'pluggy_transaction_id',
+              ignoreDuplicates: true,
+            });
+        }
+      }
+
       // Chunked upsert to avoid oversized payloads
       const chunkSize = 200;
-      for (let i = 0; i < rows.length; i += chunkSize) {
-        const chunk = rows.slice(i, i + chunkSize);
+      for (let i = 0; i < toInsert.length; i += chunkSize) {
+        const chunk = toInsert.slice(i, i + chunkSize);
         const { error } = await admin
           .from('pluggy_staging_transactions')
           .upsert(chunk, { onConflict: 'pluggy_transaction_id', ignoreDuplicates: true });
         if (error) console.error('staging upsert error', error);
       }
 
-      // Reprocessa a descrição de itens ainda pendentes que foram importados
+      // Reprocessa a descrição de itens sem providerId que foram importados
       // antes com rótulo genérico (o upsert acima ignora duplicados).
-      for (const r of rows) {
+      for (const r of toInsert) {
+        if (r.provider_id) continue;
         const { error } = await admin
           .from('pluggy_staging_transactions')
           .update({ description: r.description, counterparty_name: r.counterparty_name })
@@ -276,6 +340,7 @@ Deno.serve(async (req) => {
       staged += rows.length;
 
     }
+
 
     return new Response(JSON.stringify({
       ok: true,
