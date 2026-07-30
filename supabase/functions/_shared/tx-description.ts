@@ -23,7 +23,7 @@ export function isGenericDescription(raw: string | null | undefined): boolean {
  * estabelecimento real da compra/pagamento.
  */
 const BANK_LABEL_RE =
-  /^\s*(banco|bco|banco\s+cooperativo|coop(erativa)?\s+de\s+cr[eé]dito|caixa\s+econ[oô]mica|nu\s*pagamentos|cooperativa\s+de\s+cr[eé]dito)\b[^]*$/i;
+  /^\s*(banco|bco|caixa\s+econ[oô]mica|nu\s*pagamentos|coop(erativa)?\s+de\s+cr[eé]dito)\b.*$/i;
 
 export function isBankLabelDescription(raw: string | null | undefined): boolean {
   const s = (raw ?? '').trim();
