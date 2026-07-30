@@ -271,7 +271,6 @@ export default function ContasBancarias() {
     if (account.is_active) {
       setDeactivateAccount(account);
       setDeactivateOfBank(null);
-      setDeactivateOfLast(false);
       if (contextType === "pj" && selectedCompanyId) {
         const { data: ofAcc } = await supabase
           .from("pluggy_accounts")
@@ -281,12 +280,6 @@ export default function ContasBancarias() {
           .maybeSingle();
         if (ofAcc) {
           setDeactivateOfBank((ofAcc as any).pluggy_connections?.connector_name ?? "banco conectado");
-          const { count } = await supabase
-            .from("pluggy_accounts")
-            .select("id", { head: true, count: "exact" })
-            .eq("connection_id", (ofAcc as any).connection_id)
-            .is("sync_paused_at", null);
-          setDeactivateOfLast((count ?? 0) <= 1);
         }
       }
       return;
@@ -304,29 +297,61 @@ export default function ContasBancarias() {
       return;
     }
 
-    if (!account.is_active) {
+    // Desativação: a trigger pausa a sincronização daquela conta.
+    // A conexão na Pluggy é preservada (nada é excluído no provedor).
+    if (account.is_active) {
+      toast.success("Conta desativada — sincronização Open Finance pausada, se houver");
+      fetchAccounts();
+      return;
+    }
+
+    // Ativação: a trigger já removeu a pausa. Se a conexão estiver saudável,
+    // disparamos um sync imediato; se ela não existir mais, oferecemos reconectar.
+    if (contextType !== "pj" || !selectedCompanyId) {
       toast.success("Conta ativada");
       fetchAccounts();
       return;
     }
 
-    // Desativação: a trigger já pausou a conta na sincronização. Se foi a última
-    // conta ativa da conexão, encerramos o item na Pluggy.
-    const { data, error: ofError } = await supabase.functions.invoke("pluggy-pause-or-delete", {
-      body: { account_id: account.id },
+    const { data: ofAcc } = await supabase
+      .from("pluggy_accounts")
+      .select("id, connection_id, pluggy_connections(pluggy_item_id, status, connector_name)")
+      .eq("linked_account_id", account.id)
+      .eq("company_id", selectedCompanyId)
+      .maybeSingle();
+
+    const conn = (ofAcc as any)?.pluggy_connections as
+      | { pluggy_item_id: string; status: string; connector_name: string | null }
+      | null
+      | undefined;
+
+    if (!ofAcc) {
+      toast.success("Conta ativada");
+      fetchAccounts();
+      return;
+    }
+
+    const deadStatuses = new Set(["deleted", "login_error"]);
+    if (!conn || deadStatuses.has(conn.status)) {
+      toast.success("Conta ativada");
+      setReconnectAccount(account);
+      setReconnectBank(conn?.connector_name ?? "banco conectado");
+      fetchAccounts();
+      return;
+    }
+
+    toast.success("Conta ativada — sincronizando Open Finance…");
+    const { error: syncErr } = await supabase.functions.invoke("pluggy-sync-item", {
+      body: { item_id: conn.pluggy_item_id, company_id: selectedCompanyId },
     });
-    const scope = (data as any)?.scope;
-    if (ofError || scope === "delete_failed") {
-      toast.warning("Conta desativada, mas a conexão Open Finance não pôde ser encerrada — tente em Conexões.");
-    } else if (scope === "connection_deleted") {
-      toast.success("Conta desativada — conexão Open Finance encerrada no banco");
-    } else if (scope === "paused") {
-      toast.success("Conta desativada — sincronização Open Finance pausada");
+    if (syncErr) {
+      toast.warning("Conta ativada, mas a sincronização falhou — tente novamente em Conexões.");
     } else {
-      toast.success("Conta desativada");
+      toast.success("Sincronização Open Finance retomada");
     }
     fetchAccounts();
   };
+
 
 
 
