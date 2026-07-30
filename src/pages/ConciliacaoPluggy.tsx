@@ -15,6 +15,7 @@ import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { CATEGORY_INDENT_STEP, categoryGuideLevels } from "@/lib/categories/display";
 import { CategoryTypeBadge } from "@/components/categorias/CategoryTypeBadge";
+import { buildCategoryTree, type Category } from "@/lib/categories/tree";
 
 interface StagingRow {
   id: string;
