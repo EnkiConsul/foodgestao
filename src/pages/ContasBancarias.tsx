@@ -63,6 +63,8 @@ export default function ContasBancarias() {
   const [importAccountId, setImportAccountId] = useState<string | null>(null);
   const [postCreateAccountId, setPostCreateAccountId] = useState<string | null>(null);
   const [deleteAccount, setDeleteAccount] = useState<Account | null>(null);
+  const [deactivateAccount, setDeactivateAccount] = useState<Account | null>(null);
+  const [deactivateOfBank, setDeactivateOfBank] = useState<string | null>(null);
   const [deleteHasTx, setDeleteHasTx] = useState<boolean | null>(null);
   const [linkedCards, setLinkedCards] = useState<Array<{ id: string; brand: string | null; last4: string | null }>>([]);
   const [linkedOf, setLinkedOf] = useState<{ pluggyAccountId: string; connectionId: string; bankName: string; multi: boolean } | null>(null);
@@ -262,13 +264,37 @@ export default function ContasBancarias() {
 
 
   const handleToggleActive = async (account: Account) => {
+    // Desativar é uma ação que pode confundir quem usa Open Finance: pedimos
+    // confirmação e explicamos que a conexão bancária continua ativa.
+    if (account.is_active) {
+      setDeactivateAccount(account);
+      setDeactivateOfBank(null);
+      if (contextType === "pj" && selectedCompanyId) {
+        const { data: ofAcc } = await supabase
+          .from("pluggy_accounts")
+          .select("id, pluggy_connections(connector_name)")
+          .eq("linked_account_id", account.id)
+          .eq("company_id", selectedCompanyId)
+          .maybeSingle();
+        if (ofAcc) setDeactivateOfBank((ofAcc as any).pluggy_connections?.connector_name ?? "banco conectado");
+      }
+      return;
+    }
+    await applyToggleActive(account);
+  };
+
+  const applyToggleActive = async (account: Account) => {
     const { error } = await supabase
       .from("accounts")
       .update({ is_active: !account.is_active })
       .eq("id", account.id);
     if (error) toast.error("Erro ao atualizar status");
-    else fetchAccounts();
+    else {
+      toast.success(account.is_active ? "Conta desativada" : "Conta ativada");
+      fetchAccounts();
+    }
   };
+
 
   const filtered = useMemo(() => {
     return accounts.filter((a) => {
@@ -558,6 +584,44 @@ export default function ContasBancarias() {
               }}
             >
               <Upload className="h-4 w-4 mr-2" /> Importar extrato
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmação de desativação */}
+      <AlertDialog open={!!deactivateAccount} onOpenChange={(open) => { if (!open) { setDeactivateAccount(null); setDeactivateOfBank(null); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desativar conta bancária</AlertDialogTitle>
+            <AlertDialogDescription data-testid="deactivate-account-description">
+              A conta <strong>{deactivateAccount?.name}</strong> deixará de aparecer nas listas de seleção e nos totais de saldo.
+              O histórico de lançamentos é <strong>preservado</strong> e você pode reativá-la a qualquer momento.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="rounded-md border border-warning/50 bg-warning/10 p-3 text-sm">
+            <div className="font-medium mb-1 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              A conexão Open Finance não é removida
+            </div>
+            <p className="text-muted-foreground">
+              {deactivateOfBank ? (
+                <>Esta conta é sincronizada via Open Finance com o <strong>{deactivateOfBank}</strong>. Desativar a conta <strong>não</strong> desconecta o banco — a sincronização continua ativa. Para encerrar a conexão, use a página <strong>Conexões Open Finance</strong> ou exclua a conta.</>
+              ) : (
+                <>Desativar uma conta <strong>não</strong> remove nenhuma conexão Open Finance. Para desconectar um banco, use a página <strong>Conexões Open Finance</strong>.</>
+              )}
+            </p>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (deactivateAccount) await applyToggleActive(deactivateAccount);
+                setDeactivateAccount(null);
+                setDeactivateOfBank(null);
+              }}
+            >
+              Desativar conta
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
