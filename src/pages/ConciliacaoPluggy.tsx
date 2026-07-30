@@ -143,9 +143,12 @@ export default function ConciliacaoPluggy() {
       }),
       supabase.from("categories")
         .select("id, name, transaction_type, parent_id, sort_order, color, category_companies!inner(company_id)")
+        .or("context.is.null,context.eq.pj")
         .eq("category_companies.company_id", selectedCompanyId)
         .eq("is_active", true)
-        .order("sort_order"),
+        .order("parent_id", { nullsFirst: true })
+        .order("sort_order")
+        .order("name"),
       supabase.from("pluggy_accounts")
         .select("pluggy_account_id, linked_account_id")
         .eq("company_id", selectedCompanyId),
