@@ -39,13 +39,13 @@ describe("categoryIndent", () => {
 });
 
 describe("categoryTypeLabel / categoryTypeClass", () => {
-  it("retorna os rótulos Receita e Despesa", () => {
-    expect(categoryTypeLabel("entrada")).toBe("Receita");
-    expect(categoryTypeLabel("saida")).toBe("Despesa");
+  it("retorna os rótulos Entrada e Saída", () => {
+    expect(categoryTypeLabel("entrada")).toBe("Entrada");
+    expect(categoryTypeLabel("saida")).toBe("Saída");
   });
 
-  it("usa Receita como fallback para tipos desconhecidos", () => {
-    expect(categoryTypeLabel("outro")).toBe(CATEGORY_TYPE_LABEL.receita);
+  it("usa Entrada como fallback para tipos desconhecidos", () => {
+    expect(categoryTypeLabel("outro")).toBe(CATEGORY_TYPE_LABEL.entrada);
     expect(categoryTypeClass("outro")).toBe(categoryTypeClass("entrada"));
   });
 

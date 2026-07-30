@@ -4,14 +4,14 @@ import { CategoryTypeBadge } from "@/components/categorias/CategoryTypeBadge";
 import { categoryIndent } from "@/lib/categories/display";
 
 describe("CategoryTypeBadge", () => {
-  it("renderiza o rótulo Receita", () => {
+  it("renderiza o rótulo Entrada", () => {
     render(<CategoryTypeBadge type="entrada" />);
-    expect(screen.getByText("Receita")).toBeInTheDocument();
+    expect(screen.getByText("Entrada")).toBeInTheDocument();
   });
 
-  it("renderiza o rótulo Despesa", () => {
+  it("renderiza o rótulo Saída", () => {
     render(<CategoryTypeBadge type="saida" />);
-    expect(screen.getByText("Despesa")).toBeInTheDocument();
+    expect(screen.getByText("Saída")).toBeInTheDocument();
   });
 
   it("aplica cores distintas por tipo", () => {
@@ -35,7 +35,7 @@ describe("CategoryTypeBadge", () => {
       );
       const wrapper = container.firstElementChild as HTMLElement;
       expect(wrapper.style.paddingLeft).toBe(`${depth * 16}px`);
-      expect(wrapper.textContent).toBe(depth % 2 === 0 ? "Receita" : "Despesa");
+      expect(wrapper.textContent).toBe(depth % 2 === 0 ? "Entrada" : "Saída");
     });
   });
 
