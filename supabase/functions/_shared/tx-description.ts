@@ -17,6 +17,21 @@ export function isGenericDescription(raw: string | null | undefined): boolean {
   return GENERIC_RE.test(s);
 }
 
+/**
+ * Alguns bancos devolvem apenas o nome de uma instituição financeira como
+ * descrição (ex.: "BANCO SICOOB S.A."), sem qualquer referência ao
+ * estabelecimento real da compra/pagamento.
+ */
+const BANK_LABEL_RE =
+  /^\s*(banco|bco|banco\s+cooperativo|coop(erativa)?\s+de\s+cr[eé]dito|caixa\s+econ[oô]mica|nu\s*pagamentos|cooperativa\s+de\s+cr[eé]dito)\b[^]*$/i;
+
+export function isBankLabelDescription(raw: string | null | undefined): boolean {
+  const s = (raw ?? '').trim();
+  if (!s) return false;
+  return BANK_LABEL_RE.test(s);
+}
+
+
 /** Mascara CPF/CNPJ preservando apenas o miolo. */
 export function maskDocument(doc: string | null | undefined): string | null {
   const digits = (doc ?? '').replace(/\D/g, '');
