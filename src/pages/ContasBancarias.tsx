@@ -692,6 +692,34 @@ export default function ContasBancarias() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Conexão Open Finance encerrada: oferece reconexão ao reativar */}
+      <AlertDialog open={!!reconnectAccount} onOpenChange={(open) => { if (!open) { setReconnectAccount(null); setReconnectBank(null); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reconectar Open Finance</AlertDialogTitle>
+            <AlertDialogDescription>
+              A conta <strong>{reconnectAccount?.name}</strong> foi ativada, mas a conexão com o{" "}
+              <strong>{reconnectBank}</strong> não está mais válida. Para voltar a sincronizar saldo e
+              lançamentos automaticamente, é preciso reconectar o banco.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Ativar sem conectar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setReconnectAccount(null);
+                setReconnectBank(null);
+                setPluggyOpen(true);
+              }}
+            >
+              Reconectar via Open Finance
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
+
 
       <AlertDialog open={!!deleteAccount} onOpenChange={(open) => { if (!open) setDeleteAccount(null); }}>
         <AlertDialogContent>
