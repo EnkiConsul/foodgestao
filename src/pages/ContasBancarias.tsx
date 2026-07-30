@@ -243,10 +243,23 @@ export default function ContasBancarias() {
       }
     } else {
       toast.success(data === "hard" ? "Conta excluída" : "Conta arquivada");
+      // Remove somente a conexão Open Finance deste banco (ou apenas esta conta,
+      // quando o mesmo banco alimenta outras contas).
+      if (linkedOf) {
+        const { error: ofError } = await supabase.functions.invoke("pluggy-disconnect-item", {
+          body: { connection_id: linkedOf.connectionId, pluggy_account_id: linkedOf.pluggyAccountId },
+        });
+        if (ofError) {
+          toast.warning("Conta excluída, mas a conexão Open Finance não pôde ser removida — tente em Conexões.");
+        } else {
+          toast.success(linkedOf.multi ? "Conta Open Finance desvinculada" : "Conexão Open Finance removida");
+        }
+      }
       fetchAccounts();
     }
     setDeleteAccount(null);
   };
+
 
   const handleToggleActive = async (account: Account) => {
     const { error } = await supabase
