@@ -580,6 +580,21 @@ export default function ContasBancarias() {
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {linkedOf && (
+            <div className="rounded-md border border-warning/50 bg-warning/10 p-3 text-sm">
+              <div className="font-medium mb-1 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+                Conta conectada via Open Finance
+              </div>
+              <p className="text-muted-foreground">
+                {linkedOf.multi ? (
+                  <>Esta conta é sincronizada pelo <strong>{linkedOf.bankName}</strong>. Apenas esta conta será desconectada; as demais contas do mesmo banco continuam conectadas.</>
+                ) : (
+                  <>Esta conta está conectada via Open Finance ao <strong>{linkedOf.bankName}</strong>. A conexão com este banco também será removida. O histórico já importado é mantido.</>
+                )}
+              </p>
+            </div>
+          )}
           {linkedCards.length > 0 && (
             <div className="rounded-md border border-warning/50 bg-warning/10 p-3 text-sm">
               <div className="font-medium mb-1 flex items-center gap-2">
