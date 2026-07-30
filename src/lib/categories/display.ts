@@ -42,10 +42,10 @@ export function categoryTypeClass(type: CategoryTransactionType): string {
 }
 
 export const CATEGORY_SUBTYPE_LABEL: Record<string, string> = {
-  receita: "Entrada",
+  receita: "Receita",
   saida: "Saída",
   custo: "Custo",
-  despesa: "Saída",
+  despesa: "Despesa",
   imposto: "Imposto",
   investimento: "Investimento",
 };
