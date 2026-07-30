@@ -65,6 +65,7 @@ export default function ContasBancarias() {
   const [deleteAccount, setDeleteAccount] = useState<Account | null>(null);
   const [deleteHasTx, setDeleteHasTx] = useState<boolean | null>(null);
   const [linkedCards, setLinkedCards] = useState<Array<{ id: string; brand: string | null; last4: string | null }>>([]);
+  const [linkedOf, setLinkedOf] = useState<{ pluggyAccountId: string; connectionId: string; bankName: string; multi: boolean } | null>(null);
   const [unlinkingCards, setUnlinkingCards] = useState(false);
   const [adjustAccount, setAdjustAccount] = useState<Account | null>(null);
   const [search, setSearch] = useState("");
@@ -166,9 +167,10 @@ export default function ContasBancarias() {
 
   useEffect(() => {
     let cancelled = false;
-    if (!deleteAccount) { setDeleteHasTx(null); setLinkedCards([]); return; }
+    if (!deleteAccount) { setDeleteHasTx(null); setLinkedCards([]); setLinkedOf(null); return; }
     setDeleteHasTx(null);
     setLinkedCards([]);
+    setLinkedOf(null);
     (async () => {
       const [{ count }, { data: cards }] = await Promise.all([
         supabase
@@ -184,9 +186,34 @@ export default function ContasBancarias() {
         setDeleteHasTx((count ?? 0) > 0);
         setLinkedCards((cards ?? []) as any);
       }
+
+      // Vínculo Open Finance (somente contexto PJ)
+      if (contextType === "pj" && selectedCompanyId) {
+        const { data: ofAcc } = await supabase
+          .from("pluggy_accounts")
+          .select("id, connection_id, pluggy_connections(connector_name)")
+          .eq("linked_account_id", deleteAccount.id)
+          .eq("company_id", selectedCompanyId)
+          .maybeSingle();
+        if (!cancelled && ofAcc?.connection_id) {
+          const { count: siblings } = await supabase
+            .from("pluggy_accounts")
+            .select("id", { head: true, count: "exact" })
+            .eq("connection_id", ofAcc.connection_id);
+          if (!cancelled) {
+            setLinkedOf({
+              pluggyAccountId: ofAcc.id,
+              connectionId: ofAcc.connection_id,
+              bankName: (ofAcc as any).pluggy_connections?.connector_name ?? "banco conectado",
+              multi: (siblings ?? 0) > 1,
+            });
+          }
+        }
+      }
     })();
     return () => { cancelled = true; };
-  }, [deleteAccount]);
+  }, [deleteAccount, contextType, selectedCompanyId]);
+
 
   const handleUnlinkCards = async () => {
     if (!deleteAccount || linkedCards.length === 0) return;
@@ -216,10 +243,23 @@ export default function ContasBancarias() {
       }
     } else {
       toast.success(data === "hard" ? "Conta excluída" : "Conta arquivada");
+      // Remove somente a conexão Open Finance deste banco (ou apenas esta conta,
+      // quando o mesmo banco alimenta outras contas).
+      if (linkedOf) {
+        const { error: ofError } = await supabase.functions.invoke("pluggy-disconnect-item", {
+          body: { connection_id: linkedOf.connectionId, pluggy_account_id: linkedOf.pluggyAccountId },
+        });
+        if (ofError) {
+          toast.warning("Conta excluída, mas a conexão Open Finance não pôde ser removida — tente em Conexões.");
+        } else {
+          toast.success(linkedOf.multi ? "Conta Open Finance desvinculada" : "Conexão Open Finance removida");
+        }
+      }
       fetchAccounts();
     }
     setDeleteAccount(null);
   };
+
 
   const handleToggleActive = async (account: Account) => {
     const { error } = await supabase
@@ -540,6 +580,21 @@ export default function ContasBancarias() {
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {linkedOf && (
+            <div className="rounded-md border border-warning/50 bg-warning/10 p-3 text-sm">
+              <div className="font-medium mb-1 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+                Conta conectada via Open Finance
+              </div>
+              <p className="text-muted-foreground">
+                {linkedOf.multi ? (
+                  <>Esta conta é sincronizada pelo <strong>{linkedOf.bankName}</strong>. Apenas esta conta será desconectada; as demais contas do mesmo banco continuam conectadas.</>
+                ) : (
+                  <>Esta conta está conectada via Open Finance ao <strong>{linkedOf.bankName}</strong>. A conexão com este banco também será removida. O histórico já importado é mantido.</>
+                )}
+              </p>
+            </div>
+          )}
           {linkedCards.length > 0 && (
             <div className="rounded-md border border-warning/50 bg-warning/10 p-3 text-sm">
               <div className="font-medium mb-1 flex items-center gap-2">
