@@ -22,7 +22,7 @@ interface Connection {
   last_error: any;
 }
 
-interface AccountsMap { [connId: string]: { count: number; pending: number } }
+interface AccountsMap { [connId: string]: { count: number; pending: number; paused: number } }
 
 const statusLabels: Record<string, { label: string; className: string }> = {
   updated: { label: "Atualizado", className: "bg-success/15 text-success border-success/30" },
@@ -58,11 +58,12 @@ export default function ConexoesPluggy() {
 
     const m: AccountsMap = {};
     for (const c of list) {
-      const [{ count: accCount }, { count: pending }] = await Promise.all([
+      const [{ count: accCount }, { count: pending }, { count: paused }] = await Promise.all([
         supabase.from("pluggy_accounts").select("id", { head: true, count: "exact" }).eq("connection_id", c.id),
         supabase.from("pluggy_staging_transactions").select("id", { head: true, count: "exact" }).eq("connection_id", c.id).eq("status", "pending"),
+        supabase.from("pluggy_accounts").select("id", { head: true, count: "exact" }).eq("connection_id", c.id).not("sync_paused_at", "is", null),
       ]);
-      m[c.id] = { count: accCount ?? 0, pending: pending ?? 0 };
+      m[c.id] = { count: accCount ?? 0, pending: pending ?? 0, paused: paused ?? 0 };
     }
     setMeta(m);
     setLoading(false);
@@ -130,7 +131,7 @@ export default function ConexoesPluggy() {
         <div className="grid gap-3">
           {connections.map((c) => {
             const st = statusLabels[c.status] ?? { label: c.status, className: "" };
-            const m = meta[c.id] ?? { count: 0, pending: 0 };
+            const m = meta[c.id] ?? { count: 0, pending: 0, paused: 0 };
             const isLoginErr = c.status === "login_error" || c.status === "waiting_user_input";
             return (
               <Card key={c.id}>
@@ -147,6 +148,13 @@ export default function ConexoesPluggy() {
                       {m.pending > 0 && (
                         <Badge className="bg-warning/15 text-warning border-warning/30">
                           {m.pending} pendente(s)
+                        </Badge>
+                      )}
+                      {m.paused > 0 && (
+                        <Badge variant="outline" className="text-muted-foreground">
+                          {m.paused === m.count
+                            ? "Sincronização pausada"
+                            : `${m.paused} conta(s) pausada(s)`}
                         </Badge>
                       )}
                     </div>

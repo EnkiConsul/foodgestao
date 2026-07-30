@@ -1,26 +1,41 @@
-## Contexto verificado
+## Objetivo
 
-- `handleToggleActive` (`src/pages/ContasBancarias.tsx`) só altera `accounts.is_active` — hoje **não** apaga nada de Open Finance. Confirmado também que os triggers de `accounts` (saldo, delete, updated_at) não tocam em Pluggy.
-- `pluggy_accounts.linked_account_id → accounts(id) ON DELETE SET NULL`: ao excluir a conta, o vínculo é apenas limpo; a conexão do banco continua ativa na Pluggy.
-- Já existe o fluxo completo de remoção por conexão: edge function `pluggy-disconnect-item` (apaga o item na Pluggy, staging pendente e a `pluggy_connections`, com cascade em `pluggy_accounts`), usada hoje em `/contas-bancarias/conexoes`.
+Ao **desativar** uma conta bancária vinculada ao Open Finance, pausar a sincronização daquela conta na Pluggy — sem excluir a conexão nem perder o histórico. Ao **reativar**, a sincronização volta automaticamente.
 
-## O que será feito
+## Estado atual (verificado)
 
-Quando o usuário **excluir uma conta bancária** que possui vínculo Open Finance, excluir também a conexão daquele banco — e somente dela. A desativação (toggle Ativa/Inativa) continua sem mexer em Open Finance.
+- `handleToggleActive` em `ContasBancarias.tsx` só faz `update({ is_active })` em `accounts`; nada toca a Pluggy.
+- O `pluggy-cron-sync` busca **todas** as conexões com status diferente de `deleted`/`login_error` e chama `pluggy-sync-item` por item.
+- `pluggy-sync-item` percorre as contas do item, espelha em `pluggy_accounts` e grava transações em `pluggy_staging_transactions`.
+- `pluggy-webhook` também dispara `pluggy-sync-item` a cada evento do item.
+- Uma conexão (item) pode ter **várias** contas; por isso a pausa precisa ser por conta, não pelo item inteiro.
 
-### 1. Detectar o vínculo no diálogo de exclusão
-Em `ContasBancarias.tsx`, ao abrir o diálogo de exclusão, buscar em `pluggy_accounts` a linha com `linked_account_id = conta.id` (mesma empresa) e trazer `connection_id` + nome do banco.
+## Como vai funcionar
 
-### 2. Aviso claro no diálogo
-Se houver vínculo, mostrar um bloco de alerta: "Esta conta está conectada via Open Finance ao banco X. A conexão com este banco também será removida (o histórico já importado é mantido)." Sem vínculo, o diálogo permanece exatamente como está.
+Pausa **por conta Open Finance**:
 
-### 3. Excluir a conexão junto
-No `handleDelete`, após o `delete_account` retornar sucesso (hard ou arquivamento), invocar `pluggy-disconnect-item` com o `connection_id` daquela conta. Se a conexão tiver outras contas vinculadas (mais de uma `pluggy_accounts` na mesma conexão), remover apenas o vínculo/registro daquela conta e **preservar a conexão** — assim nunca se derruba o banco inteiro por causa de uma conta secundária.
+1. Desativar a conta bancária → a conta Pluggy correspondente fica marcada como pausada.
+2. O sync continua rodando para o item, mas **ignora** as contas pausadas: não atualiza saldo, não cria transações em staging.
+3. Se **todas** as contas de um item estiverem pausadas, o cron pula o item inteiro (economiza chamadas à Pluggy).
+4. Reativar a conta bancária → remove a pausa; a próxima sincronização volta a trazer os dados.
 
-### 4. Tratamento de erro
-Falha ao remover a conexão não desfaz a exclusão da conta: exibir toast de aviso ("Conta excluída, mas a conexão Open Finance não pôde ser removida — tente em Conexões") e recarregar as listas.
+## Alterações
+
+**Banco de dados (migração)**
+- Adicionar `sync_paused_at timestamptz` (nulo = ativo) e `sync_paused_reason text` em `pluggy_accounts`.
+- Trigger em `accounts`: ao mudar `is_active`, marcar/limpar `sync_paused_at` nas linhas de `pluggy_accounts` com `linked_account_id` correspondente (razão: `account_inactive`). Assim a pausa vale mesmo se a conta for desativada por outra tela ou pelo backend.
+
+**Edge functions**
+- `pluggy-sync-item`: pular contas pausadas nos dois laços (espelho/saldo e transações).
+- `pluggy-cron-sync`: não chamar o sync de itens em que todas as contas estão pausadas.
+
+**Frontend**
+- `ContasBancarias.tsx`: no diálogo de desativação, trocar o texto atual por: a conexão com o banco **não** é removida, mas a sincronização desta conta fica **pausada** e volta ao reativar. Mostrar o nome do banco quando houver vínculo.
+- Toast de reativação informando que a sincronização foi retomada.
+- `ConexoesPluggy.tsx`: exibir um selo "Sincronização pausada" nas contas pausadas, para o estado ficar visível também na tela de conexões.
 
 ## Detalhes técnicos
 
-- Arquivos: `src/pages/ContasBancarias.tsx` (estado do diálogo, consulta de vínculo, chamada da function) e, se necessário, um pequeno ajuste em `supabase/functions/pluggy-disconnect-item/index.ts` para aceitar exclusão apenas do `pluggy_account` quando a conexão tiver múltiplas contas.
-- Nenhuma alteração de schema, nenhuma mudança na página `/contas-bancarias/conexoes`, e a integração Pluggy permanece intacta.
+- A pausa é dirigida pelo banco (trigger), então nenhum caminho de código pode esquecer de aplicá-la.
+- Nada é apagado: `pluggy_accounts`, `pluggy_connections` e o staging já importado permanecem.
+- Contas em contexto PF (sem `company_id` da Pluggy) não têm vínculo Open Finance e seguem sem mudança.

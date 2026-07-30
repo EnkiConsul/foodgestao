@@ -18,11 +18,27 @@ Deno.serve(async (req) => {
   );
   const { data: conns } = await admin
     .from('pluggy_connections')
-    .select('pluggy_item_id')
+    .select('id, pluggy_item_id')
     .not('status', 'in', '("deleted","login_error")');
+
+  // Pula itens cujas contas estão todas com sincronização pausada
+  // (contas bancárias locais desativadas) — economiza chamadas à Pluggy.
+  const { data: pAccounts } = await admin
+    .from('pluggy_accounts')
+    .select('connection_id, sync_paused_at');
+  const hasActiveAccount = new Set(
+    (pAccounts ?? []).filter((a: any) => !a.sync_paused_at).map((a: any) => a.connection_id),
+  );
+  const knownConnections = new Set((pAccounts ?? []).map((a: any) => a.connection_id));
 
   const results: any[] = [];
   for (const c of conns ?? []) {
+    // Conexões ainda sem contas espelhadas seguem sincronizando normalmente.
+    if (knownConnections.has(c.id) && !hasActiveAccount.has(c.id)) {
+      results.push({ item: c.pluggy_item_id, skipped: 'sync_paused' });
+      continue;
+    }
+
     try {
       const res = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/pluggy-sync-item`, {
         method: 'POST',

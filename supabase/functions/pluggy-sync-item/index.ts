@@ -122,7 +122,17 @@ Deno.serve(async (req) => {
       bankSlug = match?.slug ?? null;
     }
 
+    // Contas cuja sincronização está pausada (conta bancária local desativada).
+    // A conexão continua ativa; apenas ignoramos essas contas neste ciclo.
+    const { data: pausedRows } = await admin
+      .from('pluggy_accounts')
+      .select('pluggy_account_id')
+      .eq('connection_id', conn.id)
+      .not('sync_paused_at', 'is', null);
+    const pausedIds = new Set((pausedRows ?? []).map((r: any) => r.pluggy_account_id));
+
     for (const acc of accounts) {
+      if (pausedIds.has(acc.id)) continue;
       const { data: upserted } = await admin.from('pluggy_accounts').upsert({
         connection_id: conn.id,
         company_id: effectiveCompanyId,
@@ -211,6 +221,7 @@ Deno.serve(async (req) => {
 
     let staged = 0;
     for (const acc of accounts) {
+      if (pausedIds.has(acc.id)) continue;
       const txs = await listTransactions(acc.id, fmt(from), fmt(to));
       if (txs.length === 0) continue;
       const rows = txs.map((t: any) => {

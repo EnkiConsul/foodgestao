@@ -290,10 +290,15 @@ export default function ContasBancarias() {
       .eq("id", account.id);
     if (error) toast.error("Erro ao atualizar status");
     else {
-      toast.success(account.is_active ? "Conta desativada" : "Conta ativada");
+      toast.success(
+        account.is_active
+          ? "Conta desativada — sincronização Open Finance pausada, se houver"
+          : "Conta ativada — sincronização Open Finance retomada, se houver",
+      );
       fetchAccounts();
     }
   };
+
 
 
   const filtered = useMemo(() => {
@@ -606,12 +611,13 @@ export default function ContasBancarias() {
             </div>
             <p className="text-muted-foreground">
               {deactivateOfBank ? (
-                <>Esta conta é sincronizada via Open Finance com o <strong>{deactivateOfBank}</strong>. Desativar a conta <strong>não</strong> desconecta o banco — a sincronização continua ativa. Para encerrar a conexão, use a página <strong>Conexões Open Finance</strong> ou exclua a conta.</>
+                <>Esta conta é sincronizada via Open Finance com o <strong>{deactivateOfBank}</strong>. A conexão com o banco <strong>não</strong> é removida, mas a sincronização desta conta fica <strong>pausada</strong> enquanto ela estiver inativa — e volta automaticamente ao reativar. Para encerrar a conexão de vez, use a página <strong>Conexões Open Finance</strong>.</>
               ) : (
-                <>Desativar uma conta <strong>não</strong> remove nenhuma conexão Open Finance. Para desconectar um banco, use a página <strong>Conexões Open Finance</strong>.</>
+                <>Desativar uma conta <strong>não</strong> remove nenhuma conexão Open Finance. Se houver vínculo, a sincronização daquela conta fica apenas pausada até a reativação.</>
               )}
             </p>
           </div>
+
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
