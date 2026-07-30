@@ -22,7 +22,7 @@ interface Connection {
   last_error: any;
 }
 
-interface AccountsMap { [connId: string]: { count: number; pending: number } }
+interface AccountsMap { [connId: string]: { count: number; pending: number; paused: number } }
 
 const statusLabels: Record<string, { label: string; className: string }> = {
   updated: { label: "Atualizado", className: "bg-success/15 text-success border-success/30" },
