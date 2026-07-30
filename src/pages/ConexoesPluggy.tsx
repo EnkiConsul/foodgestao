@@ -150,6 +150,13 @@ export default function ConexoesPluggy() {
                           {m.pending} pendente(s)
                         </Badge>
                       )}
+                      {m.paused > 0 && (
+                        <Badge variant="outline" className="text-muted-foreground">
+                          {m.paused === m.count
+                            ? "Sincronização pausada"
+                            : `${m.paused} conta(s) pausada(s)`}
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {m.count} conta(s) · Última sincronização:{" "}
