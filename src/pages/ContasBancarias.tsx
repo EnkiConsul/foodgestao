@@ -167,9 +167,10 @@ export default function ContasBancarias() {
 
   useEffect(() => {
     let cancelled = false;
-    if (!deleteAccount) { setDeleteHasTx(null); setLinkedCards([]); return; }
+    if (!deleteAccount) { setDeleteHasTx(null); setLinkedCards([]); setLinkedOf(null); return; }
     setDeleteHasTx(null);
     setLinkedCards([]);
+    setLinkedOf(null);
     (async () => {
       const [{ count }, { data: cards }] = await Promise.all([
         supabase
@@ -185,9 +186,34 @@ export default function ContasBancarias() {
         setDeleteHasTx((count ?? 0) > 0);
         setLinkedCards((cards ?? []) as any);
       }
+
+      // Vínculo Open Finance (somente contexto PJ)
+      if (contextType === "pj" && selectedCompanyId) {
+        const { data: ofAcc } = await supabase
+          .from("pluggy_accounts")
+          .select("id, connection_id, pluggy_connections(connector_name)")
+          .eq("linked_account_id", deleteAccount.id)
+          .eq("company_id", selectedCompanyId)
+          .maybeSingle();
+        if (!cancelled && ofAcc?.connection_id) {
+          const { count: siblings } = await supabase
+            .from("pluggy_accounts")
+            .select("id", { head: true, count: "exact" })
+            .eq("connection_id", ofAcc.connection_id);
+          if (!cancelled) {
+            setLinkedOf({
+              pluggyAccountId: ofAcc.id,
+              connectionId: ofAcc.connection_id,
+              bankName: (ofAcc as any).pluggy_connections?.connector_name ?? "banco conectado",
+              multi: (siblings ?? 0) > 1,
+            });
+          }
+        }
+      }
     })();
     return () => { cancelled = true; };
-  }, [deleteAccount]);
+  }, [deleteAccount, contextType, selectedCompanyId]);
+
 
   const handleUnlinkCards = async () => {
     if (!deleteAccount || linkedCards.length === 0) return;
