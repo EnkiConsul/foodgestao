@@ -19,7 +19,7 @@ export function SummaryCards({ totals, formatBRL }: Props) {
     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
       <Card className="shadow-sm">
         <CardContent className="p-3 text-center">
-          <p className="text-xs text-muted-foreground">Receitas</p>
+          <p className="text-xs text-muted-foreground">Entradas</p>
           <p className={`text-sm font-bold ${amountColorClass(totals.receitas)}`}>
             {formatBRL(totals.receitas)}
           </p>
@@ -27,7 +27,7 @@ export function SummaryCards({ totals, formatBRL }: Props) {
       </Card>
       <Card className="shadow-sm">
         <CardContent className="p-3 text-center">
-          <p className="text-xs text-muted-foreground">Despesas</p>
+          <p className="text-xs text-muted-foreground">Saídas</p>
           <p className={`text-sm font-bold ${amountColorClass(-totals.despesas)}`}>
             {formatBRL(totals.despesas)}
           </p>

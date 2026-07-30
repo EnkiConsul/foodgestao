@@ -131,8 +131,8 @@ export default function FluxoCaixa() {
     const dailyMap: Record<string, { receitas: number; despesas: number; receitasProj: number; despesasProj: number }> = {};
 
     for (const t of transactions) {
-      const effType: "receita" | "despesa" | null =
-        t.transaction_type === "receita" || t.transaction_type === "despesa"
+      const effType: "entrada" | "saida" | null =
+        t.transaction_type === "entrada" || t.transaction_type === "saida"
           ? t.transaction_type
           : null;
       if (effType === null) continue;
@@ -143,7 +143,7 @@ export default function FluxoCaixa() {
         if (remaining <= 0) continue;
         const key = t.due_date;
         if (!dailyMap[key]) dailyMap[key] = { receitas: 0, despesas: 0, receitasProj: 0, despesasProj: 0 };
-        if (effType === "receita") {
+        if (effType === "entrada") {
           dailyMap[key].receitas += remaining;
           if (key > todayStr) dailyMap[key].receitasProj += remaining;
         } else {
@@ -154,7 +154,7 @@ export default function FluxoCaixa() {
         // Realized transactions
         const key = t.transaction_date;
         if (!dailyMap[key]) dailyMap[key] = { receitas: 0, despesas: 0, receitasProj: 0, despesasProj: 0 };
-        if (effType === "receita") {
+        if (effType === "entrada") {
           dailyMap[key].receitas += Number(t.amount);
           if (key > todayStr) dailyMap[key].receitasProj += Number(t.amount);
         } else {

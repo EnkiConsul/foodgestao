@@ -47,7 +47,7 @@ interface Props {
   onSaved: (newId?: string) => void;
   editCategory?: Tables<"categories"> | null;
   defaultParentId?: string | null;
-  defaultType?: "receita" | "despesa";
+  defaultType?: "entrada" | "saida";
   defaultName?: string;
 }
 
@@ -55,7 +55,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const [name, setName] = useState("");
-  const [type, setType] = useState<"receita" | "despesa">("despesa");
+  const [type, setType] = useState<"entrada" | "saida">("saida");
   const [color, setColor] = useState("#3b82f6");
   const [parentId, setParentId] = useState<string | null>(null);
   const [chartAccountId, setChartAccountId] = useState<string | null>(null);
@@ -208,7 +208,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
     if (!open) return;
     if (editCategory) {
       setName(editCategory.name);
-      setType(editCategory.transaction_type as "receita" | "despesa");
+      setType(editCategory.transaction_type as "entrada" | "saida");
       setColor(editCategory.color ?? "#3b82f6");
       setParentId(editCategory.parent_id ?? null);
       setChartAccountId((editCategory as any).chart_account_id ?? null);
@@ -225,7 +225,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
         });
     } else {
       setName(defaultName ?? "");
-      setType(defaultType ?? "despesa");
+      setType(defaultType ?? "saida");
       setColor("#3b82f6");
       setParentId(defaultParentId || null);
       setChartAccountId(null);
@@ -444,8 +444,8 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
                 <Label>Tipo</Label>
                 <div role="radiogroup" aria-label="Tipo da categoria" className="grid grid-cols-2 gap-2">
                   {([
-                    { value: "despesa", label: "Despesa" },
-                    { value: "receita", label: "Receita" },
+                    { value: "saida", label: "Saída" },
+                    { value: "entrada", label: "Entrada" },
                   ] as const).map((opt) => (
                     <button
                       key={opt.value}
@@ -456,7 +456,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
                       className={cn(
                         "h-11 rounded-md border text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                         type === opt.value
-                          ? opt.value === "receita"
+                          ? opt.value === "entrada"
                             ? "border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                             : "border-destructive bg-destructive/10 text-destructive"
                           : "border-input bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground"

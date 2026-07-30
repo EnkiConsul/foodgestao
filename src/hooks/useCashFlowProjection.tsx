@@ -146,8 +146,8 @@ export function useCashFlowProjection(horizonDays: HorizonDays) {
         const b = buckets.get(key);
         if (!b) continue;
         const remaining = Math.max(0, Number(t.amount) - Number(t.amount_paid ?? 0));
-        if (t.transaction_type === "receita") b.inflow += remaining;
-        else if (t.transaction_type === "despesa" || t.transaction_type === "parcelado")
+        if (t.transaction_type === "entrada") b.inflow += remaining;
+        else if (t.transaction_type === "saida" || t.transaction_type === "parcelamento")
           b.outflow += remaining;
       }
 

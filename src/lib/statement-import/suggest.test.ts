@@ -7,7 +7,7 @@ type HistoryRow = {
   description: string;
   category_id: string | null;
   contact_id: string | null;
-  transaction_type: "receita" | "despesa";
+  transaction_type: "entrada" | "saida";
   context: "pf" | "pj";
   company_id: string | null;
 };
@@ -59,7 +59,7 @@ function entry(over: Partial<ParsedStatementEntry> = {}): ParsedStatementEntry {
     date: "2026-06-05",
     description: "Pix recebido - Empresa X",
     amount: 100,
-    transaction_type: "receita",
+    transaction_type: "entrada",
     counterparty_document: null,
     counterparty_name: null,
     import_hash: "hash-" + Math.random().toString(36).slice(2),
@@ -106,7 +106,7 @@ describe("suggestForEntries", () => {
         description: "Pix recebido pagamento mensal cliente",
         category_id: "cat-A",
         contact_id: "contact-B",
-        transaction_type: "receita",
+        transaction_type: "entrada",
         context: "pf",
         company_id: null,
       },
@@ -125,7 +125,7 @@ describe("suggestForEntries", () => {
         description: "Pix recebido pagamento mensal",
         category_id: "cat-A",
         contact_id: null,
-        transaction_type: "despesa", // opposite
+        transaction_type: "saida", // opposite
         context: "pf",
         company_id: null,
       },
@@ -144,7 +144,7 @@ describe("suggestForEntries", () => {
         description: "compra fornecedor recorrente mensal",
         category_id: "cat-other",
         contact_id: null,
-        transaction_type: "despesa",
+        transaction_type: "saida",
         context: "pj",
         company_id: "OTHER-CO",
       },
@@ -152,7 +152,7 @@ describe("suggestForEntries", () => {
         description: "compra fornecedor recorrente mensal",
         category_id: "cat-mine",
         contact_id: null,
-        transaction_type: "despesa",
+        transaction_type: "saida",
         context: "pj",
         company_id: "MY-CO",
       },
@@ -161,7 +161,7 @@ describe("suggestForEntries", () => {
       [
         entry({
           description: "compra fornecedor recorrente mensal",
-          transaction_type: "despesa",
+          transaction_type: "saida",
         }),
       ],
       { userId: "u", context: "pj", companyId: "MY-CO" },
@@ -175,7 +175,7 @@ describe("suggestForEntries", () => {
         description: "pagamento xyz aleatorio inusitado",
         category_id: "cat-X",
         contact_id: null,
-        transaction_type: "receita",
+        transaction_type: "entrada",
         context: "pf",
         company_id: null,
       },

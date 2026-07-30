@@ -18,7 +18,7 @@ interface PaymentTransaction {
   description: string;
   amount: number;
   amount_paid: number;
-  transaction_type: "receita" | "despesa";
+  transaction_type: "entrada" | "saida";
   account_id: string;
   category_id: string | null;
   contact_id: string | null;

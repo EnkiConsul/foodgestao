@@ -17,7 +17,7 @@ function tx(over: Partial<TxLike>): TxLike {
   return {
     amount: 100,
     amount_paid: 0,
-    transaction_type: "despesa",
+    transaction_type: "saida",
     transaction_date: "2026-07-10",
     due_date: "2026-07-15",
     payment_date: null,
@@ -105,8 +105,8 @@ describe("isRealized / signedEffect", () => {
     expect(isRealized(tx({ due_date: null }))).toBe(false);
   });
   it("receita soma, despesa subtrai, transferência = 0", () => {
-    expect(signedEffect(tx({ transaction_type: "receita" }))).toBe(100);
-    expect(signedEffect(tx({ transaction_type: "despesa" }))).toBe(-100);
+    expect(signedEffect(tx({ transaction_type: "entrada" }))).toBe(100);
+    expect(signedEffect(tx({ transaction_type: "saida" }))).toBe(-100);
     expect(signedEffect(tx({ transaction_type: "transferencia" }))).toBe(0);
   });
 });
@@ -114,10 +114,10 @@ describe("isRealized / signedEffect", () => {
 describe("runningBalance", () => {
   it("acumula somente lançamentos realizados", () => {
     const txs = [
-      tx({ status: "confirmado", transaction_type: "receita", amount: 500 }),
-      tx({ transaction_type: "despesa", amount: 100, amount_paid: 100 }), // pago
-      tx({ transaction_type: "despesa", amount: 50 }), // pendente
-      tx({ status: "confirmado", transaction_type: "despesa", amount: 30 }),
+      tx({ status: "confirmado", transaction_type: "entrada", amount: 500 }),
+      tx({ transaction_type: "saida", amount: 100, amount_paid: 100 }), // pago
+      tx({ transaction_type: "saida", amount: 50 }), // pendente
+      tx({ status: "confirmado", transaction_type: "saida", amount: 30 }),
     ];
     const rows = runningBalance(txs, 1000);
     expect(rows.map((r) => r.runningBalance)).toEqual([1500, 1400, 1400, 1370]);
@@ -125,7 +125,7 @@ describe("runningBalance", () => {
 
   it("respeita saldo anterior negativo", () => {
     const rows = runningBalance(
-      [tx({ status: "confirmado", transaction_type: "receita", amount: 200 })],
+      [tx({ status: "confirmado", transaction_type: "entrada", amount: 200 })],
       -500,
     );
     expect(rows[0].runningBalance).toBe(-300);
@@ -134,11 +134,11 @@ describe("runningBalance", () => {
 
 describe("computePeriodTotals", () => {
   const dataset: TxLike[] = [
-    tx({ transaction_type: "receita", amount: 1000, status: "confirmado", due_date: null }),
-    tx({ transaction_type: "receita", amount: 500, due_date: "2026-08-15" }), // a receber
-    tx({ transaction_type: "despesa", amount: 300, amount_paid: 300 }), // paga
-    tx({ transaction_type: "despesa", amount: 200, due_date: "2026-07-10" }), // atrasada
-    tx({ transaction_type: "despesa", amount: 400, amount_paid: 100, due_date: "2026-08-01" }), // parcial
+    tx({ transaction_type: "entrada", amount: 1000, status: "confirmado", due_date: null }),
+    tx({ transaction_type: "entrada", amount: 500, due_date: "2026-08-15" }), // a receber
+    tx({ transaction_type: "saida", amount: 300, amount_paid: 300 }), // paga
+    tx({ transaction_type: "saida", amount: 200, due_date: "2026-07-10" }), // atrasada
+    tx({ transaction_type: "saida", amount: 400, amount_paid: 100, due_date: "2026-08-01" }), // parcial
   ];
 
   it("soma totais realizados e pendentes corretamente", () => {
@@ -156,7 +156,7 @@ describe("computePeriodTotals", () => {
 
   it("não considera pago negativo em aPagar", () => {
     const t = computePeriodTotals(
-      [tx({ transaction_type: "despesa", amount: 100, amount_paid: 150 })],
+      [tx({ transaction_type: "saida", amount: 100, amount_paid: 150 })],
       today,
     );
     expect(t.aPagar).toBe(0);
@@ -205,17 +205,17 @@ import { belongsToRegime, computePeriodTotals as ppt, runningBalance as rb } fro
 
 describe("regime caixa vs competência", () => {
   const cardPurchase = {
-    amount: 200, amount_paid: 200, transaction_type: "despesa" as const,
+    amount: 200, amount_paid: 200, transaction_type: "saida" as const,
     transaction_date: "2026-07-05", due_date: null, status: "confirmado" as const,
     credit_card_invoice_id: "inv-1",
   };
   const invoicePayment = {
-    amount: 200, amount_paid: 200, transaction_type: "despesa" as const,
+    amount: 200, amount_paid: 200, transaction_type: "saida" as const,
     transaction_date: "2026-07-15", due_date: "2026-07-15", status: "confirmado" as const,
     is_invoice_payment: true,
   };
   const cashExpense = {
-    amount: 50, amount_paid: 50, transaction_type: "despesa" as const,
+    amount: 50, amount_paid: 50, transaction_type: "saida" as const,
     transaction_date: "2026-07-10", due_date: null, status: "confirmado" as const,
   };
 

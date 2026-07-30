@@ -33,7 +33,7 @@ export const accountSchema = z.object({
 export const transactionSchema = z.object({
   description: z.string().trim().min(1, "Descrição é obrigatória").max(200),
   amount: z.number().finite().refine((v) => v !== 0, "Valor não pode ser zero"),
-  transaction_type: z.enum(["receita", "despesa", "transferencia"]),
+  transaction_type: z.enum(["entrada", "saida", "transferencia"]),
   transaction_date: z.string().min(1, "Data é obrigatória"),
   account_id: z.string().uuid("Selecione uma conta"),
   destination_account_id: z.string().uuid().optional().nullable(),
@@ -49,7 +49,7 @@ export const transactionSchema = z.object({
 // ---- Category ----
 export const categorySchema = z.object({
   name: z.string().trim().min(1, "Nome é obrigatório").max(50),
-  transaction_type: z.enum(["receita", "despesa"]),
+  transaction_type: z.enum(["entrada", "saida"]),
   color: z.string().max(20).optional().nullable(),
   category_subtype: z.enum(
     ["receita", "saida", "custo", "despesa", "imposto", "investimento"],

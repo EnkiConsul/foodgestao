@@ -91,10 +91,10 @@ export async function buildFinancialContext(
   const sum = (rows: any[], type: string) =>
     rows.filter((r) => r.transaction_type === type).reduce((s, r) => s + Number(r.amount || 0), 0);
 
-  const totalReceitasCur = sum(txCur.data ?? [], "receita");
-  const totalDespesasCur = sum(txCur.data ?? [], "despesa");
-  const totalReceitasPrev = sum(txPrev.data ?? [], "receita");
-  const totalDespesasPrev = sum(txPrev.data ?? [], "despesa");
+  const totalReceitasCur = sum(txCur.data ?? [], "entrada");
+  const totalDespesasCur = sum(txCur.data ?? [], "saida");
+  const totalReceitasPrev = sum(txPrev.data ?? [], "entrada");
+  const totalDespesasPrev = sum(txPrev.data ?? [], "saida");
 
   const pend = (txCur.data ?? []).filter((r: any) => r.status === "pendente" || r.status === "parcial").length;
   const venc = (txCur.data ?? []).filter((r: any) => r.due_date && new Date(r.due_date) < now && (r.status === "pendente" || r.status === "parcial")).length;
@@ -102,7 +102,7 @@ export async function buildFinancialContext(
   // Top 5 categorias despesa mês atual
   const catTotals: Record<string, number> = {};
   for (const r of txCur.data ?? []) {
-    if (r.transaction_type !== "despesa") continue;
+    if (r.transaction_type !== "saida") continue;
     const k = r.category_id ?? "sem-categoria";
     catTotals[k] = (catTotals[k] ?? 0) + Number(r.amount || 0);
   }
@@ -121,8 +121,8 @@ export async function buildFinancialContext(
   for (const r of tx6m.data ?? []) {
     const k = String(r.transaction_date).slice(0, 7);
     if (!months[k]) months[k] = { receitas: 0, despesas: 0 };
-    if (r.transaction_type === "receita") months[k].receitas += Number(r.amount || 0);
-    if (r.transaction_type === "despesa") months[k].despesas += Number(r.amount || 0);
+    if (r.transaction_type === "entrada") months[k].receitas += Number(r.amount || 0);
+    if (r.transaction_type === "saida") months[k].despesas += Number(r.amount || 0);
   }
   const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
   const fluxo6Meses = Object.keys(months).sort().map((k) => {

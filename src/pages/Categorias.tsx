@@ -41,7 +41,7 @@ export default function Categorias() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [defaultParentId, setDefaultParentId] = useState<string | null>(null);
-  const [defaultType, setDefaultType] = useState<"receita" | "despesa" | undefined>(undefined);
+  const [defaultType, setDefaultType] = useState<"entrada" | "saida" | undefined>(undefined);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [batchParentId, setBatchParentId] = useState<string>("__none__");
   const [batchSaving, setBatchSaving] = useState(false);
@@ -292,7 +292,7 @@ export default function Categorias() {
   const openAddChild = (parent: Category) => {
     setEditCat(null);
     setDefaultParentId(parent.id);
-    setDefaultType(parent.transaction_type as "receita" | "despesa");
+    setDefaultType(parent.transaction_type as "entrada" | "saida");
     setDialogOpen(true);
   };
 
@@ -356,8 +356,8 @@ export default function Categorias() {
     let receitas = 0;
     let despesas = 0;
     for (const c of categories) {
-      if (c.transaction_type === "receita") receitas++;
-      else if (c.transaction_type === "despesa") despesas++;
+      if (c.transaction_type === "entrada") receitas++;
+      else if (c.transaction_type === "saida") despesas++;
     }
     return { total: categories.length, receitas, despesas };
   }, [categories]);
@@ -445,8 +445,8 @@ export default function Categorias() {
           <Tabs value={filterType} onValueChange={setFilterType} className="max-w-full">
             <TabsList className="h-8 overflow-x-auto flex w-auto">
               <TabsTrigger value="all" className="text-xs px-2.5 h-7">Todas ({counts.total})</TabsTrigger>
-              <TabsTrigger value="despesa" className="text-xs px-2.5 h-7">Despesas ({counts.despesas})</TabsTrigger>
-              <TabsTrigger value="receita" className="text-xs px-2.5 h-7">Receitas ({counts.receitas})</TabsTrigger>
+              <TabsTrigger value="saida" className="text-xs px-2.5 h-7">Despesas ({counts.despesas})</TabsTrigger>
+              <TabsTrigger value="entrada" className="text-xs px-2.5 h-7">Receitas ({counts.receitas})</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>

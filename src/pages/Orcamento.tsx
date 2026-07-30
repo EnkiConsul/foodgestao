@@ -68,7 +68,7 @@ export default function Orcamento() {
           .select("amount, category_id"),
         scope,
       )
-        .eq("transaction_type", "despesa")
+        .eq("transaction_type", "saida")
         .neq("status", "cancelado")
         .gte("transaction_date", start)
         .lte("transaction_date", end);

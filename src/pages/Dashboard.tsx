@@ -160,17 +160,17 @@ export default function Dashboard() {
       if (!confirmedMonths[month]) confirmedMonths[month] = { receitas: 0, despesas: 0 };
       if (!days[day]) days[day] = { receitas: 0, despesas: 0 };
 
-      const effType: "receita" | "despesa" | null =
-        t.transaction_type === "receita" || t.transaction_type === "despesa"
+      const effType: "entrada" | "saida" | null =
+        t.transaction_type === "entrada" || t.transaction_type === "saida"
           ? t.transaction_type
           : null;
 
-      if (effType === "receita") {
+      if (effType === "entrada") {
         months[month].receitas += Number(t.amount);
         days[day].receitas += Number(t.amount);
         totalR += Number(t.amount);
         if (isEffective(t)) confirmedMonths[month].receitas += Number(t.amount);
-      } else if (effType === "despesa") {
+      } else if (effType === "saida") {
         months[month].despesas += Number(t.amount);
         days[day].despesas += Number(t.amount);
         totalD += Number(t.amount);
@@ -245,7 +245,7 @@ export default function Dashboard() {
       variant: "hero" as const,
     },
     {
-      label: "Receitas",
+      label: "Entradas",
       value: maskBRL(totalReceitas),
       hint: totalReceitas + totalDespesas > 0 ? `${((totalReceitas / (totalReceitas + totalDespesas)) * 100).toFixed(0)}% do fluxo` : "Do período",
       icon: TrendingUp,
@@ -254,7 +254,7 @@ export default function Dashboard() {
       progress: totalReceitas + totalDespesas > 0 ? (totalReceitas / (totalReceitas + totalDespesas)) * 100 : 0,
     },
     {
-      label: "Despesas",
+      label: "Saídas",
       value: maskBRL(totalDespesas),
       hint: totalReceitas > 0 ? `${((totalDespesas / totalReceitas) * 100).toFixed(0)}% das Receitas` : "Do período",
       icon: TrendingDown,
@@ -265,8 +265,8 @@ export default function Dashboard() {
   ];
 
   const barConfig: ChartConfig = {
-    receitas: { label: "Receitas", color: "hsl(160 65% 38%)" },
-    despesas: { label: "Despesas", color: "hsl(var(--destructive))" },
+    receitas: { label: "Entradas", color: "hsl(160 65% 38%)" },
+    despesas: { label: "Saídas", color: "hsl(var(--destructive))" },
   };
 
   const donutConfig: ChartConfig = Object.fromEntries(
@@ -438,11 +438,11 @@ export default function Dashboard() {
             <div className="flex gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-success" />
-                <span className="text-xs text-muted-foreground">Receitas</span>
+                <span className="text-xs text-muted-foreground">Entradas</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-destructive" />
-                <span className="text-xs text-muted-foreground">Despesas</span>
+                <span className="text-xs text-muted-foreground">Saídas</span>
               </div>
             </div>
           </div>
@@ -508,11 +508,11 @@ export default function Dashboard() {
             <div className="flex gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-success" />
-                <span className="text-xs text-muted-foreground">Receitas</span>
+                <span className="text-xs text-muted-foreground">Entradas</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-destructive" />
-                <span className="text-xs text-muted-foreground">Despesas</span>
+                <span className="text-xs text-muted-foreground">Saídas</span>
               </div>
             </div>
           </div>

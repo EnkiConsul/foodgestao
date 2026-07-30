@@ -6,7 +6,7 @@ export type ParsedStatementEntry = {
   /** Positive number in reais */
   amount: number;
   /** receita = credit / despesa = debit */
-  transaction_type: "receita" | "despesa";
+  transaction_type: "entrada" | "saida";
   /** Counterparty document (CNPJ/CPF), when detected */
   counterparty_document?: string | null;
   /** Counterparty name when detected */

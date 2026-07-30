@@ -4,7 +4,7 @@ export type LancamentoTransaction = {
   id: string;
   description: string;
   amount: number;
-  transaction_type: "receita" | "despesa" | "transferencia";
+  transaction_type: "entrada" | "saida" | "transferencia";
   transaction_date: string;
   status: string;
   category_id: string | null;
@@ -32,7 +32,7 @@ export type LancamentoDisplayRow = {
   description: string;
   amount: number;
   date: string;
-  transactionType: "receita" | "despesa" | "transferencia";
+  transactionType: "entrada" | "saida" | "transferencia";
   installmentNumber: number | null;
   installmentTotal: number | null;
   categoryName: string | null;

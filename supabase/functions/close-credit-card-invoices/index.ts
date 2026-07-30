@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
             user_id: inv.user_id,
             company_id: inv.company_id,
             account_id: card.default_payment_account_id,
-            transaction_type: "despesa",
+            transaction_type: "saida",
             transaction_date: inv.due_date,
             due_date: inv.due_date,
             amount: totalAmount,

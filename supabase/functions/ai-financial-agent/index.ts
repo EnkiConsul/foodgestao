@@ -177,7 +177,7 @@ function buildTools(
   const base = { _context: context, _company_id: context === "pj" ? companyId : null };
 
   const dateOpt = z.string().describe("Data ISO YYYY-MM-DD. Se omitido usa o mês atual.").optional();
-  const typeOpt = z.enum(["receita", "despesa", "transferencia"]).optional();
+  const typeOpt = z.enum(["entrada", "saida", "transferencia"]).optional();
 
   const call = async (fn: string, args: Record<string, unknown>) => {
     const { data, error } = await sb.rpc(fn, { ...base, ...args });
