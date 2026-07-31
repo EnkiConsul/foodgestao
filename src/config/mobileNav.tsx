@@ -56,6 +56,7 @@ import {
   Gift,
   type LucideIcon,
   Fingerprint,
+  Target,
 } from "lucide-react";
 import type { ActiveModule } from "@/hooks/useActiveModule";
 import {
