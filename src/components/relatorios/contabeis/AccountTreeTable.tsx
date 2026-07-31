@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { ReportNode } from "@/hooks/useContabeisReport";
-import { brlAcc, pct, signClass } from "@/lib/format-contabil";
+import { brlAcc, pct, signClass, dreSign } from "@/lib/format-contabil";
 
 interface Props {
   nodes: ReportNode[];
