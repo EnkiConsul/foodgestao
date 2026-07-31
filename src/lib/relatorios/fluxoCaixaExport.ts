@@ -109,3 +109,133 @@ export function openPrintable(t: PrintableTable): boolean {
   setTimeout(() => win.print(), 350);
   return true;
 }
+
+/* ------------------------------------------------------------------ */
+/* XLSX                                                                */
+/* ------------------------------------------------------------------ */
+
+export type XlsxRowKind = "normal" | "group" | "saldo" | "total";
+
+export type XlsxSheet = {
+  /** nome da aba (máx. 31 chars, sem : \ / ? * [ ]) */
+  name: string;
+  title: string;
+  subtitle?: string;
+  head: string[];
+  rows: { cells: (string | number | null)[]; kind?: XlsxRowKind; indent?: number }[];
+  /** índices das colunas numéricas (formato contábil BRL) */
+  numericColumns: number[];
+  colWidths?: number[];
+  notes?: string[];
+};
+
+const NUM_FMT = '#,##0.00;[Red]-#,##0.00;"–"';
+const NAVY = "FF0F1B3D";
+const ORANGE = "FFEB6119";
+
+export function safeSheetName(name: string): string {
+  return (name.replace(/[:\\/?*[\]]/g, " ").trim() || "Planilha").slice(0, 31);
+}
+
+/** Gera e baixa um arquivo .xlsx replicando o layout do relatório. */
+export async function downloadXlsx(filename: string, sheets: XlsxSheet[]) {
+  const ExcelJS = (await import("exceljs")).default ?? (await import("exceljs"));
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "360°FOOD";
+  wb.created = new Date();
+
+  for (const s of sheets) {
+    const ws = wb.addWorksheet(safeSheetName(s.name), {
+      views: [{ state: "frozen", xSplit: 1, ySplit: 4 }],
+      pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+    });
+
+    const lastCol = Math.max(s.head.length, 1);
+    const colLetter = (n: number) => {
+      let out = "";
+      while (n > 0) {
+        const r = (n - 1) % 26;
+        out = String.fromCharCode(65 + r) + out;
+        n = Math.floor((n - 1) / 26);
+      }
+      return out;
+    };
+    const span = (row: number) => `A${row}:${colLetter(lastCol)}${row}`;
+
+    // Título
+    ws.mergeCells(span(1));
+    const titleCell = ws.getCell("A1");
+    titleCell.value = s.title;
+    titleCell.font = { name: "Arial", size: 14, bold: true, color: { argb: NAVY } };
+
+    ws.mergeCells(span(2));
+    const subCell = ws.getCell("A2");
+    subCell.value = s.subtitle ?? "";
+    subCell.font = { name: "Arial", size: 10, color: { argb: "FF555555" } };
+
+    ws.getRow(3).height = 6;
+
+    // Cabeçalho
+    const headerRow = ws.getRow(4);
+    headerRow.values = s.head;
+    headerRow.eachCell((cell, col) => {
+      cell.font = { name: "Arial", size: 9, bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: NAVY } };
+      cell.alignment = { horizontal: col === 1 ? "left" : "right", vertical: "middle", wrapText: true };
+      cell.border = { bottom: { style: "thin", color: { argb: ORANGE } } };
+    });
+    headerRow.height = 20;
+
+    const numeric = new Set(s.numericColumns);
+
+    for (const r of s.rows) {
+      const row = ws.addRow(r.cells.map((c) => (c === null ? "" : c)));
+      row.eachCell({ includeEmpty: true }, (cell, col) => {
+        const isNum = numeric.has(col - 1);
+        cell.font = {
+          name: "Arial",
+          size: 9,
+          bold: r.kind === "group" || r.kind === "saldo" || r.kind === "total",
+          color: { argb: NAVY },
+        };
+        cell.alignment = {
+          horizontal: isNum ? "right" : "left",
+          indent: col === 1 ? (r.indent ?? 0) : undefined,
+        };
+        if (isNum) cell.numFmt = NUM_FMT;
+        if (r.kind === "group") {
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF3F4F6" } };
+        } else if (r.kind === "saldo" || r.kind === "total") {
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFDECE2" } };
+        }
+        cell.border = { bottom: { style: "hair", color: { argb: "FFE5E7EB" } } };
+      });
+    }
+
+    for (const n of s.notes ?? []) {
+      const row = ws.addRow([n]);
+      row.getCell(1).font = { name: "Arial", size: 8, italic: true, color: { argb: "FF666666" } };
+    }
+    const gen = ws.addRow([`Gerado em ${new Date().toLocaleString("pt-BR")} · 360°FOOD`]);
+    gen.getCell(1).font = { name: "Arial", size: 8, italic: true, color: { argb: "FF666666" } };
+
+    s.head.forEach((h, i) => {
+      ws.getColumn(i + 1).width = s.colWidths?.[i] ?? (i === 0 ? 42 : Math.max(12, h.length + 4));
+    });
+
+    ws.autoFilter = { from: { row: 4, column: 1 }, to: { row: 4, column: lastCol } };
+  }
+
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename.endsWith(".xlsx") ? filename : `${filename}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
