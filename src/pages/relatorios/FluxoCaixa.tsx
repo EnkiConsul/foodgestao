@@ -260,7 +260,7 @@ export default function RelatorioFluxoCaixa() {
     return r.side === "entrada" ? "text-success" : "text-destructive";
   };
 
-  const mobileIdx = Math.max(0, months.indexOf(fmtMonthKey(year, mobileMonth)));
+  const safeMobileIdx = Math.min(Math.max(0, mobileIdx), Math.max(0, months.length - 1));
 
   return (
     <div className="space-y-4">
