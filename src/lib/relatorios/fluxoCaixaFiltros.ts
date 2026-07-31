@@ -59,15 +59,10 @@ function today(): string {
  * Aplica os filtros em um `PostgrestFilterBuilder` de transactions.
  * Genérico para não acoplar aos tipos gerados do client.
  */
-export function applyFluxoFiltros<T extends {
-  eq: (col: string, val: unknown) => T;
-  not: (col: string, op: string, val: unknown) => T;
-  is: (col: string, val: unknown) => T;
-  or: (filter: string) => T;
-  gte: (col: string, val: unknown) => T;
-  lt: (col: string, val: unknown) => T;
-}>(query: T, f: FluxoFiltros): T {
-  let q = query;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function applyFluxoFiltros<T>(query: T, f: FluxoFiltros): T {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let q = query as any;
 
   if (f.situacao === "pagos") {
     q = q.not("payment_date", "is", null);
@@ -83,5 +78,6 @@ export function applyFluxoFiltros<T extends {
   if (f.costCenterId) q = q.eq("cost_center_id", f.costCenterId);
   if (f.contactId) q = q.eq("contact_id", f.contactId);
 
-  return q;
+  return q as T;
 }
+
