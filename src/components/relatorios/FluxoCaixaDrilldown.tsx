@@ -167,6 +167,7 @@ export function FluxoCaixaDrilldown({
       debounced,
       sortField,
       sortAsc,
+      fluxoFiltrosKey(filtros),
     ],
     enabled: !!target && !!range,
     queryFn: async () => {
