@@ -107,6 +107,7 @@ export function FluxoCaixaDrilldown({
   context,
   userId,
   companyId,
+  filtros,
 }: Props) {
   const { maskBRL } = usePrivacy();
   const [page, setPage] = useState(0);
