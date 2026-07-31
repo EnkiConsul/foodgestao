@@ -119,6 +119,7 @@ export default function RelatorioFluxoCaixa() {
         .eq("user_id", user!.id)
         .or("context.is.null,context.eq.pf")
         .eq("visible_pf", true)
+        .eq("is_active", true)
         .order("parent_id", { nullsFirst: true })
         .order("sort_order")
         .order("name");
