@@ -56,6 +56,9 @@ type Props = {
   userId: string;
   companyId: string | null;
   filtros: FluxoFiltros;
+  /** limites exatos do período selecionado (yyyy-MM-dd), usados para recortar meses parciais */
+  periodStart?: string;
+  periodEnd?: string;
 };
 
 type Row = {
@@ -110,6 +113,8 @@ export function FluxoCaixaDrilldown({
   userId,
   companyId,
   filtros,
+  periodStart,
+  periodEnd,
 }: Props) {
   const { maskBRL } = usePrivacy();
   const [page, setPage] = useState(0);
@@ -144,8 +149,12 @@ export function FluxoCaixaDrilldown({
   const range = useMemo(() => {
     const list = target?.month ? [target.month] : months;
     if (!list.length) return null;
-    return { start: monthBounds(list[0]).start, end: monthBounds(list[list.length - 1]).end };
-  }, [target?.month, months]);
+    let start = monthBounds(list[0]).start;
+    let end = monthBounds(list[list.length - 1]).end;
+    if (periodStart && periodStart > start) start = periodStart;
+    if (periodEnd && periodEnd < end) end = periodEnd;
+    return { start, end };
+  }, [target?.month, months, periodStart, periodEnd]);
 
   const isSemCategoria = !!target && target.row.id.startsWith("__sem_categoria__");
   const isGroup = target?.row.kind === "group";

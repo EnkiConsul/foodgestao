@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { format, startOfYear, endOfYear, startOfMonth, endOfMonth, subMonths, subYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronDown, ChevronRight, ChevronLeft, ChevronsUpDown, Download, FileText, Printer, TrendingUp, TrendingDown, Wallet, Sigma } from "lucide-react";
+import { CalendarIcon, ChevronDown, ChevronRight, ChevronLeft, ChevronsUpDown, Download, FileText, Printer, TrendingUp, TrendingDown, Wallet, Sigma } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -34,6 +34,8 @@ import {
 import { downloadCsv, openPrintable } from "@/lib/relatorios/fluxoCaixaExport";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
@@ -48,9 +50,15 @@ const MONTH_NAMES = [
 
 const PAGE_SIZE = 1000;
 
-function fmtMonthKey(y: number, m: number) {
-  return `${y}-${String(m).padStart(2, "0")}`;
-}
+const PERIODO_PRESETS: { label: string; get: () => { from: Date; to: Date } }[] = [
+  { label: "Este mês", get: () => ({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) }) },
+  { label: "Últimos 3 meses", get: () => ({ from: startOfMonth(subMonths(new Date(), 2)), to: endOfMonth(new Date()) }) },
+  { label: "Últimos 6 meses", get: () => ({ from: startOfMonth(subMonths(new Date(), 5)), to: endOfMonth(new Date()) }) },
+  { label: "Últimos 12 meses", get: () => ({ from: startOfMonth(subMonths(new Date(), 11)), to: endOfMonth(new Date()) }) },
+  { label: "Este ano", get: () => ({ from: startOfYear(new Date()), to: endOfMonth(new Date()) }) },
+  { label: "Ano passado", get: () => ({ from: startOfYear(subYears(new Date(), 1)), to: endOfYear(subYears(new Date(), 1)) }) },
+];
+
 
 export default function RelatorioFluxoCaixa() {
   const { user } = useAuth();
@@ -59,13 +67,14 @@ export default function RelatorioFluxoCaixa() {
   const isMobile = useIsMobile();
 
   const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [fromMonth, setFromMonth] = useState(1);
-  const [toMonth, setToMonth] = useState(now.getMonth() + 1);
+  const [range, setRange] = useState<{ from: Date; to: Date }>({
+    from: startOfYear(now),
+    to: endOfMonth(now),
+  });
   const [basis, setBasis] = useState<DateBasis>("pagamento");
   const [hideEmpty, setHideEmpty] = useState(true);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const [mobileMonth, setMobileMonth] = useState(now.getMonth() + 1);
+  const [mobileIdx, setMobileIdx] = useState(0);
   const [drilldown, setDrilldown] = useState<DrilldownTarget | null>(null);
   const [filtros, setFiltros] = useState<FluxoFiltros>({ ...FLUXO_FILTROS_PADRAO });
   const filtrosKey = fluxoFiltrosKey(filtros);
@@ -78,16 +87,13 @@ export default function RelatorioFluxoCaixa() {
   });
 
   const months = useMemo(
-    () => monthsBetween(fmtMonthKey(year, Math.min(fromMonth, toMonth)), fmtMonthKey(year, Math.max(fromMonth, toMonth))),
-    [year, fromMonth, toMonth],
+    () => monthsBetween(format(range.from, "yyyy-MM"), format(range.to, "yyyy-MM")),
+    [range],
   );
 
-  const rangeStart = `${months[0]}-01`;
-  const rangeEnd = useMemo(() => {
-    const [y, m] = months[months.length - 1].split("-").map(Number);
-    const last = new Date(y, m, 0).getDate();
-    return `${months[months.length - 1]}-${String(last).padStart(2, "0")}`;
-  }, [months]);
+  const rangeStart = format(range.from, "yyyy-MM-dd");
+  const rangeEnd = format(range.to, "yyyy-MM-dd");
+
 
   const scopeReady = isFinancialScopeReady(contextType, user?.id, selectedCompanyId);
 
@@ -176,8 +182,9 @@ export default function RelatorioFluxoCaixa() {
     setCollapsed(allCollapsed ? new Set() : new Set(matriz.rows.filter((r) => r.hasChildren).map((r) => r.id)));
 
   const monthLabel = (key: string) => {
-    const [, m] = key.split("-").map(Number);
-    return MONTH_NAMES[m - 1].slice(0, 3).toUpperCase();
+    const [y, m] = key.split("-").map(Number);
+    const base = MONTH_NAMES[m - 1].slice(0, 3).toUpperCase();
+    return multiYear ? `${base}/${String(y).slice(2)}` : base;
   };
 
   const canDrill = (r: MatrizRow) => r.kind !== "saldo";
@@ -204,10 +211,10 @@ export default function RelatorioFluxoCaixa() {
 
   const money = (v: number) => (v === 0 ? "–" : maskBRL(v));
 
-  const periodoLabel = `${MONTH_NAMES[Math.min(fromMonth, toMonth) - 1]} a ${MONTH_NAMES[Math.max(fromMonth, toMonth) - 1]} de ${year}`;
+  const periodoLabel = `${format(range.from, "dd/MM/yyyy")} a ${format(range.to, "dd/MM/yyyy")}`;
   const baseLabel = basis === "pagamento" ? "Data de pagamento" : "Data de vencimento";
   const rowLabel = (r: MatrizRow) => `${r.index ? `${r.index}. ` : ""}${"  ".repeat(r.depth)}${r.name}`;
-  const fileBase = `fluxo-caixa-${year}-${String(Math.min(fromMonth, toMonth)).padStart(2, "0")}-${String(Math.max(fromMonth, toMonth)).padStart(2, "0")}`;
+  const fileBase = `fluxo-caixa-${rangeStart}_a_${rangeEnd}`;
 
   const handleExportCsv = () => {
     const header = ["Categoria", ...months.map(monthLabel), "MÉDIA", "TOTAL"];
@@ -244,7 +251,11 @@ export default function RelatorioFluxoCaixa() {
   const isLoading = loadingCats || loadingTx;
   const blockedPj = contextType === "pj" && !selectedCompanyId;
 
-  const yearOptions = Array.from({ length: 7 }, (_, i) => now.getFullYear() - 4 + i);
+  const multiYear = range.from.getFullYear() !== range.to.getFullYear();
+
+  useEffect(() => {
+    setMobileIdx(0);
+  }, [rangeStart, rangeEnd]);
 
   const rowTone = (r: MatrizRow) =>
     r.kind === "saldo"
@@ -262,7 +273,7 @@ export default function RelatorioFluxoCaixa() {
     return r.side === "entrada" ? "text-success" : "text-destructive";
   };
 
-  const mobileIdx = Math.max(0, months.indexOf(fmtMonthKey(year, mobileMonth)));
+  const safeMobileIdx = Math.min(Math.max(0, mobileIdx), Math.max(0, months.length - 1));
 
   return (
     <div className="space-y-4">
@@ -279,9 +290,9 @@ export default function RelatorioFluxoCaixa() {
         <div>
           <h1 className="text-xl md:text-2xl font-bold tracking-tight">Fluxo de Caixa</h1>
           <p className="text-xs md:text-sm text-muted-foreground">
-            Relatório gerencial por categoria — {MONTH_NAMES[Math.min(fromMonth, toMonth) - 1]} a{" "}
-            {MONTH_NAMES[Math.max(fromMonth, toMonth) - 1]} de {year}
+            Relatório gerencial por categoria — {periodoLabel}
           </p>
+
         </div>
         <div className="flex items-center gap-2 print:hidden">
           <Button variant="outline" size="sm" onClick={handleExportCsv} className="gap-1">
@@ -299,34 +310,41 @@ export default function RelatorioFluxoCaixa() {
       {/* Filtros */}
       <Card className="sticky top-0 z-20 shadow-sm print:hidden">
         <CardContent className="flex flex-wrap items-center gap-2 p-3">
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setYear((y) => y - 1)} aria-label="Ano anterior">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-              <SelectTrigger className="h-8 w-[92px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {yearOptions.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setYear((y) => y + 1)} aria-label="Próximo ano">
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-2 font-normal">
+                <CalendarIcon className="h-3.5 w-3.5" />
+                {periodoLabel}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <div className="flex flex-wrap gap-1 border-b p-2">
+                {PERIODO_PRESETS.map((p) => (
+                  <Button
+                    key={p.label}
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setRange(p.get())}
+                  >
+                    {p.label}
+                  </Button>
+                ))}
+              </div>
+              <Calendar
+                mode="range"
+                numberOfMonths={2}
+                defaultMonth={range.from}
+                selected={{ from: range.from, to: range.to }}
+                onSelect={(r) => {
+                  if (r?.from) setRange({ from: r.from, to: r.to ?? r.from });
+                }}
+                locale={ptBR}
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
 
-          <Select value={String(fromMonth)} onValueChange={(v) => setFromMonth(Number(v))}>
-            <SelectTrigger className="h-8 w-[128px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {MONTH_NAMES.map((m, i) => <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <span className="text-xs text-muted-foreground">até</span>
-          <Select value={String(toMonth)} onValueChange={(v) => setToMonth(Number(v))}>
-            <SelectTrigger className="h-8 w-[128px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {MONTH_NAMES.map((m, i) => <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>)}
-            </SelectContent>
-          </Select>
 
           <Select value={basis} onValueChange={(v) => setBasis(v as DateBasis)}>
             <SelectTrigger className="h-8 w-[178px]"><SelectValue /></SelectTrigger>
@@ -393,17 +411,19 @@ export default function RelatorioFluxoCaixa() {
             <div className="flex items-center justify-between border-b px-3 py-2">
               <Button
                 variant="ghost" size="icon" className="h-8 w-8"
-                onClick={() => setMobileMonth((m) => Math.max(Math.min(fromMonth, toMonth), m - 1))}
+                onClick={() => setMobileIdx((i) => Math.max(0, i - 1))}
                 aria-label="Mês anterior"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <span className="text-sm font-semibold">
-                {format(new Date(year, mobileMonth - 1, 1), "MMMM yyyy", { locale: ptBR })}
+                {months[safeMobileIdx]
+                  ? format(new Date(`${months[safeMobileIdx]}-01T00:00:00`), "MMMM yyyy", { locale: ptBR })
+                  : "—"}
               </span>
               <Button
                 variant="ghost" size="icon" className="h-8 w-8"
-                onClick={() => setMobileMonth((m) => Math.min(Math.max(fromMonth, toMonth), m + 1))}
+                onClick={() => setMobileIdx((i) => Math.min(months.length - 1, i + 1))}
                 aria-label="Próximo mês"
               >
                 <ChevronRight className="h-4 w-4" />
@@ -411,7 +431,7 @@ export default function RelatorioFluxoCaixa() {
             </div>
             <ul className="divide-y">
               {rows.map((r) => {
-                const v = r.values[mobileIdx] ?? 0;
+                const v = r.values[safeMobileIdx] ?? 0;
                 return (
                   <li key={r.id} className={cn("flex items-center gap-2 px-3 py-2 text-sm", rowTone(r))}>
                     <div className="flex min-w-0 flex-1 items-center gap-1" style={{ paddingLeft: r.depth * CATEGORY_INDENT_STEP }}>
@@ -428,7 +448,7 @@ export default function RelatorioFluxoCaixa() {
                     <button
                       type="button"
                       disabled={!canDrill(r)}
-                      onClick={() => openCell(r, months[mobileIdx] ?? null)}
+                      onClick={() => openCell(r, months[safeMobileIdx] ?? null)}
                       className={cn("shrink-0 tabular-nums", valueTone(r, v), canDrill(r) && "underline-offset-2 active:underline")}
                     >
                       {money(v)}
@@ -546,6 +566,8 @@ export default function RelatorioFluxoCaixa() {
           userId={user.id}
           companyId={selectedCompanyId}
           filtros={filtros}
+          periodStart={rangeStart}
+          periodEnd={rangeEnd}
         />
       )}
     </div>
