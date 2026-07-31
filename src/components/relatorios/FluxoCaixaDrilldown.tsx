@@ -268,6 +268,80 @@ export function FluxoCaixaDrilldown({
     0,
   );
 
+  const titulo = `${target?.row.index ? `${target.row.index}. ` : ""}${target?.row.name ?? ""}`;
+  const fileBase = `fluxo-caixa-detalhe-${(target?.row.name ?? "lancamentos")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .toLowerCase()}-${target?.month ?? "periodo"}`;
+
+  const exportRows = (all: Row[]) =>
+    all.map((r) => {
+      const d = effectiveDate(r as never, basis);
+      const v = effectiveAmount(r as never, basis);
+      const side = r.transaction_type === "parcelamento" ? r.parcel_direction : r.transaction_type;
+      return {
+        data: d ? format(parseISO(d), "dd/MM/yyyy") : "",
+        descricao: r.description || "Sem descrição",
+        categoria: (r.category_id && catName.get(r.category_id)) || "Sem categoria",
+        status: r.status ?? "",
+        tipo: side === "entrada" ? "Entrada" : "Saída",
+        valor: v,
+      };
+    });
+
+  const handleExportCsv = async () => {
+    setExporting(true);
+    try {
+      const all = exportRows(await fetchAllRows());
+      downloadCsv(`${fileBase}.csv`, [
+        ["Data", "Descrição", "Categoria", "Status", "Tipo", "Valor"],
+        ...all.map((r) => [r.data, r.descricao, r.categoria, r.status, r.tipo, r.valor]),
+      ]);
+      toast.success(`${all.length} lançamento${all.length === 1 ? "" : "s"} exportado(s)`);
+    } catch {
+      toast.error("Não foi possível exportar o CSV");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    setExporting(true);
+    try {
+      const all = exportRows(await fetchAllRows());
+      const total = all.reduce((s, r) => s + r.valor, 0);
+      const ok = openPrintable({
+        title: `Fluxo de Caixa · ${titulo}`,
+        subtitle: `${periodLabel} · base ${basis === "pagamento" ? "pagamento" : "vencimento"} · ${all.length} lançamento${all.length === 1 ? "" : "s"}`,
+        head: ["Data", "Descrição", "Categoria", "Status", "Tipo", "Valor"],
+        aligns: ["left", "left", "left", "left", "left", "right"],
+        body: [
+          ...all.map((r) => ({
+            cells: [
+              r.data,
+              r.descricao,
+              r.categoria,
+              r.status,
+              r.tipo,
+              r.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 }),
+            ],
+          })),
+          {
+            cls: "saldo",
+            cells: ["", "", "", "", "Total", total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })],
+          },
+        ],
+      });
+      if (!ok) toast.error("Permita pop-ups para gerar o PDF");
+    } catch {
+      toast.error("Não foi possível gerar o PDF");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+
   return (
     <Dialog open={!!target} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
