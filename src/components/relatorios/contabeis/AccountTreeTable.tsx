@@ -72,8 +72,11 @@ export function AccountTreeTable({
   const renderRow = (node: Tree, depth: number) => {
     const hasChildren = node.children.length > 0;
     const isOpen = expanded.has(node.id);
-    const valor = node.saldo_consolidado;
+    // Saldo vem com sinal bruto (entrada +, saída -). Normalizamos por natureza
+    // para exibir custos/despesas em magnitude positiva (padrão contábil).
+    const valor = Number(node.saldo_consolidado || 0) * dreSign(node);
     const av = avBase && avBase !== 0 ? (Math.abs(valor) / Math.abs(avBase)) * 100 : null;
+
 
     return (
       <div key={node.id}>
