@@ -117,9 +117,15 @@ export function AccountTreeTable({
               {pct(av)}
             </span>
           )}
-          <span className={cn("w-32 text-right tabular-nums font-medium", signClass(valor))}>
+          <span
+            className={cn(
+              "w-32 text-right tabular-nums font-medium",
+              signClass(Number(node.saldo_consolidado || 0))
+            )}
+          >
             {brlAcc(valor)}
           </span>
+
         </div>
         {isOpen && hasChildren && node.children.map((c) => renderRow(c, depth + 1))}
       </div>
