@@ -431,7 +431,7 @@ export default function RelatorioFluxoCaixa() {
             </div>
             <ul className="divide-y">
               {rows.map((r) => {
-                const v = r.values[mobileIdx] ?? 0;
+                const v = r.values[safeMobileIdx] ?? 0;
                 return (
                   <li key={r.id} className={cn("flex items-center gap-2 px-3 py-2 text-sm", rowTone(r))}>
                     <div className="flex min-w-0 flex-1 items-center gap-1" style={{ paddingLeft: r.depth * CATEGORY_INDENT_STEP }}>
@@ -448,7 +448,7 @@ export default function RelatorioFluxoCaixa() {
                     <button
                       type="button"
                       disabled={!canDrill(r)}
-                      onClick={() => openCell(r, months[mobileIdx] ?? null)}
+                      onClick={() => openCell(r, months[safeMobileIdx] ?? null)}
                       className={cn("shrink-0 tabular-nums", valueTone(r, v), canDrill(r) && "underline-offset-2 active:underline")}
                     >
                       {money(v)}
