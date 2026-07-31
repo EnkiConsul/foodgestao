@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, startOfQuarter, endOfQuarter } from "date-fns";
+import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -10,9 +10,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
 import { ptBR } from "date-fns/locale";
 import type { Regime } from "@/hooks/useContabeisReport";
+import { rangeForPreset, type Preset } from "@/lib/relatorios/reportFilters";
 import { cn } from "@/lib/utils";
 
-export type Preset = "month" | "prev_month" | "quarter" | "year" | "12m" | "custom";
+export type { Preset };
 
 export interface FiltersState {
   preset: Preset;
@@ -27,32 +28,10 @@ interface Props {
   onChange: (v: FiltersState) => void;
 }
 
-function rangeForPreset(preset: Preset, current: { from: string; to: string }) {
-  const now = new Date();
-  switch (preset) {
-    case "month":
-      return { from: startOfMonth(now), to: endOfMonth(now) };
-    case "prev_month": {
-      const d = subMonths(now, 1);
-      return { from: startOfMonth(d), to: endOfMonth(d) };
-    }
-    case "quarter":
-      return { from: startOfQuarter(now), to: endOfQuarter(now) };
-    case "year":
-      return { from: startOfYear(now), to: endOfYear(now) };
-    case "12m":
-      return { from: startOfMonth(subMonths(now, 11)), to: endOfMonth(now) };
-    default:
-      return { from: new Date(current.from), to: new Date(current.to) };
-  }
-}
-
 export function ReportFilters({ value, onChange }: Props) {
   useEffect(() => {
     if (value.preset === "custom") return;
-    const r = rangeForPreset(value.preset, value);
-    const from = format(r.from, "yyyy-MM-dd");
-    const to = format(r.to, "yyyy-MM-dd");
+    const { from, to } = rangeForPreset(value.preset, value);
     if (from !== value.from || to !== value.to) onChange({ ...value, from, to });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value.preset]);
