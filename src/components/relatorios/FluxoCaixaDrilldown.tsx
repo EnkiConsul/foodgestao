@@ -159,11 +159,12 @@ export function FluxoCaixaDrilldown({
   const isSemCategoria = !!target && target.row.id.startsWith("__sem_categoria__");
   const isGroup = target?.row.kind === "group";
   const isSaldo = target?.row.kind === "saldo";
+  const isTransferencia = target?.row.kind === "transferencia";
 
   const categoryIds = useMemo(() => {
-    if (!target || isSemCategoria || isGroup || isSaldo) return null;
+    if (!target || isSemCategoria || isGroup || isSaldo || isTransferencia) return null;
     return subtreeIds(categories, target.row.id);
-  }, [target, categories, isSemCategoria, isGroup, isSaldo]);
+  }, [target, categories, isSemCategoria, isGroup, isSaldo, isTransferencia]);
 
   const orderCol =
     sortField === "amount"
@@ -198,7 +199,9 @@ export function FluxoCaixaDrilldown({
 
     // Lado (entrada/saída), inclui parcelamentos direcionados
     const side = target!.row.side;
-    if (side) {
+    if (isTransferencia) {
+      q = q.eq("transaction_type", "transferencia");
+    } else if (side) {
       q = q.or(
         `transaction_type.eq.${side},and(transaction_type.eq.parcelamento,parcel_direction.eq.${side})`,
       );
@@ -297,7 +300,7 @@ export function FluxoCaixaDrilldown({
         descricao: r.description || "Sem descrição",
         categoria: (r.category_id && catName.get(r.category_id)) || "Sem categoria",
         status: r.status ?? "",
-        tipo: side === "entrada" ? "Entrada" : "Saída",
+        tipo: side === "entrada" ? "Entrada" : side === "transferencia" ? "Transferência" : "Saída",
         valor: v,
       };
     });
