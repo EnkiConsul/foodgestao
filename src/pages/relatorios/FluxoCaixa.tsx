@@ -59,13 +59,14 @@ export default function RelatorioFluxoCaixa() {
   const isMobile = useIsMobile();
 
   const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [fromMonth, setFromMonth] = useState(1);
-  const [toMonth, setToMonth] = useState(now.getMonth() + 1);
+  const [range, setRange] = useState<{ from: Date; to: Date }>({
+    from: startOfYear(now),
+    to: endOfMonth(now),
+  });
   const [basis, setBasis] = useState<DateBasis>("pagamento");
   const [hideEmpty, setHideEmpty] = useState(true);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const [mobileMonth, setMobileMonth] = useState(now.getMonth() + 1);
+  const [mobileIdx, setMobileIdx] = useState(0);
   const [drilldown, setDrilldown] = useState<DrilldownTarget | null>(null);
   const [filtros, setFiltros] = useState<FluxoFiltros>({ ...FLUXO_FILTROS_PADRAO });
   const filtrosKey = fluxoFiltrosKey(filtros);
@@ -78,16 +79,13 @@ export default function RelatorioFluxoCaixa() {
   });
 
   const months = useMemo(
-    () => monthsBetween(fmtMonthKey(year, Math.min(fromMonth, toMonth)), fmtMonthKey(year, Math.max(fromMonth, toMonth))),
-    [year, fromMonth, toMonth],
+    () => monthsBetween(format(range.from, "yyyy-MM"), format(range.to, "yyyy-MM")),
+    [range],
   );
 
-  const rangeStart = `${months[0]}-01`;
-  const rangeEnd = useMemo(() => {
-    const [y, m] = months[months.length - 1].split("-").map(Number);
-    const last = new Date(y, m, 0).getDate();
-    return `${months[months.length - 1]}-${String(last).padStart(2, "0")}`;
-  }, [months]);
+  const rangeStart = format(range.from, "yyyy-MM-dd");
+  const rangeEnd = format(range.to, "yyyy-MM-dd");
+
 
   const scopeReady = isFinancialScopeReady(contextType, user?.id, selectedCompanyId);
 
