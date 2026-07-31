@@ -56,6 +56,9 @@ type Props = {
   userId: string;
   companyId: string | null;
   filtros: FluxoFiltros;
+  /** limites exatos do período selecionado (yyyy-MM-dd), usados para recortar meses parciais */
+  periodStart?: string;
+  periodEnd?: string;
 };
 
 type Row = {
