@@ -117,6 +117,7 @@ export function FluxoCaixaDrilldown({
   const [debounced, setDebounced] = useState("");
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortAsc, setSortAsc] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     setPage(0);
