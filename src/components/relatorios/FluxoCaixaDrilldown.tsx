@@ -48,6 +48,7 @@ type Props = {
   context: ContextType;
   userId: string;
   companyId: string | null;
+  filtros: FluxoFiltros;
 };
 
 type Row = {
