@@ -92,7 +92,7 @@ export function DreReport({ nodes, onSelectAnalytic, from, to, regime, contextLa
         <tr>
           <td>${n.code}</td>
           <td>${n.name}</td>
-          <td class="num">${fmt(Number(n.saldo_proprio || 0))}</td>
+          <td class="num">${fmt(Number(n.saldo_proprio || 0) * dreSign(n))}</td>
         </tr>`
       )
       .join("");
