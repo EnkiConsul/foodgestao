@@ -56,6 +56,8 @@ export default function RelatoriosContabeis() {
   const [drawerAccount, setDrawerAccount] = useState<ReportNode | null>(null);
 
   const { data: nodes = [], isLoading, error } = useContabeisReport(filters);
+  const { data: semConta = 0 } = useCategoriasSemConta();
+
 
   const blockedPj = contextType === "pj" && !selectedCompanyId;
 
