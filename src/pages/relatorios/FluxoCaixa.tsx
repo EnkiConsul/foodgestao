@@ -528,6 +528,7 @@ export default function RelatorioFluxoCaixa() {
           context={contextType}
           userId={user.id}
           companyId={selectedCompanyId}
+          filtros={filtros}
         />
       )}
     </div>
