@@ -19,6 +19,8 @@ import {
   fluxoFiltrosKey,
   type FluxoFiltros,
 } from "@/lib/relatorios/fluxoCaixaFiltros";
+import { downloadCsv, openPrintable } from "@/lib/relatorios/fluxoCaixaExport";
+import { toast } from "sonner";
 
 import {
   Dialog,
