@@ -28,7 +28,7 @@ export function FinanceiroMenu() {
       <SidebarSection label="Financeiro 360°">
         {items.map((i) => <SidebarNavItem key={i.url} item={i} />)}
         <SidebarNavItem
-          item={{ title: "Relatório de Fluxo de Caixa", url: "/relatorios/fluxo-caixa", icon: FileBarChart, end: true }}
+          item={{ title: "Fluxo de Caixa", url: "/relatorios/fluxo-caixa", icon: FileBarChart, end: true }}
         />
         <SidebarNavItem
           item={{ title: "Relatórios Contábeis", url: "/relatorios/contabeis", icon: FileBarChart, end: true }}
