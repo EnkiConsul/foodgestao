@@ -23,6 +23,7 @@ import {
   type MatrizRow,
 } from "@/lib/relatorios/fluxoCaixaMatriz";
 
+import { FluxoCaixaDrilldown, type DrilldownTarget } from "@/components/relatorios/FluxoCaixaDrilldown";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -57,6 +58,7 @@ export default function RelatorioFluxoCaixa() {
   const [hideEmpty, setHideEmpty] = useState(true);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [mobileMonth, setMobileMonth] = useState(now.getMonth() + 1);
+  const [drilldown, setDrilldown] = useState<DrilldownTarget | null>(null);
 
   useRealtimeSync({
     tables: ["transactions", "categories"],
@@ -161,6 +163,28 @@ export default function RelatorioFluxoCaixa() {
     const [, m] = key.split("-").map(Number);
     return MONTH_NAMES[m - 1].slice(0, 3).toUpperCase();
   };
+
+  const canDrill = (r: MatrizRow) => r.kind !== "saldo";
+  const openCell = (r: MatrizRow, month: string | null) => {
+    if (!canDrill(r)) return;
+    setDrilldown({ row: r, month });
+  };
+  const cellProps = (r: MatrizRow, month: string | null) =>
+    canDrill(r)
+      ? {
+          role: "button" as const,
+          tabIndex: 0,
+          title: "Ver lançamentos",
+          onClick: () => openCell(r, month),
+          onKeyDown: (e: React.KeyboardEvent) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              openCell(r, month);
+            }
+          },
+          className: "cursor-pointer hover:underline",
+        }
+      : {};
 
   const money = (v: number) => (v === 0 ? "–" : maskBRL(v));
 
@@ -366,7 +390,14 @@ export default function RelatorioFluxoCaixa() {
                         {r.name}
                       </span>
                     </div>
-                    <span className={cn("shrink-0 tabular-nums", valueTone(r, v))}>{money(v)}</span>
+                    <button
+                      type="button"
+                      disabled={!canDrill(r)}
+                      onClick={() => openCell(r, months[mobileIdx] ?? null)}
+                      className={cn("shrink-0 tabular-nums", valueTone(r, v), canDrill(r) && "underline-offset-2 active:underline")}
+                    >
+                      {money(v)}
+                    </button>
                   </li>
                 );
               })}
@@ -425,17 +456,41 @@ export default function RelatorioFluxoCaixa() {
                           </span>
                         </div>
                       </td>
-                      {r.values.map((v, i) => (
-                        <td key={i} className={cn("whitespace-nowrap px-3 py-1.5 text-right tabular-nums", valueTone(r, v))}>
-                          {money(v)}
-                        </td>
-                      ))}
-                      <td className={cn("whitespace-nowrap px-3 py-1.5 text-right tabular-nums", valueTone(r, r.media))}>
-                        {money(r.media)}
-                      </td>
-                      <td className={cn("whitespace-nowrap px-3 py-1.5 text-right font-semibold tabular-nums", valueTone(r, r.total))}>
-                        {money(r.total)}
-                      </td>
+                      {r.values.map((v, i) => {
+                        const { className: cellCls, ...cell } = cellProps(r, months[i]);
+                        return (
+                          <td
+                            key={i}
+                            {...cell}
+                            className={cn("whitespace-nowrap px-3 py-1.5 text-right tabular-nums", valueTone(r, v), cellCls)}
+                          >
+                            {money(v)}
+                          </td>
+                        );
+                      })}
+                      {(() => {
+                        const { className: mediaCls, ...mediaCell } = cellProps(r, null);
+                        return (
+                          <>
+                            <td
+                              {...mediaCell}
+                              className={cn("whitespace-nowrap px-3 py-1.5 text-right tabular-nums", valueTone(r, r.media), mediaCls)}
+                            >
+                              {money(r.media)}
+                            </td>
+                            <td
+                              {...mediaCell}
+                              className={cn(
+                                "whitespace-nowrap px-3 py-1.5 text-right font-semibold tabular-nums",
+                                valueTone(r, r.total),
+                                mediaCls,
+                              )}
+                            >
+                              {money(r.total)}
+                            </td>
+                          </>
+                        );
+                      })()}
                     </tr>
                   ))}
                 </tbody>
@@ -443,6 +498,19 @@ export default function RelatorioFluxoCaixa() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {user && (
+        <FluxoCaixaDrilldown
+          target={drilldown}
+          onOpenChange={(open) => !open && setDrilldown(null)}
+          categories={categories}
+          months={months}
+          basis={basis}
+          context={contextType}
+          userId={user.id}
+          companyId={selectedCompanyId}
+        />
       )}
     </div>
   );
