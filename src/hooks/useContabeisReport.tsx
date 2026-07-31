@@ -70,8 +70,18 @@ export function useContabeisReport(filters: ReportFilters, enabled = true) {
       if (error) throw error;
 
       // Rede de segurança: empresa/contexto sem plano de contas vinculado.
-      // Garante o plano padrão e refaz a consulta uma única vez.
+      // Só faz sentido quando nem as contas sem movimento aparecem — por isso
+      // confirmamos antes com _include_zero=true (período vazio não é erro).
       if (!data || data.length === 0) {
+        if (!params._include_zero) {
+          const probe = await (supabase as any).rpc("chart_accounts_report", {
+            ...params,
+            _include_zero: true,
+          });
+          if (!probe.error && (probe.data?.length ?? 0) > 0) {
+            return [] as ReportNode[]; // plano existe, apenas sem movimento no período
+          }
+        }
         const { error: ensureError } = await (supabase as any).rpc("chart_accounts_ensure", {
           _context: contextType,
           _company_id: contextType === "pj" ? selectedCompanyId : null,
@@ -82,6 +92,7 @@ export function useContabeisReport(filters: ReportFilters, enabled = true) {
           return (retry.data ?? []) as ReportNode[];
         }
       }
+
 
       return (data ?? []) as ReportNode[];
     },

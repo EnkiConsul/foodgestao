@@ -115,19 +115,34 @@ export default function RelatoriosContabeis() {
           {!isLoading && !error && nodes.length === 0 && (
             <Card className="border-amber-500/40">
               <CardContent className="p-6 space-y-3 text-center">
-                <p className="text-sm font-medium">
-                  Nenhuma conta contábil disponível para este contexto.
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  O DRE é montado a partir do plano de contas. Crie ou vincule o plano de contas
-                  para começar.
-                </p>
-                <Button asChild size="sm">
-                  <Link to="/contas-contabeis">Abrir Contas Contábeis</Link>
-                </Button>
+                {filters.include_zero ? (
+                  <>
+                    <p className="text-sm font-medium">
+                      Nenhuma conta contábil disponível para este contexto.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      O DRE é montado a partir do plano de contas. Crie ou vincule o plano de contas
+                      para começar.
+                    </p>
+                    <Button asChild size="sm">
+                      <Link to="/contas-contabeis">Abrir Contas Contábeis</Link>
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-medium">
+                      Nenhum lançamento no período selecionado.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Ajuste o período/regime ou ative “Incluir contas sem movimento” para ver o
+                      plano de contas completo.
+                    </p>
+                  </>
+                )}
               </CardContent>
             </Card>
           )}
+
 
           {!isLoading && !error && semConta > 0 && (
             <Card className="border-amber-500/40">
