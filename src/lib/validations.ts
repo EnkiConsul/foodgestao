@@ -72,6 +72,15 @@ export const paymentMethodSchema = z.object({
   is_active: z.boolean(),
 });
 
+// ---- Cost Center ----
+export const costCenterSchema = z.object({
+  name: z.string().trim().min(1, "Nome é obrigatório").max(80),
+  description: z.string().trim().max(200).optional().default(""),
+  is_active: z.boolean(),
+});
+
+
+
 // ---- Chart Account ----
 export const chartAccountSchema = z.object({
   name: z.string().trim().min(1, "Nome é obrigatório").max(120),
