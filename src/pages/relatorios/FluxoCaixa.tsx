@@ -566,6 +566,8 @@ export default function RelatorioFluxoCaixa() {
           userId={user.id}
           companyId={selectedCompanyId}
           filtros={filtros}
+          periodStart={rangeStart}
+          periodEnd={rangeEnd}
         />
       )}
     </div>
