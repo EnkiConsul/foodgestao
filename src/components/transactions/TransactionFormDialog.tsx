@@ -70,6 +70,7 @@ interface EditableTransaction {
   amount_paid?: number;
   payment_method_id?: string | null;
   payment_date?: string | null;
+  cost_center_id?: string | null;
   parent_transaction_id?: string | null;
   installment_number?: number | null;
   installment_total?: number | null;
@@ -105,6 +106,8 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     categoryCompanyIds,
     contactCompanyIds,
     paymentMethodCompanyIds,
+    costCenters,
+    costCenterCompanyIds,
     invalidateLookups,
   } = useTransactionFormLookups(open);
   const [type, setType] = useState<TransactionType>("saida");
@@ -127,6 +130,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const [existingAttachments, setExistingAttachments] = useState<{ id: string; file_name: string; file_url: string }[]>([]);
   const [removedAttachmentIds, setRemovedAttachmentIds] = useState<string[]>([]);
   const [paymentMethodId, setPaymentMethodId] = useState("");
+  const [costCenterId, setCostCenterId] = useState("");
 
   // Parcelado (modificador de receita/despesa, mutex com Recorrente)
   const [isInstallment, setIsInstallment] = useState(false);
@@ -234,6 +238,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       setDueDate(transaction.due_date ?? "");
       setPaymentDate(transaction.payment_date ?? "");
       setPaymentMethodId(transaction.payment_method_id ?? "");
+      setCostCenterId(transaction.cost_center_id ?? "");
       setStatus((transaction.status as any) ?? "confirmado");
       setIsRecurring(transaction.is_recurring ?? false);
       setRecurrenceType(transaction.recurrence_type ?? "mensal");
@@ -260,6 +265,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
         setNotes(duplicateSource.notes ?? "");
         setDueDate(duplicateSource.due_date ?? "");
         setPaymentMethodId(duplicateSource.payment_method_id ?? "");
+        setCostCenterId(duplicateSource.cost_center_id ?? "");
         // Duplicata sempre entra como pendente/nova (não copia pagamento nem recorrência)
         setStatus("pendente");
         setPaymentDate("");
@@ -305,6 +311,22 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     }
     return true;
   });
+
+  const filteredCostCenters = costCenters.filter((cc: any) => {
+    if (contextType === "pf") return cc.visible_pf !== false;
+    if (contextType === "pj" && selectedCompanyId) {
+      const companyIds = costCenterCompanyIds.get(cc.id) || [];
+      return companyIds.includes(selectedCompanyId);
+    }
+    return true;
+  });
+
+  // Reset cost center selection if no longer available in current profile scope
+  useEffect(() => {
+    if (!open || !costCenterId) return;
+    const exists = filteredCostCenters.some((cc: any) => cc.id === costCenterId);
+    if (!exists) setCostCenterId("");
+  }, [open, filteredCostCenters, costCenterId]);
 
   // Reset payment method selection if no longer available in current profile scope
   useEffect(() => {
@@ -530,6 +552,11 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   }));
 
 
+  const costCenterOptions: SearchableSelectOption[] = [
+    { value: "__none__", label: "Sem centro de custo" },
+    ...filteredCostCenters.map((cc: any) => ({ value: cc.id, label: cc.name })),
+  ];
+
   const resetForm = () => {
     setType("saida");
     setDescription("");
@@ -543,6 +570,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     setContactId("");
     setNotes("");
     setPaymentMethodId("");
+    setCostCenterId("");
     setStatus("confirmado");
     setIsRecurring(false);
     setRecurrenceType("mensal");
@@ -674,6 +702,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           contact_id: contactId || null,
           notes: notes.trim() || null,
           payment_method_id: paymentMethodId || null,
+          cost_center_id: costCenterId || null,
           account_id: effectiveAccountId || null,
           credit_card_id: effectiveCardId || null,
           context: contextType,
@@ -750,6 +779,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       contact_id: type !== "transferencia" ? (contactId || null) : null,
       notes: notes.trim() || null,
       payment_method_id: paymentMethodId || null,
+      cost_center_id: costCenterId || null,
       context: contextType,
       company_id: contextType === "pj" ? selectedCompanyId : null,
       due_date: hasDueDate ? dueDate : null,
@@ -1536,6 +1566,18 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
+          </div>
+
+          {/* Centro de Custo (opcional) */}
+          <div className="space-y-2" data-field="cost_center">
+            <Label>Centro de custo <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+            <SearchableSelect
+              value={costCenterId}
+              onValueChange={(v) => setCostCenterId(v === "__none__" ? "" : v)}
+              options={costCenterOptions}
+              placeholder="Selecione o centro de custo"
+              searchPlaceholder="Buscar centro de custo..."
+            />
           </div>
 
           {/* Status */}

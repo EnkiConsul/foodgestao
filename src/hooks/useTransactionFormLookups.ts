@@ -89,6 +89,28 @@ export function useTransactionFormLookups(enabled: boolean) {
     },
   });
 
+  const costCentersQuery = useQuery({
+    queryKey: ["form-cost-centers", user?.id, contextType, selectedCompanyId],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await (supabase.from("cost_centers" as any) as any)
+        .select("id, name, is_active, visible_pf")
+        .eq("is_active", true)
+        .order("name");
+      return (data ?? []) as { id: string; name: string; visible_pf: boolean }[];
+    },
+  });
+
+  const costCenterCompaniesQuery = useQuery({
+    queryKey: ["form-cost-center-companies", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await (supabase.from("cost_center_companies" as any) as any)
+        .select("cost_center_id, company_id");
+      return (data ?? []) as { cost_center_id: string; company_id: string }[];
+    },
+  });
+
   const categoryCompaniesQuery = useQuery({
     queryKey: ["form-category-companies", user?.id],
     enabled: !!user,
@@ -147,8 +169,18 @@ export function useTransactionFormLookups(enabled: boolean) {
     return map;
   }, [paymentMethodCompaniesQuery.data]);
 
+  const costCenterCompanyIds = useMemo(() => {
+    const map = new Map<string, string[]>();
+    (costCenterCompaniesQuery.data ?? []).forEach((cc) => {
+      const list = map.get(cc.cost_center_id) || [];
+      list.push(cc.company_id);
+      map.set(cc.cost_center_id, list);
+    });
+    return map;
+  }, [costCenterCompaniesQuery.data]);
+
   useRealtimeSync({
-    tables: ["accounts", "categories", "contacts", "payment_methods", "credit_cards"],
+    tables: ["accounts", "categories", "contacts", "payment_methods", "credit_cards", "cost_centers"],
     invalidateKeyPrefixes: ["form-"],
     enabled: !!user && enabled,
   });
@@ -165,6 +197,8 @@ export function useTransactionFormLookups(enabled: boolean) {
     contacts: contactsQuery.data ?? [],
     paymentMethods: paymentMethodsQuery.data ?? [],
     creditCards: creditCardsQuery.data ?? [],
+    costCenters: costCentersQuery.data ?? [],
+    costCenterCompanyIds,
     categoryCompanyIds,
     contactCompanyIds,
     paymentMethodCompanyIds,
