@@ -5,7 +5,7 @@ import { Download } from "lucide-react";
 import { format } from "date-fns";
 import type { ReportNode, Regime } from "@/hooks/useContabeisReport";
 import { AccountTreeTable } from "./AccountTreeTable";
-import { brlAcc, pct, signClass } from "@/lib/format-contabil";
+import { brlAcc, pct, signClass, dreSign } from "@/lib/format-contabil";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -17,11 +17,25 @@ interface Props {
   contextLabel?: string;
 }
 
+const NATURE_ROOT: Record<string, string> = {
+  receita: "4",
+  custo: "5",
+  despesa_operacional: "6",
+  despesa_financeira: "7",
+  imposto: "8",
+};
+
+/**
+ * Total de uma natureza em magnitude positiva.
+ * O relatório devolve saldo com sinal (entrada +, saída -), então despesas,
+ * custos e impostos chegam negativos: aplicamos dre_sign para normalizar.
+ * Somente contas raiz (level=1) para evitar dupla contagem.
+ */
 function totalByNature(nodes: ReportNode[], nature: string): number {
-  // Somente contas raiz (level=1) evitam dupla contagem: elas já contêm saldo_consolidado dos filhos.
+  const rootCode = NATURE_ROOT[nature];
   return nodes
-    .filter((n) => n.level === 1 && n.nature === nature)
-    .reduce((s, n) => s + Number(n.saldo_consolidado || 0), 0);
+    .filter((n) => n.level === 1 && (n.nature === nature || (!n.nature && n.root_code === rootCode)))
+    .reduce((s, n) => s + Number(n.saldo_consolidado || 0) * dreSign(n), 0);
 }
 
 export function DreReport({ nodes, onSelectAnalytic, from, to, regime, contextLabel }: Props) {
@@ -31,6 +45,7 @@ export function DreReport({ nodes, onSelectAnalytic, from, to, regime, contextLa
     const custos = totalByNature(nodes, "custo");
     const despOp = totalByNature(nodes, "despesa_operacional");
     const despFin = totalByNature(nodes, "despesa_financeira");
+
 
     const receita_liquida = receita - impostos;
     const lucro_bruto = receita_liquida - custos;
