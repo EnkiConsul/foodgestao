@@ -284,8 +284,11 @@ export default function RelatorioFluxoCaixa() {
           </p>
         </div>
         <div className="flex items-center gap-2 print:hidden">
-          <Button variant="outline" size="sm" onClick={handleExport} className="gap-1">
+          <Button variant="outline" size="sm" onClick={handleExportCsv} className="gap-1">
             <Download className="h-3.5 w-3.5" /> CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportPdf} className="gap-1">
+            <FileText className="h-3.5 w-3.5" /> PDF
           </Button>
           <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-1">
             <Printer className="h-3.5 w-3.5" /> Imprimir
