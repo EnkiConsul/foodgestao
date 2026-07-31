@@ -153,6 +153,60 @@ export function FluxoCaixaDrilldown({
     return subtreeIds(categories, target.row.id);
   }, [target, categories, isSemCategoria, isGroup, isSaldo]);
 
+  const orderCol =
+    sortField === "amount"
+      ? "amount"
+      : sortField === "description"
+        ? "description"
+        : sortField === "status"
+          ? "status"
+          : basis === "pagamento"
+            ? "payment_date"
+            : "due_date";
+
+  const buildQuery = (withCount: boolean) => {
+    const scope = assertFinancialScope({ context, userId, companyId });
+    let q = applyFinancialScope(
+      supabase
+        .from("transactions")
+        .select(
+          "id, description, amount, amount_paid, category_id, transaction_type, parcel_direction, transaction_date, due_date, payment_date, status",
+          withCount ? { count: "exact" } : undefined,
+        ),
+      scope,
+    ).neq("status", "cancelado");
+
+    if (basis === "pagamento") {
+      q = q.gte("payment_date", range!.start).lte("payment_date", range!.end);
+    } else {
+      q = q.or(
+        `and(due_date.gte.${range!.start},due_date.lte.${range!.end}),and(due_date.is.null,transaction_date.gte.${range!.start},transaction_date.lte.${range!.end})`,
+      );
+    }
+
+    // Lado (entrada/saída), inclui parcelamentos direcionados
+    const side = target!.row.side;
+    if (side) {
+      q = q.or(
+        `transaction_type.eq.${side},and(transaction_type.eq.parcelamento,parcel_direction.eq.${side})`,
+      );
+    } else {
+      q = q.in("transaction_type", ["entrada", "saida", "parcelamento"]);
+    }
+
+    if (categoryIds) q = q.in("category_id", categoryIds);
+    else if (isSemCategoria) q = q.is("category_id", null);
+
+    q = applyFluxoFiltros(q, filtros);
+
+    if (debounced) {
+      const term = debounced.replace(/[%,]/g, " ");
+      q = q.ilike("description", `%${term}%`);
+    }
+
+    return q.order(orderCol, { ascending: sortAsc, nullsFirst: false });
+  };
+
   const { data, isFetching } = useQuery({
     queryKey: [
       "fc-drilldown",
@@ -171,61 +225,28 @@ export function FluxoCaixaDrilldown({
     ],
     enabled: !!target && !!range,
     queryFn: async () => {
-      const scope = assertFinancialScope({ context, userId, companyId });
-      let q = applyFinancialScope(
-        supabase
-          .from("transactions")
-          .select(
-            "id, description, amount, amount_paid, category_id, transaction_type, parcel_direction, transaction_date, due_date, payment_date, status",
-            { count: "exact" },
-          ),
-        scope,
-      ).neq("status", "cancelado");
-
-      if (basis === "pagamento") {
-        q = q.gte("payment_date", range!.start).lte("payment_date", range!.end);
-      } else {
-        q = q.or(
-          `and(due_date.gte.${range!.start},due_date.lte.${range!.end}),and(due_date.is.null,transaction_date.gte.${range!.start},transaction_date.lte.${range!.end})`,
-        );
-      }
-
-      // Lado (entrada/saída), inclui parcelamentos direcionados
-      const side = target!.row.side;
-      if (side) {
-        q = q.or(
-          `transaction_type.eq.${side},and(transaction_type.eq.parcelamento,parcel_direction.eq.${side})`,
-        );
-      } else {
-        q = q.in("transaction_type", ["entrada", "saida", "parcelamento"]);
-      }
-
-      if (categoryIds) q = q.in("category_id", categoryIds);
-      else if (isSemCategoria) q = q.is("category_id", null);
-
-      q = applyFluxoFiltros(q, filtros);
-
-      if (debounced) {
-        const term = debounced.replace(/[%,]/g, " ");
-        q = q.ilike("description", `%${term}%`);
-      }
-
-      const dateCol = basis === "pagamento" ? "payment_date" : "due_date";
-      const orderCol =
-        sortField === "amount"
-          ? "amount"
-          : sortField === "description"
-            ? "description"
-            : sortField === "status"
-              ? "status"
-              : dateCol;
-      const { data, error, count } = await q
-        .order(orderCol, { ascending: sortAsc, nullsFirst: false })
-        .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
+      const { data, error, count } = await buildQuery(true).range(
+        page * PAGE_SIZE,
+        page * PAGE_SIZE + PAGE_SIZE - 1,
+      );
       if (error) throw error;
       return { rows: (data ?? []) as unknown as Row[], count: count ?? 0 };
     },
   });
+
+  /** Busca todos os lançamentos da célula (paginado) para exportação. */
+  const fetchAllRows = async (): Promise<Row[]> => {
+    const all: Row[] = [];
+    for (let p = 0; p < 20; p++) {
+      const { data, error } = await buildQuery(false).range(p * 500, p * 500 + 499);
+      if (error) throw error;
+      const chunk = (data ?? []) as unknown as Row[];
+      all.push(...chunk);
+      if (chunk.length < 500) break;
+    }
+    return all;
+  };
+
 
   const rows = data?.rows ?? [];
   const count = data?.count ?? 0;
