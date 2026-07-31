@@ -1,0 +1,1 @@
+DELETE FROM public.cost_centers WHERE name = 'Teste CC';
