@@ -319,6 +319,9 @@ export default function RelatorioFluxoCaixa() {
             </SelectContent>
           </Select>
 
+          <FluxoCaixaFiltros filtros={filtros} onChange={setFiltros} opcoes={filtroOpcoes} />
+
+
           <div className="ml-auto flex items-center gap-3">
             <div className="flex items-center gap-2">
               <Switch id="hide-empty" checked={hideEmpty} onCheckedChange={setHideEmpty} />
