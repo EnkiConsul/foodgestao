@@ -50,9 +50,15 @@ const MONTH_NAMES = [
 
 const PAGE_SIZE = 1000;
 
-function fmtMonthKey(y: number, m: number) {
-  return `${y}-${String(m).padStart(2, "0")}`;
-}
+const PERIODO_PRESETS: { label: string; get: () => { from: Date; to: Date } }[] = [
+  { label: "Este mês", get: () => ({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) }) },
+  { label: "Últimos 3 meses", get: () => ({ from: startOfMonth(subMonths(new Date(), 2)), to: endOfMonth(new Date()) }) },
+  { label: "Últimos 6 meses", get: () => ({ from: startOfMonth(subMonths(new Date(), 5)), to: endOfMonth(new Date()) }) },
+  { label: "Últimos 12 meses", get: () => ({ from: startOfMonth(subMonths(new Date(), 11)), to: endOfMonth(new Date()) }) },
+  { label: "Este ano", get: () => ({ from: startOfYear(new Date()), to: endOfMonth(new Date()) }) },
+  { label: "Ano passado", get: () => ({ from: startOfYear(subYears(new Date(), 1)), to: endOfYear(subYears(new Date(), 1)) }) },
+];
+
 
 export default function RelatorioFluxoCaixa() {
   const { user } = useAuth();
