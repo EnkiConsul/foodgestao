@@ -66,6 +66,10 @@ export default function RelatorioFluxoCaixa() {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [mobileMonth, setMobileMonth] = useState(now.getMonth() + 1);
   const [drilldown, setDrilldown] = useState<DrilldownTarget | null>(null);
+  const [filtros, setFiltros] = useState<FluxoFiltros>({ ...FLUXO_FILTROS_PADRAO });
+  const filtrosKey = fluxoFiltrosKey(filtros);
+  const filtroOpcoes = useFluxoCaixaFiltroOpcoes();
+
 
   useRealtimeSync({
     tables: ["transactions", "categories"],
