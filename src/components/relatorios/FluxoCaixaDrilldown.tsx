@@ -457,6 +457,16 @@ export function FluxoCaixaDrilldown({
             size="sm"
             className="h-8 gap-1 text-xs"
             disabled={exporting || count === 0}
+            onClick={handleExportXlsx}
+          >
+            {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5" />}
+            XLSX
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1 text-xs"
+            disabled={exporting || count === 0}
             onClick={handleExportPdf}
           >
             {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
