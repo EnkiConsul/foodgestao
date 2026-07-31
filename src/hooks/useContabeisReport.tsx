@@ -56,7 +56,7 @@ export function useContabeisReport(filters: ReportFilters, enabled = true) {
     ],
     enabled: !!user && enabled && (contextType === "pf" || !!selectedCompanyId),
     queryFn: async () => {
-      const { data, error } = await (supabase as any).rpc("chart_accounts_report", {
+      const params = {
         _context: contextType,
         _company_id: contextType === "pj" ? selectedCompanyId : null,
         _from: filters.from,
@@ -64,10 +64,28 @@ export function useContabeisReport(filters: ReportFilters, enabled = true) {
         _regime: filters.regime,
         _cost_center_ids: filters.cost_center_ids ?? null,
         _include_zero: !!filters.include_zero,
-      });
+      };
+
+      const { data, error } = await (supabase as any).rpc("chart_accounts_report", params);
       if (error) throw error;
+
+      // Rede de segurança: empresa/contexto sem plano de contas vinculado.
+      // Garante o plano padrão e refaz a consulta uma única vez.
+      if (!data || data.length === 0) {
+        const { error: ensureError } = await (supabase as any).rpc("chart_accounts_ensure", {
+          _context: contextType,
+          _company_id: contextType === "pj" ? selectedCompanyId : null,
+        });
+        if (!ensureError) {
+          const retry = await (supabase as any).rpc("chart_accounts_report", params);
+          if (retry.error) throw retry.error;
+          return (retry.data ?? []) as ReportNode[];
+        }
+      }
+
       return (data ?? []) as ReportNode[];
     },
+
     staleTime: 30_000,
   });
 }
