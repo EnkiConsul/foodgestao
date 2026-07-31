@@ -1797,6 +1797,39 @@ export type Database = {
         }
         Relationships: []
       }
+      cost_center_companies: {
+        Row: {
+          company_id: string
+          cost_center_id: string
+          created_at: string
+        }
+        Insert: {
+          company_id: string
+          cost_center_id: string
+          created_at?: string
+        }
+        Update: {
+          company_id?: string
+          cost_center_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_center_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_center_companies_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cost_centers: {
         Row: {
           created_at: string
@@ -1804,7 +1837,9 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          updated_at: string
           user_id: string
+          visible_pf: boolean
         }
         Insert: {
           created_at?: string
@@ -1812,7 +1847,9 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          updated_at?: string
           user_id: string
+          visible_pf?: boolean
         }
         Update: {
           created_at?: string
@@ -1820,7 +1857,9 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          updated_at?: string
           user_id?: string
+          visible_pf?: boolean
         }
         Relationships: []
       }

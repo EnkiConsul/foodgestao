@@ -56,6 +56,7 @@ import {
   Gift,
   type LucideIcon,
   Fingerprint,
+  Target,
 } from "lucide-react";
 import type { ActiveModule } from "@/hooks/useActiveModule";
 import {
@@ -270,6 +271,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
           { icon: Landmark, label: "Contas Bancárias", to: "/contas-bancarias" },
           { icon: CreditCard, label: "Cartões de Crédito", to: "/cartoes-credito" },
           { icon: Banknote, label: "Formas de Pagamento", to: "/formas-pagamento" },
+          { icon: Target, label: "Centros de Custo", to: "/centros-custo" },
           { icon: Contact, label: "Clientes / Fornecedores", to: "/contatos" },
           { icon: FolderTree, label: "Categorias", to: "/categorias" },
           { icon: BookOpen, label: "Contas Contábeis", to: "/contas-contabeis" },
