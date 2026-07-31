@@ -107,6 +107,38 @@ export default function RelatoriosContabeis() {
             </Card>
           )}
 
+          {!isLoading && !error && nodes.length === 0 && (
+            <Card className="border-amber-500/40">
+              <CardContent className="p-6 space-y-3 text-center">
+                <p className="text-sm font-medium">
+                  Nenhuma conta contábil disponível para este contexto.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  O DRE é montado a partir do plano de contas. Crie ou vincule o plano de contas
+                  para começar.
+                </p>
+                <Button asChild size="sm">
+                  <Link to="/contas-contabeis">Abrir Contas Contábeis</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {!isLoading && !error && semConta > 0 && (
+            <Card className="border-amber-500/40">
+              <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
+                <p className="text-sm">
+                  <span className="font-medium">{semConta}</span>{" "}
+                  {semConta === 1 ? "categoria ativa está" : "categorias ativas estão"} sem conta
+                  contábil e {semConta === 1 ? "fica" : "ficam"} de fora do DRE.
+                </p>
+                <Button asChild size="sm" variant="outline">
+                  <Link to="/categorias">Concluir vínculos</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           {!isLoading && !error && (
             <>
               <TabsContent value="dre">
@@ -128,6 +160,7 @@ export default function RelatoriosContabeis() {
               </TabsContent>
             </>
           )}
+
         </Tabs>
       )}
 
