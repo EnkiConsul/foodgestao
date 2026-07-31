@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { useCategoriasSemConta } from "@/hooks/useCategoriasSemConta";
+
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -53,6 +56,8 @@ export default function RelatoriosContabeis() {
   const [drawerAccount, setDrawerAccount] = useState<ReportNode | null>(null);
 
   const { data: nodes = [], isLoading, error } = useContabeisReport(filters);
+  const { data: semConta = 0 } = useCategoriasSemConta();
+
 
   const blockedPj = contextType === "pj" && !selectedCompanyId;
 
@@ -107,6 +112,38 @@ export default function RelatoriosContabeis() {
             </Card>
           )}
 
+          {!isLoading && !error && nodes.length === 0 && (
+            <Card className="border-amber-500/40">
+              <CardContent className="p-6 space-y-3 text-center">
+                <p className="text-sm font-medium">
+                  Nenhuma conta contábil disponível para este contexto.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  O DRE é montado a partir do plano de contas. Crie ou vincule o plano de contas
+                  para começar.
+                </p>
+                <Button asChild size="sm">
+                  <Link to="/contas-contabeis">Abrir Contas Contábeis</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {!isLoading && !error && semConta > 0 && (
+            <Card className="border-amber-500/40">
+              <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
+                <p className="text-sm">
+                  <span className="font-medium">{semConta}</span>{" "}
+                  {semConta === 1 ? "categoria ativa está" : "categorias ativas estão"} sem conta
+                  contábil e {semConta === 1 ? "fica" : "ficam"} de fora do DRE.
+                </p>
+                <Button asChild size="sm" variant="outline">
+                  <Link to="/categorias">Concluir vínculos</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           {!isLoading && !error && (
             <>
               <TabsContent value="dre">
@@ -128,6 +165,7 @@ export default function RelatoriosContabeis() {
               </TabsContent>
             </>
           )}
+
         </Tabs>
       )}
 

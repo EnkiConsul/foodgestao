@@ -8168,6 +8168,18 @@ export type Database = {
         }
         Returns: string
       }
+      chart_accounts_default_nodes: { Args: never; Returns: Json }
+      chart_accounts_ensure: {
+        Args: {
+          _company_id?: string
+          _context: Database["public"]["Enums"]["context_type"]
+        }
+        Returns: number
+      }
+      chart_accounts_ensure_for_company: {
+        Args: { _company_id: string }
+        Returns: number
+      }
       chart_accounts_ledger: {
         Args: {
           _account_id: string
@@ -8242,6 +8254,14 @@ export type Database = {
       }
       chart_accounts_seed_default: {
         Args: { _company_id: string; _user_id: string }
+        Returns: number
+      }
+      chart_accounts_seed_tree: {
+        Args: {
+          _company_id?: string
+          _context?: Database["public"]["Enums"]["context_type"]
+          _user_id: string
+        }
         Returns: number
       }
       claim_open_finance_sync:
