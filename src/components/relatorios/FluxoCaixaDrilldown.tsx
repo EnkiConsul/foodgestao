@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Loader2, Search, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Download, FileText, Loader2, Search, X } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { applyFinancialScope, assertFinancialScope, type ContextType } from "@/lib/financialScope";
