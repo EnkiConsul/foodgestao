@@ -261,7 +261,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
           { icon: ArrowLeftRight, label: "Lançamentos", to: "/lancamentos", end: true },
           { icon: TrendingUp, label: "Fluxo de Caixa", to: "/fluxo-caixa", end: true },
           { icon: PiggyBank, label: "Orçamento", to: "/orcamento", end: true },
-          { icon: FileBarChart, label: "Relatório de Fluxo de Caixa", to: "/relatorios/fluxo-caixa", end: true },
+          { icon: FileBarChart, label: "Fluxo de Caixa", to: "/relatorios/fluxo-caixa", end: true },
           { icon: BookOpen, label: "Relatórios Contábeis", to: "/relatorios/contabeis", end: true },
         ],
       },
