@@ -241,7 +241,7 @@ export default function RelatorioFluxoCaixa() {
           head,
           numericColumns: head.map((_, i) => i).filter((i) => i > 0),
           rows: matriz.rows.map((r) => ({
-            kind: r.kind === "saldo" ? "saldo" : r.kind === "group" ? "group" : "normal",
+            kind: r.kind === "saldo" || r.kind === "transferencia" ? "saldo" : r.kind === "group" ? "group" : "normal",
             indent: r.depth,
             cells: [`${r.index ? `${r.index}. ` : ""}${r.name}`, ...r.values, r.media, r.total],
           })),
@@ -262,7 +262,7 @@ export default function RelatorioFluxoCaixa() {
       head: ["Categoria", ...months.map(monthLabel), "MÉDIA", "TOTAL"],
       aligns: ["left", ...months.map(() => "right" as const), "right", "right"],
       body: matriz.rows.map((r) => ({
-        cls: r.kind === "saldo" ? "saldo" : r.kind === "group" ? "group" : "",
+        cls: r.kind === "saldo" || r.kind === "transferencia" ? "saldo" : r.kind === "group" ? "group" : "",
         cells: [
           rowLabel(r),
           ...r.values.map((v) => (v === 0 ? "–" : v.toLocaleString("pt-BR", { minimumFractionDigits: 2 }))),
@@ -292,6 +292,8 @@ export default function RelatorioFluxoCaixa() {
   const rowTone = (r: MatrizRow) =>
     r.kind === "saldo"
       ? "bg-primary/10 font-bold"
+      : r.kind === "transferencia"
+        ? "bg-muted font-semibold"
       : r.kind === "group"
         ? r.side === "entrada"
           ? "bg-success/10 font-semibold"
@@ -302,6 +304,7 @@ export default function RelatorioFluxoCaixa() {
 
   const valueTone = (r: MatrizRow, v: number) => {
     if (r.kind === "saldo") return v < 0 ? "text-destructive" : "text-success";
+    if (r.kind === "transferencia") return "text-muted-foreground";
     return r.side === "entrada" ? "text-success" : "text-destructive";
   };
 
@@ -527,7 +530,7 @@ export default function RelatorioFluxoCaixa() {
                       <td
                         className={cn(
                           "sticky left-0 z-10 whitespace-nowrap px-3 py-1.5",
-                          r.kind === "saldo" ? "bg-primary/10" : r.kind === "group" ? (r.side === "entrada" ? "bg-success/10" : "bg-destructive/10") : "bg-card",
+                          r.kind === "saldo" ? "bg-primary/10" : r.kind === "transferencia" ? "bg-muted" : r.kind === "group" ? (r.side === "entrada" ? "bg-success/10" : "bg-destructive/10") : "bg-card",
                         )}
                       >
                         <div className="flex items-center gap-1" style={{ paddingLeft: r.depth * CATEGORY_INDENT_STEP }}>
