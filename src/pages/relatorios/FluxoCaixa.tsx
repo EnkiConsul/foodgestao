@@ -182,8 +182,9 @@ export default function RelatorioFluxoCaixa() {
     setCollapsed(allCollapsed ? new Set() : new Set(matriz.rows.filter((r) => r.hasChildren).map((r) => r.id)));
 
   const monthLabel = (key: string) => {
-    const [, m] = key.split("-").map(Number);
-    return MONTH_NAMES[m - 1].slice(0, 3).toUpperCase();
+    const [y, m] = key.split("-").map(Number);
+    const base = MONTH_NAMES[m - 1].slice(0, 3).toUpperCase();
+    return multiYear ? `${base}/${String(y).slice(2)}` : base;
   };
 
   const canDrill = (r: MatrizRow) => r.kind !== "saldo";
