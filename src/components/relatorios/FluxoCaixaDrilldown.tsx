@@ -401,7 +401,28 @@ export function FluxoCaixaDrilldown({
             {sortAsc ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
             {sortAsc ? "Crescente" : "Decrescente"}
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1 text-xs"
+            disabled={exporting || count === 0}
+            onClick={handleExportCsv}
+          >
+            {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+            CSV
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1 text-xs"
+            disabled={exporting || count === 0}
+            onClick={handleExportPdf}
+          >
+            {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+            PDF
+          </Button>
         </div>
+
 
         <div className="max-h-[55vh] overflow-y-auto rounded-md border">
           {isFetching && rows.length === 0 ? (
