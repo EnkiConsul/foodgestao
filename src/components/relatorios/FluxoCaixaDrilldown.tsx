@@ -5,7 +5,7 @@ import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { applyFinancialScope, assertFinancialScope, type FinancialContext } from "@/lib/financialScope";
+import { applyFinancialScope, assertFinancialScope, type ContextType } from "@/lib/financialScope";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import {
   effectiveAmount,
@@ -41,7 +41,7 @@ type Props = {
   categories: MatrizCategory[];
   months: string[];
   basis: DateBasis;
-  context: FinancialContext;
+  context: ContextType;
   userId: string;
   companyId: string | null;
 };
