@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { format, startOfYear, endOfYear, startOfMonth, endOfMonth, subMonths, subYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronDown, ChevronRight, ChevronLeft, ChevronsUpDown, Download, FileText, Printer, TrendingUp, TrendingDown, Wallet, Sigma } from "lucide-react";
+import { CalendarIcon, ChevronDown, ChevronRight, ChevronLeft, ChevronsUpDown, Download, FileText, Printer, TrendingUp, TrendingDown, Wallet, Sigma } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
