@@ -552,10 +552,10 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   }));
 
 
-  const costCenterOptions: SearchableSelectOption[] = filteredCostCenters.map((cc: any) => ({
-    value: cc.id,
-    label: cc.name,
-  }));
+  const costCenterOptions: SearchableSelectOption[] = [
+    { value: "__none__", label: "Sem centro de custo" },
+    ...filteredCostCenters.map((cc: any) => ({ value: cc.id, label: cc.name })),
+  ];
 
   const resetForm = () => {
     setType("saida");
@@ -1573,7 +1573,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
             <Label>Centro de custo <span className="text-muted-foreground text-xs">(opcional)</span></Label>
             <SearchableSelect
               value={costCenterId}
-              onValueChange={setCostCenterId}
+              onValueChange={(v) => setCostCenterId(v === "__none__" ? "" : v)}
               options={costCenterOptions}
               placeholder="Selecione o centro de custo"
               searchPlaceholder="Buscar centro de custo..."
