@@ -14,6 +14,11 @@ import {
   type MatrizCategory,
   type MatrizRow,
 } from "@/lib/relatorios/fluxoCaixaMatriz";
+import {
+  applyFluxoFiltros,
+  fluxoFiltrosKey,
+  type FluxoFiltros,
+} from "@/lib/relatorios/fluxoCaixaFiltros";
 
 import {
   Dialog,
