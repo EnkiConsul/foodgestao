@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Loader2, Search, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Download, FileText, Loader2, Search, X } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { applyFinancialScope, assertFinancialScope, type ContextType } from "@/lib/financialScope";
@@ -19,6 +19,8 @@ import {
   fluxoFiltrosKey,
   type FluxoFiltros,
 } from "@/lib/relatorios/fluxoCaixaFiltros";
+import { downloadCsv, openPrintable } from "@/lib/relatorios/fluxoCaixaExport";
+import { toast } from "sonner";
 
 import {
   Dialog,
@@ -115,6 +117,7 @@ export function FluxoCaixaDrilldown({
   const [debounced, setDebounced] = useState("");
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortAsc, setSortAsc] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     setPage(0);
@@ -153,6 +156,60 @@ export function FluxoCaixaDrilldown({
     return subtreeIds(categories, target.row.id);
   }, [target, categories, isSemCategoria, isGroup, isSaldo]);
 
+  const orderCol =
+    sortField === "amount"
+      ? "amount"
+      : sortField === "description"
+        ? "description"
+        : sortField === "status"
+          ? "status"
+          : basis === "pagamento"
+            ? "payment_date"
+            : "due_date";
+
+  const buildQuery = (withCount: boolean) => {
+    const scope = assertFinancialScope({ context, userId, companyId });
+    let q = applyFinancialScope(
+      supabase
+        .from("transactions")
+        .select(
+          "id, description, amount, amount_paid, category_id, transaction_type, parcel_direction, transaction_date, due_date, payment_date, status",
+          withCount ? { count: "exact" } : undefined,
+        ),
+      scope,
+    ).neq("status", "cancelado");
+
+    if (basis === "pagamento") {
+      q = q.gte("payment_date", range!.start).lte("payment_date", range!.end);
+    } else {
+      q = q.or(
+        `and(due_date.gte.${range!.start},due_date.lte.${range!.end}),and(due_date.is.null,transaction_date.gte.${range!.start},transaction_date.lte.${range!.end})`,
+      );
+    }
+
+    // Lado (entrada/saída), inclui parcelamentos direcionados
+    const side = target!.row.side;
+    if (side) {
+      q = q.or(
+        `transaction_type.eq.${side},and(transaction_type.eq.parcelamento,parcel_direction.eq.${side})`,
+      );
+    } else {
+      q = q.in("transaction_type", ["entrada", "saida", "parcelamento"]);
+    }
+
+    if (categoryIds) q = q.in("category_id", categoryIds);
+    else if (isSemCategoria) q = q.is("category_id", null);
+
+    q = applyFluxoFiltros(q, filtros);
+
+    if (debounced) {
+      const term = debounced.replace(/[%,]/g, " ");
+      q = q.ilike("description", `%${term}%`);
+    }
+
+    return q.order(orderCol, { ascending: sortAsc, nullsFirst: false });
+  };
+
   const { data, isFetching } = useQuery({
     queryKey: [
       "fc-drilldown",
@@ -171,61 +228,28 @@ export function FluxoCaixaDrilldown({
     ],
     enabled: !!target && !!range,
     queryFn: async () => {
-      const scope = assertFinancialScope({ context, userId, companyId });
-      let q = applyFinancialScope(
-        supabase
-          .from("transactions")
-          .select(
-            "id, description, amount, amount_paid, category_id, transaction_type, parcel_direction, transaction_date, due_date, payment_date, status",
-            { count: "exact" },
-          ),
-        scope,
-      ).neq("status", "cancelado");
-
-      if (basis === "pagamento") {
-        q = q.gte("payment_date", range!.start).lte("payment_date", range!.end);
-      } else {
-        q = q.or(
-          `and(due_date.gte.${range!.start},due_date.lte.${range!.end}),and(due_date.is.null,transaction_date.gte.${range!.start},transaction_date.lte.${range!.end})`,
-        );
-      }
-
-      // Lado (entrada/saída), inclui parcelamentos direcionados
-      const side = target!.row.side;
-      if (side) {
-        q = q.or(
-          `transaction_type.eq.${side},and(transaction_type.eq.parcelamento,parcel_direction.eq.${side})`,
-        );
-      } else {
-        q = q.in("transaction_type", ["entrada", "saida", "parcelamento"]);
-      }
-
-      if (categoryIds) q = q.in("category_id", categoryIds);
-      else if (isSemCategoria) q = q.is("category_id", null);
-
-      q = applyFluxoFiltros(q, filtros);
-
-      if (debounced) {
-        const term = debounced.replace(/[%,]/g, " ");
-        q = q.ilike("description", `%${term}%`);
-      }
-
-      const dateCol = basis === "pagamento" ? "payment_date" : "due_date";
-      const orderCol =
-        sortField === "amount"
-          ? "amount"
-          : sortField === "description"
-            ? "description"
-            : sortField === "status"
-              ? "status"
-              : dateCol;
-      const { data, error, count } = await q
-        .order(orderCol, { ascending: sortAsc, nullsFirst: false })
-        .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
+      const { data, error, count } = await buildQuery(true).range(
+        page * PAGE_SIZE,
+        page * PAGE_SIZE + PAGE_SIZE - 1,
+      );
       if (error) throw error;
       return { rows: (data ?? []) as unknown as Row[], count: count ?? 0 };
     },
   });
+
+  /** Busca todos os lançamentos da célula (paginado) para exportação. */
+  const fetchAllRows = async (): Promise<Row[]> => {
+    const all: Row[] = [];
+    for (let p = 0; p < 20; p++) {
+      const { data, error } = await buildQuery(false).range(p * 500, p * 500 + 499);
+      if (error) throw error;
+      const chunk = (data ?? []) as unknown as Row[];
+      all.push(...chunk);
+      if (chunk.length < 500) break;
+    }
+    return all;
+  };
+
 
   const rows = data?.rows ?? [];
   const count = data?.count ?? 0;
@@ -246,6 +270,80 @@ export function FluxoCaixaDrilldown({
       ),
     0,
   );
+
+  const titulo = `${target?.row.index ? `${target.row.index}. ` : ""}${target?.row.name ?? ""}`;
+  const fileBase = `fluxo-caixa-detalhe-${(target?.row.name ?? "lancamentos")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .toLowerCase()}-${target?.month ?? "periodo"}`;
+
+  const exportRows = (all: Row[]) =>
+    all.map((r) => {
+      const d = effectiveDate(r as never, basis);
+      const v = effectiveAmount(r as never, basis);
+      const side = r.transaction_type === "parcelamento" ? r.parcel_direction : r.transaction_type;
+      return {
+        data: d ? format(parseISO(d), "dd/MM/yyyy") : "",
+        descricao: r.description || "Sem descrição",
+        categoria: (r.category_id && catName.get(r.category_id)) || "Sem categoria",
+        status: r.status ?? "",
+        tipo: side === "entrada" ? "Entrada" : "Saída",
+        valor: v,
+      };
+    });
+
+  const handleExportCsv = async () => {
+    setExporting(true);
+    try {
+      const all = exportRows(await fetchAllRows());
+      downloadCsv(`${fileBase}.csv`, [
+        ["Data", "Descrição", "Categoria", "Status", "Tipo", "Valor"],
+        ...all.map((r) => [r.data, r.descricao, r.categoria, r.status, r.tipo, r.valor]),
+      ]);
+      toast.success(`${all.length} lançamento${all.length === 1 ? "" : "s"} exportado(s)`);
+    } catch {
+      toast.error("Não foi possível exportar o CSV");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    setExporting(true);
+    try {
+      const all = exportRows(await fetchAllRows());
+      const total = all.reduce((s, r) => s + r.valor, 0);
+      const ok = openPrintable({
+        title: `Fluxo de Caixa · ${titulo}`,
+        subtitle: `${periodLabel} · base ${basis === "pagamento" ? "pagamento" : "vencimento"} · ${all.length} lançamento${all.length === 1 ? "" : "s"}`,
+        head: ["Data", "Descrição", "Categoria", "Status", "Tipo", "Valor"],
+        aligns: ["left", "left", "left", "left", "left", "right"],
+        body: [
+          ...all.map((r) => ({
+            cells: [
+              r.data,
+              r.descricao,
+              r.categoria,
+              r.status,
+              r.tipo,
+              r.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 }),
+            ],
+          })),
+          {
+            cls: "saldo",
+            cells: ["", "", "", "", "Total", total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })],
+          },
+        ],
+      });
+      if (!ok) toast.error("Permita pop-ups para gerar o PDF");
+    } catch {
+      toast.error("Não foi possível gerar o PDF");
+    } finally {
+      setExporting(false);
+    }
+  };
+
 
   return (
     <Dialog open={!!target} onOpenChange={onOpenChange}>
@@ -303,7 +401,28 @@ export function FluxoCaixaDrilldown({
             {sortAsc ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
             {sortAsc ? "Crescente" : "Decrescente"}
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1 text-xs"
+            disabled={exporting || count === 0}
+            onClick={handleExportCsv}
+          >
+            {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+            CSV
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1 text-xs"
+            disabled={exporting || count === 0}
+            onClick={handleExportPdf}
+          >
+            {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+            PDF
+          </Button>
         </div>
+
 
         <div className="max-h-[55vh] overflow-y-auto rounded-md border">
           {isFetching && rows.length === 0 ? (
