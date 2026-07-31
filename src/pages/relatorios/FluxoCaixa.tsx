@@ -119,7 +119,7 @@ export default function RelatorioFluxoCaixa() {
   });
 
   const { data: transactions = [], isLoading: loadingTx } = useQuery({
-    queryKey: ["fc-matriz-transactions", user?.id, contextType, selectedCompanyId, rangeStart, rangeEnd, basis],
+    queryKey: ["fc-matriz-transactions", user?.id, contextType, selectedCompanyId, rangeStart, rangeEnd, basis, filtrosKey],
     enabled: !!user && scopeReady,
     queryFn: async (): Promise<MatrizTransaction[]> => {
       const scope = assertFinancialScope({ context: contextType, userId: user!.id, companyId: selectedCompanyId });
@@ -141,6 +141,10 @@ export default function RelatorioFluxoCaixa() {
             `and(due_date.gte.${rangeStart},due_date.lte.${rangeEnd}),and(due_date.is.null,transaction_date.gte.${rangeStart},transaction_date.lte.${rangeEnd})`,
           );
         }
+
+        q = applyFluxoFiltros(q, filtros);
+
+
 
         const { data, error } = await q.range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
         if (error) throw error;
