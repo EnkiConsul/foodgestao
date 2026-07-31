@@ -24,6 +24,13 @@ import {
 } from "@/lib/relatorios/fluxoCaixaMatriz";
 
 import { FluxoCaixaDrilldown, type DrilldownTarget } from "@/components/relatorios/FluxoCaixaDrilldown";
+import { FluxoCaixaFiltros, useFluxoCaixaFiltroOpcoes } from "@/components/relatorios/FluxoCaixaFiltros";
+import {
+  FLUXO_FILTROS_PADRAO,
+  applyFluxoFiltros,
+  fluxoFiltrosKey,
+  type FluxoFiltros,
+} from "@/lib/relatorios/fluxoCaixaFiltros";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
