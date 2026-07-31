@@ -203,29 +203,42 @@ export default function RelatorioFluxoCaixa() {
 
   const money = (v: number) => (v === 0 ? "–" : maskBRL(v));
 
-  const handleExport = () => {
+  const periodoLabel = `${MONTH_NAMES[Math.min(fromMonth, toMonth) - 1]} a ${MONTH_NAMES[Math.max(fromMonth, toMonth) - 1]} de ${year}`;
+  const baseLabel = basis === "pagamento" ? "Data de pagamento" : "Data de vencimento";
+  const rowLabel = (r: MatrizRow) => `${r.index ? `${r.index}. ` : ""}${"  ".repeat(r.depth)}${r.name}`;
+  const fileBase = `fluxo-caixa-${year}-${String(Math.min(fromMonth, toMonth)).padStart(2, "0")}-${String(Math.max(fromMonth, toMonth)).padStart(2, "0")}`;
+
+  const handleExportCsv = () => {
     const header = ["Categoria", ...months.map(monthLabel), "MÉDIA", "TOTAL"];
-    const lines = [header.join(";")];
-    for (const r of matriz.rows) {
-      const name = `${r.index ? `${r.index}. ` : ""}${"  ".repeat(r.depth)}${r.name}`;
-      lines.push(
-        [
-          `"${name.replace(/"/g, '""')}"`,
-          ...r.values.map((v) => v.toFixed(2).replace(".", ",")),
-          r.media.toFixed(2).replace(".", ","),
-          r.total.toFixed(2).replace(".", ","),
-        ].join(";"),
-      );
-    }
-    const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `fluxo-caixa-${year}-${fromMonth}-${toMonth}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Relatório exportado");
+    const data = matriz.rows.map((r) => [rowLabel(r), ...r.values, r.media, r.total]);
+    downloadCsv(`${fileBase}.csv`, [header, ...data]);
+    toast.success("CSV exportado");
   };
+
+  const handleExportPdf = () => {
+    const ok = openPrintable({
+      title: "Fluxo de Caixa",
+      subtitle: `${periodoLabel} · Base: ${baseLabel}`,
+      head: ["Categoria", ...months.map(monthLabel), "MÉDIA", "TOTAL"],
+      aligns: ["left", ...months.map(() => "right" as const), "right", "right"],
+      body: matriz.rows.map((r) => ({
+        cls: r.kind === "saldo" ? "saldo" : r.kind === "group" ? "group" : "",
+        cells: [
+          rowLabel(r),
+          ...r.values.map((v) => (v === 0 ? "–" : v.toLocaleString("pt-BR", { minimumFractionDigits: 2 }))),
+          r.media.toLocaleString("pt-BR", { minimumFractionDigits: 2 }),
+          r.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 }),
+        ],
+      })),
+      notes: [
+        `Situação: ${filtros.situacao === "todos" ? "Todos" : filtros.situacao.replace("_", " ")}`,
+        hideEmpty ? "Exibindo apenas categorias com movimento." : "Exibindo todas as categorias.",
+      ],
+      landscape: true,
+    });
+    if (!ok) toast.error("Permita pop-ups para gerar o PDF");
+  };
+
 
   const isLoading = loadingCats || loadingTx;
   const blockedPj = contextType === "pj" && !selectedCompanyId;
