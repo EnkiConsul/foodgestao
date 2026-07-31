@@ -297,34 +297,41 @@ export default function RelatorioFluxoCaixa() {
       {/* Filtros */}
       <Card className="sticky top-0 z-20 shadow-sm print:hidden">
         <CardContent className="flex flex-wrap items-center gap-2 p-3">
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setYear((y) => y - 1)} aria-label="Ano anterior">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-              <SelectTrigger className="h-8 w-[92px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {yearOptions.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setYear((y) => y + 1)} aria-label="Próximo ano">
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-2 font-normal">
+                <CalendarIcon className="h-3.5 w-3.5" />
+                {periodoLabel}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <div className="flex flex-wrap gap-1 border-b p-2">
+                {PERIODO_PRESETS.map((p) => (
+                  <Button
+                    key={p.label}
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setRange(p.get())}
+                  >
+                    {p.label}
+                  </Button>
+                ))}
+              </div>
+              <Calendar
+                mode="range"
+                numberOfMonths={2}
+                defaultMonth={range.from}
+                selected={{ from: range.from, to: range.to }}
+                onSelect={(r) => {
+                  if (r?.from) setRange({ from: r.from, to: r.to ?? r.from });
+                }}
+                locale={ptBR}
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
 
-          <Select value={String(fromMonth)} onValueChange={(v) => setFromMonth(Number(v))}>
-            <SelectTrigger className="h-8 w-[128px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {MONTH_NAMES.map((m, i) => <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <span className="text-xs text-muted-foreground">até</span>
-          <Select value={String(toMonth)} onValueChange={(v) => setToMonth(Number(v))}>
-            <SelectTrigger className="h-8 w-[128px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {MONTH_NAMES.map((m, i) => <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>)}
-            </SelectContent>
-          </Select>
 
           <Select value={basis} onValueChange={(v) => setBasis(v as DateBasis)}>
             <SelectTrigger className="h-8 w-[178px]"><SelectValue /></SelectTrigger>
