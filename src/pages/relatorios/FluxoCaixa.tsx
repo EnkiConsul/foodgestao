@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { format, startOfYear, endOfYear, startOfMonth, endOfMonth, subMonths, subYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, ChevronDown, ChevronRight, ChevronLeft, ChevronsUpDown, Download, FileText, Printer, TrendingUp, TrendingDown, Wallet, Sigma } from "lucide-react";
+import { CalendarIcon, ChevronDown, ChevronRight, ChevronLeft, ChevronsUpDown, Download, FileSpreadsheet, FileText, Printer, TrendingUp, TrendingDown, Wallet, Sigma } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,7 +31,7 @@ import {
   fluxoFiltrosKey,
   type FluxoFiltros,
 } from "@/lib/relatorios/fluxoCaixaFiltros";
-import { downloadCsv, openPrintable } from "@/lib/relatorios/fluxoCaixaExport";
+import { downloadCsv, downloadXlsx, openPrintable } from "@/lib/relatorios/fluxoCaixaExport";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -216,12 +216,44 @@ export default function RelatorioFluxoCaixa() {
   const rowLabel = (r: MatrizRow) => `${r.index ? `${r.index}. ` : ""}${"  ".repeat(r.depth)}${r.name}`;
   const fileBase = `fluxo-caixa-${rangeStart}_a_${rangeEnd}`;
 
+  const exportNotes = () => [
+    `Período: ${periodoLabel}`,
+    `Base: ${baseLabel}`,
+    `Situação: ${filtros.situacao === "todos" ? "Todos" : filtros.situacao.replace("_", " ")}`,
+    hideEmpty ? "Exibindo apenas categorias com movimento." : "Exibindo todas as categorias.",
+  ];
+
   const handleExportCsv = () => {
     const header = ["Categoria", ...months.map(monthLabel), "MÉDIA", "TOTAL"];
     const data = matriz.rows.map((r) => [rowLabel(r), ...r.values, r.media, r.total]);
     downloadCsv(`${fileBase}.csv`, [header, ...data]);
     toast.success("CSV exportado");
   };
+
+  const handleExportXlsx = async () => {
+    const head = ["Categoria", ...months.map(monthLabel), "MÉDIA", "TOTAL"];
+    try {
+      await downloadXlsx(`${fileBase}.xlsx`, [
+        {
+          name: "Fluxo de Caixa",
+          title: "Fluxo de Caixa",
+          subtitle: `${periodoLabel} · Base: ${baseLabel}`,
+          head,
+          numericColumns: head.map((_, i) => i).filter((i) => i > 0),
+          rows: matriz.rows.map((r) => ({
+            kind: r.kind === "saldo" ? "saldo" : r.kind === "group" ? "group" : "normal",
+            indent: r.depth,
+            cells: [`${r.index ? `${r.index}. ` : ""}${r.name}`, ...r.values, r.media, r.total],
+          })),
+          notes: exportNotes(),
+        },
+      ]);
+      toast.success("XLSX exportado");
+    } catch {
+      toast.error("Não foi possível gerar o XLSX");
+    }
+  };
+
 
   const handleExportPdf = () => {
     const ok = openPrintable({
@@ -297,6 +329,9 @@ export default function RelatorioFluxoCaixa() {
         <div className="flex items-center gap-2 print:hidden">
           <Button variant="outline" size="sm" onClick={handleExportCsv} className="gap-1">
             <Download className="h-3.5 w-3.5" /> CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportXlsx} className="gap-1">
+            <FileSpreadsheet className="h-3.5 w-3.5" /> XLSX
           </Button>
           <Button variant="outline" size="sm" onClick={handleExportPdf} className="gap-1">
             <FileText className="h-3.5 w-3.5" /> PDF

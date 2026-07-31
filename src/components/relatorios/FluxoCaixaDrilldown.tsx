@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Download, FileText, Loader2, Search, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Download, FileSpreadsheet, FileText, Loader2, Search, X } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { applyFinancialScope, assertFinancialScope, type ContextType } from "@/lib/financialScope";
@@ -19,7 +19,7 @@ import {
   fluxoFiltrosKey,
   type FluxoFiltros,
 } from "@/lib/relatorios/fluxoCaixaFiltros";
-import { downloadCsv, openPrintable } from "@/lib/relatorios/fluxoCaixaExport";
+import { downloadCsv, downloadXlsx, openPrintable } from "@/lib/relatorios/fluxoCaixaExport";
 import { toast } from "sonner";
 
 import {
@@ -318,6 +318,38 @@ export function FluxoCaixaDrilldown({
     }
   };
 
+  const handleExportXlsx = async () => {
+    setExporting(true);
+    try {
+      const all = exportRows(await fetchAllRows());
+      const total = all.reduce((s, r) => s + r.valor, 0);
+      await downloadXlsx(`${fileBase}.xlsx`, [
+        {
+          name: "Detalhamento",
+          title: `Fluxo de Caixa · ${titulo}`,
+          subtitle: `${periodLabel} · base ${basis === "pagamento" ? "pagamento" : "vencimento"} · ${all.length} lançamento${all.length === 1 ? "" : "s"}`,
+          head: ["Data", "Descrição", "Categoria", "Status", "Tipo", "Valor"],
+          numericColumns: [5],
+          colWidths: [12, 46, 30, 16, 12, 16],
+          rows: [
+            ...all.map((r) => ({
+              cells: [r.data, r.descricao, r.categoria, r.status, r.tipo, r.valor],
+            })),
+            {
+              kind: "total" as const,
+              cells: ["", "", "", "", "Total", total],
+            },
+          ],
+        },
+      ]);
+      toast.success(`${all.length} lançamento${all.length === 1 ? "" : "s"} exportado(s)`);
+    } catch {
+      toast.error("Não foi possível exportar o XLSX");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handleExportPdf = async () => {
     setExporting(true);
     try {
@@ -419,6 +451,16 @@ export function FluxoCaixaDrilldown({
           >
             {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
             CSV
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1 text-xs"
+            disabled={exporting || count === 0}
+            onClick={handleExportXlsx}
+          >
+            {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5" />}
+            XLSX
           </Button>
           <Button
             variant="outline"
