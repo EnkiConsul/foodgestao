@@ -277,9 +277,9 @@ export default function RelatorioFluxoCaixa() {
         <div>
           <h1 className="text-xl md:text-2xl font-bold tracking-tight">Fluxo de Caixa</h1>
           <p className="text-xs md:text-sm text-muted-foreground">
-            Relatório gerencial por categoria — {MONTH_NAMES[Math.min(fromMonth, toMonth) - 1]} a{" "}
-            {MONTH_NAMES[Math.max(fromMonth, toMonth) - 1]} de {year}
+            Relatório gerencial por categoria — {periodoLabel}
           </p>
+
         </div>
         <div className="flex items-center gap-2 print:hidden">
           <Button variant="outline" size="sm" onClick={handleExportCsv} className="gap-1">
