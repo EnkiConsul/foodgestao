@@ -1,35 +1,56 @@
-## Objetivo
+## O que entendi
 
-Criar a tela de cadastro de **Centros de Custo** no módulo Financeiro, com listagem, criação, edição e ativar/inativar, seguindo o mesmo padrão de visibilidade PF/PJ já usado em Formas de Pagamento e Categorias.
+Você quer um **relatório de Fluxo de Caixa em formato de tabela/matriz**, no estilo do modelo anexo (Contas Online):
 
-Escopo desta etapa: **apenas o cadastro**. O campo no formulário de lançamento e o filtro nos Relatórios Contábeis ficam para a etapa seguinte.
+- Linhas = **categorias em hierarquia numerada** (1., 1.9., 1.9.1., 2.3.1.1.4.), exatamente na mesma ordem e nomes já cadastrados em Categorias.
+- Colunas = **meses do período** (JAN, FEV, MAR, ABR...) + **MÉDIA** + **TOTAL**.
+- Dois blocos: **Receitas (Entradas)** e **Despesas (Saídas)**, cada um com o subtotal no cabeçalho colorido, e uma linha final de **SALDO** (Entradas − Saídas) por mês.
+- Valores vindos dos **lançamentos reais** do módulo financeiro, respeitando empresa/contexto (PF/PJ).
+- Filtros escolhidos pelo usuário: **ano, mês inicial, mês final e base da data (Vencimento ou Pagamento)**.
+- Isso é uma **nova página em Relatórios** (`/relatorios/fluxo-caixa`); a página atual `/fluxo-caixa` com o gráfico continua intacta.
 
-## Situação atual (verificada)
+## Layout proposto (UX/UI)
 
-- A tabela `cost_centers` existe com `id, user_id, name, description, is_active, created_at`, sem vínculo com empresa e com uma única política de acesso baseada em `user_id`.
-- Não existe página, rota nem item de menu para centros de custo.
-- `transactions.cost_center_id` e `credit_cards.cost_center_id` já existem e continuam intocados.
+```text
+┌────────────────────────────────────────────────────────────────────────────┐
+│ Fluxo de Caixa                            [Exportar CSV] [Imprimir/PDF]    │
+│ Relatório gerencial por categoria                                          │
+├────────────────────────────────────────────────────────────────────────────┤
+│ BARRA STICKY: ‹ 2026 ›  [Janeiro ▾] [Abril ▾]  [Base: Pagamento ▾]         │
+│                              [Só com movimento ⌵] [Expandir/Recolher]      │
+├────────────────────────────────────────────────────────────────────────────┤
+│ KPIs: Entradas | Saídas | Saldo do período | Média mensal                   │
+├────────────────────────────────────────────────────────────────────────────┤
+│ Categoria (col. fixa)          JAN     FEV     MAR     ABR   MÉDIA   TOTAL │
+│ ▸ ENTRADAS  (faixa verde)   234.259  275.538 336.948 290.330 ...    ...    │
+│    1. RECEITAS                 ...                                        │
+│      1.9. SALDO DEPÓSITOS      ...                                        │
+│        1.9.1. Depósito Cli.    ...                                        │
+│ ▸ SAÍDAS   (faixa vermelha) ...                                           │
+│    2.3.1.1.4. Aluguel Sede     ...                                        │
+│ ═ SALDO (faixa destacada)    0,01  1.584,31  799,79 19.167,19 ...         │
+└────────────────────────────────────────────────────────────────────────────┘
+```
 
-## Banco de dados
+Decisões de design:
+- **Coluna de categoria fixa (sticky left)** e cabeçalho de meses fixo (sticky top) — a tabela rola horizontalmente sem perder referência.
+- **Números tabulares alinhados à direita**, zeros exibidos como `–` (igual ao modelo), verde para entradas e vermelho para saídas via tokens semânticos (`text-success` / `text-destructive`), nunca cores fixas.
+- **Hierarquia**: numeração + indentação de 16px/nível (mesmo padrão de `src/lib/categories/display.ts`), com chevron para expandir/recolher ramos; níveis pais em peso maior.
+- **Zebra + hover de linha inteira** e realce da linha ao clicar (como o destaque amarelo do modelo).
+- **Drill-down**: clicar em um valor de mês abre um painel lateral com os lançamentos daquela categoria/mês.
+- **Mobile**: a matriz vira navegação por **um mês por vez** (seletor de mês no topo) com lista hierárquica recolhível e barra de proporção — sem scroll horizontal sofrido.
+- Respeita o **modo privacidade** (`usePrivacy`) e mantém a densidade compacta já usada no sistema.
 
-1. Adicionar `updated_at` (com trigger de atualização) e `visible_pf boolean not null default true` em `cost_centers`.
-2. Criar a tabela de vínculo `cost_center_companies (cost_center_id, company_id)` com chave primária composta, `GRANT` para `authenticated`/`service_role`, RLS habilitada e políticas espelhando `payment_method_companies` (acesso a membros da empresa; escrita para dono/admin).
-3. Substituir a política única de `cost_centers` pelo padrão colaborativo: o dono vê e edita os seus; membros da empresa enxergam os centros vinculados àquela empresa.
-4. Índice único por usuário para impedir nomes duplicados de centro de custo.
+## Implementação técnica
 
-## Frontend
+1. **Nova página** `src/pages/relatorios/FluxoCaixa.tsx` + rota `/relatorios/fluxo-caixa` em `App.tsx` (lazy) e entradas em `src/config/mobileNav.tsx` (desktop e mobile, grupo Relatórios).
+2. **Dados**: query paginada em `transactions` com `applyFinancialScope` (nunca `.eq('user_id')`), filtrando por `status != cancelado` e pelo intervalo da data escolhida (`due_date` ou `payment_date` conforme o filtro). Categorias via `get_accessible_categories` (mesma fonte de `/categorias`) para garantir nomes/ordem idênticos.
+3. **Motor de cálculo** em `src/lib/relatorios/fluxoCaixaMatriz.ts` (puro, testável):
+   - monta a árvore com `buildCategoryTree` e gera o índice numerado;
+   - soma por (categoria, mês) usando o tipo efetivo do lançamento (entrada/saída; parcelamento pela direção);
+   - **propaga totais dos filhos para os pais** (acumulado, como no modelo), calcula MÉDIA e TOTAL, e a linha SALDO;
+   - trata "Sem categoria".
+4. **Testes unitários** (vitest) do motor: propagação de pais, base de data, parcelados, meses vazios.
+5. **Exportações**: CSV UTF‑8 com BOM e `;` (padrão do projeto) e impressão/PDF da matriz.
 
-- **`src/pages/CentrosCusto.tsx`** — cabeçalho, busca por nome, botão "Novo Centro de Custo", lista em cards/linhas com nome, descrição, badges das empresas vinculadas (ou "Pessoal"), status Ativo/Inativo, ações Editar e Ativar/Inativar, além de estados vazio e de carregamento.
-- **`src/components/cost-centers/CostCenterFormDialog.tsx`** — campos Nome, Descrição, switch Ativo, checkbox "Visível no Pessoal (PF)" e checkboxes das empresas; validação Zod (`costCenterSchema` em `src/lib/validations.ts`) via `validateWithToast`, exigindo ao menos um vínculo.
-- **Ativar/Inativar** direto na lista, com confirmação ao inativar avisando que lançamentos existentes mantêm o centro, mas ele deixa de aparecer em novas seleções.
-
-## Navegação
-
-- Rota `/centros-custo` em `src/App.tsx` (lazy, dentro da área autenticada).
-- Item "Centros de Custo" no grupo de cadastros em `src/components/layout/sidebar-menus/FinanceiroMenu.tsx` e em `src/config/mobileNav.tsx`, junto de Formas de Pagamento.
-
-## Notas técnicas
-
-- Consultas usam o contexto ativo PF/PJ (`useCompanyContext`) e o padrão de visibilidade híbrida (`visible_pf` + tabela de junção), sem `.eq('user_id')` em contexto PJ na leitura colaborativa.
-- Tipos do backend são regenerados após a migração; o código da tela é escrito depois disso.
-- Nenhuma alteração no motor financeiro, em saldos ou no formulário de lançamento nesta etapa.
+Sem alterações de banco de dados e sem mexer nas funcionalidades existentes.
