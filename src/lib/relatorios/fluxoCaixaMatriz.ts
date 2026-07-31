@@ -24,7 +24,7 @@ export type MatrizTransaction = {
   status: string | null;
 };
 
-export type MatrizRowKind = "group" | "category" | "saldo";
+export type MatrizRowKind = "group" | "category" | "saldo" | "transferencia";
 
 export type MatrizRow = {
   /** id único da linha (categoria, "__sem_categoria_entrada__", "__grp_entrada__"...) */
@@ -52,6 +52,8 @@ export type MatrizResult = {
     totalEntradas: number;
     totalSaidas: number;
     totalSaldo: number;
+    transferencias: number[];
+    totalTransferencias: number;
   };
 };
 
@@ -127,11 +129,11 @@ export function buildFluxoMatriz({
     saida: zeros(),
   };
   const catById = new Map(categories.map((c) => [c.id, c]));
+  const transferencias = zeros();
 
   for (const t of transactions) {
     if (t.status === "cancelado") continue;
     const side = effectiveSide(t);
-    if (!side) continue;
     const date = effectiveDate(t, basis);
     if (!date) continue;
     const key = date.slice(0, 7);
@@ -139,6 +141,12 @@ export function buildFluxoMatriz({
     if (idx === undefined) continue;
     const value = effectiveAmount(t, basis);
     if (!value) continue;
+
+    if (!side) {
+      // Transferências entre contas: fora do fluxo por categoria, exibidas à parte.
+      if (t.transaction_type === "transferencia") transferencias[idx] += value;
+      continue;
+    }
 
     if (t.category_id && catById.has(t.category_id)) {
       const arr = own.get(t.category_id) ?? zeros();
@@ -302,10 +310,36 @@ export function buildFluxoMatriz({
     media: months.length ? totalSaldo / months.length : 0,
   });
 
+  const totalTransferencias = transferencias.reduce((s, v) => s + v, 0);
+  if (!hideEmpty || totalTransferencias !== 0) {
+    rows.push({
+      id: "__transferencias__",
+      parentId: null,
+      kind: "transferencia",
+      side: null,
+      index: "",
+      name: "TRANSFERÊNCIAS",
+      depth: 0,
+      hasChildren: false,
+      values: transferencias,
+      total: totalTransferencias,
+      media: months.length ? totalTransferencias / months.length : 0,
+    });
+  }
+
   return {
     months,
     rows,
-    totals: { entradas, saidas, saldo, totalEntradas, totalSaidas, totalSaldo },
+    totals: {
+      entradas,
+      saidas,
+      saldo,
+      totalEntradas,
+      totalSaidas,
+      totalSaldo,
+      transferencias,
+      totalTransferencias,
+    },
   };
 }
 
