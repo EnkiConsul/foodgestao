@@ -1,38 +1,29 @@
-## Diagnóstico (verificado no banco)
+## Problema confirmado
 
-As categorias da **Raptor Systems** estão corretas: 23 vinculadas, 14 já com conta contábil, 82 dos 91 lançamentos com categoria mapeada.
+O DRE está somando custos e despesas em vez de subtrair. No print: Receita Líquida 6.226,39 e Custos 2.482,29, mas o Lucro Bruto aparece como 8.708,68 (6.226,39 + 2.482,29) e o EBITDA 12.757,42 (8.708,68 + 4.048,74) — resultando em margens impossíveis (139,9% e 204,9%).
 
-O bloqueio é o plano de contas:
-- Vínculos de contas contábeis com a Raptor (`chart_account_companies`): **0**. A ClicSorte, do mesmo dono, tem **100**.
-- As 11 contas usadas pelas categorias da Raptor (4.2, 4.4, 5.3, 5.4, 6.1.1 Aluguel, 6.1.3, 6.1.5, 6.1.6, 6.1.7, 6.1.10, 8.1 Simples Nacional) estão vinculadas **somente à ClicSorte**.
+Causa (verificada):
+- A função de relatório `chart_accounts_report` devolve `saldo_proprio`/`saldo_consolidado` já **com sinal**: entradas positivas, saídas negativas. Ou seja, contas de custo, despesa e imposto chegam ao front com valor **negativo**.
+- Em `src/components/relatorios/contabeis/DreReport.tsx` os totais são usados como se fossem valores positivos: `lucro_bruto = receita_liquida - custos`. Com `custos = -2.482,29`, a subtração vira soma (dupla negação). O mesmo acontece em impostos, despesas operacionais e financeiras.
+- A tabela de metadados já tem a informação correta de sinal por natureza (`dre_sign`: receita = 1; custo/despesa/imposto = -1), mas ela não está sendo usada no cálculo.
 
-A RPC do DRE monta a árvore a partir das contas vinculadas à empresa selecionada; com zero vínculos, o relatório vem vazio.
+Nenhuma mudança de dados é necessária — os lançamentos e vínculos contábeis estão corretos; o erro é só na montagem do DRE.
 
-**Causa raiz sistêmica:** o plano de contas é criado por usuário e vinculado por empresa. Quando o dono cria a **segunda** empresa, ele já tem plano de contas, o seed não roda e nenhum vínculo é criado — a nova empresa nasce sem plano de contas. Isso vai se repetir com todo cliente multi-empresa.
+## Correção
 
-## Plano — tornar isso padrão em todo o sistema
+1. **Normalizar os totais por natureza** em `DreReport.tsx`:
+   - Calcular cada grupo como magnitude positiva, aplicando o sinal da natureza (`dre_sign`) vindo do relatório: receita = saldo; custo/despesa/imposto = saldo × (−1).
+   - Com isso a cascata volta a funcionar corretamente: Receita Líquida = Receita − Impostos; Lucro Bruto = Receita Líquida − Custos; EBITDA = Lucro Bruto − Despesas Operacionais; Resultado = EBITDA − Despesas Financeiras.
+   - Fallback: se a natureza não vier preenchida, usar o mapa padrão por código raiz (4 receita, 5 custo, 6 despesa operacional, 7 despesa financeira, 8 imposto).
 
-### 1. Garantia automática de plano de contas por empresa
-- Ajustar a rotina executada na criação de empresa para sempre terminar com a empresa tendo plano de contas:
-  - dono sem plano de contas → roda o seed padrão e vincula;
-  - dono já com plano de contas → vincula as contas existentes à nova empresa.
-- Mesma garantia para o contexto Pessoa Física (hoje sem plano de contas nenhum, então o DRE em PF é sempre vazio).
+2. **Linhas da DRE e KPIs**: manter as linhas de dedução exibidas como negativas (ex.: `− R$ 2.482,29`) e os subtotais/margens recalculados. As margens passarão a refletir valores reais (Lucro Bruto/Receita Líquida ≤ 100%).
 
-### 2. Rede de segurança no servidor
-- Criar uma função "garantir plano de contas da empresa" idempotente, chamada tanto na criação da empresa quanto no início do DRE/Contas Contábeis. Se faltarem vínculos, ela cria antes de responder — nenhum cliente vê relatório vazio por falta de vínculo.
+3. **Exportação em PDF**: aplicar os mesmos totais corrigidos (o PDF usa o mesmo objeto de totais, então acompanha a correção automaticamente — apenas conferir os sinais das linhas de dedução).
 
-### 3. Correção retroativa da base atual
-- Rodar uma normalização única sobre todas as empresas existentes sem contas vinculadas (Raptor Systems e as demais no mesmo estado), criando os vínculos a partir do plano do dono ou do seed padrão.
+4. **Detalhamento por Conta Contábil** (`AccountTreeTable.tsx`): apresentar as contas de resultado em magnitude por natureza (despesas em positivo, no padrão contábil), mantendo o `% AV` sobre a Receita Líquida. A árvore continua clicável para o razão.
 
-### 4. Estado vazio e pendências no relatório
-- Em `/relatorios/contabeis`, se ainda assim não houver contas vinculadas, exibir aviso claro com ação "Criar/vincular plano de contas" em vez de tabela em branco.
-- Exibir contador de categorias sem conta contábil (ex.: 9 na Raptor) com link direto para concluir o mapeamento em Contas Contábeis.
+5. **Validação**: abrir `/relatorios/contabeis` com a empresa Raptor no mesmo período do print e conferir que Lucro Bruto = Receita Líquida − Custos e que as margens ficam coerentes; conferir também o PDF exportado.
 
-### 5. Mapeamento padrão categoria → conta
-- Ação em lote em Contas Contábeis para aplicar o mapeamento padrão por tipo (receita/despesa) nas categorias ainda sem conta, revisável pelo usuário — para novos clientes já entrarem com o DRE funcionando.
+### Detalhes técnicos
 
-## Detalhes técnicos
-- RPC `chart_accounts_report`: a CTE `accs` exige `EXISTS (chart_account_companies WHERE company_id = _company_id)` — é aí que o resultado zera.
-- Reaproveitar/ajustar `chart_accounts_seed_on_company`, `chart_accounts_seed_default`, `dre_apply_default_mapping`; nova função idempotente `chart_accounts_ensure_for_company`.
-- Front-end: `src/pages/relatorios/Contabeis.tsx`, `src/hooks/useContabeisReport.tsx`, `src/pages/ContasContabeis.tsx`.
-- Sem alterações no motor de saldos, nos lançamentos ou nas categorias já mapeadas.
+Arquivos alterados: `src/components/relatorios/contabeis/DreReport.tsx` (função `totalByNature` → passa a aplicar o sinal) e `src/components/relatorios/contabeis/AccountTreeTable.tsx` (exibição por magnitude). Sem migração de banco e sem alteração na RPC.

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { ReportNode } from "@/hooks/useContabeisReport";
-import { brlAcc, pct, signClass } from "@/lib/format-contabil";
+import { brlAcc, pct, signClass, dreSign } from "@/lib/format-contabil";
 
 interface Props {
   nodes: ReportNode[];
@@ -72,8 +72,11 @@ export function AccountTreeTable({
   const renderRow = (node: Tree, depth: number) => {
     const hasChildren = node.children.length > 0;
     const isOpen = expanded.has(node.id);
-    const valor = node.saldo_consolidado;
+    // Saldo vem com sinal bruto (entrada +, saída -). Normalizamos por natureza
+    // para exibir custos/despesas em magnitude positiva (padrão contábil).
+    const valor = Number(node.saldo_consolidado || 0) * dreSign(node);
     const av = avBase && avBase !== 0 ? (Math.abs(valor) / Math.abs(avBase)) * 100 : null;
+
 
     return (
       <div key={node.id}>
@@ -114,9 +117,15 @@ export function AccountTreeTable({
               {pct(av)}
             </span>
           )}
-          <span className={cn("w-32 text-right tabular-nums font-medium", signClass(valor))}>
+          <span
+            className={cn(
+              "w-32 text-right tabular-nums font-medium",
+              signClass(Number(node.saldo_consolidado || 0))
+            )}
+          >
             {brlAcc(valor)}
           </span>
+
         </div>
         {isOpen && hasChildren && node.children.map((c) => renderRow(c, depth + 1))}
       </div>
