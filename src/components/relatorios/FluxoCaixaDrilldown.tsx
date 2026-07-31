@@ -19,7 +19,7 @@ import {
   fluxoFiltrosKey,
   type FluxoFiltros,
 } from "@/lib/relatorios/fluxoCaixaFiltros";
-import { downloadCsv, openPrintable } from "@/lib/relatorios/fluxoCaixaExport";
+import { downloadCsv, downloadXlsx, openPrintable } from "@/lib/relatorios/fluxoCaixaExport";
 import { toast } from "sonner";
 
 import {
@@ -313,6 +313,38 @@ export function FluxoCaixaDrilldown({
       toast.success(`${all.length} lançamento${all.length === 1 ? "" : "s"} exportado(s)`);
     } catch {
       toast.error("Não foi possível exportar o CSV");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportXlsx = async () => {
+    setExporting(true);
+    try {
+      const all = exportRows(await fetchAllRows());
+      const total = all.reduce((s, r) => s + r.valor, 0);
+      await downloadXlsx(`${fileBase}.xlsx`, [
+        {
+          name: "Detalhamento",
+          title: `Fluxo de Caixa · ${titulo}`,
+          subtitle: `${periodLabel} · base ${basis === "pagamento" ? "pagamento" : "vencimento"} · ${all.length} lançamento${all.length === 1 ? "" : "s"}`,
+          head: ["Data", "Descrição", "Categoria", "Status", "Tipo", "Valor"],
+          numericColumns: [5],
+          colWidths: [12, 46, 30, 16, 12, 16],
+          rows: [
+            ...all.map((r) => ({
+              cells: [r.data, r.descricao, r.categoria, r.status, r.tipo, r.valor],
+            })),
+            {
+              kind: "total" as const,
+              cells: ["", "", "", "", "Total", total],
+            },
+          ],
+        },
+      ]);
+      toast.success(`${all.length} lançamento${all.length === 1 ? "" : "s"} exportado(s)`);
+    } catch {
+      toast.error("Não foi possível exportar o XLSX");
     } finally {
       setExporting(false);
     }

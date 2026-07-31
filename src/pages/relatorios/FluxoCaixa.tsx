@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { format, startOfYear, endOfYear, startOfMonth, endOfMonth, subMonths, subYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, ChevronDown, ChevronRight, ChevronLeft, ChevronsUpDown, Download, FileText, Printer, TrendingUp, TrendingDown, Wallet, Sigma } from "lucide-react";
+import { CalendarIcon, ChevronDown, ChevronRight, ChevronLeft, ChevronsUpDown, Download, FileSpreadsheet, FileText, Printer, TrendingUp, TrendingDown, Wallet, Sigma } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,7 +31,7 @@ import {
   fluxoFiltrosKey,
   type FluxoFiltros,
 } from "@/lib/relatorios/fluxoCaixaFiltros";
-import { downloadCsv, openPrintable } from "@/lib/relatorios/fluxoCaixaExport";
+import { downloadCsv, downloadXlsx, openPrintable } from "@/lib/relatorios/fluxoCaixaExport";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -329,6 +329,9 @@ export default function RelatorioFluxoCaixa() {
         <div className="flex items-center gap-2 print:hidden">
           <Button variant="outline" size="sm" onClick={handleExportCsv} className="gap-1">
             <Download className="h-3.5 w-3.5" /> CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportXlsx} className="gap-1">
+            <FileSpreadsheet className="h-3.5 w-3.5" /> XLSX
           </Button>
           <Button variant="outline" size="sm" onClick={handleExportPdf} className="gap-1">
             <FileText className="h-3.5 w-3.5" /> PDF
