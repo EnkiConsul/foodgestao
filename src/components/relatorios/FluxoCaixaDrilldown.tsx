@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Loader2, Search, X } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { applyFinancialScope, assertFinancialScope, type ContextType } from "@/lib/financialScope";
@@ -24,10 +24,14 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 25;
+
+type SortField = "date" | "amount" | "description" | "status";
 
 export type DrilldownTarget = {
   row: MatrizRow;
@@ -100,10 +104,30 @@ export function FluxoCaixaDrilldown({
 }: Props) {
   const { maskBRL } = usePrivacy();
   const [page, setPage] = useState(0);
+  const [search, setSearch] = useState("");
+  const [debounced, setDebounced] = useState("");
+  const [sortField, setSortField] = useState<SortField>("date");
+  const [sortAsc, setSortAsc] = useState(false);
 
   useEffect(() => {
     setPage(0);
+    setSearch("");
+    setDebounced("");
+    setSortField("date");
+    setSortAsc(false);
   }, [target?.row.id, target?.month]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebounced(search.trim());
+      setPage(0);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [sortField, sortAsc]);
 
   const catName = useMemo(() => new Map(categories.map((c) => [c.id, c.name])), [categories]);
 
@@ -133,6 +157,9 @@ export function FluxoCaixaDrilldown({
       range?.start,
       range?.end,
       page,
+      debounced,
+      sortField,
+      sortAsc,
     ],
     enabled: !!target && !!range,
     queryFn: async () => {
@@ -168,9 +195,22 @@ export function FluxoCaixaDrilldown({
       if (categoryIds) q = q.in("category_id", categoryIds);
       else if (isSemCategoria) q = q.is("category_id", null);
 
-      const orderCol = basis === "pagamento" ? "payment_date" : "due_date";
+      if (debounced) {
+        const term = debounced.replace(/[%,]/g, " ");
+        q = q.ilike("description", `%${term}%`);
+      }
+
+      const dateCol = basis === "pagamento" ? "payment_date" : "due_date";
+      const orderCol =
+        sortField === "amount"
+          ? "amount"
+          : sortField === "description"
+            ? "description"
+            : sortField === "status"
+              ? "status"
+              : dateCol;
       const { data, error, count } = await q
-        .order(orderCol, { ascending: false, nullsFirst: false })
+        .order(orderCol, { ascending: sortAsc, nullsFirst: false })
         .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
       if (error) throw error;
       return { rows: (data ?? []) as unknown as Row[], count: count ?? 0 };
@@ -211,6 +251,50 @@ export function FluxoCaixaDrilldown({
           </DialogDescription>
         </DialogHeader>
 
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-[200px] flex-1">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por descrição..."
+              className="h-8 pl-8 pr-8 text-sm"
+              aria-label="Buscar lançamentos"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label="Limpar busca"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+          <Select value={sortField} onValueChange={(v) => setSortField(v as SortField)}>
+            <SelectTrigger className="h-8 w-[150px] text-xs" aria-label="Ordenar por">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date">Data</SelectItem>
+              <SelectItem value="amount">Valor</SelectItem>
+              <SelectItem value="description">Descrição</SelectItem>
+              <SelectItem value="status">Status</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1 text-xs"
+            onClick={() => setSortAsc((v) => !v)}
+            aria-label={sortAsc ? "Ordem crescente" : "Ordem decrescente"}
+          >
+            {sortAsc ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
+            {sortAsc ? "Crescente" : "Decrescente"}
+          </Button>
+        </div>
+
         <div className="max-h-[55vh] overflow-y-auto rounded-md border">
           {isFetching && rows.length === 0 ? (
             <div className="space-y-2 p-3">
@@ -220,17 +304,48 @@ export function FluxoCaixaDrilldown({
             </div>
           ) : rows.length === 0 ? (
             <p className="p-8 text-center text-sm text-muted-foreground">
-              Nenhum lançamento encontrado para esta célula.
+              {debounced
+                ? `Nenhum lançamento encontrado para "${debounced}".`
+                : "Nenhum lançamento encontrado para esta célula."}
             </p>
           ) : (
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-muted/60">
                 <tr className="text-xs uppercase text-muted-foreground">
-                  <th className="px-3 py-2 text-left">Data</th>
-                  <th className="px-3 py-2 text-left">Descrição</th>
-                  <th className="px-3 py-2 text-left">Categoria</th>
-                  <th className="px-3 py-2 text-left">Status</th>
-                  <th className="px-3 py-2 text-right">Valor</th>
+                  {(
+                    [
+                      { key: "date", label: "Data", align: "text-left" },
+                      { key: "description", label: "Descrição", align: "text-left" },
+                      { key: null, label: "Categoria", align: "text-left" },
+                      { key: "status", label: "Status", align: "text-left" },
+                      { key: "amount", label: "Valor", align: "text-right" },
+                    ] as { key: SortField | null; label: string; align: string }[]
+                  ).map((h) => (
+                    <th key={h.label} className={cn("px-3 py-2", h.align)}>
+                      {h.key ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (sortField === h.key) setSortAsc((v) => !v);
+                            else {
+                              setSortField(h.key as SortField);
+                              setSortAsc(false);
+                            }
+                          }}
+                          className={cn(
+                            "inline-flex items-center gap-1 uppercase hover:text-foreground",
+                            sortField === h.key && "text-foreground",
+                          )}
+                        >
+                          {h.label}
+                          {sortField === h.key &&
+                            (sortAsc ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+                        </button>
+                      ) : (
+                        h.label
+                      )}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
