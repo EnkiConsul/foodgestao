@@ -22,17 +22,20 @@ const cadastros: MenuItem[] = [
   { title: "Contas Contábeis", url: "/contas-contabeis", icon: BookOpen },
 ];
 
+const relatorios: MenuItem[] = [
+  { title: "Fluxo de Caixa", url: "/relatorios/fluxo-caixa", icon: FileBarChart, end: true },
+  { title: "DRE Gerencial", url: "/relatorios/contabeis", icon: BookOpen, end: true },
+];
+
 export function FinanceiroMenu() {
   return (
     <>
       <SidebarSection label="Financeiro 360°">
         {items.map((i) => <SidebarNavItem key={i.url} item={i} />)}
-        <SidebarNavItem
-          item={{ title: "Fluxo de Caixa", url: "/relatorios/fluxo-caixa", icon: FileBarChart, end: true }}
-        />
-        <SidebarNavItem
-          item={{ title: "DRE Gerencial", url: "/relatorios/contabeis", icon: FileBarChart, end: true }}
-        />
+      </SidebarSection>
+
+      <SidebarSection label="Relatórios">
+        {relatorios.map((i) => <SidebarNavItem key={i.url} item={i} />)}
       </SidebarSection>
 
       <SidebarSection label="Cadastros">
@@ -41,3 +44,4 @@ export function FinanceiroMenu() {
     </>
   );
 }
+
