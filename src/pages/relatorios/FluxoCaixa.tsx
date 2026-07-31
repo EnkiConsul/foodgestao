@@ -202,10 +202,10 @@ export default function RelatorioFluxoCaixa() {
 
   const money = (v: number) => (v === 0 ? "–" : maskBRL(v));
 
-  const periodoLabel = `${MONTH_NAMES[Math.min(fromMonth, toMonth) - 1]} a ${MONTH_NAMES[Math.max(fromMonth, toMonth) - 1]} de ${year}`;
+  const periodoLabel = `${format(range.from, "dd/MM/yyyy")} a ${format(range.to, "dd/MM/yyyy")}`;
   const baseLabel = basis === "pagamento" ? "Data de pagamento" : "Data de vencimento";
   const rowLabel = (r: MatrizRow) => `${r.index ? `${r.index}. ` : ""}${"  ".repeat(r.depth)}${r.name}`;
-  const fileBase = `fluxo-caixa-${year}-${String(Math.min(fromMonth, toMonth)).padStart(2, "0")}-${String(Math.max(fromMonth, toMonth)).padStart(2, "0")}`;
+  const fileBase = `fluxo-caixa-${rangeStart}_a_${rangeEnd}`;
 
   const handleExportCsv = () => {
     const header = ["Categoria", ...months.map(monthLabel), "MÉDIA", "TOTAL"];
