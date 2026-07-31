@@ -31,7 +31,7 @@ export function FinanceiroMenu() {
           item={{ title: "Fluxo de Caixa", url: "/relatorios/fluxo-caixa", icon: FileBarChart, end: true }}
         />
         <SidebarNavItem
-          item={{ title: "Relatórios Contábeis", url: "/relatorios/contabeis", icon: FileBarChart, end: true }}
+          item={{ title: "DRE Gerencial", url: "/relatorios/contabeis", icon: FileBarChart, end: true }}
         />
       </SidebarSection>
 
