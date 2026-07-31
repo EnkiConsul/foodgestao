@@ -216,12 +216,44 @@ export default function RelatorioFluxoCaixa() {
   const rowLabel = (r: MatrizRow) => `${r.index ? `${r.index}. ` : ""}${"  ".repeat(r.depth)}${r.name}`;
   const fileBase = `fluxo-caixa-${rangeStart}_a_${rangeEnd}`;
 
+  const exportNotes = () => [
+    `Período: ${periodoLabel}`,
+    `Base: ${baseLabel}`,
+    `Situação: ${filtros.situacao === "todos" ? "Todos" : filtros.situacao.replace("_", " ")}`,
+    hideEmpty ? "Exibindo apenas categorias com movimento." : "Exibindo todas as categorias.",
+  ];
+
   const handleExportCsv = () => {
     const header = ["Categoria", ...months.map(monthLabel), "MÉDIA", "TOTAL"];
     const data = matriz.rows.map((r) => [rowLabel(r), ...r.values, r.media, r.total]);
     downloadCsv(`${fileBase}.csv`, [header, ...data]);
     toast.success("CSV exportado");
   };
+
+  const handleExportXlsx = async () => {
+    const head = ["Categoria", ...months.map(monthLabel), "MÉDIA", "TOTAL"];
+    try {
+      await downloadXlsx(`${fileBase}.xlsx`, [
+        {
+          name: "Fluxo de Caixa",
+          title: "Fluxo de Caixa",
+          subtitle: `${periodoLabel} · Base: ${baseLabel}`,
+          head,
+          numericColumns: head.map((_, i) => i).filter((i) => i > 0),
+          rows: matriz.rows.map((r) => ({
+            kind: r.kind === "saldo" ? "saldo" : r.kind === "group" ? "group" : "normal",
+            indent: r.depth,
+            cells: [`${r.index ? `${r.index}. ` : ""}${r.name}`, ...r.values, r.media, r.total],
+          })),
+          notes: exportNotes(),
+        },
+      ]);
+      toast.success("XLSX exportado");
+    } catch {
+      toast.error("Não foi possível gerar o XLSX");
+    }
+  };
+
 
   const handleExportPdf = () => {
     const ok = openPrintable({
