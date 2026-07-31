@@ -14,6 +14,11 @@ import {
   type MatrizCategory,
   type MatrizRow,
 } from "@/lib/relatorios/fluxoCaixaMatriz";
+import {
+  applyFluxoFiltros,
+  fluxoFiltrosKey,
+  type FluxoFiltros,
+} from "@/lib/relatorios/fluxoCaixaFiltros";
 
 import {
   Dialog,
@@ -48,6 +53,7 @@ type Props = {
   context: ContextType;
   userId: string;
   companyId: string | null;
+  filtros: FluxoFiltros;
 };
 
 type Row = {
@@ -101,6 +107,7 @@ export function FluxoCaixaDrilldown({
   context,
   userId,
   companyId,
+  filtros,
 }: Props) {
   const { maskBRL } = usePrivacy();
   const [page, setPage] = useState(0);
@@ -160,6 +167,7 @@ export function FluxoCaixaDrilldown({
       debounced,
       sortField,
       sortAsc,
+      fluxoFiltrosKey(filtros),
     ],
     enabled: !!target && !!range,
     queryFn: async () => {
@@ -194,6 +202,8 @@ export function FluxoCaixaDrilldown({
 
       if (categoryIds) q = q.in("category_id", categoryIds);
       else if (isSemCategoria) q = q.is("category_id", null);
+
+      q = applyFluxoFiltros(q, filtros);
 
       if (debounced) {
         const term = debounced.replace(/[%,]/g, " ");

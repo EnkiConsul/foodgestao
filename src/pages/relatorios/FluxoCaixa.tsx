@@ -24,6 +24,13 @@ import {
 } from "@/lib/relatorios/fluxoCaixaMatriz";
 
 import { FluxoCaixaDrilldown, type DrilldownTarget } from "@/components/relatorios/FluxoCaixaDrilldown";
+import { FluxoCaixaFiltros, useFluxoCaixaFiltroOpcoes } from "@/components/relatorios/FluxoCaixaFiltros";
+import {
+  FLUXO_FILTROS_PADRAO,
+  applyFluxoFiltros,
+  fluxoFiltrosKey,
+  type FluxoFiltros,
+} from "@/lib/relatorios/fluxoCaixaFiltros";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -59,6 +66,10 @@ export default function RelatorioFluxoCaixa() {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [mobileMonth, setMobileMonth] = useState(now.getMonth() + 1);
   const [drilldown, setDrilldown] = useState<DrilldownTarget | null>(null);
+  const [filtros, setFiltros] = useState<FluxoFiltros>({ ...FLUXO_FILTROS_PADRAO });
+  const filtrosKey = fluxoFiltrosKey(filtros);
+  const filtroOpcoes = useFluxoCaixaFiltroOpcoes();
+
 
   useRealtimeSync({
     tables: ["transactions", "categories"],
@@ -108,7 +119,7 @@ export default function RelatorioFluxoCaixa() {
   });
 
   const { data: transactions = [], isLoading: loadingTx } = useQuery({
-    queryKey: ["fc-matriz-transactions", user?.id, contextType, selectedCompanyId, rangeStart, rangeEnd, basis],
+    queryKey: ["fc-matriz-transactions", user?.id, contextType, selectedCompanyId, rangeStart, rangeEnd, basis, filtrosKey],
     enabled: !!user && scopeReady,
     queryFn: async (): Promise<MatrizTransaction[]> => {
       const scope = assertFinancialScope({ context: contextType, userId: user!.id, companyId: selectedCompanyId });
@@ -130,6 +141,10 @@ export default function RelatorioFluxoCaixa() {
             `and(due_date.gte.${rangeStart},due_date.lte.${rangeEnd}),and(due_date.is.null,transaction_date.gte.${rangeStart},transaction_date.lte.${rangeEnd})`,
           );
         }
+
+        q = applyFluxoFiltros(q, filtros);
+
+
 
         const { data, error } = await q.range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
         if (error) throw error;
@@ -303,6 +318,9 @@ export default function RelatorioFluxoCaixa() {
               <SelectItem value="vencimento">Data de Vencimento</SelectItem>
             </SelectContent>
           </Select>
+
+          <FluxoCaixaFiltros filtros={filtros} onChange={setFiltros} opcoes={filtroOpcoes} />
+
 
           <div className="ml-auto flex items-center gap-3">
             <div className="flex items-center gap-2">
@@ -510,6 +528,7 @@ export default function RelatorioFluxoCaixa() {
           context={contextType}
           userId={user.id}
           companyId={selectedCompanyId}
+          filtros={filtros}
         />
       )}
     </div>
