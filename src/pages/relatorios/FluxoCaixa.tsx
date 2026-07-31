@@ -251,7 +251,11 @@ export default function RelatorioFluxoCaixa() {
   const isLoading = loadingCats || loadingTx;
   const blockedPj = contextType === "pj" && !selectedCompanyId;
 
-  const yearOptions = Array.from({ length: 7 }, (_, i) => now.getFullYear() - 4 + i);
+  const multiYear = range.from.getFullYear() !== range.to.getFullYear();
+
+  useEffect(() => {
+    setMobileIdx(0);
+  }, [rangeStart, rangeEnd]);
 
   const rowTone = (r: MatrizRow) =>
     r.kind === "saldo"
