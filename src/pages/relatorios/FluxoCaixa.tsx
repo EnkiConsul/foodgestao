@@ -400,17 +400,19 @@ export default function RelatorioFluxoCaixa() {
             <div className="flex items-center justify-between border-b px-3 py-2">
               <Button
                 variant="ghost" size="icon" className="h-8 w-8"
-                onClick={() => setMobileMonth((m) => Math.max(Math.min(fromMonth, toMonth), m - 1))}
+                onClick={() => setMobileIdx((i) => Math.max(0, i - 1))}
                 aria-label="Mês anterior"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <span className="text-sm font-semibold">
-                {format(new Date(year, mobileMonth - 1, 1), "MMMM yyyy", { locale: ptBR })}
+                {months[safeMobileIdx]
+                  ? format(new Date(`${months[safeMobileIdx]}-01T00:00:00`), "MMMM yyyy", { locale: ptBR })
+                  : "—"}
               </span>
               <Button
                 variant="ghost" size="icon" className="h-8 w-8"
-                onClick={() => setMobileMonth((m) => Math.min(Math.max(fromMonth, toMonth), m + 1))}
+                onClick={() => setMobileIdx((i) => Math.min(months.length - 1, i + 1))}
                 aria-label="Próximo mês"
               >
                 <ChevronRight className="h-4 w-4" />
