@@ -203,6 +203,8 @@ export function FluxoCaixaDrilldown({
       if (categoryIds) q = q.in("category_id", categoryIds);
       else if (isSemCategoria) q = q.is("category_id", null);
 
+      q = applyFluxoFiltros(q, filtros);
+
       if (debounced) {
         const term = debounced.replace(/[%,]/g, " ");
         q = q.ilike("description", `%${term}%`);
