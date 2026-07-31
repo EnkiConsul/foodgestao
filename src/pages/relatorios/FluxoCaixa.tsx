@@ -107,6 +107,7 @@ export default function RelatorioFluxoCaixa() {
           .select("id, name, parent_id, transaction_type, category_companies!inner(company_id)")
           .or("context.is.null,context.eq.pj")
           .eq("category_companies.company_id", selectedCompanyId!)
+          .eq("is_active", true)
           .order("parent_id", { nullsFirst: true })
           .order("sort_order")
           .order("name");
