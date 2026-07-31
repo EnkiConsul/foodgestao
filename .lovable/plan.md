@@ -1,56 +1,30 @@
-## O que entendi
+## Causa raiz (confirmada no banco)
 
-Você quer um **relatório de Fluxo de Caixa em formato de tabela/matriz**, no estilo do modelo anexo (Contas Online):
+Não é bug de renderização do relatório: são **3 linhas reais em `categories`** vinculadas por engano à empresa atual em `category_companies`, cujo **pai pertence a outra empresa** do mesmo usuário. Por isso elas aparecem em **todos** os pontos que leem as categorias da empresa — Fluxo de Caixa, formulário de lançamentos e conciliação.
 
-- Linhas = **categorias em hierarquia numerada** (1., 1.9., 1.9.1., 2.3.1.1.4.), exatamente na mesma ordem e nomes já cadastrados em Categorias.
-- Colunas = **meses do período** (JAN, FEV, MAR, ABR...) + **MÉDIA** + **TOTAL**.
-- Dois blocos: **Receitas (Entradas)** e **Despesas (Saídas)**, cada um com o subtotal no cabeçalho colorido, e uma linha final de **SALDO** (Entradas − Saídas) por mês.
-- Valores vindos dos **lançamentos reais** do módulo financeiro, respeitando empresa/contexto (PF/PJ).
-- Filtros escolhidos pelo usuário: **ano, mês inicial, mês final e base da data (Vencimento ou Pagamento)**.
-- Isso é uma **nova página em Relatórios** (`/relatorios/fluxo-caixa`); a página atual `/fluxo-caixa` com o gráfico continua intacta.
+| Categoria | Pai | Empresa do filho | Empresa do pai | Lançamentos |
+|---|---|---|---|---|
+| Aluguel | DESPESAS | empresa atual | outra empresa | 0 |
+| Comissão - RedFox | RECEITAS | empresa atual | outra empresa | 0 |
+| Comissão - SuitPay | RECEITAS | empresa atual | outra empresa | 0 |
 
-## Layout proposto (UX/UI)
+No Fluxo de Caixa o motor promove essas categorias a raiz (o pai não está no escopo), daí a numeração estranha. Na tela `/categorias` elas ficam penduradas na árvore do pai de outra empresa, por isso você não as encontra no cadastro.
 
-```text
-┌────────────────────────────────────────────────────────────────────────────┐
-│ Fluxo de Caixa                            [Exportar CSV] [Imprimir/PDF]    │
-│ Relatório gerencial por categoria                                          │
-├────────────────────────────────────────────────────────────────────────────┤
-│ BARRA STICKY: ‹ 2026 ›  [Janeiro ▾] [Abril ▾]  [Base: Pagamento ▾]         │
-│                              [Só com movimento ⌵] [Expandir/Recolher]      │
-├────────────────────────────────────────────────────────────────────────────┤
-│ KPIs: Entradas | Saídas | Saldo do período | Média mensal                   │
-├────────────────────────────────────────────────────────────────────────────┤
-│ Categoria (col. fixa)          JAN     FEV     MAR     ABR   MÉDIA   TOTAL │
-│ ▸ ENTRADAS  (faixa verde)   234.259  275.538 336.948 290.330 ...    ...    │
-│    1. RECEITAS                 ...                                        │
-│      1.9. SALDO DEPÓSITOS      ...                                        │
-│        1.9.1. Depósito Cli.    ...                                        │
-│ ▸ SAÍDAS   (faixa vermelha) ...                                           │
-│    2.3.1.1.4. Aluguel Sede     ...                                        │
-│ ═ SALDO (faixa destacada)    0,01  1.584,31  799,79 19.167,19 ...         │
-└────────────────────────────────────────────────────────────────────────────┘
-```
+Varredura completa: apenas 5 casos assim no banco (3 na empresa atual, todos sem lançamentos; 2 em outra empresa, com lançamentos).
 
-Decisões de design:
-- **Coluna de categoria fixa (sticky left)** e cabeçalho de meses fixo (sticky top) — a tabela rola horizontalmente sem perder referência.
-- **Números tabulares alinhados à direita**, zeros exibidos como `–` (igual ao modelo), verde para entradas e vermelho para saídas via tokens semânticos (`text-success` / `text-destructive`), nunca cores fixas.
-- **Hierarquia**: numeração + indentação de 16px/nível (mesmo padrão de `src/lib/categories/display.ts`), com chevron para expandir/recolher ramos; níveis pais em peso maior.
-- **Zebra + hover de linha inteira** e realce da linha ao clicar (como o destaque amarelo do modelo).
-- **Drill-down**: clicar em um valor de mês abre um painel lateral com os lançamentos daquela categoria/mês.
-- **Mobile**: a matriz vira navegação por **um mês por vez** (seletor de mês no topo) com lista hierárquica recolhível e barra de proporção — sem scroll horizontal sofrido.
-- Respeita o **modo privacidade** (`usePrivacy`) e mantém a densidade compacta já usada no sistema.
+## O que fazer
 
-## Implementação técnica
+### 1. Migração de correção de dados
+- 3 casos da empresa atual (sem lançamentos): remover o vínculo indevido em `category_companies` com a empresa atual, mantendo a categoria só na empresa do pai. Somem do Fluxo de Caixa, do formulário de lançamentos e da conciliação.
+- 2 casos da outra empresa (com lançamentos): vincular também o **pai** àquela empresa, corrigindo a hierarquia sem perder histórico.
 
-1. **Nova página** `src/pages/relatorios/FluxoCaixa.tsx` + rota `/relatorios/fluxo-caixa` em `App.tsx` (lazy) e entradas em `src/config/mobileNav.tsx` (desktop e mobile, grupo Relatórios).
-2. **Dados**: query paginada em `transactions` com `applyFinancialScope` (nunca `.eq('user_id')`), filtrando por `status != cancelado` e pelo intervalo da data escolhida (`due_date` ou `payment_date` conforme o filtro). Categorias via `get_accessible_categories` (mesma fonte de `/categorias`) para garantir nomes/ordem idênticos.
-3. **Motor de cálculo** em `src/lib/relatorios/fluxoCaixaMatriz.ts` (puro, testável):
-   - monta a árvore com `buildCategoryTree` e gera o índice numerado;
-   - soma por (categoria, mês) usando o tipo efetivo do lançamento (entrada/saída; parcelamento pela direção);
-   - **propaga totais dos filhos para os pais** (acumulado, como no modelo), calcula MÉDIA e TOTAL, e a linha SALDO;
-   - trata "Sem categoria".
-4. **Testes unitários** (vitest) do motor: propagação de pais, base de data, parcelados, meses vazios.
-5. **Exportações**: CSV UTF‑8 com BOM e `;` (padrão do projeto) e impressão/PDF da matriz.
+### 2. Prevenção (trigger)
+Trigger em `category_companies` (e em `categories` no update de `parent_id`) que rejeita vínculo quando o pai não está vinculado à mesma empresa — impede reincidência via cadastro, importação ou seed.
 
-Sem alterações de banco de dados e sem mexer nas funcionalidades existentes.
+### 3. Ajuste defensivo no relatório
+Em `src/pages/relatorios/FluxoCaixa.tsx`, filtrar `is_active = true` na consulta de categorias (hoje ausente), alinhando com `/categorias`. O fallback "pai ausente vira raiz" no motor continua como rede de segurança.
+
+## Verificação
+- Reexecutar a consulta de auditoria: nenhuma categoria com pai fora da empresa.
+- Conferir os três pontos: `/relatorios/fluxo-caixa`, formulário de novo lançamento e conciliação Open Finance — as três categorias não devem mais aparecer.
+- Conferir `/categorias` para garantir que nada legítimo sumiu.
