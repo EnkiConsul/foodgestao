@@ -215,6 +215,7 @@ function SummaryRow({
 }) {
   return (
     <div
+      data-testid={`dre-row-${slug(label)}`}
       className={cn(
         "flex items-center gap-2 py-1.5 px-2 rounded-md border-b border-border/40",
         highlight && "bg-primary/5",
@@ -223,7 +224,12 @@ function SummaryRow({
     >
       <span className={cn("flex-1", muted && "text-muted-foreground")}>{label}</span>
       {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
-      <span className={cn("w-40 text-right tabular-nums", signClass(value))}>{brlAcc(value)}</span>
+      <span
+        data-testid={`dre-row-value-${slug(label)}`}
+        className={cn("w-40 text-right tabular-nums", signClass(value))}
+      >
+        {brlAcc(value)}
+      </span>
     </div>
   );
 }
