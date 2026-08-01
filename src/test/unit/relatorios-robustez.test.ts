@@ -69,7 +69,7 @@ describe("robustez: DRE com valores extremos", () => {
     const nodes = Array.from({ length: 20_000 }, () => node("receita", 0.01));
     const total = totalByNature(nodes, "receita");
     // 20.000 x R$ 0,01 = R$ 200,00 (tolerância de 1 centavo para ponto flutuante)
-    expect(Math.abs(total - 200)).toBeLessThan 0.01;
+    expect(Math.abs(total - 200)).toBeLessThan(0.01);
   });
 
   it("percentuais não explodem quando a receita líquida é zero", () => {
