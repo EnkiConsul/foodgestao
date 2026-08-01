@@ -92,7 +92,10 @@ async def snapshot(page) -> dict:
 
 
 async def account_rows(page) -> int:
-    return await page.locator("table tbody tr").count()
+    """Linhas visíveis do detalhamento por conta contábil."""
+    await page.get_by_role("button", name="Expandir tudo").click()
+    await page.wait_for_timeout(300)
+    return await page.get_by_test_id("dre-account-row").count()
 
 
 async def click_toggle(page, label: str) -> None:
@@ -280,7 +283,10 @@ async def main() -> None:
         )
         await page.screenshot(path=str(SCREENSHOTS / "5_deeplink.png"))
 
-        relevant = [e for e in console_errors if "favicon" not in e.lower()]
+        # Ruído conhecido do ambiente de dev (react-helmet-async / StrictMode)
+        # não caracteriza falha dos filtros.
+        ignore = ("favicon", "cannot be given refs", "download the react devtools")
+        relevant = [e for e in console_errors if not any(i in e.lower() for i in ignore)]
         check("sem erros de console durante os filtros", not relevant, "; ".join(relevant[:3]))
 
         await browser.close()
