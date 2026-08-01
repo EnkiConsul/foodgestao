@@ -92,7 +92,10 @@ export function AccountTreeTable({
         >
           <button
             type="button"
-            className={cn("h-5 w-5 flex items-center justify-center", !hasChildren && "invisible")}
+            className={cn(
+              "h-6 w-6 shrink-0 flex items-center justify-center",
+              !hasChildren && "invisible"
+            )}
             onClick={() => hasChildren && toggle(node.id)}
             aria-label={
               hasChildren
