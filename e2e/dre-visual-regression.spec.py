@@ -263,24 +263,61 @@ async def main() -> None:
             sys.exit(2)
 
         # ------------------------------------------------------------ Período
-        base = await capture(page, "periodo-mes")
-
+        # Referência = "Ano" (garantidamente com movimento). O mês corrente pode
+        # legitimamente cair no estado vazio, que tem layout próprio.
         await click_toggle(page, "Ano")
         ano = await capture(page, "periodo-ano")
         check(
-            "layout estável: Mês -> Ano",
-            not diff_layout(base["kpis"], ano["kpis"])
-            and not diff_layout(base["rows"], ano["rows"]),
-            "; ".join(
-                diff_layout(base["kpis"], ano["kpis"])
-                + diff_layout(base["rows"], ano["rows"])
-            )[:300],
+            "referência: DRE do ano renderiza KPIs e cascata",
+            bool(ano["kpis"]) and bool(ano["rows"]),
+            f"{len(ano['kpis'])} KPIs / {len(ano['rows'])} linhas",
         )
-        check(
-            "colunas da árvore estáveis: Mês -> Ano",
-            not diff_layout(base["accountHeaders"], ano["accountHeaders"]),
-            "; ".join(diff_layout(base["accountHeaders"], ano["accountHeaders"]))[:300],
-        )
+
+        await click_toggle(page, "Trimestre")
+        tri = await capture(page, "periodo-trimestre")
+        if tri["kpis"]:
+            check(
+                "layout estável: Ano -> Trimestre",
+                not diff_layout(ano["kpis"], tri["kpis"])
+                and not diff_layout(ano["rows"], tri["rows"]),
+                "; ".join(
+                    diff_layout(ano["kpis"], tri["kpis"])
+                    + diff_layout(ano["rows"], tri["rows"])
+                )[:300],
+            )
+            check(
+                "colunas da árvore estáveis: Ano -> Trimestre",
+                not diff_layout(ano["accountHeaders"], tri["accountHeaders"]),
+                "; ".join(diff_layout(ano["accountHeaders"], tri["accountHeaders"]))[:300],
+            )
+        else:
+            check(
+                "Trimestre sem movimento: estado vazio consistente",
+                await page.get_by_test_id("dre-kpi-receita-liquida").count() == 0,
+                "sem KPIs no período (esperado no estado vazio)",
+            )
+
+        await click_toggle(page, "Mês")
+        mes = await capture(page, "periodo-mes")
+        if mes["kpis"]:
+            check(
+                "layout estável: Trimestre -> Mês",
+                not diff_layout(ano["kpis"], mes["kpis"])
+                and not diff_layout(ano["rows"], mes["rows"]),
+                "; ".join(
+                    diff_layout(ano["kpis"], mes["kpis"])
+                    + diff_layout(ano["rows"], mes["rows"])
+                )[:300],
+            )
+        else:
+            check(
+                "Mês sem movimento: estado vazio consistente",
+                await page.get_by_test_id("dre-kpi-receita-liquida").count() == 0,
+                "sem KPIs no mês corrente (esperado no estado vazio)",
+            )
+
+        await click_toggle(page, "Ano")
+
 
         await click_toggle(page, "12m")
         doze = await capture(page, "periodo-12m")
