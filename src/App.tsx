@@ -300,8 +300,10 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
 }
 
 const AppRoutes = () => (
-  <Suspense fallback={<PageSpinner />}>
-    <Routes>
+  <ErrorBoundary scope="rota">
+    <Suspense fallback={<PageSpinner />}>
+      <Routes>
+
       <Route path="/" element={<RootGate />} />
       <Route path="/auth" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
       <Route path="/login" element={<Navigate to="/auth" replace />} />
