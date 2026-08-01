@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -98,6 +98,9 @@ export function useContabeisReport(filters: ReportFilters, enabled = true) {
     },
 
     staleTime: 30_000,
+    // Mantém o relatório anterior enquanto o novo carrega: evita desmontar o
+    // conteúdo (e perder o foco do teclado) ao trocar período/regime.
+    placeholderData: keepPreviousData,
   });
 }
 

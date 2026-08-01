@@ -17,6 +17,7 @@ import { GeneralLedgerDrawer } from "@/components/relatorios/contabeis/GeneralLe
 import { PendingClassificationPanel } from "@/components/relatorios/contabeis/PendingClassificationPanel";
 import { useContabeisReport, type ReportNode } from "@/hooks/useContabeisReport";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useFocusRetention } from "@/hooks/useFocusRetention";
 
 const DEFAULTS: FiltersState = (() => {
   const now = new Date();
@@ -56,6 +57,8 @@ export default function RelatoriosContabeis() {
   const [drawerAccount, setDrawerAccount] = useState<ReportNode | null>(null);
 
   const { data: nodes = [], isLoading, error } = useContabeisReport(filters);
+  const focusScopeRef = useFocusRetention<HTMLDivElement>();
+  const [tab, setTab] = useState<"dre" | "pendencias">("dre");
   const { data: semConta = 0 } = useCategoriasSemConta();
 
 
@@ -90,7 +93,12 @@ export default function RelatoriosContabeis() {
       )}
 
       {!blockedPj && (
-        <Tabs defaultValue="dre" className="space-y-4">
+        <div ref={focusScopeRef} tabIndex={-1} data-focus-scope="dre" className="outline-none">
+        <Tabs
+          value={tab}
+          onValueChange={(v) => setTab(v as "dre" | "pendencias")}
+          className="space-y-4"
+        >
           <TabsList className="flex flex-wrap gap-1">
             <TabsTrigger value="dre">DRE Gerencial</TabsTrigger>
             <TabsTrigger value="pendencias">Pendências</TabsTrigger>
@@ -104,7 +112,7 @@ export default function RelatoriosContabeis() {
             </Card>
           )}
 
-          {isLoading && (
+          {isLoading && nodes.length === 0 && (
             <Card>
               <CardContent className="p-6 text-sm text-muted-foreground text-center">
                 Calculando…
@@ -185,6 +193,7 @@ export default function RelatoriosContabeis() {
 
 
         </Tabs>
+        </div>
       )}
 
       <GeneralLedgerDrawer
