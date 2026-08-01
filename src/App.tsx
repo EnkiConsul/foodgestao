@@ -146,6 +146,7 @@ const AdminCadastros = lazyWithRetry(() => import("./pages/admin/Cadastros"));
 const AdminLandingPage = lazyWithRetry(() => import("./pages/admin/LandingPage"));
 const AdminBancos = lazyWithRetry(() => import("./pages/admin/Bancos"));
 const AdminDriftSaldos = lazyWithRetry(() => import("./pages/admin/DriftSaldos"));
+const AdminSaudeSistema = lazyWithRetry(() => import("./pages/admin/SaudeSistema"));
 
 const AdminSeoIndexacao = lazyWithRetry(() => import("./pages/admin/SeoIndexacao"));
 
