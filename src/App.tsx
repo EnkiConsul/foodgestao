@@ -497,9 +497,11 @@ const AppRoutes = () => (
       <Route path="/faturas" element={<ProtectedRoute><Faturas /></ProtectedRoute>} />
       <Route path="/trial-expirado" element={<ProtectedRoute><TrialExpired /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
-    </Routes>
-  </Suspense>
+      </Routes>
+    </Suspense>
+  </ErrorBoundary>
 );
+
 
 const AppShell = () => {
   useVisualViewport();
