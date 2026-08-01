@@ -159,27 +159,30 @@ export default function RelatoriosContabeis() {
             </Card>
           )}
 
-          {!isLoading && !error && (
-            <>
-              <TabsContent value="dre">
-                <DreReport
-                  nodes={nodes}
-                  onSelectAnalytic={setDrawerAccount}
-                  from={filters.from}
-                  to={filters.to}
-                  regime={filters.regime}
-                  contextLabel={
-                    contextType === "pj"
-                      ? companies.find((c) => c.id === selectedCompanyId)?.name ?? "Empresa"
-                      : "Pessoa Física"
-                  }
-                />
-              </TabsContent>
-              <TabsContent value="pendencias">
-                <PendingClassificationPanel from={filters.from} to={filters.to} />
-              </TabsContent>
-            </>
-          )}
+          {/* Os TabsContent ficam sempre montados para que o `aria-controls`
+              dos gatilhos nunca aponte para um id inexistente (a11y). */}
+          <TabsContent value="dre">
+            {!isLoading && !error && (
+              <DreReport
+                nodes={nodes}
+                onSelectAnalytic={setDrawerAccount}
+                from={filters.from}
+                to={filters.to}
+                regime={filters.regime}
+                contextLabel={
+                  contextType === "pj"
+                    ? companies.find((c) => c.id === selectedCompanyId)?.name ?? "Empresa"
+                    : "Pessoa Física"
+                }
+              />
+            )}
+          </TabsContent>
+          <TabsContent value="pendencias">
+            {!isLoading && !error && (
+              <PendingClassificationPanel from={filters.from} to={filters.to} />
+            )}
+          </TabsContent>
+
 
         </Tabs>
       )}
