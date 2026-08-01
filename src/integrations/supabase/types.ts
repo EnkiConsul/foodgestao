@@ -7080,9 +7080,14 @@ export type Database = {
           execution_status: string | null
           id: string
           last_error: Json | null
+          last_sync_attempt_at: string | null
+          last_sync_error: string | null
+          last_sync_status: string | null
           last_synced_at: string | null
+          next_sync_at: string
           pluggy_item_id: string
           status: Database["public"]["Enums"]["pluggy_connection_status"]
+          sync_attempts: number
           updated_at: string
         }
         Insert: {
@@ -7095,9 +7100,14 @@ export type Database = {
           execution_status?: string | null
           id?: string
           last_error?: Json | null
+          last_sync_attempt_at?: string | null
+          last_sync_error?: string | null
+          last_sync_status?: string | null
           last_synced_at?: string | null
+          next_sync_at?: string
           pluggy_item_id: string
           status?: Database["public"]["Enums"]["pluggy_connection_status"]
+          sync_attempts?: number
           updated_at?: string
         }
         Update: {
@@ -7110,9 +7120,14 @@ export type Database = {
           execution_status?: string | null
           id?: string
           last_error?: Json | null
+          last_sync_attempt_at?: string | null
+          last_sync_error?: string | null
+          last_sync_status?: string | null
           last_synced_at?: string | null
+          next_sync_at?: string
           pluggy_item_id?: string
           status?: Database["public"]["Enums"]["pluggy_connection_status"]
+          sync_attempts?: number
           updated_at?: string
         }
         Relationships: [

@@ -25,6 +25,11 @@ import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { ProtectedRoute, OnboardingGuard } from "@/routes/onboardingGuards";
 import { PageSpinner } from "@/components/PageSpinner";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { installGlobalErrorHandlers } from "@/lib/logger";
+
+installGlobalErrorHandlers();
+
 
 // Eager: rotas do primeiro paint (landing/auth/hub/dashboard)
 import Landing from "./pages/Landing";
@@ -300,8 +305,10 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
 }
 
 const AppRoutes = () => (
-  <Suspense fallback={<PageSpinner />}>
-    <Routes>
+  <ErrorBoundary scope="rota">
+    <Suspense fallback={<PageSpinner />}>
+      <Routes>
+
       <Route path="/" element={<RootGate />} />
       <Route path="/auth" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
       <Route path="/login" element={<Navigate to="/auth" replace />} />
@@ -495,9 +502,11 @@ const AppRoutes = () => (
       <Route path="/faturas" element={<ProtectedRoute><Faturas /></ProtectedRoute>} />
       <Route path="/trial-expirado" element={<ProtectedRoute><TrialExpired /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
-    </Routes>
-  </Suspense>
+      </Routes>
+    </Suspense>
+  </ErrorBoundary>
 );
+
 
 const AppShell = () => {
   useVisualViewport();
@@ -511,24 +520,27 @@ const AppShell = () => {
 };
 
 const App = () => (
-  <HelmetProvider>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <CanonicalUrl />
-          <AuthProvider>
-            <CompanyContextProvider>
-              <PrivacyProvider>
-                <AppShell />
-              </PrivacyProvider>
-            </CompanyContextProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </HelmetProvider>
+  <ErrorBoundary scope="app" title="Falha ao iniciar o 360°FOOD">
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <CanonicalUrl />
+            <AuthProvider>
+              <CompanyContextProvider>
+                <PrivacyProvider>
+                  <AppShell />
+                </PrivacyProvider>
+              </CompanyContextProvider>
+            </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
+  </ErrorBoundary>
+
 );
 
 export default App;
