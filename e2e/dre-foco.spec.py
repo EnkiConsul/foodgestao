@@ -252,9 +252,14 @@ async def main() -> None:
             await page.keyboard.press("Enter")
             await page.wait_for_timeout(400)
             after = await focus_state(page)
+            # O rótulo alterna Recolher <-> Expandir; comparamos a conta alvo.
+            conta = (before.get("name") or "").replace("Recolher conta ", "")
             check(
                 "recolher uma conta mantém o foco no chevron",
-                not after.get("isBody") and after.get("name") == before.get("name"),
+                not after.get("isBody")
+                and conta
+                and conta in (after.get("name") or "")
+                and after.get("role") != "tab",
                 f"antes={fmt(before)} depois={fmt(after)}",
             )
         await page.screenshot(path=str(OUT_DIR / "2_arvore.png"))
