@@ -81,6 +81,8 @@ export function AccountTreeTable({
     return (
       <div key={node.id}>
         <div
+          data-testid="dre-account-row"
+          data-code={node.code}
           className={cn(
             "flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-muted/50 border-b border-border/40 text-sm",
             depth === 0 && "font-semibold bg-muted/40",

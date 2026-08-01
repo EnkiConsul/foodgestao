@@ -172,12 +172,26 @@ export function DreReport({ nodes, onSelectAnalytic, from, to, regime, contextLa
   );
 }
 
+function slug(s: string) {
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 function KpiCard({ title, value, subtitle }: { title: string; value: number; subtitle?: string }) {
   return (
-    <Card>
+    <Card data-testid={`dre-kpi-${slug(title)}`}>
       <CardContent className="p-4 space-y-1">
         <p className="text-xs text-muted-foreground uppercase tracking-wide">{title}</p>
-        <p className={cn("text-2xl font-bold tabular-nums", signClass(value))}>{brlAcc(value)}</p>
+        <p
+          data-testid={`dre-kpi-value-${slug(title)}`}
+          className={cn("text-2xl font-bold tabular-nums", signClass(value))}
+        >
+          {brlAcc(value)}
+        </p>
         {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
       </CardContent>
     </Card>
@@ -201,6 +215,7 @@ function SummaryRow({
 }) {
   return (
     <div
+      data-testid={`dre-row-${slug(label)}`}
       className={cn(
         "flex items-center gap-2 py-1.5 px-2 rounded-md border-b border-border/40",
         highlight && "bg-primary/5",
@@ -209,7 +224,12 @@ function SummaryRow({
     >
       <span className={cn("flex-1", muted && "text-muted-foreground")}>{label}</span>
       {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
-      <span className={cn("w-40 text-right tabular-nums", signClass(value))}>{brlAcc(value)}</span>
+      <span
+        data-testid={`dre-row-value-${slug(label)}`}
+        className={cn("w-40 text-right tabular-nums", signClass(value))}
+      >
+        {brlAcc(value)}
+      </span>
     </div>
   );
 }
