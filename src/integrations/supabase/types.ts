@@ -151,39 +151,6 @@ export type Database = {
         }
         Relationships: []
       }
-      audit_logs_2025_07: {
-        Row: {
-          action: string
-          created_at: string
-          details: Json | null
-          entity_id: string | null
-          entity_type: string
-          id: string
-          user_id: string
-          user_name: string | null
-        }
-        Insert: {
-          action: string
-          created_at?: string
-          details?: Json | null
-          entity_id?: string | null
-          entity_type: string
-          id?: string
-          user_id: string
-          user_name?: string | null
-        }
-        Update: {
-          action?: string
-          created_at?: string
-          details?: Json | null
-          entity_id?: string | null
-          entity_type?: string
-          id?: string
-          user_id?: string
-          user_name?: string | null
-        }
-        Relationships: []
-      }
       audit_logs_2025_08: {
         Row: {
           action: string
@@ -647,6 +614,39 @@ export type Database = {
         Relationships: []
       }
       audit_logs_2026_10: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          user_id?: string
+          user_name?: string | null
+        }
+        Relationships: []
+      }
+      audit_logs_2026_11: {
         Row: {
           action: string
           created_at: string
