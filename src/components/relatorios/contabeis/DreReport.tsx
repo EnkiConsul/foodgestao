@@ -172,12 +172,26 @@ export function DreReport({ nodes, onSelectAnalytic, from, to, regime, contextLa
   );
 }
 
+function slug(s: string) {
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 function KpiCard({ title, value, subtitle }: { title: string; value: number; subtitle?: string }) {
   return (
-    <Card>
+    <Card data-testid={`dre-kpi-${slug(title)}`}>
       <CardContent className="p-4 space-y-1">
         <p className="text-xs text-muted-foreground uppercase tracking-wide">{title}</p>
-        <p className={cn("text-2xl font-bold tabular-nums", signClass(value))}>{brlAcc(value)}</p>
+        <p
+          data-testid={`dre-kpi-value-${slug(title)}`}
+          className={cn("text-2xl font-bold tabular-nums", signClass(value))}
+        >
+          {brlAcc(value)}
+        </p>
         {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
       </CardContent>
     </Card>
