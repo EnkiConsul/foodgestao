@@ -43,7 +43,7 @@ export function SidebarSection({ label, children }: { label?: string; children: 
   return (
     <SidebarGroup>
       {label && (
-        <SidebarGroupLabel className="text-sidebar-foreground/50 text-xs uppercase tracking-wider px-5">
+        <SidebarGroupLabel className="text-sidebar-foreground/80 text-xs uppercase tracking-wider px-5">
           {label}
         </SidebarGroupLabel>
       )}

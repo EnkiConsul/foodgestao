@@ -94,6 +94,14 @@ export function AccountTreeTable({
             type="button"
             className={cn("h-5 w-5 flex items-center justify-center", !hasChildren && "invisible")}
             onClick={() => hasChildren && toggle(node.id)}
+            aria-label={
+              hasChildren
+                ? `${isOpen ? "Recolher" : "Expandir"} conta ${node.code} ${node.name}`
+                : undefined
+            }
+            aria-expanded={hasChildren ? isOpen : undefined}
+            aria-hidden={hasChildren ? undefined : true}
+            tabIndex={hasChildren ? undefined : -1}
           >
             {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </button>
