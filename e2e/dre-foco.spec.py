@@ -245,7 +245,7 @@ async def main() -> None:
                 f"antes={fmt(before)} depois={fmt(after)}",
             )
 
-        chevron = page.locator('button[aria-expanded]').first
+        chevron = page.locator('[data-testid="dre-account-row"] button[aria-expanded="true"]').first
         if await chevron.count():
             await chevron.focus()
             before = await focus_state(page)
