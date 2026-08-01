@@ -8983,6 +8983,7 @@ export type Database = {
         Args: { _account_id: string; _new_balance: number }
         Returns: undefined
       }
+      system_health_snapshot: { Args: never; Returns: Json }
       unaccent: { Args: { "": string }; Returns: string }
     }
     Enums: {

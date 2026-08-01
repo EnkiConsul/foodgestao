@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { subscribeRealtime } from "@/lib/realtimeHub";
 
 type RealtimeTable = "transactions" | "accounts" | "categories" | "contacts" | "payment_methods" | "category_companies" | "contact_companies" | "bank_connections" | "bank_connection_accounts" | "chart_accounts" | "chart_account_companies" | "credit_cards" | "credit_card_invoices" | "cost_centers" | "cost_center_companies";
 
@@ -28,7 +28,8 @@ interface Options {
  * Em PJ: assina eventos da empresa ativa (filtro company_id).
  * Em PF: assina eventos do usuário (filtro user_id).
  *
- * Reconecta automaticamente quando o contexto/empresa muda.
+ * Os canais são compartilhados pelo hub (`src/lib/realtimeHub.ts`): várias
+ * telas assinando a mesma tabela/escopo usam uma única conexão.
  */
 export function useRealtimeSync({
   tables,
@@ -40,7 +41,11 @@ export function useRealtimeSync({
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const queryClient = useQueryClient();
-  const debounceRef = useRef<Map<RealtimeTable, ReturnType<typeof setTimeout>>>(new Map());
+  const debounceRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  // Callback sempre atualizado sem recriar a subscription.
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   useEffect(() => {
     if (!enabled || !user) return;
@@ -51,44 +56,36 @@ export function useRealtimeSync({
         ? `company_id=eq.${selectedCompanyId}`
         : `user_id=eq.${user.id}`;
 
-    const channelName = `sync-${contextType}-${selectedCompanyId ?? user.id}-${tables.join("-")}`;
-    const channel = supabase.channel(channelName);
+    const timers = debounceRef.current;
 
-    tables.forEach((table) => {
-      channel.on(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        "postgres_changes" as any,
-        { event: "*", schema: "public", table, filter },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (payload: any) => {
-          const eventType = payload.eventType as "INSERT" | "UPDATE" | "DELETE";
-
-          // Debounce por tabela
-          const existing = debounceRef.current.get(table);
-          if (existing) clearTimeout(existing);
-          const t = setTimeout(() => {
-            if (invalidateKeyPrefixes?.length) {
-              queryClient.invalidateQueries({
-                predicate: (q) => {
-                  const first = q.queryKey[0];
-                  return typeof first === "string" && invalidateKeyPrefixes.some((p) => first.startsWith(p));
-                },
-              });
-            }
-            onChange?.(table, eventType);
-            debounceRef.current.delete(table);
-          }, debounceMs);
-          debounceRef.current.set(table, t);
-        }
-      );
-    });
-
-    channel.subscribe();
+    const unsubscribers = tables.map((table) =>
+      subscribeRealtime(table, filter, (_t, eventType) => {
+        // Debounce por tabela
+        const existing = timers.get(table);
+        if (existing) clearTimeout(existing);
+        const t = setTimeout(() => {
+          if (invalidateKeyPrefixes?.length) {
+            queryClient.invalidateQueries({
+              predicate: (q) => {
+                const first = q.queryKey[0];
+                return (
+                  typeof first === "string" &&
+                  invalidateKeyPrefixes.some((p) => first.startsWith(p))
+                );
+              },
+            });
+          }
+          onChangeRef.current?.(table, eventType);
+          timers.delete(table);
+        }, debounceMs);
+        timers.set(table, t);
+      })
+    );
 
     return () => {
-      debounceRef.current.forEach((t) => clearTimeout(t));
-      debounceRef.current.clear();
-      supabase.removeChannel(channel);
+      timers.forEach((t) => clearTimeout(t));
+      timers.clear();
+      unsubscribers.forEach((fn) => fn());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, user?.id, contextType, selectedCompanyId, tables.join("|"), invalidateKeyPrefixes?.join("|")]);
