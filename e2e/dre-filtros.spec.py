@@ -95,9 +95,24 @@ async def account_rows(page) -> int:
     return await page.locator("table tbody tr").count()
 
 
-async def set_preset(page, label: str) -> None:
-    await page.get_by_role("button", name=label, exact=True).click()
+async def click_toggle(page, label: str) -> None:
+    """ToggleGroupItem do Radix expõe role=radio; clicar no ativo é no-op."""
+    item = page.get_by_role("radio", name=label, exact=True)
+    if await item.get_attribute("data-state") == "on":
+        return
+    await item.click()
     await wait_report(page)
+
+
+async def set_preset(page, label: str) -> None:
+    await click_toggle(page, label)
+
+
+async def accept_cookies(page) -> None:
+    banner = page.get_by_role("button", name="Aceitar todos")
+    if await banner.count():
+        await banner.first.click()
+        await page.wait_for_timeout(300)
 
 
 async def main() -> None:
@@ -114,11 +129,14 @@ async def main() -> None:
         await restore_session(context, page)
 
         # ---------------------------------------------------------------- setup
-        await page.goto(f"{BASE_URL}{ROUTE}", wait_until="domcontentloaded")
+        # Entramos já com os parâmetros default explícitos: o toggle ativo é
+        # no-op no Radix, então a URL só nasce preenchida via deep link.
+        await page.goto(f"{BASE_URL}{ROUTE}?preset=month", wait_until="domcontentloaded")
         await expect(page.get_by_role("heading", name="DRE Gerencial")).to_be_visible(
             timeout=30_000
         )
         await wait_report(page)
+        await accept_cookies(page)
         await page.screenshot(path=str(SCREENSHOTS / "1_inicial.png"))
 
         if await page.get_by_text("Selecione uma empresa no seletor").count():
@@ -126,7 +144,9 @@ async def main() -> None:
             sys.exit(2)
 
         # ------------------------------------------------- 1. filtro de Período
-        # O default é o mês corrente; garantimos o estado inicial na URL.
+        # O default é o mês corrente; passamos por Ano para forçar a gravação
+        # completa de preset/from/to na URL ao voltar para Mês.
+        await set_preset(page, "Ano")
         await set_preset(page, "Mês")
         q = query(page)
         check("período: preset=month na URL", q.get("preset") == "month", str(q))
@@ -182,14 +202,12 @@ async def main() -> None:
 
         # --------------------------------------------------- 2. filtro de Regime
         await set_preset(page, "Ano")
-        await page.get_by_role("button", name="Competência", exact=True).click()
-        await wait_report(page)
+        await click_toggle(page, "Competência")
         q = query(page)
         check("regime: regime=competencia na URL", q.get("regime") == "competencia", str(q))
         comp_values = await snapshot(page)
 
-        await page.get_by_role("button", name="Caixa", exact=True).click()
-        await wait_report(page)
+        await click_toggle(page, "Caixa")
         q = query(page)
         check("regime: regime=caixa na URL", q.get("regime") == "caixa", str(q))
         caixa_values = await snapshot(page)
@@ -201,8 +219,7 @@ async def main() -> None:
         await page.screenshot(path=str(SCREENSHOTS / "3_regime_caixa.png"))
 
         # ------------------------------- 3. Incluir contas sem movimento (toggle)
-        await page.get_by_role("button", name="Competência", exact=True).click()
-        await wait_report(page)
+        await click_toggle(page, "Competência")
         base_rows = await account_rows(page)
         base_values = await snapshot(page)
         check("include_zero: começa desligado na URL", query(page).get("include_zero") == "0")
@@ -245,7 +262,7 @@ async def main() -> None:
         )
         check(
             "deep link: controles refletem a URL (Caixa pressionado)",
-            await page.get_by_role("button", name="Caixa", exact=True).get_attribute("data-state")
+            await page.get_by_role("radio", name="Caixa", exact=True).get_attribute("data-state")
             == "on",
         )
         deep_values = await snapshot(page)
@@ -253,8 +270,7 @@ async def main() -> None:
         # Mesmo período/regime via UI deve dar exatamente os mesmos números.
         await page.goto(f"{BASE_URL}{ROUTE}?preset=custom&from={deep['from']}&to={deep['to']}")
         await wait_report(page)
-        await page.get_by_role("button", name="Caixa", exact=True).click()
-        await wait_report(page)
+        await click_toggle(page, "Caixa")
         await page.get_by_role("switch").first.click()
         await wait_report(page)
         check(
