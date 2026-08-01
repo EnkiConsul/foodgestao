@@ -112,6 +112,9 @@ async def run_axe(page, label: str) -> dict:
           };
         }"""
     )
+    print(f"       [dbg] {label}: url={page.url} mains={await page.locator('main').count()} "
+          f"rows={await page.get_by_test_id('dre-account-row').count()} "
+          f"violations={len(result['violations'])}")
     (OUT_DIR / f"axe-{label}.json").write_text(json.dumps(result, indent=2, ensure_ascii=False))
     return result
 
