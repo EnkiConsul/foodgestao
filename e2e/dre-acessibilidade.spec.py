@@ -112,9 +112,6 @@ async def run_axe(page, label: str) -> dict:
           };
         }"""
     )
-    print(f"       [dbg] {label}: url={page.url} mains={await page.locator('main').count()} "
-          f"rows={await page.get_by_test_id('dre-account-row').count()} "
-          f"violations={len(result['violations'])}")
     (OUT_DIR / f"axe-{label}.json").write_text(json.dumps(result, indent=2, ensure_ascii=False))
     return result
 
@@ -207,7 +204,10 @@ async def main() -> None:
                 el.getAttribute('aria-label') ||
                 el.getAttribute('title') ||
                 (el.getAttribute('aria-labelledby') &&
-                  document.getElementById(el.getAttribute('aria-labelledby')));
+                  document.getElementById(el.getAttribute('aria-labelledby'))) ||
+                (el.id && document.querySelector(`label[for="${el.id}"]`)) ||
+                el.closest('label') ||
+                el.getAttribute('aria-hidden') === 'true';
               return [...document.querySelectorAll('button, a[href], [role="switch"], [role="radio"]')]
                 .filter((el) => el.offsetParent !== null && !named(el))
                 .map((el) => el.outerHTML.slice(0, 120));
@@ -236,9 +236,7 @@ async def main() -> None:
         mains = await page.locator("main").count()
         check("exatamente um landmark <main>", mains == 1, f"{mains} encontrados")
 
-        lang = await page.get_by_role("document").get_attribute("lang") if False else await page.evaluate(
-            "() => document.documentElement.lang"
-        )
+        lang = await page.evaluate("() => document.documentElement.lang")
         check("<html lang> definido", bool(lang), repr(lang))
 
         dup_ids = await page.evaluate(

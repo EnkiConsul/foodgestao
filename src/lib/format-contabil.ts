@@ -15,7 +15,7 @@ export const pct = (n: number, digits = 1) =>
   }) + "%";
 
 export const signClass = (n: number) =>
-  n > 0 ? "text-success" : n < 0 ? "text-destructive" : "text-foreground";
+  n > 0 ? "text-success-strong" : n < 0 ? "text-destructive" : "text-foreground";
 
 /** Sinal da natureza na DRE: receita = +1; custo/despesa/imposto = -1. */
 const NATURE_SIGN: Record<string, number> = {
