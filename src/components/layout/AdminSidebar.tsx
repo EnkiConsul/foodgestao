@@ -110,7 +110,7 @@ export function AdminSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/50 text-xs uppercase tracking-wider px-5">
+          <SidebarGroupLabel className="text-sidebar-foreground/80 text-xs uppercase tracking-wider px-5">
             Visão geral
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -119,7 +119,7 @@ export function AdminSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/50 text-xs uppercase tracking-wider px-5">
+          <SidebarGroupLabel className="text-sidebar-foreground/80 text-xs uppercase tracking-wider px-5">
             Cobrança
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -128,7 +128,7 @@ export function AdminSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/50 text-xs uppercase tracking-wider px-5">
+          <SidebarGroupLabel className="text-sidebar-foreground/80 text-xs uppercase tracking-wider px-5">
             Tenants
           </SidebarGroupLabel>
           <SidebarGroupContent>
