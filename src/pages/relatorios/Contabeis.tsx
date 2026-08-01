@@ -93,13 +93,11 @@ export default function RelatoriosContabeis() {
       )}
 
       {!blockedPj && (
+        <div ref={focusScopeRef} tabIndex={-1} data-focus-scope="dre" className="outline-none">
         <Tabs
           value={tab}
-          data-focus-scope="dre"
           onValueChange={(v) => setTab(v as "dre" | "pendencias")}
           className="space-y-4"
-          ref={focusScopeRef}
-          tabIndex={-1}
         >
           <TabsList className="flex flex-wrap gap-1">
             <TabsTrigger value="dre">DRE Gerencial</TabsTrigger>
@@ -195,6 +193,7 @@ export default function RelatoriosContabeis() {
 
 
         </Tabs>
+        </div>
       )}
 
       <GeneralLedgerDrawer
