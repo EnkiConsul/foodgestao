@@ -55,7 +55,9 @@ export default function RelatoriosContabeis() {
 
   const [drawerAccount, setDrawerAccount] = useState<ReportNode | null>(null);
 
-  const { data: nodes = [], isLoading, error } = useContabeisReport(filters);
+  const { data: nodes = [], isLoading, isFetching, error } = useContabeisReport(filters);
+  const focusScopeRef = useFocusRetention<HTMLDivElement>();
+  const [tab, setTab] = useState<"dre" | "pendencias">("dre");
   const { data: semConta = 0 } = useCategoriasSemConta();
 
 
