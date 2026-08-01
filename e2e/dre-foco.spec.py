@@ -283,7 +283,10 @@ async def main() -> None:
             f"depois={fmt(after)}",
         )
 
-        blocking = [e for e in console_errors if "favicon" not in e.lower()]
+        # Ruído pré-existente e alheio ao foco: aviso de ref do react-helmet-async
+        # (reproduz em qualquer rota, inclusive /dashboard).
+        IGNORE = ("favicon", "Function components cannot be given refs")
+        blocking = [e for e in console_errors if not any(i.lower() in e.lower() for i in IGNORE)]
         check("sem erros de console durante as trocas de foco", not blocking, "; ".join(blocking[:2]))
 
         await browser.close()
