@@ -95,6 +95,7 @@ export default function RelatoriosContabeis() {
       {!blockedPj && (
         <Tabs
           value={tab}
+          data-focus-scope="dre"
           onValueChange={(v) => setTab(v as "dre" | "pendencias")}
           className="space-y-4"
           ref={focusScopeRef}
