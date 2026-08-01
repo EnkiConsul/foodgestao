@@ -92,7 +92,10 @@ export function AccountTreeTable({
         >
           <button
             type="button"
-            className={cn("h-5 w-5 flex items-center justify-center", !hasChildren && "invisible")}
+            className={cn(
+              "h-6 w-6 shrink-0 flex items-center justify-center",
+              !hasChildren && "invisible"
+            )}
             onClick={() => hasChildren && toggle(node.id)}
             aria-label={
               hasChildren
@@ -163,7 +166,7 @@ export function AccountTreeTable({
       </div>
       <div className="rounded-md border">
         <div className="flex items-center gap-2 py-2 px-2 border-b bg-muted/60 text-xs font-medium text-muted-foreground">
-          <span className="h-5 w-5 shrink-0" />
+          <span className="h-6 w-6 shrink-0" />
           <span className="font-mono w-20 shrink-0">Código</span>
           <span className="flex-1">Conta</span>
           {avBase !== undefined && <span className="w-16 text-right">% AV</span>}
