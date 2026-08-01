@@ -25,6 +25,11 @@ import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { ProtectedRoute, OnboardingGuard } from "@/routes/onboardingGuards";
 import { PageSpinner } from "@/components/PageSpinner";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { installGlobalErrorHandlers } from "@/lib/logger";
+
+installGlobalErrorHandlers();
+
 
 // Eager: rotas do primeiro paint (landing/auth/hub/dashboard)
 import Landing from "./pages/Landing";
