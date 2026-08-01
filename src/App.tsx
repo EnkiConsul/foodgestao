@@ -520,24 +520,27 @@ const AppShell = () => {
 };
 
 const App = () => (
-  <HelmetProvider>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <CanonicalUrl />
-          <AuthProvider>
-            <CompanyContextProvider>
-              <PrivacyProvider>
-                <AppShell />
-              </PrivacyProvider>
-            </CompanyContextProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </HelmetProvider>
+  <ErrorBoundary scope="app" title="Falha ao iniciar o 360°FOOD">
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <CanonicalUrl />
+            <AuthProvider>
+              <CompanyContextProvider>
+                <PrivacyProvider>
+                  <AppShell />
+                </PrivacyProvider>
+              </CompanyContextProvider>
+            </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
+  </ErrorBoundary>
+
 );
 
 export default App;
