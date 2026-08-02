@@ -681,14 +681,19 @@ export default function ConciliacaoPluggy() {
                     </td>
 
                     <td className="p-2 text-center">
-                      {r.status === "pending" && <Badge variant="outline">Pendente</Badge>}
-                      {r.status === "confirmed" && <Badge className="bg-success/15 text-success border-success/30">Confirmado</Badge>}
-                      {r.status === "ignored" && <Badge variant="secondary">Ignorado</Badge>}
-                      {r.status === "duplicate" && (
-                        <Badge className="bg-warning/15 text-warning border-warning/30">
-                          <AlertTriangle className="h-3 w-3 mr-1" />Duplicado
-                        </Badge>
-                      )}
+                      <div className="flex flex-wrap items-center justify-center gap-1">
+                        {r.status === "pending" && <Badge variant="outline">Pendente</Badge>}
+                        {r.status === "confirmed" && <Badge className="bg-success/15 text-success border-success/30">Confirmado</Badge>}
+                        {r.status === "ignored" && <Badge variant="secondary">Ignorado</Badge>}
+                        {r.status === "duplicate" && (
+                          <Badge className="bg-warning/15 text-warning border-warning/30">
+                            <AlertTriangle className="h-3 w-3 mr-1" />Duplicado
+                          </Badge>
+                        )}
+                        {r.matched_transaction_id && transferTxIds.has(r.matched_transaction_id) && (
+                          <Badge variant="secondary" className="text-[10px]">Transferência</Badge>
+                        )}
+                      </div>
                     </td>
                     <td className="p-2">
                       {r.status === "pending" ? (
