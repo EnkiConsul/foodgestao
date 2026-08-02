@@ -57,8 +57,15 @@ Deno.serve(async (req) => {
       if (!res.ok) {
         const detail = await res.text();
         console.error(`webhook sync failed [${res.status}]: ${detail}`);
+        // Quando a empresa não pôde ser resolvida, o item fica pendente de
+        // vínculo manual em /admin/pluggy-status (não é descartado).
+        const pending = detail.includes('company_id_required');
         await admin.from('pluggy_webhook_events')
-          .update({ error: `sync_failed_${res.status}: ${detail.slice(0, 500)}` })
+          .update({
+            error: pending
+              ? `pending_manual_link: empresa não resolvida para o item ${itemId}`
+              : `sync_failed_${res.status}: ${detail.slice(0, 500)}`,
+          })
           .eq('event_id', eventId);
       } else {
         await admin.from('pluggy_webhook_events')
