@@ -29,6 +29,7 @@ interface StagingRow {
   status: "pending" | "confirmed" | "ignored" | "duplicate";
   suggested_account_id: string | null;
   suggested_category_id: string | null;
+  matched_transaction_id?: string | null;
 }
 
 interface Connection {
