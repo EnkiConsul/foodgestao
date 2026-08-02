@@ -220,6 +220,21 @@ export default function ConciliacaoPluggy() {
     }
     setRowAccount((prev) => ({ ...acctMap, ...prev }));
     setRowCategory((prev) => ({ ...catMap, ...prev }));
+
+    // Marca quais lançamentos já conciliados viraram transferência (para o badge)
+    const matchedIds = ((staging ?? []) as StagingRow[])
+      .map((r) => r.matched_transaction_id)
+      .filter((v): v is string => !!v);
+    if (matchedIds.length > 0) {
+      const { data: txs } = await supabase
+        .from("transactions")
+        .select("id")
+        .in("id", matchedIds.slice(0, 500))
+        .eq("transaction_type", "transferencia");
+      setTransferTxIds(new Set(((txs ?? []) as { id: string }[]).map((t) => t.id)));
+    } else {
+      setTransferTxIds(new Set());
+    }
     setLoading(false);
   }, [selectedCompanyId, scopedLocalAccountId]);
 
