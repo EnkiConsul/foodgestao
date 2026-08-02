@@ -784,7 +784,9 @@ export default function ConciliacaoPluggy() {
             </tbody>
           </table>
         </CardContent></Card>
+        </>
       )}
+
     </div>
   );
 }
