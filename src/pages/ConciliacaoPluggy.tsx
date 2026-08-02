@@ -131,6 +131,10 @@ export default function ConciliacaoPluggy() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [rowAccount, setRowAccount] = useState<Record<string, string>>({});
   const [rowCategory, setRowCategory] = useState<Record<string, string>>({});
+  /** "auto" = entrada/saída; "transfer" = transferência entre contas */
+  const [rowKind, setRowKind] = useState<Record<string, "auto" | "transfer">>({});
+  const [rowCounterpart, setRowCounterpart] = useState<Record<string, string>>({});
+  const [transferTxIds, setTransferTxIds] = useState<Set<string>>(new Set());
   const [rowBusy, setRowBusy] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState<null | "confirm" | "ignore">(null);
 
