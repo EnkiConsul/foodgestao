@@ -35,10 +35,18 @@ Deno.serve(async (req) => {
   }
 
   // Trigger sync for item events
-  if (itemId && ['item/created', 'item/updated', 'transactions/created', 'transactions/updated'].includes(eventType)) {
+  const syncEvents = [
+    'item/created',
+    'item/updated',
+    'item/login_succeeded',
+    'item/waiting_user_input',
+    'transactions/created',
+    'transactions/updated',
+  ];
+  if (itemId && syncEvents.includes(eventType)) {
     try {
       const syncUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/pluggy-sync-item`;
-      await fetch(syncUrl, {
+      const res = await fetch(syncUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -46,9 +54,17 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({ item_id: itemId }),
       });
-      await admin.from('pluggy_webhook_events')
-        .update({ processed_at: new Date().toISOString() })
-        .eq('event_id', eventId);
+      if (!res.ok) {
+        const detail = await res.text();
+        console.error(`webhook sync failed [${res.status}]: ${detail}`);
+        await admin.from('pluggy_webhook_events')
+          .update({ error: `sync_failed_${res.status}: ${detail.slice(0, 500)}` })
+          .eq('event_id', eventId);
+      } else {
+        await admin.from('pluggy_webhook_events')
+          .update({ processed_at: new Date().toISOString(), error: null })
+          .eq('event_id', eventId);
+      }
     } catch (e) {
       console.error('webhook sync trigger failed', e);
       await admin.from('pluggy_webhook_events')
@@ -56,6 +72,7 @@ Deno.serve(async (req) => {
         .eq('event_id', eventId);
     }
   }
+
 
   return new Response(JSON.stringify({ ok: true }), {
     status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
