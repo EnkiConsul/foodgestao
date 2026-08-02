@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2 } from "lucide-react";
@@ -73,6 +73,35 @@ function buildCategoryOptions(cats: CategoryOpt[], type: string): { cat: Categor
   return nodes.filter((n) => keep.has(n.id)).map((n) => ({ cat: n, depth: n.depth }));
 }
 
+/** Itens do seletor de categoria (mesma apresentação da página /categorias). */
+function renderCategoryItems(options: { cat: CategoryOpt; depth: number }[]) {
+  return options.map(({ cat, depth }) => (
+    <SelectItem key={cat.id} value={cat.id} disabled={cat.is_active === false}>
+      <span className="flex items-center gap-2 min-w-0">
+        <span className="flex shrink-0" aria-hidden>
+          {categoryGuideLevels(depth).map((i) => (
+            <span
+              key={i}
+              className="inline-block border-l border-border/60 h-4"
+              style={{ width: CATEGORY_INDENT_STEP }}
+            />
+          ))}
+        </span>
+        <span
+          className="h-2.5 w-2.5 rounded-full shrink-0"
+          style={{ backgroundColor: cat.color ?? "#94a3b8" }}
+          aria-hidden
+        />
+        <span className={cn("truncate", depth === 0 && "font-semibold")}>{cat.name}</span>
+        <CategoryTypeBadge type={cat.transaction_type} className="ml-1 shrink-0" />
+        {cat.is_active === false && (
+          <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px] shrink-0">Bloqueada</Badge>
+        )}
+      </span>
+    </SelectItem>
+  ));
+}
+
 
 export default function ConciliacaoPluggy() {
   const navigate = useNavigate();
@@ -89,6 +118,11 @@ export default function ConciliacaoPluggy() {
   const [categories, setCategories] = useState<CategoryOpt[]>([]);
   const categoryOptionsReceita = useMemo(() => buildCategoryOptions(categories, "entrada"), [categories]);
   const categoryOptionsDespesa = useMemo(() => buildCategoryOptions(categories, "saida"), [categories]);
+  const categoryTypeById = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const c of categories) m[c.id] = c.transaction_type;
+    return m;
+  }, [categories]);
 
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -495,35 +529,24 @@ export default function ConciliacaoPluggy() {
                       >
                         <SelectTrigger className="h-8 min-w-[160px] text-xs"><SelectValue placeholder="Sem categoria" /></SelectTrigger>
                         <SelectContent className="max-h-72">
-                          {(isEntrada ? categoryOptionsReceita : categoryOptionsDespesa).map(({ cat, depth }) => (
-                            <SelectItem key={cat.id} value={cat.id} disabled={cat.is_active === false}>
-                              <span className="flex items-center gap-2 min-w-0">
-                                <span className="flex shrink-0" aria-hidden>
-                                  {categoryGuideLevels(depth).map((i) => (
-                                    <span
-                                      key={i}
-                                      className="inline-block border-l border-border/60 h-4"
-                                      style={{ width: CATEGORY_INDENT_STEP }}
-                                    />
-                                  ))}
-                                </span>
-                                <span
-                                  className="h-2.5 w-2.5 rounded-full shrink-0"
-                                  style={{ backgroundColor: cat.color ?? "#94a3b8" }}
-                                  aria-hidden
-                                />
-                                <span className={cn("truncate", depth === 0 && "font-semibold")}>{cat.name}</span>
-                                <CategoryTypeBadge type={cat.transaction_type} className="ml-1 shrink-0" />
-                                {cat.is_active === false && (
-                                  <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px] shrink-0">Bloqueada</Badge>
-                                )}
-                              </span>
-                            </SelectItem>
-
-                          ))}
+                          <SelectGroup>
+                            <SelectLabel className="text-[10px] uppercase tracking-wide text-muted-foreground">Sugeridas</SelectLabel>
+                            {renderCategoryItems(isEntrada ? categoryOptionsReceita : categoryOptionsDespesa)}
+                          </SelectGroup>
+                          <SelectGroup>
+                            <SelectLabel className="text-[10px] uppercase tracking-wide text-muted-foreground">Outras categorias (estorno)</SelectLabel>
+                            {renderCategoryItems(isEntrada ? categoryOptionsDespesa : categoryOptionsReceita)}
+                          </SelectGroup>
                         </SelectContent>
                       </Select>
+                      {rowCategory[r.id] &&
+                        categoryTypeById[rowCategory[r.id]] === (isEntrada ? "saida" : "entrada") && (
+                        <p className="mt-1 flex items-center gap-1 text-[10px] text-warning">
+                          <AlertTriangle className="h-3 w-3" /> Estorno: categoria de tipo oposto ao valor
+                        </p>
+                      )}
                     </td>
+
                     <td className="p-2 text-center">
                       {r.status === "pending" && <Badge variant="outline">Pendente</Badge>}
                       {r.status === "confirmed" && <Badge className="bg-success/15 text-success border-success/30">Confirmado</Badge>}
