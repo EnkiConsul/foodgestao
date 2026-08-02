@@ -141,6 +141,24 @@ export function CategoryRow({
               )}
             </div>
           </TableCell>
+          <TableCell className="py-1.5 hidden md:table-cell text-center">
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <Switch
+                      checked={isActive}
+                      onCheckedChange={(v) => onToggleActive(cat, v)}
+                      aria-label={`${isActive ? "Bloquear" : "Permitir"} lançamentos em ${cat.name}`}
+                    />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>{isActive ? "Permite lançamentos" : "Bloqueada para lançamentos"}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
           <TableCell className="py-1.5 text-right">
             <div className="flex justify-end gap-0.5">
               <TooltipProvider delayDuration={300}>
