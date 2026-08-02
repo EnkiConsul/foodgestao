@@ -305,11 +305,43 @@ export default function ConciliacaoPluggy() {
       byAccount[acctId].push(id);
     }
 
+    // Transferências exigem a conta contraparte
+    for (const id of ids) {
+      if (rowKind[id] === "transfer" && !rowCounterpart[id]) {
+        toast.error("Selecione a conta da contraparte nas transferências");
+        return;
+      }
+    }
+
     let ok = 0;
+    let mirrors = 0;
     for (const [acctId, staging_ids] of Object.entries(byAccount)) {
-      // All share same account, but categories may differ — call once per (account,category) group
+      const transferIds = staging_ids.filter((sid) => rowKind[sid] === "transfer");
+      const normalIds = staging_ids.filter((sid) => rowKind[sid] !== "transfer");
+
+      // Transferências: uma chamada por conta contraparte
+      const byCounterpart: Record<string, string[]> = {};
+      for (const sid of transferIds) {
+        const cp = rowCounterpart[sid]!;
+        byCounterpart[cp] = byCounterpart[cp] ?? [];
+        byCounterpart[cp].push(sid);
+      }
+      for (const [cp, sids] of Object.entries(byCounterpart)) {
+        if (cp === acctId) { toast.error("A contraparte deve ser diferente da conta do extrato"); continue; }
+        const { data, error } = await supabase.rpc("pluggy_confirm_staging_transfer", {
+          p_staging_ids: sids,
+          p_account_id: acctId,
+          p_counterpart_account_id: cp,
+        });
+        if (error) { toast.error("Falha ao confirmar transferência: " + error.message); continue; }
+        const list = (Array.isArray(data) ? data : []) as { mirror_staging_id: string | null }[];
+        ok += list.length;
+        mirrors += list.filter((d) => d.mirror_staging_id).length;
+      }
+
+      // Lançamentos comuns: uma chamada por (conta, categoria)
       const byCat: Record<string, string[]> = {};
-      for (const sid of staging_ids) {
+      for (const sid of normalIds) {
         const cat = rowCategory[sid] ?? "__none__";
         byCat[cat] = byCat[cat] ?? [];
         byCat[cat].push(sid);
@@ -325,6 +357,13 @@ export default function ConciliacaoPluggy() {
       }
     }
     toast.success(ok === 1 ? "Lançamento confirmado" : `${ok} lançamentos confirmados`);
+    if (mirrors > 0) {
+      toast.info(
+        mirrors === 1
+          ? "A outra ponta da transferência foi marcada como duplicada"
+          : `${mirrors} lançamentos espelho marcados como duplicados`,
+      );
+    }
     setSelected(new Set());
     load();
   };
