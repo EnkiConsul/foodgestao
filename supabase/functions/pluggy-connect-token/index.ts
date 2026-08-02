@@ -82,9 +82,25 @@ Deno.serve(async (req) => {
     const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
     const itemId = typeof body?.item_id === 'string' ? body.item_id : undefined;
     const companyId = typeof body?.company_id === 'string' ? body.company_id : undefined;
+    // `probe: true` é usado apenas pelo painel admin para validar credenciais
+    // (não abre o widget, portanto não precisa de empresa).
+    const isProbe = body?.probe === true;
     const oauthRedirectUri = isAllowedOauthRedirectUri(body?.oauth_redirect_uri)
       ? body.oauth_redirect_uri
       : undefined;
+
+    // Sem company_id não há como vincular o item quando a autorização termina
+    // fora do navegador (Open Finance por QR Code). Recusamos o token para
+    // evitar conexões órfãs, em vez de apenas logar o problema.
+    if (!companyId && !isProbe) {
+      console.error('connect_token_without_company_id', { user: claims.claims.sub });
+      return new Response(JSON.stringify({
+        error: 'company_id_required',
+        message: 'Selecione a empresa antes de iniciar a conexão Open Finance.',
+      }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const result = await createConnectToken(itemId, {
       oauthRedirectUri,
