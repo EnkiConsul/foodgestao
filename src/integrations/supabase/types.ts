@@ -7069,6 +7069,56 @@ export type Database = {
           },
         ]
       }
+      pluggy_connect_requests: {
+        Row: {
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          item_id_to_update: string | null
+          last_error: string | null
+          resolved_item_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          item_id_to_update?: string | null
+          last_error?: string | null
+          resolved_item_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          item_id_to_update?: string | null
+          last_error?: string | null
+          resolved_item_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pluggy_connect_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pluggy_connections: {
         Row: {
           company_id: string

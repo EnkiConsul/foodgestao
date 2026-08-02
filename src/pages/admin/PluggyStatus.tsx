@@ -14,6 +14,8 @@ import {
   Link2,
 } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { PluggyConnectRequests } from "@/components/admin/PluggyConnectRequests";
+
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -436,6 +438,9 @@ export default function AdminPluggyStatus() {
           )}
         </CardContent>
       </Card>
+
+      <PluggyConnectRequests />
     </div>
   );
 }
+
