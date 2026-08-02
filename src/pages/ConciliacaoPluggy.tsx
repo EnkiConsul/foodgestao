@@ -545,8 +545,11 @@ export default function ConciliacaoPluggy() {
             <Button size="sm" onClick={confirmSelected} disabled={selected.size === 0 || bulkBusy !== null}>
               {bulkBusy === "confirm"
                 ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                : <Check className="h-4 w-4 mr-1" />} Confirmar selecionados
+                : <Check className="h-4 w-4 mr-1" />}
+              <span className="sm:hidden">Confirmar</span>
+              <span className="hidden sm:inline">Confirmar selecionados</span>
             </Button>
+
           </div>
 
         </div>
