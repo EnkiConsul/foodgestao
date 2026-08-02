@@ -234,6 +234,8 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       setParentId(defaultParentId || null);
       setChartAccountId(null);
       setVisiblePf(true);
+      setIsActive(true);
+
       setSubtype("");
       setAiDescription("");
       setSelectedCompanies(new Set(companies.map((c) => c.id)));
