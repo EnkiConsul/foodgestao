@@ -26,6 +26,9 @@ const FRIENDLY_MESSAGES: Record<string, string> = {
   connection_lookup_failed: "Falha ao carregar a conexão. Tente novamente.",
   connection_not_found: "Conexão não encontrada ou não pertence a esta empresa.",
   request_persist_failed: "Não foi possível registrar a solicitação. Tente novamente.",
+  item_not_found_in_pluggy:
+    "Esta conexão não existe no ambiente de produção. Inicie uma nova conexão Open Finance.",
+  item_id_invalid: "O identificador da conexão é inválido.",
   unexpected_error: "Erro inesperado no servidor. Tente novamente em instantes.",
   method_not_allowed: "Método HTTP inválido.",
 };

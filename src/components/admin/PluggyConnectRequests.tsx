@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { RefreshCw } from "lucide-react";
+import { parseEdgeFunctionError } from "@/lib/edgeFunctionError";
 
 type RequestRow = {
   id: string;
@@ -39,6 +40,9 @@ type PluggyItem = {
   created_at: string | null;
   linked: boolean;
   linked_company_id: string | null;
+  unavailable?: boolean;
+  http_status?: number;
+  error?: string | null;
 };
 
 export function PluggyConnectRequests() {
@@ -103,9 +107,10 @@ export function PluggyConnectRequests() {
       setManualItemId("");
       await load();
       await findItems();
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
-      toast.error(e?.message ?? "Falha ao vincular o item");
+      const info = await parseEdgeFunctionError(e, "Falha ao vincular o item");
+      toast.error(info.message);
     } finally {
       setLinking(false);
     }
@@ -127,9 +132,10 @@ export function PluggyConnectRequests() {
         if (error) throw error;
         toast.success(`Conexão concluída: ${data?.transactions ?? 0} lançamentos importados`);
         await load();
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error(e);
-        toast.error(e?.message ?? "Falha ao concluir a conexão");
+        const info = await parseEdgeFunctionError(e, "Falha ao concluir a conexão");
+        toast.error(info.message);
       } finally {
         setFinishing(null);
       }
@@ -249,19 +255,31 @@ export function PluggyConnectRequests() {
                   {items.map((it) => (
                     <tr key={it.item_id} className="border-t">
                       <td className="py-1.5 pr-3 whitespace-nowrap">{fmt(it.created_at)}</td>
-                      <td className="py-1.5 pr-3">{it.connector_name ?? "—"}</td>
-                      <td className="py-1.5 pr-3">{it.status ?? "—"}</td>
+                      <td className="py-1.5 pr-3">{it.connector_name ?? (it.unavailable ? "Item antigo" : "—")}</td>
+                      <td className="py-1.5 pr-3">
+                        {it.unavailable ? (
+                          <Badge variant="destructive">Inexistente em produção</Badge>
+                        ) : (it.status ?? "—")}
+                      </td>
                       <td className="py-1.5 pr-3 font-mono">
-                        <button
-                          type="button"
-                          className="underline underline-offset-2"
-                          onClick={() => setManualItemId(it.item_id)}
-                        >
-                          {it.item_id.slice(0, 8)}
-                        </button>
+                        {it.unavailable ? (
+                          <span className="text-muted-foreground line-through">{it.item_id.slice(0, 8)}</span>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="link"
+                            size="sm"
+                            className="h-auto p-0 font-mono text-xs"
+                            onClick={() => setManualItemId(it.item_id)}
+                          >
+                            {it.item_id.slice(0, 8)}
+                          </Button>
+                        )}
                       </td>
                       <td className="py-1.5">
-                        {it.linked ? (
+                        {it.unavailable ? (
+                          <span className="text-muted-foreground">Reconecte</span>
+                        ) : it.linked ? (
                           <Badge variant="default">Sim</Badge>
                         ) : (
                           <Badge variant="outline">Não</Badge>
