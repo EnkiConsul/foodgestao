@@ -22,8 +22,9 @@ function isAllowedOauthRedirectUri(value: unknown): value is string {
 }
 
 /**
- * Lista os connectorIds "amigáveis" (Open Finance / login simples), excluindo
- * conectores que exigem credenciais de aplicação (Client Id/Secret, chave
+ * Lista os connectorIds elegíveis: apenas conectores Open Finance **regulados**
+ * (autorização no app/site do banco), excluindo conexões diretas por credencial
+ * e conectores que exigem credenciais de aplicação (Client Id/Secret, chave
  * privada e certificado digital) — ex.: "Inter Empresas".
  */
 async function listFriendlyConnectorIds(): Promise<number[] | undefined> {
@@ -41,13 +42,28 @@ async function listFriendlyConnectorIds(): Promise<number[] | undefined> {
         || /certificad|certificate|private\s*key|chave\s*privada|client\s*(id|secret)/.test(label);
     };
 
-    const ids = results
-      .filter((c) => {
-        const creds: any[] = Array.isArray(c?.credentials) ? c.credentials : [];
-        return !creds.some(blockedField);
-      })
+    const friendly = results.filter((c) => {
+      const creds: any[] = Array.isArray(c?.credentials) ? c.credentials : [];
+      return !creds.some(blockedField);
+    });
+
+    // Pluggy marca conectores regulados (Open Finance) com isOpenFinance/oauth.
+    const regulated = friendly.filter((c) => c?.isOpenFinance === true || c?.oauth === true);
+
+    // Fallback seguro: se a flag não vier no payload, não zera a lista.
+    const chosen = regulated.length ? regulated : friendly;
+
+    const ids = chosen
       .map((c) => Number(c?.id))
       .filter((id) => Number.isFinite(id));
+
+    console.log('connectors filter', {
+      total: results.length,
+      friendly: friendly.length,
+      regulated: regulated.length,
+      returned: ids.length,
+      fallback: regulated.length === 0,
+    });
 
     return ids.length ? ids : undefined;
   } catch (e) {
@@ -55,6 +71,7 @@ async function listFriendlyConnectorIds(): Promise<number[] | undefined> {
     return undefined;
   }
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
