@@ -611,32 +611,72 @@ export default function ConciliacaoPluggy() {
                     </td>
                     <td className="p-2">
                       <Select
-                        value={rowCategory[r.id] ?? ""}
-                        onValueChange={(v) => setRowCategory((p) => ({ ...p, [r.id]: v }))}
+                        value={rowKind[r.id] ?? "auto"}
+                        onValueChange={(v) => setRowKind((p) => ({ ...p, [r.id]: v as "auto" | "transfer" }))}
                         disabled={disabled}
                       >
-                        <SelectTrigger className="h-8 min-w-[160px] text-xs"><SelectValue placeholder="Sem categoria" /></SelectTrigger>
-                        <SelectContent className="max-h-[420px]">
-                          <SelectGroup>
-                            <SelectLabel className="sticky top-0 z-10 bg-popover border-b text-[10px] uppercase tracking-wide text-muted-foreground">
-                              Sugeridas ({isEntrada ? "entradas" : "saídas"})
-                            </SelectLabel>
-                            {renderCategoryItems(isEntrada ? categoryOptionsReceita : categoryOptionsDespesa)}
-                          </SelectGroup>
-                          <SelectGroup>
-                            <SelectLabel className="sticky top-0 z-10 bg-popover border-y text-[10px] uppercase tracking-wide text-warning">
-                              Outras categorias — {isEntrada ? "saídas" : "entradas"} (estorno)
-                            </SelectLabel>
-                            {renderCategoryItems(isEntrada ? categoryOptionsDespesa : categoryOptionsReceita)}
-                          </SelectGroup>
+                        <SelectTrigger className="h-8 min-w-[160px] text-xs" aria-label="Tipo do lançamento">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto">{isEntrada ? "Entrada" : "Saída"}</SelectItem>
+                          <SelectItem value="transfer">Transferência entre contas</SelectItem>
                         </SelectContent>
-
                       </Select>
-                      {rowCategory[r.id] &&
-                        categoryTypeById[rowCategory[r.id]] === (isEntrada ? "saida" : "entrada") && (
-                        <p className="mt-1 flex items-center gap-1 text-[10px] text-warning">
-                          <AlertTriangle className="h-3 w-3" /> Estorno: categoria de tipo oposto ao valor
-                        </p>
+                    </td>
+                    <td className="p-2">
+                      {(rowKind[r.id] ?? "auto") === "transfer" ? (
+                        <>
+                          <Select
+                            value={rowCounterpart[r.id] ?? ""}
+                            onValueChange={(v) => setRowCounterpart((p) => ({ ...p, [r.id]: v }))}
+                            disabled={disabled}
+                          >
+                            <SelectTrigger className="h-8 min-w-[180px] text-xs">
+                              <SelectValue placeholder={isEntrada ? "Conta de origem…" : "Conta de destino…"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {accounts
+                                .filter((a) => a.id !== (rowAccount[r.id] ?? linkedByPluggyAccount[r.pluggy_account_id]))
+                                .map((a) => (
+                                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="mt-1 text-[10px] text-muted-foreground">
+                            {isEntrada ? "Dinheiro recebido desta conta" : "Dinheiro enviado para esta conta"} — sem receita/despesa
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <Select
+                            value={rowCategory[r.id] ?? ""}
+                            onValueChange={(v) => setRowCategory((p) => ({ ...p, [r.id]: v }))}
+                            disabled={disabled}
+                          >
+                            <SelectTrigger className="h-8 min-w-[160px] text-xs"><SelectValue placeholder="Sem categoria" /></SelectTrigger>
+                            <SelectContent className="max-h-[420px]">
+                              <SelectGroup>
+                                <SelectLabel className="sticky top-0 z-10 bg-popover border-b text-[10px] uppercase tracking-wide text-muted-foreground">
+                                  Sugeridas ({isEntrada ? "entradas" : "saídas"})
+                                </SelectLabel>
+                                {renderCategoryItems(isEntrada ? categoryOptionsReceita : categoryOptionsDespesa)}
+                              </SelectGroup>
+                              <SelectGroup>
+                                <SelectLabel className="sticky top-0 z-10 bg-popover border-y text-[10px] uppercase tracking-wide text-warning">
+                                  Outras categorias — {isEntrada ? "saídas" : "entradas"} (estorno)
+                                </SelectLabel>
+                                {renderCategoryItems(isEntrada ? categoryOptionsDespesa : categoryOptionsReceita)}
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
+                          {rowCategory[r.id] &&
+                            categoryTypeById[rowCategory[r.id]] === (isEntrada ? "saida" : "entrada") && (
+                            <p className="mt-1 flex items-center gap-1 text-[10px] text-warning">
+                              <AlertTriangle className="h-3 w-3" /> Estorno: categoria de tipo oposto ao valor
+                            </p>
+                          )}
+                        </>
                       )}
                     </td>
 
