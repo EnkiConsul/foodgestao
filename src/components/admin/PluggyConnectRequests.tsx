@@ -211,7 +211,94 @@ export function PluggyConnectRequests() {
             </table>
           </div>
         )}
+
+        <div className="border-t pt-3 space-y-3">
+          <div>
+            <p className="text-sm font-semibold">Itens na Pluggy (diagnóstico)</p>
+            <p className="text-xs text-muted-foreground">
+              Consulta os itens existentes na Pluggy e mostra quais ainda não foram
+              materializados na plataforma. Filtre pelo e-mail do cliente.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              className="h-8 w-64 text-xs"
+              placeholder="e-mail do cliente (opcional)"
+              aria-label="E-mail do cliente"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <Button size="sm" variant="outline" className="h-8" onClick={findItems} disabled={searching}>
+              {searching ? "Consultando…" : "Consultar Pluggy"}
+            </Button>
+          </div>
+
+          {items && items.length > 0 && (
+            <div className="overflow-auto">
+              <table className="w-full text-xs">
+                <thead className="text-left text-muted-foreground">
+                  <tr>
+                    <th className="py-1.5 pr-3">Criado</th>
+                    <th className="py-1.5 pr-3">Banco</th>
+                    <th className="py-1.5 pr-3">Status</th>
+                    <th className="py-1.5 pr-3">item_id</th>
+                    <th className="py-1.5">Vinculado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((it) => (
+                    <tr key={it.item_id} className="border-t">
+                      <td className="py-1.5 pr-3 whitespace-nowrap">{fmt(it.created_at)}</td>
+                      <td className="py-1.5 pr-3">{it.connector_name ?? "—"}</td>
+                      <td className="py-1.5 pr-3">{it.status ?? "—"}</td>
+                      <td className="py-1.5 pr-3 font-mono">
+                        <button
+                          type="button"
+                          className="underline underline-offset-2"
+                          onClick={() => setManualItemId(it.item_id)}
+                        >
+                          {it.item_id.slice(0, 8)}
+                        </button>
+                      </td>
+                      <td className="py-1.5">
+                        {it.linked ? (
+                          <Badge variant="default">Sim</Badge>
+                        ) : (
+                          <Badge variant="outline">Não</Badge>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium">Vincular item manualmente</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                className="h-8 w-72 text-xs font-mono"
+                placeholder="item_id da Pluggy"
+                aria-label="item_id da Pluggy para vincular"
+                value={manualItemId}
+                onChange={(e) => setManualItemId(e.target.value)}
+              />
+              <Input
+                className="h-8 w-72 text-xs font-mono"
+                placeholder="ID da empresa (company_id)"
+                aria-label="ID da empresa"
+                value={manualCompanyId}
+                onChange={(e) => setManualCompanyId(e.target.value)}
+              />
+              <Button size="sm" className="h-8" onClick={linkManually} disabled={linking}>
+                {linking ? "Vinculando…" : "Vincular"}
+              </Button>
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
+
   );
 }
