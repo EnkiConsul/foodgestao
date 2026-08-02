@@ -112,8 +112,21 @@ export function CategoryMobileRow({
           {!(cat as any).visible_pf && companies.length === 0 && (
             <span className="text-[10px] text-muted-foreground">Sem visibilidade</span>
           )}
+          {!isActive && (
+            <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">Bloqueada</Badge>
+          )}
         </div>
       </div>
+
+      <div className="flex shrink-0 items-center self-center">
+        <Switch
+          checked={isActive}
+          onCheckedChange={(v) => onToggleActive(cat, v)}
+          aria-label={`${isActive ? "Bloquear" : "Permitir"} lançamentos em ${cat.name}`}
+        />
+      </div>
+
+
 
 
       <DropdownMenu>
