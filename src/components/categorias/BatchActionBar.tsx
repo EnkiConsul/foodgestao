@@ -88,10 +88,20 @@ export function BatchActionBar({
           </PopoverContent>
         </Popover>
 
+        <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => onBatchActive(true)}>
+          <Unlock className="h-3.5 w-3.5" aria-hidden />
+          Permitir lançamentos
+        </Button>
+        <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => onBatchActive(false)}>
+          <Lock className="h-3.5 w-3.5" aria-hidden />
+          Bloquear lançamentos
+        </Button>
+
         <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={onOpenVisibility}>
           <Eye className="h-3.5 w-3.5" aria-hidden />
           Visibilidade
         </Button>
+
         <Button variant="destructive" size="sm" className="h-8 text-xs gap-1" onClick={onOpenDelete}>
           <Trash2 className="h-3.5 w-3.5" aria-hidden />
           Excluir
