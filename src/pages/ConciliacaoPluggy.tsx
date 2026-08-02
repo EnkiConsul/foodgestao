@@ -539,7 +539,8 @@ export default function ConciliacaoPluggy() {
                           </SelectGroup>
                         </SelectContent>
                       </Select>
-                      {isReversal(r) && (
+                      {rowCategory[r.id] &&
+                        categoryTypeById[rowCategory[r.id]] === (isEntrada ? "saida" : "entrada") && (
                         <p className="mt-1 flex items-center gap-1 text-[10px] text-warning">
                           <AlertTriangle className="h-3 w-3" /> Estorno: categoria de tipo oposto ao valor
                         </p>
