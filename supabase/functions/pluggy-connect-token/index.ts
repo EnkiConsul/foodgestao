@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
     // webhook quando o navegador não retornar (ex.: Open Finance por QR Code).
     let connectRequestId: string | null = null;
     if (!companyId) {
-      console.error('connect_token_without_company_id', { user: claims.claims.sub });
+      // Apenas o probe do painel admin chega aqui.
     } else {
       const admin = createClient(
         Deno.env.get('SUPABASE_URL')!,
@@ -121,8 +121,22 @@ Deno.serve(async (req) => {
       const { data: mem } = await admin
         .from('company_members').select('id')
         .eq('company_id', companyId).eq('user_id', userId).maybeSingle();
-      if (!mem) {
+      let allowed = !!mem;
+      if (!allowed) {
+        // Donos da empresa podem não ter linha em company_members.
+        const { data: owned } = await admin
+          .from('companies').select('id')
+          .eq('id', companyId).eq('user_id', userId).maybeSingle();
+        allowed = !!owned;
+      }
+      if (!allowed) {
         console.error('connect_token_company_not_member', { user: userId, companyId });
+        return new Response(JSON.stringify({
+          error: 'forbidden',
+          message: 'Você não tem acesso a esta empresa.',
+        }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       } else {
         // Expira solicitações antigas do mesmo usuário/empresa
         await admin
