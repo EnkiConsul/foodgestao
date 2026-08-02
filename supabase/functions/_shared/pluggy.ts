@@ -51,7 +51,7 @@ export async function createConnectToken(
 
 export async function getItem(itemId: string) {
   const res = await pluggyFetch(`/items/${itemId}`);
-  if (!res.ok) throw new Error(`get_item_failed: ${res.status}`);
+  if (!res.ok) throw new Error(`get_item_failed: ${res.status} ${await res.text()}`);
   return res.json();
 }
 

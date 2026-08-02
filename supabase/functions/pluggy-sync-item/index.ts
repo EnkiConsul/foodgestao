@@ -40,6 +40,17 @@ Deno.serve(async (req) => {
       });
     }
 
+    // A Pluggy responde 400 quando o itemId não é um UUID válido.
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_RE.test(itemId.trim())) {
+      return new Response(JSON.stringify({
+        error: 'item_id_invalid',
+        message: 'O identificador da conexão (item_id) não é válido. Copie o item_id exato da Pluggy.',
+      }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // If user-authenticated, verify company membership (super admins bypass)
     if (userId && companyId) {
       const { data: isSuper } = await admin
@@ -437,7 +448,17 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error('pluggy-sync-item error', e);
-    return new Response(JSON.stringify({ error: 'sync_failed', message: String(e) }), {
+    const msg = String(e);
+    // Item inexistente/inválido na Pluggy não é falha do servidor.
+    if (msg.includes('get_item_failed: 400') || msg.includes('get_item_failed: 404')) {
+      return new Response(JSON.stringify({
+        error: 'item_not_found_in_pluggy',
+        message: 'A Pluggy não reconhece este item_id com as credenciais atuais (produção). Verifique se o item foi criado neste ambiente.',
+      }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    return new Response(JSON.stringify({ error: 'sync_failed', message: msg }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
