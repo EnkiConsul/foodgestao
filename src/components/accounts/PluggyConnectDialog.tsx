@@ -430,6 +430,13 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
             ? "Conexão em andamento. Conclua a autorização no app do seu banco (leitura do QR Code) — assim que o banco confirmar, importamos seus lançamentos automaticamente."
             : "Uma janela segura será aberta para você autenticar-se no seu banco."}
         </p>
+        {pending && !error && (
+          <p className="mt-3 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
+            Travou na tela do banco pedindo o <strong>“Módulo de Segurança”</strong>? Autorize pelo
+            app do banco no celular (leitura do QR Code) ou repita a conexão pelo navegador do
+            telefone. Depois volte aqui e clique em “Já autorizei, verificar agora”.
+          </p>
+        )}
         <div className="flex items-center justify-center py-6">
           {(loading || (pending && !error)) && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
           {error && <p className="text-sm text-destructive text-center">{error}</p>}
