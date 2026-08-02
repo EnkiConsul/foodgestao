@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { AlertTriangle, ChevronDown, Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { parseEdgeFunctionError } from "@/lib/edgeFunctionError";
 
 
 interface Props {
@@ -131,12 +132,14 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
     clearResume();
     toast.success("Conexão concluída. Sincronizando lançamentos…");
     try {
-      const { data: sync } = await supabase.functions.invoke("pluggy-sync-item", {
+      const { data: sync, error: syncError } = await supabase.functions.invoke("pluggy-sync-item", {
         body: { item_id: itemId, company_id: companyId },
       });
+      if (syncError) throw syncError;
       onConnected?.({ itemId, connectionId: sync?.connection_id });
-    } catch {
-      onConnected?.({ itemId });
+    } catch (syncError: unknown) {
+      const info = await parseEdgeFunctionError(syncError, "Falha ao sincronizar a conexão");
+      toast.error(info.message);
     }
     onOpenChange(false);
   }, [companyId, onConnected, onOpenChange]);
@@ -266,8 +269,8 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
               onConnected?.({ itemId, connectionId: sync?.connection_id });
             } catch (err) {
               console.error(err);
-              toast.error("Sincronização falhou. Você pode tentar novamente em Conexões.");
-              onConnected?.({ itemId });
+              const info = await parseEdgeFunctionError(err, "Falha ao sincronizar a conexão");
+              toast.error(info.message);
             }
             onOpenChange(false);
           },
