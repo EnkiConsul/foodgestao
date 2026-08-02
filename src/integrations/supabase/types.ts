@@ -8900,6 +8900,18 @@ export type Database = {
           transaction_id: string
         }[]
       }
+      pluggy_confirm_staging_transfer: {
+        Args: {
+          p_account_id: string
+          p_counterpart_account_id: string
+          p_staging_ids: string[]
+        }
+        Returns: {
+          mirror_staging_id: string
+          staging_id: string
+          transaction_id: string
+        }[]
+      }
       pluggy_ignore_staging: {
         Args: { p_staging_ids: string[] }
         Returns: number
