@@ -71,23 +71,61 @@ Deno.serve(async (req) => {
       typeof body?.connect_request_id === 'string' ? body.connect_request_id : null;
 
     if (!existing && !companyId) {
-      let q = admin
-        .from('pluggy_connect_requests')
-        .select('id, company_id, user_id')
-        .eq('status', 'open')
-        .gt('expires_at', new Date().toISOString());
+      // 1ª tentativa: solicitação aberta e válida
+      // 2ª tentativa (tolerância): solicitação recente, mesmo expirada, nas últimas 24h
+      const toleranceFrom = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      for (const attempt of ['open', 'tolerance'] as const) {
+        let q = admin
+          .from('pluggy_connect_requests')
+          .select('id, company_id, user_id');
 
-      if (connectRequestId) q = q.eq('id', connectRequestId);
-      else q = q.or(`resolved_item_id.eq.${itemId},resolved_item_id.is.null`);
+        if (attempt === 'open') {
+          q = q.eq('status', 'open').gt('expires_at', new Date().toISOString());
+        } else {
+          q = q.neq('status', 'completed').gte('created_at', toleranceFrom);
+        }
 
-      const { data: reqRow } = await q
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        if (connectRequestId) q = q.eq('id', connectRequestId);
+        else q = q.or(`resolved_item_id.eq.${itemId},resolved_item_id.is.null`);
 
-      if (reqRow) {
-        companyId = reqRow.company_id;
-        connectRequestId = reqRow.id;
+        const { data: reqRow } = await q
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (reqRow) {
+          companyId = reqRow.company_id;
+          connectRequestId = reqRow.id;
+          break;
+        }
+      }
+    }
+
+    // Último fallback: resolver a empresa pelo clientUserId gravado no item da
+    // Pluggy. Cobre o caso em que nenhuma solicitação foi registrada (ex.: o
+    // usuário autorizou pelo app do banco muito depois, ou o token foi criado
+    // sem company_id).
+    if (!existing && !companyId) {
+      try {
+        const probe = await getItem(itemId);
+        const clientUserId: string | null = probe?.clientUserId ?? null;
+        if (clientUserId) {
+          const { data: memberships } = await admin
+            .from('company_members')
+            .select('company_id, companies!inner(id, is_active)')
+            .eq('user_id', clientUserId)
+            .eq('companies.is_active', true);
+          if (memberships?.length === 1) {
+            companyId = memberships[0].company_id;
+            console.log(`resolved company via clientUserId ${clientUserId} -> ${companyId}`);
+          } else {
+            console.error(
+              `cannot resolve company for item ${itemId}: clientUserId=${clientUserId} companies=${memberships?.length ?? 0}`,
+            );
+          }
+        }
+      } catch (e) {
+        console.error('clientUserId company resolution failed', e);
       }
     }
 
@@ -96,6 +134,7 @@ Deno.serve(async (req) => {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
 
     if (connectRequestId) {
       await admin
