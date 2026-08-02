@@ -1,21 +1,24 @@
-## Situação atual
+## Problema
 
-Na conciliação (`/conciliacao`), cada lançamento importado tem apenas dois seletores: **Conta** e **Categoria**. Ao confirmar, o sistema cria sempre uma entrada (valor positivo) ou uma saída (valor negativo). Não há como dizer "isso é uma transferência entre minhas contas", então hoje o usuário acaba criando uma receita e uma despesa fictícias — o que infla o resultado no DRE e nos relatórios.
+A tela de Conciliação Open Finance (`/contas-bancarias/conciliacao`) foi construída só para desktop: uma tabela de 9 colunas dentro de `overflow-x-auto`, KPIs em `grid-cols-3` fixo, filtros com larguras fixas (`w-[220px]`, `w-[160px]`, `w-[240px]`) e barra de ações em linha única. No celular isso gera rolagem horizontal e controles cortados — não há nenhum uso de `useIsMobile` nem de breakpoints (`sm:`/`md:`) na página.
 
-## O que será entregue
+## O que fazer
 
-1. **Novo seletor "Tipo" em cada linha**: `Entrada/Saída (automático)` ou `Transferência entre contas`.
-2. Ao escolher **Transferência**, o campo Categoria é substituído por **"Conta de destino"** (se o valor for negativo/saída) ou **"Conta de origem"** (se positivo/entrada), listando as demais contas da empresa.
-3. Ao confirmar, o lançamento é criado como `transferencia`, com conta de origem e destino preenchidas — impacto líquido zero no consolidado e fora do DRE, mas com saldo de cada conta atualizado corretamente.
-4. **Anti-duplicidade da perna espelho**: se a outra ponta da transferência também vier do Open Finance (mesma data, valor oposto, conta indicada), ela é marcada automaticamente como duplicada/ignorada na conciliação, com aviso na tela, evitando lançar a transferência duas vezes.
-5. **Ação em lote**: com vários lançamentos selecionados que compartilham a mesma conta, será possível confirmar todos como transferência para uma conta destino única (mesmo padrão da barra de ações em lote existente).
-6. Badge **"Transferência"** nas linhas já confirmadas dessa forma.
+1. **Cabeçalho**: empilhar título e botão "Sincronizar" no mobile (`flex-col` → `sm:flex-row`), título `text-xl sm:text-2xl`, botão full-width no mobile.
+2. **KPIs**: `grid-cols-3` → `grid-cols-1 sm:grid-cols-3` (ou manter 3 compactos com fonte reduzida no mobile).
+3. **Filtros**: selects e busca em coluna no mobile (`w-full sm:w-[220px]` / `sm:w-[160px]`), busca ocupando a linha inteira.
+4. **Barra de ações em lote**: no mobile, contador em cima, botões "Ignorar"/"Confirmar" em grid de 2 colunas full-width, select de transferência full-width.
+5. **Lista de lançamentos** — renderização condicional por dispositivo usando `useIsMobile` (`src/hooks/use-mobile.tsx`), mantendo a tabela atual intacta para `md+`:
+   - Novo componente `src/components/conciliacao/StagingCard.tsx` para o mobile: card por lançamento com checkbox + data + valor colorido no topo, descrição, e os mesmos controles (Conta destino, Tipo, Categoria/Contraparte) empilhados em largura total, badges de status e botões Confirmar/Ignorar no rodapé do card.
+   - Reaproveitar exatamente a mesma lógica/estado já existente (`rowAccount`, `rowKind`, `rowCounterpart`, `handleRowAction`, grupos "Sugeridas"/"Outras categorias (estorno)", regras de categoria inativa) — nenhuma mudança de regra de negócio.
+6. **Extrair a linha da tabela** para `StagingRow.tsx` (opcional, se ajudar a compartilhar os seletores entre card e linha) sem alterar comportamento.
 
 ## Detalhes técnicos
 
-- Nova RPC `pluggy_confirm_staging_transfer(p_staging_ids uuid[], p_account_id uuid, p_counterpart_account_id uuid)`, `SECURITY DEFINER`, espelhando as checagens de autorização da `pluggy_confirm_staging` (empresa da conta + `company_members`), validando que ambas as contas pertencem à mesma empresa e são diferentes.
-- A RPC insere uma única transação `transaction_type = 'transferencia'` com `account_id` = conta de origem e `destination_account_id` = conta de destino (invertendo conforme o sinal do valor), `status = 'confirmado'`, e atualiza o staging para `confirmed` com `matched_transaction_id`.
-- Dentro da mesma RPC, busca na `pluggy_staging_transactions` a perna espelho pendente (conta Pluggy vinculada à contraparte, mesma data ±3 dias, valor oposto) e a marca como `duplicate` apontando para a mesma transação.
-- `recompute_account_balance` é disparado para as duas contas afetadas (motor de saldo permanece a única fonte do saldo — nada de escrita direta em `current_balance`).
-- Frontend: `src/pages/ConciliacaoPluggy.tsx` ganha o estado `rowKind`/`rowCounterpart` por linha e roteia a confirmação para a RPC nova quando o tipo é transferência; a barra de ações em lote recebe o mesmo modo. Nenhuma alteração nas funções de saldo/relatório existentes.
-- Regeneração dos tipos do cliente para a nova RPC.
+- Somente mudanças de apresentação: nada de alterações em RPCs (`pluggy_confirm_staging`, `pluggy_confirm_staging_transfer`), queries ou triggers.
+- Sem cores hardcoded: usar tokens já usados na página (`text-success`, `text-destructive`, `text-warning`, `bg-muted/40`).
+- Verificação: capturar screenshots via Playwright em 390px, 768px e 1280px para confirmar ausência de rolagem horizontal e legibilidade dos controles.
+
+## Fora do escopo
+
+Se outras telas também estiverem sem adaptação por dispositivo, avise quais — este plano cobre a Conciliação.
