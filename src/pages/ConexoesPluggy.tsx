@@ -40,6 +40,7 @@ export default function ConexoesPluggy() {
   const { contextType, selectedCompanyId } = useCompanyContext();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [meta, setMeta] = useState<AccountsMap>({});
+  const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [connectOpen, setConnectOpen] = useState(false);
@@ -56,6 +57,14 @@ export default function ConexoesPluggy() {
     const list = (conns ?? []) as Connection[];
     setConnections(list);
 
+    const { count: pending } = await supabase
+      .from("pluggy_connect_requests")
+      .select("id", { head: true, count: "exact" })
+      .eq("company_id", selectedCompanyId)
+      .eq("status", "open")
+      .gt("expires_at", new Date().toISOString());
+    setPendingCount(pending ?? 0);
+
     const m: AccountsMap = {};
     for (const c of list) {
       const [{ count: accCount }, { count: pending }, { count: paused }] = await Promise.all([
@@ -70,6 +79,7 @@ export default function ConexoesPluggy() {
   }, [selectedCompanyId]);
 
   useEffect(() => { load(); }, [load]);
+
 
   const sync = async (c: Connection) => {
     setSyncingId(c.id);
@@ -118,7 +128,24 @@ export default function ConexoesPluggy() {
         </Button>
       </div>
 
-
+      {!loading && pendingCount > 0 && (
+        <Card className="border-warning/40 bg-warning/5">
+          <CardContent className="p-4 flex items-start gap-3">
+            <Loader2 className="h-4 w-4 mt-0.5 animate-spin text-warning" />
+            <div className="text-sm">
+              <p className="font-semibold">Conexão em andamento</p>
+              <p className="text-muted-foreground text-xs mt-0.5">
+                Há {pendingCount} autorização(ões) iniciada(s) aguardando a confirmação do banco.
+                Se você autorizou pelo app do banco (QR Code), a conexão pode levar alguns minutos
+                para aparecer. Use <strong>Atualizar</strong> abaixo ou tente novamente em instantes.
+              </p>
+              <Button size="sm" variant="outline" className="mt-2 h-7" onClick={() => load()}>
+                <RefreshCw className="h-3.5 w-3.5 mr-1" /> Atualizar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
 
       {loading ? (

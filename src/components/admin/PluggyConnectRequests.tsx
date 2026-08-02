@@ -30,11 +30,28 @@ function fmt(value?: string | null) {
   }
 }
 
+type PluggyItem = {
+  item_id: string;
+  connector_name: string | null;
+  status: string | null;
+  execution_status: string | null;
+  client_user_id: string | null;
+  created_at: string | null;
+  linked: boolean;
+  linked_company_id: string | null;
+};
+
 export function PluggyConnectRequests() {
   const [rows, setRows] = useState<RequestRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [itemIds, setItemIds] = useState<Record<string, string>>({});
   const [finishing, setFinishing] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [items, setItems] = useState<PluggyItem[] | null>(null);
+  const [manualCompanyId, setManualCompanyId] = useState("");
+  const [manualItemId, setManualItemId] = useState("");
+  const [linking, setLinking] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -51,6 +68,49 @@ export function PluggyConnectRequests() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const findItems = useCallback(async () => {
+    setSearching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("pluggy-admin-find-items", {
+        body: email.trim() ? { email: email.trim() } : {},
+      });
+      if (error) throw error;
+      setItems((data?.items ?? []) as PluggyItem[]);
+      if (!data?.items?.length) toast.info("Nenhum item encontrado na Pluggy para esse filtro");
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message ?? "Falha ao consultar itens na Pluggy");
+    } finally {
+      setSearching(false);
+    }
+  }, [email]);
+
+  const linkManually = useCallback(async () => {
+    const itemId = manualItemId.trim();
+    const companyId = manualCompanyId.trim();
+    if (!itemId || !companyId) {
+      toast.error("Informe o item_id da Pluggy e o ID da empresa");
+      return;
+    }
+    setLinking(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("pluggy-sync-item", {
+        body: { item_id: itemId, company_id: companyId, first_connect: true },
+      });
+      if (error) throw error;
+      toast.success(`Item vinculado: ${data?.transactions ?? 0} lançamentos importados`);
+      setManualItemId("");
+      await load();
+      await findItems();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message ?? "Falha ao vincular o item");
+    } finally {
+      setLinking(false);
+    }
+  }, [manualItemId, manualCompanyId, load, findItems]);
+
 
   const finish = useCallback(
     async (row: RequestRow) => {
@@ -151,7 +211,94 @@ export function PluggyConnectRequests() {
             </table>
           </div>
         )}
+
+        <div className="border-t pt-3 space-y-3">
+          <div>
+            <p className="text-sm font-semibold">Itens na Pluggy (diagnóstico)</p>
+            <p className="text-xs text-muted-foreground">
+              Consulta os itens existentes na Pluggy e mostra quais ainda não foram
+              materializados na plataforma. Filtre pelo e-mail do cliente.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              className="h-8 w-64 text-xs"
+              placeholder="e-mail do cliente (opcional)"
+              aria-label="E-mail do cliente"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <Button size="sm" variant="outline" className="h-8" onClick={findItems} disabled={searching}>
+              {searching ? "Consultando…" : "Consultar Pluggy"}
+            </Button>
+          </div>
+
+          {items && items.length > 0 && (
+            <div className="overflow-auto">
+              <table className="w-full text-xs">
+                <thead className="text-left text-muted-foreground">
+                  <tr>
+                    <th className="py-1.5 pr-3">Criado</th>
+                    <th className="py-1.5 pr-3">Banco</th>
+                    <th className="py-1.5 pr-3">Status</th>
+                    <th className="py-1.5 pr-3">item_id</th>
+                    <th className="py-1.5">Vinculado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((it) => (
+                    <tr key={it.item_id} className="border-t">
+                      <td className="py-1.5 pr-3 whitespace-nowrap">{fmt(it.created_at)}</td>
+                      <td className="py-1.5 pr-3">{it.connector_name ?? "—"}</td>
+                      <td className="py-1.5 pr-3">{it.status ?? "—"}</td>
+                      <td className="py-1.5 pr-3 font-mono">
+                        <button
+                          type="button"
+                          className="underline underline-offset-2"
+                          onClick={() => setManualItemId(it.item_id)}
+                        >
+                          {it.item_id.slice(0, 8)}
+                        </button>
+                      </td>
+                      <td className="py-1.5">
+                        {it.linked ? (
+                          <Badge variant="default">Sim</Badge>
+                        ) : (
+                          <Badge variant="outline">Não</Badge>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium">Vincular item manualmente</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                className="h-8 w-72 text-xs font-mono"
+                placeholder="item_id da Pluggy"
+                aria-label="item_id da Pluggy para vincular"
+                value={manualItemId}
+                onChange={(e) => setManualItemId(e.target.value)}
+              />
+              <Input
+                className="h-8 w-72 text-xs font-mono"
+                placeholder="ID da empresa (company_id)"
+                aria-label="ID da empresa"
+                value={manualCompanyId}
+                onChange={(e) => setManualCompanyId(e.target.value)}
+              />
+              <Button size="sm" className="h-8" onClick={linkManually} disabled={linking}>
+                {linking ? "Vinculando…" : "Vincular"}
+              </Button>
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
+
   );
 }

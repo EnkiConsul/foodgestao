@@ -94,7 +94,9 @@ Deno.serve(async (req) => {
     // Registra a intenção de conexão para permitir concluir a conexão pelo
     // webhook quando o navegador não retornar (ex.: Open Finance por QR Code).
     let connectRequestId: string | null = null;
-    if (companyId) {
+    if (!companyId) {
+      console.error('connect_token_without_company_id', { user: claims.claims.sub });
+    } else {
       const admin = createClient(
         Deno.env.get('SUPABASE_URL')!,
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
@@ -103,7 +105,9 @@ Deno.serve(async (req) => {
       const { data: mem } = await admin
         .from('company_members').select('id')
         .eq('company_id', companyId).eq('user_id', userId).maybeSingle();
-      if (mem) {
+      if (!mem) {
+        console.error('connect_token_company_not_member', { user: userId, companyId });
+      } else {
         // Expira solicitações antigas do mesmo usuário/empresa
         await admin
           .from('pluggy_connect_requests')
@@ -119,6 +123,9 @@ Deno.serve(async (req) => {
             user_id: userId,
             item_id_to_update: itemId ?? null,
             resolved_item_id: itemId ?? null,
+            // Fluxos de Open Finance por QR Code/app do banco podem levar
+            // horas até a autorização final; 1h era curto demais.
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
           })
           .select('id')
           .maybeSingle();
@@ -126,6 +133,7 @@ Deno.serve(async (req) => {
         connectRequestId = reqRow?.id ?? null;
       }
     }
+
 
     const connectorIds = itemId ? undefined : await listFriendlyConnectorIds();
 
