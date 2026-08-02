@@ -381,6 +381,8 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
         context: contextType,
         parent_id: parentId || null,
         visible_pf: visiblePf,
+        is_active: isActive,
+
         chart_account_id: chartAccountId,
         sort_order: nextSort,
         category_subtype: subtype || null,
