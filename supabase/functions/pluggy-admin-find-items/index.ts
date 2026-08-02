@@ -44,23 +44,16 @@ Deno.serve(async (req) => {
 
     // Resolve o usuário pelo e-mail, quando informado
     if (!clientUserId && email) {
-      const { data: idRow } = await admin
-        .from('auth_login_identifiers')
-        .select('user_id')
-        .eq('identifier', email)
-        .maybeSingle();
-      clientUserId = idRow?.user_id ?? null;
-      if (!clientUserId) {
-        let page = 1;
-        while (page <= 10 && !clientUserId) {
-          const { data } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-          const found = data?.users?.find((u) => (u.email ?? '').toLowerCase() === email);
-          if (found) clientUserId = found.id;
-          if (!data?.users?.length || data.users.length < 1000) break;
-          page += 1;
-        }
+      let page = 1;
+      while (page <= 10 && !clientUserId) {
+        const { data } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+        const found = data?.users?.find((u) => (u.email ?? '').toLowerCase() === email);
+        if (found) clientUserId = found.id;
+        if (!data?.users?.length || data.users.length < 1000) break;
+        page += 1;
       }
     }
+
 
     const res = await pluggyFetch('/items?pageSize=200');
     if (!res.ok) {
