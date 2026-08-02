@@ -52,6 +52,9 @@ export default function Categorias() {
   const [batchSelectedCompanies, setBatchSelectedCompanies] = useState<Set<string>>(new Set());
   const [batchVisibilitySaving, setBatchVisibilitySaving] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "blocked">("all");
+  const [pendingToggle, setPendingToggle] = useState<{ cat: TreeNode; active: boolean; childIds: string[] } | null>(null);
+
 
   const handleSeedDefaults = async () => {
     if (!selectedCompanyId) return;
