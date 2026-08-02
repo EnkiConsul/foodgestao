@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+
 import { Badge } from "@/components/ui/badge";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -61,6 +63,8 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
   const [chartAccountId, setChartAccountId] = useState<string | null>(null);
   const [chartAccountPopoverOpen, setChartAccountPopoverOpen] = useState(false);
   const [visiblePf, setVisiblePf] = useState(true);
+  const [isActive, setIsActive] = useState(true);
+
   const [subtype, setSubtype] = useState<string>("");
   const [aiDescription, setAiDescription] = useState<string>("");
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
@@ -213,6 +217,8 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       setParentId(editCategory.parent_id ?? null);
       setChartAccountId((editCategory as any).chart_account_id ?? null);
       setVisiblePf((editCategory as any).visible_pf ?? true);
+      setIsActive((editCategory as any).is_active !== false);
+
       setSubtype((editCategory as any).category_subtype ?? "");
       setAiDescription((editCategory as any).ai_description ?? "");
       // Load linked companies
@@ -230,6 +236,8 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       setParentId(defaultParentId || null);
       setChartAccountId(null);
       setVisiblePf(true);
+      setIsActive(true);
+
       setSubtype("");
       setAiDescription("");
       setSelectedCompanies(new Set(companies.map((c) => c.id)));
@@ -332,7 +340,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
 
     if (editCategory) {
       const parentChanged = (editCategory.parent_id ?? null) !== (parentId ?? null);
-      const updatePayload: any = { name: finalName, transaction_type: type, color, parent_id: parentId || null, visible_pf: visiblePf, chart_account_id: chartAccountId, category_subtype: subtype || null, ai_description: aiDescription.trim() || null };
+      const updatePayload: any = { name: finalName, transaction_type: type, color, parent_id: parentId || null, visible_pf: visiblePf, is_active: isActive, chart_account_id: chartAccountId, category_subtype: subtype || null, ai_description: aiDescription.trim() || null };
       if (parentChanged) {
         updatePayload.sort_order = await computeNextSortOrder(parentId || null);
       }
@@ -375,6 +383,8 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
         context: contextType,
         parent_id: parentId || null,
         visible_pf: visiblePf,
+        is_active: isActive,
+
         chart_account_id: chartAccountId,
         sort_order: nextSort,
         category_subtype: subtype || null,
@@ -693,7 +703,28 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
 
             <div className="border-t" />
 
+            <Section title="Lançamentos" description="Define se esta categoria pode ser usada em novos lançamentos e na conciliação bancária.">
+              <div className="flex items-center justify-between gap-3 rounded-md border p-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Permitir lançamentos</p>
+                  <p className="text-xs text-muted-foreground">
+                    {isActive
+                      ? "Disponível para seleção em lançamentos e conciliação."
+                      : "Bloqueada: não aparece nos seletores de lançamentos nem na conciliação."}
+                  </p>
+                </div>
+                <Switch
+                  checked={isActive}
+                  onCheckedChange={setIsActive}
+                  aria-label="Permitir lançamentos nesta categoria"
+                />
+              </div>
+            </Section>
+
+            <div className="border-t" />
+
             <Section title="Visibilidade" description="Selecione onde esta categoria ficará disponível.">
+
               <label className="flex items-center gap-3 rounded-md border p-3 text-sm cursor-pointer hover:bg-accent/50 transition-colors">
                 <Checkbox checked={visiblePf} onCheckedChange={(v) => setVisiblePf(!!v)} />
                 Pessoa Física (PF)

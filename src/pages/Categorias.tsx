@@ -52,6 +52,9 @@ export default function Categorias() {
   const [batchSelectedCompanies, setBatchSelectedCompanies] = useState<Set<string>>(new Set());
   const [batchVisibilitySaving, setBatchVisibilitySaving] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "blocked">("all");
+  const [pendingToggle, setPendingToggle] = useState<{ cat: TreeNode; active: boolean; childIds: string[] } | null>(null);
+
 
   const handleSeedDefaults = async () => {
     if (!selectedCompanyId) return;
@@ -210,6 +213,60 @@ export default function Categorias() {
     refetchCatCompanies();
   }, [refetch, refetchCatCompanies]);
 
+  const applyActive = async (ids: string[], active: boolean) => {
+    if (ids.length === 0) return;
+    const results = await Promise.all(
+      ids.map((id) => supabase.from("categories").update({ is_active: active } as any).eq("id", id))
+    );
+    const errors = results.filter((r) => r.error);
+    if (errors.length > 0) {
+      toast.error(`Erro ao atualizar ${errors.length} categoria(s)`, {
+        description: errors[0].error?.message,
+      });
+    } else {
+      toast.success(
+        active
+          ? `Lançamentos permitidos em ${ids.length} categoria(s)`
+          : `Lançamentos bloqueados em ${ids.length} categoria(s)`
+      );
+    }
+    refetchAll();
+  };
+
+  const descendantIdsOf = useCallback(
+    (id: string) => {
+      const out: string[] = [];
+      const walk = (parentId: string) => {
+        for (const c of categories) {
+          if (c.parent_id === parentId) {
+            out.push(c.id);
+            walk(c.id);
+          }
+        }
+      };
+      walk(id);
+      return out;
+    },
+    [categories]
+  );
+
+  const handleToggleActive = (cat: TreeNode, active: boolean) => {
+    const childIds = descendantIdsOf(cat.id);
+    if (childIds.length > 0) {
+      setPendingToggle({ cat, active, childIds });
+      return;
+    }
+    applyActive([cat.id], active);
+  };
+
+  const handleBatchActive = async (active: boolean) => {
+    if (selected.size === 0) return;
+    await applyActive(Array.from(selected), active);
+    setSelected(new Set());
+  };
+
+
+
   const companyMap = useMemo(() => {
     const map = new Map<string, string>();
     companies.forEach((c) => map.set(c.id, c.name));
@@ -230,9 +287,12 @@ export default function Categorias() {
     return categories.filter((c) => {
       const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase());
       const matchType = filterType === "all" || c.transaction_type === filterType;
-      return matchSearch && matchType;
+      const active = (c as any).is_active !== false;
+      const matchStatus =
+        filterStatus === "all" || (filterStatus === "active" ? active : !active);
+      return matchSearch && matchType && matchStatus;
     });
-  }, [categories, search, filterType]);
+  }, [categories, search, filterType, filterStatus]);
 
   const tree = useMemo(() => buildCategoryTree(filtered), [filtered]);
 
@@ -359,13 +419,15 @@ export default function Categorias() {
       if (c.transaction_type === "entrada") receitas++;
       else if (c.transaction_type === "saida") despesas++;
     }
-    return { total: categories.length, receitas, despesas };
+    const blocked = categories.filter((c) => (c as any).is_active === false).length;
+    return { total: categories.length, receitas, despesas, blocked };
   }, [categories]);
 
-  const hasFilters = !!search || filterType !== "all";
+  const hasFilters = !!search || filterType !== "all" || filterStatus !== "all";
   const clearFilters = () => {
     setSearch("");
     setFilterType("all");
+    setFilterStatus("all");
   };
   const allCollapsed = (() => {
     const parents = tree.filter((c) => c.hasChildren).map((c) => c.id);
@@ -442,6 +504,14 @@ export default function Categorias() {
             </DropdownMenuContent>
           </DropdownMenu>
 
+          <Tabs value={filterStatus} onValueChange={(v) => setFilterStatus(v as "all" | "active" | "blocked")} className="max-w-full">
+            <TabsList className="h-8 overflow-x-auto flex w-auto">
+              <TabsTrigger value="all" className="text-xs px-2.5 h-7">Status: todas</TabsTrigger>
+              <TabsTrigger value="active" className="text-xs px-2.5 h-7">Permitem lançamentos</TabsTrigger>
+              <TabsTrigger value="blocked" className="text-xs px-2.5 h-7">Bloqueadas ({counts.blocked})</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           <Tabs value={filterType} onValueChange={setFilterType} className="max-w-full">
             <TabsList className="h-8 overflow-x-auto flex w-auto">
               <TabsTrigger value="all" className="text-xs px-2.5 h-7">Todas ({counts.total})</TabsTrigger>
@@ -491,6 +561,7 @@ export default function Categorias() {
             setBatchSelectedCompanies(new Set(companies.map((c) => c.id)));
             setBatchVisibilityOpen(true);
           }}
+          onBatchActive={handleBatchActive}
           onOpenDelete={() => setBatchDeleteOpen(true)}
           onClearSelection={() => setSelected(new Set())}
         />
@@ -552,6 +623,7 @@ export default function Categorias() {
                     onAddChild={openAddChild}
                     onDelete={setDeleteId}
                     companyMap={companyMap}
+                    onToggleActive={handleToggleActive}
                     catCompanyMap={catCompanyMap}
                   />
                 ))}
@@ -576,6 +648,7 @@ export default function Categorias() {
                   <TableHead className="text-xs">Descrição</TableHead>
                   <TableHead className="hidden md:table-cell w-24 text-xs text-center">Tipo</TableHead>
                   <TableHead className="text-xs hidden md:table-cell">Visibilidade</TableHead>
+                  <TableHead className="hidden md:table-cell w-32 text-xs text-center">Lançamentos</TableHead>
                   <TableHead className="w-[104px] md:w-28 text-xs text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -596,6 +669,7 @@ export default function Categorias() {
                           onAddChild={openAddChild}
                           onDelete={setDeleteId}
                           companyMap={companyMap}
+                          onToggleActive={handleToggleActive}
                           catCompanyMap={catCompanyMap}
                         />
                       ))}
@@ -603,7 +677,7 @@ export default function Categorias() {
                       {provided.placeholder}
                       {visibleTree.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">
+                          <TableCell colSpan={7} className="text-center py-8 text-sm text-muted-foreground">
                             <div className="flex flex-col items-center gap-2">
                               Nenhuma categoria encontrada
                               {hasFilters && (
@@ -672,6 +746,41 @@ export default function Categorias() {
             <AlertDialogCancel disabled={batchDeleting}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleBatchDelete} disabled={batchDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               {batchDeleting ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!pendingToggle} onOpenChange={(open) => !open && setPendingToggle(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingToggle?.active ? "Permitir lançamentos" : "Bloquear lançamentos"} nas subcategorias?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              A categoria "{pendingToggle?.cat.name}" possui {pendingToggle?.childIds.length} subcategoria(s).
+              Você pode aplicar a mesma regra a todas elas ou alterar somente esta categoria.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (pendingToggle) applyActive([pendingToggle.cat.id], pendingToggle.active);
+                setPendingToggle(null);
+              }}
+            >
+              Somente esta
+            </Button>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingToggle)
+                  applyActive([pendingToggle.cat.id, ...pendingToggle.childIds], pendingToggle.active);
+                setPendingToggle(null);
+              }}
+            >
+              Aplicar às subcategorias
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

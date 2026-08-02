@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChevronRight, GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
@@ -19,6 +20,7 @@ interface Props {
   onEdit: (cat: Category) => void;
   onAddChild: (cat: Category) => void;
   onDelete: (id: string) => void;
+  onToggleActive: (cat: TreeNode, active: boolean) => void;
   companyMap: Map<string, string>;
   catCompanyMap: Map<string, string[]>;
 }
@@ -33,11 +35,14 @@ export function CategoryRow({
   onEdit,
   onAddChild,
   onDelete,
+  onToggleActive,
   companyMap,
   catCompanyMap,
 }: Props) {
   const isGroup = cat.depth === 0;
   const guides = categoryGuideLevels(cat.depth);
+  const isActive = (cat as any).is_active !== false;
+
 
   return (
     <Draggable key={cat.id} draggableId={cat.id} index={index}>
@@ -46,7 +51,7 @@ export function CategoryRow({
           ref={provided.innerRef}
           {...provided.draggableProps}
           data-state={isSelected ? "selected" : undefined}
-          className={`group ${snapshot.isDragging ? "bg-muted shadow-md" : ""} ${isGroup ? "bg-muted/30" : ""}`}
+          className={`group ${snapshot.isDragging ? "bg-muted shadow-md" : ""} ${isGroup ? "bg-muted/30" : ""} ${isActive ? "" : "opacity-60"}`}
         >
           <TableCell className="py-1.5 px-2 md:px-4">
             <Checkbox
@@ -136,6 +141,27 @@ export function CategoryRow({
               )}
             </div>
           </TableCell>
+          <TableCell className="py-1.5 hidden md:table-cell text-center">
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <Switch
+                      checked={isActive}
+                      onCheckedChange={(v) => onToggleActive(cat, v)}
+                      aria-label={`${isActive ? "Bloquear" : "Permitir"} lançamentos em ${cat.name}`}
+                    />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>{isActive ? "Permite lançamentos" : "Bloqueada para lançamentos"}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </TableCell>
+
+
+
           <TableCell className="py-1.5 text-right">
             <div className="flex justify-end gap-0.5">
               <TooltipProvider delayDuration={300}>
