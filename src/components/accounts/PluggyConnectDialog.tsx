@@ -31,6 +31,7 @@ type ResumeState = {
   companyId?: string;
   itemIdToUpdate?: string;
   connectRequestId?: string | null;
+  connectorIds?: number[] | null;
   createdAt?: number;
 };
 
@@ -196,6 +197,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
         const resume = readResume();
         let accessToken: string | undefined;
         let resumeItemId: string | undefined = itemIdToUpdate;
+        let connectorIds: number[] | undefined;
 
         if (resume && resume.companyId === companyId) {
           requestIdRef.current = resume.connectRequestId ?? null;
@@ -203,6 +205,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
           // Já concluiu via webhook enquanto o usuário estava no app do banco?
           if (await checkConnectRequest()) { setLoading(false); return; }
           accessToken = resume.accessToken;
+          connectorIds = resume.connectorIds ?? undefined;
         }
 
         if (!accessToken) {
@@ -216,6 +219,9 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
           if (e || !data?.accessToken) throw new Error(e?.message ?? "connect_token_failed");
           accessToken = data.accessToken as string;
           requestIdRef.current = data.connectRequestId ?? requestIdRef.current;
+          connectorIds = Array.isArray(data.connectorIds) && data.connectorIds.length
+            ? (data.connectorIds as number[])
+            : undefined;
         }
 
         // Persiste dados para conseguir retomar após redirect de OF.
@@ -226,6 +232,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
             companyId,
             itemIdToUpdate: resumeItemId,
             connectRequestId: requestIdRef.current,
+            connectorIds: connectorIds ?? null,
             createdAt: Date.now(),
           } satisfies ResumeState),
         );
@@ -235,6 +242,10 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
           connectToken: accessToken,
           includeSandbox: false,
           updateItem: resumeItemId,
+          // Só mostra conectores de Open Finance / login simples. Conectores
+          // que pedem Client Id, Client Secret, chave privada e certificado
+          // (ex.: "Inter Empresas") ficam fora da lista.
+          ...(connectorIds ? { connectorIds } : {}),
           // Conectores Open Finance (C6, Itaú OF, Inter, etc.) exigem
           // redirecionar o topo do navegador para data.of.pluggy.ai / site do
           // banco. Sem oauthRedirectUri o widget tenta abrir em iframe e o

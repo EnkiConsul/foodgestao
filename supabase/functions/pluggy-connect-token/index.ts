@@ -1,6 +1,6 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { createConnectToken } from '../_shared/pluggy.ts';
+import { createConnectToken, pluggyFetch } from '../_shared/pluggy.ts';
 
 function isAllowedOauthRedirectUri(value: unknown): value is string {
   if (typeof value !== 'string') return false;
@@ -18,6 +18,41 @@ function isAllowedOauthRedirectUri(value: unknown): value is string {
       || url.hostname.endsWith('.lovableproject.com');
   } catch {
     return false;
+  }
+}
+
+/**
+ * Lista os connectorIds "amigáveis" (Open Finance / login simples), excluindo
+ * conectores que exigem credenciais de aplicação (Client Id/Secret, chave
+ * privada e certificado digital) — ex.: "Inter Empresas".
+ */
+async function listFriendlyConnectorIds(): Promise<number[] | undefined> {
+  try {
+    const res = await pluggyFetch('/connectors?countries=BR&sandbox=false');
+    if (!res.ok) return undefined;
+    const data = await res.json();
+    const results: any[] = Array.isArray(data?.results) ? data.results : [];
+    if (!results.length) return undefined;
+
+    const blockedField = (c: any) => {
+      const label = `${c?.label ?? ''} ${c?.name ?? ''}`.toLowerCase();
+      const type = String(c?.type ?? '').toLowerCase();
+      return type === 'file'
+        || /certificad|certificate|private\s*key|chave\s*privada|client\s*(id|secret)/.test(label);
+    };
+
+    const ids = results
+      .filter((c) => {
+        const creds: any[] = Array.isArray(c?.credentials) ? c.credentials : [];
+        return !creds.some(blockedField);
+      })
+      .map((c) => Number(c?.id))
+      .filter((id) => Number.isFinite(id));
+
+    return ids.length ? ids : undefined;
+  } catch (e) {
+    console.error('listFriendlyConnectorIds failed', e);
+    return undefined;
   }
 }
 
@@ -92,7 +127,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ accessToken: result.accessToken, connectRequestId }), {
+    const connectorIds = itemId ? undefined : await listFriendlyConnectorIds();
+
+    return new Response(JSON.stringify({ accessToken: result.accessToken, connectRequestId, connectorIds }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {
