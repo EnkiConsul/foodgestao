@@ -29,6 +29,7 @@ interface StagingRow {
   status: "pending" | "confirmed" | "ignored" | "duplicate";
   suggested_account_id: string | null;
   suggested_category_id: string | null;
+  matched_transaction_id?: string | null;
 }
 
 interface Connection {
@@ -131,6 +132,10 @@ export default function ConciliacaoPluggy() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [rowAccount, setRowAccount] = useState<Record<string, string>>({});
   const [rowCategory, setRowCategory] = useState<Record<string, string>>({});
+  /** "auto" = entrada/saída; "transfer" = transferência entre contas */
+  const [rowKind, setRowKind] = useState<Record<string, "auto" | "transfer">>({});
+  const [rowCounterpart, setRowCounterpart] = useState<Record<string, string>>({});
+  const [transferTxIds, setTransferTxIds] = useState<Set<string>>(new Set());
   const [rowBusy, setRowBusy] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState<null | "confirm" | "ignore">(null);
 
@@ -215,6 +220,21 @@ export default function ConciliacaoPluggy() {
     }
     setRowAccount((prev) => ({ ...acctMap, ...prev }));
     setRowCategory((prev) => ({ ...catMap, ...prev }));
+
+    // Marca quais lançamentos já conciliados viraram transferência (para o badge)
+    const matchedIds = ((staging ?? []) as StagingRow[])
+      .map((r) => r.matched_transaction_id)
+      .filter((v): v is string => !!v);
+    if (matchedIds.length > 0) {
+      const { data: txs } = await supabase
+        .from("transactions")
+        .select("id")
+        .in("id", matchedIds.slice(0, 500))
+        .eq("transaction_type", "transferencia");
+      setTransferTxIds(new Set(((txs ?? []) as { id: string }[]).map((t) => t.id)));
+    } else {
+      setTransferTxIds(new Set());
+    }
     setLoading(false);
   }, [selectedCompanyId, scopedLocalAccountId]);
 
@@ -285,11 +305,43 @@ export default function ConciliacaoPluggy() {
       byAccount[acctId].push(id);
     }
 
+    // Transferências exigem a conta contraparte
+    for (const id of ids) {
+      if (rowKind[id] === "transfer" && !rowCounterpart[id]) {
+        toast.error("Selecione a conta da contraparte nas transferências");
+        return;
+      }
+    }
+
     let ok = 0;
+    let mirrors = 0;
     for (const [acctId, staging_ids] of Object.entries(byAccount)) {
-      // All share same account, but categories may differ — call once per (account,category) group
+      const transferIds = staging_ids.filter((sid) => rowKind[sid] === "transfer");
+      const normalIds = staging_ids.filter((sid) => rowKind[sid] !== "transfer");
+
+      // Transferências: uma chamada por conta contraparte
+      const byCounterpart: Record<string, string[]> = {};
+      for (const sid of transferIds) {
+        const cp = rowCounterpart[sid]!;
+        byCounterpart[cp] = byCounterpart[cp] ?? [];
+        byCounterpart[cp].push(sid);
+      }
+      for (const [cp, sids] of Object.entries(byCounterpart)) {
+        if (cp === acctId) { toast.error("A contraparte deve ser diferente da conta do extrato"); continue; }
+        const { data, error } = await supabase.rpc("pluggy_confirm_staging_transfer", {
+          p_staging_ids: sids,
+          p_account_id: acctId,
+          p_counterpart_account_id: cp,
+        });
+        if (error) { toast.error("Falha ao confirmar transferência: " + error.message); continue; }
+        const list = (Array.isArray(data) ? data : []) as { mirror_staging_id: string | null }[];
+        ok += list.length;
+        mirrors += list.filter((d) => d.mirror_staging_id).length;
+      }
+
+      // Lançamentos comuns: uma chamada por (conta, categoria)
       const byCat: Record<string, string[]> = {};
-      for (const sid of staging_ids) {
+      for (const sid of normalIds) {
         const cat = rowCategory[sid] ?? "__none__";
         byCat[cat] = byCat[cat] ?? [];
         byCat[cat].push(sid);
@@ -305,6 +357,13 @@ export default function ConciliacaoPluggy() {
       }
     }
     toast.success(ok === 1 ? "Lançamento confirmado" : `${ok} lançamentos confirmados`);
+    if (mirrors > 0) {
+      toast.info(
+        mirrors === 1
+          ? "A outra ponta da transferência foi marcada como duplicada"
+          : `${mirrors} lançamentos espelho marcados como duplicados`,
+      );
+    }
     setSelected(new Set());
     load();
   };
@@ -439,6 +498,34 @@ export default function ConciliacaoPluggy() {
               Limpar seleção
             </Button>
           )}
+          {selected.size > 0 && (
+            <Select
+              value=""
+              onValueChange={(v) => {
+                const ids = Array.from(selected);
+                setRowKind((p) => {
+                  const next = { ...p };
+                  ids.forEach((id) => { next[id] = "transfer"; });
+                  return next;
+                });
+                setRowCounterpart((p) => {
+                  const next = { ...p };
+                  ids.forEach((id) => { next[id] = v; });
+                  return next;
+                });
+                toast.info(`${ids.length} lançamento(s) marcados como transferência`);
+              }}
+            >
+              <SelectTrigger className="h-8 w-[240px] text-xs">
+                <SelectValue placeholder="Marcar como transferência p/…" />
+              </SelectTrigger>
+              <SelectContent>
+                {accounts.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <div className="ml-auto flex gap-2">
             <Button size="sm" variant="outline" onClick={ignoreSelected} disabled={selected.size === 0 || bulkBusy !== null}>
               {bulkBusy === "ignore"
@@ -478,7 +565,8 @@ export default function ConciliacaoPluggy() {
                 <th className="p-2 text-left">Descrição</th>
                 <th className="p-2 text-right">Valor</th>
                 <th className="p-2 text-left">Conta destino</th>
-                <th className="p-2 text-left">Categoria</th>
+                <th className="p-2 text-left">Tipo</th>
+                <th className="p-2 text-left">Categoria / contraparte</th>
                 <th className="p-2 text-center">Status</th>
                 <th className="p-2 text-right">Ações</th>
               </tr>
@@ -523,44 +611,89 @@ export default function ConciliacaoPluggy() {
                     </td>
                     <td className="p-2">
                       <Select
-                        value={rowCategory[r.id] ?? ""}
-                        onValueChange={(v) => setRowCategory((p) => ({ ...p, [r.id]: v }))}
+                        value={rowKind[r.id] ?? "auto"}
+                        onValueChange={(v) => setRowKind((p) => ({ ...p, [r.id]: v as "auto" | "transfer" }))}
                         disabled={disabled}
                       >
-                        <SelectTrigger className="h-8 min-w-[160px] text-xs"><SelectValue placeholder="Sem categoria" /></SelectTrigger>
-                        <SelectContent className="max-h-[420px]">
-                          <SelectGroup>
-                            <SelectLabel className="sticky top-0 z-10 bg-popover border-b text-[10px] uppercase tracking-wide text-muted-foreground">
-                              Sugeridas ({isEntrada ? "entradas" : "saídas"})
-                            </SelectLabel>
-                            {renderCategoryItems(isEntrada ? categoryOptionsReceita : categoryOptionsDespesa)}
-                          </SelectGroup>
-                          <SelectGroup>
-                            <SelectLabel className="sticky top-0 z-10 bg-popover border-y text-[10px] uppercase tracking-wide text-warning">
-                              Outras categorias — {isEntrada ? "saídas" : "entradas"} (estorno)
-                            </SelectLabel>
-                            {renderCategoryItems(isEntrada ? categoryOptionsDespesa : categoryOptionsReceita)}
-                          </SelectGroup>
+                        <SelectTrigger className="h-8 min-w-[160px] text-xs" aria-label="Tipo do lançamento">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto">{isEntrada ? "Entrada" : "Saída"}</SelectItem>
+                          <SelectItem value="transfer">Transferência entre contas</SelectItem>
                         </SelectContent>
-
                       </Select>
-                      {rowCategory[r.id] &&
-                        categoryTypeById[rowCategory[r.id]] === (isEntrada ? "saida" : "entrada") && (
-                        <p className="mt-1 flex items-center gap-1 text-[10px] text-warning">
-                          <AlertTriangle className="h-3 w-3" /> Estorno: categoria de tipo oposto ao valor
-                        </p>
+                    </td>
+                    <td className="p-2">
+                      {(rowKind[r.id] ?? "auto") === "transfer" ? (
+                        <>
+                          <Select
+                            value={rowCounterpart[r.id] ?? ""}
+                            onValueChange={(v) => setRowCounterpart((p) => ({ ...p, [r.id]: v }))}
+                            disabled={disabled}
+                          >
+                            <SelectTrigger className="h-8 min-w-[180px] text-xs">
+                              <SelectValue placeholder={isEntrada ? "Conta de origem…" : "Conta de destino…"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {accounts
+                                .filter((a) => a.id !== (rowAccount[r.id] ?? linkedByPluggyAccount[r.pluggy_account_id]))
+                                .map((a) => (
+                                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="mt-1 text-[10px] text-muted-foreground">
+                            {isEntrada ? "Dinheiro recebido desta conta" : "Dinheiro enviado para esta conta"} — sem receita/despesa
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <Select
+                            value={rowCategory[r.id] ?? ""}
+                            onValueChange={(v) => setRowCategory((p) => ({ ...p, [r.id]: v }))}
+                            disabled={disabled}
+                          >
+                            <SelectTrigger className="h-8 min-w-[160px] text-xs"><SelectValue placeholder="Sem categoria" /></SelectTrigger>
+                            <SelectContent className="max-h-[420px]">
+                              <SelectGroup>
+                                <SelectLabel className="sticky top-0 z-10 bg-popover border-b text-[10px] uppercase tracking-wide text-muted-foreground">
+                                  Sugeridas ({isEntrada ? "entradas" : "saídas"})
+                                </SelectLabel>
+                                {renderCategoryItems(isEntrada ? categoryOptionsReceita : categoryOptionsDespesa)}
+                              </SelectGroup>
+                              <SelectGroup>
+                                <SelectLabel className="sticky top-0 z-10 bg-popover border-y text-[10px] uppercase tracking-wide text-warning">
+                                  Outras categorias — {isEntrada ? "saídas" : "entradas"} (estorno)
+                                </SelectLabel>
+                                {renderCategoryItems(isEntrada ? categoryOptionsDespesa : categoryOptionsReceita)}
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
+                          {rowCategory[r.id] &&
+                            categoryTypeById[rowCategory[r.id]] === (isEntrada ? "saida" : "entrada") && (
+                            <p className="mt-1 flex items-center gap-1 text-[10px] text-warning">
+                              <AlertTriangle className="h-3 w-3" /> Estorno: categoria de tipo oposto ao valor
+                            </p>
+                          )}
+                        </>
                       )}
                     </td>
 
                     <td className="p-2 text-center">
-                      {r.status === "pending" && <Badge variant="outline">Pendente</Badge>}
-                      {r.status === "confirmed" && <Badge className="bg-success/15 text-success border-success/30">Confirmado</Badge>}
-                      {r.status === "ignored" && <Badge variant="secondary">Ignorado</Badge>}
-                      {r.status === "duplicate" && (
-                        <Badge className="bg-warning/15 text-warning border-warning/30">
-                          <AlertTriangle className="h-3 w-3 mr-1" />Duplicado
-                        </Badge>
-                      )}
+                      <div className="flex flex-wrap items-center justify-center gap-1">
+                        {r.status === "pending" && <Badge variant="outline">Pendente</Badge>}
+                        {r.status === "confirmed" && <Badge className="bg-success/15 text-success border-success/30">Confirmado</Badge>}
+                        {r.status === "ignored" && <Badge variant="secondary">Ignorado</Badge>}
+                        {r.status === "duplicate" && (
+                          <Badge className="bg-warning/15 text-warning border-warning/30">
+                            <AlertTriangle className="h-3 w-3 mr-1" />Duplicado
+                          </Badge>
+                        )}
+                        {r.matched_transaction_id && transferTxIds.has(r.matched_transaction_id) && (
+                          <Badge variant="secondary" className="text-[10px]">Transferência</Badge>
+                        )}
+                      </div>
                     </td>
                     <td className="p-2">
                       {r.status === "pending" ? (
