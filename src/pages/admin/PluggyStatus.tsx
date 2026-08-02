@@ -132,7 +132,7 @@ export default function AdminPluggyStatus() {
     setConnStep({ state: "loading" });
 
     const tokenP = supabase.functions
-      .invoke("pluggy-connect-token", { body: {} })
+      .invoke("pluggy-connect-token", { body: { probe: true } })
       .then(({ data, error }) => {
         if (error) {
           setTokenStep({
