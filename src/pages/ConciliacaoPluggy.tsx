@@ -565,7 +565,8 @@ export default function ConciliacaoPluggy() {
                 <th className="p-2 text-left">Descrição</th>
                 <th className="p-2 text-right">Valor</th>
                 <th className="p-2 text-left">Conta destino</th>
-                <th className="p-2 text-left">Categoria</th>
+                <th className="p-2 text-left">Tipo</th>
+                <th className="p-2 text-left">Categoria / contraparte</th>
                 <th className="p-2 text-center">Status</th>
                 <th className="p-2 text-right">Ações</th>
               </tr>
