@@ -59,10 +59,47 @@ Deno.serve(async (req) => {
       .eq('pluggy_item_id', itemId)
       .maybeSingle();
 
+    // Fallback: resolve company via connect request (service-role/webhook path,
+    // quando o navegador não conclui o fluxo — ex.: Open Finance por QR Code).
+    let connectRequestId: string | null =
+      typeof body?.connect_request_id === 'string' ? body.connect_request_id : null;
+
+    if (!existing && !companyId) {
+      let q = admin
+        .from('pluggy_connect_requests')
+        .select('id, company_id, user_id')
+        .eq('status', 'open')
+        .gt('expires_at', new Date().toISOString());
+
+      if (connectRequestId) q = q.eq('id', connectRequestId);
+      else q = q.or(`resolved_item_id.eq.${itemId},resolved_item_id.is.null`);
+
+      const { data: reqRow } = await q
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (reqRow) {
+        companyId = reqRow.company_id;
+        connectRequestId = reqRow.id;
+      }
+    }
+
     if (!existing && !companyId) {
       return new Response(JSON.stringify({ error: 'company_id_required_on_first_connect' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    if (connectRequestId) {
+      await admin
+        .from('pluggy_connect_requests')
+        .update({
+          resolved_item_id: itemId,
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', connectRequestId);
     }
 
     const effectiveCompanyId = existing?.company_id ?? companyId!;
