@@ -73,6 +73,35 @@ function buildCategoryOptions(cats: CategoryOpt[], type: string): { cat: Categor
   return nodes.filter((n) => keep.has(n.id)).map((n) => ({ cat: n, depth: n.depth }));
 }
 
+/** Itens do seletor de categoria (mesma apresentação da página /categorias). */
+function renderCategoryItems(options: { cat: CategoryOpt; depth: number }[]) {
+  return options.map(({ cat, depth }) => (
+    <SelectItem key={cat.id} value={cat.id} disabled={cat.is_active === false}>
+      <span className="flex items-center gap-2 min-w-0">
+        <span className="flex shrink-0" aria-hidden>
+          {categoryGuideLevels(depth).map((i) => (
+            <span
+              key={i}
+              className="inline-block border-l border-border/60 h-4"
+              style={{ width: CATEGORY_INDENT_STEP }}
+            />
+          ))}
+        </span>
+        <span
+          className="h-2.5 w-2.5 rounded-full shrink-0"
+          style={{ backgroundColor: cat.color ?? "#94a3b8" }}
+          aria-hidden
+        />
+        <span className={cn("truncate", depth === 0 && "font-semibold")}>{cat.name}</span>
+        <CategoryTypeBadge type={cat.transaction_type} className="ml-1 shrink-0" />
+        {cat.is_active === false && (
+          <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px] shrink-0">Bloqueada</Badge>
+        )}
+      </span>
+    </SelectItem>
+  ));
+}
+
 
 export default function ConciliacaoPluggy() {
   const navigate = useNavigate();
