@@ -215,6 +215,8 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       setParentId(editCategory.parent_id ?? null);
       setChartAccountId((editCategory as any).chart_account_id ?? null);
       setVisiblePf((editCategory as any).visible_pf ?? true);
+      setIsActive((editCategory as any).is_active !== false);
+
       setSubtype((editCategory as any).category_subtype ?? "");
       setAiDescription((editCategory as any).ai_description ?? "");
       // Load linked companies
