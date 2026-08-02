@@ -490,7 +490,7 @@ export default function ConciliacaoPluggy() {
 
 
       {pendingFiltered.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-md border border-primary/40 bg-primary/5 p-2">
+        <div className="flex flex-col gap-2 rounded-md border border-primary/40 bg-primary/5 p-2 sm:flex-row sm:flex-wrap sm:items-center">
           <span className="text-sm" role="status" aria-live="polite">
             {selected.size > 0
               ? `${selected.size} de ${pendingFiltered.length} pendente(s) selecionado(s)`
