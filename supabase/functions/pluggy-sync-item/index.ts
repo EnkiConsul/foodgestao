@@ -155,7 +155,19 @@ Deno.serve(async (req) => {
     }
 
     // 1) Fetch item metadata (e, quando aplicável, dispara uma nova coleta no banco)
-    let item = await getItem(itemId);
+    let item;
+    try {
+      item = await getItem(itemId);
+    } catch (error) {
+      const message = String(error);
+      if (connectRequestId && (message.includes('get_item_failed: 400') || message.includes('get_item_failed: 404'))) {
+        await admin
+          .from('pluggy_connect_requests')
+          .update({ status: 'failed', last_error: 'item_not_found_in_production' })
+          .eq('id', connectRequestId);
+      }
+      throw error;
+    }
 
     // Só conclui a solicitação depois que a Pluggy confirmou que o item existe
     // no ambiente atual. Isso evita persistir IDs antigos de sandbox como se a
@@ -460,18 +472,6 @@ Deno.serve(async (req) => {
     const msg = String(e);
     // Item inexistente/inválido na Pluggy não é falha do servidor.
     if (msg.includes('get_item_failed: 400') || msg.includes('get_item_failed: 404')) {
-      const body = await req.clone().json().catch(() => ({}));
-      const failedItemId = typeof body?.item_id === 'string' ? body.item_id : null;
-      if (failedItemId) {
-        await admin
-          .from('pluggy_connect_requests')
-          .update({
-            status: 'failed',
-            last_error: 'item_not_found_in_production',
-          })
-          .eq('resolved_item_id', failedItemId)
-          .neq('status', 'completed');
-      }
       return new Response(JSON.stringify({
         error: 'item_not_found_in_pluggy',
         message: 'Esta conexão não existe no ambiente de produção. Inicie uma nova conexão Open Finance; IDs antigos de sandbox não podem ser vinculados.',
