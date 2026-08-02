@@ -1,27 +1,42 @@
-## Contexto
+## Objetivo
 
-O widget da Pluggy foi aberto com o conector **Inter Empresas**, que não é Open Finance: é a API de Conta Digital PJ do Inter, autenticada por mTLS. Por isso ele pede Client Id, Client Secret e upload de `.key` (Private Key) e `.crt` (Certificate) — arquivos que só existem se você criar uma aplicação no Internet Banking Inter.
+Adicionar, na tela **Categorias**, um botão (switch) **Permitir lançamentos** por categoria. Ativo: a categoria aparece e recebe lançamentos. Inativo: não aparece nos seletores de lançamento nem na conciliação bancária.
 
-O conector correto para o fluxo com login + QR Code é o **Inter** (Open Finance), sem certificado.
+## Situação atual (verificada)
 
-## O que vou implementar
+- A tabela `categories` já tem a coluna `is_active` (boolean, default `true`), hoje sem nenhum controle na interface.
+- A função de banco `get_accessible_categories` (usada pelo formulário de lançamentos) já filtra `is_active = true`.
+- A conciliação bancária (`src/pages/ConciliacaoPluggy.tsx`) já filtra `is_active = true` na busca de categorias.
+- A tela `/categorias` lista as categorias sem filtrar `is_active`, então serve para gerenciar ativas e inativas.
 
-### 1. Tela de orientação antes de abrir o widget
-Em `src/components/accounts/PluggyConnectDialog.tsx`, inserir um passo inicial (antes de carregar o script/pedir o token) com:
-- Instrução curta: procure o banco pelo nome simples (ex.: "Inter", "C6 Bank", "Itaú").
-- Alerta destacado: conectores com sufixo **"Empresas" / "Business" / "Corporate"** usam API própria do banco e vão pedir Client Id, Client Secret, chave privada e certificado — escolha-os só se você já tiver esses arquivos.
-- Botão primário "Continuar para o banco" e secundário "Cancelar".
-- Um checkbox "Não mostrar novamente" persistido em `localStorage`, para não atrapalhar quem já conhece o fluxo.
+Ou seja: o bloqueio já existe no back-end; falta o controle visual e a coerência de exibição.
 
-### 2. Passo a passo específico do Inter
-No mesmo aviso, um bloco recolhível "Conectar Inter PJ" explicando: buscar **Inter**, autorizar com CNPJ/conta, ler o QR Code no app Inter Empresas, e voltar ao 360°FOOD para a importação automática (que já ficou resiliente após a correção anterior de conexões por QR Code).
+## O que será feito
 
-### 3. Nenhuma mudança de backend
-Sem migração, sem alteração em Edge Functions. Nada de filtro forçado na lista de conectores — os conectores mTLS continuam disponíveis para quem quiser usá-los, apenas com aviso claro.
+1. **Switch na linha da categoria** (`CategoryRow.tsx` desktop e `CategoryMobileRow.tsx`)
+   - Novo controle com `aria-label` "Permitir lançamentos em {nome}" e tooltip explicativa.
+   - Atualização otimista + `toast` de confirmação; erro reverte o estado.
+   - Categorias inativas ficam com nome esmaecido e badge **"Sem lançamentos"**.
+
+2. **Persistência e regra de hierarquia** (`src/pages/Categorias.tsx`)
+   - `handleToggleAllowTransactions(id, value)` grava `is_active` e recarrega a lista.
+   - Ao desativar uma categoria com filhas, perguntar em diálogo se deve aplicar às subcategorias (evita filha ativa sob pai inativo, que hoje some do seletor junto com o pai).
+
+3. **Ações em lote**
+   - Em `BatchActionBar.tsx`: "Permitir lançamentos" / "Bloquear lançamentos" para a seleção atual.
+
+4. **Formulário da categoria** (`CategoryFormDialog.tsx`)
+   - Campo "Permitir lançamentos" (default ativo) ao criar/editar, alinhado ao switch da listagem.
+   - O seletor de categoria-pai continua listando inativas (para manter a estrutura), sinalizando o status.
+
+5. **Filtro na listagem**
+   - Filtro rápido: Todas / Somente com lançamentos / Somente bloqueadas.
+
+6. **Reforço no banco (opcional, recomendado)**
+   - Trigger em `transactions` que rejeita `INSERT`/`UPDATE` apontando para categoria com `is_active = false`, garantindo a regra também via importações e integrações.
 
 ## Detalhes técnicos
 
-- Novo estado local `phase: 'intro' | 'launching' | 'running' | 'error'` no dialog; o efeito que carrega o script e pede o connect token passa a rodar somente quando `phase === 'launching'`.
-- O fluxo de retomada (`hasPluggyResume()` / polling do `pluggy_connect_requests`) pula o `intro` e vai direto para a verificação, para não interromper conexões em andamento.
-- Chave de preferência: `pluggy_connect_intro_dismissed_v1` em `localStorage`.
-- Sem novas dependências; usa `Button`, `Checkbox` e tokens semânticos existentes.
+- Componente `Switch` do shadcn já disponível; nenhuma dependência nova.
+- Invalidação de caches: `categories-page`, `form-categories` e recarga da conciliação, para o efeito ser imediato nas outras telas.
+- Testes: caso unitário para a regra de propagação pai→filhas e ajuste dos testes de exibição de badges de categoria.
