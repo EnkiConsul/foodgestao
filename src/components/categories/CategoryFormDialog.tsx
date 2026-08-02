@@ -338,7 +338,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
 
     if (editCategory) {
       const parentChanged = (editCategory.parent_id ?? null) !== (parentId ?? null);
-      const updatePayload: any = { name: finalName, transaction_type: type, color, parent_id: parentId || null, visible_pf: visiblePf, chart_account_id: chartAccountId, category_subtype: subtype || null, ai_description: aiDescription.trim() || null };
+      const updatePayload: any = { name: finalName, transaction_type: type, color, parent_id: parentId || null, visible_pf: visiblePf, is_active: isActive, chart_account_id: chartAccountId, category_subtype: subtype || null, ai_description: aiDescription.trim() || null };
       if (parentChanged) {
         updatePayload.sort_order = await computeNextSortOrder(parentId || null);
       }
