@@ -496,7 +496,7 @@ export default function ConciliacaoPluggy() {
                         <SelectTrigger className="h-8 min-w-[160px] text-xs"><SelectValue placeholder="Sem categoria" /></SelectTrigger>
                         <SelectContent className="max-h-72">
                           {(isEntrada ? categoryOptionsReceita : categoryOptionsDespesa).map(({ cat, depth }) => (
-                            <SelectItem key={cat.id} value={cat.id}>
+                            <SelectItem key={cat.id} value={cat.id} disabled={cat.is_active === false}>
                               <span className="flex items-center gap-2 min-w-0">
                                 <span className="flex shrink-0" aria-hidden>
                                   {categoryGuideLevels(depth).map((i) => (
@@ -514,8 +514,12 @@ export default function ConciliacaoPluggy() {
                                 />
                                 <span className={cn("truncate", depth === 0 && "font-semibold")}>{cat.name}</span>
                                 <CategoryTypeBadge type={cat.transaction_type} className="ml-1 shrink-0" />
+                                {cat.is_active === false && (
+                                  <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px] shrink-0">Bloqueada</Badge>
+                                )}
                               </span>
                             </SelectItem>
+
                           ))}
                         </SelectContent>
                       </Select>
