@@ -408,23 +408,30 @@ export default function ConciliacaoPluggy() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/contas-bancarias")} aria-label="Voltar">
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold tracking-tight">
-            {scope
-              ? `Conciliação — ${scope.name ?? connections.find((c) => c.id === scope.connectionId)?.connector_name ?? "Conta"}`
-              : "Conciliação Open Finance"}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {scope
-              ? "Lançamentos importados apenas desta conta bancária."
-              : "Revise, categorize e confirme os lançamentos importados dos bancos conectados."}
-          </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex items-start gap-2">
+          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate("/contas-bancarias")} aria-label="Voltar">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
+              {scope
+                ? `Conciliação — ${scope.name ?? connections.find((c) => c.id === scope.connectionId)?.connector_name ?? "Conta"}`
+                : "Conciliação Open Finance"}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {scope
+                ? "Lançamentos importados apenas desta conta bancária."
+                : "Revise, categorize e confirme os lançamentos importados dos bancos conectados."}
+            </p>
+          </div>
         </div>
-        <Button onClick={syncNow} disabled={syncing || connections.length === 0} variant="outline">
+        <Button
+          onClick={syncNow}
+          disabled={syncing || connections.length === 0}
+          variant="outline"
+          className="w-full sm:ml-auto sm:w-auto"
+        >
           {syncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
           Sincronizar
         </Button>
@@ -432,16 +439,16 @@ export default function ConciliacaoPluggy() {
 
       <div className="grid grid-cols-3 gap-2">
         <Card><CardContent className="p-3">
-          <p className="text-xs text-muted-foreground">Pendentes</p>
-          <p className="text-lg font-bold text-warning">{counts.pending}</p>
+          <p className="text-[11px] text-muted-foreground sm:text-xs">Pendentes</p>
+          <p className="text-base font-bold text-warning sm:text-lg">{counts.pending}</p>
         </CardContent></Card>
         <Card><CardContent className="p-3">
-          <p className="text-xs text-muted-foreground">Confirmados</p>
-          <p className="text-lg font-bold text-success">{counts.confirmed}</p>
+          <p className="text-[11px] text-muted-foreground sm:text-xs">Confirmados</p>
+          <p className="text-base font-bold text-success sm:text-lg">{counts.confirmed}</p>
         </CardContent></Card>
         <Card><CardContent className="p-3">
-          <p className="text-xs text-muted-foreground">Ignorados</p>
-          <p className="text-lg font-bold text-muted-foreground">{counts.ignored}</p>
+          <p className="text-[11px] text-muted-foreground sm:text-xs">Ignorados</p>
+          <p className="text-base font-bold text-muted-foreground sm:text-lg">{counts.ignored}</p>
         </CardContent></Card>
       </div>
 
@@ -454,10 +461,10 @@ export default function ConciliacaoPluggy() {
         </Card>
       )}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         {!scope && (
           <Select value={connectionId} onValueChange={setConnectionId}>
-            <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[220px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas as conexões</SelectItem>
               {connections.map((c) => (
@@ -467,7 +474,7 @@ export default function ConciliacaoPluggy() {
           </Select>
         )}
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-[160px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="pending">Pendentes</SelectItem>
             <SelectItem value="confirmed">Confirmados</SelectItem>
@@ -475,11 +482,12 @@ export default function ConciliacaoPluggy() {
             <SelectItem value="all">Todos</SelectItem>
           </SelectContent>
         </Select>
-        <div className="relative flex-1 min-w-[180px]">
+        <div className="relative w-full sm:flex-1 sm:min-w-[180px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar descrição..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
       </div>
+
 
       {pendingFiltered.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 rounded-md border border-primary/40 bg-primary/5 p-2">
