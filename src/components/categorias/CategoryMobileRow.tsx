@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +22,7 @@ interface Props {
   onEdit: (cat: Category) => void;
   onAddChild: (cat: Category) => void;
   onDelete: (id: string) => void;
+  onToggleActive: (cat: TreeNode, active: boolean) => void;
   companyMap: Map<string, string>;
   catCompanyMap: Map<string, string[]>;
 }
@@ -35,12 +37,14 @@ export function CategoryMobileRow({
   onEdit,
   onAddChild,
   onDelete,
+  onToggleActive,
   companyMap,
   catCompanyMap,
 }: Props) {
   const isGroup = cat.depth === 0;
   const guides = categoryGuideLevels(cat.depth);
   const companies = catCompanyMap.get(cat.id) || [];
+  const isActive = (cat as any).is_active !== false;
 
   return (
     <li
@@ -48,8 +52,9 @@ export function CategoryMobileRow({
       aria-level={cat.depth + 1}
       aria-selected={isSelected}
       aria-expanded={cat.hasChildren ? !isCollapsed : undefined}
-      className={`flex items-stretch gap-2 px-2 py-2 ${isGroup ? "bg-muted/40" : ""}`}
+      className={`flex items-stretch gap-2 px-2 py-2 ${isGroup ? "bg-muted/40" : ""} ${isActive ? "" : "opacity-60"}`}
     >
+
       <div className="flex items-center pl-1">
         <Checkbox
           checked={isSelected}
