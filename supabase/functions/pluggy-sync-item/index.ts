@@ -121,17 +121,28 @@ Deno.serve(async (req) => {
         const probe = await getItem(itemId);
         const clientUserId: string | null = probe?.clientUserId ?? null;
         if (clientUserId) {
+          const candidates = new Set<string>();
           const { data: memberships } = await admin
             .from('company_members')
             .select('company_id, companies!inner(id, is_active)')
             .eq('user_id', clientUserId)
             .eq('companies.is_active', true);
-          if (memberships?.length === 1) {
-            companyId = memberships[0].company_id;
+          for (const m of memberships ?? []) candidates.add(m.company_id as string);
+
+          // Donos podem não ter linha em company_members.
+          const { data: owned } = await admin
+            .from('companies')
+            .select('id')
+            .eq('user_id', clientUserId)
+            .eq('is_active', true);
+          for (const c of owned ?? []) candidates.add(c.id as string);
+
+          if (candidates.size === 1) {
+            companyId = [...candidates][0];
             console.log(`resolved company via clientUserId ${clientUserId} -> ${companyId}`);
           } else {
             console.error(
-              `cannot resolve company for item ${itemId}: clientUserId=${clientUserId} companies=${memberships?.length ?? 0}`,
+              `cannot resolve company for item ${itemId}: clientUserId=${clientUserId} companies=${candidates.size}`,
             );
           }
         }
