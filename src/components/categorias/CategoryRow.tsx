@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChevronRight, GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
@@ -19,6 +20,7 @@ interface Props {
   onEdit: (cat: Category) => void;
   onAddChild: (cat: Category) => void;
   onDelete: (id: string) => void;
+  onToggleActive: (cat: TreeNode, active: boolean) => void;
   companyMap: Map<string, string>;
   catCompanyMap: Map<string, string[]>;
 }
@@ -33,11 +35,14 @@ export function CategoryRow({
   onEdit,
   onAddChild,
   onDelete,
+  onToggleActive,
   companyMap,
   catCompanyMap,
 }: Props) {
   const isGroup = cat.depth === 0;
   const guides = categoryGuideLevels(cat.depth);
+  const isActive = (cat as any).is_active !== false;
+
 
   return (
     <Draggable key={cat.id} draggableId={cat.id} index={index}>
