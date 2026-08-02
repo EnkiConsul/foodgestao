@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils";
 import { CATEGORY_INDENT_STEP, categoryGuideLevels } from "@/lib/categories/display";
 import { CategoryTypeBadge } from "@/components/categorias/CategoryTypeBadge";
 import { buildCategoryTree, type Category } from "@/lib/categories/tree";
+import { StagingCard } from "@/components/conciliacao/StagingCard";
+
 
 interface StagingRow {
   id: string;
