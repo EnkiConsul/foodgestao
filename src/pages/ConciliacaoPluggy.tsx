@@ -47,6 +47,7 @@ interface CategoryOpt {
   parent_id: string | null;
   sort_order: number | null;
   color: string | null;
+  is_active?: boolean | null;
 }
 interface ScopeInfo { pluggyAccountId: string; connectionId: string; name: string | null; }
 
@@ -55,6 +56,8 @@ interface ScopeInfo { pluggyAccountId: string; connectionId: string; name: strin
  * (helper compartilhado). Itens cujo pai não está vinculado à empresa não são
  * promovidos a raiz — ficam de fora, exatamente como em /categorias.
  * O filtro por tipo preserva os pais quando existe filho do tipo desejado.
+ * Categorias bloqueadas (is_active = false) continuam visíveis como estrutura,
+ * mas não podem ser selecionadas.
  */
 function buildCategoryOptions(cats: CategoryOpt[], type: string): { cat: CategoryOpt; depth: number }[] {
   const nodes = buildCategoryTree(cats as unknown as Category[]) as unknown as (CategoryOpt & { depth: number })[];
@@ -69,6 +72,7 @@ function buildCategoryOptions(cats: CategoryOpt[], type: string): { cat: Categor
   }
   return nodes.filter((n) => keep.has(n.id)).map((n) => ({ cat: n, depth: n.depth }));
 }
+
 
 export default function ConciliacaoPluggy() {
   const navigate = useNavigate();
@@ -142,10 +146,10 @@ export default function ConciliacaoPluggy() {
         _context: "pj", _company_id: selectedCompanyId, _include_inactive: false,
       }),
       supabase.from("categories")
-        .select("id, name, transaction_type, parent_id, sort_order, color, category_companies!inner(company_id)")
+        .select("id, name, transaction_type, parent_id, sort_order, color, is_active, category_companies!inner(company_id)")
         .or("context.is.null,context.eq.pj")
         .eq("category_companies.company_id", selectedCompanyId)
-        .eq("is_active", true)
+
         .order("parent_id", { nullsFirst: true })
         .order("sort_order")
         .order("name"),
@@ -492,7 +496,7 @@ export default function ConciliacaoPluggy() {
                         <SelectTrigger className="h-8 min-w-[160px] text-xs"><SelectValue placeholder="Sem categoria" /></SelectTrigger>
                         <SelectContent className="max-h-72">
                           {(isEntrada ? categoryOptionsReceita : categoryOptionsDespesa).map(({ cat, depth }) => (
-                            <SelectItem key={cat.id} value={cat.id}>
+                            <SelectItem key={cat.id} value={cat.id} disabled={cat.is_active === false}>
                               <span className="flex items-center gap-2 min-w-0">
                                 <span className="flex shrink-0" aria-hidden>
                                   {categoryGuideLevels(depth).map((i) => (
@@ -510,8 +514,12 @@ export default function ConciliacaoPluggy() {
                                 />
                                 <span className={cn("truncate", depth === 0 && "font-semibold")}>{cat.name}</span>
                                 <CategoryTypeBadge type={cat.transaction_type} className="ml-1 shrink-0" />
+                                {cat.is_active === false && (
+                                  <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px] shrink-0">Bloqueada</Badge>
+                                )}
                               </span>
                             </SelectItem>
+
                           ))}
                         </SelectContent>
                       </Select>
