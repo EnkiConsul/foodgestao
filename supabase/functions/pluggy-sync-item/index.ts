@@ -40,17 +40,23 @@ Deno.serve(async (req) => {
       });
     }
 
-    // If user-authenticated, verify company membership
+    // If user-authenticated, verify company membership (super admins bypass)
     if (userId && companyId) {
-      const { data: mem } = await admin
-        .from('company_members').select('id')
-        .eq('company_id', companyId).eq('user_id', userId).maybeSingle();
-      if (!mem) {
-        return new Response(JSON.stringify({ error: 'forbidden' }), {
-          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+      const { data: isSuper } = await admin
+        .from('user_roles').select('role')
+        .eq('user_id', userId).eq('role', 'super_admin').maybeSingle();
+      if (!isSuper) {
+        const { data: mem } = await admin
+          .from('company_members').select('id')
+          .eq('company_id', companyId).eq('user_id', userId).maybeSingle();
+        if (!mem) {
+          return new Response(JSON.stringify({ error: 'forbidden' }), {
+            status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
       }
     }
+
 
     // Look up existing connection (if any)
     const { data: existing } = await admin
