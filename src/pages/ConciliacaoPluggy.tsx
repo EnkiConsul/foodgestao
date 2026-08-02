@@ -118,6 +118,11 @@ export default function ConciliacaoPluggy() {
   const [categories, setCategories] = useState<CategoryOpt[]>([]);
   const categoryOptionsReceita = useMemo(() => buildCategoryOptions(categories, "entrada"), [categories]);
   const categoryOptionsDespesa = useMemo(() => buildCategoryOptions(categories, "saida"), [categories]);
+  const categoryTypeById = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const c of categories) m[c.id] = c.transaction_type;
+    return m;
+  }, [categories]);
 
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
