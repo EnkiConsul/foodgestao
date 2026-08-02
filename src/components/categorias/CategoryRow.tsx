@@ -158,6 +158,9 @@ export function CategoryRow({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+          </TableCell>
+
+
 
           <TableCell className="py-1.5 text-right">
             <div className="flex justify-end gap-0.5">
