@@ -29,6 +29,10 @@ const FRIENDLY_MESSAGES: Record<string, string> = {
   item_not_found_in_pluggy:
     "Esta conexão não existe no ambiente de produção. Inicie uma nova conexão Open Finance.",
   item_id_invalid: "O identificador da conexão é inválido.",
+  company_id_required: "Selecione a empresa antes de iniciar a conexão Open Finance.",
+  company_id_required_on_first_connect:
+    "Não foi possível identificar a empresa desta conexão. Inicie a conexão novamente pela empresa desejada.",
+  forbidden: "Você não tem acesso a esta empresa.",
   unexpected_error: "Erro inesperado no servidor. Tente novamente em instantes.",
   method_not_allowed: "Método HTTP inválido.",
 };
