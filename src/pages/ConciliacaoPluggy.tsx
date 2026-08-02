@@ -146,10 +146,10 @@ export default function ConciliacaoPluggy() {
         _context: "pj", _company_id: selectedCompanyId, _include_inactive: false,
       }),
       supabase.from("categories")
-        .select("id, name, transaction_type, parent_id, sort_order, color, category_companies!inner(company_id)")
+        .select("id, name, transaction_type, parent_id, sort_order, color, is_active, category_companies!inner(company_id)")
         .or("context.is.null,context.eq.pj")
         .eq("category_companies.company_id", selectedCompanyId)
-        .eq("is_active", true)
+
         .order("parent_id", { nullsFirst: true })
         .order("sort_order")
         .order("name"),
