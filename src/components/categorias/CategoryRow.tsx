@@ -51,7 +51,7 @@ export function CategoryRow({
           ref={provided.innerRef}
           {...provided.draggableProps}
           data-state={isSelected ? "selected" : undefined}
-          className={`group ${snapshot.isDragging ? "bg-muted shadow-md" : ""} ${isGroup ? "bg-muted/30" : ""}`}
+          className={`group ${snapshot.isDragging ? "bg-muted shadow-md" : ""} ${isGroup ? "bg-muted/30" : ""} ${isActive ? "" : "opacity-60"}`}
         >
           <TableCell className="py-1.5 px-2 md:px-4">
             <Checkbox
