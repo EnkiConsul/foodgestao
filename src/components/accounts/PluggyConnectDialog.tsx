@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -20,6 +20,41 @@ declare global {
 
 const SCRIPT_SRC = "https://cdn.pluggy.ai/pluggy-connect/v2.11.0/pluggy-connect.js";
 const RESUME_KEY = "pluggy_connect_resume_v1";
+const RESUME_TTL_MS = 25 * 60 * 1000; // connect token dura ~30 min
+
+type ResumeState = {
+  accessToken?: string;
+  companyId?: string;
+  itemIdToUpdate?: string;
+  connectRequestId?: string | null;
+  createdAt?: number;
+};
+
+function readResume(): ResumeState | null {
+  try {
+    const raw = sessionStorage.getItem(RESUME_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as ResumeState;
+    if (!parsed?.createdAt || Date.now() - parsed.createdAt > RESUME_TTL_MS) {
+      // Mantém o registro para permitir a checagem por webhook, mas o token
+      // não serve mais para reabrir o widget.
+      return { ...parsed, accessToken: undefined };
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/** Existe um fluxo de Open Finance iniciado e ainda não concluído nesta aba? */
+export function hasPluggyResume(): boolean {
+  if (typeof window === "undefined") return false;
+  return !!readResume();
+}
+
+function clearResume() {
+  try { sessionStorage.removeItem(RESUME_KEY); } catch { /* noop */ }
+}
 
 function loadScript(): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -52,14 +87,64 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [widgetReady, setWidgetReady] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [checking, setChecking] = useState(false);
   const instanceRef = useRef<any>(null);
   const launchedRef = useRef(false);
+  const finishedRef = useRef(false);
+  const requestIdRef = useRef<string | null>(null);
+
+  const finishFromRequest = useCallback(async (itemId: string) => {
+    if (finishedRef.current) return;
+    finishedRef.current = true;
+    clearResume();
+    toast.success("Conexão concluída. Sincronizando lançamentos…");
+    try {
+      const { data: sync } = await supabase.functions.invoke("pluggy-sync-item", {
+        body: { item_id: itemId, company_id: companyId },
+      });
+      onConnected?.({ itemId, connectionId: sync?.connection_id });
+    } catch {
+      onConnected?.({ itemId });
+    }
+    onOpenChange(false);
+  }, [companyId, onConnected, onOpenChange]);
+
+  /** Verifica no backend se a autorização feita no app do banco já concluiu. */
+  const checkConnectRequest = useCallback(async (): Promise<boolean> => {
+    const requestId = requestIdRef.current ?? readResume()?.connectRequestId ?? null;
+    if (!requestId) return false;
+    const { data } = await supabase
+      .from("pluggy_connect_requests")
+      .select("status, resolved_item_id")
+      .eq("id", requestId)
+      .maybeSingle();
+    if (data?.status === "completed" && data.resolved_item_id) {
+      await finishFromRequest(data.resolved_item_id);
+      return true;
+    }
+    return false;
+  }, [finishFromRequest]);
+
+  const manualCheck = useCallback(async () => {
+    setChecking(true);
+    try {
+      const done = await checkConnectRequest();
+      if (!done) {
+        toast.info("Ainda não recebemos a confirmação do banco. Conclua a autorização no app e tente novamente.");
+      }
+    } finally {
+      setChecking(false);
+    }
+  }, [checkConnectRequest]);
 
   useEffect(() => {
     if (!open) {
       launchedRef.current = false;
+      finishedRef.current = false;
       setError(null);
       setWidgetReady(false);
+      setPending(false);
       try { instanceRef.current?.destroy?.(); } catch { /* noop */ }
       instanceRef.current = null;
       return;
@@ -73,47 +158,44 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
       try {
         await loadScript();
 
-        // Se estamos retomando de um redirect de Open Finance, reutiliza o
-        // connectToken salvo para que o SDK conclua o item; caso contrário
-        // pede um novo token ao backend.
+        // Retomada: reaproveita o connectToken salvo sempre que ele existir e
+        // ainda estiver válido — independentemente dos parâmetros que o banco
+        // devolveu na URL (Inter/OF por QR Code muitas vezes não devolve nada).
+        const resume = readResume();
         let accessToken: string | undefined;
         let resumeItemId: string | undefined = itemIdToUpdate;
-        const resumeRaw = sessionStorage.getItem(RESUME_KEY);
-        const url = new URL(window.location.href);
-        const hasOauthReturn =
-          url.searchParams.has("item_id") ||
-          url.searchParams.has("pluggy_item_id") ||
-          url.searchParams.has("oauth") ||
-          url.searchParams.has("code");
-        if (resumeRaw && hasOauthReturn) {
-          try {
-            const resume = JSON.parse(resumeRaw) as {
-              accessToken?: string;
-              companyId?: string;
-              itemIdToUpdate?: string;
-            };
-            if (resume?.accessToken && resume.companyId === companyId) {
-              accessToken = resume.accessToken;
-              resumeItemId = resume.itemIdToUpdate ?? itemIdToUpdate;
-            }
-          } catch { /* noop */ }
+
+        if (resume && resume.companyId === companyId) {
+          requestIdRef.current = resume.connectRequestId ?? null;
+          resumeItemId = resume.itemIdToUpdate ?? itemIdToUpdate;
+          // Já concluiu via webhook enquanto o usuário estava no app do banco?
+          if (await checkConnectRequest()) { setLoading(false); return; }
+          accessToken = resume.accessToken;
         }
 
         if (!accessToken) {
           const { data, error: e } = await supabase.functions.invoke("pluggy-connect-token", {
             body: {
-              item_id: itemIdToUpdate,
+              item_id: resumeItemId,
+              company_id: companyId,
               oauth_redirect_uri: buildOauthRedirectUri(),
             },
           });
           if (e || !data?.accessToken) throw new Error(e?.message ?? "connect_token_failed");
           accessToken = data.accessToken as string;
+          requestIdRef.current = data.connectRequestId ?? requestIdRef.current;
         }
 
         // Persiste dados para conseguir retomar após redirect de OF.
         sessionStorage.setItem(
           RESUME_KEY,
-          JSON.stringify({ accessToken, companyId, itemIdToUpdate: resumeItemId }),
+          JSON.stringify({
+            accessToken,
+            companyId,
+            itemIdToUpdate: resumeItemId,
+            connectRequestId: requestIdRef.current,
+            createdAt: Date.now(),
+          } satisfies ResumeState),
         );
 
         const PluggyConnect = window.PluggyConnect!;
@@ -121,13 +203,14 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
           connectToken: accessToken,
           includeSandbox: false,
           updateItem: resumeItemId,
-          // Conectores Open Finance (C6, Itaú OF, etc.) exigem redirecionar o
-          // topo do navegador para data.of.pluggy.ai / site do banco. Sem
-          // oauthRedirectUri o widget tenta abrir em iframe e o banco
-          // recusa via X-Frame-Options (ERR_BLOCKED_BY_RESPONSE).
+          // Conectores Open Finance (C6, Itaú OF, Inter, etc.) exigem
+          // redirecionar o topo do navegador para data.of.pluggy.ai / site do
+          // banco. Sem oauthRedirectUri o widget tenta abrir em iframe e o
+          // banco recusa via X-Frame-Options.
           oauthRedirectUri: buildOauthRedirectUri(),
           onSuccess: async (itemData: any) => {
-            sessionStorage.removeItem(RESUME_KEY);
+            clearResume();
+            finishedRef.current = true;
             const itemId = itemData?.item?.id ?? itemData?.itemId ?? itemData?.id;
             if (!itemId) { toast.error("Conexão sem item retornado"); onOpenChange(false); return; }
             toast.info("Conta conectada. Sincronizando últimos 30 dias…");
@@ -151,27 +234,41 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
             setWidgetReady(false);
           },
           onClose: () => {
-            sessionStorage.removeItem(RESUME_KEY);
-            onOpenChange(false);
+            // Não limpa o resume: o usuário pode ter concluído no app do banco.
+            setWidgetReady(false);
+            setPending(true);
           },
         });
         instanceRef.current = pc;
         pc.init();
         setWidgetReady(true);
       } catch (e: any) {
-        sessionStorage.removeItem(RESUME_KEY);
+        clearResume();
         setError(e?.message ?? "Falha ao iniciar Pluggy Connect");
       } finally {
         setLoading(false);
       }
     })();
-  }, [open, companyId, itemIdToUpdate, onConnected, onOpenChange]);
+  }, [open, companyId, itemIdToUpdate, onConnected, onOpenChange, checkConnectRequest]);
+
+  // Polling curto enquanto a autorização acontece fora do navegador (QR Code).
+  useEffect(() => {
+    if (!open || !pending || finishedRef.current) return;
+    let cancelled = false;
+    let attempts = 0;
+    const tick = async () => {
+      if (cancelled || attempts >= 30) return; // ~90s
+      attempts += 1;
+      const done = await checkConnectRequest();
+      if (!done && !cancelled) setTimeout(tick, 3000);
+    };
+    const t = setTimeout(tick, 3000);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [open, pending, checkConnectRequest]);
 
   // Widget da Pluggy gerencia seu próprio modal fullscreen.
-  // Só renderizamos overlay próprio para os estados de loading inicial e erro,
-  // evitando qualquer wrapper (ex.: Radix Dialog) que capture cliques como "outside".
   if (!open) return null;
-  if (widgetReady && !error) return null;
+  if (widgetReady && !error && !pending) return null;
 
   return (
     <div
@@ -187,15 +284,22 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
             ? "Preparando conexão segura…"
             : error
             ? "Não foi possível iniciar a conexão."
+            : pending
+            ? "Conexão em andamento. Conclua a autorização no app do seu banco (leitura do QR Code) — assim que o banco confirmar, importamos seus lançamentos automaticamente."
             : "Uma janela segura será aberta para você autenticar-se no seu banco."}
         </p>
         <div className="flex items-center justify-center py-6">
-          {loading && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
+          {(loading || (pending && !error)) && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
           {error && <p className="text-sm text-destructive text-center">{error}</p>}
         </div>
-        {error && (
-          <div className="flex justify-end">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+        {(error || pending) && (
+          <div className="flex justify-end gap-2">
+            {pending && !error && (
+              <Button onClick={manualCheck} disabled={checking}>
+                {checking ? "Verificando…" : "Já autorizei, verificar agora"}
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => { clearResume(); onOpenChange(false); }}>
               Fechar
             </Button>
           </div>
