@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, FolderTree, Trash2 } from "lucide-react";
+import { Eye, FolderTree, Lock, Trash2, Unlock } from "lucide-react";
 import { BATCH_COLOR_OPTIONS, type Category } from "@/lib/categories/tree";
 
 interface Props {
@@ -13,6 +13,7 @@ interface Props {
   onBatchParentChange: (v: string) => void;
   onBatchChangeParent: () => void;
   onBatchColor: (color: string) => void;
+  onBatchActive: (active: boolean) => void;
   onOpenVisibility: () => void;
   onOpenDelete: () => void;
   onClearSelection: () => void;
@@ -27,10 +28,12 @@ export function BatchActionBar({
   onBatchParentChange,
   onBatchChangeParent,
   onBatchColor,
+  onBatchActive,
   onOpenVisibility,
   onOpenDelete,
   onClearSelection,
 }: Props) {
+
   return (
     <div
       role="region"
