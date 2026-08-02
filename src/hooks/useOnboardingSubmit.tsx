@@ -63,10 +63,19 @@ export function useOnboardingSubmit() {
         else if (raw.includes("cnpj_invalido")) code = "cnpj_invalido";
         else if (raw.includes("usuario_nao_autenticado")) code = "usuario_nao_autenticado";
         else if (raw.includes("23505") || raw.includes("duplicate key")) code = "cadastro_duplicado";
+        if (code === "erro_desconhecido") {
+          console.error("[onboarding] falha inesperada na RPC fn_cadastrar_empresa_onboarding", {
+            message: error.message,
+            details: error.details,
+            hint: (error as { hint?: string }).hint,
+            code: error.code,
+          });
+        }
         const err = new Error(raw) as Error & { code?: string };
         err.code = code;
         throw err;
       }
+
 
       return data as OnboardingSubmitResult;
     },
