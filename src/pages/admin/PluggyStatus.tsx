@@ -436,6 +436,9 @@ export default function AdminPluggyStatus() {
           )}
         </CardContent>
       </Card>
+
+      <PluggyConnectRequests />
     </div>
   );
 }
+
