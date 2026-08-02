@@ -54,53 +54,83 @@ Deno.serve(async (req) => {
       }
     }
 
+    // A Pluggy não expõe listagem de todos os itens (GET /items é 401). Então
+    // reunimos os item_ids que passaram pelo nosso backend (webhooks e
+    // solicitações de conexão) e, opcionalmente, um item_id informado, e
+    // consultamos cada um em /items/{id}.
+    const explicitItemId = typeof body?.item_id === 'string' ? body.item_id.trim() : '';
+    const candidates = new Set<string>();
+    if (explicitItemId) candidates.add(explicitItemId);
 
-    const res = await pluggyFetch('/items?pageSize=200');
-    if (!res.ok) {
-      const detail = await res.text();
-      console.error(`pluggy list items failed [${res.status}]: ${detail}`);
-      return new Response(
-        JSON.stringify({ error: 'pluggy_request_failed', status: res.status, details: detail }),
-        { status: res.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+    const [{ data: events }, { data: reqs }] = await Promise.all([
+      admin
+        .from('pluggy_webhook_events')
+        .select('pluggy_item_id, created_at')
+        .not('pluggy_item_id', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(500),
+      admin
+        .from('pluggy_connect_requests')
+        .select('resolved_item_id, item_id_to_update, user_id')
+        .order('created_at', { ascending: false })
+        .limit(200),
+    ]);
+
+    for (const e of events ?? []) {
+      if (e.pluggy_item_id) candidates.add(e.pluggy_item_id);
     }
-    const json = await res.json();
-    const results: any[] = Array.isArray(json?.results) ? json.results : [];
+    for (const r of reqs ?? []) {
+      if (!clientUserId || r.user_id === clientUserId) {
+        if (r.resolved_item_id) candidates.add(r.resolved_item_id);
+        if (r.item_id_to_update) candidates.add(r.item_id_to_update);
+      }
+    }
 
-    const filtered = clientUserId
-      ? results.filter((it) => String(it?.clientUserId ?? '') === clientUserId)
-      : results;
-
-    const itemIds = filtered.map((it) => String(it?.id)).filter(Boolean);
-    const { data: conns } = itemIds.length
+    const ids = [...candidates].slice(0, 60);
+    const { data: conns } = ids.length
       ? await admin
           .from('pluggy_connections')
           .select('id, company_id, pluggy_item_id, status')
-          .in('pluggy_item_id', itemIds)
+          .in('pluggy_item_id', ids)
       : { data: [] as any[] };
     const connByItem = new Map((conns ?? []).map((c: any) => [c.pluggy_item_id, c]));
 
-    const items = filtered.map((it) => {
-      const conn = connByItem.get(String(it?.id));
-      return {
-        item_id: it?.id ?? null,
-        connector_name: it?.connector?.name ?? null,
-        connector_id: it?.connector?.id ?? null,
-        status: it?.status ?? null,
-        execution_status: it?.executionStatus ?? null,
-        client_user_id: it?.clientUserId ?? null,
-        created_at: it?.createdAt ?? null,
-        updated_at: it?.updatedAt ?? null,
-        error: it?.error ?? null,
-        linked: !!conn,
-        linked_company_id: conn?.company_id ?? null,
-      };
-    });
+    const fetched = await Promise.all(
+      ids.map(async (id) => {
+        const res = await pluggyFetch(`/items/${id}`);
+        if (!res.ok) {
+          const detail = await res.text();
+          return { item_id: id, unavailable: true, http_status: res.status, error: detail.slice(0, 200) };
+        }
+        const it = await res.json();
+        return {
+          item_id: id,
+          connector_name: it?.connector?.name ?? null,
+          connector_id: it?.connector?.id ?? null,
+          status: it?.status ?? null,
+          execution_status: it?.executionStatus ?? null,
+          client_user_id: it?.clientUserId ?? null,
+          created_at: it?.createdAt ?? null,
+          updated_at: it?.updatedAt ?? null,
+          error: it?.error ?? null,
+        };
+      }),
+    );
+
+    const items = fetched
+      .filter((it: any) =>
+        !clientUserId || it.unavailable || it.client_user_id === clientUserId || it.item_id === explicitItemId
+      )
+      .map((it: any) => {
+        const conn = connByItem.get(it.item_id);
+        return { ...it, linked: !!conn, linked_company_id: conn?.company_id ?? null };
+      });
 
     return new Response(
-      JSON.stringify({ client_user_id: clientUserId, total: results.length, items }),
+      JSON.stringify({ client_user_id: clientUserId, total: ids.length, items }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
+
   } catch (e) {
     console.error('pluggy-admin-find-items error', e);
     return new Response(JSON.stringify({ error: 'internal_error', message: String(e) }), {
