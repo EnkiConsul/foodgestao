@@ -498,6 +498,34 @@ export default function ConciliacaoPluggy() {
               Limpar seleção
             </Button>
           )}
+          {selected.size > 0 && (
+            <Select
+              value=""
+              onValueChange={(v) => {
+                const ids = Array.from(selected);
+                setRowKind((p) => {
+                  const next = { ...p };
+                  ids.forEach((id) => { next[id] = "transfer"; });
+                  return next;
+                });
+                setRowCounterpart((p) => {
+                  const next = { ...p };
+                  ids.forEach((id) => { next[id] = v; });
+                  return next;
+                });
+                toast.info(`${ids.length} lançamento(s) marcados como transferência`);
+              }}
+            >
+              <SelectTrigger className="h-8 w-[240px] text-xs">
+                <SelectValue placeholder="Marcar como transferência p/…" />
+              </SelectTrigger>
+              <SelectContent>
+                {accounts.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <div className="ml-auto flex gap-2">
             <Button size="sm" variant="outline" onClick={ignoreSelected} disabled={selected.size === 0 || bulkBusy !== null}>
               {bulkBusy === "ignore"
