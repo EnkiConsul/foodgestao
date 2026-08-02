@@ -219,9 +219,19 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
               oauth_redirect_uri: buildOauthRedirectUri(),
             },
           });
-          if (e || !data?.accessToken) throw new Error(e?.message ?? "connect_token_failed");
+          if (e || !data?.accessToken) {
+            const info = await parseEdgeFunctionError(e, "Não foi possível iniciar a conexão");
+            throw new Error(info.message);
+          }
           accessToken = data.accessToken as string;
           requestIdRef.current = data.connectRequestId ?? requestIdRef.current;
+          // Sem solicitação registrada não há como concluir a conexão quando a
+          // autorização termina fora do navegador (QR Code do banco).
+          if (!resumeItemId && !requestIdRef.current) {
+            throw new Error(
+              "Não foi possível registrar a solicitação de conexão. Recarregue a página, confirme a empresa selecionada e tente novamente.",
+            );
+          }
           connectorIds = Array.isArray(data.connectorIds) && data.connectorIds.length
             ? (data.connectorIds as number[])
             : undefined;

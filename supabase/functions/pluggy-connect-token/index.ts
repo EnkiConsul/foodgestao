@@ -82,9 +82,25 @@ Deno.serve(async (req) => {
     const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
     const itemId = typeof body?.item_id === 'string' ? body.item_id : undefined;
     const companyId = typeof body?.company_id === 'string' ? body.company_id : undefined;
+    // `probe: true` é usado apenas pelo painel admin para validar credenciais
+    // (não abre o widget, portanto não precisa de empresa).
+    const isProbe = body?.probe === true;
     const oauthRedirectUri = isAllowedOauthRedirectUri(body?.oauth_redirect_uri)
       ? body.oauth_redirect_uri
       : undefined;
+
+    // Sem company_id não há como vincular o item quando a autorização termina
+    // fora do navegador (Open Finance por QR Code). Recusamos o token para
+    // evitar conexões órfãs, em vez de apenas logar o problema.
+    if (!companyId && !isProbe) {
+      console.error('connect_token_without_company_id', { user: claims.claims.sub });
+      return new Response(JSON.stringify({
+        error: 'company_id_required',
+        message: 'Selecione a empresa antes de iniciar a conexão Open Finance.',
+      }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const result = await createConnectToken(itemId, {
       oauthRedirectUri,
@@ -95,7 +111,7 @@ Deno.serve(async (req) => {
     // webhook quando o navegador não retornar (ex.: Open Finance por QR Code).
     let connectRequestId: string | null = null;
     if (!companyId) {
-      console.error('connect_token_without_company_id', { user: claims.claims.sub });
+      // Apenas o probe do painel admin chega aqui.
     } else {
       const admin = createClient(
         Deno.env.get('SUPABASE_URL')!,
@@ -105,8 +121,22 @@ Deno.serve(async (req) => {
       const { data: mem } = await admin
         .from('company_members').select('id')
         .eq('company_id', companyId).eq('user_id', userId).maybeSingle();
-      if (!mem) {
+      let allowed = !!mem;
+      if (!allowed) {
+        // Donos da empresa podem não ter linha em company_members.
+        const { data: owned } = await admin
+          .from('companies').select('id')
+          .eq('id', companyId).eq('user_id', userId).maybeSingle();
+        allowed = !!owned;
+      }
+      if (!allowed) {
         console.error('connect_token_company_not_member', { user: userId, companyId });
+        return new Response(JSON.stringify({
+          error: 'forbidden',
+          message: 'Você não tem acesso a esta empresa.',
+        }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       } else {
         // Expira solicitações antigas do mesmo usuário/empresa
         await admin
