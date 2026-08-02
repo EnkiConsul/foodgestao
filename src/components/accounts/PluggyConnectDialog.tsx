@@ -179,7 +179,9 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
       instanceRef.current = null;
       return;
     }
+    if (phase !== "launch") return;
     if (launchedRef.current) return;
+
     launchedRef.current = true;
 
     (async () => {
