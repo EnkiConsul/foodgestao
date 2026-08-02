@@ -557,7 +557,50 @@ export default function ConciliacaoPluggy() {
           Nenhum lançamento encontrado com os filtros atuais.
         </CardContent></Card>
       ) : (
-        <Card><CardContent className="p-0 overflow-x-auto">
+        <>
+        {/* Mobile: um card por lançamento */}
+        <div className="space-y-2 md:hidden">
+          {filtered.map((r) => {
+            const isEntrada = r.amount >= 0;
+            return (
+              <StagingCard
+                key={r.id}
+                row={r}
+                accounts={accounts}
+                accountValue={rowAccount[r.id] ?? linkedByPluggyAccount[r.pluggy_account_id] ?? ""}
+                onAccountChange={(v) => setRowAccount((p) => ({ ...p, [r.id]: v }))}
+                kind={rowKind[r.id] ?? "auto"}
+                onKindChange={(v) => setRowKind((p) => ({ ...p, [r.id]: v }))}
+                counterpart={rowCounterpart[r.id] ?? ""}
+                onCounterpartChange={(v) => setRowCounterpart((p) => ({ ...p, [r.id]: v }))}
+                category={rowCategory[r.id] ?? ""}
+                onCategoryChange={(v) => setRowCategory((p) => ({ ...p, [r.id]: v }))}
+                suggestedCategoryItems={renderCategoryItems(isEntrada ? categoryOptionsReceita : categoryOptionsDespesa)}
+                oppositeCategoryItems={renderCategoryItems(isEntrada ? categoryOptionsDespesa : categoryOptionsReceita)}
+                isReversal={
+                  !!rowCategory[r.id] &&
+                  categoryTypeById[rowCategory[r.id]] === (isEntrada ? "saida" : "entrada")
+                }
+                selected={selected.has(r.id)}
+                onSelectedChange={(v) => {
+                  setSelected((prev) => {
+                    const next = new Set(prev);
+                    if (v) next.add(r.id); else next.delete(r.id);
+                    return next;
+                  });
+                }}
+                busy={rowBusy === r.id}
+                isTransferBadge={!!r.matched_transaction_id && transferTxIds.has(r.matched_transaction_id)}
+                maskBRL={maskBRL}
+                onAction={(action) => handleRowAction(r.id, action)}
+              />
+            );
+          })}
+        </div>
+
+        {/* Desktop: tabela completa */}
+        <Card className="hidden md:block"><CardContent className="p-0 overflow-x-auto">
+
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs text-muted-foreground">
               <tr>
