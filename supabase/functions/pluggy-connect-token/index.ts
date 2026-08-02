@@ -46,6 +46,7 @@ Deno.serve(async (req) => {
 
     const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
     const itemId = typeof body?.item_id === 'string' ? body.item_id : undefined;
+    const companyId = typeof body?.company_id === 'string' ? body.company_id : undefined;
     const oauthRedirectUri = isAllowedOauthRedirectUri(body?.oauth_redirect_uri)
       ? body.oauth_redirect_uri
       : undefined;
@@ -54,7 +55,44 @@ Deno.serve(async (req) => {
       oauthRedirectUri,
       clientUserId: claims.claims.sub,
     });
-    return new Response(JSON.stringify({ accessToken: result.accessToken }), {
+
+    // Registra a intenção de conexão para permitir concluir a conexão pelo
+    // webhook quando o navegador não retornar (ex.: Open Finance por QR Code).
+    let connectRequestId: string | null = null;
+    if (companyId) {
+      const admin = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      );
+      const userId = claims.claims.sub as string;
+      const { data: mem } = await admin
+        .from('company_members').select('id')
+        .eq('company_id', companyId).eq('user_id', userId).maybeSingle();
+      if (mem) {
+        // Expira solicitações antigas do mesmo usuário/empresa
+        await admin
+          .from('pluggy_connect_requests')
+          .update({ status: 'expired' })
+          .eq('user_id', userId)
+          .eq('company_id', companyId)
+          .eq('status', 'open');
+
+        const { data: reqRow, error: reqErr } = await admin
+          .from('pluggy_connect_requests')
+          .insert({
+            company_id: companyId,
+            user_id: userId,
+            item_id_to_update: itemId ?? null,
+            resolved_item_id: itemId ?? null,
+          })
+          .select('id')
+          .maybeSingle();
+        if (reqErr) console.error('connect_request insert failed', reqErr.message);
+        connectRequestId = reqRow?.id ?? null;
+      }
+    }
+
+    return new Response(JSON.stringify({ accessToken: result.accessToken, connectRequestId }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {
