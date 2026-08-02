@@ -47,6 +47,7 @@ interface CategoryOpt {
   parent_id: string | null;
   sort_order: number | null;
   color: string | null;
+  is_active?: boolean | null;
 }
 interface ScopeInfo { pluggyAccountId: string; connectionId: string; name: string | null; }
 
@@ -55,6 +56,8 @@ interface ScopeInfo { pluggyAccountId: string; connectionId: string; name: strin
  * (helper compartilhado). Itens cujo pai não está vinculado à empresa não são
  * promovidos a raiz — ficam de fora, exatamente como em /categorias.
  * O filtro por tipo preserva os pais quando existe filho do tipo desejado.
+ * Categorias bloqueadas (is_active = false) continuam visíveis como estrutura,
+ * mas não podem ser selecionadas.
  */
 function buildCategoryOptions(cats: CategoryOpt[], type: string): { cat: CategoryOpt; depth: number }[] {
   const nodes = buildCategoryTree(cats as unknown as Category[]) as unknown as (CategoryOpt & { depth: number })[];
@@ -69,6 +72,7 @@ function buildCategoryOptions(cats: CategoryOpt[], type: string): { cat: Categor
   }
   return nodes.filter((n) => keep.has(n.id)).map((n) => ({ cat: n, depth: n.depth }));
 }
+
 
 export default function ConciliacaoPluggy() {
   const navigate = useNavigate();
