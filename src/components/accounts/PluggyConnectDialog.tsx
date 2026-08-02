@@ -281,7 +281,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
         setLoading(false);
       }
     })();
-  }, [open, companyId, itemIdToUpdate, onConnected, onOpenChange, checkConnectRequest]);
+  }, [open, phase, companyId, itemIdToUpdate, onConnected, onOpenChange, checkConnectRequest]);
 
   // Polling curto enquanto a autorização acontece fora do navegador (QR Code).
   useEffect(() => {
