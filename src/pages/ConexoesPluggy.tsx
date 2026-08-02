@@ -40,6 +40,7 @@ export default function ConexoesPluggy() {
   const { contextType, selectedCompanyId } = useCompanyContext();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [meta, setMeta] = useState<AccountsMap>({});
+  const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [connectOpen, setConnectOpen] = useState(false);
@@ -56,6 +57,14 @@ export default function ConexoesPluggy() {
     const list = (conns ?? []) as Connection[];
     setConnections(list);
 
+    const { count: pending } = await supabase
+      .from("pluggy_connect_requests")
+      .select("id", { head: true, count: "exact" })
+      .eq("company_id", selectedCompanyId)
+      .eq("status", "open")
+      .gt("expires_at", new Date().toISOString());
+    setPendingCount(pending ?? 0);
+
     const m: AccountsMap = {};
     for (const c of list) {
       const [{ count: accCount }, { count: pending }, { count: paused }] = await Promise.all([
@@ -70,6 +79,7 @@ export default function ConexoesPluggy() {
   }, [selectedCompanyId]);
 
   useEffect(() => { load(); }, [load]);
+
 
   const sync = async (c: Connection) => {
     setSyncingId(c.id);
