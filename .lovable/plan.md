@@ -1,68 +1,30 @@
-## Diagnóstico confirmado
+## O que aconteceu
 
-O segmento **Restaurante** já existe e está ativo no banco (é o primeiro da lista, junto com outros 12). O select aparece vazio no formulário de primeiro acesso porque a tabela de segmentos **não tem nenhuma permissão de acesso concedida à API** — só existe a regra de leitura para usuários autenticados, sem o "grant" correspondente. Resultado: a consulta do formulário retorna erro de permissão e nenhuma opção é exibida.
+A conta foi criada e confirmada normalmente (o e-mail usado no cadastro foi `eucastrosilvio@gmail.com`, criado hoje às 14:15 e confirmado às 14:18). O que falhou foi a **última etapa do wizard**, ao gravar a empresa: nenhuma empresa foi criada para esse usuário e o perfil segue com onboarding pendente.
 
-## O que será feito
+## Causa confirmada (nos logs do banco, no exato horário da tentativa)
 
-### 1. Corrigir o acesso (causa da lista vazia)
-Conceder leitura da tabela de segmentos ao papel de usuário autenticado e acesso total ao papel de serviço, mantendo a regra de segurança atual (tabela é apenas catálogo público, sem dados pessoais).
-
-### 2. Ampliar a lista de segmentos
-Incluir os novos segmentos escolhidos:
-
-- Restaurante e Similares
-- Churrascaria
-- Pastelaria
-- Doceria / Confeitaria
-- Sushi / Comida Japonesa
-- Marmitaria
-- Adega / Distribuidora de Bebidas
-- Cozinha Industrial / Refeições Coletivas
-- Quiosque / Trailer
-- Empório / Mercearia
-- Pub / Casa Noturna
-- Hotel / Pousada com Restaurante
-- Franquia de Alimentação
-
-Nada é removido; os 13 existentes permanecem.
-
-### 3. Reordenar por relevância
-Nova ordem (mais usados primeiro), com "Outro" sempre no fim:
+O erro registrado é:
 
 ```text
-1  Restaurante
-2  Restaurante e Similares
-3  Lanchonete
-4  Pizzaria
-5  Hamburgueria
-6  Bar
-7  Pub / Casa Noturna
-8  Cafeteria
-9  Padaria
-10 Doceria / Confeitaria
-11 Sorveteria / Açaiteria
-12 Pastelaria
-13 Churrascaria
-14 Sushi / Comida Japonesa
-15 Marmitaria
-16 Delivery / Dark Kitchen
-17 Food Truck
-18 Quiosque / Trailer
-19 Buffet / Casa de Eventos
-20 Cozinha Industrial / Refeições Coletivas
-21 Conveniência
-22 Empório / Mercearia
-23 Adega / Distribuidora de Bebidas
-24 Hotel / Pousada com Restaurante
-25 Franquia de Alimentação
-99 Outro
+there is no unique or exclusion constraint matching the ON CONFLICT specification
 ```
 
-### 4. Validar
-Abrir o formulário de primeiro acesso no navegador e conferir que o select carrega todos os segmentos na ordem definida, com "Restaurante" no topo.
+na chamada de `fn_cadastrar_empresa_onboarding`.
+
+Origem: ao criar a empresa, um gatilho automático cria a configuração padrão do módulo de Departamento Pessoal e tenta gravar com a regra "ignore se já existir para esta empresa". Porém, a tabela de configuração do DP só tem índices únicos **parciais** (um para configuração geral da empresa e outro por unidade). Postgres não aceita índice parcial como referência nessa forma de "ignore se já existir", então a gravação estoura. Como esse gatilho não trata exceções, o erro derruba toda a transação — a empresa, os módulos e as categorias iniciais são desfeitos, e o front exibe a mensagem genérica "Não foi possível concluir o cadastro".
+
+Ou seja: não é dado inválido, CNPJ duplicado nem permissão — é um defeito no gatilho.
+
+## Correção
+
+1. **Migração** ajustando `dp_config_dp_seed_on_company` para:
+   - usar a regra de conflito compatível com o índice parcial existente (condicionar à configuração geral da empresa, `unidade_id IS NULL`), ou simplesmente inserir só quando ainda não existir configuração geral para a empresa;
+   - envolver a inserção em tratamento de exceção com `RAISE WARNING`, no mesmo padrão já usado pelos gatilhos de categorias e plano de contas — assim uma falha de seed nunca mais impede o cadastro da empresa.
+2. **Mensagem de erro no front** (`src/hooks/useOnboardingSubmit.tsx`): incluir o detalhe técnico do banco no log e uma mensagem menos genérica para erros não mapeados, para diagnóstico mais rápido em casos futuros.
+3. **Validação**: repetir o fluxo com o usuário existente para confirmar que a empresa é criada, o vínculo de owner e os módulos em trial aparecem, e o onboarding é marcado como concluído. O cliente poderá simplesmente entrar novamente e refazer a última etapa — nada precisa ser recriado manualmente.
 
 ## Detalhes técnicos
 
-- Migração: `GRANT SELECT ON public.segmentos TO authenticated` + `GRANT ALL ... TO service_role` (política `segmentos_select_authenticated` já existe e é mantida).
-- Dados: inserção dos novos registros (nome, slug, ordem, ativo) e atualização do campo `ordem` dos existentes.
-- Front-end: nenhuma alteração necessária — `useSegmentos.tsx` já lê `ativo = true` ordenando por `ordem`, e `SegmentoSelect.tsx` renderiza a lista.
+- Índices atuais em `dp_config_dp`: `dp_config_dp_company_default_uidx (company_id) WHERE unidade_id IS NULL` e `dp_config_dp_company_unidade_uidx (company_id, unidade_id) WHERE unidade_id IS NOT NULL`. Nenhum deles serve como árbitro para `ON CONFLICT (company_id)`.
+- Sem alteração de schema de dados nem de RLS; apenas a função do gatilho.
