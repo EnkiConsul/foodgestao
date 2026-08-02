@@ -339,9 +339,10 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
             <div>
               <h2 className="text-lg font-semibold">Antes de escolher o banco</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Na próxima tela, procure o seu banco pelo <strong>nome simples</strong> — por
-                exemplo <em>Inter</em>, <em>C6 Bank</em>, <em>Itaú</em>. Esses conectores usam
-                Open Finance: você autoriza com seus dados de acesso ou pelo QR Code no app do banco.
+                Na próxima tela, busque o seu banco pelo nome (ex.: <em>Banco do Brasil</em>,{" "}
+                <em>Inter</em>, <em>Itaú</em>). Listamos apenas conectores{" "}
+                <strong>Open Finance regulados</strong>: a autorização é feita no site ou no app do
+                seu banco, e nós nunca guardamos a sua senha.
               </p>
             </div>
           </div>
@@ -349,11 +350,10 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
           <div className="mt-4 flex items-start gap-3 rounded-md border border-warning/40 bg-warning/10 p-3">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden />
             <p className="text-sm">
-              Evite conectores com <strong>“Empresas”</strong>, <strong>“Business”</strong> ou{" "}
-              <strong>“Corporate”</strong> no nome (ex.: <em>Inter Empresas</em>). Eles usam a API
-              própria do banco e vão pedir <strong>Client Id</strong>, <strong>Client Secret</strong>,{" "}
-              <strong>chave privada</strong> e <strong>certificado digital</strong>. Escolha um desses
-              só se você já tiver gerado esses arquivos no internet banking.
+              Contas <strong>PJ</strong> de alguns bancos (Banco do Brasil, Bradesco, Santander)
+              exigem no computador a instalação de um <strong>“Módulo de Segurança”</strong> próprio.
+              Se essa tela aparecer, o mais rápido é concluir a autorização{" "}
+              <strong>pelo celular</strong>, no app do banco.
             </p>
           </div>
 
@@ -363,7 +363,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
             aria-expanded={showInterSteps}
             className="mt-4 flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent"
           >
-            Como conectar a conta PJ do Inter
+            O banco pediu “Instalar Módulo de Segurança”. E agora?
             <ChevronDown
               className={`h-4 w-4 transition-transform ${showInterSteps ? "rotate-180" : ""}`}
               aria-hidden
@@ -371,16 +371,24 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
           </button>
           {showInterSteps && (
             <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm text-muted-foreground">
-              <li>Busque por <strong>Inter</strong> (sem “Empresas”) na lista de bancos.</li>
-              <li>Informe o CNPJ e os dados de acesso da conta empresarial.</li>
-              <li>Abra o app <strong>Inter Empresas</strong> e leia o QR Code exibido na tela.</li>
-              <li>Confirme a autorização de Open Finance no app.</li>
+              <li>Deixe esta janela aberta e não cancele a conexão.</li>
               <li>
-                Volte para esta janela: assim que o banco confirmar, importamos saldo e lançamentos
-                automaticamente — mesmo que você feche a aba.
+                Quando o banco exibir um <strong>QR Code</strong>, leia-o com o app do banco
+                (ex.: <em>BB Empresas</em>, <em>Inter Empresas</em>) e confirme a autorização lá.
+              </li>
+              <li>
+                Se não houver QR Code, instale o Módulo de Segurança do banco e reinicie o
+                computador — ou repita a conexão pelo <strong>celular</strong>, acessando o
+                360°FOOD no navegador do telefone.
+              </li>
+              <li>
+                Depois de autorizar, volte aqui e toque em{" "}
+                <strong>“Já autorizei, verificar agora”</strong>. A importação também acontece
+                sozinha quando o banco confirmar, mesmo que você feche a aba.
               </li>
             </ol>
           )}
+
 
           <label className="mt-5 flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
             <Checkbox
@@ -422,6 +430,13 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
             ? "Conexão em andamento. Conclua a autorização no app do seu banco (leitura do QR Code) — assim que o banco confirmar, importamos seus lançamentos automaticamente."
             : "Uma janela segura será aberta para você autenticar-se no seu banco."}
         </p>
+        {pending && !error && (
+          <p className="mt-3 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
+            Travou na tela do banco pedindo o <strong>“Módulo de Segurança”</strong>? Autorize pelo
+            app do banco no celular (leitura do QR Code) ou repita a conexão pelo navegador do
+            telefone. Depois volte aqui e clique em “Já autorizei, verificar agora”.
+          </p>
+        )}
         <div className="flex items-center justify-center py-6">
           {(loading || (pending && !error)) && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
           {error && <p className="text-sm text-destructive text-center">{error}</p>}
