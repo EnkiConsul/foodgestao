@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { AlertTriangle, ChevronDown, Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+
 
 interface Props {
   open: boolean;
@@ -21,6 +23,8 @@ declare global {
 const SCRIPT_SRC = "https://cdn.pluggy.ai/pluggy-connect/v2.11.0/pluggy-connect.js";
 const RESUME_KEY = "pluggy_connect_resume_v1";
 const RESUME_TTL_MS = 25 * 60 * 1000; // connect token dura ~30 min
+const INTRO_KEY = "pluggy_connect_intro_dismissed_v1";
+
 
 type ResumeState = {
   accessToken?: string;
@@ -89,10 +93,36 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
   const [widgetReady, setWidgetReady] = useState(false);
   const [pending, setPending] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [phase, setPhase] = useState<"idle" | "intro" | "launch">("idle");
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [showInterSteps, setShowInterSteps] = useState(false);
   const instanceRef = useRef<any>(null);
   const launchedRef = useRef(false);
   const finishedRef = useRef(false);
   const requestIdRef = useRef<string | null>(null);
+
+  // Decide se mostramos a orientação de escolha de conector antes do widget.
+  // Retomadas (QR Code em andamento) e reconexões vão direto para o widget.
+  useEffect(() => {
+    if (!open) {
+      setPhase("idle");
+      setShowInterSteps(false);
+      setDontShowAgain(false);
+      return;
+    }
+    let dismissed = false;
+    try { dismissed = localStorage.getItem(INTRO_KEY) === "1"; } catch { /* noop */ }
+    const skip = dismissed || hasPluggyResume() || !!itemIdToUpdate;
+    setPhase(skip ? "launch" : "intro");
+  }, [open, itemIdToUpdate]);
+
+  const startConnect = useCallback(() => {
+    if (dontShowAgain) {
+      try { localStorage.setItem(INTRO_KEY, "1"); } catch { /* noop */ }
+    }
+    setPhase("launch");
+  }, [dontShowAgain]);
+
 
   const finishFromRequest = useCallback(async (itemId: string) => {
     if (finishedRef.current) return;
@@ -149,7 +179,9 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
       instanceRef.current = null;
       return;
     }
+    if (phase !== "launch") return;
     if (launchedRef.current) return;
+
     launchedRef.current = true;
 
     (async () => {
@@ -268,7 +300,85 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
 
   // Widget da Pluggy gerencia seu próprio modal fullscreen.
   if (!open) return null;
+
+  if (phase === "intro") {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-background/80 p-4 backdrop-blur-sm"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Antes de conectar via Open Finance"
+      >
+        <div className="w-full max-w-lg rounded-lg border bg-card p-6 shadow-lg">
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+            <div>
+              <h2 className="text-lg font-semibold">Antes de escolher o banco</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Na próxima tela, procure o seu banco pelo <strong>nome simples</strong> — por
+                exemplo <em>Inter</em>, <em>C6 Bank</em>, <em>Itaú</em>. Esses conectores usam
+                Open Finance: você autoriza com seus dados de acesso ou pelo QR Code no app do banco.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-start gap-3 rounded-md border border-warning/40 bg-warning/10 p-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden />
+            <p className="text-sm">
+              Evite conectores com <strong>“Empresas”</strong>, <strong>“Business”</strong> ou{" "}
+              <strong>“Corporate”</strong> no nome (ex.: <em>Inter Empresas</em>). Eles usam a API
+              própria do banco e vão pedir <strong>Client Id</strong>, <strong>Client Secret</strong>,{" "}
+              <strong>chave privada</strong> e <strong>certificado digital</strong>. Escolha um desses
+              só se você já tiver gerado esses arquivos no internet banking.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowInterSteps((v) => !v)}
+            aria-expanded={showInterSteps}
+            className="mt-4 flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent"
+          >
+            Como conectar a conta PJ do Inter
+            <ChevronDown
+              className={`h-4 w-4 transition-transform ${showInterSteps ? "rotate-180" : ""}`}
+              aria-hidden
+            />
+          </button>
+          {showInterSteps && (
+            <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm text-muted-foreground">
+              <li>Busque por <strong>Inter</strong> (sem “Empresas”) na lista de bancos.</li>
+              <li>Informe o CNPJ e os dados de acesso da conta empresarial.</li>
+              <li>Abra o app <strong>Inter Empresas</strong> e leia o QR Code exibido na tela.</li>
+              <li>Confirme a autorização de Open Finance no app.</li>
+              <li>
+                Volte para esta janela: assim que o banco confirmar, importamos saldo e lançamentos
+                automaticamente — mesmo que você feche a aba.
+              </li>
+            </ol>
+          )}
+
+          <label className="mt-5 flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+            <Checkbox
+              checked={dontShowAgain}
+              onCheckedChange={(v) => setDontShowAgain(v === true)}
+            />
+            Não mostrar novamente
+          </label>
+
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={startConnect}>Continuar para o banco</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (widgetReady && !error && !pending) return null;
+
 
   return (
     <div
