@@ -93,10 +93,36 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
   const [widgetReady, setWidgetReady] = useState(false);
   const [pending, setPending] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [phase, setPhase] = useState<"idle" | "intro" | "launch">("idle");
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [showInterSteps, setShowInterSteps] = useState(false);
   const instanceRef = useRef<any>(null);
   const launchedRef = useRef(false);
   const finishedRef = useRef(false);
   const requestIdRef = useRef<string | null>(null);
+
+  // Decide se mostramos a orientação de escolha de conector antes do widget.
+  // Retomadas (QR Code em andamento) e reconexões vão direto para o widget.
+  useEffect(() => {
+    if (!open) {
+      setPhase("idle");
+      setShowInterSteps(false);
+      setDontShowAgain(false);
+      return;
+    }
+    let dismissed = false;
+    try { dismissed = localStorage.getItem(INTRO_KEY) === "1"; } catch { /* noop */ }
+    const skip = dismissed || hasPluggyResume() || !!itemIdToUpdate;
+    setPhase(skip ? "launch" : "intro");
+  }, [open, itemIdToUpdate]);
+
+  const startConnect = useCallback(() => {
+    if (dontShowAgain) {
+      try { localStorage.setItem(INTRO_KEY, "1"); } catch { /* noop */ }
+    }
+    setPhase("launch");
+  }, [dontShowAgain]);
+
 
   const finishFromRequest = useCallback(async (itemId: string) => {
     if (finishedRef.current) return;
