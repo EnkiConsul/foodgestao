@@ -524,7 +524,7 @@ export default function ConciliacaoPluggy() {
                 toast.info(`${ids.length} lançamento(s) marcados como transferência`);
               }}
             >
-              <SelectTrigger className="h-8 w-[240px] text-xs">
+              <SelectTrigger className="h-8 w-full text-xs sm:w-[240px]">
                 <SelectValue placeholder="Marcar como transferência p/…" />
               </SelectTrigger>
               <SelectContent>
@@ -534,7 +534,7 @@ export default function ConciliacaoPluggy() {
               </SelectContent>
             </Select>
           )}
-          <div className="ml-auto flex gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:ml-auto sm:flex">
             <Button size="sm" variant="outline" onClick={ignoreSelected} disabled={selected.size === 0 || bulkBusy !== null}>
               {bulkBusy === "ignore"
                 ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -546,6 +546,7 @@ export default function ConciliacaoPluggy() {
                 : <Check className="h-4 w-4 mr-1" />} Confirmar selecionados
             </Button>
           </div>
+
         </div>
       )}
 
