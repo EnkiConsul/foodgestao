@@ -1,6 +1,6 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { createConnectToken } from '../_shared/pluggy.ts';
+import { createConnectToken, pluggyFetch } from '../_shared/pluggy.ts';
 
 function isAllowedOauthRedirectUri(value: unknown): value is string {
   if (typeof value !== 'string') return false;
@@ -127,7 +127,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ accessToken: result.accessToken, connectRequestId }), {
+    const connectorIds = itemId ? undefined : await listFriendlyConnectorIds();
+
+    return new Response(JSON.stringify({ accessToken: result.accessToken, connectRequestId, connectorIds }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {
