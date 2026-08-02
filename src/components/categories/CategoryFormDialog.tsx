@@ -701,7 +701,28 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
 
             <div className="border-t" />
 
+            <Section title="Lançamentos" description="Define se esta categoria pode ser usada em novos lançamentos e na conciliação bancária.">
+              <div className="flex items-center justify-between gap-3 rounded-md border p-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Permitir lançamentos</p>
+                  <p className="text-xs text-muted-foreground">
+                    {isActive
+                      ? "Disponível para seleção em lançamentos e conciliação."
+                      : "Bloqueada: não aparece nos seletores de lançamentos nem na conciliação."}
+                  </p>
+                </div>
+                <Switch
+                  checked={isActive}
+                  onCheckedChange={setIsActive}
+                  aria-label="Permitir lançamentos nesta categoria"
+                />
+              </div>
+            </Section>
+
+            <div className="border-t" />
+
             <Section title="Visibilidade" description="Selecione onde esta categoria ficará disponível.">
+
               <label className="flex items-center gap-3 rounded-md border p-3 text-sm cursor-pointer hover:bg-accent/50 transition-colors">
                 <Checkbox checked={visiblePf} onCheckedChange={(v) => setVisiblePf(!!v)} />
                 Pessoa Física (PF)
