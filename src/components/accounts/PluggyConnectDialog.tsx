@@ -23,6 +23,8 @@ declare global {
 const SCRIPT_SRC = "https://cdn.pluggy.ai/pluggy-connect/v2.11.0/pluggy-connect.js";
 const RESUME_KEY = "pluggy_connect_resume_v1";
 const RESUME_TTL_MS = 25 * 60 * 1000; // connect token dura ~30 min
+const INTRO_KEY = "pluggy_connect_intro_dismissed_v1";
+
 
 type ResumeState = {
   accessToken?: string;
