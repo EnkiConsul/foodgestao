@@ -1,4 +1,4 @@
-import { forwardRef, useEffect } from "react";
+import { forwardRef, useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, Search } from "lucide-react";
@@ -23,10 +23,14 @@ export const CnpjInput = forwardRef<HTMLInputElement, CnpjInputProps>(function C
   ref,
 ) {
   const lookup = useCnpjLookup();
+  const [touched, setTouched] = useState(false);
   const digits = value.replace(/\D/g, "");
   const complete = digits.length === 14;
   const validFormat = complete && isValidCnpj(digits);
-  const invalidFormat = digits.length > 0 && complete && !validFormat;
+  const invalidDigits = complete && !validFormat;
+  const incomplete = touched && digits.length > 0 && !complete;
+  const showError = invalidDigits || incomplete;
+  const errorId = id ? `${id}-cnpj-error` : "cnpj-error";
   const canLookup = validFormat && !lookup.isPending && !disabled;
 
   useEffect(() => {
@@ -52,12 +56,14 @@ export const CnpjInput = forwardRef<HTMLInputElement, CnpjInputProps>(function C
           id={id}
           value={value}
           onChange={(e) => onChange(maskCnpj(e.target.value))}
+          onBlur={() => setTouched(true)}
           placeholder={placeholder}
           maxLength={18}
           disabled={disabled || lookup.isPending}
           inputMode="numeric"
-          aria-invalid={invalidFormat}
-          className={cn(invalidFormat && "border-destructive focus-visible:ring-destructive")}
+          aria-invalid={showError}
+          aria-describedby={showError ? errorId : undefined}
+          className={cn(showError && "border-destructive focus-visible:ring-destructive")}
         />
         <Button
           type="button"
@@ -65,14 +71,18 @@ export const CnpjInput = forwardRef<HTMLInputElement, CnpjInputProps>(function C
           size="icon"
           onClick={handleLookup}
           disabled={!canLookup}
-          title="Buscar dados do CNPJ na Receita Federal"
+          title={validFormat ? "Buscar dados do CNPJ na Receita Federal" : "Informe um CNPJ válido para buscar"}
           aria-label="Buscar CNPJ"
         >
           {lookup.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
         </Button>
       </div>
-      {invalidFormat && (
-        <p className="text-xs text-destructive">CNPJ inválido — verifique os dígitos.</p>
+      {showError && (
+        <p id={errorId} role="alert" className="text-xs text-destructive">
+          {invalidDigits
+            ? "CNPJ inválido — verifique os dígitos."
+            : "CNPJ incompleto — informe os 14 dígitos."}
+        </p>
       )}
       {lookup.isPending && (
         <p className="text-xs text-muted-foreground">Consultando Receita Federal…</p>
@@ -80,3 +90,4 @@ export const CnpjInput = forwardRef<HTMLInputElement, CnpjInputProps>(function C
     </div>
   );
 });
+
