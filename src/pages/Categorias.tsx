@@ -153,6 +153,59 @@ export default function Categorias() {
     refetchAll();
   };
 
+  const applyActive = async (ids: string[], active: boolean) => {
+    if (ids.length === 0) return;
+    const results = await Promise.all(
+      ids.map((id) => supabase.from("categories").update({ is_active: active } as any).eq("id", id))
+    );
+    const errors = results.filter((r) => r.error);
+    if (errors.length > 0) {
+      toast.error(`Erro ao atualizar ${errors.length} categoria(s)`, {
+        description: errors[0].error?.message,
+      });
+    } else {
+      toast.success(
+        active
+          ? `Lançamentos permitidos em ${ids.length} categoria(s)`
+          : `Lançamentos bloqueados em ${ids.length} categoria(s)`
+      );
+    }
+    refetchAll();
+  };
+
+  const descendantIdsOf = useCallback(
+    (id: string) => {
+      const out: string[] = [];
+      const walk = (parentId: string) => {
+        for (const c of categories) {
+          if (c.parent_id === parentId) {
+            out.push(c.id);
+            walk(c.id);
+          }
+        }
+      };
+      walk(id);
+      return out;
+    },
+    [categories]
+  );
+
+  const handleToggleActive = (cat: TreeNode, active: boolean) => {
+    const childIds = descendantIdsOf(cat.id);
+    if (childIds.length > 0) {
+      setPendingToggle({ cat, active, childIds });
+      return;
+    }
+    applyActive([cat.id], active);
+  };
+
+  const handleBatchActive = async (active: boolean) => {
+    if (selected.size === 0) return;
+    await applyActive(Array.from(selected), active);
+    setSelected(new Set());
+  };
+
+
   const { data: categories = [], refetch, isLoading } = useQuery({
     queryKey: ["categories-page", user?.id, contextType, selectedCompanyId],
     enabled: !!user && (contextType === "pf" || !!selectedCompanyId),
