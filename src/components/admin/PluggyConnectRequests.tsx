@@ -30,11 +30,28 @@ function fmt(value?: string | null) {
   }
 }
 
+type PluggyItem = {
+  item_id: string;
+  connector_name: string | null;
+  status: string | null;
+  execution_status: string | null;
+  client_user_id: string | null;
+  created_at: string | null;
+  linked: boolean;
+  linked_company_id: string | null;
+};
+
 export function PluggyConnectRequests() {
   const [rows, setRows] = useState<RequestRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [itemIds, setItemIds] = useState<Record<string, string>>({});
   const [finishing, setFinishing] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [items, setItems] = useState<PluggyItem[] | null>(null);
+  const [manualCompanyId, setManualCompanyId] = useState("");
+  const [manualItemId, setManualItemId] = useState("");
+  const [linking, setLinking] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -51,6 +68,49 @@ export function PluggyConnectRequests() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const findItems = useCallback(async () => {
+    setSearching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("pluggy-admin-find-items", {
+        body: email.trim() ? { email: email.trim() } : {},
+      });
+      if (error) throw error;
+      setItems((data?.items ?? []) as PluggyItem[]);
+      if (!data?.items?.length) toast.info("Nenhum item encontrado na Pluggy para esse filtro");
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message ?? "Falha ao consultar itens na Pluggy");
+    } finally {
+      setSearching(false);
+    }
+  }, [email]);
+
+  const linkManually = useCallback(async () => {
+    const itemId = manualItemId.trim();
+    const companyId = manualCompanyId.trim();
+    if (!itemId || !companyId) {
+      toast.error("Informe o item_id da Pluggy e o ID da empresa");
+      return;
+    }
+    setLinking(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("pluggy-sync-item", {
+        body: { item_id: itemId, company_id: companyId, first_connect: true },
+      });
+      if (error) throw error;
+      toast.success(`Item vinculado: ${data?.transactions ?? 0} lançamentos importados`);
+      setManualItemId("");
+      await load();
+      await findItems();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message ?? "Falha ao vincular o item");
+    } finally {
+      setLinking(false);
+    }
+  }, [manualItemId, manualCompanyId, load, findItems]);
+
 
   const finish = useCallback(
     async (row: RequestRow) => {
