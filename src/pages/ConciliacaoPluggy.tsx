@@ -528,16 +528,21 @@ export default function ConciliacaoPluggy() {
                         disabled={disabled}
                       >
                         <SelectTrigger className="h-8 min-w-[160px] text-xs"><SelectValue placeholder="Sem categoria" /></SelectTrigger>
-                        <SelectContent className="max-h-72">
+                        <SelectContent className="max-h-[420px]">
                           <SelectGroup>
-                            <SelectLabel className="text-[10px] uppercase tracking-wide text-muted-foreground">Sugeridas</SelectLabel>
+                            <SelectLabel className="sticky top-0 z-10 bg-popover border-b text-[10px] uppercase tracking-wide text-muted-foreground">
+                              Sugeridas ({isEntrada ? "entradas" : "saídas"})
+                            </SelectLabel>
                             {renderCategoryItems(isEntrada ? categoryOptionsReceita : categoryOptionsDespesa)}
                           </SelectGroup>
                           <SelectGroup>
-                            <SelectLabel className="text-[10px] uppercase tracking-wide text-muted-foreground">Outras categorias (estorno)</SelectLabel>
+                            <SelectLabel className="sticky top-0 z-10 bg-popover border-y text-[10px] uppercase tracking-wide text-warning">
+                              Outras categorias — {isEntrada ? "saídas" : "entradas"} (estorno)
+                            </SelectLabel>
                             {renderCategoryItems(isEntrada ? categoryOptionsDespesa : categoryOptionsReceita)}
                           </SelectGroup>
                         </SelectContent>
+
                       </Select>
                       {rowCategory[r.id] &&
                         categoryTypeById[rowCategory[r.id]] === (isEntrada ? "saida" : "entrada") && (
