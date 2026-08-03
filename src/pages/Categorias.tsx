@@ -832,6 +832,27 @@ export default function Categorias() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={replaceOpen} onOpenChange={setReplaceOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Substituir pelo plano padrão 360°FOOD?</AlertDialogTitle>
+            <AlertDialogDescription>
+              As categorias atuais desta empresa serão removidas e o plano padrão será recriado com
+              as orientações e vínculos contábeis atualizados. Lançamentos já existentes não são
+              apagados: eles ficam sem categoria e precisam ser reclassificados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={replacing}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReplaceWithDefaults} disabled={replacing}>
+              {replacing ? "Aplicando..." : "Substituir agora"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
+
       <BatchVisibilityDialog
         open={batchVisibilityOpen}
         onOpenChange={setBatchVisibilityOpen}
