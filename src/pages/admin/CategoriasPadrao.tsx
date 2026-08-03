@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import {
-  chartRootLabel, isChartAccountEligible, validateChartAccountLink,
+  chartRootLabel, isChartAccountEligible, isNonResultSubtype, validateChartAccountLink,
 } from "@/lib/categories/chartCompat";
 
 import {
