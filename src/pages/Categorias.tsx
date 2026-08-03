@@ -57,6 +57,35 @@ export default function Categorias() {
 
   const [replaceOpen, setReplaceOpen] = useState(false);
   const [replacing, setReplacing] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{
+    will_delete: number;
+    will_unlink: number;
+    transactions_detached: number;
+    staging_detached: number;
+    folha_detached: number;
+    budgets_deleted: number;
+    rules_deleted: number;
+  } | null>(null);
+
+  const openReplaceDialog = async () => {
+    if (!selectedCompanyId) return;
+    setPreview(null);
+    setPreviewError(null);
+    setReplaceOpen(true);
+    setPreviewLoading(true);
+    const { data, error } = await (supabase as any).rpc("preview_default_categories", {
+      _company_id: selectedCompanyId,
+    });
+    setPreviewLoading(false);
+    if (error) {
+      setPreviewError(error.message);
+      return;
+    }
+    setPreview(data as any);
+  };
+
 
   const handleSeedDefaults = async () => {
     if (!selectedCompanyId) return;
