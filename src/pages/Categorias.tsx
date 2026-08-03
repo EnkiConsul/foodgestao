@@ -503,6 +503,19 @@ export default function Categorias() {
                 {seeding ? "Importando..." : "Importar plano 360°FOOD"}
               </Button>
             )}
+            {contextType === "pj" && selectedCompanyId && (
+              <Button
+                onClick={() => setReplaceOpen(true)}
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                disabled={replacing}
+                title="Apaga as categorias atuais desta empresa e recria o plano padrão 360°FOOD."
+              >
+                <RefreshCw className="h-4 w-4" />
+                {replacing ? "Aplicando..." : "Substituir pelo padrão"}
+              </Button>
+            )}
             <Button variant="outline" size="sm" className="gap-1.5" onClick={toggleCollapseAll}>
               <ChevronsUpDown className="h-4 w-4" />
               {allCollapsed ? "Expandir tudo" : "Recolher tudo"}
@@ -523,6 +536,13 @@ export default function Categorias() {
                   {seeding ? "Importando..." : "Importar plano 360°FOOD"}
                 </DropdownMenuItem>
               )}
+              {contextType === "pj" && selectedCompanyId && (
+                <DropdownMenuItem onClick={() => setReplaceOpen(true)} disabled={replacing}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  {replacing ? "Aplicando..." : "Substituir pelo padrão"}
+                </DropdownMenuItem>
+              )}
+
               <DropdownMenuItem onClick={toggleCollapseAll}>
                 <ChevronsUpDown className="mr-2 h-4 w-4" />
                 {allCollapsed ? "Expandir tudo" : "Recolher tudo"}
