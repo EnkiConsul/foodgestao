@@ -55,6 +55,8 @@ export default function Categorias() {
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "blocked">("all");
   const [pendingToggle, setPendingToggle] = useState<{ cat: TreeNode; active: boolean; childIds: string[] } | null>(null);
 
+  const [replaceOpen, setReplaceOpen] = useState(false);
+  const [replacing, setReplacing] = useState(false);
 
   const handleSeedDefaults = async () => {
     if (!selectedCompanyId) return;
@@ -72,6 +74,30 @@ export default function Categorias() {
     });
     refetchAll();
   };
+
+  const handleReplaceWithDefaults = async () => {
+    if (!selectedCompanyId) return;
+    setReplacing(true);
+    const { data, error } = await (supabase as any).rpc("apply_default_categories", {
+      _company_id: selectedCompanyId,
+      _replace_existing: true,
+    });
+    setReplacing(false);
+    setReplaceOpen(false);
+    if (error) {
+      toast.error("Erro ao aplicar o plano padrão", { description: error.message });
+      return;
+    }
+    const deleted = (data as any)?.deleted ?? 0;
+    const detached = (data as any)?.detached ?? 0;
+    const created = (data as any)?.seed?.created ?? 0;
+    toast.success("Plano padrão 360°FOOD aplicado", {
+      description: `${deleted} categoria(s) removida(s), ${created} criada(s), ${detached} lançamento(s) sem categoria para reclassificar.`,
+    });
+    setSelected(new Set());
+    refetchAll();
+  };
+
 
   const handleBatchColor = async (color: string) => {
     if (selected.size === 0) return;
