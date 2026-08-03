@@ -1076,7 +1076,15 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                 <span className="ml-1 rounded bg-primary/15 px-1.5 py-0.5">Aplicar</span>
               </button>
             )}
+            {type !== "transferencia" && categoryRecommendations.length > 0 && (
+              <CategoryRecommendationHint
+                recommendations={categoryRecommendations}
+                selectedCategoryId={categoryId}
+                onApply={(id) => setCategoryId(id)}
+              />
+            )}
           </div>
+
 
 
           {/* Data atribuída automaticamente (data de criação) — campo oculto */}
