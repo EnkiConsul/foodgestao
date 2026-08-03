@@ -271,6 +271,13 @@ export default function AdminCategoriasPadrao() {
                   <span className="text-xs md:text-sm truncate">{n.name}</span>
                 </span>
                 <div className="hidden md:flex items-center gap-1 shrink-0">
+                  {n.chart_account_code ? (
+                    <Badge variant="outline" className="text-[10px] font-mono" title={chartByCode.get(n.chart_account_code)?.name ?? ""}>
+                      {n.chart_account_code}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px] text-muted-foreground">Sem conta</Badge>
+                  )}
                   <Badge variant="outline" className={`text-[10px] border-0 ${categoryTypeClass(n.transaction_type)}`}>
                     {categoryTypeLabel(n.transaction_type)}
                   </Badge>
@@ -279,6 +286,7 @@ export default function AdminCategoriasPadrao() {
                   </Badge>
                   {!n.is_customizable && <Badge variant="secondary" className="text-[10px]">Fixa</Badge>}
                 </div>
+
                 <div className="flex items-center gap-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
                   <Button variant="ghost" size="icon" className="h-8 w-8 md:h-7 md:w-7" title="Adicionar filha" onClick={() => openNew(n)}>
                     <PlusCircle className="h-4 w-4" />
