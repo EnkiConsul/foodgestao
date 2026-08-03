@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 
 import { useQuery } from "@tanstack/react-query";
 
@@ -33,6 +33,8 @@ import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/s
 import { useTransactionFieldSettings, TRANSACTION_FIELD_LABELS, type TransactionField } from "@/hooks/useTransactionFieldSettings";
 import { useTransactionFormLookups } from "@/hooks/useTransactionFormLookups";
 import { useCategorizationSuggestion } from "@/hooks/useCategorizationSuggestion";
+import { recommendCategories, type RecommendCategoryInput } from "@/lib/categories/recommend";
+import { CategoryRecommendationHint } from "@/components/categories/CategoryRecommendationHint";
 import { Sparkles } from "lucide-react";
 import {
   type CategoryNode,
