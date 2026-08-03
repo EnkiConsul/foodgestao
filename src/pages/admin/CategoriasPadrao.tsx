@@ -397,6 +397,33 @@ export default function AdminCategoriasPadrao() {
             </div>
 
             <div className="space-y-2">
+              <Label>Conta contábil padrão</Label>
+              <Select
+                value={form.chart_account_code ?? "none"}
+                onValueChange={(v) =>
+                  setForm((f) => ({ ...f, chart_account_code: v === "none" ? null : v }))
+                }
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent className="max-h-72">
+                  <SelectItem value="none">Sem conta contábil</SelectItem>
+                  {chartRows
+                    .filter((c) => !c.is_synthetic)
+                    .map((c) => (
+                      <SelectItem key={c.code} value={c.code}>
+                        {c.code} — {c.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Ao criar um novo cadastro, esta categoria já nasce vinculada à conta contábil correspondente da empresa.
+              </p>
+            </div>
+
+
+
+            <div className="space-y-2">
               <Label>Descrição para IA</Label>
               <Textarea
                 rows={3}
