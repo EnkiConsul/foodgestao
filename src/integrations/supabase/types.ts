@@ -1275,6 +1275,7 @@ export type Database = {
       category_templates: {
         Row: {
           ai_description: string | null
+          chart_account_code: string | null
           code: string
           created_at: string
           is_customizable: boolean
@@ -1288,6 +1289,7 @@ export type Database = {
         }
         Insert: {
           ai_description?: string | null
+          chart_account_code?: string | null
           code: string
           created_at?: string
           is_customizable?: boolean
@@ -1301,6 +1303,7 @@ export type Database = {
         }
         Update: {
           ai_description?: string | null
+          chart_account_code?: string | null
           code?: string
           created_at?: string
           is_customizable?: boolean
@@ -1313,6 +1316,13 @@ export type Database = {
           transaction_type?: Database["public"]["Enums"]["transaction_type"]
         }
         Relationships: [
+          {
+            foreignKeyName: "category_templates_chart_account_code_fkey"
+            columns: ["chart_account_code"]
+            isOneToOne: false
+            referencedRelation: "chart_account_templates"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "category_templates_parent_code_fkey"
             columns: ["parent_code"]
@@ -8264,6 +8274,10 @@ export type Database = {
           skipped_no_match: number
           updated: number
         }[]
+      }
+      category_templates_apply_chart_accounts: {
+        Args: { _overwrite?: boolean }
+        Returns: number
       }
       chart_account_move: {
         Args: { _id: string; _new_parent_id: string }

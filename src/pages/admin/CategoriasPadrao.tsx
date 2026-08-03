@@ -38,9 +38,17 @@ type Template = {
   ai_description: string | null;
   previous_index: string | null;
   is_customizable: boolean;
+  chart_account_code: string | null;
+};
+
+type ChartTemplate = {
+  code: string;
+  name: string;
+  is_synthetic: boolean;
 };
 
 const SUBTYPES = ["receita", "saida", "custo", "despesa", "imposto", "investimento"];
+
 
 type FlatNode = Template & { depth: number };
 
@@ -77,7 +85,9 @@ const emptyForm: Template = {
   ai_description: "",
   previous_index: null,
   is_customizable: true,
+  chart_account_code: null,
 };
+
 
 export default function AdminCategoriasPadrao() {
   const qc = useQueryClient();
@@ -99,6 +109,40 @@ export default function AdminCategoriasPadrao() {
       return (data ?? []) as Template[];
     },
   });
+
+  const { data: chartRows = [] } = useQuery({
+    queryKey: ["admin-chart-account-templates-select"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("chart_account_templates")
+        .select("code, name, is_synthetic")
+        .order("sort_order");
+      if (error) throw error;
+      return (data ?? []) as ChartTemplate[];
+    },
+  });
+
+  const chartByCode = useMemo(
+    () => new Map(chartRows.map((c) => [c.code, c])),
+    [chartRows]
+  );
+
+  const [applying, setApplying] = useState(false);
+  const applyToExisting = async () => {
+    setApplying(true);
+    const { data, error } = await (supabase as any).rpc(
+      "category_templates_apply_chart_accounts",
+      { _overwrite: false }
+    );
+    setApplying(false);
+    if (error) {
+      toast.error("Erro ao aplicar vínculos", { description: error.message });
+      return;
+    }
+    toast.success(`Vínculos aplicados: ${data ?? 0} categoria(s) atualizada(s)`);
+  };
+
+
 
   const flat = useMemo(() => flatten(rows), [rows]);
   const visible = useMemo(() => {
@@ -142,7 +186,9 @@ export default function AdminCategoriasPadrao() {
       transaction_type: form.transaction_type,
       ai_description: form.ai_description?.trim() || null,
       is_customizable: form.is_customizable,
+      chart_account_code: form.chart_account_code || null,
     };
+
     const q = editingCode
       ? (supabase as any).from("category_templates").update(payload).eq("code", editingCode)
       : (supabase as any).from("category_templates").insert(payload);
@@ -181,10 +227,16 @@ export default function AdminCategoriasPadrao() {
           title="Categorias Padrão"
           description="Modelo de categorias aplicado a todo novo cadastro. Alterações valem para as próximas empresas criadas."
         />
-        <Button size="sm" onClick={() => openNew(null)} className="min-h-9">
-          <Plus className="h-4 w-4 mr-2" /> Nova categoria padrão
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" onClick={applyToExisting} disabled={applying} className="min-h-9">
+            {applying ? "Aplicando..." : "Aplicar vínculos aos cadastros existentes"}
+          </Button>
+          <Button size="sm" onClick={() => openNew(null)} className="min-h-9">
+            <Plus className="h-4 w-4 mr-2" /> Nova categoria padrão
+          </Button>
+        </div>
       </div>
+
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -219,6 +271,13 @@ export default function AdminCategoriasPadrao() {
                   <span className="text-xs md:text-sm truncate">{n.name}</span>
                 </span>
                 <div className="hidden md:flex items-center gap-1 shrink-0">
+                  {n.chart_account_code ? (
+                    <Badge variant="outline" className="text-[10px] font-mono" title={chartByCode.get(n.chart_account_code)?.name ?? ""}>
+                      {n.chart_account_code}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px] text-muted-foreground">Sem conta</Badge>
+                  )}
                   <Badge variant="outline" className={`text-[10px] border-0 ${categoryTypeClass(n.transaction_type)}`}>
                     {categoryTypeLabel(n.transaction_type)}
                   </Badge>
@@ -227,6 +286,7 @@ export default function AdminCategoriasPadrao() {
                   </Badge>
                   {!n.is_customizable && <Badge variant="secondary" className="text-[10px]">Fixa</Badge>}
                 </div>
+
                 <div className="flex items-center gap-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
                   <Button variant="ghost" size="icon" className="h-8 w-8 md:h-7 md:w-7" title="Adicionar filha" onClick={() => openNew(n)}>
                     <PlusCircle className="h-4 w-4" />
@@ -335,6 +395,33 @@ export default function AdminCategoriasPadrao() {
                 />
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label>Conta contábil padrão</Label>
+              <Select
+                value={form.chart_account_code ?? "none"}
+                onValueChange={(v) =>
+                  setForm((f) => ({ ...f, chart_account_code: v === "none" ? null : v }))
+                }
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent className="max-h-72">
+                  <SelectItem value="none">Sem conta contábil</SelectItem>
+                  {chartRows
+                    .filter((c) => !c.is_synthetic)
+                    .map((c) => (
+                      <SelectItem key={c.code} value={c.code}>
+                        {c.code} — {c.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Ao criar um novo cadastro, esta categoria já nasce vinculada à conta contábil correspondente da empresa.
+              </p>
+            </div>
+
+
 
             <div className="space-y-2">
               <Label>Descrição para IA</Label>
