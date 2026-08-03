@@ -9067,6 +9067,10 @@ export type Database = {
         Args: { p_event_id: string; p_worker_id: string }
         Returns: boolean
       }
+      preview_default_categories: {
+        Args: { _company_id: string }
+        Returns: Json
+      }
       promote_open_finance_transactions: {
         Args: { _connection_id: string; _max_rows?: number }
         Returns: Json
