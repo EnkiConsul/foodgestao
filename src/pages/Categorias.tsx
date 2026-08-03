@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
-import { Plus, Search, Tag, ChevronsUpDown, Sparkles, MoreHorizontal, X } from "lucide-react";
+import { Plus, Search, Tag, ChevronsUpDown, Sparkles, MoreHorizontal, X, RefreshCw } from "lucide-react";
 import { DragDropContext, Droppable, type DropResult } from "@hello-pangea/dnd";
 import { toast } from "sonner";
 import { buildCategoryTree, type Category, type TreeNode } from "@/lib/categories/tree";
