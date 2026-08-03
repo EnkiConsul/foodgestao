@@ -1419,36 +1419,81 @@ export type Database = {
       chart_account_templates: {
         Row: {
           ai_description: string | null
+          allowed_category_subtypes: string[]
+          allowed_transaction_types: string[]
           code: string
           created_at: string
+          dre_line: string | null
+          excluded_category_examples: string[]
+          excluded_keywords: string[]
+          included_category_examples: string[]
+          is_active: boolean
+          is_dynamic: boolean
+          is_reducer: boolean
           is_synthetic: boolean
           is_tax: boolean
+          keywords: string[]
           name: string
           parent_code: string | null
+          required_context: string | null
+          requires_review: boolean
           sort_order: number
+          template_key: string | null
+          template_version: string
           updated_at: string
+          usage_description: string | null
         }
         Insert: {
           ai_description?: string | null
+          allowed_category_subtypes?: string[]
+          allowed_transaction_types?: string[]
           code: string
           created_at?: string
+          dre_line?: string | null
+          excluded_category_examples?: string[]
+          excluded_keywords?: string[]
+          included_category_examples?: string[]
+          is_active?: boolean
+          is_dynamic?: boolean
+          is_reducer?: boolean
           is_synthetic?: boolean
           is_tax?: boolean
+          keywords?: string[]
           name: string
           parent_code?: string | null
+          required_context?: string | null
+          requires_review?: boolean
           sort_order?: number
+          template_key?: string | null
+          template_version?: string
           updated_at?: string
+          usage_description?: string | null
         }
         Update: {
           ai_description?: string | null
+          allowed_category_subtypes?: string[]
+          allowed_transaction_types?: string[]
           code?: string
           created_at?: string
+          dre_line?: string | null
+          excluded_category_examples?: string[]
+          excluded_keywords?: string[]
+          included_category_examples?: string[]
+          is_active?: boolean
+          is_dynamic?: boolean
+          is_reducer?: boolean
           is_synthetic?: boolean
           is_tax?: boolean
+          keywords?: string[]
           name?: string
           parent_code?: string | null
+          required_context?: string | null
+          requires_review?: boolean
           sort_order?: number
+          template_key?: string | null
+          template_version?: string
           updated_at?: string
+          usage_description?: string | null
         }
         Relationships: [
           {
@@ -1463,55 +1508,94 @@ export type Database = {
       chart_accounts: {
         Row: {
           allow_transactions: boolean
+          allowed_category_subtypes: string[]
+          allowed_transaction_types: string[]
           code: string | null
           context: Database["public"]["Enums"]["context_type"]
           created_at: string
           description: string | null
+          dre_line: string | null
+          excluded_category_examples: string[]
+          excluded_keywords: string[]
           id: string
+          included_category_examples: string[]
           is_active: boolean
+          is_dynamic: boolean
+          is_reducer: boolean
           is_tax: boolean
+          keywords: string[]
           name: string
           parent_id: string | null
+          requires_review: boolean
           short_code: string | null
           tax_code: string | null
           tax_description: string | null
+          template_key: string | null
+          template_version: string | null
           updated_at: string
+          usage_description: string | null
           user_id: string
           visible_pf: boolean
         }
         Insert: {
           allow_transactions?: boolean
+          allowed_category_subtypes?: string[]
+          allowed_transaction_types?: string[]
           code?: string | null
           context?: Database["public"]["Enums"]["context_type"]
           created_at?: string
           description?: string | null
+          dre_line?: string | null
+          excluded_category_examples?: string[]
+          excluded_keywords?: string[]
           id?: string
+          included_category_examples?: string[]
           is_active?: boolean
+          is_dynamic?: boolean
+          is_reducer?: boolean
           is_tax?: boolean
+          keywords?: string[]
           name: string
           parent_id?: string | null
+          requires_review?: boolean
           short_code?: string | null
           tax_code?: string | null
           tax_description?: string | null
+          template_key?: string | null
+          template_version?: string | null
           updated_at?: string
+          usage_description?: string | null
           user_id: string
           visible_pf?: boolean
         }
         Update: {
           allow_transactions?: boolean
+          allowed_category_subtypes?: string[]
+          allowed_transaction_types?: string[]
           code?: string | null
           context?: Database["public"]["Enums"]["context_type"]
           created_at?: string
           description?: string | null
+          dre_line?: string | null
+          excluded_category_examples?: string[]
+          excluded_keywords?: string[]
           id?: string
+          included_category_examples?: string[]
           is_active?: boolean
+          is_dynamic?: boolean
+          is_reducer?: boolean
           is_tax?: boolean
+          keywords?: string[]
           name?: string
           parent_id?: string | null
+          requires_review?: boolean
           short_code?: string | null
           tax_code?: string | null
           tax_description?: string | null
+          template_key?: string | null
+          template_version?: string | null
           updated_at?: string
+          usage_description?: string | null
           user_id?: string
           visible_pf?: boolean
         }
