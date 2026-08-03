@@ -143,6 +143,8 @@ const AdminPerfisAcesso = lazyWithRetry(() => import("./pages/admin/PerfisAcesso
 const AdminAuditoria = lazyWithRetry(() => import("./pages/admin/Auditoria"));
 const AdminResetarDados = lazyWithRetry(() => import("./pages/admin/ResetarDados"));
 const AdminCadastros = lazyWithRetry(() => import("./pages/admin/Cadastros"));
+const AdminCategoriasPadrao = lazyWithRetry(() => import("./pages/admin/CategoriasPadrao"));
+const AdminContasContabeisPadrao = lazyWithRetry(() => import("./pages/admin/ContasContabeisPadrao"));
 const AdminLandingPage = lazyWithRetry(() => import("./pages/admin/LandingPage"));
 const AdminBancos = lazyWithRetry(() => import("./pages/admin/Bancos"));
 const AdminDriftSaldos = lazyWithRetry(() => import("./pages/admin/DriftSaldos"));
@@ -465,6 +467,8 @@ const AppRoutes = () => (
         <Route path="/admin/estatisticas" element={<AdminEstatisticas />} />
         <Route path="/admin/clientes" element={<AdminClientes />} />
         <Route path="/admin/cadastros" element={<AdminCadastros />} />
+        <Route path="/admin/categorias-padrao" element={<AdminCategoriasPadrao />} />
+        <Route path="/admin/contas-contabeis-padrao" element={<AdminContasContabeisPadrao />} />
         <Route path="/admin/planos" element={<AdminPlanosPage />} />
         <Route path="/admin/assinaturas" element={<AdminAssinaturas />} />
         <Route path="/admin/faturamento" element={<AdminFaturamento />} />

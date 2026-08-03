@@ -1358,6 +1358,50 @@ export type Database = {
           },
         ]
       }
+      chart_account_templates: {
+        Row: {
+          ai_description: string | null
+          code: string
+          created_at: string
+          is_synthetic: boolean
+          is_tax: boolean
+          name: string
+          parent_code: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          ai_description?: string | null
+          code: string
+          created_at?: string
+          is_synthetic?: boolean
+          is_tax?: boolean
+          name: string
+          parent_code?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          ai_description?: string | null
+          code?: string
+          created_at?: string
+          is_synthetic?: boolean
+          is_tax?: boolean
+          name?: string
+          parent_code?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chart_account_templates_parent_code_fkey"
+            columns: ["parent_code"]
+            isOneToOne: false
+            referencedRelation: "chart_account_templates"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       chart_accounts: {
         Row: {
           allow_transactions: boolean

@@ -386,6 +386,8 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
         items: [
           { icon: Users, label: "Clientes", to: "/admin/clientes" },
           { icon: UserCog, label: "Cadastros", to: "/admin/cadastros" },
+          { icon: Tag, label: "Categorias Padrão", to: "/admin/categorias-padrao" },
+          { icon: FileText, label: "Contas Contábeis Padrão", to: "/admin/contas-contabeis-padrao" },
           { icon: Building2, label: "Perfis de Acesso", to: "/admin/perfis-acesso" },
           { icon: Sparkles, label: "Módulos", to: "/admin/modulos" },
           { icon: Landmark, label: "Bancos", to: "/admin/bancos" },

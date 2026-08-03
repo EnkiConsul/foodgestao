@@ -58,6 +58,8 @@ const billingItems = [
 const tenantItems = [
   { title: "Clientes", url: "/admin/clientes", icon: Users },
   { title: "Cadastros", url: "/admin/cadastros", icon: UserCog },
+  { title: "Categorias Padrão", url: "/admin/categorias-padrao", icon: Tag },
+  { title: "Contas Contábeis Padrão", url: "/admin/contas-contabeis-padrao", icon: FileText },
   { title: "Perfis de Acesso", url: "/admin/perfis-acesso", icon: Building2 },
   { title: "Módulos", url: "/admin/modulos", icon: Sparkles },
   { title: "Bancos", url: "/admin/bancos", icon: Landmark },
