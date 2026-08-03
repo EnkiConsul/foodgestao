@@ -38,9 +38,17 @@ type Template = {
   ai_description: string | null;
   previous_index: string | null;
   is_customizable: boolean;
+  chart_account_code: string | null;
+};
+
+type ChartTemplate = {
+  code: string;
+  name: string;
+  is_synthetic: boolean;
 };
 
 const SUBTYPES = ["receita", "saida", "custo", "despesa", "imposto", "investimento"];
+
 
 type FlatNode = Template & { depth: number };
 
