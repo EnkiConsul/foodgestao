@@ -85,7 +85,9 @@ const emptyForm: Template = {
   ai_description: "",
   previous_index: null,
   is_customizable: true,
+  chart_account_code: null,
 };
+
 
 export default function AdminCategoriasPadrao() {
   const qc = useQueryClient();
