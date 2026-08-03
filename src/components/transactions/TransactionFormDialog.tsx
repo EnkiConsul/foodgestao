@@ -22,6 +22,11 @@ import { Switch } from "@/components/ui/switch";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
 
 import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
+import {
+  CategoryGuidancePanel,
+  CategoryGuidanceTooltip,
+  type CategoryGuidance,
+} from "@/components/categories/CategoryGuidanceHint";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { PaymentMethodFormDialog } from "@/components/payment-methods/PaymentMethodFormDialog";
 import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/searchable-select";
@@ -474,11 +479,16 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     const walk = (list: CategoryNode[], parentIndex: string) => {
       list.forEach((n, i) => {
         const idx = parentIndex ? `${parentIndex}.${i + 1}` : `${i + 1}`;
+        const g = n as unknown as CategoryGuidance;
+        const hint = g.guidance_include || g.ai_description || null;
         out.push({
           value: n.id,
           label: n.name,
           depth: n.depth,
-          keywords: idx,
+          keywords: `${idx} ${(g.keywords ?? []).join(" ")} ${g.guidance_include ?? ""} ${g.examples ?? ""}`,
+          description: hint ? (
+            <span className="line-clamp-2 text-[11px] text-muted-foreground">{hint}</span>
+          ) : undefined,
           leading: (
             <span className="flex items-center gap-1.5 shrink-0">
               <span className="font-mono text-[11px] text-muted-foreground">{idx}.</span>
@@ -495,6 +505,10 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     walk(buildCategoryTree(filteredCategories), "");
     return out;
   })();
+
+  const selectedCategory = (filteredCategories.find((c) => c.id === categoryId) ??
+    null) as unknown as CategoryGuidance | null;
+
 
   // Auto-categorization suggestion (Fase 4)
   const { suggestion: categorySuggestion, applyHit: applyCategorizationHit } =
@@ -1495,14 +1509,17 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           {/* Category - hierarchical display */}
           {type !== "transferencia" && (
             <div className="space-y-2" data-field="category">
-              <Label>Categoria{fieldSuffix("category")}</Label>
+              <div className="flex items-center gap-1.5">
+                <Label>Categoria{fieldSuffix("category")}</Label>
+                {selectedCategory && <CategoryGuidanceTooltip cat={selectedCategory} />}
+              </div>
               <div className="flex gap-2">
                 <SearchableSelect
                   value={categoryId}
                   onValueChange={setCategoryId}
                   options={flatCategoryOptions}
                   placeholder="Selecione a categoria"
-                  searchPlaceholder="Buscar categoria..."
+                  searchPlaceholder="Buscar por nome, exemplo ou palavra-chave..."
                 />
                 <Button
                   type="button"
@@ -1515,7 +1532,9 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
+              {selectedCategory && <CategoryGuidancePanel cat={selectedCategory} />}
             </div>
+
           )}
 
           {/* Contact (Cliente/Fornecedor) */}
