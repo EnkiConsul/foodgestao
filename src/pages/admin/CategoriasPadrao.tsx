@@ -209,7 +209,14 @@ export default function AdminCategoriasPadrao() {
 
   const openEdit = (row: Template) => {
     setEditingCode(row.code);
-    setForm({ ...row, ai_description: row.ai_description ?? "" });
+    setForm({
+      ...row,
+      ai_description: row.ai_description ?? "",
+      guidance_include: row.guidance_include ?? "",
+      guidance_exclude: row.guidance_exclude ?? "",
+      examples: row.examples ?? "",
+      keywords: row.keywords ?? [],
+    });
     setDialogOpen(true);
   };
 
@@ -235,7 +242,16 @@ export default function AdminCategoriasPadrao() {
       ai_description: form.ai_description?.trim() || null,
       is_customizable: form.is_customizable,
       chart_account_code: form.chart_account_code || null,
+      guidance_include: form.guidance_include?.trim() || null,
+      guidance_exclude: form.guidance_exclude?.trim() || null,
+      examples: form.examples?.trim() || null,
+      keywords: form.keywords ?? [],
+      in_dre: form.in_dre,
+      is_contribution_margin: form.is_contribution_margin,
+      is_cmv: form.is_cmv,
+      is_patrimonial: form.is_patrimonial,
     };
+
 
     const q = editingCode
       ? (supabase as any).from("category_templates").update(payload).eq("code", editingCode)
