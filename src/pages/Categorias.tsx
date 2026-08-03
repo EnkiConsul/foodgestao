@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
-import { Plus, Search, Tag, ChevronsUpDown, Sparkles, MoreHorizontal, X } from "lucide-react";
+import { Plus, Search, Tag, ChevronsUpDown, Sparkles, MoreHorizontal, X, RefreshCw } from "lucide-react";
 import { DragDropContext, Droppable, type DropResult } from "@hello-pangea/dnd";
 import { toast } from "sonner";
 import { buildCategoryTree, type Category, type TreeNode } from "@/lib/categories/tree";
@@ -55,6 +55,8 @@ export default function Categorias() {
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "blocked">("all");
   const [pendingToggle, setPendingToggle] = useState<{ cat: TreeNode; active: boolean; childIds: string[] } | null>(null);
 
+  const [replaceOpen, setReplaceOpen] = useState(false);
+  const [replacing, setReplacing] = useState(false);
 
   const handleSeedDefaults = async () => {
     if (!selectedCompanyId) return;
@@ -72,6 +74,30 @@ export default function Categorias() {
     });
     refetchAll();
   };
+
+  const handleReplaceWithDefaults = async () => {
+    if (!selectedCompanyId) return;
+    setReplacing(true);
+    const { data, error } = await (supabase as any).rpc("apply_default_categories", {
+      _company_id: selectedCompanyId,
+      _replace_existing: true,
+    });
+    setReplacing(false);
+    setReplaceOpen(false);
+    if (error) {
+      toast.error("Erro ao aplicar o plano padrão", { description: error.message });
+      return;
+    }
+    const deleted = (data as any)?.deleted ?? 0;
+    const detached = (data as any)?.detached ?? 0;
+    const created = (data as any)?.seed?.created ?? 0;
+    toast.success("Plano padrão 360°FOOD aplicado", {
+      description: `${deleted} categoria(s) removida(s), ${created} criada(s), ${detached} lançamento(s) sem categoria para reclassificar.`,
+    });
+    setSelected(new Set());
+    refetchAll();
+  };
+
 
   const handleBatchColor = async (color: string) => {
     if (selected.size === 0) return;
@@ -477,6 +503,19 @@ export default function Categorias() {
                 {seeding ? "Importando..." : "Importar plano 360°FOOD"}
               </Button>
             )}
+            {contextType === "pj" && selectedCompanyId && (
+              <Button
+                onClick={() => setReplaceOpen(true)}
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                disabled={replacing}
+                title="Apaga as categorias atuais desta empresa e recria o plano padrão 360°FOOD."
+              >
+                <RefreshCw className="h-4 w-4" />
+                {replacing ? "Aplicando..." : "Substituir pelo padrão"}
+              </Button>
+            )}
             <Button variant="outline" size="sm" className="gap-1.5" onClick={toggleCollapseAll}>
               <ChevronsUpDown className="h-4 w-4" />
               {allCollapsed ? "Expandir tudo" : "Recolher tudo"}
@@ -497,6 +536,13 @@ export default function Categorias() {
                   {seeding ? "Importando..." : "Importar plano 360°FOOD"}
                 </DropdownMenuItem>
               )}
+              {contextType === "pj" && selectedCompanyId && (
+                <DropdownMenuItem onClick={() => setReplaceOpen(true)} disabled={replacing}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  {replacing ? "Aplicando..." : "Substituir pelo padrão"}
+                </DropdownMenuItem>
+              )}
+
               <DropdownMenuItem onClick={toggleCollapseAll}>
                 <ChevronsUpDown className="mr-2 h-4 w-4" />
                 {allCollapsed ? "Expandir tudo" : "Recolher tudo"}
@@ -785,6 +831,27 @@ export default function Categorias() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={replaceOpen} onOpenChange={setReplaceOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Substituir pelo plano padrão 360°FOOD?</AlertDialogTitle>
+            <AlertDialogDescription>
+              As categorias atuais desta empresa serão removidas e o plano padrão será recriado com
+              as orientações e vínculos contábeis atualizados. Lançamentos já existentes não são
+              apagados: eles ficam sem categoria e precisam ser reclassificados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={replacing}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReplaceWithDefaults} disabled={replacing}>
+              {replacing ? "Aplicando..." : "Substituir agora"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
 
       <BatchVisibilityDialog
         open={batchVisibilityOpen}

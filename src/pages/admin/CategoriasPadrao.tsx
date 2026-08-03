@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import {
-  chartRootLabel, isChartAccountEligible, validateChartAccountLink,
+  chartRootLabel, isChartAccountEligible, isNonResultSubtype, validateChartAccountLink,
 } from "@/lib/categories/chartCompat";
 
 import {
@@ -38,11 +38,19 @@ type Template = {
   level: number;
   sort_order: number;
   subtype: string;
-  transaction_type: "entrada" | "saida";
+  transaction_type: "entrada" | "saida" | "transferencia";
   ai_description: string | null;
   previous_index: string | null;
   is_customizable: boolean;
   chart_account_code: string | null;
+  guidance_include: string | null;
+  guidance_exclude: string | null;
+  keywords: string[];
+  examples: string | null;
+  in_dre: boolean;
+  is_contribution_margin: boolean;
+  is_cmv: boolean;
+  is_patrimonial: boolean;
 };
 
 type ChartTemplate = {
@@ -51,7 +59,11 @@ type ChartTemplate = {
   is_synthetic: boolean;
 };
 
-const SUBTYPES = ["receita", "saida", "custo", "despesa", "imposto", "investimento"];
+const SUBTYPES = [
+  "receita", "saida", "custo", "despesa", "imposto",
+  "investimento", "patrimonial", "transferencia",
+];
+
 
 
 type FlatNode = Template & { depth: number };
@@ -90,7 +102,16 @@ const emptyForm: Template = {
   previous_index: null,
   is_customizable: true,
   chart_account_code: null,
+  guidance_include: "",
+  guidance_exclude: "",
+  keywords: [],
+  examples: "",
+  in_dre: true,
+  is_contribution_margin: false,
+  is_cmv: false,
+  is_patrimonial: false,
 };
+
 
 
 export default function AdminCategoriasPadrao() {
@@ -188,7 +209,14 @@ export default function AdminCategoriasPadrao() {
 
   const openEdit = (row: Template) => {
     setEditingCode(row.code);
-    setForm({ ...row, ai_description: row.ai_description ?? "" });
+    setForm({
+      ...row,
+      ai_description: row.ai_description ?? "",
+      guidance_include: row.guidance_include ?? "",
+      guidance_exclude: row.guidance_exclude ?? "",
+      examples: row.examples ?? "",
+      keywords: row.keywords ?? [],
+    });
     setDialogOpen(true);
   };
 
@@ -214,7 +242,16 @@ export default function AdminCategoriasPadrao() {
       ai_description: form.ai_description?.trim() || null,
       is_customizable: form.is_customizable,
       chart_account_code: form.chart_account_code || null,
+      guidance_include: form.guidance_include?.trim() || null,
+      guidance_exclude: form.guidance_exclude?.trim() || null,
+      examples: form.examples?.trim() || null,
+      keywords: form.keywords ?? [],
+      in_dre: form.in_dre,
+      is_contribution_margin: form.is_contribution_margin,
+      is_cmv: form.is_cmv,
+      is_patrimonial: form.is_patrimonial,
     };
+
 
     const q = editingCode
       ? (supabase as any).from("category_templates").update(payload).eq("code", editingCode)
@@ -388,7 +425,9 @@ export default function AdminCategoriasPadrao() {
                   <SelectContent>
                     <SelectItem value="entrada">Entrada</SelectItem>
                     <SelectItem value="saida">Saída</SelectItem>
+                    <SelectItem value="transferencia">Transferência</SelectItem>
                   </SelectContent>
+
                 </Select>
               </div>
               <div className="space-y-2">
@@ -435,7 +474,7 @@ export default function AdminCategoriasPadrao() {
                 <SelectContent className="max-h-72">
                   <SelectItem value="none">Sem conta contábil</SelectItem>
                   {chartRows
-                    .filter((c) => isChartAccountEligible(c, form.transaction_type))
+                    .filter((c) => isChartAccountEligible(c, form.transaction_type, form.subtype))
                     .map((c) => (
                       <SelectItem key={c.code} value={c.code}>
                         {c.code} — {c.name} ({chartRootLabel(c.code)})
@@ -452,11 +491,89 @@ export default function AdminCategoriasPadrao() {
                 </p>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Só aparecem contas analíticas de resultado compatíveis com o tipo{" "}
-                  {form.transaction_type === "entrada" ? "Entrada (Receitas)" : "Saída (Custos, Despesas e Impostos)"}.
+                  {isNonResultSubtype(form.subtype) || form.transaction_type === "transferencia"
+                    ? "Só aparecem contas analíticas de Ativo, Passivo, Patrimônio Líquido ou de controle."
+                    : form.transaction_type === "entrada"
+                      ? "Só aparecem contas analíticas de Receitas."
+                      : "Só aparecem contas analíticas de Custos, Despesas e Impostos."}
                 </p>
               )}
             </div>
+
+            <div className="space-y-2">
+              <Label>O que lançar aqui</Label>
+              <Textarea
+                rows={2}
+                value={form.guidance_include ?? ""}
+                onChange={(e) => setForm((f) => ({ ...f, guidance_include: e.target.value }))}
+                placeholder="Ex.: Compras de frutas, legumes e verduras para a produção."
+              />
+              <p className="text-xs text-muted-foreground">
+                Aparece como orientação para o usuário e para a IA de categorização.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>O que NÃO lançar aqui</Label>
+              <Textarea
+                rows={2}
+                value={form.guidance_exclude ?? ""}
+                onChange={(e) => setForm((f) => ({ ...f, guidance_exclude: e.target.value }))}
+                placeholder="Ex.: Não lance embalagens nem material de limpeza."
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Palavras-chave</Label>
+              <Input
+                value={(form.keywords ?? []).join(", ")}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    keywords: e.target.value
+                      .split(",")
+                      .map((k) => k.trim())
+                      .filter(Boolean),
+                  }))
+                }
+                placeholder="ifood, marketplace, comissao"
+              />
+              <p className="text-xs text-muted-foreground">
+                Separe por vírgula. Usadas para reconhecer a descrição do lançamento.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Exemplos de fornecedores e documentos</Label>
+              <Textarea
+                rows={2}
+                value={form.examples ?? ""}
+                onChange={(e) => setForm((f) => ({ ...f, examples: e.target.value }))}
+                placeholder="Ex.: Nota do Ceasa, feira, distribuidor de hortifruti."
+              />
+            </div>
+
+            <div className="rounded-md border divide-y">
+              {([
+                ["in_dre", "Entra na DRE", "Desative para movimentações patrimoniais e transferências."],
+                ["is_contribution_margin", "Compõe margem de contribuição", "Marque para receitas e custos que variam com a venda."],
+                ["is_cmv", "É CMV", "Marque para insumos, mercadorias e perdas de estoque."],
+                ["is_patrimonial", "É patrimonial", "Marque para aportes, empréstimos, ativos e sócios."],
+              ] as const).map(([field, title, help]) => (
+                <div key={field} className="flex items-center justify-between gap-3 p-3">
+                  <div>
+                    <p className="text-sm font-medium">{title}</p>
+                    <p className="text-xs text-muted-foreground">{help}</p>
+                  </div>
+                  <Switch
+                    checked={form[field]}
+                    onCheckedChange={(v) => setForm((f) => ({ ...f, [field]: v }))}
+                  />
+                </div>
+              ))}
+            </div>
+
+
 
 
 
