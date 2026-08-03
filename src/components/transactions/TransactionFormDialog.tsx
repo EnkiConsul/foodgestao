@@ -525,6 +525,24 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       ? flatCategoryOptions.find((o) => o.value === categorySuggestion.category_id)?.label ?? null
       : null;
 
+  // Recomendação por texto/forma de pagamento/tipo (palavras-chave e exemplos)
+  const selectedPaymentMethodName =
+    filteredPaymentMethods.find((pm) => pm.id === paymentMethodId)?.name ?? null;
+  const categoryRecommendations = useMemo(
+    () =>
+      type === "transferencia"
+        ? []
+        : recommendCategories(filteredCategories as unknown as RecommendCategoryInput[], {
+            description,
+            transactionType: type,
+            paymentMethodName: selectedPaymentMethodName,
+            limit: 3,
+          }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [description, type, selectedPaymentMethodName, filteredCategories.length, filteredCategories.map((c) => c.id).join(",")],
+  );
+
+
 
 
   const CONTACT_BADGE_CLS: Record<string, string> = {
