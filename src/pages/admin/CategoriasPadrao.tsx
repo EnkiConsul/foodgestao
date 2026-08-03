@@ -425,7 +425,9 @@ export default function AdminCategoriasPadrao() {
                   <SelectContent>
                     <SelectItem value="entrada">Entrada</SelectItem>
                     <SelectItem value="saida">Saída</SelectItem>
+                    <SelectItem value="transferencia">Transferência</SelectItem>
                   </SelectContent>
+
                 </Select>
               </div>
               <div className="space-y-2">
