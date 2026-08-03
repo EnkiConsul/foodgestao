@@ -186,7 +186,9 @@ export default function AdminCategoriasPadrao() {
       transaction_type: form.transaction_type,
       ai_description: form.ai_description?.trim() || null,
       is_customizable: form.is_customizable,
+      chart_account_code: form.chart_account_code || null,
     };
+
     const q = editingCode
       ? (supabase as any).from("category_templates").update(payload).eq("code", editingCode)
       : (supabase as any).from("category_templates").insert(payload);
