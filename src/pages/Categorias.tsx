@@ -89,10 +89,14 @@ export default function Categorias() {
       return;
     }
     const deleted = (data as any)?.deleted ?? 0;
+    const unlinked = (data as any)?.unlinked ?? 0;
     const detached = (data as any)?.detached ?? 0;
     const created = (data as any)?.seed?.created ?? 0;
     toast.success("Plano padrão 360°FOOD aplicado", {
-      description: `${deleted} categoria(s) removida(s), ${created} criada(s), ${detached} lançamento(s) sem categoria para reclassificar.`,
+      description:
+        `${deleted} categoria(s) removida(s)` +
+        (unlinked > 0 ? `, ${unlinked} desvinculada(s)` : "") +
+        `, ${created} criada(s). Nenhum lançamento foi excluído: ${detached} ficaram sem categoria para reclassificar.`,
     });
     setSelected(new Set());
     refetchAll();
@@ -510,7 +514,7 @@ export default function Categorias() {
                 size="sm"
                 className="gap-1.5"
                 disabled={replacing}
-                title="Apaga as categorias atuais desta empresa e recria o plano padrão 360°FOOD."
+                title="Recria o plano padrão 360°FOOD. Os lançamentos são mantidos e apenas ficam sem categoria."
               >
                 <RefreshCw className="h-4 w-4" />
                 {replacing ? "Aplicando..." : "Substituir pelo padrão"}
@@ -838,8 +842,13 @@ export default function Categorias() {
             <AlertDialogTitle>Substituir pelo plano padrão 360°FOOD?</AlertDialogTitle>
             <AlertDialogDescription>
               As categorias atuais desta empresa serão removidas e o plano padrão será recriado com
-              as orientações e vínculos contábeis atualizados. Lançamentos já existentes não são
-              apagados: eles ficam sem categoria e precisam ser reclassificados.
+              as orientações e vínculos contábeis atualizados.
+              <strong className="block mt-2 text-foreground">
+                Nenhum lançamento é excluído.
+              </strong>
+              Os lançamentos existentes são apenas desvinculados e ficam como "sem categoria",
+              prontos para reclassificação. Orçamentos e regras de categorização das categorias
+              antigas são descartados.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
