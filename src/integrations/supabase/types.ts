@@ -8272,6 +8272,10 @@ export type Database = {
         }
         Returns: Json
       }
+      apply_default_categories: {
+        Args: { _company_id: string; _replace_existing?: boolean }
+        Returns: Json
+      }
       apply_tx_balance: {
         Args: {
           _sign: number
