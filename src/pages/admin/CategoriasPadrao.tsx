@@ -23,6 +23,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import {
+  chartRootLabel, isChartAccountEligible, validateChartAccountLink,
+} from "@/lib/categories/chartCompat";
+
+import {
   CATEGORY_SUBTYPE_CLS, CATEGORY_SUBTYPE_LABEL, categoryIndent,
   categoryTypeClass, categoryTypeLabel,
 } from "@/lib/categories/display";
@@ -127,6 +131,24 @@ export default function AdminCategoriasPadrao() {
     [chartRows]
   );
 
+  const chartCompat = useMemo(() => {
+    if (!form.chart_account_code) return null;
+    const acc = chartByCode.get(form.chart_account_code);
+    if (!acc) {
+      return {
+        ok: false,
+        level: "error" as const,
+        message: `A conta ${form.chart_account_code} não existe mais no plano de contas padrão.`,
+      };
+    }
+    return validateChartAccountLink({
+      transactionType: form.transaction_type,
+      subtype: form.subtype,
+      account: acc,
+    });
+  }, [form.chart_account_code, form.transaction_type, form.subtype, chartByCode]);
+
+
   const [applying, setApplying] = useState(false);
   const applyToExisting = async () => {
     setApplying(true);
@@ -175,7 +197,12 @@ export default function AdminCategoriasPadrao() {
       toast.error("Código e nome são obrigatórios");
       return;
     }
+    if (chartCompat && !chartCompat.ok) {
+      toast.error("Conta contábil incompatível", { description: chartCompat.message });
+      return;
+    }
     setSaving(true);
+
     const payload = {
       code: form.code.trim(),
       parent_code: form.parent_code || null,
@@ -408,18 +435,29 @@ export default function AdminCategoriasPadrao() {
                 <SelectContent className="max-h-72">
                   <SelectItem value="none">Sem conta contábil</SelectItem>
                   {chartRows
-                    .filter((c) => !c.is_synthetic)
+                    .filter((c) => isChartAccountEligible(c, form.transaction_type))
                     .map((c) => (
                       <SelectItem key={c.code} value={c.code}>
-                        {c.code} — {c.name}
+                        {c.code} — {c.name} ({chartRootLabel(c.code)})
                       </SelectItem>
                     ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                Ao criar um novo cadastro, esta categoria já nasce vinculada à conta contábil correspondente da empresa.
-              </p>
+              {chartCompat?.message ? (
+                <p
+                  className={`text-xs ${chartCompat.ok ? "text-warning" : "text-destructive"}`}
+                  role="alert"
+                >
+                  {chartCompat.message}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Só aparecem contas analíticas de resultado compatíveis com o tipo{" "}
+                  {form.transaction_type === "entrada" ? "Entrada (Receitas)" : "Saída (Custos, Despesas e Impostos)"}.
+                </p>
+              )}
             </div>
+
 
 
 
@@ -447,7 +485,14 @@ export default function AdminCategoriasPadrao() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={save} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
+            <Button
+              onClick={save}
+              disabled={saving || (!!chartCompat && !chartCompat.ok)}
+              title={chartCompat && !chartCompat.ok ? chartCompat.message : undefined}
+            >
+              {saving ? "Salvando..." : "Salvar"}
+            </Button>
+
           </DialogFooter>
         </DialogContent>
       </Dialog>
