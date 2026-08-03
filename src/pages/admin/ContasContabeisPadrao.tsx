@@ -31,9 +31,42 @@ type Template = {
   is_tax: boolean;
   ai_description: string | null;
   sort_order: number;
+  template_key: string | null;
+  usage_description: string | null;
+  keywords: string[];
+  excluded_keywords: string[];
+  included_category_examples: string[];
+  excluded_category_examples: string[];
+  allowed_category_subtypes: string[];
+  allowed_transaction_types: string[];
+  requires_review: boolean;
+  is_dynamic: boolean;
+  is_reducer: boolean;
+  is_active: boolean;
+  dre_line: string | null;
 };
 
 type FlatNode = Template & { depth: number };
+
+const SUBTYPES = [
+  "receita", "custo", "despesa", "imposto", "investimento", "patrimonial", "transferencia",
+] as const;
+const TX_TYPES = ["entrada", "saida", "transferencia"] as const;
+
+const SUBTYPE_LABEL: Record<string, string> = {
+  receita: "Receita",
+  custo: "Custo",
+  despesa: "Despesa",
+  imposto: "Imposto",
+  investimento: "Investimento",
+  patrimonial: "Patrimonial",
+  transferencia: "Transferência",
+};
+const TX_LABEL: Record<string, string> = {
+  entrada: "Entrada",
+  saida: "Saída",
+  transferencia: "Transferência",
+};
 
 function compareCodes(a: string, b: string) {
   const pa = a.split(".").map((s) => parseInt(s, 10));
@@ -76,7 +109,24 @@ const emptyForm: Template = {
   is_tax: false,
   ai_description: "",
   sort_order: 0,
+  template_key: null,
+  usage_description: "",
+  keywords: [],
+  excluded_keywords: [],
+  included_category_examples: [],
+  excluded_category_examples: [],
+  allowed_category_subtypes: [],
+  allowed_transaction_types: [],
+  requires_review: false,
+  is_dynamic: false,
+  is_reducer: false,
+  is_active: true,
+  dre_line: null,
 };
+
+const listToText = (v: string[] | null | undefined) => (v ?? []).join(", ");
+const textToList = (v: string) =>
+  v.split(",").map((s) => s.trim()).filter(Boolean);
 
 export default function AdminContasContabeisPadrao() {
   const qc = useQueryClient();
@@ -84,6 +134,10 @@ export default function AdminContasContabeisPadrao() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCode, setEditingCode] = useState<string | null>(null);
   const [form, setForm] = useState<Template>(emptyForm);
+  const [keywordsText, setKeywordsText] = useState("");
+  const [excludedKeywordsText, setExcludedKeywordsText] = useState("");
+  const [includeText, setIncludeText] = useState("");
+  const [excludeText, setExcludeText] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Template | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -103,15 +157,28 @@ export default function AdminContasContabeisPadrao() {
   const visible = useMemo(() => {
     const t = search.trim().toLowerCase();
     if (!t) return flat;
-    return flat.filter((n) => `${n.code} ${n.name}`.toLowerCase().includes(t));
+    return flat.filter((n) =>
+      `${n.code} ${n.name} ${listToText(n.keywords)}`.toLowerCase().includes(t)
+    );
   }, [flat, search]);
+
+  const loadForm = (next: Template) => {
+    setForm(next);
+    setKeywordsText(listToText(next.keywords));
+    setExcludedKeywordsText(listToText(next.excluded_keywords));
+    setIncludeText(listToText(next.included_category_examples));
+    setExcludeText(listToText(next.excluded_category_examples));
+  };
 
   const openNew = (parent: Template | null) => {
     setEditingCode(null);
-    setForm({
+    loadForm({
       ...emptyForm,
       parent_code: parent?.code ?? null,
       code: parent ? `${parent.code}.` : "",
+      allowed_category_subtypes: parent?.allowed_category_subtypes ?? [],
+      allowed_transaction_types: parent?.allowed_transaction_types ?? [],
+      dre_line: parent?.dre_line ?? null,
       sort_order: rows.length ? Math.max(...rows.map((r) => r.sort_order)) + 1 : 1,
     });
     setDialogOpen(true);
@@ -119,9 +186,12 @@ export default function AdminContasContabeisPadrao() {
 
   const openEdit = (row: Template) => {
     setEditingCode(row.code);
-    setForm({ ...row, ai_description: row.ai_description ?? "" });
+    loadForm({ ...row, ai_description: row.ai_description ?? "" });
     setDialogOpen(true);
   };
+
+  const toggleIn = (list: string[], value: string) =>
+    list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
 
   const save = async () => {
     if (!form.code.trim() || !form.name.trim()) {
@@ -137,6 +207,19 @@ export default function AdminContasContabeisPadrao() {
       is_tax: form.is_tax,
       ai_description: form.ai_description?.trim() || null,
       sort_order: Number(form.sort_order) || 0,
+      template_key: form.template_key?.trim() || null,
+      usage_description: form.usage_description?.trim() || null,
+      keywords: textToList(keywordsText),
+      excluded_keywords: textToList(excludedKeywordsText),
+      included_category_examples: textToList(includeText),
+      excluded_category_examples: textToList(excludeText),
+      allowed_category_subtypes: form.allowed_category_subtypes,
+      allowed_transaction_types: form.allowed_transaction_types,
+      requires_review: form.requires_review,
+      is_dynamic: form.is_dynamic,
+      is_reducer: form.is_reducer,
+      is_active: form.is_active,
+      dre_line: form.dre_line?.trim() || null,
     };
     const q = editingCode
       ? (supabase as any).from("chart_account_templates").update(payload).eq("code", editingCode)
@@ -174,7 +257,7 @@ export default function AdminContasContabeisPadrao() {
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
         <AdminPageHeader
           title="Contas Contábeis Padrão"
-          description="Plano de contas modelo usado ao criar empresas e ao restaurar o modelo padrão. Sintéticas agrupam; analíticas recebem lançamentos."
+          description="Plano de contas modelo (Food Service) usado ao criar empresas e ao restaurar o modelo. Sintéticas [S] agrupam; analíticas [A] recebem lançamentos; [D] dinâmicas; [C] redutoras."
         />
         <Button size="sm" onClick={() => openNew(null)} className="min-h-9">
           <Plus className="h-4 w-4 mr-2" /> Nova conta padrão
@@ -184,7 +267,7 @@ export default function AdminContasContabeisPadrao() {
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar por código ou nome..."
+          placeholder="Buscar por código, nome ou palavra-chave..."
           className="pl-9"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -211,15 +294,25 @@ export default function AdminContasContabeisPadrao() {
                   <span className="font-mono text-[10px] md:text-xs text-muted-foreground w-14 md:w-20 shrink-0 truncate">
                     {n.code}
                   </span>
-                  <span className={`text-xs md:text-sm truncate ${n.is_synthetic ? "font-semibold" : ""}`}>
+                  <span
+                    className={`text-xs md:text-sm truncate ${n.is_synthetic ? "font-semibold" : ""} ${!n.is_active ? "text-muted-foreground line-through" : ""}`}
+                    title={n.usage_description ?? undefined}
+                  >
                     {n.name}
                   </span>
                 </span>
                 <div className="hidden md:flex items-center gap-1 shrink-0">
+                  {n.dre_line && (
+                    <Badge variant="outline" className="text-[10px] font-mono">{n.dre_line}</Badge>
+                  )}
                   {n.is_tax && <Badge variant="secondary" className="text-[10px]">Imposto</Badge>}
+                  {n.is_dynamic && <Badge variant="secondary" className="text-[10px]">D</Badge>}
+                  {n.is_reducer && <Badge variant="secondary" className="text-[10px]">C</Badge>}
+                  {n.requires_review && <Badge variant="secondary" className="text-[10px]">Revisão</Badge>}
                   <Badge variant={n.is_synthetic ? "outline" : "default"} className="text-[10px]">
-                    {n.is_synthetic ? "Sintética" : "Analítica"}
+                    {n.is_synthetic ? "S" : "A"}
                   </Badge>
+                  {!n.is_active && <Badge variant="destructive" className="text-[10px]">Inativa</Badge>}
                 </div>
                 <div className="flex items-center gap-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
                   <Button variant="ghost" size="icon" className="h-8 w-8 md:h-7 md:w-7" title="Adicionar filha" onClick={() => openNew(n)}>
@@ -239,11 +332,11 @@ export default function AdminContasContabeisPadrao() {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingCode ? "Editar conta padrão" : "Nova conta padrão"}</DialogTitle>
             <DialogDescription>
-              O código define a posição no plano de contas (ex.: 3.1.2).
+              O código define a posição no plano de contas (ex.: 6.2.8). As orientações abaixo guiam o usuário e a vinculação automática por IA.
             </DialogDescription>
           </DialogHeader>
 
@@ -255,7 +348,7 @@ export default function AdminContasContabeisPadrao() {
                   value={form.code}
                   disabled={!!editingCode}
                   onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
-                  placeholder="ex.: 3.1.2"
+                  placeholder="ex.: 6.2.8"
                 />
               </div>
               <div className="space-y-2">
@@ -284,6 +377,31 @@ export default function AdminContasContabeisPadrao() {
               <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
             </div>
 
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Chave do modelo</Label>
+                <Input
+                  value={form.template_key ?? ""}
+                  onChange={(e) => setForm((f) => ({ ...f, template_key: e.target.value }))}
+                  placeholder="ex.: despesa.taxas_de_cartao_de_credito"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Identificador estável usado para reconhecer esta conta nas empresas.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Linha da DRE</Label>
+                <Input
+                  value={form.dre_line ?? ""}
+                  onChange={(e) => setForm((f) => ({ ...f, dre_line: e.target.value }))}
+                  placeholder="ex.: despesas_variaveis_venda"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Vazio = conta fora da DRE (patrimonial ou de controle).
+                </p>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label>Ordem</Label>
               <Input
@@ -294,32 +412,136 @@ export default function AdminContasContabeisPadrao() {
             </div>
 
             <div className="space-y-2">
-              <Label>Descrição para IA</Label>
+              <Label>Como usar esta conta</Label>
               <Textarea
                 rows={3}
+                value={form.usage_description ?? ""}
+                onChange={(e) => setForm((f) => ({ ...f, usage_description: e.target.value }))}
+                placeholder="Explique, em linguagem simples, o que deve ser lançado nesta conta."
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Observações técnicas / IA</Label>
+              <Textarea
+                rows={2}
                 value={form.ai_description ?? ""}
                 onChange={(e) => setForm((f) => ({ ...f, ai_description: e.target.value }))}
-                placeholder="Explique quando esta conta deve ser usada."
+                placeholder="Regras e exceções relevantes para a classificação automática."
               />
             </div>
 
-            <div className="flex items-center justify-between rounded-md border p-3">
-              <div>
-                <p className="text-sm font-medium">Conta sintética</p>
-                <p className="text-xs text-muted-foreground">Sintética agrupa e não recebe lançamentos.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Palavras-chave</Label>
+                <Textarea
+                  rows={2}
+                  value={keywordsText}
+                  onChange={(e) => setKeywordsText(e.target.value)}
+                  placeholder="separadas por vírgula"
+                />
               </div>
-              <Switch
-                checked={form.is_synthetic}
-                onCheckedChange={(v) => setForm((f) => ({ ...f, is_synthetic: v }))}
-              />
+              <div className="space-y-2">
+                <Label>Palavras-chave de exclusão</Label>
+                <Textarea
+                  rows={2}
+                  value={excludedKeywordsText}
+                  onChange={(e) => setExcludedKeywordsText(e.target.value)}
+                  placeholder="separadas por vírgula"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Categorias que devem ser vinculadas</Label>
+                <Textarea
+                  rows={2}
+                  value={includeText}
+                  onChange={(e) => setIncludeText(e.target.value)}
+                  placeholder="ex.: Taxas de cartão, MDR"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Categorias que não devem ser vinculadas</Label>
+                <Textarea
+                  rows={2}
+                  value={excludeText}
+                  onChange={(e) => setExcludeText(e.target.value)}
+                  placeholder="ex.: Antecipação de recebíveis"
+                />
+              </div>
             </div>
 
-            <div className="flex items-center justify-between rounded-md border p-3">
-              <div>
-                <p className="text-sm font-medium">Conta de imposto</p>
-                <p className="text-xs text-muted-foreground">Marca a conta como tributária nos relatórios.</p>
+            <div className="space-y-2">
+              <Label>Tipos de categoria aceitos</Label>
+              <div className="flex flex-wrap gap-2">
+                {SUBTYPES.map((s) => {
+                  const active = form.allowed_category_subtypes.includes(s);
+                  return (
+                    <Button
+                      key={s}
+                      type="button"
+                      size="sm"
+                      variant={active ? "default" : "outline"}
+                      className="h-7 text-xs"
+                      onClick={() =>
+                        setForm((f) => ({
+                          ...f,
+                          allowed_category_subtypes: toggleIn(f.allowed_category_subtypes, s),
+                        }))
+                      }
+                    >
+                      {SUBTYPE_LABEL[s]}
+                    </Button>
+                  );
+                })}
               </div>
-              <Switch checked={form.is_tax} onCheckedChange={(v) => setForm((f) => ({ ...f, is_tax: v }))} />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Tipos de movimento aceitos</Label>
+              <div className="flex flex-wrap gap-2">
+                {TX_TYPES.map((t) => {
+                  const active = form.allowed_transaction_types.includes(t);
+                  return (
+                    <Button
+                      key={t}
+                      type="button"
+                      size="sm"
+                      variant={active ? "default" : "outline"}
+                      className="h-7 text-xs"
+                      onClick={() =>
+                        setForm((f) => ({
+                          ...f,
+                          allowed_transaction_types: toggleIn(f.allowed_transaction_types, t),
+                        }))
+                      }
+                    >
+                      {TX_LABEL[t]}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              {([
+                ["is_synthetic", "Conta sintética [S]", "Agrupa e não recebe lançamentos."],
+                ["is_dynamic", "Conta dinâmica [D]", "O sistema pode criar filhas automaticamente (bancos, cartões, contratos)."],
+                ["is_reducer", "Conta redutora [C]", "Reduz o saldo do grupo em que está."],
+                ["is_tax", "Conta de imposto", "Marca a conta como tributária nos relatórios."],
+                ["requires_review", "Exige revisão", "Conta transitória: o lançamento deve ser reclassificado."],
+                ["is_active", "Conta ativa no modelo", "Contas inativas não são criadas em novas empresas."],
+              ] as const).map(([key, title, desc]) => (
+                <div key={key} className="flex items-center justify-between rounded-md border p-3">
+                  <div>
+                    <p className="text-sm font-medium">{title}</p>
+                    <p className="text-xs text-muted-foreground">{desc}</p>
+                  </div>
+                  <Switch
+                    checked={form[key]}
+                    onCheckedChange={(v) => setForm((f) => ({ ...f, [key]: v }))}
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
