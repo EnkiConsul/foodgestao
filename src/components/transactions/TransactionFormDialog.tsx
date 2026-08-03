@@ -1509,14 +1509,17 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           {/* Category - hierarchical display */}
           {type !== "transferencia" && (
             <div className="space-y-2" data-field="category">
-              <Label>Categoria{fieldSuffix("category")}</Label>
+              <div className="flex items-center gap-1.5">
+                <Label>Categoria{fieldSuffix("category")}</Label>
+                {selectedCategory && <CategoryGuidanceTooltip cat={selectedCategory} />}
+              </div>
               <div className="flex gap-2">
                 <SearchableSelect
                   value={categoryId}
                   onValueChange={setCategoryId}
                   options={flatCategoryOptions}
                   placeholder="Selecione a categoria"
-                  searchPlaceholder="Buscar categoria..."
+                  searchPlaceholder="Buscar por nome, exemplo ou palavra-chave..."
                 />
                 <Button
                   type="button"
@@ -1529,7 +1532,9 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
+              {selectedCategory && <CategoryGuidancePanel cat={selectedCategory} />}
             </div>
+
           )}
 
           {/* Contact (Cliente/Fornecedor) */}
