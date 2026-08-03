@@ -227,10 +227,16 @@ export default function AdminCategoriasPadrao() {
           title="Categorias Padrão"
           description="Modelo de categorias aplicado a todo novo cadastro. Alterações valem para as próximas empresas criadas."
         />
-        <Button size="sm" onClick={() => openNew(null)} className="min-h-9">
-          <Plus className="h-4 w-4 mr-2" /> Nova categoria padrão
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" onClick={applyToExisting} disabled={applying} className="min-h-9">
+            {applying ? "Aplicando..." : "Aplicar vínculos aos cadastros existentes"}
+          </Button>
+          <Button size="sm" onClick={() => openNew(null)} className="min-h-9">
+            <Plus className="h-4 w-4 mr-2" /> Nova categoria padrão
+          </Button>
+        </div>
       </div>
+
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
