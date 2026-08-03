@@ -127,6 +127,24 @@ export default function AdminCategoriasPadrao() {
     [chartRows]
   );
 
+  const chartCompat = useMemo(() => {
+    if (!form.chart_account_code) return null;
+    const acc = chartByCode.get(form.chart_account_code);
+    if (!acc) {
+      return {
+        ok: false,
+        level: "error" as const,
+        message: `A conta ${form.chart_account_code} não existe mais no plano de contas padrão.`,
+      };
+    }
+    return validateChartAccountLink({
+      transactionType: form.transaction_type,
+      subtype: form.subtype,
+      account: acc,
+    });
+  }, [form.chart_account_code, form.transaction_type, form.subtype, chartByCode]);
+
+
   const [applying, setApplying] = useState(false);
   const applyToExisting = async () => {
     setApplying(true);
