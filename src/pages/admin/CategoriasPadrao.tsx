@@ -102,7 +102,16 @@ const emptyForm: Template = {
   previous_index: null,
   is_customizable: true,
   chart_account_code: null,
+  guidance_include: "",
+  guidance_exclude: "",
+  keywords: [],
+  examples: "",
+  in_dre: true,
+  is_contribution_margin: false,
+  is_cmv: false,
+  is_patrimonial: false,
 };
+
 
 
 export default function AdminCategoriasPadrao() {
