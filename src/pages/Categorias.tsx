@@ -538,7 +538,7 @@ export default function Categorias() {
             )}
             {contextType === "pj" && selectedCompanyId && (
               <Button
-                onClick={() => setReplaceOpen(true)}
+                onClick={openReplaceDialog}
                 variant="outline"
                 size="sm"
                 className="gap-1.5"
@@ -570,7 +570,7 @@ export default function Categorias() {
                 </DropdownMenuItem>
               )}
               {contextType === "pj" && selectedCompanyId && (
-                <DropdownMenuItem onClick={() => setReplaceOpen(true)} disabled={replacing}>
+                <DropdownMenuItem onClick={openReplaceDialog} disabled={replacing}>
                   <RefreshCw className="mr-2 h-4 w-4" />
                   {replacing ? "Aplicando..." : "Substituir pelo padrão"}
                 </DropdownMenuItem>
