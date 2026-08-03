@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 
 import { useQuery } from "@tanstack/react-query";
 
@@ -33,6 +33,8 @@ import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/s
 import { useTransactionFieldSettings, TRANSACTION_FIELD_LABELS, type TransactionField } from "@/hooks/useTransactionFieldSettings";
 import { useTransactionFormLookups } from "@/hooks/useTransactionFormLookups";
 import { useCategorizationSuggestion } from "@/hooks/useCategorizationSuggestion";
+import { recommendCategories, type RecommendCategoryInput } from "@/lib/categories/recommend";
+import { CategoryRecommendationHint } from "@/components/categories/CategoryRecommendationHint";
 import { Sparkles } from "lucide-react";
 import {
   type CategoryNode,
@@ -524,6 +526,24 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     categorySuggestion?.category_id
       ? flatCategoryOptions.find((o) => o.value === categorySuggestion.category_id)?.label ?? null
       : null;
+
+  // Recomendação por texto/forma de pagamento/tipo (palavras-chave e exemplos)
+  const selectedPaymentMethodName =
+    filteredPaymentMethods.find((pm) => pm.id === paymentMethodId)?.name ?? null;
+  const categoryRecommendations = useMemo(
+    () =>
+      type === "transferencia"
+        ? []
+        : recommendCategories(filteredCategories as unknown as RecommendCategoryInput[], {
+            description,
+            transactionType: type,
+            paymentMethodName: selectedPaymentMethodName,
+            limit: 3,
+          }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [description, type, selectedPaymentMethodName, filteredCategories.length, filteredCategories.map((c) => c.id).join(",")],
+  );
+
 
 
 
@@ -1056,7 +1076,15 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                 <span className="ml-1 rounded bg-primary/15 px-1.5 py-0.5">Aplicar</span>
               </button>
             )}
+            {type !== "transferencia" && categoryRecommendations.length > 0 && (
+              <CategoryRecommendationHint
+                recommendations={categoryRecommendations}
+                selectedCategoryId={categoryId}
+                onApply={(id) => setCategoryId(id)}
+              />
+            )}
           </div>
+
 
 
           {/* Data atribuída automaticamente (data de criação) — campo oculto */}
