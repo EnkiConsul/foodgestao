@@ -435,18 +435,29 @@ export default function AdminCategoriasPadrao() {
                 <SelectContent className="max-h-72">
                   <SelectItem value="none">Sem conta contábil</SelectItem>
                   {chartRows
-                    .filter((c) => !c.is_synthetic)
+                    .filter((c) => isChartAccountEligible(c, form.transaction_type))
                     .map((c) => (
                       <SelectItem key={c.code} value={c.code}>
-                        {c.code} — {c.name}
+                        {c.code} — {c.name} ({chartRootLabel(c.code)})
                       </SelectItem>
                     ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                Ao criar um novo cadastro, esta categoria já nasce vinculada à conta contábil correspondente da empresa.
-              </p>
+              {chartCompat?.message ? (
+                <p
+                  className={`text-xs ${chartCompat.ok ? "text-warning-strong" : "text-destructive"}`}
+                  role="alert"
+                >
+                  {chartCompat.message}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Só aparecem contas analíticas de resultado compatíveis com o tipo{" "}
+                  {form.transaction_type === "entrada" ? "Entrada (Receitas)" : "Saída (Custos, Despesas e Impostos)"}.
+                </p>
+              )}
             </div>
+
 
 
 
