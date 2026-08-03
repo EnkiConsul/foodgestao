@@ -880,12 +880,61 @@ export default function Categorias() {
               antigas são descartados.
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+            <div className="mb-2 font-medium text-foreground">Prévia do impacto</div>
+            {previewLoading && <p className="text-muted-foreground">Calculando o impacto...</p>}
+            {previewError && (
+              <p className="text-destructive">Não foi possível calcular a prévia: {previewError}</p>
+            )}
+            {preview && !previewLoading && !previewError && (
+              <ul className="space-y-1 text-muted-foreground">
+                <li>
+                  <span className="font-semibold text-foreground">{preview.transactions_detached}</span>{" "}
+                  lançamento(s) mantido(s) e apenas desvinculado(s) da categoria
+                </li>
+                <li>
+                  <span className="font-semibold text-foreground">{preview.will_unlink}</span>{" "}
+                  categoria(s) de outras empresas apenas desvinculada(s) desta empresa
+                </li>
+                <li>
+                  <span className="font-semibold text-foreground">{preview.will_delete}</span>{" "}
+                  categoria(s) desta empresa serão removidas e recriadas pelo padrão
+                </li>
+                {preview.staging_detached > 0 && (
+                  <li>
+                    <span className="font-semibold text-foreground">{preview.staging_detached}</span>{" "}
+                    item(ns) de conciliação bancária perderão a sugestão de categoria
+                  </li>
+                )}
+                {preview.folha_detached > 0 && (
+                  <li>
+                    <span className="font-semibold text-foreground">{preview.folha_detached}</span>{" "}
+                    lançamento(s) de folha ficarão sem categoria
+                  </li>
+                )}
+                {(preview.budgets_deleted > 0 || preview.rules_deleted > 0) && (
+                  <li>
+                    <span className="font-semibold text-foreground">{preview.budgets_deleted}</span>{" "}
+                    orçamento(s) e{" "}
+                    <span className="font-semibold text-foreground">{preview.rules_deleted}</span>{" "}
+                    regra(s) de categorização serão descartadas
+                  </li>
+                )}
+              </ul>
+            )}
+          </div>
+
           <AlertDialogFooter>
             <AlertDialogCancel disabled={replacing}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleReplaceWithDefaults} disabled={replacing}>
+            <AlertDialogAction
+              onClick={handleReplaceWithDefaults}
+              disabled={replacing || previewLoading || !!previewError}
+            >
               {replacing ? "Aplicando..." : "Substituir agora"}
             </AlertDialogAction>
           </AlertDialogFooter>
+
         </AlertDialogContent>
       </AlertDialog>
 
