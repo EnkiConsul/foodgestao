@@ -175,7 +175,12 @@ export default function AdminCategoriasPadrao() {
       toast.error("Código e nome são obrigatórios");
       return;
     }
+    if (chartCompat && !chartCompat.ok) {
+      toast.error("Conta contábil incompatível", { description: chartCompat.message });
+      return;
+    }
     setSaving(true);
+
     const payload = {
       code: form.code.trim(),
       parent_code: form.parent_code || null,
