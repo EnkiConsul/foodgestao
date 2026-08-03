@@ -38,11 +38,19 @@ type Template = {
   level: number;
   sort_order: number;
   subtype: string;
-  transaction_type: "entrada" | "saida";
+  transaction_type: "entrada" | "saida" | "transferencia";
   ai_description: string | null;
   previous_index: string | null;
   is_customizable: boolean;
   chart_account_code: string | null;
+  guidance_include: string | null;
+  guidance_exclude: string | null;
+  keywords: string[];
+  examples: string | null;
+  in_dre: boolean;
+  is_contribution_margin: boolean;
+  is_cmv: boolean;
+  is_patrimonial: boolean;
 };
 
 type ChartTemplate = {
@@ -51,7 +59,11 @@ type ChartTemplate = {
   is_synthetic: boolean;
 };
 
-const SUBTYPES = ["receita", "saida", "custo", "despesa", "imposto", "investimento"];
+const SUBTYPES = [
+  "receita", "saida", "custo", "despesa", "imposto",
+  "investimento", "patrimonial", "transferencia",
+];
+
 
 
 type FlatNode = Template & { depth: number };
