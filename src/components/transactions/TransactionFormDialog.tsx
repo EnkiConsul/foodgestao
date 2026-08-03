@@ -474,11 +474,16 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     const walk = (list: CategoryNode[], parentIndex: string) => {
       list.forEach((n, i) => {
         const idx = parentIndex ? `${parentIndex}.${i + 1}` : `${i + 1}`;
+        const g = n as unknown as CategoryGuidance;
+        const hint = g.guidance_include || g.ai_description || null;
         out.push({
           value: n.id,
           label: n.name,
           depth: n.depth,
-          keywords: idx,
+          keywords: `${idx} ${(g.keywords ?? []).join(" ")} ${g.guidance_include ?? ""} ${g.examples ?? ""}`,
+          description: hint ? (
+            <span className="line-clamp-2 text-[11px] text-muted-foreground">{hint}</span>
+          ) : undefined,
           leading: (
             <span className="flex items-center gap-1.5 shrink-0">
               <span className="font-mono text-[11px] text-muted-foreground">{idx}.</span>
@@ -495,6 +500,10 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     walk(buildCategoryTree(filteredCategories), "");
     return out;
   })();
+
+  const selectedCategory = (filteredCategories.find((c) => c.id === categoryId) ??
+    null) as unknown as CategoryGuidance | null;
+
 
   // Auto-categorization suggestion (Fase 4)
   const { suggestion: categorySuggestion, applyHit: applyCategorizationHit } =
