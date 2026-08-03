@@ -445,7 +445,7 @@ export default function AdminCategoriasPadrao() {
               </Select>
               {chartCompat?.message ? (
                 <p
-                  className={`text-xs ${chartCompat.ok ? "text-warning-strong" : "text-destructive"}`}
+                  className={`text-xs ${chartCompat.ok ? "text-warning" : "text-destructive"}`}
                   role="alert"
                 >
                   {chartCompat.message}
