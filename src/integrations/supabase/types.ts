@@ -1063,12 +1063,20 @@ export type Database = {
           company_id: string | null
           context: Database["public"]["Enums"]["context_type"] | null
           created_at: string
+          examples: string | null
+          guidance_exclude: string | null
+          guidance_include: string | null
           hierarchy_index: string | null
           icon: string | null
           id: string
+          in_dre: boolean
           is_active: boolean
+          is_cmv: boolean
+          is_contribution_margin: boolean
           is_customizable: boolean
+          is_patrimonial: boolean
           is_system: boolean
+          keywords: string[]
           name: string
           parent_id: string | null
           previous_index: string | null
@@ -1086,12 +1094,20 @@ export type Database = {
           company_id?: string | null
           context?: Database["public"]["Enums"]["context_type"] | null
           created_at?: string
+          examples?: string | null
+          guidance_exclude?: string | null
+          guidance_include?: string | null
           hierarchy_index?: string | null
           icon?: string | null
           id?: string
+          in_dre?: boolean
           is_active?: boolean
+          is_cmv?: boolean
+          is_contribution_margin?: boolean
           is_customizable?: boolean
+          is_patrimonial?: boolean
           is_system?: boolean
+          keywords?: string[]
           name: string
           parent_id?: string | null
           previous_index?: string | null
@@ -1109,12 +1125,20 @@ export type Database = {
           company_id?: string | null
           context?: Database["public"]["Enums"]["context_type"] | null
           created_at?: string
+          examples?: string | null
+          guidance_exclude?: string | null
+          guidance_include?: string | null
           hierarchy_index?: string | null
           icon?: string | null
           id?: string
+          in_dre?: boolean
           is_active?: boolean
+          is_cmv?: boolean
+          is_contribution_margin?: boolean
           is_customizable?: boolean
+          is_patrimonial?: boolean
           is_system?: boolean
+          keywords?: string[]
           name?: string
           parent_id?: string | null
           previous_index?: string | null
@@ -1278,7 +1302,15 @@ export type Database = {
           chart_account_code: string | null
           code: string
           created_at: string
+          examples: string | null
+          guidance_exclude: string | null
+          guidance_include: string | null
+          in_dre: boolean
+          is_cmv: boolean
+          is_contribution_margin: boolean
           is_customizable: boolean
+          is_patrimonial: boolean
+          keywords: string[]
           level: number
           name: string
           parent_code: string | null
@@ -1292,7 +1324,15 @@ export type Database = {
           chart_account_code?: string | null
           code: string
           created_at?: string
+          examples?: string | null
+          guidance_exclude?: string | null
+          guidance_include?: string | null
+          in_dre?: boolean
+          is_cmv?: boolean
+          is_contribution_margin?: boolean
           is_customizable?: boolean
+          is_patrimonial?: boolean
+          keywords?: string[]
           level: number
           name: string
           parent_code?: string | null
@@ -1306,7 +1346,15 @@ export type Database = {
           chart_account_code?: string | null
           code?: string
           created_at?: string
+          examples?: string | null
+          guidance_exclude?: string | null
+          guidance_include?: string | null
+          in_dre?: boolean
+          is_cmv?: boolean
+          is_contribution_margin?: boolean
           is_customizable?: boolean
+          is_patrimonial?: boolean
+          keywords?: string[]
           level?: number
           name?: string
           parent_code?: string | null
@@ -8676,12 +8724,20 @@ export type Database = {
           company_id: string | null
           context: Database["public"]["Enums"]["context_type"] | null
           created_at: string
+          examples: string | null
+          guidance_exclude: string | null
+          guidance_include: string | null
           hierarchy_index: string | null
           icon: string | null
           id: string
+          in_dre: boolean
           is_active: boolean
+          is_cmv: boolean
+          is_contribution_margin: boolean
           is_customizable: boolean
+          is_patrimonial: boolean
           is_system: boolean
+          keywords: string[]
           name: string
           parent_id: string | null
           previous_index: string | null
