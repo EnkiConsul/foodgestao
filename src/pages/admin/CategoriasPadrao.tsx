@@ -485,7 +485,14 @@ export default function AdminCategoriasPadrao() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={save} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
+            <Button
+              onClick={save}
+              disabled={saving || (!!chartCompat && !chartCompat.ok)}
+              title={chartCompat && !chartCompat.ok ? chartCompat.message : undefined}
+            >
+              {saving ? "Salvando..." : "Salvar"}
+            </Button>
+
           </DialogFooter>
         </DialogContent>
       </Dialog>
