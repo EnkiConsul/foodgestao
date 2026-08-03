@@ -23,6 +23,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import {
+  chartRootLabel, isChartAccountEligible, validateChartAccountLink,
+} from "@/lib/categories/chartCompat";
+
+import {
   CATEGORY_SUBTYPE_CLS, CATEGORY_SUBTYPE_LABEL, categoryIndent,
   categoryTypeClass, categoryTypeLabel,
 } from "@/lib/categories/display";
