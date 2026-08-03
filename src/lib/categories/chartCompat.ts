@@ -31,6 +31,10 @@ const ROOT_LABEL: Record<string, string> = {
 
 const OUTFLOW_ROOTS = ["5", "6", "7", "8"];
 
+/** Subtipos que NÃO são de resultado: usam contas patrimoniais ou de controle. */
+const NON_RESULT_SUBTYPES = ["investimento", "patrimonial", "transferencia"];
+const NON_RESULT_ROOTS = ["1", "2", "3", "9"];
+
 /** Subtipo esperado por raiz — usado apenas para alertas. */
 const SUBTYPE_ROOTS: Record<string, string[]> = {
   receita: ["4"],
@@ -38,7 +42,9 @@ const SUBTYPE_ROOTS: Record<string, string[]> = {
   despesa: ["6", "7"],
   imposto: ["8", "7"],
   saida: ["5", "6", "7", "8"],
-  investimento: ["5", "6", "9"],
+  investimento: ["1", "2", "3", "9"],
+  patrimonial: ["1", "2", "3", "9"],
+  transferencia: ["1", "2", "9"],
 };
 
 export function chartRootCode(code: string): string {
@@ -50,8 +56,12 @@ export function chartRootLabel(code: string): string {
   return ROOT_LABEL[root] ?? `Grupo ${root || "?"}`;
 }
 
+export function isNonResultSubtype(subtype?: string | null): boolean {
+  return !!subtype && NON_RESULT_SUBTYPES.includes(subtype);
+}
+
 export function validateChartAccountLink(args: {
-  transactionType: "entrada" | "saida" | string;
+  transactionType: "entrada" | "saida" | "transferencia" | string;
   subtype?: string | null;
   account: ChartAccountLike | null | undefined;
 }): ChartCompatResult {
@@ -69,11 +79,24 @@ export function validateChartAccountLink(args: {
     };
   }
 
+  // Categorias de investimento, patrimoniais e de transferência não passam
+  // pela DRE: elas usam contas de Ativo, Passivo, PL ou de controle.
+  if (isNonResultSubtype(subtype) || transactionType === "transferencia") {
+    if (!NON_RESULT_ROOTS.includes(root)) {
+      return {
+        ok: false,
+        level: "error",
+        message: `Categorias de investimento, patrimoniais ou de transferência devem usar contas de Ativo, Passivo, Patrimônio Líquido ou de controle (grupos 1, 2, 3 ou 9). A conta ${account.code} está em ${label}.`,
+      };
+    }
+    return { ok: true };
+  }
+
   if (["1", "2", "3"].includes(root)) {
     return {
       ok: false,
       level: "error",
-      message: `A conta ${account.code} pertence ao grupo ${label}, que é patrimonial. Categorias só podem ser vinculadas a contas de resultado (Receitas, Custos, Despesas ou Impostos).`,
+      message: `A conta ${account.code} pertence ao grupo ${label}, que é patrimonial. Categorias de resultado só podem ser vinculadas a contas de Receitas, Custos, Despesas ou Impostos.`,
     };
   }
 
@@ -113,10 +136,12 @@ export function validateChartAccountLink(args: {
   return { ok: true };
 }
 
-/** Filtra as contas elegíveis para um tipo de categoria. */
+/** Filtra as contas elegíveis para um tipo/subtipo de categoria. */
 export function isChartAccountEligible(
   account: ChartAccountLike,
-  transactionType: "entrada" | "saida" | string
+  transactionType: "entrada" | "saida" | "transferencia" | string,
+  subtype?: string | null
 ): boolean {
-  return validateChartAccountLink({ transactionType, account }).ok;
+  return validateChartAccountLink({ transactionType, subtype, account }).ok;
 }
+

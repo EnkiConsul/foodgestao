@@ -26,11 +26,13 @@ export type CategoryTransactionType = "entrada" | "saida" | string;
 export const CATEGORY_TYPE_LABEL: Record<string, string> = {
   entrada: "Entrada",
   saida: "Saída",
+  transferencia: "Transferência",
 };
 
 export const CATEGORY_TYPE_CLS: Record<string, string> = {
   entrada: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
   saida: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  transferencia: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400",
 };
 
 export function categoryTypeLabel(type: CategoryTransactionType): string {
@@ -48,6 +50,8 @@ export const CATEGORY_SUBTYPE_LABEL: Record<string, string> = {
   despesa: "Despesa",
   imposto: "Imposto",
   investimento: "Investimento",
+  patrimonial: "Patrimonial",
+  transferencia: "Transferência",
 };
 
 export const CATEGORY_SUBTYPE_CLS: Record<string, string> = {
@@ -57,4 +61,7 @@ export const CATEGORY_SUBTYPE_CLS: Record<string, string> = {
   despesa: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
   imposto: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
   investimento: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  patrimonial: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
+  transferencia: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400",
 };
+
