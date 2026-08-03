@@ -474,7 +474,7 @@ export default function AdminCategoriasPadrao() {
                 <SelectContent className="max-h-72">
                   <SelectItem value="none">Sem conta contábil</SelectItem>
                   {chartRows
-                    .filter((c) => isChartAccountEligible(c, form.transaction_type))
+                    .filter((c) => isChartAccountEligible(c, form.transaction_type, form.subtype))
                     .map((c) => (
                       <SelectItem key={c.code} value={c.code}>
                         {c.code} — {c.name} ({chartRootLabel(c.code)})
@@ -491,11 +491,89 @@ export default function AdminCategoriasPadrao() {
                 </p>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Só aparecem contas analíticas de resultado compatíveis com o tipo{" "}
-                  {form.transaction_type === "entrada" ? "Entrada (Receitas)" : "Saída (Custos, Despesas e Impostos)"}.
+                  {isNonResultSubtype(form.subtype) || form.transaction_type === "transferencia"
+                    ? "Só aparecem contas analíticas de Ativo, Passivo, Patrimônio Líquido ou de controle."
+                    : form.transaction_type === "entrada"
+                      ? "Só aparecem contas analíticas de Receitas."
+                      : "Só aparecem contas analíticas de Custos, Despesas e Impostos."}
                 </p>
               )}
             </div>
+
+            <div className="space-y-2">
+              <Label>O que lançar aqui</Label>
+              <Textarea
+                rows={2}
+                value={form.guidance_include ?? ""}
+                onChange={(e) => setForm((f) => ({ ...f, guidance_include: e.target.value }))}
+                placeholder="Ex.: Compras de frutas, legumes e verduras para a produção."
+              />
+              <p className="text-xs text-muted-foreground">
+                Aparece como orientação para o usuário e para a IA de categorização.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>O que NÃO lançar aqui</Label>
+              <Textarea
+                rows={2}
+                value={form.guidance_exclude ?? ""}
+                onChange={(e) => setForm((f) => ({ ...f, guidance_exclude: e.target.value }))}
+                placeholder="Ex.: Não lance embalagens nem material de limpeza."
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Palavras-chave</Label>
+              <Input
+                value={(form.keywords ?? []).join(", ")}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    keywords: e.target.value
+                      .split(",")
+                      .map((k) => k.trim())
+                      .filter(Boolean),
+                  }))
+                }
+                placeholder="ifood, marketplace, comissao"
+              />
+              <p className="text-xs text-muted-foreground">
+                Separe por vírgula. Usadas para reconhecer a descrição do lançamento.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Exemplos de fornecedores e documentos</Label>
+              <Textarea
+                rows={2}
+                value={form.examples ?? ""}
+                onChange={(e) => setForm((f) => ({ ...f, examples: e.target.value }))}
+                placeholder="Ex.: Nota do Ceasa, feira, distribuidor de hortifruti."
+              />
+            </div>
+
+            <div className="rounded-md border divide-y">
+              {([
+                ["in_dre", "Entra na DRE", "Desative para movimentações patrimoniais e transferências."],
+                ["is_contribution_margin", "Compõe margem de contribuição", "Marque para receitas e custos que variam com a venda."],
+                ["is_cmv", "É CMV", "Marque para insumos, mercadorias e perdas de estoque."],
+                ["is_patrimonial", "É patrimonial", "Marque para aportes, empréstimos, ativos e sócios."],
+              ] as const).map(([field, title, help]) => (
+                <div key={field} className="flex items-center justify-between gap-3 p-3">
+                  <div>
+                    <p className="text-sm font-medium">{title}</p>
+                    <p className="text-xs text-muted-foreground">{help}</p>
+                  </div>
+                  <Switch
+                    checked={form[field]}
+                    onCheckedChange={(v) => setForm((f) => ({ ...f, [field]: v }))}
+                  />
+                </div>
+              ))}
+            </div>
+
+
 
 
 
