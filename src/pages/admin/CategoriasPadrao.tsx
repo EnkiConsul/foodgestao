@@ -110,6 +110,40 @@ export default function AdminCategoriasPadrao() {
     },
   });
 
+  const { data: chartRows = [] } = useQuery({
+    queryKey: ["admin-chart-account-templates-select"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("chart_account_templates")
+        .select("code, name, is_synthetic")
+        .order("sort_order");
+      if (error) throw error;
+      return (data ?? []) as ChartTemplate[];
+    },
+  });
+
+  const chartByCode = useMemo(
+    () => new Map(chartRows.map((c) => [c.code, c])),
+    [chartRows]
+  );
+
+  const [applying, setApplying] = useState(false);
+  const applyToExisting = async () => {
+    setApplying(true);
+    const { data, error } = await (supabase as any).rpc(
+      "category_templates_apply_chart_accounts",
+      { _overwrite: false }
+    );
+    setApplying(false);
+    if (error) {
+      toast.error("Erro ao aplicar vínculos", { description: error.message });
+      return;
+    }
+    toast.success(`Vínculos aplicados: ${data ?? 0} categoria(s) atualizada(s)`);
+  };
+
+
+
   const flat = useMemo(() => flatten(rows), [rows]);
   const visible = useMemo(() => {
     const t = search.trim().toLowerCase();
