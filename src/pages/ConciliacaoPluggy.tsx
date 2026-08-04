@@ -26,6 +26,8 @@ interface ConciliacaoDraft {
   rowCategory: Record<string, string>;
   rowKind: Record<string, "auto" | "transfer">;
   rowCounterpart: Record<string, string>;
+  rowPayment: Record<string, string>;
+  rowContact: Record<string, string>;
 }
 
 const EMPTY_DRAFT: ConciliacaoDraft = {
@@ -34,6 +36,8 @@ const EMPTY_DRAFT: ConciliacaoDraft = {
   rowCategory: {},
   rowKind: {},
   rowCounterpart: {},
+  rowPayment: {},
+  rowContact: {},
 };
 
 function readDraft(key: string): ConciliacaoDraft {
@@ -47,6 +51,8 @@ function readDraft(key: string): ConciliacaoDraft {
       rowCategory: parsed.rowCategory ?? {},
       rowKind: parsed.rowKind ?? {},
       rowCounterpart: parsed.rowCounterpart ?? {},
+      rowPayment: parsed.rowPayment ?? {},
+      rowContact: parsed.rowContact ?? {},
     };
   } catch {
     return EMPTY_DRAFT;
@@ -60,7 +66,9 @@ function writeDraft(key: string, draft: ConciliacaoDraft) {
       Object.keys(draft.rowAccount).length === 0 &&
       Object.keys(draft.rowCategory).length === 0 &&
       Object.keys(draft.rowKind).length === 0 &&
-      Object.keys(draft.rowCounterpart).length === 0;
+      Object.keys(draft.rowCounterpart).length === 0 &&
+      Object.keys(draft.rowPayment).length === 0 &&
+      Object.keys(draft.rowContact).length === 0;
     sessionStorage.removeItem(key);
     if (empty) localStorage.removeItem(key);
     else localStorage.setItem(key, JSON.stringify(draft));
@@ -68,6 +76,7 @@ function writeDraft(key: string, draft: ConciliacaoDraft) {
     /* ignore */
   }
 }
+
 
 
 
@@ -96,6 +105,7 @@ interface Connection {
 }
 
 interface AccountOpt { id: string; name: string; }
+interface ContactOpt { id: string; name: string; type: string | null; }
 interface CategoryOpt {
   id: string;
   name: string;
@@ -188,6 +198,8 @@ export default function ConciliacaoPluggy() {
   const [connectionId, setConnectionId] = useState<string>("all");
   const [rows, setRows] = useState<StagingRow[]>([]);
   const [accounts, setAccounts] = useState<AccountOpt[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<AccountOpt[]>([]);
+  const [contacts, setContacts] = useState<ContactOpt[]>([]);
   const [categories, setCategories] = useState<CategoryOpt[]>([]);
   const categoryOptionsReceita = useMemo(() => buildCategoryOptions(categories, "entrada"), [categories]);
   const categoryOptionsDespesa = useMemo(() => buildCategoryOptions(categories, "saida"), [categories]);
@@ -210,6 +222,8 @@ export default function ConciliacaoPluggy() {
   /** "auto" = entrada/saída; "transfer" = transferência entre contas */
   const [rowKind, setRowKind] = useState<Record<string, "auto" | "transfer">>(() => draft.rowKind);
   const [rowCounterpart, setRowCounterpart] = useState<Record<string, string>>(() => draft.rowCounterpart);
+  const [rowPayment, setRowPayment] = useState<Record<string, string>>(() => draft.rowPayment);
+  const [rowContact, setRowContact] = useState<Record<string, string>>(() => draft.rowContact);
   const [transferTxIds, setTransferTxIds] = useState<Set<string>>(new Set());
   const [rowBusy, setRowBusy] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState<null | "confirm" | "ignore">(null);
@@ -222,8 +236,11 @@ export default function ConciliacaoPluggy() {
       rowCategory,
       rowKind,
       rowCounterpart,
+      rowPayment,
+      rowContact,
     });
-  }, [draftKey, selected, rowAccount, rowCategory, rowKind, rowCounterpart]);
+  }, [draftKey, selected, rowAccount, rowCategory, rowKind, rowCounterpart, rowPayment, rowContact]);
+
 
 
   // Escopo travado por conta (quando entrou pelo card da conta bancária)
@@ -263,7 +280,15 @@ export default function ConciliacaoPluggy() {
       stagingQuery = stagingQuery.eq("pluggy_account_id", resolvedScope.pluggyAccountId);
     }
 
-    const [{ data: conns }, { data: staging }, { data: accs }, { data: cats }, { data: pluggyAccts }] = await Promise.all([
+    const [
+      { data: conns },
+      { data: staging },
+      { data: accs },
+      { data: cats },
+      { data: pluggyAccts },
+      { data: pms },
+      { data: cts },
+    ] = await Promise.all([
       supabase.from("pluggy_connections")
         .select("id, connector_name, connector_image_url, status, last_synced_at")
         .eq("company_id", selectedCompanyId).order("created_at", { ascending: false }),
@@ -282,12 +307,23 @@ export default function ConciliacaoPluggy() {
       supabase.from("pluggy_accounts")
         .select("pluggy_account_id, linked_account_id")
         .eq("company_id", selectedCompanyId),
+      supabase.rpc("get_accessible_payment_methods", {
+        _context: "pj", _company_id: selectedCompanyId,
+      }),
+      supabase.from("contacts")
+        .select("id, name, type, is_active, contact_companies!inner(company_id)")
+        .eq("is_active", true)
+        .eq("contact_companies.company_id", selectedCompanyId)
+        .order("name"),
     ]);
 
     setConnections((conns ?? []) as Connection[]);
     setRows((staging ?? []) as StagingRow[]);
     setAccounts(((accs ?? []) as any[]).map((a) => ({ id: a.id, name: a.name })));
+    setPaymentMethods(((pms ?? []) as any[]).map((p) => ({ id: p.id, name: p.name })));
+    setContacts(((cts ?? []) as any[]).map((c) => ({ id: c.id, name: c.name, type: c.type ?? null })));
     setCategories((cats ?? []) as CategoryOpt[]);
+
 
     // Mapa: conta Pluggy -> conta bancária local vinculada
     const linkedMap: Record<string, string> = {};
@@ -434,22 +470,30 @@ export default function ConciliacaoPluggy() {
         mirrors += list.filter((d) => d.mirror_staging_id).length;
       }
 
-      // Lançamentos comuns: uma chamada por (conta, categoria)
-      const byCat: Record<string, string[]> = {};
+      // Lançamentos comuns: uma chamada por (conta, categoria, forma de pagamento, contato)
+      const byGroup: Record<string, string[]> = {};
       for (const sid of normalIds) {
-        const cat = rowCategory[sid] ?? "__none__";
-        byCat[cat] = byCat[cat] ?? [];
-        byCat[cat].push(sid);
+        const key = [
+          rowCategory[sid] ?? "__none__",
+          rowPayment[sid] ?? "__none__",
+          rowContact[sid] ?? "__none__",
+        ].join("|");
+        byGroup[key] = byGroup[key] ?? [];
+        byGroup[key].push(sid);
       }
-      for (const [cat, sids] of Object.entries(byCat)) {
+      for (const [key, sids] of Object.entries(byGroup)) {
+        const [cat, pm, ct] = key.split("|");
         const { data, error } = await supabase.rpc("pluggy_confirm_staging", {
           p_staging_ids: sids,
           p_account_id: acctId,
           p_category_id: cat === "__none__" ? null : cat,
+          p_payment_method_id: pm === "__none__" ? null : pm,
+          p_contact_id: ct === "__none__" ? null : ct,
         });
         if (error) { toast.error("Falha ao confirmar: " + error.message); continue; }
         ok += Array.isArray(data) ? data.length : 0;
       }
+
     }
     toast.success(ok === 1 ? "Lançamento confirmado" : `${ok} lançamentos confirmados`);
     if (mirrors > 0) {
@@ -675,10 +719,17 @@ export default function ConciliacaoPluggy() {
                 onCategoryChange={(v) => setRowCategory((p) => ({ ...p, [r.id]: v }))}
                 suggestedCategoryItems={renderCategoryItems(isEntrada ? categoryOptionsReceita : categoryOptionsDespesa)}
                 oppositeCategoryItems={renderCategoryItems(isEntrada ? categoryOptionsDespesa : categoryOptionsReceita)}
+                paymentMethods={paymentMethods}
+                paymentMethod={rowPayment[r.id] ?? ""}
+                onPaymentMethodChange={(v) => setRowPayment((p) => ({ ...p, [r.id]: v }))}
+                contacts={contacts}
+                contact={rowContact[r.id] ?? ""}
+                onContactChange={(v) => setRowContact((p) => ({ ...p, [r.id]: v }))}
                 isReversal={
                   !!rowCategory[r.id] &&
                   categoryTypeById[rowCategory[r.id]] === (isEntrada ? "saida" : "entrada")
                 }
+
                 selected={selected.has(r.id)}
                 onSelectedChange={(v) => {
                   setSelected((prev) => {
@@ -717,6 +768,8 @@ export default function ConciliacaoPluggy() {
                 <th className="p-2 text-left">Conta destino</th>
                 <th className="p-2 text-left">Tipo</th>
                 <th className="p-2 text-left">Categoria / contraparte</th>
+                <th className="p-2 text-left">Forma de pagamento</th>
+                <th className="p-2 text-left">Fornecedor / cliente</th>
                 <th className="p-2 text-center">Status</th>
                 <th className="p-2 text-right">Ações</th>
               </tr>
@@ -829,6 +882,50 @@ export default function ConciliacaoPluggy() {
                         </>
                       )}
                     </td>
+
+                    <td className="p-2">
+                      {(rowKind[r.id] ?? "auto") === "transfer" ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (
+                        <Select
+                          value={rowPayment[r.id] ?? ""}
+                          onValueChange={(v) => setRowPayment((p) => ({ ...p, [r.id]: v }))}
+                          disabled={disabled}
+                        >
+                          <SelectTrigger className="h-8 min-w-[150px] text-xs">
+                            <SelectValue placeholder="Não informada" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {paymentMethods.map((p) => (
+                              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </td>
+
+                    <td className="p-2">
+                      {(rowKind[r.id] ?? "auto") === "transfer" ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (
+                        <Select
+                          value={rowContact[r.id] ?? ""}
+                          onValueChange={(v) => setRowContact((p) => ({ ...p, [r.id]: v }))}
+                          disabled={disabled}
+                        >
+                          <SelectTrigger className="h-8 min-w-[160px] text-xs">
+                            <SelectValue placeholder={isEntrada ? "Cliente…" : "Fornecedor…"} />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-[420px]">
+                            {contacts.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </td>
+
+
 
                     <td className="p-2 text-center">
                       <div className="flex flex-wrap items-center justify-center gap-1">

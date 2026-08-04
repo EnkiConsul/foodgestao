@@ -9252,17 +9252,31 @@ export type Database = {
           transaction_type: Database["public"]["Enums"]["transaction_type"]
         }[]
       }
-      pluggy_confirm_staging: {
-        Args: {
-          p_account_id: string
-          p_category_id?: string
-          p_staging_ids: string[]
-        }
-        Returns: {
-          staging_id: string
-          transaction_id: string
-        }[]
-      }
+      pluggy_confirm_staging:
+        | {
+            Args: {
+              p_account_id: string
+              p_category_id?: string
+              p_staging_ids: string[]
+            }
+            Returns: {
+              staging_id: string
+              transaction_id: string
+            }[]
+          }
+        | {
+            Args: {
+              p_account_id: string
+              p_category_id?: string
+              p_contact_id?: string
+              p_payment_method_id?: string
+              p_staging_ids: string[]
+            }
+            Returns: {
+              staging_id: string
+              transaction_id: string
+            }[]
+          }
       pluggy_confirm_staging_transfer: {
         Args: {
           p_account_id: string
