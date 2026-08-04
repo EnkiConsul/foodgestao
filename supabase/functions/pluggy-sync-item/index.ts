@@ -488,6 +488,8 @@ Deno.serve(async (req) => {
               pluggy_transaction_id: r.pluggy_transaction_id,
               description: r.description,
               counterparty_name: r.counterparty_name,
+              counterparty_document: r.counterparty_document,
+              counterparty_document_type: r.counterparty_document_type,
               amount: r.amount,
               date: r.date,
               category_pluggy: r.category_pluggy,
@@ -522,7 +524,12 @@ Deno.serve(async (req) => {
         if (r.provider_id) continue;
         const { error } = await admin
           .from('pluggy_staging_transactions')
-          .update({ description: r.description, counterparty_name: r.counterparty_name })
+          .update({
+            description: r.description,
+            counterparty_name: r.counterparty_name,
+            counterparty_document: r.counterparty_document,
+            counterparty_document_type: r.counterparty_document_type,
+          })
           .eq('pluggy_transaction_id', r.pluggy_transaction_id)
           .eq('status', 'pending')
           .neq('description', r.description);
