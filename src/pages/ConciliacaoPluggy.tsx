@@ -17,6 +17,7 @@ import { CATEGORY_INDENT_STEP, categoryGuideLevels } from "@/lib/categories/disp
 import { CategoryTypeBadge } from "@/components/categorias/CategoryTypeBadge";
 import { buildCategoryTree, type Category } from "@/lib/categories/tree";
 import { StagingCard } from "@/components/conciliacao/StagingCard";
+import { suggestPaymentMethodId } from "@/lib/conciliacao/paymentMethodInference";
 
 
 
@@ -94,6 +95,7 @@ interface StagingRow {
   suggested_account_id: string | null;
   suggested_category_id: string | null;
   matched_transaction_id?: string | null;
+  raw?: unknown;
 }
 
 interface Connection {
@@ -223,6 +225,8 @@ export default function ConciliacaoPluggy() {
   const [rowKind, setRowKind] = useState<Record<string, "auto" | "transfer">>(() => draft.rowKind);
   const [rowCounterpart, setRowCounterpart] = useState<Record<string, string>>(() => draft.rowCounterpart);
   const [rowPayment, setRowPayment] = useState<Record<string, string>>(() => draft.rowPayment);
+  /** Formas de pagamento inferidas automaticamente do extrato (para o rótulo "sugerido") */
+  const [suggestedPayment, setSuggestedPayment] = useState<Record<string, string>>({});
   const [rowContact, setRowContact] = useState<Record<string, string>>(() => draft.rowContact);
   const [transferTxIds, setTransferTxIds] = useState<Set<string>>(new Set());
   const [rowBusy, setRowBusy] = useState<string | null>(null);
@@ -335,14 +339,20 @@ export default function ConciliacaoPluggy() {
     // preload suggested selections
     const acctMap: Record<string, string> = {};
     const catMap: Record<string, string> = {};
+    const payMap: Record<string, string> = {};
+    const pmOpts = ((pms ?? []) as { id: string; name: string }[]).map((p) => ({ id: p.id, name: p.name }));
     for (const r of (staging ?? []) as StagingRow[]) {
       const fallback = linkedMap[r.pluggy_account_id];
       const target = r.suggested_account_id ?? fallback;
       if (target) acctMap[r.id] = target;
       if (r.suggested_category_id) catMap[r.id] = r.suggested_category_id;
+      const suggestedPm = suggestPaymentMethodId(r, pmOpts);
+      if (suggestedPm) payMap[r.id] = suggestedPm;
     }
     setRowAccount((prev) => ({ ...acctMap, ...prev }));
     setRowCategory((prev) => ({ ...catMap, ...prev }));
+    setRowPayment((prev) => ({ ...payMap, ...prev }));
+    setSuggestedPayment(payMap);
 
     // Descarta seleções salvas que já não são mais pendentes
     const stillPending = new Set(
@@ -721,6 +731,7 @@ export default function ConciliacaoPluggy() {
                 oppositeCategoryItems={renderCategoryItems(isEntrada ? categoryOptionsDespesa : categoryOptionsReceita)}
                 paymentMethods={paymentMethods}
                 paymentMethod={rowPayment[r.id] ?? ""}
+                paymentMethodSuggested={!!rowPayment[r.id] && rowPayment[r.id] === suggestedPayment[r.id]}
                 onPaymentMethodChange={(v) => setRowPayment((p) => ({ ...p, [r.id]: v }))}
                 contacts={contacts}
                 contact={rowContact[r.id] ?? ""}
@@ -887,6 +898,7 @@ export default function ConciliacaoPluggy() {
                       {(rowKind[r.id] ?? "auto") === "transfer" ? (
                         <span className="text-xs text-muted-foreground">—</span>
                       ) : (
+                        <>
                         <Select
                           value={rowPayment[r.id] ?? ""}
                           onValueChange={(v) => setRowPayment((p) => ({ ...p, [r.id]: v }))}
@@ -901,6 +913,10 @@ export default function ConciliacaoPluggy() {
                             ))}
                           </SelectContent>
                         </Select>
+                          {rowPayment[r.id] && rowPayment[r.id] === suggestedPayment[r.id] && (
+                            <p className="mt-1 text-[10px] text-muted-foreground">sugerido pelo extrato</p>
+                          )}
+                        </>
                       )}
                     </td>
 

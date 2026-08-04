@@ -52,6 +52,7 @@ interface StagingCardProps {
   oppositeCategoryItems: ReactNode;
   paymentMethods: AccountOpt[];
   paymentMethod: string;
+  paymentMethodSuggested?: boolean;
   onPaymentMethodChange: (value: string) => void;
   contacts: ContactOpt[];
   contact: string;
@@ -82,6 +83,7 @@ export function StagingCard({
   oppositeCategoryItems,
   paymentMethods,
   paymentMethod,
+  paymentMethodSuggested,
   onPaymentMethodChange,
   contacts,
   contact,
@@ -231,6 +233,9 @@ export function StagingCard({
                 <label className="text-[11px] uppercase tracking-wide text-muted-foreground">
                   Forma de pagamento
                 </label>
+                {paymentMethodSuggested && (
+                  <span className="ml-1 text-[10px] text-muted-foreground">(sugerido)</span>
+                )}
                 <Select value={paymentMethod} onValueChange={onPaymentMethodChange} disabled={disabled}>
                   <SelectTrigger className="h-9 w-full text-xs">
                     <SelectValue placeholder="Não informada" />
