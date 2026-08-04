@@ -161,3 +161,29 @@ export function counterpartyLabel(cp: Counterparty): string | null {
   if (cp.document) return `${cp.documentType ?? "Documento"} ${cp.document}`;
   return null;
 }
+
+export interface BankOpt {
+  id: string;
+  name: string;
+  tax_id?: string | null;
+}
+
+/**
+ * Casa o nome do conector da Pluggy ("Banco do Brasil Empresas") com o banco
+ * cadastrado ("Banco do Brasil"). Escolhe o nome mais longo que casa, para
+ * evitar falso positivo entre "Inter" e "Banco Inter".
+ */
+export function matchBankByConnector(
+  connectorName: string | null | undefined,
+  banks: BankOpt[],
+): BankOpt | null {
+  const target = normalize(connectorName ?? "");
+  if (!target) return null;
+  let best: BankOpt | null = null;
+  for (const b of banks) {
+    const name = normalize(b.name ?? "");
+    if (!name) continue;
+    if (target.includes(name) && (!best || name.length > normalize(best.name).length)) best = b;
+  }
+  return best;
+}
