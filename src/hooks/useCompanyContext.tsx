@@ -17,6 +17,7 @@ interface CompanyContextValue {
   companies: Company[];
   loading: boolean;
   setContext: (type: ContextType, companyId: string | null) => void;
+  refreshCompanies: () => Promise<void>;
 }
 
 const CompanyContext = createContext<CompanyContextValue | undefined>(undefined);
