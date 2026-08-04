@@ -649,6 +649,15 @@ export default function AdminCategoriasPadrao() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <SuggestChartAccountsDialog
+        open={suggestOpen}
+        onOpenChange={setSuggestOpen}
+        pendingLabels={pendingLabels}
+        chartNames={chartNames}
+        onApplied={() => qc.invalidateQueries({ queryKey: ["admin-category-templates"] })}
+      />
     </div>
+
   );
 }
