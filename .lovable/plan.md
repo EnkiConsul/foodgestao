@@ -22,6 +22,7 @@ Observação: o preenchimento depende do banco e do tipo de lançamento. PIX e b
 4. Sugerir o Fornecedor/Cliente automaticamente
    - Se já existir contato cadastrado com o mesmo documento, ele é pré-selecionado no campo Fornecedor/Cliente.
    - Se não existir, aparece um botão "Cadastrar contato" que cria o contato com nome e documento já preenchidos (tipo cliente para entradas, fornecedor para saídas), vinculado à empresa ativa, e o seleciona no lançamento.
+   - Em débitos internos, a sugestão é o banco da conta conectada (fornecedor), criado uma única vez com nome e CNPJ do banco e reaproveitado nos demais lançamentos.
    - Escolhas manuais e rascunhos salvos continuam prevalecendo sobre a sugestão.
 
 ## Detalhes técnicos
