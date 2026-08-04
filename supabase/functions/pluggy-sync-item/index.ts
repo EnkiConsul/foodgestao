@@ -469,7 +469,13 @@ Deno.serve(async (req) => {
           if (prev.status === 'pending') {
             await admin
               .from('pluggy_staging_transactions')
-              .update({ description: r.description, counterparty_name: r.counterparty_name, raw: r.raw })
+              .update({
+                description: r.description,
+                counterparty_name: r.counterparty_name,
+                counterparty_document: r.counterparty_document,
+                counterparty_document_type: r.counterparty_document_type,
+                raw: r.raw,
+              })
               .eq('id', prev.id);
           }
           continue;
