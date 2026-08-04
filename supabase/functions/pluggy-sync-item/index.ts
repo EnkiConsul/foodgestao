@@ -401,6 +401,12 @@ Deno.serve(async (req) => {
     const fmt = (d: Date) => d.toISOString().slice(0, 10);
 
     let staged = 0;
+    // Documentos da própria empresa (titulares das contas conectadas): nunca
+    // devem ser tratados como contraparte do lançamento.
+    const ownDocuments = (accounts as any[])
+      .map((a) => a?.taxNumber ?? a?.owner?.taxNumber ?? null)
+      .filter((v: unknown): v is string => typeof v === 'string' && v.length > 0);
+
     for (const acc of accounts) {
       if (pausedIds.has(acc.id)) continue;
       const txs = await listTransactions(acc.id, fmt(from), fmt(to));
@@ -409,6 +415,7 @@ Deno.serve(async (req) => {
         const amt = Number(t.amount ?? 0);
         const counterparty = counterpartyName(t);
         const description = buildDescription(t);
+        const doc = extractCounterpartyDocument(t, ownDocuments);
 
         return {
           company_id: effectiveCompanyId,
@@ -419,6 +426,8 @@ Deno.serve(async (req) => {
           date: (t.date ?? t.transactionDate ?? '').slice(0, 10),
           description,
           counterparty_name: counterparty,
+          counterparty_document: doc.document,
+          counterparty_document_type: doc.documentType,
           amount: t.amount ?? 0,
           currency_code: t.currencyCode ?? 'BRL',
           category_pluggy: t.category ?? null,
@@ -427,6 +436,7 @@ Deno.serve(async (req) => {
           status: 'pending' as const,
         };
       });
+
 
       // Dedupe pelo identificador original do banco (providerId): quando o banco
       // reprocessa um lançamento, o Pluggy emite um novo id para o MESMO
