@@ -1,3 +1,4 @@
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
