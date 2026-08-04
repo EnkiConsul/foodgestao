@@ -238,8 +238,8 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ contextType, selectedCompanyId, companies, loading, setContext, refreshCompanies }),
-    [contextType, selectedCompanyId, companies, loading, setContext, refreshCompanies]
+    () => ({ contextType, selectedCompanyId, companies, loading, syncing, setContext, refreshCompanies }),
+    [contextType, selectedCompanyId, companies, loading, syncing, setContext, refreshCompanies]
   );
 
   return (
