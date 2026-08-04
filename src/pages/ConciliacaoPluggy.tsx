@@ -307,6 +307,14 @@ export default function ConciliacaoPluggy() {
     setRowAccount((prev) => ({ ...acctMap, ...prev }));
     setRowCategory((prev) => ({ ...catMap, ...prev }));
 
+    // Descarta seleções salvas que já não são mais pendentes
+    const stillPending = new Set(
+      ((staging ?? []) as StagingRow[]).filter((r) => r.status === "pending").map((r) => r.id),
+    );
+    setSelected((prev) => new Set(Array.from(prev).filter((id) => stillPending.has(id))));
+
+
+
     // Marca quais lançamentos já conciliados viraram transferência (para o badge)
     const matchedIds = ((staging ?? []) as StagingRow[])
       .map((r) => r.matched_transaction_id)
