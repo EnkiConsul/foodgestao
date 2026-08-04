@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,15 +13,17 @@ import {
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { PaymentMethodFormDialog } from "@/components/payment-methods/PaymentMethodFormDialog";
-import { Plus, Search, CreditCard, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, CreditCard, Pencil, Trash2, Download } from "lucide-react";
 import { toast } from "sonner";
 
 export default function FormasPagamento() {
   const { user } = useAuth();
+  const { contextType, selectedCompanyId } = useCompanyContext();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<{ id: string; name: string; is_active: boolean; visible_pf?: boolean } | null>(null);
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const { data: methods = [], refetch } = useQuery({
     queryKey: ["payment-methods", user?.id],
