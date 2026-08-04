@@ -659,13 +659,13 @@ export default function ConciliacaoPluggy() {
           contact_type: (cp.internal ? "fornecedor" : isEntrada ? "cliente" : "fornecedor") as never,
           visible_pf: false,
         } as never)
-        .select("id, name, type, document")
+        .select("id")
         .single();
       if (error || !created) {
         toast.error("Não foi possível cadastrar o contato", { description: error?.message });
         return;
       }
-      const newId = (created as { id: string }).id;
+      const newId = (created as unknown as { id: string }).id;
       await supabase.from("contact_companies").insert({
         contact_id: newId,
         company_id: selectedCompanyId,
