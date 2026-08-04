@@ -13,7 +13,12 @@ export type RecommendCategoryInput = {
   name: string;
   transaction_type?: string | null;
   is_active?: boolean | null;
+  /** Categorias agrupadoras nunca são sugeridas. */
+  allow_transactions?: boolean | null;
+  /** "Valores a Classificar" e afins não são sugeridos automaticamente. */
+  temporary_category?: boolean | null;
   keywords?: string[] | null;
+  ai_excluded_keywords?: string[] | null;
   examples?: string | null;
   guidance_include?: string | null;
   guidance_exclude?: string | null;
@@ -121,6 +126,8 @@ export function recommendCategories(
 
   for (const cat of categories) {
     if (cat.is_active === false) continue;
+    if (cat.allow_transactions === false) continue;
+    if (cat.temporary_category) continue;
     if (
       transactionType &&
       transactionType !== "transferencia" &&
@@ -171,6 +178,16 @@ export function recommendCategories(
     for (const term of splitTerms(cat.guidance_exclude)) {
       if (termMatches(term, haystack, descTokens)) score -= P_EXCLUDE;
     }
+
+    // Palavras-chave excluídas descartam a categoria (conflito explícito).
+    let conflicted = false;
+    for (const kw of cat.ai_excluded_keywords ?? []) {
+      if (kw && termMatches(kw, haystack, descTokens)) {
+        conflicted = true;
+        break;
+      }
+    }
+    if (conflicted) continue;
 
     if (score >= minScore) {
       results.push({

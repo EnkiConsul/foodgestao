@@ -1056,7 +1056,10 @@ export type Database = {
       }
       categories: {
         Row: {
+          accounting_behavior: string | null
           ai_description: string | null
+          ai_excluded_keywords: string[]
+          allow_transactions: boolean
           category_subtype: string | null
           chart_account_id: string | null
           color: string | null
@@ -1080,14 +1083,20 @@ export type Database = {
           name: string
           parent_id: string | null
           previous_index: string | null
+          requires_review: boolean
           sort_order: number
           template_code: string | null
+          template_version: string | null
+          temporary_category: boolean
           transaction_type: Database["public"]["Enums"]["transaction_type"]
           user_id: string
           visible_pf: boolean
         }
         Insert: {
+          accounting_behavior?: string | null
           ai_description?: string | null
+          ai_excluded_keywords?: string[]
+          allow_transactions?: boolean
           category_subtype?: string | null
           chart_account_id?: string | null
           color?: string | null
@@ -1111,14 +1120,20 @@ export type Database = {
           name: string
           parent_id?: string | null
           previous_index?: string | null
+          requires_review?: boolean
           sort_order?: number
           template_code?: string | null
+          template_version?: string | null
+          temporary_category?: boolean
           transaction_type?: Database["public"]["Enums"]["transaction_type"]
           user_id: string
           visible_pf?: boolean
         }
         Update: {
+          accounting_behavior?: string | null
           ai_description?: string | null
+          ai_excluded_keywords?: string[]
+          allow_transactions?: boolean
           category_subtype?: string | null
           chart_account_id?: string | null
           color?: string | null
@@ -1142,8 +1157,11 @@ export type Database = {
           name?: string
           parent_id?: string | null
           previous_index?: string | null
+          requires_review?: boolean
           sort_order?: number
           template_code?: string | null
+          template_version?: string | null
+          temporary_category?: boolean
           transaction_type?: Database["public"]["Enums"]["transaction_type"]
           user_id?: string
           visible_pf?: boolean
@@ -1352,7 +1370,10 @@ export type Database = {
       }
       category_templates: {
         Row: {
+          accounting_behavior: string | null
           ai_description: string | null
+          ai_excluded_keywords: string[]
+          allow_transactions: boolean
           chart_account_code: string | null
           code: string
           created_at: string
@@ -1369,12 +1390,18 @@ export type Database = {
           name: string
           parent_code: string | null
           previous_index: string | null
+          requires_review: boolean
           sort_order: number
           subtype: string
+          template_version: string
+          temporary_category: boolean
           transaction_type: Database["public"]["Enums"]["transaction_type"]
         }
         Insert: {
+          accounting_behavior?: string | null
           ai_description?: string | null
+          ai_excluded_keywords?: string[]
+          allow_transactions?: boolean
           chart_account_code?: string | null
           code: string
           created_at?: string
@@ -1391,12 +1418,18 @@ export type Database = {
           name: string
           parent_code?: string | null
           previous_index?: string | null
+          requires_review?: boolean
           sort_order: number
           subtype: string
+          template_version?: string
+          temporary_category?: boolean
           transaction_type: Database["public"]["Enums"]["transaction_type"]
         }
         Update: {
+          accounting_behavior?: string | null
           ai_description?: string | null
+          ai_excluded_keywords?: string[]
+          allow_transactions?: boolean
           chart_account_code?: string | null
           code?: string
           created_at?: string
@@ -1413,8 +1446,11 @@ export type Database = {
           name?: string
           parent_code?: string | null
           previous_index?: string | null
+          requires_review?: boolean
           sort_order?: number
           subtype?: string
+          template_version?: string
+          temporary_category?: boolean
           transaction_type?: Database["public"]["Enums"]["transaction_type"]
         }
         Relationships: [
@@ -8860,7 +8896,10 @@ export type Database = {
           _transaction_type?: Database["public"]["Enums"]["transaction_type"]
         }
         Returns: {
+          accounting_behavior: string | null
           ai_description: string | null
+          ai_excluded_keywords: string[]
+          allow_transactions: boolean
           category_subtype: string | null
           chart_account_id: string | null
           color: string | null
@@ -8884,8 +8923,11 @@ export type Database = {
           name: string
           parent_id: string | null
           previous_index: string | null
+          requires_review: boolean
           sort_order: number
           template_code: string | null
+          template_version: string | null
+          temporary_category: boolean
           transaction_type: Database["public"]["Enums"]["transaction_type"]
           user_id: string
           visible_pf: boolean
