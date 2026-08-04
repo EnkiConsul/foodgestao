@@ -2,6 +2,7 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { getItem, listAccounts, listTransactions, refreshItem, waitForItem } from '../_shared/pluggy.ts';
 import { buildDescription, counterpartyName } from '../_shared/tx-description.ts';
+import { extractCounterpartyDocument } from '../_shared/counterparty-doc.ts';
 
 
 Deno.serve(async (req) => {
@@ -400,6 +401,12 @@ Deno.serve(async (req) => {
     const fmt = (d: Date) => d.toISOString().slice(0, 10);
 
     let staged = 0;
+    // Documentos da própria empresa (titulares das contas conectadas): nunca
+    // devem ser tratados como contraparte do lançamento.
+    const ownDocuments = (accounts as any[])
+      .map((a) => a?.taxNumber ?? a?.owner?.taxNumber ?? null)
+      .filter((v: unknown): v is string => typeof v === 'string' && v.length > 0);
+
     for (const acc of accounts) {
       if (pausedIds.has(acc.id)) continue;
       const txs = await listTransactions(acc.id, fmt(from), fmt(to));
@@ -408,6 +415,7 @@ Deno.serve(async (req) => {
         const amt = Number(t.amount ?? 0);
         const counterparty = counterpartyName(t);
         const description = buildDescription(t);
+        const doc = extractCounterpartyDocument(t, ownDocuments);
 
         return {
           company_id: effectiveCompanyId,
@@ -418,6 +426,8 @@ Deno.serve(async (req) => {
           date: (t.date ?? t.transactionDate ?? '').slice(0, 10),
           description,
           counterparty_name: counterparty,
+          counterparty_document: doc.document,
+          counterparty_document_type: doc.documentType,
           amount: t.amount ?? 0,
           currency_code: t.currencyCode ?? 'BRL',
           category_pluggy: t.category ?? null,
@@ -426,6 +436,7 @@ Deno.serve(async (req) => {
           status: 'pending' as const,
         };
       });
+
 
       // Dedupe pelo identificador original do banco (providerId): quando o banco
       // reprocessa um lançamento, o Pluggy emite um novo id para o MESMO
@@ -458,7 +469,13 @@ Deno.serve(async (req) => {
           if (prev.status === 'pending') {
             await admin
               .from('pluggy_staging_transactions')
-              .update({ description: r.description, counterparty_name: r.counterparty_name, raw: r.raw })
+              .update({
+                description: r.description,
+                counterparty_name: r.counterparty_name,
+                counterparty_document: r.counterparty_document,
+                counterparty_document_type: r.counterparty_document_type,
+                raw: r.raw,
+              })
               .eq('id', prev.id);
           }
           continue;
@@ -471,6 +488,8 @@ Deno.serve(async (req) => {
               pluggy_transaction_id: r.pluggy_transaction_id,
               description: r.description,
               counterparty_name: r.counterparty_name,
+              counterparty_document: r.counterparty_document,
+              counterparty_document_type: r.counterparty_document_type,
               amount: r.amount,
               date: r.date,
               category_pluggy: r.category_pluggy,
@@ -505,7 +524,12 @@ Deno.serve(async (req) => {
         if (r.provider_id) continue;
         const { error } = await admin
           .from('pluggy_staging_transactions')
-          .update({ description: r.description, counterparty_name: r.counterparty_name })
+          .update({
+            description: r.description,
+            counterparty_name: r.counterparty_name,
+            counterparty_document: r.counterparty_document,
+            counterparty_document_type: r.counterparty_document_type,
+          })
           .eq('pluggy_transaction_id', r.pluggy_transaction_id)
           .eq('status', 'pending')
           .neq('description', r.description);

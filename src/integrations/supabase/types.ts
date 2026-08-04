@@ -962,6 +962,7 @@ export type Database = {
           name: string
           slug: string
           sort_order: number
+          tax_id: string | null
           updated_at: string
         }
         Insert: {
@@ -973,6 +974,7 @@ export type Database = {
           name: string
           slug: string
           sort_order?: number
+          tax_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -984,6 +986,7 @@ export type Database = {
           name?: string
           slug?: string
           sort_order?: number
+          tax_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -7532,6 +7535,8 @@ export type Database = {
           category_pluggy: string | null
           company_id: string
           connection_id: string
+          counterparty_document: string | null
+          counterparty_document_type: string | null
           counterparty_name: string | null
           created_at: string
           currency_code: string | null
@@ -7554,6 +7559,8 @@ export type Database = {
           category_pluggy?: string | null
           company_id: string
           connection_id: string
+          counterparty_document?: string | null
+          counterparty_document_type?: string | null
           counterparty_name?: string | null
           created_at?: string
           currency_code?: string | null
@@ -7576,6 +7583,8 @@ export type Database = {
           category_pluggy?: string | null
           company_id?: string
           connection_id?: string
+          counterparty_document?: string | null
+          counterparty_document_type?: string | null
           counterparty_name?: string | null
           created_at?: string
           currency_code?: string | null

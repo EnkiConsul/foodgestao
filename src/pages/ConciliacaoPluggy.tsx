@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2, UserPlus } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { CATEGORY_INDENT_STEP, categoryGuideLevels } from "@/lib/categories/display";
@@ -18,6 +18,14 @@ import { CategoryTypeBadge } from "@/components/categorias/CategoryTypeBadge";
 import { buildCategoryTree, type Category } from "@/lib/categories/tree";
 import { StagingCard } from "@/components/conciliacao/StagingCard";
 import { suggestPaymentMethodId } from "@/lib/conciliacao/paymentMethodInference";
+import {
+  counterpartyLabel,
+  extractCounterparty,
+  matchBankByConnector,
+  onlyDigits,
+  type BankOpt,
+  type Counterparty,
+} from "@/lib/conciliacao/counterparty";
 
 
 
@@ -96,6 +104,9 @@ interface StagingRow {
   suggested_category_id: string | null;
   matched_transaction_id?: string | null;
   raw?: unknown;
+  counterparty_name?: string | null;
+  counterparty_document?: string | null;
+  counterparty_document_type?: string | null;
 }
 
 interface Connection {
@@ -107,7 +118,7 @@ interface Connection {
 }
 
 interface AccountOpt { id: string; name: string; }
-interface ContactOpt { id: string; name: string; type: string | null; }
+interface ContactOpt { id: string; name: string; type: string | null; document: string | null; }
 interface CategoryOpt {
   id: string;
   name: string;
@@ -202,6 +213,9 @@ export default function ConciliacaoPluggy() {
   const [accounts, setAccounts] = useState<AccountOpt[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<AccountOpt[]>([]);
   const [contacts, setContacts] = useState<ContactOpt[]>([]);
+  const [banks, setBanks] = useState<BankOpt[]>([]);
+  const [companyCnpj, setCompanyCnpj] = useState<string | null>(null);
+  const [creatingContact, setCreatingContact] = useState<string | null>(null);
   const [categories, setCategories] = useState<CategoryOpt[]>([]);
   const categoryOptionsReceita = useMemo(() => buildCategoryOptions(categories, "entrada"), [categories]);
   const categoryOptionsDespesa = useMemo(() => buildCategoryOptions(categories, "saida"), [categories]);
@@ -292,6 +306,8 @@ export default function ConciliacaoPluggy() {
       { data: pluggyAccts },
       { data: pms },
       { data: cts },
+      { data: bks },
+      { data: comp },
     ] = await Promise.all([
       supabase.from("pluggy_connections")
         .select("id, connector_name, connector_image_url, status, last_synced_at")
@@ -315,17 +331,23 @@ export default function ConciliacaoPluggy() {
         _context: "pj", _company_id: selectedCompanyId,
       }),
       supabase.from("contacts")
-        .select("id, name, type, is_active, contact_companies!inner(company_id)")
+        .select("id, name, type, document, is_active, contact_companies!inner(company_id)")
         .eq("is_active", true)
         .eq("contact_companies.company_id", selectedCompanyId)
         .order("name"),
+      supabase.from("banks").select("id, name, tax_id").eq("is_active", true),
+      supabase.from("companies").select("cnpj").eq("id", selectedCompanyId).maybeSingle(),
     ]);
 
     setConnections((conns ?? []) as Connection[]);
     setRows((staging ?? []) as StagingRow[]);
     setAccounts(((accs ?? []) as any[]).map((a) => ({ id: a.id, name: a.name })));
     setPaymentMethods(((pms ?? []) as any[]).map((p) => ({ id: p.id, name: p.name })));
-    setContacts(((cts ?? []) as any[]).map((c) => ({ id: c.id, name: c.name, type: c.type ?? null })));
+    setContacts(((cts ?? []) as any[]).map((c) => ({
+      id: c.id, name: c.name, type: c.type ?? null, document: c.document ?? null,
+    })));
+    setBanks(((bks ?? []) as any[]).map((b) => ({ id: b.id, name: b.name, tax_id: b.tax_id ?? null })));
+    setCompanyCnpj(((comp ?? null) as { cnpj?: string | null } | null)?.cnpj ?? null);
     setCategories((cats ?? []) as CategoryOpt[]);
 
 
@@ -547,6 +569,118 @@ export default function ConciliacaoPluggy() {
   };
 
 
+  /** Banco cadastrado de cada conexão Open Finance (para débitos internos). */
+  const bankByConnection = useMemo(() => {
+    const m: Record<string, BankOpt | null> = {};
+    for (const c of connections) m[c.id] = matchBankByConnector(c.connector_name, banks);
+    return m;
+  }, [connections, banks]);
+
+  /**
+   * Contraparte de cada lançamento: nome + CNPJ/CPF do extrato. Em débitos
+   * internos (tarifas, IOF, juros, rendimentos) a contraparte é o próprio banco.
+   */
+  const counterpartyByRow = useMemo(() => {
+    const m: Record<string, Counterparty> = {};
+    for (const r of rows) {
+      const base = extractCounterparty(r, { ownDocuments: [companyCnpj] });
+      if (base.internal) {
+        const bank = bankByConnection[r.connection_id] ?? null;
+        m[r.id] = {
+          name: bank?.name ?? connections.find((c) => c.id === r.connection_id)?.connector_name ?? null,
+          document: bank?.tax_id ?? null,
+          documentType: bank?.tax_id ? "CNPJ" : null,
+          internal: true,
+        };
+        continue;
+      }
+      m[r.id] = {
+        ...base,
+        name: base.name ?? r.counterparty_name ?? null,
+        document: base.document ?? r.counterparty_document ?? null,
+        documentType:
+          base.documentType ??
+          ((r.counterparty_document_type as "CNPJ" | "CPF" | null | undefined) ?? null),
+      };
+    }
+    return m;
+  }, [rows, companyCnpj, bankByConnection, connections]);
+
+  /** Contato cadastrado por documento (só dígitos). */
+  const contactIdByDocument = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const c of contacts) {
+      const d = onlyDigits(c.document);
+      if (d.length >= 11 && !m[d]) m[d] = c.id;
+    }
+    return m;
+  }, [contacts]);
+
+  const suggestedContact = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const r of rows) {
+      const doc = onlyDigits(counterpartyByRow[r.id]?.document);
+      const contactId = doc ? contactIdByDocument[doc] : undefined;
+      if (contactId) m[r.id] = contactId;
+    }
+    return m;
+  }, [rows, counterpartyByRow, contactIdByDocument]);
+
+  // Pré-seleciona o fornecedor/cliente identificado pelo documento do extrato,
+  // sem sobrescrever escolhas manuais nem rascunhos salvos.
+  useEffect(() => {
+    if (Object.keys(suggestedContact).length === 0) return;
+    setRowContact((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const [id, contactId] of Object.entries(suggestedContact)) {
+        if (!next[id]) { next[id] = contactId; changed = true; }
+      }
+      return changed ? next : prev;
+    });
+  }, [suggestedContact]);
+
+  /** Cria o contato a partir dos dados do extrato e o vincula ao lançamento. */
+  const createContactFromStatement = async (row: StagingRow) => {
+    const cp = counterpartyByRow[row.id];
+    if (!cp?.name && !cp?.document) return;
+    setCreatingContact(row.id);
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const userId = auth.user?.id;
+      if (!userId || !selectedCompanyId) { toast.error("Sessão expirada"); return; }
+      const isEntrada = row.amount >= 0;
+      const { data: created, error } = await supabase
+        .from("contacts")
+        .insert({
+          user_id: userId,
+          name: cp.name ?? `Contraparte ${cp.document}`,
+          document: cp.document,
+          contact_type: (cp.internal ? "fornecedor" : isEntrada ? "cliente" : "fornecedor") as never,
+          visible_pf: false,
+        } as never)
+        .select("id")
+        .single();
+      if (error || !created) {
+        toast.error("Não foi possível cadastrar o contato", { description: error?.message });
+        return;
+      }
+      const newId = (created as unknown as { id: string }).id;
+      await supabase.from("contact_companies").insert({
+        contact_id: newId,
+        company_id: selectedCompanyId,
+      } as never);
+      setContacts((prev) => [
+        ...prev,
+        { id: newId, name: cp.name ?? cp.document ?? "Contato", type: null, document: cp.document },
+      ].sort((a, b) => a.name.localeCompare(b.name)));
+      setRowContact((prev) => ({ ...prev, [row.id]: newId }));
+      toast.success("Contato cadastrado e vinculado");
+    } finally {
+      setCreatingContact(null);
+    }
+  };
+
   if (contextType !== "pj") {
     return (
       <Card><CardContent className="p-6 text-sm text-muted-foreground">
@@ -735,7 +869,16 @@ export default function ConciliacaoPluggy() {
                 onPaymentMethodChange={(v) => setRowPayment((p) => ({ ...p, [r.id]: v }))}
                 contacts={contacts}
                 contact={rowContact[r.id] ?? ""}
+                contactSuggested={!!rowContact[r.id] && rowContact[r.id] === suggestedContact[r.id]}
                 onContactChange={(v) => setRowContact((p) => ({ ...p, [r.id]: v }))}
+                counterpartyLabel={counterpartyLabel(counterpartyByRow[r.id] ?? { name: null, document: null, documentType: null, internal: false })}
+                counterpartyInternal={!!counterpartyByRow[r.id]?.internal}
+                canCreateContact={
+                  !rowContact[r.id] &&
+                  !!(counterpartyByRow[r.id]?.name || counterpartyByRow[r.id]?.document)
+                }
+                creatingContact={creatingContact === r.id}
+                onCreateContact={() => createContactFromStatement(r)}
                 isReversal={
                   !!rowCategory[r.id] &&
                   categoryTypeById[rowCategory[r.id]] === (isEntrada ? "saida" : "entrada")
@@ -805,7 +948,15 @@ export default function ConciliacaoPluggy() {
                       />
                     </td>
                     <td className="p-2 whitespace-nowrap">{format(parseISO(r.date), "dd/MM/yyyy")}</td>
-                    <td className="p-2 max-w-[280px] truncate" title={r.description ?? ""}>{r.description ?? "-"}</td>
+                    <td className="p-2 max-w-[280px]">
+                      <p className="truncate" title={r.description ?? ""}>{r.description ?? "-"}</p>
+                      {counterpartyLabel(counterpartyByRow[r.id] ?? { name: null, document: null, documentType: null, internal: false }) && (
+                        <p className="mt-0.5 truncate text-[10px] text-muted-foreground" title={counterpartyLabel(counterpartyByRow[r.id]!) ?? ""}>
+                          {counterpartyByRow[r.id]?.internal ? "Banco (débito interno): " : ""}
+                          {counterpartyLabel(counterpartyByRow[r.id]!)}
+                        </p>
+                      )}
+                    </td>
                     <td className={`p-2 text-right font-medium whitespace-nowrap ${isEntrada ? "text-success" : "text-destructive"}`}>
                       {maskBRL(r.amount)}
                     </td>
@@ -924,6 +1075,7 @@ export default function ConciliacaoPluggy() {
                       {(rowKind[r.id] ?? "auto") === "transfer" ? (
                         <span className="text-xs text-muted-foreground">—</span>
                       ) : (
+                        <>
                         <Select
                           value={rowContact[r.id] ?? ""}
                           onValueChange={(v) => setRowContact((p) => ({ ...p, [r.id]: v }))}
@@ -938,6 +1090,24 @@ export default function ConciliacaoPluggy() {
                             ))}
                           </SelectContent>
                         </Select>
+                        {rowContact[r.id] && rowContact[r.id] === suggestedContact[r.id] && (
+                          <p className="mt-1 text-[10px] text-muted-foreground">identificado pelo extrato</p>
+                        )}
+                        {!disabled && !rowContact[r.id] && (counterpartyByRow[r.id]?.name || counterpartyByRow[r.id]?.document) && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="mt-1 h-7 px-1 text-[10px]"
+                            disabled={creatingContact === r.id}
+                            onClick={() => createContactFromStatement(r)}
+                          >
+                            {creatingContact === r.id
+                              ? <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                              : <UserPlus className="mr-1 h-3 w-3" />}
+                            Cadastrar {counterpartyByRow[r.id]?.name ?? counterpartyByRow[r.id]?.document}
+                          </Button>
+                        )}
+                        </>
                       )}
                     </td>
 

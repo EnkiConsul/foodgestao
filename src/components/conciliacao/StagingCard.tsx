@@ -1,5 +1,5 @@
 import { format, parseISO } from "date-fns";
-import { AlertTriangle, Check, Loader2, X } from "lucide-react";
+import { AlertTriangle, Check, Loader2, UserPlus, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -56,7 +56,14 @@ interface StagingCardProps {
   onPaymentMethodChange: (value: string) => void;
   contacts: ContactOpt[];
   contact: string;
+  contactSuggested?: boolean;
   onContactChange: (value: string) => void;
+  /** "Nome • CNPJ 00.000.000/0001-00" extraído do extrato (null quando ausente). */
+  counterpartyLabel?: string | null;
+  counterpartyInternal?: boolean;
+  canCreateContact?: boolean;
+  creatingContact?: boolean;
+  onCreateContact?: () => void;
   /** true quando a categoria escolhida é do tipo oposto ao valor (estorno). */
   isReversal: boolean;
   selected: boolean;
@@ -87,7 +94,13 @@ export function StagingCard({
   onPaymentMethodChange,
   contacts,
   contact,
+  contactSuggested,
   onContactChange,
+  counterpartyLabel,
+  counterpartyInternal,
+  canCreateContact,
+  creatingContact,
+  onCreateContact,
   isReversal,
   selected,
   onSelectedChange,
@@ -114,6 +127,12 @@ export function StagingCard({
           <div className="min-w-0 flex-1">
             <p className="break-words text-sm font-medium">{row.description ?? "-"}</p>
             <p className="text-xs text-muted-foreground">{format(parseISO(row.date), "dd/MM/yyyy")}</p>
+            {counterpartyLabel && (
+              <p className="break-words text-[11px] text-muted-foreground">
+                {counterpartyInternal ? "Banco (débito interno): " : ""}
+                {counterpartyLabel}
+              </p>
+            )}
           </div>
           <p className={`shrink-0 text-sm font-bold ${isEntrada ? "text-success" : "text-destructive"}`}>
             {maskBRL(row.amount)}
@@ -266,6 +285,23 @@ export function StagingCard({
                     ))}
                   </SelectContent>
                 </Select>
+                {contact && contactSuggested && (
+                  <p className="mt-1 text-[10px] text-muted-foreground">identificado pelo extrato</p>
+                )}
+                {!disabled && canCreateContact && onCreateContact && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-2 h-8 w-full text-xs"
+                    disabled={creatingContact}
+                    onClick={onCreateContact}
+                  >
+                    {creatingContact
+                      ? <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                      : <UserPlus className="mr-1 h-3 w-3" />}
+                    Cadastrar contato do extrato
+                  </Button>
+                )}
               </div>
             </>
           )}
