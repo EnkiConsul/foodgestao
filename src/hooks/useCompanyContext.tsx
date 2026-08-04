@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeRealtime } from "@/lib/realtimeHub";
+import { toast } from "sonner";
 
 type ContextType = "pf" | "pj";
 
@@ -12,13 +13,54 @@ interface Company {
   trade_name: string | null;
 }
 
+interface RefreshResult {
+  previous: Company[];
+  list: Company[];
+}
+
 interface CompanyContextValue {
   contextType: ContextType;
   selectedCompanyId: string | null;
   companies: Company[];
   loading: boolean;
+  /** true enquanto uma atualização disparada por tempo real está em curso */
+  syncing: boolean;
   setContext: (type: ContextType, companyId: string | null) => void;
-  refreshCompanies: () => Promise<void>;
+  refreshCompanies: () => Promise<RefreshResult | undefined>;
+}
+
+const label = (c: Company) => c.trade_name || c.name;
+
+/** Toast descrevendo o que mudou na lista de empresas após um evento realtime. */
+function notifyCompanyDiff(previous: Company[], list: Company[]) {
+  if (previous.length === 0 && list.length === 0) return;
+  const prevById = new Map(previous.map((c) => [c.id, c]));
+  const nextById = new Map(list.map((c) => [c.id, c]));
+
+  const added = list.filter((c) => !prevById.has(c.id));
+  const removed = previous.filter((c) => !nextById.has(c.id));
+  const renamed = list.filter((c) => {
+    const before = prevById.get(c.id);
+    return before && label(before) !== label(c);
+  });
+
+  if (added.length === 1) {
+    toast.success(`Empresa adicionada: ${label(added[0])}`, { description: "Seletor de empresas atualizado." });
+  } else if (added.length > 1) {
+    toast.success(`${added.length} empresas adicionadas`, { description: "Seletor de empresas atualizado." });
+  }
+
+  if (removed.length === 1) {
+    toast.info(`Empresa removida do seletor: ${label(removed[0])}`);
+  } else if (removed.length > 1) {
+    toast.info(`${removed.length} empresas removidas do seletor`);
+  }
+
+  if (added.length === 0 && removed.length === 0 && renamed.length > 0) {
+    toast.info(
+      renamed.length === 1 ? `Empresa atualizada: ${label(renamed[0])}` : `${renamed.length} empresas atualizadas`,
+    );
+  }
 }
 
 const CompanyContext = createContext<CompanyContextValue | undefined>(undefined);
