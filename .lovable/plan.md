@@ -11,6 +11,7 @@ Observação: o preenchimento depende do banco e do tipo de lançamento. PIX e b
 1. Extrair a contraparte de cada lançamento
    - Novo utilitário que lê o dado bruto e devolve nome, documento (CNPJ/CPF) e tipo, escolhendo o lado correto: em entradas usa o pagador, em saídas usa o recebedor (com `merchant` como alternativa).
    - Ignora a própria empresa quando o documento da contraparte é igual ao da conta conectada.
+   - Débitos internos (tarifas, IOF, juros, anuidade, rendimento, estorno interno — sem pagador/recebedor externo): a contraparte passa a ser o próprio banco da conexão, usando o nome e o CNPJ do banco cadastrado, e o lançamento é marcado como "débito interno".
 
 2. Guardar o documento no lançamento importado
    - Novas colunas `counterparty_document` e `counterparty_document_type` na tabela de lançamentos em staging, preenchidas na sincronização (e no reprocessamento dos já existentes, quando o dado bruto estiver disponível).
@@ -21,12 +22,14 @@ Observação: o preenchimento depende do banco e do tipo de lançamento. PIX e b
 4. Sugerir o Fornecedor/Cliente automaticamente
    - Se já existir contato cadastrado com o mesmo documento, ele é pré-selecionado no campo Fornecedor/Cliente.
    - Se não existir, aparece um botão "Cadastrar contato" que cria o contato com nome e documento já preenchidos (tipo cliente para entradas, fornecedor para saídas), vinculado à empresa ativa, e o seleciona no lançamento.
+   - Em débitos internos, a sugestão é o banco da conta conectada (fornecedor), criado uma única vez com nome e CNPJ do banco e reaproveitado nos demais lançamentos.
    - Escolhas manuais e rascunhos salvos continuam prevalecendo sobre a sugestão.
 
 ## Detalhes técnicos
 
-- `src/lib/conciliacao/counterparty.ts` + testes unitários (PIX entrada/saída, boleto, cartão com merchant, lançamento sem dados).
-- Migração: `ALTER TABLE public.pluggy_staging_transactions ADD COLUMN counterparty_document text, ADD COLUMN counterparty_document_type text;` (sem novas políticas — RLS existente cobre).
+- `src/lib/conciliacao/counterparty.ts` + testes unitários (PIX entrada/saída, boleto, cartão com merchant, tarifa/débito interno, lançamento sem dados).
+- Débito interno detectado por ausência de pagador/recebedor externo somada ao tipo/descrição (tarifa, IOF, juros, anuidade, rendimento, pacote de serviços). O nome vem de `banks.name` da conexão; a tabela `banks` não tem CNPJ, então será adicionada a coluna `tax_id` em `public.banks` e preenchida com os CNPJs dos bancos já cadastrados (quando ausente, o contato é criado só com o nome).
+- Migração: `ALTER TABLE public.pluggy_staging_transactions ADD COLUMN counterparty_document text, ADD COLUMN counterparty_document_type text;` + `ALTER TABLE public.banks ADD COLUMN tax_id text;` (sem novas políticas — RLS existente cobre).
 - `supabase/functions/pluggy-sync-item` e `_shared/pluggy-v2-materialize.ts`: gravar os novos campos junto de `counterparty_name`.
 - Match de contato por documento normalizado (só dígitos) contra `contacts.document`, restrito à empresa ativa via `contact_companies`.
 - UI: `src/pages/ConciliacaoPluggy.tsx` e `StagingCard.tsx`.
