@@ -110,7 +110,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
   const [widgetReady, setWidgetReady] = useState(false);
   const [pending, setPending] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [phase, setPhase] = useState<"idle" | "intro" | "launch">("idle");
+  const [phase, setPhase] = useState<"idle" | "intro" | "launch" | "framed">("idle");
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [showInterSteps, setShowInterSteps] = useState(false);
   const instanceRef = useRef<any>(null);
@@ -127,11 +127,16 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
       setDontShowAgain(false);
       return;
     }
+    if (isFramed()) {
+      setPhase("framed");
+      return;
+    }
     let dismissed = false;
     try { dismissed = localStorage.getItem(INTRO_KEY) === "1"; } catch { /* noop */ }
     const skip = dismissed || hasPluggyResume() || !!itemIdToUpdate;
     setPhase(skip ? "launch" : "intro");
   }, [open, itemIdToUpdate]);
+
 
   const startConnect = useCallback(() => {
     if (dontShowAgain) {
