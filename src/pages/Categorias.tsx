@@ -21,6 +21,17 @@ import { CategoryRow } from "@/components/categorias/CategoryRow";
 import { CategoryMobileRow } from "@/components/categorias/CategoryMobileRow";
 import { BatchActionBar } from "@/components/categorias/BatchActionBar";
 import { BatchVisibilityDialog } from "@/components/categorias/BatchVisibilityDialog";
+import { HelpHint } from "@/components/common/HelpHint";
+
+const CATEGORIA_HELP = {
+  nova: "Cria uma categoria nova.",
+  importar: "Só adiciona o que falta do modelo padrão. Nada é apagado.",
+  substituir: "Recria o modelo padrão do zero. Os lançamentos ficam sem categoria.",
+  recolher: "Mostra ou esconde todas as subcategorias.",
+  bloqueadas: "Categorias que são só grupo e não aceitam lançamentos.",
+} as const;
+
+
 
 
 
