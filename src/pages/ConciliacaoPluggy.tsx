@@ -19,6 +19,58 @@ import { buildCategoryTree, type Category } from "@/lib/categories/tree";
 import { StagingCard } from "@/components/conciliacao/StagingCard";
 
 
+
+interface ConciliacaoDraft {
+  selected: string[];
+  rowAccount: Record<string, string>;
+  rowCategory: Record<string, string>;
+  rowKind: Record<string, "auto" | "transfer">;
+  rowCounterpart: Record<string, string>;
+}
+
+const EMPTY_DRAFT: ConciliacaoDraft = {
+  selected: [],
+  rowAccount: {},
+  rowCategory: {},
+  rowKind: {},
+  rowCounterpart: {},
+};
+
+function readDraft(key: string): ConciliacaoDraft {
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return EMPTY_DRAFT;
+    const parsed = JSON.parse(raw) as Partial<ConciliacaoDraft>;
+    return {
+      selected: Array.isArray(parsed.selected) ? parsed.selected : [],
+      rowAccount: parsed.rowAccount ?? {},
+      rowCategory: parsed.rowCategory ?? {},
+      rowKind: parsed.rowKind ?? {},
+      rowCounterpart: parsed.rowCounterpart ?? {},
+    };
+  } catch {
+    return EMPTY_DRAFT;
+  }
+}
+
+function writeDraft(key: string, draft: ConciliacaoDraft) {
+  try {
+    const empty =
+      draft.selected.length === 0 &&
+      Object.keys(draft.rowAccount).length === 0 &&
+      Object.keys(draft.rowCategory).length === 0 &&
+      Object.keys(draft.rowKind).length === 0 &&
+      Object.keys(draft.rowCounterpart).length === 0;
+    if (empty) sessionStorage.removeItem(key);
+    else sessionStorage.setItem(key, JSON.stringify(draft));
+  } catch {
+    /* ignore */
+  }
+}
+
+
+
+
 interface StagingRow {
   id: string;
   connection_id: string;
@@ -144,19 +196,34 @@ export default function ConciliacaoPluggy() {
     return m;
   }, [categories]);
 
+  const draftKey = `conciliacao-draft:${selectedCompanyId ?? "none"}:${scopedLocalAccountId ?? "all"}`;
+  const draft = useMemo(() => readDraft(draftKey), [draftKey]);
+
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [rowAccount, setRowAccount] = useState<Record<string, string>>({});
-  const [rowCategory, setRowCategory] = useState<Record<string, string>>({});
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(draft.selected));
+  const [rowAccount, setRowAccount] = useState<Record<string, string>>(() => draft.rowAccount);
+  const [rowCategory, setRowCategory] = useState<Record<string, string>>(() => draft.rowCategory);
   /** "auto" = entrada/saída; "transfer" = transferência entre contas */
-  const [rowKind, setRowKind] = useState<Record<string, "auto" | "transfer">>({});
-  const [rowCounterpart, setRowCounterpart] = useState<Record<string, string>>({});
+  const [rowKind, setRowKind] = useState<Record<string, "auto" | "transfer">>(() => draft.rowKind);
+  const [rowCounterpart, setRowCounterpart] = useState<Record<string, string>>(() => draft.rowCounterpart);
   const [transferTxIds, setTransferTxIds] = useState<Set<string>>(new Set());
   const [rowBusy, setRowBusy] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState<null | "confirm" | "ignore">(null);
+
+  // Mantém as seleções e rascunhos de vínculo mesmo se a página recarregar
+  useEffect(() => {
+    writeDraft(draftKey, {
+      selected: Array.from(selected),
+      rowAccount,
+      rowCategory,
+      rowKind,
+      rowCounterpart,
+    });
+  }, [draftKey, selected, rowAccount, rowCategory, rowKind, rowCounterpart]);
+
 
   // Escopo travado por conta (quando entrou pelo card da conta bancária)
   const [scope, setScope] = useState<ScopeInfo | null>(null);
@@ -239,6 +306,14 @@ export default function ConciliacaoPluggy() {
     }
     setRowAccount((prev) => ({ ...acctMap, ...prev }));
     setRowCategory((prev) => ({ ...catMap, ...prev }));
+
+    // Descarta seleções salvas que já não são mais pendentes
+    const stillPending = new Set(
+      ((staging ?? []) as StagingRow[]).filter((r) => r.status === "pending").map((r) => r.id),
+    );
+    setSelected((prev) => new Set(Array.from(prev).filter((id) => stillPending.has(id))));
+
+
 
     // Marca quais lançamentos já conciliados viraram transferência (para o badge)
     const matchedIds = ((staging ?? []) as StagingRow[])
