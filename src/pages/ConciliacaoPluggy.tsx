@@ -768,6 +768,8 @@ export default function ConciliacaoPluggy() {
                 <th className="p-2 text-left">Conta destino</th>
                 <th className="p-2 text-left">Tipo</th>
                 <th className="p-2 text-left">Categoria / contraparte</th>
+                <th className="p-2 text-left">Forma de pagamento</th>
+                <th className="p-2 text-left">Fornecedor / cliente</th>
                 <th className="p-2 text-center">Status</th>
                 <th className="p-2 text-right">Ações</th>
               </tr>
