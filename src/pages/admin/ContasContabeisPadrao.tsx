@@ -44,6 +44,11 @@ type Template = {
   is_reducer: boolean;
   is_active: boolean;
   dre_line: string | null;
+  allow_transactions: boolean;
+  temporary_account: boolean;
+  normal_balance: string | null;
+  statement_group: string | null;
+  cash_flow_behavior: string | null;
 };
 
 type FlatNode = Template & { depth: number };
@@ -62,6 +67,32 @@ const SUBTYPE_LABEL: Record<string, string> = {
   patrimonial: "Patrimonial",
   transferencia: "Transferência",
 };
+const STATEMENT_GROUPS = [
+  "ativo", "passivo", "patrimonio_liquido", "receita", "custo",
+  "despesa_operacional", "despesa_financeira", "tributos", "controle",
+] as const;
+const STATEMENT_GROUP_LABEL: Record<string, string> = {
+  ativo: "Ativo",
+  passivo: "Passivo",
+  patrimonio_liquido: "Patrimônio Líquido",
+  receita: "Receitas",
+  custo: "Custos",
+  despesa_operacional: "Despesas Operacionais",
+  despesa_financeira: "Despesas Financeiras",
+  tributos: "Impostos e Tributos",
+  controle: "Controle e Conciliação",
+};
+const CASH_FLOW_BEHAVIORS = [
+  "operacional", "investimento", "financiamento", "transferencia", "nao_caixa",
+] as const;
+const CASH_FLOW_LABEL: Record<string, string> = {
+  operacional: "Operacional",
+  investimento: "Investimento",
+  financiamento: "Financiamento",
+  transferencia: "Transferência",
+  nao_caixa: "Não afeta o caixa",
+};
+
 const TX_LABEL: Record<string, string> = {
   entrada: "Entrada",
   saida: "Saída",
@@ -122,6 +153,11 @@ const emptyForm: Template = {
   is_reducer: false,
   is_active: true,
   dre_line: null,
+  allow_transactions: true,
+  temporary_account: false,
+  normal_balance: null,
+  statement_group: null,
+  cash_flow_behavior: null,
 };
 
 const listToText = (v: string[] | null | undefined) => (v ?? []).join(", ");
@@ -220,6 +256,11 @@ export default function AdminContasContabeisPadrao() {
       is_reducer: form.is_reducer,
       is_active: form.is_active,
       dre_line: form.dre_line?.trim() || null,
+      allow_transactions: form.is_synthetic ? false : form.allow_transactions,
+      temporary_account: form.temporary_account,
+      normal_balance: form.normal_balance || null,
+      statement_group: form.statement_group || null,
+      cash_flow_behavior: form.cash_flow_behavior || null,
     };
     const q = editingCode
       ? (supabase as any).from("chart_account_templates").update(payload).eq("code", editingCode)
@@ -257,7 +298,7 @@ export default function AdminContasContabeisPadrao() {
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
         <AdminPageHeader
           title="Contas Contábeis Padrão"
-          description="Plano de contas modelo (Food Service) usado ao criar empresas e ao restaurar o modelo. Sintéticas [S] agrupam; analíticas [A] recebem lançamentos; [D] dinâmicas; [C] redutoras."
+          description="Plano de contas modelo (Food Service essencial) usado ao criar empresas e ao restaurar o modelo. Sintéticas [S] agrupam; analíticas [A] recebem lançamentos; [C] redutoras; [R] exigem revisão; [T] temporárias."
         />
         <Button size="sm" onClick={() => openNew(null)} className="min-h-9">
           <Plus className="h-4 w-4 mr-2" /> Nova conta padrão
@@ -308,7 +349,13 @@ export default function AdminContasContabeisPadrao() {
                   {n.is_tax && <Badge variant="secondary" className="text-[10px]">Imposto</Badge>}
                   {n.is_dynamic && <Badge variant="secondary" className="text-[10px]">D</Badge>}
                   {n.is_reducer && <Badge variant="secondary" className="text-[10px]">C</Badge>}
-                  {n.requires_review && <Badge variant="secondary" className="text-[10px]">Revisão</Badge>}
+                  {n.requires_review && <Badge variant="secondary" className="text-[10px]">R</Badge>}
+                  {n.temporary_account && <Badge variant="secondary" className="text-[10px]">T</Badge>}
+                  {n.normal_balance && (
+                    <Badge variant="outline" className="text-[10px]">
+                      {n.normal_balance === "credito" ? "Crédito" : "Débito"}
+                    </Badge>
+                  )}
                   <Badge variant={n.is_synthetic ? "outline" : "default"} className="text-[10px]">
                     {n.is_synthetic ? "S" : "A"}
                   </Badge>
@@ -400,6 +447,54 @@ export default function AdminContasContabeisPadrao() {
                   Vazio = conta fora da DRE (patrimonial ou de controle).
                 </p>
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Grupo do balanço</Label>
+                <Select
+                  value={form.statement_group ?? "none"}
+                  onValueChange={(v) => setForm((f) => ({ ...f, statement_group: v === "none" ? null : v }))}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Não definido</SelectItem>
+                    {STATEMENT_GROUPS.map((g) => (
+                      <SelectItem key={g} value={g}>{STATEMENT_GROUP_LABEL[g]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Natureza do saldo</Label>
+                <Select
+                  value={form.normal_balance ?? "none"}
+                  onValueChange={(v) => setForm((f) => ({ ...f, normal_balance: v === "none" ? null : v }))}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Não definida</SelectItem>
+                    <SelectItem value="debito">Débito</SelectItem>
+                    <SelectItem value="credito">Crédito</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Comportamento no fluxo de caixa</Label>
+              <Select
+                value={form.cash_flow_behavior ?? "none"}
+                onValueChange={(v) => setForm((f) => ({ ...f, cash_flow_behavior: v === "none" ? null : v }))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Não definido</SelectItem>
+                  {CASH_FLOW_BEHAVIORS.map((b) => (
+                    <SelectItem key={b} value={b}>{CASH_FLOW_LABEL[b]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
@@ -525,6 +620,8 @@ export default function AdminContasContabeisPadrao() {
             <div className="grid gap-2">
               {([
                 ["is_synthetic", "Conta sintética [S]", "Agrupa e não recebe lançamentos."],
+                ["allow_transactions", "Permite lançamentos [A]", "Contas sintéticas nunca recebem lançamentos, mesmo com esta opção ligada."],
+                ["temporary_account", "Conta temporária [T]", "Conta de controle: os saldos devem ser reclassificados."],
                 ["is_dynamic", "Conta dinâmica [D]", "O sistema pode criar filhas automaticamente (bancos, cartões, contratos)."],
                 ["is_reducer", "Conta redutora [C]", "Reduz o saldo do grupo em que está."],
                 ["is_tax", "Conta de imposto", "Marca a conta como tributária nos relatórios."],
