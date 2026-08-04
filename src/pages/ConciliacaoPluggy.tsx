@@ -470,22 +470,30 @@ export default function ConciliacaoPluggy() {
         mirrors += list.filter((d) => d.mirror_staging_id).length;
       }
 
-      // Lançamentos comuns: uma chamada por (conta, categoria)
-      const byCat: Record<string, string[]> = {};
+      // Lançamentos comuns: uma chamada por (conta, categoria, forma de pagamento, contato)
+      const byGroup: Record<string, string[]> = {};
       for (const sid of normalIds) {
-        const cat = rowCategory[sid] ?? "__none__";
-        byCat[cat] = byCat[cat] ?? [];
-        byCat[cat].push(sid);
+        const key = [
+          rowCategory[sid] ?? "__none__",
+          rowPayment[sid] ?? "__none__",
+          rowContact[sid] ?? "__none__",
+        ].join("|");
+        byGroup[key] = byGroup[key] ?? [];
+        byGroup[key].push(sid);
       }
-      for (const [cat, sids] of Object.entries(byCat)) {
+      for (const [key, sids] of Object.entries(byGroup)) {
+        const [cat, pm, ct] = key.split("|");
         const { data, error } = await supabase.rpc("pluggy_confirm_staging", {
           p_staging_ids: sids,
           p_account_id: acctId,
           p_category_id: cat === "__none__" ? null : cat,
+          p_payment_method_id: pm === "__none__" ? null : pm,
+          p_contact_id: ct === "__none__" ? null : ct,
         });
         if (error) { toast.error("Falha ao confirmar: " + error.message); continue; }
         ok += Array.isArray(data) ? data.length : 0;
       }
+
     }
     toast.success(ok === 1 ? "Lançamento confirmado" : `${ok} lançamentos confirmados`);
     if (mirrors > 0) {
