@@ -26,6 +26,8 @@ interface ConciliacaoDraft {
   rowCategory: Record<string, string>;
   rowKind: Record<string, "auto" | "transfer">;
   rowCounterpart: Record<string, string>;
+  rowPayment: Record<string, string>;
+  rowContact: Record<string, string>;
 }
 
 const EMPTY_DRAFT: ConciliacaoDraft = {
@@ -34,6 +36,8 @@ const EMPTY_DRAFT: ConciliacaoDraft = {
   rowCategory: {},
   rowKind: {},
   rowCounterpart: {},
+  rowPayment: {},
+  rowContact: {},
 };
 
 function readDraft(key: string): ConciliacaoDraft {
@@ -47,6 +51,8 @@ function readDraft(key: string): ConciliacaoDraft {
       rowCategory: parsed.rowCategory ?? {},
       rowKind: parsed.rowKind ?? {},
       rowCounterpart: parsed.rowCounterpart ?? {},
+      rowPayment: parsed.rowPayment ?? {},
+      rowContact: parsed.rowContact ?? {},
     };
   } catch {
     return EMPTY_DRAFT;
@@ -60,7 +66,9 @@ function writeDraft(key: string, draft: ConciliacaoDraft) {
       Object.keys(draft.rowAccount).length === 0 &&
       Object.keys(draft.rowCategory).length === 0 &&
       Object.keys(draft.rowKind).length === 0 &&
-      Object.keys(draft.rowCounterpart).length === 0;
+      Object.keys(draft.rowCounterpart).length === 0 &&
+      Object.keys(draft.rowPayment).length === 0 &&
+      Object.keys(draft.rowContact).length === 0;
     sessionStorage.removeItem(key);
     if (empty) localStorage.removeItem(key);
     else localStorage.setItem(key, JSON.stringify(draft));
@@ -68,6 +76,7 @@ function writeDraft(key: string, draft: ConciliacaoDraft) {
     /* ignore */
   }
 }
+
 
 
 
