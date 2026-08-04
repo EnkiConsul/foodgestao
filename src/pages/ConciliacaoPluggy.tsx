@@ -883,6 +883,50 @@ export default function ConciliacaoPluggy() {
                       )}
                     </td>
 
+                    <td className="p-2">
+                      {(rowKind[r.id] ?? "auto") === "transfer" ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (
+                        <Select
+                          value={rowPayment[r.id] ?? ""}
+                          onValueChange={(v) => setRowPayment((p) => ({ ...p, [r.id]: v }))}
+                          disabled={disabled}
+                        >
+                          <SelectTrigger className="h-8 min-w-[150px] text-xs">
+                            <SelectValue placeholder="Não informada" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {paymentMethods.map((p) => (
+                              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </td>
+
+                    <td className="p-2">
+                      {(rowKind[r.id] ?? "auto") === "transfer" ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (
+                        <Select
+                          value={rowContact[r.id] ?? ""}
+                          onValueChange={(v) => setRowContact((p) => ({ ...p, [r.id]: v }))}
+                          disabled={disabled}
+                        >
+                          <SelectTrigger className="h-8 min-w-[160px] text-xs">
+                            <SelectValue placeholder={isEntrada ? "Cliente…" : "Fornecedor…"} />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-[420px]">
+                            {contacts.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </td>
+
+
+
                     <td className="p-2 text-center">
                       <div className="flex flex-wrap items-center justify-center gap-1">
                         {r.status === "pending" && <Badge variant="outline">Pendente</Badge>}
