@@ -25,6 +25,7 @@ export default function Empresas() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data: quota, refetch: refetchQuota } = useCompanyQuota();
+  const { refreshCompanies } = useCompanyContext();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
