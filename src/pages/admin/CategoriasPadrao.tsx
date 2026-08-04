@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, PlusCircle, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, PlusCircle, Search, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { SuggestChartAccountsDialog } from "@/components/admin/SuggestChartAccountsDialog";
+
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -171,6 +173,7 @@ export default function AdminCategoriasPadrao() {
 
 
   const [applying, setApplying] = useState(false);
+  const [suggestOpen, setSuggestOpen] = useState(false);
   const applyToExisting = async () => {
     setApplying(true);
     const { data, error } = await (supabase as any).rpc(
@@ -184,6 +187,20 @@ export default function AdminCategoriasPadrao() {
     }
     toast.success(`Vínculos aplicados: ${data ?? 0} categoria(s) atualizada(s)`);
   };
+
+  const pendingLabels = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const r of rows) if (!r.chart_account_code) out[r.code] = r.name;
+    return out;
+  }, [rows]);
+
+  const chartNames = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const c of chartRows) out[c.code] = c.name;
+    return out;
+  }, [chartRows]);
+
+
 
 
 
@@ -292,9 +309,13 @@ export default function AdminCategoriasPadrao() {
           description="Modelo de categorias aplicado a todo novo cadastro. Alterações valem para as próximas empresas criadas."
         />
         <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" onClick={() => setSuggestOpen(true)} className="min-h-9">
+            <Sparkles className="h-4 w-4 mr-2" /> Sugerir contas com IA
+          </Button>
           <Button size="sm" variant="outline" onClick={applyToExisting} disabled={applying} className="min-h-9">
             {applying ? "Aplicando..." : "Aplicar vínculos aos cadastros existentes"}
           </Button>
+
           <Button size="sm" onClick={() => openNew(null)} className="min-h-9">
             <Plus className="h-4 w-4 mr-2" /> Nova categoria padrão
           </Button>
@@ -628,6 +649,15 @@ export default function AdminCategoriasPadrao() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <SuggestChartAccountsDialog
+        open={suggestOpen}
+        onOpenChange={setSuggestOpen}
+        pendingLabels={pendingLabels}
+        chartNames={chartNames}
+        onApplied={() => qc.invalidateQueries({ queryKey: ["admin-category-templates"] })}
+      />
     </div>
+
   );
 }
