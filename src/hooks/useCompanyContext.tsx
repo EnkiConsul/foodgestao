@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback,
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { subscribeRealtime } from "@/lib/realtimeHub";
 
 type ContextType = "pf" | "pj";
 
@@ -140,6 +141,28 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     refreshCompanies();
   }, [refreshCompanies]);
+
+  // Atualização em tempo real: qualquer criação/edição/ativação/exclusão de
+  // empresa (ou de vínculo de membro) recarrega a lista do seletor sem reload.
+  useEffect(() => {
+    if (!user?.id) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const schedule = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        timer = null;
+        refreshCompanies();
+      }, 250);
+    };
+    const unsubs = [
+      subscribeRealtime("companies", `user_id=eq.${user.id}`, schedule),
+      subscribeRealtime("company_members", `user_id=eq.${user.id}`, schedule),
+    ];
+    return () => {
+      if (timer) clearTimeout(timer);
+      unsubs.forEach((fn) => fn());
+    };
+  }, [user?.id, refreshCompanies]);
 
   // Ao mudar de escopo (contextType + empresa), invalida caches financeiros
   // para impedir vazamento de dados de uma empresa em outra.
