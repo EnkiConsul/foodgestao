@@ -38,7 +38,7 @@ const EMPTY_DRAFT: ConciliacaoDraft = {
 
 function readDraft(key: string): ConciliacaoDraft {
   try {
-    const raw = sessionStorage.getItem(key);
+    const raw = localStorage.getItem(key) ?? sessionStorage.getItem(key);
     if (!raw) return EMPTY_DRAFT;
     const parsed = JSON.parse(raw) as Partial<ConciliacaoDraft>;
     return {
@@ -61,8 +61,9 @@ function writeDraft(key: string, draft: ConciliacaoDraft) {
       Object.keys(draft.rowCategory).length === 0 &&
       Object.keys(draft.rowKind).length === 0 &&
       Object.keys(draft.rowCounterpart).length === 0;
-    if (empty) sessionStorage.removeItem(key);
-    else sessionStorage.setItem(key, JSON.stringify(draft));
+    sessionStorage.removeItem(key);
+    if (empty) localStorage.removeItem(key);
+    else localStorage.setItem(key, JSON.stringify(draft));
   } catch {
     /* ignore */
   }
