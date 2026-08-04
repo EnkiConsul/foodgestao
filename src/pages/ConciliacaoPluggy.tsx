@@ -197,6 +197,8 @@ export default function ConciliacaoPluggy() {
   const [connectionId, setConnectionId] = useState<string>("all");
   const [rows, setRows] = useState<StagingRow[]>([]);
   const [accounts, setAccounts] = useState<AccountOpt[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<AccountOpt[]>([]);
+  const [contacts, setContacts] = useState<ContactOpt[]>([]);
   const [categories, setCategories] = useState<CategoryOpt[]>([]);
   const categoryOptionsReceita = useMemo(() => buildCategoryOptions(categories, "entrada"), [categories]);
   const categoryOptionsDespesa = useMemo(() => buildCategoryOptions(categories, "saida"), [categories]);
@@ -219,6 +221,8 @@ export default function ConciliacaoPluggy() {
   /** "auto" = entrada/saída; "transfer" = transferência entre contas */
   const [rowKind, setRowKind] = useState<Record<string, "auto" | "transfer">>(() => draft.rowKind);
   const [rowCounterpart, setRowCounterpart] = useState<Record<string, string>>(() => draft.rowCounterpart);
+  const [rowPayment, setRowPayment] = useState<Record<string, string>>(() => draft.rowPayment);
+  const [rowContact, setRowContact] = useState<Record<string, string>>(() => draft.rowContact);
   const [transferTxIds, setTransferTxIds] = useState<Set<string>>(new Set());
   const [rowBusy, setRowBusy] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState<null | "confirm" | "ignore">(null);
@@ -231,8 +235,11 @@ export default function ConciliacaoPluggy() {
       rowCategory,
       rowKind,
       rowCounterpart,
+      rowPayment,
+      rowContact,
     });
-  }, [draftKey, selected, rowAccount, rowCategory, rowKind, rowCounterpart]);
+  }, [draftKey, selected, rowAccount, rowCategory, rowKind, rowCounterpart, rowPayment, rowContact]);
+
 
 
   // Escopo travado por conta (quando entrou pelo card da conta bancária)
