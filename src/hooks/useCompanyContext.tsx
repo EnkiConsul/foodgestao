@@ -89,9 +89,13 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
   const contextTypeRef = useRef<ContextType>(stored.contextType);
   contextTypeRef.current = contextType;
 
+  const [syncing, setSyncing] = useState(false);
+  const companiesRef = useRef<Company[]>([]);
+
   const refreshCompanies = useCallback(async () => {
     if (!user) {
       setCompanies([]);
+      companiesRef.current = [];
       setLoading(false);
       return;
     }
@@ -117,6 +121,8 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
       if (c?.id) byId.set(c.id, { id: c.id, name: c.name, trade_name: c.trade_name });
     });
     const list = Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name));
+    const previous = companiesRef.current;
+    companiesRef.current = list;
     setCompanies(list);
 
     // Validação do selectedCompanyId salvo: se o usuário perdeu acesso à
@@ -136,6 +142,7 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
     });
 
     setLoading(false);
+    return { previous, list };
   }, [user?.id]);
 
   useEffect(() => {
@@ -143,15 +150,22 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
   }, [refreshCompanies]);
 
   // Atualização em tempo real: qualquer criação/edição/ativação/exclusão de
-  // empresa (ou de vínculo de membro) recarrega a lista do seletor sem reload.
+  // empresa (ou de vínculo de membro) recarrega a lista do seletor sem reload,
+  // com feedback visual (spinner no seletor + toast do que mudou).
   useEffect(() => {
     if (!user?.id) return;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const schedule = () => {
       if (timer) clearTimeout(timer);
-      timer = setTimeout(() => {
+      setSyncing(true);
+      timer = setTimeout(async () => {
         timer = null;
-        refreshCompanies();
+        try {
+          const result = await refreshCompanies();
+          if (result) notifyCompanyDiff(result.previous, result.list);
+        } finally {
+          setSyncing(false);
+        }
       }, 250);
     };
     const unsubs = [
