@@ -11,6 +11,7 @@ Observação: o preenchimento depende do banco e do tipo de lançamento. PIX e b
 1. Extrair a contraparte de cada lançamento
    - Novo utilitário que lê o dado bruto e devolve nome, documento (CNPJ/CPF) e tipo, escolhendo o lado correto: em entradas usa o pagador, em saídas usa o recebedor (com `merchant` como alternativa).
    - Ignora a própria empresa quando o documento da contraparte é igual ao da conta conectada.
+   - Débitos internos (tarifas, IOF, juros, anuidade, rendimento, estorno interno — sem pagador/recebedor externo): a contraparte passa a ser o próprio banco da conexão, usando o nome e o CNPJ do banco cadastrado, e o lançamento é marcado como "débito interno".
 
 2. Guardar o documento no lançamento importado
    - Novas colunas `counterparty_document` e `counterparty_document_type` na tabela de lançamentos em staging, preenchidas na sincronização (e no reprocessamento dos já existentes, quando o dado bruto estiver disponível).
