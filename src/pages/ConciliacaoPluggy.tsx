@@ -38,7 +38,7 @@ const EMPTY_DRAFT: ConciliacaoDraft = {
 
 function readDraft(key: string): ConciliacaoDraft {
   try {
-    const raw = sessionStorage.getItem(key);
+    const raw = localStorage.getItem(key) ?? sessionStorage.getItem(key);
     if (!raw) return EMPTY_DRAFT;
     const parsed = JSON.parse(raw) as Partial<ConciliacaoDraft>;
     return {
