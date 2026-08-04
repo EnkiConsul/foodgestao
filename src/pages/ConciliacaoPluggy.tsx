@@ -280,7 +280,15 @@ export default function ConciliacaoPluggy() {
       stagingQuery = stagingQuery.eq("pluggy_account_id", resolvedScope.pluggyAccountId);
     }
 
-    const [{ data: conns }, { data: staging }, { data: accs }, { data: cats }, { data: pluggyAccts }] = await Promise.all([
+    const [
+      { data: conns },
+      { data: staging },
+      { data: accs },
+      { data: cats },
+      { data: pluggyAccts },
+      { data: pms },
+      { data: cts },
+    ] = await Promise.all([
       supabase.from("pluggy_connections")
         .select("id, connector_name, connector_image_url, status, last_synced_at")
         .eq("company_id", selectedCompanyId).order("created_at", { ascending: false }),
@@ -299,12 +307,23 @@ export default function ConciliacaoPluggy() {
       supabase.from("pluggy_accounts")
         .select("pluggy_account_id, linked_account_id")
         .eq("company_id", selectedCompanyId),
+      supabase.rpc("get_accessible_payment_methods", {
+        _context: "pj", _company_id: selectedCompanyId,
+      }),
+      supabase.from("contacts")
+        .select("id, name, type, is_active, contact_companies!inner(company_id)")
+        .eq("is_active", true)
+        .eq("contact_companies.company_id", selectedCompanyId)
+        .order("name"),
     ]);
 
     setConnections((conns ?? []) as Connection[]);
     setRows((staging ?? []) as StagingRow[]);
     setAccounts(((accs ?? []) as any[]).map((a) => ({ id: a.id, name: a.name })));
+    setPaymentMethods(((pms ?? []) as any[]).map((p) => ({ id: p.id, name: p.name })));
+    setContacts(((cts ?? []) as any[]).map((c) => ({ id: c.id, name: c.name, type: c.type ?? null })));
     setCategories((cats ?? []) as CategoryOpt[]);
+
 
     // Mapa: conta Pluggy -> conta bancária local vinculada
     const linkedMap: Record<string, string> = {};
