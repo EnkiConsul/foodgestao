@@ -61,8 +61,9 @@ function writeDraft(key: string, draft: ConciliacaoDraft) {
       Object.keys(draft.rowCategory).length === 0 &&
       Object.keys(draft.rowKind).length === 0 &&
       Object.keys(draft.rowCounterpart).length === 0;
-    if (empty) sessionStorage.removeItem(key);
-    else sessionStorage.setItem(key, JSON.stringify(draft));
+    sessionStorage.removeItem(key);
+    if (empty) localStorage.removeItem(key);
+    else localStorage.setItem(key, JSON.stringify(draft));
   } catch {
     /* ignore */
   }
