@@ -89,13 +89,28 @@ function buildOauthRedirectUri(): string {
   return url.toString();
 }
 
+/**
+ * Open Finance (C6, Itaú, BB…) precisa navegar o topo do navegador para
+ * data.of.pluggy.ai, que recusa ser exibido dentro de um iframe
+ * (ERR_BLOCKED_BY_RESPONSE). Se o app estiver embutido (preview do editor,
+ * webview, etc.), a conexão precisa ser feita em uma aba própria.
+ */
+function isFramed(): boolean {
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
+}
+
+
 export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpdate, onConnected }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [widgetReady, setWidgetReady] = useState(false);
   const [pending, setPending] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [phase, setPhase] = useState<"idle" | "intro" | "launch">("idle");
+  const [phase, setPhase] = useState<"idle" | "intro" | "launch" | "framed">("idle");
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [showInterSteps, setShowInterSteps] = useState(false);
   const instanceRef = useRef<any>(null);
@@ -112,11 +127,16 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
       setDontShowAgain(false);
       return;
     }
+    if (isFramed()) {
+      setPhase("framed");
+      return;
+    }
     let dismissed = false;
     try { dismissed = localStorage.getItem(INTRO_KEY) === "1"; } catch { /* noop */ }
     const skip = dismissed || hasPluggyResume() || !!itemIdToUpdate;
     setPhase(skip ? "launch" : "intro");
   }, [open, itemIdToUpdate]);
+
 
   const startConnect = useCallback(() => {
     if (dontShowAgain) {
@@ -324,6 +344,51 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
 
   // Widget da Pluggy gerencia seu próprio modal fullscreen.
   if (!open) return null;
+
+  if (phase === "framed") {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-background/80 p-4 backdrop-blur-sm"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Abrir conexão em nova aba"
+      >
+        <div className="w-full max-w-lg rounded-lg border bg-card p-6 shadow-lg">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-warning" aria-hidden />
+            <div>
+              <h2 className="text-lg font-semibold">Abra em uma aba própria para conectar</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Por segurança, o ambiente do Open Finance (<em>data.of.pluggy.ai</em>) e o site do
+                seu banco não podem ser exibidos dentro de uma janela incorporada — é isso que gera
+                a mensagem <strong>“data.of.pluggy.ai está bloqueado”</strong> /{" "}
+                <code>ERR_BLOCKED_BY_RESPONSE</code>.
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Abra o 360°FOOD em uma aba do navegador e repita a conexão a partir de lá.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                window.open(buildOauthRedirectUri(), "_blank", "noopener,noreferrer");
+                onOpenChange(false);
+              }}
+            >
+              Abrir em nova aba
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+
 
   if (phase === "intro") {
     return (
