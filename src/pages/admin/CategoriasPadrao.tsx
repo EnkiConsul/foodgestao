@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, PlusCircle, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, PlusCircle, Search, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { SuggestChartAccountsDialog } from "@/components/admin/SuggestChartAccountsDialog";
+
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
