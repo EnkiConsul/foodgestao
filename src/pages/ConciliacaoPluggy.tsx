@@ -719,10 +719,17 @@ export default function ConciliacaoPluggy() {
                 onCategoryChange={(v) => setRowCategory((p) => ({ ...p, [r.id]: v }))}
                 suggestedCategoryItems={renderCategoryItems(isEntrada ? categoryOptionsReceita : categoryOptionsDespesa)}
                 oppositeCategoryItems={renderCategoryItems(isEntrada ? categoryOptionsDespesa : categoryOptionsReceita)}
+                paymentMethods={paymentMethods}
+                paymentMethod={rowPayment[r.id] ?? ""}
+                onPaymentMethodChange={(v) => setRowPayment((p) => ({ ...p, [r.id]: v }))}
+                contacts={contacts}
+                contact={rowContact[r.id] ?? ""}
+                onContactChange={(v) => setRowContact((p) => ({ ...p, [r.id]: v }))}
                 isReversal={
                   !!rowCategory[r.id] &&
                   categoryTypeById[rowCategory[r.id]] === (isEntrada ? "saida" : "entrada")
                 }
+
                 selected={selected.has(r.id)}
                 onSelectedChange={(v) => {
                   setSelected((prev) => {
