@@ -102,6 +102,7 @@ export default function Empresas() {
   const handleCompanySaved = () => {
     fetchCompanies();
     syncQuota();
+    refreshCompanies();
   };
 
 
@@ -111,7 +112,10 @@ export default function Empresas() {
       .update({ is_active: !company.is_active })
       .eq("id", company.id);
     if (error) toast.error("Erro ao atualizar status");
-    else fetchCompanies();
+    else {
+      fetchCompanies();
+      refreshCompanies();
+    }
   };
 
   const filtered = useMemo(() => {
