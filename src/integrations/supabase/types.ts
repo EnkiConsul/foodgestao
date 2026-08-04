@@ -1509,8 +1509,10 @@ export type Database = {
       chart_account_templates: {
         Row: {
           ai_description: string | null
+          allow_transactions: boolean
           allowed_category_subtypes: string[]
           allowed_transaction_types: string[]
+          cash_flow_behavior: string | null
           code: string
           created_at: string
           dre_line: string | null
@@ -1524,19 +1526,24 @@ export type Database = {
           is_tax: boolean
           keywords: string[]
           name: string
+          normal_balance: string | null
           parent_code: string | null
           required_context: string | null
           requires_review: boolean
           sort_order: number
+          statement_group: string | null
           template_key: string | null
           template_version: string
+          temporary_account: boolean
           updated_at: string
           usage_description: string | null
         }
         Insert: {
           ai_description?: string | null
+          allow_transactions?: boolean
           allowed_category_subtypes?: string[]
           allowed_transaction_types?: string[]
+          cash_flow_behavior?: string | null
           code: string
           created_at?: string
           dre_line?: string | null
@@ -1550,19 +1557,24 @@ export type Database = {
           is_tax?: boolean
           keywords?: string[]
           name: string
+          normal_balance?: string | null
           parent_code?: string | null
           required_context?: string | null
           requires_review?: boolean
           sort_order?: number
+          statement_group?: string | null
           template_key?: string | null
           template_version?: string
+          temporary_account?: boolean
           updated_at?: string
           usage_description?: string | null
         }
         Update: {
           ai_description?: string | null
+          allow_transactions?: boolean
           allowed_category_subtypes?: string[]
           allowed_transaction_types?: string[]
+          cash_flow_behavior?: string | null
           code?: string
           created_at?: string
           dre_line?: string | null
@@ -1576,12 +1588,15 @@ export type Database = {
           is_tax?: boolean
           keywords?: string[]
           name?: string
+          normal_balance?: string | null
           parent_code?: string | null
           required_context?: string | null
           requires_review?: boolean
           sort_order?: number
+          statement_group?: string | null
           template_key?: string | null
           template_version?: string
+          temporary_account?: boolean
           updated_at?: string
           usage_description?: string | null
         }
@@ -1600,6 +1615,7 @@ export type Database = {
           allow_transactions: boolean
           allowed_category_subtypes: string[]
           allowed_transaction_types: string[]
+          cash_flow_behavior: string | null
           code: string | null
           context: Database["public"]["Enums"]["context_type"]
           created_at: string
@@ -1615,13 +1631,16 @@ export type Database = {
           is_tax: boolean
           keywords: string[]
           name: string
+          normal_balance: string | null
           parent_id: string | null
           requires_review: boolean
           short_code: string | null
+          statement_group: string | null
           tax_code: string | null
           tax_description: string | null
           template_key: string | null
           template_version: string | null
+          temporary_account: boolean
           updated_at: string
           usage_description: string | null
           user_id: string
@@ -1631,6 +1650,7 @@ export type Database = {
           allow_transactions?: boolean
           allowed_category_subtypes?: string[]
           allowed_transaction_types?: string[]
+          cash_flow_behavior?: string | null
           code?: string | null
           context?: Database["public"]["Enums"]["context_type"]
           created_at?: string
@@ -1646,13 +1666,16 @@ export type Database = {
           is_tax?: boolean
           keywords?: string[]
           name: string
+          normal_balance?: string | null
           parent_id?: string | null
           requires_review?: boolean
           short_code?: string | null
+          statement_group?: string | null
           tax_code?: string | null
           tax_description?: string | null
           template_key?: string | null
           template_version?: string | null
+          temporary_account?: boolean
           updated_at?: string
           usage_description?: string | null
           user_id: string
@@ -1662,6 +1685,7 @@ export type Database = {
           allow_transactions?: boolean
           allowed_category_subtypes?: string[]
           allowed_transaction_types?: string[]
+          cash_flow_behavior?: string | null
           code?: string | null
           context?: Database["public"]["Enums"]["context_type"]
           created_at?: string
@@ -1677,13 +1701,16 @@ export type Database = {
           is_tax?: boolean
           keywords?: string[]
           name?: string
+          normal_balance?: string | null
           parent_id?: string | null
           requires_review?: boolean
           short_code?: string | null
+          statement_group?: string | null
           tax_code?: string | null
           tax_description?: string | null
           template_key?: string | null
           template_version?: string | null
+          temporary_account?: boolean
           updated_at?: string
           usage_description?: string | null
           user_id?: string

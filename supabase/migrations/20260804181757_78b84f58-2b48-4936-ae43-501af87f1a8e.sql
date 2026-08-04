@@ -1,0 +1,72 @@
+ALTER TABLE public.chart_account_templates
+  ADD COLUMN IF NOT EXISTS allow_transactions boolean NOT NULL DEFAULT true,
+  ADD COLUMN IF NOT EXISTS normal_balance text,
+  ADD COLUMN IF NOT EXISTS statement_group text,
+  ADD COLUMN IF NOT EXISTS cash_flow_behavior text,
+  ADD COLUMN IF NOT EXISTS temporary_account boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.chart_accounts
+  ADD COLUMN IF NOT EXISTS normal_balance text,
+  ADD COLUMN IF NOT EXISTS statement_group text,
+  ADD COLUMN IF NOT EXISTS cash_flow_behavior text,
+  ADD COLUMN IF NOT EXISTS temporary_account boolean NOT NULL DEFAULT false;
+
+UPDATE public.category_templates SET chart_account_code = NULL;
+DELETE FROM public.chart_account_templates;
+
+INSERT INTO public.chart_account_templates (
+  code, parent_code, name, template_key, is_synthetic, allow_transactions,
+  usage_description, dre_line, statement_group, normal_balance, cash_flow_behavior,
+  is_reducer, requires_review, temporary_account, is_tax, keywords, sort_order, template_version
+) VALUES
+('1',NULL,'ATIVO','asset',true,false,'Bens e direitos da empresa.',NULL,'ativo','debito',NULL,false,false,false,false,'{}'::text[],10,'food_service_v4'),
+('1.1','1','Caixa, bancos e aplicações','asset.cash_and_banks',true,false,'Recursos disponíveis da empresa.',NULL,'ativo','debito',NULL,false,false,false,false,'{}'::text[],20,'food_service_v4'),
+('1.1.1','1.1','Caixa','asset.cash',false,true,'Dinheiro mantido no caixa do estabelecimento.',NULL,'ativo','debito','operacional',false,false,false,false,ARRAY['caixa','dinheiro','troco']::text[],30,'food_service_v4'),
+('1.1.2','1.1','Bancos e Contas Digitais','asset.bank_accounts',false,true,'Saldo das contas bancárias e contas digitais da empresa.',NULL,'ativo','debito','operacional',false,false,false,false,ARRAY['banco','conta digital','carteira digital']::text[],40,'food_service_v4'),
+('1.1.3','1.1','Aplicações e Valores em Trânsito','asset.investments_in_transit',false,true,'Aplicações financeiras, transferências ainda não concluídas e valores em processamento.',NULL,'ativo','debito','investimento',false,false,false,false,ARRAY['aplicacao','cdb','transito']::text[],50,'food_service_v4'),
+('1.2','1','Contas a receber','asset.receivables',true,false,'Valores a receber de clientes e intermediários.',NULL,'ativo','debito',NULL,false,false,false,false,'{}'::text[],60,'food_service_v4'),
+('1.2.1','1.2','Clientes e Outros Valores a Receber','asset.receivables.customers',false,true,'Vendas faturadas, eventos, encomendas e outros recebimentos pendentes.',NULL,'ativo','debito','operacional',false,false,false,false,ARRAY['clientes a receber','faturado','evento']::text[],70,'food_service_v4'),
+('1.2.2','1.2','Cartões e Benefícios a Receber','asset.receivables.cards',false,true,'Valores a receber de cartões, vales-refeição e vales-alimentação.',NULL,'ativo','debito','operacional',false,false,false,false,ARRAY['cartao a receber','vale refeicao','vale alimentacao','adquirente']::text[],80,'food_service_v4'),
+('1.2.3','1.2','Marketplaces a Receber','asset.receivables.marketplaces',false,true,'Repasses pendentes de plataformas e aplicativos.',NULL,'ativo','debito','operacional',false,false,false,false,ARRAY['ifood','rappi','marketplace','repasse']::text[],90,'food_service_v4'),
+('1.3','1','Estoques','asset.inventory',true,false,'Mercadorias e materiais em estoque.',NULL,'ativo','debito',NULL,false,false,false,false,'{}'::text[],100,'food_service_v4'),
+('1.3.1','1.3','Estoque de Alimentos','asset.inventory.food',false,true,'Ingredientes, matérias-primas e mercadorias alimentícias.',NULL,'ativo','debito','operacional',false,false,false,false,ARRAY['estoque alimentos','insumo','hortifruti']::text[],110,'food_service_v4'),
+('1.3.2','1.3','Estoque de Bebidas','asset.inventory.beverages',false,true,'Bebidas para venda ou utilização na produção.',NULL,'ativo','debito','operacional',false,false,false,false,ARRAY['estoque bebidas','cerveja','refrigerante']::text[],120,'food_service_v4'),
+('1.3.3','1.3','Estoque de Embalagens e Materiais','asset.inventory.packaging',false,true,'Embalagens, descartáveis e materiais diretamente utilizados nas vendas.',NULL,'ativo','debito','operacional',false,false,false,false,ARRAY['embalagem','descartavel','marmita']::text[],130,'food_service_v4'),
+('1.4','1','Adiantamentos e outros créditos','asset.other_credits',true,false,'Créditos diversos de curto prazo.',NULL,'ativo','debito',NULL,false,false,false,false,'{}'::text[],140,'food_service_v4'),
+('1.4.1','1.4','Adiantamentos e Créditos Diversos','asset.advances',false,true,'Adiantamentos a fornecedores, funcionários, sócios e terceiros.',NULL,'ativo','debito','operacional',false,false,false,false,ARRAY['adiantamento','vale funcionario']::text[],150,'food_service_v4'),
+('1.4.2','1.4','Tributos a Recuperar','asset.taxes_recoverable',false,true,'Créditos de impostos e retenções recuperáveis.',NULL,'ativo','debito','operacional',false,false,false,true,ARRAY['imposto a recuperar','retencao']::text[],160,'food_service_v4'),
+('1.4.3','1.4','Outros Créditos','asset.other_receivables',false,true,'Reembolsos, cauções de curto prazo e valores a recuperar.',NULL,'ativo','debito','operacional',false,false,false,false,ARRAY['caucao','reembolso a receber']::text[],170,'food_service_v4'),
+('1.5','1','Imobilizado e intangível','asset.fixed_assets',true,false,'Bens duráveis utilizados na operação.',NULL,'ativo','debito',NULL,false,false,false,false,'{}'::text[],180,'food_service_v4'),
+('1.5.1','1.5','Equipamentos, Móveis e Instalações','asset.fixed_assets.equipment',false,true,'Fornos, fogões, geladeiras, freezers, móveis, equipamentos de informática e instalações.',NULL,'ativo','debito','investimento',false,false,false,false,ARRAY['forno','fogao','geladeira','freezer','movel','computador']::text[],190,'food_service_v4'),
+('1.5.2','1.5','Veículos','asset.fixed_assets.vehicles',false,true,'Carros, motocicletas e outros veículos da empresa.',NULL,'ativo','debito','investimento',false,false,false,false,ARRAY['veiculo','carro','moto']::text[],200,'food_service_v4'),
+('1.5.3','1.5','Reformas, Benfeitorias, Softwares e Outros Ativos','asset.fixed_assets.improvements',false,true,'Reformas capitalizáveis, energia solar, softwares adquiridos e outros investimentos duráveis.',NULL,'ativo','debito','investimento',false,true,false,false,ARRAY['reforma','benfeitoria','software','energia solar']::text[],210,'food_service_v4'),
+('1.6','1','Depreciação e amortização acumuladas','asset.accumulated_depreciation',true,false,'Redutora do imobilizado.',NULL,'ativo','credito',NULL,true,false,false,false,'{}'::text[],220,'food_service_v4'),
+('1.6.1','1.6','(-) Depreciação e Amortização Acumuladas','asset.accumulated_depreciation.total',false,true,'Redução acumulada do valor contábil dos ativos ao longo do tempo.',NULL,'ativo','credito','nao_caixa',true,false,false,false,ARRAY['depreciacao acumulada','amortizacao acumulada']::text[],230,'food_service_v4'),
+('2',NULL,'PASSIVO','liability',true,false,'Obrigações da empresa.',NULL,'passivo','credito',NULL,false,false,false,false,'{}'::text[],240,'food_service_v4'),
+('2.1','2','Fornecedores','liability.suppliers_group',true,false,'Obrigações com fornecedores e prestadores.',NULL,'passivo','credito',NULL,false,false,false,false,'{}'::text[],250,'food_service_v4'),
+('2.1.1','2.1','Fornecedores e Prestadores de Serviços','liability.suppliers',false,true,'Compras e serviços recebidos ainda não pagos.',NULL,'passivo','credito','operacional',false,false,false,false,ARRAY['fornecedor','prestador','a pagar']::text[],260,'food_service_v4'),
+('2.2','2','Obrigações trabalhistas','liability.payroll_group',true,false,'Obrigações com pessoal.',NULL,'passivo','credito',NULL,false,false,false,false,'{}'::text[],270,'food_service_v4'),
+('2.2.1','2.2','Salários, Pró-Labore e Benefícios a Pagar','liability.payroll',false,true,'Valores devidos a funcionários, gestores e sócios pelo trabalho realizado.',NULL,'passivo','credito','operacional',false,false,false,false,ARRAY['salario a pagar','pro labore','beneficio a pagar']::text[],280,'food_service_v4'),
+('2.2.2','2.2','Encargos, Férias, Décimo Terceiro e Rescisões a Pagar','liability.payroll_charges',false,true,'INSS, FGTS, férias, décimo terceiro, rescisões e demais obrigações trabalhistas.',NULL,'passivo','credito','operacional',false,false,false,false,ARRAY['inss','fgts','ferias','decimo terceiro','rescisao']::text[],290,'food_service_v4'),
+('2.3','2','Obrigações tributárias','liability.taxes_group',true,false,'Tributos a recolher.',NULL,'passivo','credito',NULL,false,false,false,false,'{}'::text[],300,'food_service_v4'),
+('2.3.1','2.3','Tributos sobre Faturamento a Recolher','liability.revenue_taxes',false,true,'Simples Nacional, ICMS, ISS, PIS, COFINS e tributos sobre vendas.',NULL,'passivo','credito','operacional',false,false,false,true,ARRAY['simples nacional','icms','iss','pis','cofins']::text[],310,'food_service_v4'),
+('2.3.2','2.3','Outros Tributos, Taxas e Licenças a Recolher','liability.other_taxes',false,true,'IRPJ, CSLL, retenções, taxas, licenças e demais obrigações tributárias.',NULL,'passivo','credito','operacional',false,false,false,true,ARRAY['irpj','csll','taxa','licenca','retencao']::text[],320,'food_service_v4'),
+('2.4','2','Empréstimos e financiamentos','liability.loans_group',true,false,'Dívidas com instituições financeiras.',NULL,'passivo','credito',NULL,false,false,false,false,'{}'::text[],330,'food_service_v4'),
+('2.4.1','2.4','Empréstimos, Financiamentos e Parcelamentos','liability.loans',false,true,'Saldo principal devido a bancos, instituições financeiras e órgãos públicos.',NULL,'passivo','credito','financiamento',false,true,false,false,ARRAY['emprestimo','financiamento','parcelamento']::text[],340,'food_service_v4'),
+('2.5','2','Adiantamentos e créditos de clientes','liability.customer_advances_group',true,false,'Valores recebidos antecipadamente.',NULL,'passivo','credito',NULL,false,false,false,false,'{}'::text[],350,'food_service_v4'),
+('2.5.1','2.5','Adiantamentos, Créditos e Vales de Clientes','liability.customer_advances',false,true,'Sinais de eventos, pagamentos antecipados, créditos concedidos e cartões-presente.',NULL,'passivo','credito','operacional',false,false,false,false,ARRAY['sinal','adiantamento cliente','cartao presente']::text[],360,'food_service_v4'),
+('2.6','2','Gorjetas e taxa de serviço','liability.tips_group',true,false,'Valores de terceiros arrecadados dos clientes.',NULL,'passivo','credito',NULL,false,false,false,false,'{}'::text[],370,'food_service_v4'),
+('2.6.1','2.6','Gorjetas e Taxa de Serviço a Repassar','liability.tips_payable',false,true,'Valores arrecadados dos clientes que devem ser destinados aos trabalhadores.',NULL,'passivo','credito','operacional',false,false,false,false,ARRAY['gorjeta','taxa de servico','couvert artistico']::text[],380,'food_service_v4'),
+('2.7','2','Sócios e empresas relacionadas','liability.related_parties_group',true,false,'Obrigações com sócios e partes relacionadas.',NULL,'passivo','credito',NULL,false,false,false,false,'{}'::text[],390,'food_service_v4'),
+('2.7.1','2.7','Valores a Pagar a Sócios e Empresas Relacionadas','liability.related_parties',false,true,'Empréstimos de sócios, reembolsos, adiantamentos e valores entre empresas.',NULL,'passivo','credito','financiamento',false,true,false,false,ARRAY['socio','mutuo','empresa relacionada']::text[],400,'food_service_v4'),
+('2.7.2','2.7','Lucros e Dividendos a Pagar','liability.dividends_payable',false,true,'Lucros formalmente aprovados para pagamento aos sócios.',NULL,'passivo','credito','financiamento',false,true,false,false,ARRAY['lucro a pagar','dividendo']::text[],410,'food_service_v4'),
+('2.8','2','Outras obrigações','liability.other_group',true,false,'Demais obrigações.',NULL,'passivo','credito',NULL,false,false,false,false,'{}'::text[],420,'food_service_v4'),
+('2.8.1','2.8','Outras Contas a Pagar','liability.other_payables',false,true,'Obrigações que não se enquadram nos grupos anteriores.',NULL,'passivo','credito','operacional',false,false,false,false,ARRAY['outras contas a pagar']::text[],430,'food_service_v4'),
+('3',NULL,'PATRIMÔNIO LÍQUIDO','equity',true,false,'Capital e resultados dos sócios.',NULL,'patrimonio_liquido','credito',NULL,false,false,false,false,'{}'::text[],440,'food_service_v4'),
+('3.1','3','Capital e aportes','equity.capital_group',true,false,'Capital investido pelos sócios.',NULL,'patrimonio_liquido','credito',NULL,false,false,false,false,'{}'::text[],450,'food_service_v4'),
+('3.1.1','3.1','Capital Social e Aportes','equity.capital',false,true,'Capital integralizado, aumentos de capital e aportes patrimoniais definitivos.',NULL,'patrimonio_liquido','credito','financiamento',false,true,false,false,ARRAY['capital social','aporte','integralizacao']::text[],460,'food_service_v4'),
+('3.2','3','Resultados e reservas','equity.results_group',true,false,'Resultados acumulados e reservas.',NULL,'patrimonio_liquido','credito',NULL,false,false,false,false,'{}'::text[],470,'food_service_v4'),
+('3.2.1','3.2','Reservas e Resultados Acumulados','equity.accumulated_results',false,true,'Lucros, prejuízos e reservas de exercícios anteriores.',NULL,'patrimonio_liquido','credito','nao_caixa',false,false,false,false,ARRAY['lucros acumulados','reserva']::text[],480,'food_service_v4'),
+('3.2.2','3.2','Resultado do Exercício','equity.period_result',false,true,'Resultado contábil apurado no período atual.',NULL,'patrimonio_liquido','credito','nao_caixa',false,false,false,false,ARRAY['resultado do exercicio']::text[],490,'food_service_v4'),
+('3.3','3','Distribuições aos sócios','equity.distributions_group',true,false,'Redutora do patrimônio líquido.',NULL,'patrimonio_liquido','debito',NULL,true,false,false,false,'{}'::text[],500,'food_service_v4'),
+('3.3.1','3.3','Distribuições de Lucros e Devoluções de Capital','equity.distributions',false,true,'Valores distribuídos aos sócios ou devolvidos do patrimônio da empresa.',NULL,'patrimonio_liquido','debito','financiamento',true,true,false,false,ARRAY['distribuicao de lucros','retirada de socio','devolucao de capital']::text[],510,'food_service_v4');
