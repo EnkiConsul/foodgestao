@@ -470,6 +470,7 @@ const AppRoutes = () => (
         <Route path="/admin/cadastros" element={<AdminCadastros />} />
         <Route path="/admin/categorias-padrao" element={<AdminCategoriasPadrao />} />
         <Route path="/admin/contas-contabeis-padrao" element={<AdminContasContabeisPadrao />} />
+        <Route path="/admin/formas-pagamento-padrao" element={<AdminFormasPagamentoPadrao />} />
         <Route path="/admin/planos" element={<AdminPlanosPage />} />
         <Route path="/admin/assinaturas" element={<AdminAssinaturas />} />
         <Route path="/admin/faturamento" element={<AdminFaturamento />} />
