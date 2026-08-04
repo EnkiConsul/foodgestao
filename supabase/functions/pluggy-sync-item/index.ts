@@ -518,6 +518,7 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({
       ok: true,
+      item_id: itemId,
       connection_id: conn.id,
       accounts: accounts.length,
       transactions: staged,
