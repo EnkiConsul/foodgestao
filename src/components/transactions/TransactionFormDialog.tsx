@@ -483,13 +483,22 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
         const idx = parentIndex ? `${parentIndex}.${i + 1}` : `${i + 1}`;
         const g = n as unknown as CategoryGuidance;
         const hint = g.guidance_include || g.ai_description || null;
+        const synthetic = n.children.length > 0 || (n as any).allow_transactions === false;
         out.push({
           value: n.id,
           label: n.name,
           depth: n.depth,
+          selectable: !synthetic,
           keywords: `${idx} ${(g.keywords ?? []).join(" ")} ${g.guidance_include ?? ""} ${g.examples ?? ""}`,
           description: hint ? (
             <span className="line-clamp-2 text-[11px] text-muted-foreground">{hint}</span>
+          ) : undefined,
+          trailing: (n as any).requires_review ? (
+            <Badge variant="secondary" className="shrink-0 border-0 text-[10px] h-4 px-1.5">
+              Revisar
+            </Badge>
+          ) : synthetic ? (
+            <Badge variant="outline" className="shrink-0 text-[10px] h-4 px-1.5">Grupo</Badge>
           ) : undefined,
           leading: (
             <span className="flex items-center gap-1.5 shrink-0">

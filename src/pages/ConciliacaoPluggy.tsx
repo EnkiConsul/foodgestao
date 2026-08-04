@@ -51,6 +51,8 @@ interface CategoryOpt {
   sort_order: number | null;
   color: string | null;
   is_active?: boolean | null;
+  allow_transactions?: boolean | null;
+  requires_review?: boolean | null;
 }
 interface ScopeInfo { pluggyAccountId: string; connectionId: string; name: string | null; }
 
@@ -78,8 +80,17 @@ function buildCategoryOptions(cats: CategoryOpt[], type: string): { cat: Categor
 
 /** Itens do seletor de categoria (mesma apresentação da página /categorias). */
 function renderCategoryItems(options: { cat: CategoryOpt; depth: number }[]) {
+  const hasChildren = new Set(options.map(({ cat }) => cat.parent_id).filter(Boolean) as string[]);
   return options.map(({ cat, depth }) => (
-    <SelectItem key={cat.id} value={cat.id} disabled={cat.is_active === false}>
+    <SelectItem
+      key={cat.id}
+      value={cat.id}
+      disabled={
+        cat.is_active === false ||
+        cat.allow_transactions === false ||
+        hasChildren.has(cat.id)
+      }
+    >
       <span className="flex items-center gap-2 min-w-0">
         <span className="flex shrink-0" aria-hidden>
           {categoryGuideLevels(depth).map((i) => (
@@ -97,6 +108,12 @@ function renderCategoryItems(options: { cat: CategoryOpt; depth: number }[]) {
         />
         <span className={cn("truncate", depth === 0 && "font-semibold")}>{cat.name}</span>
         <CategoryTypeBadge type={cat.transaction_type} className="ml-1 shrink-0" />
+        {(cat.allow_transactions === false || hasChildren.has(cat.id)) && (
+          <Badge variant="outline" className="ml-1 h-4 px-1.5 text-[10px] shrink-0">Grupo</Badge>
+        )}
+        {cat.requires_review && (
+          <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px] shrink-0">Revisar</Badge>
+        )}
         {cat.is_active === false && (
           <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px] shrink-0">Bloqueada</Badge>
         )}
@@ -187,7 +204,7 @@ export default function ConciliacaoPluggy() {
         _context: "pj", _company_id: selectedCompanyId, _include_inactive: false,
       }),
       supabase.from("categories")
-        .select("id, name, transaction_type, parent_id, sort_order, color, is_active, category_companies!inner(company_id)")
+        .select("id, name, transaction_type, parent_id, sort_order, color, is_active, allow_transactions, requires_review, category_companies!inner(company_id)")
         .or("context.is.null,context.eq.pj")
         .eq("category_companies.company_id", selectedCompanyId)
 
