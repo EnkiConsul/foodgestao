@@ -87,13 +87,14 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
   const lastActiveScopeRef = useRef<string>(`${stored.contextType}|${stored.selectedCompanyId ?? ""}`);
 
   useEffect(() => {
+  const refreshCompanies = useCallback(async () => {
     if (!user) {
       setCompanies([]);
       setLoading(false);
       return;
     }
     setLoading(true);
-    Promise.all([
+    const [ownedRes, memberRes] = await Promise.all([
       supabase
         .from("companies")
         .select("id, name, trade_name")
@@ -105,36 +106,39 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
         .select("company_id, companies!inner(id, name, trade_name, is_active)")
         .eq("user_id", user.id)
         .eq("companies.is_active", true),
-    ]).then(([ownedRes, memberRes]) => {
-        const byId = new Map<string, Company>();
-        (ownedRes.data ?? []).forEach((c) => byId.set(c.id, c));
-        (memberRes.data ?? []).forEach((row: any) => {
-          const c = row.companies;
-          if (c?.id) byId.set(c.id, { id: c.id, name: c.name, trade_name: c.trade_name });
-        });
-        const list = Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name));
-        setCompanies(list);
+    ]);
 
-        // Validação do selectedCompanyId salvo: se o usuário perdeu acesso à
-        // empresa, limpa e seleciona a primeira acessível. Se estiver em PJ
-        // sem empresa disponível, força fallback para PF.
-        setSelectedCompanyId((prev) => {
-          if (contextType !== "pj") return prev;
-          if (prev && list.some((c) => c.id === prev)) return prev;
-          const fallback = list[0]?.id ?? null;
-          if (!fallback) {
-            setContextType("pf");
-            persist("pf", null);
-            return null;
-          }
-          persist("pj", fallback);
-          return fallback;
-        });
+    const byId = new Map<string, Company>();
+    (ownedRes.data ?? []).forEach((c) => byId.set(c.id, c));
+    (memberRes.data ?? []).forEach((row: any) => {
+      const c = row.companies;
+      if (c?.id) byId.set(c.id, { id: c.id, name: c.name, trade_name: c.trade_name });
+    });
+    const list = Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name));
+    setCompanies(list);
 
-        setLoading(false);
-      });
-    // Depende apenas do user.id para não refazer fetch em refresh de token
+    // Validação do selectedCompanyId salvo: se o usuário perdeu acesso à
+    // empresa, limpa e seleciona a primeira acessível. Se estiver em PJ
+    // sem empresa disponível, força fallback para PF.
+    setSelectedCompanyId((prev) => {
+      if (contextTypeRef.current !== "pj") return prev;
+      if (prev && list.some((c) => c.id === prev)) return prev;
+      const fallback = list[0]?.id ?? null;
+      if (!fallback) {
+        setContextType("pf");
+        persist("pf", null);
+        return null;
+      }
+      persist("pj", fallback);
+      return fallback;
+    });
+
+    setLoading(false);
   }, [user?.id]);
+
+  useEffect(() => {
+    refreshCompanies();
+  }, [refreshCompanies]);
 
   // Ao mudar de escopo (contextType + empresa), invalida caches financeiros
   // para impedir vazamento de dados de uma empresa em outra.
@@ -154,8 +158,8 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ contextType, selectedCompanyId, companies, loading, setContext }),
-    [contextType, selectedCompanyId, companies, loading, setContext]
+    () => ({ contextType, selectedCompanyId, companies, loading, setContext, refreshCompanies }),
+    [contextType, selectedCompanyId, companies, loading, setContext, refreshCompanies]
   );
 
   return (
