@@ -309,9 +309,13 @@ export default function AdminCategoriasPadrao() {
           description="Modelo de categorias aplicado a todo novo cadastro. Alterações valem para as próximas empresas criadas."
         />
         <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" onClick={() => setSuggestOpen(true)} className="min-h-9">
+            <Sparkles className="h-4 w-4 mr-2" /> Sugerir contas com IA
+          </Button>
           <Button size="sm" variant="outline" onClick={applyToExisting} disabled={applying} className="min-h-9">
             {applying ? "Aplicando..." : "Aplicar vínculos aos cadastros existentes"}
           </Button>
+
           <Button size="sm" onClick={() => openNew(null)} className="min-h-9">
             <Plus className="h-4 w-4 mr-2" /> Nova categoria padrão
           </Button>
