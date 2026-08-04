@@ -27,8 +27,9 @@ Observação: o preenchimento depende do banco e do tipo de lançamento. PIX e b
 
 ## Detalhes técnicos
 
-- `src/lib/conciliacao/counterparty.ts` + testes unitários (PIX entrada/saída, boleto, cartão com merchant, lançamento sem dados).
-- Migração: `ALTER TABLE public.pluggy_staging_transactions ADD COLUMN counterparty_document text, ADD COLUMN counterparty_document_type text;` (sem novas políticas — RLS existente cobre).
+- `src/lib/conciliacao/counterparty.ts` + testes unitários (PIX entrada/saída, boleto, cartão com merchant, tarifa/débito interno, lançamento sem dados).
+- Débito interno detectado por ausência de pagador/recebedor externo somada ao tipo/descrição (tarifa, IOF, juros, anuidade, rendimento, pacote de serviços). O nome vem de `banks.name` da conexão; a tabela `banks` não tem CNPJ, então será adicionada a coluna `tax_id` em `public.banks` e preenchida com os CNPJs dos bancos já cadastrados (quando ausente, o contato é criado só com o nome).
+- Migração: `ALTER TABLE public.pluggy_staging_transactions ADD COLUMN counterparty_document text, ADD COLUMN counterparty_document_type text;` + `ALTER TABLE public.banks ADD COLUMN tax_id text;` (sem novas políticas — RLS existente cobre).
 - `supabase/functions/pluggy-sync-item` e `_shared/pluggy-v2-materialize.ts`: gravar os novos campos junto de `counterparty_name`.
 - Match de contato por documento normalizado (só dígitos) contra `contacts.document`, restrito à empresa ativa via `contact_companies`.
 - UI: `src/pages/ConciliacaoPluggy.tsx` e `StagingCard.tsx`.
