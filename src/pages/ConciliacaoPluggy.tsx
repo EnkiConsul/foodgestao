@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2, UserPlus } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { CATEGORY_INDENT_STEP, categoryGuideLevels } from "@/lib/categories/display";
@@ -869,7 +869,16 @@ export default function ConciliacaoPluggy() {
                 onPaymentMethodChange={(v) => setRowPayment((p) => ({ ...p, [r.id]: v }))}
                 contacts={contacts}
                 contact={rowContact[r.id] ?? ""}
+                contactSuggested={!!rowContact[r.id] && rowContact[r.id] === suggestedContact[r.id]}
                 onContactChange={(v) => setRowContact((p) => ({ ...p, [r.id]: v }))}
+                counterpartyLabel={counterpartyLabel(counterpartyByRow[r.id] ?? { name: null, document: null, documentType: null, internal: false })}
+                counterpartyInternal={!!counterpartyByRow[r.id]?.internal}
+                canCreateContact={
+                  !rowContact[r.id] &&
+                  !!(counterpartyByRow[r.id]?.name || counterpartyByRow[r.id]?.document)
+                }
+                creatingContact={creatingContact === r.id}
+                onCreateContact={() => createContactFromStatement(r)}
                 isReversal={
                   !!rowCategory[r.id] &&
                   categoryTypeById[rowCategory[r.id]] === (isEntrada ? "saida" : "entrada")
@@ -939,7 +948,15 @@ export default function ConciliacaoPluggy() {
                       />
                     </td>
                     <td className="p-2 whitespace-nowrap">{format(parseISO(r.date), "dd/MM/yyyy")}</td>
-                    <td className="p-2 max-w-[280px] truncate" title={r.description ?? ""}>{r.description ?? "-"}</td>
+                    <td className="p-2 max-w-[280px]">
+                      <p className="truncate" title={r.description ?? ""}>{r.description ?? "-"}</p>
+                      {counterpartyLabel(counterpartyByRow[r.id] ?? { name: null, document: null, documentType: null, internal: false }) && (
+                        <p className="mt-0.5 truncate text-[10px] text-muted-foreground" title={counterpartyLabel(counterpartyByRow[r.id]!) ?? ""}>
+                          {counterpartyByRow[r.id]?.internal ? "Banco (débito interno): " : ""}
+                          {counterpartyLabel(counterpartyByRow[r.id]!)}
+                        </p>
+                      )}
+                    </td>
                     <td className={`p-2 text-right font-medium whitespace-nowrap ${isEntrada ? "text-success" : "text-destructive"}`}>
                       {maskBRL(r.amount)}
                     </td>
@@ -1058,6 +1075,7 @@ export default function ConciliacaoPluggy() {
                       {(rowKind[r.id] ?? "auto") === "transfer" ? (
                         <span className="text-xs text-muted-foreground">—</span>
                       ) : (
+                        <>
                         <Select
                           value={rowContact[r.id] ?? ""}
                           onValueChange={(v) => setRowContact((p) => ({ ...p, [r.id]: v }))}
@@ -1072,6 +1090,24 @@ export default function ConciliacaoPluggy() {
                             ))}
                           </SelectContent>
                         </Select>
+                        {rowContact[r.id] && rowContact[r.id] === suggestedContact[r.id] && (
+                          <p className="mt-1 text-[10px] text-muted-foreground">identificado pelo extrato</p>
+                        )}
+                        {!disabled && !rowContact[r.id] && (counterpartyByRow[r.id]?.name || counterpartyByRow[r.id]?.document) && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="mt-1 h-7 px-1 text-[10px]"
+                            disabled={creatingContact === r.id}
+                            onClick={() => createContactFromStatement(r)}
+                          >
+                            {creatingContact === r.id
+                              ? <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                              : <UserPlus className="mr-1 h-3 w-3" />}
+                            Cadastrar {counterpartyByRow[r.id]?.name ?? counterpartyByRow[r.id]?.document}
+                          </Button>
+                        )}
+                        </>
                       )}
                     </td>
 
