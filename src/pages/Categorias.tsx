@@ -21,6 +21,17 @@ import { CategoryRow } from "@/components/categorias/CategoryRow";
 import { CategoryMobileRow } from "@/components/categorias/CategoryMobileRow";
 import { BatchActionBar } from "@/components/categorias/BatchActionBar";
 import { BatchVisibilityDialog } from "@/components/categorias/BatchVisibilityDialog";
+import { HelpHint } from "@/components/common/HelpHint";
+
+const CATEGORIA_HELP = {
+  nova: "Cria uma categoria nova.",
+  importar: "Só adiciona o que falta do modelo padrão. Nada é apagado.",
+  substituir: "Recria o modelo padrão do zero. Os lançamentos ficam sem categoria.",
+  recolher: "Mostra ou esconde todas as subcategorias.",
+  bloqueadas: "Categorias que são só grupo e não aceitam lançamentos.",
+} as const;
+
+
 
 
 
@@ -516,43 +527,53 @@ export default function Categorias() {
       {/* Toolbar */}
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={openNew} size="sm" className="gap-1.5">
-            <Plus className="h-4 w-4" />
-            Nova categoria
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button onClick={openNew} size="sm" className="gap-1.5">
+              <Plus className="h-4 w-4" />
+              Nova categoria
+            </Button>
+            <HelpHint text={CATEGORIA_HELP.nova} label="Ajuda: nova categoria" />
+          </div>
 
           {/* Ações secundárias: visíveis no desktop */}
           <div className="hidden md:flex items-center gap-2">
             {contextType === "pj" && selectedCompanyId && (
-              <Button
-                onClick={handleSeedDefaults}
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                disabled={seeding}
-                title="Importa as categorias do plano padrão 360°FOOD. Categorias já importadas não são duplicadas."
-              >
-                <Sparkles className="h-4 w-4" />
-                {seeding ? "Importando..." : "Importar plano 360°FOOD"}
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  onClick={handleSeedDefaults}
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  disabled={seeding}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  {seeding ? "Importando..." : "Importar plano 360°FOOD"}
+                </Button>
+                <HelpHint text={CATEGORIA_HELP.importar} label="Ajuda: importar plano padrão" />
+              </div>
             )}
             {contextType === "pj" && selectedCompanyId && (
-              <Button
-                onClick={openReplaceDialog}
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                disabled={replacing}
-                title="Recria o plano padrão 360°FOOD. Os lançamentos são mantidos e apenas ficam sem categoria."
-              >
-                <RefreshCw className="h-4 w-4" />
-                {replacing ? "Aplicando..." : "Substituir pelo padrão"}
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  onClick={openReplaceDialog}
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  disabled={replacing}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  {replacing ? "Aplicando..." : "Substituir pelo padrão"}
+                </Button>
+                <HelpHint text={CATEGORIA_HELP.substituir} label="Ajuda: substituir pelo padrão" />
+              </div>
             )}
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={toggleCollapseAll}>
-              <ChevronsUpDown className="h-4 w-4" />
-              {allCollapsed ? "Expandir tudo" : "Recolher tudo"}
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={toggleCollapseAll}>
+                <ChevronsUpDown className="h-4 w-4" />
+                {allCollapsed ? "Expandir tudo" : "Recolher tudo"}
+              </Button>
+              <HelpHint text={CATEGORIA_HELP.recolher} label="Ajuda: recolher ou expandir" />
+            </div>
           </div>
 
           {/* Ações secundárias: menu no mobile */}
@@ -562,34 +583,47 @@ export default function Categorias() {
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
+            <DropdownMenuContent align="start" className="max-w-[280px]">
               {contextType === "pj" && selectedCompanyId && (
-                <DropdownMenuItem onClick={handleSeedDefaults} disabled={seeding}>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  {seeding ? "Importando..." : "Importar plano 360°FOOD"}
+                <DropdownMenuItem onClick={handleSeedDefaults} disabled={seeding} className="items-start gap-2">
+                  <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span className="flex flex-col">
+                    <span>{seeding ? "Importando..." : "Importar plano 360°FOOD"}</span>
+                    <span className="text-xs text-muted-foreground whitespace-normal">{CATEGORIA_HELP.importar}</span>
+                  </span>
                 </DropdownMenuItem>
               )}
               {contextType === "pj" && selectedCompanyId && (
-                <DropdownMenuItem onClick={openReplaceDialog} disabled={replacing}>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  {replacing ? "Aplicando..." : "Substituir pelo padrão"}
+                <DropdownMenuItem onClick={openReplaceDialog} disabled={replacing} className="items-start gap-2">
+                  <RefreshCw className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span className="flex flex-col">
+                    <span>{replacing ? "Aplicando..." : "Substituir pelo padrão"}</span>
+                    <span className="text-xs text-muted-foreground whitespace-normal">{CATEGORIA_HELP.substituir}</span>
+                  </span>
                 </DropdownMenuItem>
               )}
 
-              <DropdownMenuItem onClick={toggleCollapseAll}>
-                <ChevronsUpDown className="mr-2 h-4 w-4" />
-                {allCollapsed ? "Expandir tudo" : "Recolher tudo"}
+              <DropdownMenuItem onClick={toggleCollapseAll} className="items-start gap-2">
+                <ChevronsUpDown className="mt-0.5 h-4 w-4 shrink-0" />
+                <span className="flex flex-col">
+                  <span>{allCollapsed ? "Expandir tudo" : "Recolher tudo"}</span>
+                  <span className="text-xs text-muted-foreground whitespace-normal">{CATEGORIA_HELP.recolher}</span>
+                </span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Tabs value={filterStatus} onValueChange={(v) => setFilterStatus(v as "all" | "active" | "blocked")} className="max-w-full">
-            <TabsList className="h-8 overflow-x-auto flex w-auto">
-              <TabsTrigger value="all" className="text-xs px-2.5 h-7">Status: todas</TabsTrigger>
-              <TabsTrigger value="active" className="text-xs px-2.5 h-7">Permitem lançamentos</TabsTrigger>
-              <TabsTrigger value="blocked" className="text-xs px-2.5 h-7">Bloqueadas ({counts.blocked})</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex items-center gap-1">
+            <Tabs value={filterStatus} onValueChange={(v) => setFilterStatus(v as "all" | "active" | "blocked")} className="max-w-full">
+              <TabsList className="h-8 overflow-x-auto flex w-auto">
+                <TabsTrigger value="all" className="text-xs px-2.5 h-7">Status: todas</TabsTrigger>
+                <TabsTrigger value="active" className="text-xs px-2.5 h-7">Permitem lançamentos</TabsTrigger>
+                <TabsTrigger value="blocked" className="text-xs px-2.5 h-7">Bloqueadas ({counts.blocked})</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <HelpHint text={CATEGORIA_HELP.bloqueadas} label="Ajuda: filtro de status" />
+          </div>
+
 
           <Tabs value={filterType} onValueChange={setFilterType} className="max-w-full">
             <TabsList className="h-8 overflow-x-auto flex w-auto">
