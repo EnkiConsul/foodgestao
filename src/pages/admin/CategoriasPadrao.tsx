@@ -173,6 +173,7 @@ export default function AdminCategoriasPadrao() {
 
 
   const [applying, setApplying] = useState(false);
+  const [suggestOpen, setSuggestOpen] = useState(false);
   const applyToExisting = async () => {
     setApplying(true);
     const { data, error } = await (supabase as any).rpc(
@@ -186,6 +187,20 @@ export default function AdminCategoriasPadrao() {
     }
     toast.success(`Vínculos aplicados: ${data ?? 0} categoria(s) atualizada(s)`);
   };
+
+  const pendingLabels = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const r of rows) if (!r.chart_account_code) out[r.code] = r.name;
+    return out;
+  }, [rows]);
+
+  const chartNames = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const c of chartRows) out[c.code] = c.name;
+    return out;
+  }, [chartRows]);
+
+
 
 
 
