@@ -89,6 +89,21 @@ function buildOauthRedirectUri(): string {
   return url.toString();
 }
 
+/**
+ * Open Finance (C6, Itaú, BB…) precisa navegar o topo do navegador para
+ * data.of.pluggy.ai, que recusa ser exibido dentro de um iframe
+ * (ERR_BLOCKED_BY_RESPONSE). Se o app estiver embutido (preview do editor,
+ * webview, etc.), a conexão precisa ser feita em uma aba própria.
+ */
+function isFramed(): boolean {
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
+}
+
+
 export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpdate, onConnected }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
