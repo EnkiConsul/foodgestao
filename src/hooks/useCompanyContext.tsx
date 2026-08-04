@@ -85,8 +85,9 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
   const [contextType, setContextType] = useState<ContextType>(stored.contextType);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(stored.selectedCompanyId);
   const lastActiveScopeRef = useRef<string>(`${stored.contextType}|${stored.selectedCompanyId ?? ""}`);
+  const contextTypeRef = useRef<ContextType>(stored.contextType);
+  contextTypeRef.current = contextType;
 
-  useEffect(() => {
   const refreshCompanies = useCallback(async () => {
     if (!user) {
       setCompanies([]);
