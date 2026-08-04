@@ -105,6 +105,7 @@ interface Connection {
 }
 
 interface AccountOpt { id: string; name: string; }
+interface ContactOpt { id: string; name: string; type: string | null; }
 interface CategoryOpt {
   id: string;
   name: string;
