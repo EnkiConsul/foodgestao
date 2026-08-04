@@ -78,6 +78,7 @@ export default function Empresas() {
       toast.success("Empresa excluída");
       fetchCompanies();
       syncQuota();
+      refreshCompanies();
     }
     setDeleteCompany(null);
   };
