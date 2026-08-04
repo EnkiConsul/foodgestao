@@ -85,17 +85,46 @@ export default function FormasPagamento() {
     refetchCompanies();
   };
 
+  const importDefaults = async () => {
+    if (contextType === "pj" && !selectedCompanyId) {
+      toast.error("Selecione uma empresa para importar as formas padrão");
+      return;
+    }
+    setImporting(true);
+    const { data, error } = await (supabase.rpc as any)("apply_default_payment_methods", {
+      _context: contextType,
+      _company_id: contextType === "pj" ? selectedCompanyId : null,
+    });
+    setImporting(false);
+    if (error) {
+      toast.error("Erro ao importar formas padrão", { description: error.message });
+      return;
+    }
+    toast.success(
+      (data ?? 0) > 0
+        ? `${data} forma(s) de pagamento importada(s)`
+        : "As formas padrão já estão disponíveis"
+    );
+    handleSaved();
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Formas de Pagamento</h1>
           <p className="text-sm text-muted-foreground">Gerencie as formas de pagamento disponíveis</p>
         </div>
-        <Button onClick={openNew} className="hidden md:flex">
-          <Plus className="h-4 w-4 mr-2" /> Nova Forma
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={importDefaults} disabled={importing}>
+            <Download className="h-4 w-4 mr-2" /> Importar padrão
+          </Button>
+          <Button onClick={openNew} className="hidden md:flex">
+            <Plus className="h-4 w-4 mr-2" /> Nova Forma
+          </Button>
+        </div>
       </div>
+
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
