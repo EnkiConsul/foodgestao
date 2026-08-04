@@ -26,13 +26,23 @@ export default function FormasPagamento() {
   const [importing, setImporting] = useState(false);
 
   const { data: methods = [], refetch } = useQuery({
-    queryKey: ["payment-methods", user?.id],
-    enabled: !!user,
+    queryKey: ["payment-methods", user?.id, contextType, selectedCompanyId],
+    enabled: !!user && (contextType === "pf" || !!selectedCompanyId),
     queryFn: async () => {
+      // PJ: somente formas vinculadas à empresa selecionada.
+      if (contextType === "pj") {
+        const { data } = await (supabase.from("payment_methods") as any)
+          .select("*, payment_method_companies!inner(company_id)")
+          .eq("payment_method_companies.company_id", selectedCompanyId)
+          .order("name");
+        return data ?? [];
+      }
+      // PF (legado): somente formas visíveis no contexto pessoal.
       const { data } = await supabase
         .from("payment_methods")
         .select("*")
         .eq("user_id", user!.id)
+        .eq("visible_pf", true)
         .order("name");
       return data ?? [];
     },
