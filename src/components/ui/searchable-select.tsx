@@ -19,6 +19,8 @@ export interface SearchableSelectOption {
   trailing?: ReactNode;
   /** Optional secondary line below the label. */
   description?: ReactNode;
+  /** When false, the row is rendered as a non-clickable group header. */
+  selectable?: boolean;
 }
 
 interface Props {
@@ -101,9 +103,23 @@ export function SearchableSelect({
     el?.scrollIntoView({ block: "nearest" });
   }, [activeIndex, open, filtered.length]);
 
+  const isSelectable = (opt?: SearchableSelectOption) =>
+    !!opt && opt.selectable !== false;
+
+  const moveActive = (dir: 1 | -1) => {
+    setActiveIndex((i) => {
+      let next = i + dir;
+      while (next >= 0 && next < filtered.length && !isSelectable(filtered[next])) {
+        next += dir;
+      }
+      if (next < 0 || next >= filtered.length) return i;
+      return next;
+    });
+  };
+
   const handleSelect = (idx: number) => {
     const opt = filtered[idx];
-    if (!opt) return;
+    if (!opt || !isSelectable(opt)) return;
     onValueChange(opt.value);
     setOpen(false);
   };
@@ -111,10 +127,10 @@ export function SearchableSelect({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setActiveIndex((i) => Math.min(i + 1, filtered.length - 1));
+      moveActive(1);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setActiveIndex((i) => Math.max(i - 1, 0));
+      moveActive(-1);
     } else if (e.key === "Enter") {
       e.preventDefault();
       handleSelect(activeIndex);
@@ -182,7 +198,8 @@ export function SearchableSelect({
             style={{ maxHeight: MAX_LIST_HEIGHT }}
           >
             {filtered.map((opt, idx) => {
-              const isActive = idx === activeIndex;
+              const selectable = isSelectable(opt);
+              const isActive = selectable && idx === activeIndex;
               const isSelected = opt.value === value;
               const depth = opt.depth ?? 0;
               return (
@@ -191,13 +208,17 @@ export function SearchableSelect({
                   data-idx={idx}
                   role="option"
                   aria-selected={isSelected}
-                  onMouseEnter={() => setActiveIndex(idx)}
+                  aria-disabled={!selectable}
+                  onMouseEnter={() => selectable && setActiveIndex(idx)}
                   onMouseDown={(e) => {
                     e.preventDefault();
                     handleSelect(idx);
                   }}
                   className={cn(
-                    "flex w-full cursor-pointer items-center gap-2 px-2 py-2 text-sm",
+                    "flex w-full items-center gap-2 px-2 py-2 text-sm",
+                    selectable
+                      ? "cursor-pointer"
+                      : "cursor-default text-muted-foreground",
                     isActive && "bg-accent text-accent-foreground",
                   )}
                   style={depth > 0 ? { paddingLeft: 8 + categoryIndent(depth) } : undefined}
@@ -205,7 +226,7 @@ export function SearchableSelect({
                   <Check
                     className={cn(
                       "h-4 w-4 shrink-0",
-                      isSelected ? "opacity-100" : "opacity-0",
+                      isSelected && selectable ? "opacity-100" : "opacity-0",
                     )}
                   />
                   {opt.leading}
