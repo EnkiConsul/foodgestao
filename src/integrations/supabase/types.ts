@@ -1296,6 +1296,60 @@ export type Database = {
           },
         ]
       }
+      category_template_chart_links_log: {
+        Row: {
+          applied_at: string
+          applied_by: string | null
+          batch_id: string
+          category_code: string
+          category_name: string | null
+          chart_account_name: string | null
+          confidence: number | null
+          id: string
+          new_chart_account_code: string | null
+          previous_chart_account_code: string | null
+          rationale: string | null
+          requires_review: boolean
+          reverted_at: string | null
+          reverted_by: string | null
+          source: string
+        }
+        Insert: {
+          applied_at?: string
+          applied_by?: string | null
+          batch_id: string
+          category_code: string
+          category_name?: string | null
+          chart_account_name?: string | null
+          confidence?: number | null
+          id?: string
+          new_chart_account_code?: string | null
+          previous_chart_account_code?: string | null
+          rationale?: string | null
+          requires_review?: boolean
+          reverted_at?: string | null
+          reverted_by?: string | null
+          source?: string
+        }
+        Update: {
+          applied_at?: string
+          applied_by?: string | null
+          batch_id?: string
+          category_code?: string
+          category_name?: string | null
+          chart_account_name?: string | null
+          confidence?: number | null
+          id?: string
+          new_chart_account_code?: string | null
+          previous_chart_account_code?: string | null
+          rationale?: string | null
+          requires_review?: boolean
+          reverted_at?: string | null
+          reverted_by?: string | null
+          source?: string
+        }
+        Relationships: []
+      }
       category_templates: {
         Row: {
           ai_description: string | null
@@ -8356,6 +8410,7 @@ export type Database = {
         }
         Returns: Json
       }
+      apply_chart_account_suggestions: { Args: { _items: Json }; Returns: Json }
       apply_default_categories: {
         Args: { _company_id: string; _replace_existing?: boolean }
         Returns: Json
@@ -9234,6 +9289,10 @@ export type Database = {
           source: string
           user_id: string
         }[]
+      }
+      revert_chart_account_suggestion_batch: {
+        Args: { _batch_id: string }
+        Returns: Json
       }
       run_balance_drift_scan: {
         Args: never
