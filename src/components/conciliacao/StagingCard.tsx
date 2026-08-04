@@ -30,6 +30,12 @@ export interface StagingCardRow {
   matched_transaction_id?: string | null;
 }
 
+interface ContactOpt {
+  id: string;
+  name: string;
+  type?: string | null;
+}
+
 interface StagingCardProps {
   row: StagingCardRow;
   accounts: AccountOpt[];
@@ -44,6 +50,12 @@ interface StagingCardProps {
   /** Itens de categoria já renderizados (mesma árvore de /categorias). */
   suggestedCategoryItems: ReactNode;
   oppositeCategoryItems: ReactNode;
+  paymentMethods: AccountOpt[];
+  paymentMethod: string;
+  onPaymentMethodChange: (value: string) => void;
+  contacts: ContactOpt[];
+  contact: string;
+  onContactChange: (value: string) => void;
   /** true quando a categoria escolhida é do tipo oposto ao valor (estorno). */
   isReversal: boolean;
   selected: boolean;
@@ -68,6 +80,12 @@ export function StagingCard({
   onCategoryChange,
   suggestedCategoryItems,
   oppositeCategoryItems,
+  paymentMethods,
+  paymentMethod,
+  onPaymentMethodChange,
+  contacts,
+  contact,
+  onContactChange,
   isReversal,
   selected,
   onSelectedChange,
@@ -76,6 +94,7 @@ export function StagingCard({
   maskBRL,
   onAction,
 }: StagingCardProps) {
+
   const isEntrada = row.amount >= 0;
   const disabled = row.status !== "pending";
 
