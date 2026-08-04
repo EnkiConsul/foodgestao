@@ -1,9 +1,9 @@
-import { User, Building2 } from "lucide-react";
+import { User, Building2, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 
 export function ContextSelector() {
-  const { contextType, selectedCompanyId, companies, setContext } = useCompanyContext();
+  const { contextType, selectedCompanyId, companies, setContext, syncing } = useCompanyContext();
 
   // PF só aparece se o usuário estiver ativamente em PF (legado) — novos cadastros são PJ.
   const isLegacyPf = contextType === "pf";
@@ -18,15 +18,19 @@ export function ContextSelector() {
     <Select value={currentValue} onValueChange={handleChange}>
       <SelectTrigger
         aria-label="Selecionar contexto (pessoal ou empresa)"
+        aria-busy={syncing}
         className="h-9 w-auto min-w-0 max-w-[42vw] shrink text-xs gap-1.5 border-dashed md:h-8 md:w-[180px] md:max-w-none"
       >
-        {contextType === "pf" ? (
+        {syncing ? (
+          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
+        ) : contextType === "pf" ? (
           <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         ) : (
           <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         )}
         <SelectValue placeholder="Selecione a empresa" />
       </SelectTrigger>
+
       <SelectContent>
         {isLegacyPf && (
           <SelectItem value="pf|null">
