@@ -569,6 +569,118 @@ export default function ConciliacaoPluggy() {
   };
 
 
+  /** Banco cadastrado de cada conexão Open Finance (para débitos internos). */
+  const bankByConnection = useMemo(() => {
+    const m: Record<string, BankOpt | null> = {};
+    for (const c of connections) m[c.id] = matchBankByConnector(c.connector_name, banks);
+    return m;
+  }, [connections, banks]);
+
+  /**
+   * Contraparte de cada lançamento: nome + CNPJ/CPF do extrato. Em débitos
+   * internos (tarifas, IOF, juros, rendimentos) a contraparte é o próprio banco.
+   */
+  const counterpartyByRow = useMemo(() => {
+    const m: Record<string, Counterparty> = {};
+    for (const r of rows) {
+      const base = extractCounterparty(r, { ownDocuments: [companyCnpj] });
+      if (base.internal) {
+        const bank = bankByConnection[r.connection_id] ?? null;
+        m[r.id] = {
+          name: bank?.name ?? connections.find((c) => c.id === r.connection_id)?.connector_name ?? null,
+          document: bank?.tax_id ?? null,
+          documentType: bank?.tax_id ? "CNPJ" : null,
+          internal: true,
+        };
+        continue;
+      }
+      m[r.id] = {
+        ...base,
+        name: base.name ?? r.counterparty_name ?? null,
+        document: base.document ?? r.counterparty_document ?? null,
+        documentType:
+          base.documentType ??
+          ((r.counterparty_document_type as "CNPJ" | "CPF" | null | undefined) ?? null),
+      };
+    }
+    return m;
+  }, [rows, companyCnpj, bankByConnection, connections]);
+
+  /** Contato cadastrado por documento (só dígitos). */
+  const contactIdByDocument = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const c of contacts) {
+      const d = onlyDigits(c.document);
+      if (d.length >= 11 && !m[d]) m[d] = c.id;
+    }
+    return m;
+  }, [contacts]);
+
+  const suggestedContact = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const r of rows) {
+      const doc = onlyDigits(counterpartyByRow[r.id]?.document);
+      const contactId = doc ? contactIdByDocument[doc] : undefined;
+      if (contactId) m[r.id] = contactId;
+    }
+    return m;
+  }, [rows, counterpartyByRow, contactIdByDocument]);
+
+  // Pré-seleciona o fornecedor/cliente identificado pelo documento do extrato,
+  // sem sobrescrever escolhas manuais nem rascunhos salvos.
+  useEffect(() => {
+    if (Object.keys(suggestedContact).length === 0) return;
+    setRowContact((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const [id, contactId] of Object.entries(suggestedContact)) {
+        if (!next[id]) { next[id] = contactId; changed = true; }
+      }
+      return changed ? next : prev;
+    });
+  }, [suggestedContact]);
+
+  /** Cria o contato a partir dos dados do extrato e o vincula ao lançamento. */
+  const createContactFromStatement = async (row: StagingRow) => {
+    const cp = counterpartyByRow[row.id];
+    if (!cp?.name && !cp?.document) return;
+    setCreatingContact(row.id);
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const userId = auth.user?.id;
+      if (!userId || !selectedCompanyId) { toast.error("Sessão expirada"); return; }
+      const isEntrada = row.amount >= 0;
+      const { data: created, error } = await supabase
+        .from("contacts")
+        .insert({
+          user_id: userId,
+          name: cp.name ?? `Contraparte ${cp.document}`,
+          document: cp.document,
+          contact_type: (cp.internal ? "fornecedor" : isEntrada ? "cliente" : "fornecedor") as never,
+          visible_pf: false,
+        } as never)
+        .select("id, name, type, document")
+        .single();
+      if (error || !created) {
+        toast.error("Não foi possível cadastrar o contato", { description: error?.message });
+        return;
+      }
+      const newId = (created as { id: string }).id;
+      await supabase.from("contact_companies").insert({
+        contact_id: newId,
+        company_id: selectedCompanyId,
+      } as never);
+      setContacts((prev) => [
+        ...prev,
+        { id: newId, name: cp.name ?? cp.document ?? "Contato", type: null, document: cp.document },
+      ].sort((a, b) => a.name.localeCompare(b.name)));
+      setRowContact((prev) => ({ ...prev, [row.id]: newId }));
+      toast.success("Contato cadastrado e vinculado");
+    } finally {
+      setCreatingContact(null);
+    }
+  };
+
   if (contextType !== "pj") {
     return (
       <Card><CardContent className="p-6 text-sm text-muted-foreground">
