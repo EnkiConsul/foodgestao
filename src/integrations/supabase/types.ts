@@ -7209,6 +7209,39 @@ export type Database = {
           },
         ]
       }
+      payment_method_templates: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+          visible_pf: boolean
+          visible_pj: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+          visible_pf?: boolean
+          visible_pj?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          visible_pf?: boolean
+          visible_pj?: boolean
+        }
+        Relationships: []
+      }
       payment_methods: {
         Row: {
           created_at: string
@@ -8478,6 +8511,10 @@ export type Database = {
         Args: { _company_id: string; _replace_existing?: boolean }
         Returns: Json
       }
+      apply_default_payment_methods: {
+        Args: { _company_id?: string; _context: string }
+        Returns: number
+      }
       apply_tx_balance: {
         Args: {
           _sign: number
@@ -9372,6 +9409,10 @@ export type Database = {
         }[]
       }
       seed_default_categories: { Args: { _company_id: string }; Returns: Json }
+      seed_default_payment_methods: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: number
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       soft_delete_account: { Args: { _account_id: string }; Returns: undefined }
