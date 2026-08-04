@@ -224,6 +224,47 @@ export function StagingCard({
               )}
             </div>
           )}
+
+          {kind !== "transfer" && (
+            <>
+              <div>
+                <label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Forma de pagamento
+                </label>
+                <Select value={paymentMethod} onValueChange={onPaymentMethodChange} disabled={disabled}>
+                  <SelectTrigger className="h-9 w-full text-xs">
+                    <SelectValue placeholder="Não informada" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {paymentMethods.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  {isEntrada ? "Cliente" : "Fornecedor"}
+                </label>
+                <Select value={contact} onValueChange={onContactChange} disabled={disabled}>
+                  <SelectTrigger className="h-9 w-full text-xs">
+                    <SelectValue placeholder="Não informado" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[50vh]">
+                    {contacts.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+
         </div>
 
         {row.status === "pending" && (
