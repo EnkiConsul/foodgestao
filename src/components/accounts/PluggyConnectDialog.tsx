@@ -189,12 +189,37 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
     try {
       const done = await checkConnectRequest();
       if (!done) {
-        toast.info("Ainda não recebemos a confirmação do banco. Conclua a autorização no app e tente novamente.");
+        const requestId = requestIdRef.current ?? readResume()?.connectRequestId ?? null;
+        if (!requestId) {
+          toast.info("Não encontramos a solicitação desta conexão. Inicie a conexão novamente.");
+          return;
+        }
+
+        const { data: sync, error: syncError } = await supabase.functions.invoke("pluggy-sync-item", {
+          body: { connect_request_id: requestId, company_id: companyId, first_connect: true },
+        });
+        if (syncError) {
+          const info = await parseEdgeFunctionError(syncError, "A confirmação do banco ainda não foi localizada");
+          toast.info(info.message);
+          return;
+        }
+
+        const resolvedItemId = sync?.item_id as string | undefined;
+        if (resolvedItemId) {
+          finishedRef.current = true;
+          clearResume();
+          toast.success(`Conexão identificada: ${sync?.transactions ?? 0} lançamentos importados`);
+          onConnected?.({ itemId: resolvedItemId, connectionId: sync?.connection_id });
+          onOpenChange(false);
+          return;
+        }
+
+        toast.info("A autorização ainda não apareceu no Open Finance. Aguarde alguns instantes e verifique novamente.");
       }
     } finally {
       setChecking(false);
     }
-  }, [checkConnectRequest]);
+  }, [checkConnectRequest, companyId, onConnected, onOpenChange]);
 
   useEffect(() => {
     if (!open) {

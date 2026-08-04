@@ -30,9 +30,59 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const itemId: string | undefined = body?.item_id;
+    let itemId: string | undefined = body?.item_id;
     companyId = body?.company_id ?? null;
     const isFirstConnect = body?.first_connect === true;
+
+    // Verificação manual após consentimento no app do banco. Alguns fluxos de
+    // Open Finance não retornam ao Connect e o webhook pode chegar sem ter sido
+    // correlacionado à solicitação. Nesse caso, localizamos entre os eventos
+    // recentes o Item cujo clientUserId pertence ao usuário desta solicitação.
+    const requestedConnectRequestId =
+      typeof body?.connect_request_id === 'string' ? body.connect_request_id : null;
+    if (!itemId && requestedConnectRequestId && userId) {
+      const { data: requestRow } = await admin
+        .from('pluggy_connect_requests')
+        .select('id, company_id, user_id, resolved_item_id, created_at')
+        .eq('id', requestedConnectRequestId)
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (!requestRow) {
+        return new Response(JSON.stringify({ error: 'connect_request_not_found' }), {
+          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      companyId = requestRow.company_id;
+      itemId = requestRow.resolved_item_id ?? undefined;
+
+      if (!itemId) {
+        const { data: events } = await admin
+          .from('pluggy_webhook_events')
+          .select('pluggy_item_id')
+          .not('pluggy_item_id', 'is', null)
+          .gte('created_at', requestRow.created_at)
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        const candidates = [...new Set((events ?? [])
+          .map((event) => event.pluggy_item_id as string | null)
+          .filter((id): id is string => Boolean(id)))];
+
+        for (const candidate of candidates) {
+          try {
+            const candidateItem = await getItem(candidate);
+            if (candidateItem?.clientUserId === userId) {
+              itemId = candidate;
+              break;
+            }
+          } catch {
+            // Um evento antigo/inválido não deve impedir a busca dos demais.
+          }
+        }
+      }
+    }
 
     if (!itemId) {
       return new Response(JSON.stringify({ error: 'item_id_required' }), {
@@ -78,8 +128,7 @@ Deno.serve(async (req) => {
 
     // Fallback: resolve company via connect request (service-role/webhook path,
     // quando o navegador não conclui o fluxo — ex.: Open Finance por QR Code).
-    let connectRequestId: string | null =
-      typeof body?.connect_request_id === 'string' ? body.connect_request_id : null;
+    let connectRequestId: string | null = requestedConnectRequestId;
 
     if (!existing && !companyId) {
       // 1ª tentativa: solicitação aberta e válida
@@ -174,7 +223,7 @@ Deno.serve(async (req) => {
       if (connectRequestId && (message.includes('get_item_failed: 400') || message.includes('get_item_failed: 404'))) {
         await admin
           .from('pluggy_connect_requests')
-          .update({ status: 'failed', last_error: 'item_not_found_in_production' })
+            .update({ status: 'error', last_error: 'item_not_found_in_production' })
           .eq('id', connectRequestId);
       }
       throw error;
