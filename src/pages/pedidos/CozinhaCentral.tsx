@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OrdersGuard } from "@/components/orders/OrdersGuard";
-import { OrdersTrialBanner } from "@/components/orders/OrdersTrialBanner";
 import { AlertsControl } from "@/components/orders/alerts/AlertsControl";
 import { KitchenTicket } from "@/components/orders/kitchen/KitchenTicket";
 import { PrintQueuePanel } from "@/components/orders/print/PrintQueuePanel";
@@ -195,8 +194,6 @@ function CozinhaContent() {
           />
           <link rel="canonical" href="/pedidos/cozinha" />
         </Helmet>
-
-        <OrdersTrialBanner entitlement={entitlement} />
 
         <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
