@@ -1967,9 +1967,11 @@ export type Database = {
           contratado_em: string | null
           created_at: string
           ends_at: string | null
+          expirado_em: string | null
           id: string
           module: Database["public"]["Enums"]["app_module"]
           notes: string | null
+          retention_days: number
           starts_at: string | null
           status: Database["public"]["Enums"]["module_status"]
           trial_iniciado_em: string | null
@@ -1983,9 +1985,11 @@ export type Database = {
           contratado_em?: string | null
           created_at?: string
           ends_at?: string | null
+          expirado_em?: string | null
           id?: string
           module: Database["public"]["Enums"]["app_module"]
           notes?: string | null
+          retention_days?: number
           starts_at?: string | null
           status?: Database["public"]["Enums"]["module_status"]
           trial_iniciado_em?: string | null
@@ -1999,9 +2003,11 @@ export type Database = {
           contratado_em?: string | null
           created_at?: string
           ends_at?: string | null
+          expirado_em?: string | null
           id?: string
           module?: Database["public"]["Enums"]["app_module"]
           notes?: string | null
+          retention_days?: number
           starts_at?: string | null
           status?: Database["public"]["Enums"]["module_status"]
           trial_iniciado_em?: string | null
@@ -7658,6 +7664,7 @@ export type Database = {
           is_default: boolean
           kind: Database["public"]["Enums"]["ped_order_channel"]
           name: string
+          paused_by_trial: boolean
           updated_at: string
         }
         Insert: {
@@ -7669,6 +7676,7 @@ export type Database = {
           is_default?: boolean
           kind?: Database["public"]["Enums"]["ped_order_channel"]
           name: string
+          paused_by_trial?: boolean
           updated_at?: string
         }
         Update: {
@@ -7680,6 +7688,7 @@ export type Database = {
           is_default?: boolean
           kind?: Database["public"]["Enums"]["ped_order_channel"]
           name?: string
+          paused_by_trial?: boolean
           updated_at?: string
         }
         Relationships: [
@@ -9049,6 +9058,7 @@ export type Database = {
           activated_at: string | null
           activated_by: string | null
           auto_print_enabled: boolean
+          blocked_by_trial: boolean
           channels: Database["public"]["Enums"]["ped_order_channel"][]
           codigo_interno: string | null
           company_id: string
@@ -9078,6 +9088,9 @@ export type Database = {
           scheduled_orders_enabled: boolean
           service_fee_percent: number
           sound_enabled: boolean
+          state_before_block:
+            | Database["public"]["Enums"]["ped_unit_state"]
+            | null
           tables_enabled: boolean
           test_order_completed_at: string | null
           timezone: string
@@ -9090,6 +9103,7 @@ export type Database = {
           activated_at?: string | null
           activated_by?: string | null
           auto_print_enabled?: boolean
+          blocked_by_trial?: boolean
           channels?: Database["public"]["Enums"]["ped_order_channel"][]
           codigo_interno?: string | null
           company_id: string
@@ -9119,6 +9133,9 @@ export type Database = {
           scheduled_orders_enabled?: boolean
           service_fee_percent?: number
           sound_enabled?: boolean
+          state_before_block?:
+            | Database["public"]["Enums"]["ped_unit_state"]
+            | null
           tables_enabled?: boolean
           test_order_completed_at?: string | null
           timezone?: string
@@ -9131,6 +9148,7 @@ export type Database = {
           activated_at?: string | null
           activated_by?: string | null
           auto_print_enabled?: boolean
+          blocked_by_trial?: boolean
           channels?: Database["public"]["Enums"]["ped_order_channel"][]
           codigo_interno?: string | null
           company_id?: string
@@ -9160,6 +9178,9 @@ export type Database = {
           scheduled_orders_enabled?: boolean
           service_fee_percent?: number
           sound_enabled?: boolean
+          state_before_block?:
+            | Database["public"]["Enums"]["ped_unit_state"]
+            | null
           tables_enabled?: boolean
           test_order_completed_at?: string | null
           timezone?: string
@@ -10625,6 +10646,15 @@ export type Database = {
         }
         Returns: Json
       }
+      contract_orders_module: {
+        Args: {
+          p_company_id: string
+          p_reference?: string
+          p_reopen_units?: boolean
+          p_valor_mensal?: number
+        }
+        Returns: Json
+      }
       create_and_link_open_finance_account: {
         Args: {
           _account_name: string
@@ -10813,6 +10843,7 @@ export type Database = {
           enqueued: number
         }[]
       }
+      expire_orders_trials: { Args: never; Returns: Json }
       expire_transfer_candidates: {
         Args: { _company_id?: string }
         Returns: number
@@ -11018,6 +11049,13 @@ export type Database = {
         Returns: number
       }
       open_finance_sync_health: { Args: { _company_id: string }; Returns: Json }
+      orders_block_company: { Args: { p_company_id: string }; Returns: Json }
+      orders_enforce_expiration: {
+        Args: { p_company_id: string }
+        Returns: boolean
+      }
+      orders_module_usable: { Args: { p_company_id: string }; Returns: boolean }
+      orders_trial_snapshot: { Args: { p_company_id: string }; Returns: Json }
       pay_credit_card_invoice: {
         Args: {
           _amount: number
@@ -11190,6 +11228,15 @@ export type Database = {
         }
         Returns: Json
       }
+      ped_export_orders: {
+        Args: {
+          p_company_id: string
+          p_from?: string
+          p_limit?: number
+          p_to?: string
+        }
+        Returns: Json
+      }
       ped_generate_pickup_code: { Args: { p_order_id: string }; Returns: Json }
       ped_hold_scheduled_order: {
         Args: {
@@ -11314,6 +11361,7 @@ export type Database = {
           activated_at: string | null
           activated_by: string | null
           auto_print_enabled: boolean
+          blocked_by_trial: boolean
           channels: Database["public"]["Enums"]["ped_order_channel"][]
           codigo_interno: string | null
           company_id: string
@@ -11343,6 +11391,9 @@ export type Database = {
           scheduled_orders_enabled: boolean
           service_fee_percent: number
           sound_enabled: boolean
+          state_before_block:
+            | Database["public"]["Enums"]["ped_unit_state"]
+            | null
           tables_enabled: boolean
           test_order_completed_at: string | null
           timezone: string
@@ -11825,6 +11876,10 @@ export type Database = {
       seed_default_payment_methods: {
         Args: { _company_id: string; _user_id: string }
         Returns: number
+      }
+      set_orders_retention_days: {
+        Args: { p_company_id: string; p_days: number }
+        Returns: Json
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }

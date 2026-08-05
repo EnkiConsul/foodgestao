@@ -61,6 +61,7 @@ const CartoesCredito = lazyWithRetry(() => import("./pages/CartoesCredito"));
 const PedidosModulo = lazyWithRetry(() => import("./pages/pedidos/PedidosModulo"));
 const PedidosOnboarding = lazyWithRetry(() => import("./pages/pedidos/PedidosOnboarding"));
 const PedidosCardapio = lazyWithRetry(() => import("./pages/pedidos/PedidosCardapio"));
+const PedidosAssinatura = lazyWithRetry(() => import("./pages/pedidos/PedidosAssinatura"));
 const PedidosCentral = lazyWithRetry(() => import("./pages/pedidos/PedidosCentral"));
 const CozinhaCentral = lazyWithRetry(() => import("./pages/pedidos/CozinhaCentral"));
 const ExpedicaoCentral = lazyWithRetry(() => import("./pages/pedidos/ExpedicaoCentral"));
@@ -386,6 +387,7 @@ const AppRoutes = () => (
         <Route path="/rh" element={<ModuleGuard module="rh"><ModulePlaceholder module="rh" /></ModuleGuard>} />
         <Route path="/pedidos" element={<PedidosModulo />} />
         <Route path="/pedidos/onboarding" element={<PedidosOnboarding />} />
+        <Route path="/pedidos/assinatura" element={<PedidosAssinatura />} />
         <Route path="/pedidos/cardapio" element={<PedidosCardapio />} />
         <Route path="/pedidos/central" element={<PedidosCentral />} />
         <Route path="/pedidos/cozinha" element={<CozinhaCentral />} />
