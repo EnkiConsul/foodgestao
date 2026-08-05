@@ -383,6 +383,7 @@ const AppRoutes = () => (
         <Route path="/rh" element={<ModuleGuard module="rh"><ModulePlaceholder module="rh" /></ModuleGuard>} />
         <Route path="/pedidos" element={<PedidosModulo />} />
         <Route path="/pedidos/onboarding" element={<PedidosOnboarding />} />
+        <Route path="/pedidos/cardapio" element={<PedidosCardapio />} />
         <Route path="/mais" element={<Mais />} />
       </Route>
       <Route
