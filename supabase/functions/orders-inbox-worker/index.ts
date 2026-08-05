@@ -15,6 +15,7 @@ import {
   TransientIntegrationError,
   type CanonicalEvent,
 } from "../_shared/orders-integrations/types.ts";
+import { authorizeWorker } from "../_shared/orders-integrations/worker-auth.ts";
 
 const WORKER = `inbox-${crypto.randomUUID().slice(0, 8)}`;
 const LEASE_SECONDS = 90;
@@ -175,6 +176,9 @@ async function applyEvent(
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  const auth = authorizeWorker(req);
+  if (!auth.ok) return json({ error: auth.code }, auth.status);
 
   const admin = createClient(
     Deno.env.get("SUPABASE_URL")!,
