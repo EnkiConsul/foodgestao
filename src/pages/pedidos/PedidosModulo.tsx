@@ -112,9 +112,16 @@ export default function PedidosModulo() {
                 Módulo liberado para <strong>{companyName}</strong>. As telas operacionais serão
                 habilitadas nas próximas etapas de implantação.
               </p>
-              <Button disabled className="w-full sm:w-auto">
-                Abrir fila de pedidos (em implantação)
-              </Button>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button asChild size="lg" className="w-full sm:w-auto">
+                  <Link to="/pedidos/onboarding">
+                    <ClipboardList className="mr-2 h-4 w-4" /> Ativar minha unidade
+                  </Link>
+                </Button>
+                <Button disabled variant="outline" size="lg" className="w-full sm:w-auto">
+                  Abrir fila de pedidos (em implantação)
+                </Button>
+              </div>
             </>
           ) : canStartTrial ? (
             <>
