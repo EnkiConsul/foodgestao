@@ -11497,6 +11497,7 @@ export type Database = {
         | "paused"
         | "unavailable"
         | "archived"
+      ped_delivery_provider: "propria" | "parceiro" | "marketplace"
       ped_delivery_status:
         | "pending"
         | "assigned"
@@ -11526,6 +11527,7 @@ export type Database = {
       ped_order_status:
         | "pending_acceptance"
         | "accepted"
+        | "waiting_scheduled_start"
         | "preparation_started"
         | "ready"
         | "awaiting_pickup"
@@ -11561,6 +11563,7 @@ export type Database = {
         | "failed"
         | "cancelled"
       ped_print_station: "cozinha" | "bar" | "caixa" | "expedicao"
+      ped_table_session_status: "aberta" | "fechando" | "fechada" | "cancelada"
       ped_unit_state:
         | "setup"
         | "closed"
@@ -11568,6 +11571,7 @@ export type Database = {
         | "paused"
         | "scheduled_only"
         | "suspended"
+      ped_zone_kind: "bairro" | "cep" | "distancia" | "fixa"
       pluggy_connection_status:
         | "created"
         | "updating"
@@ -11990,6 +11994,7 @@ export const Constants = {
         "unavailable",
         "archived",
       ],
+      ped_delivery_provider: ["propria", "parceiro", "marketplace"],
       ped_delivery_status: [
         "pending",
         "assigned",
@@ -12023,6 +12028,7 @@ export const Constants = {
       ped_order_status: [
         "pending_acceptance",
         "accepted",
+        "waiting_scheduled_start",
         "preparation_started",
         "ready",
         "awaiting_pickup",
@@ -12062,6 +12068,7 @@ export const Constants = {
         "cancelled",
       ],
       ped_print_station: ["cozinha", "bar", "caixa", "expedicao"],
+      ped_table_session_status: ["aberta", "fechando", "fechada", "cancelada"],
       ped_unit_state: [
         "setup",
         "closed",
@@ -12070,6 +12077,7 @@ export const Constants = {
         "scheduled_only",
         "suspended",
       ],
+      ped_zone_kind: ["bairro", "cep", "distancia", "fixa"],
       pluggy_connection_status: [
         "created",
         "updating",
