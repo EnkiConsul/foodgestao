@@ -5,6 +5,7 @@
 export const ORDER_STATUSES = [
   "pending_acceptance",
   "accepted",
+  "waiting_scheduled_start",
   "preparation_started",
   "ready",
   "awaiting_pickup",
@@ -23,6 +24,7 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   pending_acceptance: "Aguardando aceite",
   accepted: "Aceito",
+  waiting_scheduled_start: "Aguardando horário agendado",
   preparation_started: "Em produção",
   ready: "Pronto",
   awaiting_pickup: "Aguardando retirada",
@@ -39,7 +41,8 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
 /** Transições permitidas — idêntico a `public.ped_order_transition_allowed`. */
 export const ORDER_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
   pending_acceptance: ["accepted", "cancelled", "failed"],
-  accepted: ["preparation_started", "ready", "cancellation_requested", "cancelled", "failed"],
+  accepted: ["waiting_scheduled_start", "preparation_started", "ready", "cancellation_requested", "cancelled", "failed"],
+  waiting_scheduled_start: ["accepted", "preparation_started", "cancellation_requested", "cancelled", "failed"],
   preparation_started: ["ready", "cancellation_requested", "cancelled", "failed"],
   ready: ["awaiting_pickup", "dispatched", "delivered", "completed", "cancellation_requested", "cancelled"],
   awaiting_pickup: ["delivered", "completed", "cancellation_requested", "cancelled"],
@@ -60,6 +63,7 @@ export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
 export const ORDER_OPEN_STATUSES: readonly OrderStatus[] = [
   "pending_acceptance",
   "accepted",
+  "waiting_scheduled_start",
   "preparation_started",
   "ready",
   "awaiting_pickup",
