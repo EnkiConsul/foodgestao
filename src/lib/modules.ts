@@ -58,7 +58,7 @@ export const MODULES: ModuleDefinition[] = [
     description: "Gestão de pedidos, entregas e integração com balcão/delivery.",
     icon: ShoppingCart,
     entryRoute: "/pedidos",
-    available: false,
+    available: true,
   },
 ];
 
