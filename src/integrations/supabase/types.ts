@@ -7281,6 +7281,65 @@ export type Database = {
         }
         Relationships: []
       }
+      ped_dead_letters: {
+        Row: {
+          attempts: number
+          company_id: string | null
+          created_at: string
+          error_class: string | null
+          error_message: string | null
+          event_type: string | null
+          id: string
+          integration_id: string | null
+          payload: Json
+          provider: Database["public"]["Enums"]["ped_integration_provider"]
+          replayed_at: string | null
+          replayed_by: string | null
+          source: string
+          source_id: string | null
+        }
+        Insert: {
+          attempts?: number
+          company_id?: string | null
+          created_at?: string
+          error_class?: string | null
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          integration_id?: string | null
+          payload?: Json
+          provider: Database["public"]["Enums"]["ped_integration_provider"]
+          replayed_at?: string | null
+          replayed_by?: string | null
+          source: string
+          source_id?: string | null
+        }
+        Update: {
+          attempts?: number
+          company_id?: string | null
+          created_at?: string
+          error_class?: string | null
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          integration_id?: string | null
+          payload?: Json
+          provider?: Database["public"]["Enums"]["ped_integration_provider"]
+          replayed_at?: string | null
+          replayed_by?: string | null
+          source?: string
+          source_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_dead_letters_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "ped_order_integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ped_delivery_zones: {
         Row: {
           bairros: string[]
@@ -7358,6 +7417,230 @@ export type Database = {
             columns: ["unit_id"]
             isOneToOne: false
             referencedRelation: "ped_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_event_attempts: {
+        Row: {
+          attempt_no: number
+          company_id: string | null
+          created_at: string
+          duration_ms: number | null
+          error_class: string | null
+          error_message: string | null
+          id: string
+          inbox_id: string | null
+          outbox_id: string | null
+          outcome: Database["public"]["Enums"]["ped_attempt_outcome"]
+          worker: string | null
+        }
+        Insert: {
+          attempt_no?: number
+          company_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_class?: string | null
+          error_message?: string | null
+          id?: string
+          inbox_id?: string | null
+          outbox_id?: string | null
+          outcome: Database["public"]["Enums"]["ped_attempt_outcome"]
+          worker?: string | null
+        }
+        Update: {
+          attempt_no?: number
+          company_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_class?: string | null
+          error_message?: string | null
+          id?: string
+          inbox_id?: string | null
+          outbox_id?: string | null
+          outcome?: Database["public"]["Enums"]["ped_attempt_outcome"]
+          worker?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_event_attempts_inbox_id_fkey"
+            columns: ["inbox_id"]
+            isOneToOne: false
+            referencedRelation: "ped_event_inbox"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_event_attempts_outbox_id_fkey"
+            columns: ["outbox_id"]
+            isOneToOne: false
+            referencedRelation: "ped_outbox"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_event_inbox: {
+        Row: {
+          attempts: number
+          company_id: string | null
+          created_at: string
+          error_class: string | null
+          error_message: string | null
+          event_type: string
+          external_event_id: string
+          external_order_id: string | null
+          id: string
+          integration_id: string | null
+          lease_until: string | null
+          locked_by: string | null
+          max_attempts: number
+          next_attempt_at: string
+          occurred_at: string | null
+          order_id: string | null
+          payload: Json
+          processed_at: string | null
+          provider: Database["public"]["Enums"]["ped_integration_provider"]
+          received_at: string
+          result: Json | null
+          signature_valid: boolean
+          status: Database["public"]["Enums"]["ped_queue_status"]
+          unit_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          company_id?: string | null
+          created_at?: string
+          error_class?: string | null
+          error_message?: string | null
+          event_type: string
+          external_event_id: string
+          external_order_id?: string | null
+          id?: string
+          integration_id?: string | null
+          lease_until?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          occurred_at?: string | null
+          order_id?: string | null
+          payload?: Json
+          processed_at?: string | null
+          provider: Database["public"]["Enums"]["ped_integration_provider"]
+          received_at?: string
+          result?: Json | null
+          signature_valid?: boolean
+          status?: Database["public"]["Enums"]["ped_queue_status"]
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          company_id?: string | null
+          created_at?: string
+          error_class?: string | null
+          error_message?: string | null
+          event_type?: string
+          external_event_id?: string
+          external_order_id?: string | null
+          id?: string
+          integration_id?: string | null
+          lease_until?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          occurred_at?: string | null
+          order_id?: string | null
+          payload?: Json
+          processed_at?: string | null
+          provider?: Database["public"]["Enums"]["ped_integration_provider"]
+          received_at?: string
+          result?: Json | null
+          signature_valid?: boolean
+          status?: Database["public"]["Enums"]["ped_queue_status"]
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_event_inbox_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_event_inbox_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "ped_order_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_event_inbox_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "ped_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_event_inbox_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "ped_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_external_mappings: {
+        Row: {
+          company_id: string
+          created_at: string
+          entity_type: string
+          external_id: string
+          id: string
+          integration_id: string
+          internal_id: string
+          metadata: Json
+          provider: Database["public"]["Enums"]["ped_integration_provider"]
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          entity_type: string
+          external_id: string
+          id?: string
+          integration_id: string
+          internal_id: string
+          metadata?: Json
+          provider: Database["public"]["Enums"]["ped_integration_provider"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          entity_type?: string
+          external_id?: string
+          id?: string
+          integration_id?: string
+          internal_id?: string
+          metadata?: Json
+          provider?: Database["public"]["Enums"]["ped_integration_provider"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_external_mappings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_external_mappings_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "ped_order_integrations"
             referencedColumns: ["id"]
           },
         ]
@@ -7794,6 +8077,97 @@ export type Database = {
             columns: ["zone_id"]
             isOneToOne: false
             referencedRelation: "ped_delivery_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_order_integrations: {
+        Row: {
+          approval_note: string | null
+          approved_at: string | null
+          approved_by: string | null
+          auto_accept: boolean
+          channel_id: string | null
+          company_id: string
+          config: Json
+          created_at: string
+          created_by: string | null
+          display_name: string
+          external_merchant_id: string | null
+          id: string
+          last_event_at: string | null
+          provider: Database["public"]["Enums"]["ped_integration_provider"]
+          secret_name: string | null
+          signature_algo: string
+          signature_header: string
+          status: Database["public"]["Enums"]["ped_integration_status"]
+          unit_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          approval_note?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          auto_accept?: boolean
+          channel_id?: string | null
+          company_id: string
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          display_name: string
+          external_merchant_id?: string | null
+          id?: string
+          last_event_at?: string | null
+          provider: Database["public"]["Enums"]["ped_integration_provider"]
+          secret_name?: string | null
+          signature_algo?: string
+          signature_header?: string
+          status?: Database["public"]["Enums"]["ped_integration_status"]
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approval_note?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          auto_accept?: boolean
+          channel_id?: string | null
+          company_id?: string
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          display_name?: string
+          external_merchant_id?: string | null
+          id?: string
+          last_event_at?: string | null
+          provider?: Database["public"]["Enums"]["ped_integration_provider"]
+          secret_name?: string | null
+          signature_algo?: string
+          signature_header?: string
+          status?: Database["public"]["Enums"]["ped_integration_status"]
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_order_integrations_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "ped_order_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_order_integrations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_order_integrations_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "ped_units"
             referencedColumns: ["id"]
           },
         ]
@@ -8279,6 +8653,103 @@ export type Database = {
             columns: ["unit_id"]
             isOneToOne: false
             referencedRelation: "ped_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_outbox: {
+        Row: {
+          attempts: number
+          company_id: string
+          created_at: string
+          created_by: string | null
+          dedupe_key: string
+          error_class: string | null
+          error_message: string | null
+          external_ref: string | null
+          id: string
+          integration_id: string | null
+          lease_until: string | null
+          locked_by: string | null
+          max_attempts: number
+          next_attempt_at: string
+          operation: string
+          order_id: string | null
+          payload: Json
+          provider: Database["public"]["Enums"]["ped_integration_provider"]
+          result: Json | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["ped_queue_status"]
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          dedupe_key: string
+          error_class?: string | null
+          error_message?: string | null
+          external_ref?: string | null
+          id?: string
+          integration_id?: string | null
+          lease_until?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          operation: string
+          order_id?: string | null
+          payload?: Json
+          provider: Database["public"]["Enums"]["ped_integration_provider"]
+          result?: Json | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["ped_queue_status"]
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          dedupe_key?: string
+          error_class?: string | null
+          error_message?: string | null
+          external_ref?: string | null
+          id?: string
+          integration_id?: string | null
+          lease_until?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          operation?: string
+          order_id?: string | null
+          payload?: Json
+          provider?: Database["public"]["Enums"]["ped_integration_provider"]
+          result?: Json | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["ped_queue_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_outbox_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_outbox_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "ped_order_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_outbox_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "ped_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -11246,7 +11717,96 @@ export type Database = {
         }
         Returns: Json
       }
+      ped_inbox_claim: {
+        Args: { p_lease_seconds?: number; p_limit?: number; p_worker: string }
+        Returns: {
+          attempts: number
+          company_id: string | null
+          created_at: string
+          error_class: string | null
+          error_message: string | null
+          event_type: string
+          external_event_id: string
+          external_order_id: string | null
+          id: string
+          integration_id: string | null
+          lease_until: string | null
+          locked_by: string | null
+          max_attempts: number
+          next_attempt_at: string
+          occurred_at: string | null
+          order_id: string | null
+          payload: Json
+          processed_at: string | null
+          provider: Database["public"]["Enums"]["ped_integration_provider"]
+          received_at: string
+          result: Json | null
+          signature_valid: boolean
+          status: Database["public"]["Enums"]["ped_queue_status"]
+          unit_id: string | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ped_event_inbox"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      ped_inbox_complete: {
+        Args: {
+          p_duration_ms?: number
+          p_id: string
+          p_ignored?: boolean
+          p_order_id?: string
+          p_result?: Json
+          p_worker?: string
+        }
+        Returns: Json
+      }
+      ped_inbox_enqueue: {
+        Args: {
+          p_event_type: string
+          p_external_event_id: string
+          p_external_order_id?: string
+          p_integration_id: string
+          p_occurred_at?: string
+          p_payload: Json
+          p_signature_valid?: boolean
+        }
+        Returns: Json
+      }
+      ped_inbox_fail: {
+        Args: {
+          p_duration_ms?: number
+          p_error_class: string
+          p_error_message: string
+          p_id: string
+          p_transient?: boolean
+          p_worker?: string
+        }
+        Returns: Json
+      }
+      ped_integration_metrics: { Args: { p_company_id: string }; Returns: Json }
       ped_is_order_courier: { Args: { p_order_id: string }; Returns: boolean }
+      ped_lookup_external: {
+        Args: {
+          p_entity_type: string
+          p_external_id: string
+          p_integration_id: string
+        }
+        Returns: string
+      }
+      ped_map_external: {
+        Args: {
+          p_entity_type: string
+          p_external_id: string
+          p_integration_id: string
+          p_internal_id: string
+          p_metadata?: Json
+        }
+        Returns: string
+      }
       ped_mark_delivery_failed: {
         Args: {
           p_expected_version?: number
@@ -11312,6 +11872,72 @@ export type Database = {
           object_name: string
         }[]
       }
+      ped_outbox_claim: {
+        Args: { p_lease_seconds?: number; p_limit?: number; p_worker: string }
+        Returns: {
+          attempts: number
+          company_id: string
+          created_at: string
+          created_by: string | null
+          dedupe_key: string
+          error_class: string | null
+          error_message: string | null
+          external_ref: string | null
+          id: string
+          integration_id: string | null
+          lease_until: string | null
+          locked_by: string | null
+          max_attempts: number
+          next_attempt_at: string
+          operation: string
+          order_id: string | null
+          payload: Json
+          provider: Database["public"]["Enums"]["ped_integration_provider"]
+          result: Json | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["ped_queue_status"]
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ped_outbox"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      ped_outbox_complete: {
+        Args: {
+          p_duration_ms?: number
+          p_external_ref?: string
+          p_id: string
+          p_result?: Json
+          p_worker?: string
+        }
+        Returns: Json
+      }
+      ped_outbox_enqueue: {
+        Args: {
+          p_dedupe_key?: string
+          p_integration_id: string
+          p_operation: string
+          p_order_id?: string
+          p_payload?: Json
+        }
+        Returns: Json
+      }
+      ped_outbox_fail: {
+        Args: {
+          p_duration_ms?: number
+          p_error_class: string
+          p_error_message: string
+          p_id: string
+          p_transient?: boolean
+          p_worker?: string
+        }
+        Returns: Json
+      }
+      ped_queue_backoff: { Args: { p_attempts: number }; Returns: string }
+      ped_queue_reap_expired: { Args: { p_worker?: string }; Returns: Json }
       ped_quote_delivery: {
         Args: {
           p_bairro?: string
@@ -11344,6 +11970,7 @@ export type Database = {
         Args: { p_ids: string[]; p_kind: string }
         Returns: number
       }
+      ped_replay_dead_letter: { Args: { p_id: string }; Returns: Json }
       ped_request_order_cancellation: {
         Args: {
           p_expected_version?: number
@@ -12104,6 +12731,12 @@ export type Database = {
         | "service_fee"
         | "refund"
         | "correction"
+      ped_attempt_outcome:
+        | "success"
+        | "transient"
+        | "permanent"
+        | "timeout"
+        | "ignored"
       ped_catalog_state:
         | "draft"
         | "active"
@@ -12131,6 +12764,19 @@ export type Database = {
         | "automacao"
         | "cliente"
         | "sistema"
+      ped_integration_provider:
+        | "sandbox"
+        | "ifood"
+        | "rappi"
+        | "anota_ai"
+        | "goomer"
+        | "custom"
+      ped_integration_status:
+        | "disabled"
+        | "pending_approval"
+        | "sandbox"
+        | "active"
+        | "suspended"
       ped_order_channel:
         | "balcao"
         | "link_proprio"
@@ -12176,6 +12822,13 @@ export type Database = {
         | "failed"
         | "cancelled"
       ped_print_station: "cozinha" | "bar" | "caixa" | "expedicao"
+      ped_queue_status:
+        | "pending"
+        | "processing"
+        | "done"
+        | "failed"
+        | "dead"
+        | "ignored"
       ped_table_session_status: "aberta" | "fechando" | "fechada" | "cancelada"
       ped_unit_state:
         | "setup"
@@ -12600,6 +13253,13 @@ export const Constants = {
         "refund",
         "correction",
       ],
+      ped_attempt_outcome: [
+        "success",
+        "transient",
+        "permanent",
+        "timeout",
+        "ignored",
+      ],
       ped_catalog_state: [
         "draft",
         "active",
@@ -12630,6 +13290,21 @@ export const Constants = {
         "automacao",
         "cliente",
         "sistema",
+      ],
+      ped_integration_provider: [
+        "sandbox",
+        "ifood",
+        "rappi",
+        "anota_ai",
+        "goomer",
+        "custom",
+      ],
+      ped_integration_status: [
+        "disabled",
+        "pending_approval",
+        "sandbox",
+        "active",
+        "suspended",
       ],
       ped_order_channel: [
         "balcao",
@@ -12681,6 +13356,14 @@ export const Constants = {
         "cancelled",
       ],
       ped_print_station: ["cozinha", "bar", "caixa", "expedicao"],
+      ped_queue_status: [
+        "pending",
+        "processing",
+        "done",
+        "failed",
+        "dead",
+        "ignored",
+      ],
       ped_table_session_status: ["aberta", "fechando", "fechada", "cancelada"],
       ped_unit_state: [
         "setup",
