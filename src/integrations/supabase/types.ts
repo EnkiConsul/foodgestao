@@ -7275,6 +7275,87 @@ export type Database = {
         }
         Relationships: []
       }
+      ped_delivery_zones: {
+        Row: {
+          bairros: string[]
+          cep_end: string | null
+          cep_start: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          eta_minutes: number
+          fee_amount: number
+          id: string
+          is_active: boolean
+          kind: Database["public"]["Enums"]["ped_zone_kind"]
+          max_distance_meters: number | null
+          min_distance_meters: number | null
+          min_order_amount: number
+          name: string
+          provider: Database["public"]["Enums"]["ped_delivery_provider"]
+          sort_order: number
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          bairros?: string[]
+          cep_end?: string | null
+          cep_start?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          eta_minutes?: number
+          fee_amount?: number
+          id?: string
+          is_active?: boolean
+          kind?: Database["public"]["Enums"]["ped_zone_kind"]
+          max_distance_meters?: number | null
+          min_distance_meters?: number | null
+          min_order_amount?: number
+          name: string
+          provider?: Database["public"]["Enums"]["ped_delivery_provider"]
+          sort_order?: number
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          bairros?: string[]
+          cep_end?: string | null
+          cep_start?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          eta_minutes?: number
+          fee_amount?: number
+          id?: string
+          is_active?: boolean
+          kind?: Database["public"]["Enums"]["ped_zone_kind"]
+          max_distance_meters?: number | null
+          min_distance_meters?: number | null
+          min_order_amount?: number
+          name?: string
+          provider?: Database["public"]["Enums"]["ped_delivery_provider"]
+          sort_order?: number
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_delivery_zones_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_delivery_zones_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "ped_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ped_menu_categories: {
         Row: {
           archived_at: string | null
@@ -7622,12 +7703,19 @@ export type Database = {
           created_at: string
           delivered_at: string | null
           distance_meters: number | null
+          eta_minutes: number | null
+          failed_at: string | null
+          failure_reason: string | null
           fee_amount: number
           id: string
           order_id: string
+          partner_name: string | null
           picked_up_at: string | null
+          provider: Database["public"]["Enums"]["ped_delivery_provider"]
           status: Database["public"]["Enums"]["ped_delivery_status"]
+          tracking_code: string | null
           updated_at: string
+          zone_id: string | null
         }
         Insert: {
           address?: Json
@@ -7639,12 +7727,19 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           distance_meters?: number | null
+          eta_minutes?: number | null
+          failed_at?: string | null
+          failure_reason?: string | null
           fee_amount?: number
           id?: string
           order_id: string
+          partner_name?: string | null
           picked_up_at?: string | null
+          provider?: Database["public"]["Enums"]["ped_delivery_provider"]
           status?: Database["public"]["Enums"]["ped_delivery_status"]
+          tracking_code?: string | null
           updated_at?: string
+          zone_id?: string | null
         }
         Update: {
           address?: Json
@@ -7656,12 +7751,19 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           distance_meters?: number | null
+          eta_minutes?: number | null
+          failed_at?: string | null
+          failure_reason?: string | null
           fee_amount?: number
           id?: string
           order_id?: string
+          partner_name?: string | null
           picked_up_at?: string | null
+          provider?: Database["public"]["Enums"]["ped_delivery_provider"]
           status?: Database["public"]["Enums"]["ped_delivery_status"]
+          tracking_code?: string | null
           updated_at?: string
+          zone_id?: string | null
         }
         Relationships: [
           {
@@ -7676,6 +7778,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "ped_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_order_deliveries_zone_fk"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "ped_delivery_zones"
             referencedColumns: ["id"]
           },
         ]
@@ -7843,50 +7952,68 @@ export type Database = {
       ped_order_payments: {
         Row: {
           amount: number
+          change_amount: number
           company_id: string
           created_at: string
           created_by: string | null
           external_payment_id: string | null
           id: string
+          idempotency_key: string | null
           is_online: boolean
           kind: Database["public"]["Enums"]["ped_payment_kind"]
+          note: string | null
           order_id: string
           paid_at: string | null
           payment_method_id: string | null
+          refund_reason: string | null
           refunded_amount: number
+          refunded_at: string | null
           status: Database["public"]["Enums"]["ped_payment_status"]
+          tendered_amount: number | null
           updated_at: string
         }
         Insert: {
           amount?: number
+          change_amount?: number
           company_id: string
           created_at?: string
           created_by?: string | null
           external_payment_id?: string | null
           id?: string
+          idempotency_key?: string | null
           is_online?: boolean
           kind?: Database["public"]["Enums"]["ped_payment_kind"]
+          note?: string | null
           order_id: string
           paid_at?: string | null
           payment_method_id?: string | null
+          refund_reason?: string | null
           refunded_amount?: number
+          refunded_at?: string | null
           status?: Database["public"]["Enums"]["ped_payment_status"]
+          tendered_amount?: number | null
           updated_at?: string
         }
         Update: {
           amount?: number
+          change_amount?: number
           company_id?: string
           created_at?: string
           created_by?: string | null
           external_payment_id?: string | null
           id?: string
+          idempotency_key?: string | null
           is_online?: boolean
           kind?: Database["public"]["Enums"]["ped_payment_kind"]
+          note?: string | null
           order_id?: string
           paid_at?: string | null
           payment_method_id?: string | null
+          refund_reason?: string | null
           refunded_amount?: number
+          refunded_at?: string | null
           status?: Database["public"]["Enums"]["ped_payment_status"]
+          tendered_amount?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -8001,15 +8128,19 @@ export type Database = {
           order_type: Database["public"]["Enums"]["ped_fulfillment_mode"]
           original_total_amount: number
           payment_status: Database["public"]["Enums"]["ped_payment_status"]
+          pickup_code: string | null
+          pickup_confirmed_at: string | null
           placed_at: string
           preparation_started_at: string | null
           ready_at: string | null
+          scheduled_activated_at: string | null
           scheduled_start_at: string | null
           scheduled_window_end: string | null
           scheduled_window_start: string | null
           service_fee: number
           status: Database["public"]["Enums"]["ped_order_status"]
           subtotal: number
+          table_session_id: string | null
           total_amount: number
           unit_id: string
           updated_at: string
@@ -8042,15 +8173,19 @@ export type Database = {
           order_type: Database["public"]["Enums"]["ped_fulfillment_mode"]
           original_total_amount?: number
           payment_status?: Database["public"]["Enums"]["ped_payment_status"]
+          pickup_code?: string | null
+          pickup_confirmed_at?: string | null
           placed_at?: string
           preparation_started_at?: string | null
           ready_at?: string | null
+          scheduled_activated_at?: string | null
           scheduled_start_at?: string | null
           scheduled_window_end?: string | null
           scheduled_window_start?: string | null
           service_fee?: number
           status?: Database["public"]["Enums"]["ped_order_status"]
           subtotal?: number
+          table_session_id?: string | null
           total_amount?: number
           unit_id: string
           updated_at?: string
@@ -8083,15 +8218,19 @@ export type Database = {
           order_type?: Database["public"]["Enums"]["ped_fulfillment_mode"]
           original_total_amount?: number
           payment_status?: Database["public"]["Enums"]["ped_payment_status"]
+          pickup_code?: string | null
+          pickup_confirmed_at?: string | null
           placed_at?: string
           preparation_started_at?: string | null
           ready_at?: string | null
+          scheduled_activated_at?: string | null
           scheduled_start_at?: string | null
           scheduled_window_end?: string | null
           scheduled_window_start?: string | null
           service_fee?: number
           status?: Database["public"]["Enums"]["ped_order_status"]
           subtotal?: number
+          table_session_id?: string | null
           total_amount?: number
           unit_id?: string
           updated_at?: string
@@ -8117,6 +8256,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_orders_table_session_fk"
+            columns: ["table_session_id"]
+            isOneToOne: false
+            referencedRelation: "ped_table_sessions"
             referencedColumns: ["id"]
           },
           {
@@ -8478,6 +8624,204 @@ export type Database = {
           },
         ]
       }
+      ped_service_areas: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_service_areas_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_service_areas_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "ped_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_table_sessions: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          company_id: string
+          created_at: string
+          customer_name: string | null
+          guests: number
+          id: string
+          merged_into_session_id: string | null
+          note: string | null
+          opened_at: string
+          opened_by: string | null
+          service_fee_percent: number
+          status: Database["public"]["Enums"]["ped_table_session_status"]
+          table_id: string
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          company_id: string
+          created_at?: string
+          customer_name?: string | null
+          guests?: number
+          id?: string
+          merged_into_session_id?: string | null
+          note?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          service_fee_percent?: number
+          status?: Database["public"]["Enums"]["ped_table_session_status"]
+          table_id: string
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          company_id?: string
+          created_at?: string
+          customer_name?: string | null
+          guests?: number
+          id?: string
+          merged_into_session_id?: string | null
+          note?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          service_fee_percent?: number
+          status?: Database["public"]["Enums"]["ped_table_session_status"]
+          table_id?: string
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_table_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_table_sessions_merged_into_session_id_fkey"
+            columns: ["merged_into_session_id"]
+            isOneToOne: false
+            referencedRelation: "ped_table_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_table_sessions_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "ped_tables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_table_sessions_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "ped_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_tables: {
+        Row: {
+          area_id: string | null
+          code: string
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string | null
+          seats: number
+          sort_order: number
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          area_id?: string | null
+          code: string
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          seats?: number
+          sort_order?: number
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          area_id?: string | null
+          code?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          seats?: number
+          sort_order?: number
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_tables_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "ped_service_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_tables_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_tables_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "ped_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ped_test_orders: {
         Row: {
           channel: Database["public"]["Enums"]["ped_order_channel"]
@@ -8710,23 +9054,31 @@ export type Database = {
           company_id: string
           created_at: string
           delay_tolerance_minutes: number
+          delivery_provider_default: Database["public"]["Enums"]["ped_delivery_provider"]
           expedition_check_required: boolean
           external_menu_url: string | null
           fulfillment_modes: Database["public"]["Enums"]["ped_fulfillment_mode"][]
           id: string
+          max_delivery_distance_meters: number | null
+          min_order_amount: number
           notifications_enabled: boolean
           onboarding_completed_at: string | null
           onboarding_step: number
           operational_state: Database["public"]["Enums"]["ped_unit_state"]
           paused_until: string | null
+          pickup_code_required: boolean
           pickup_deadline_minutes: number
           prep_time_minutes: number
           print_copies: number
           print_stations: Database["public"]["Enums"]["ped_print_station"][]
           printer_enabled: boolean
           responsible_user_id: string | null
+          scheduled_lead_minutes: number
+          scheduled_max_days: number
           scheduled_orders_enabled: boolean
+          service_fee_percent: number
           sound_enabled: boolean
+          tables_enabled: boolean
           test_order_completed_at: string | null
           timezone: string
           unidade_id: string
@@ -8743,23 +9095,31 @@ export type Database = {
           company_id: string
           created_at?: string
           delay_tolerance_minutes?: number
+          delivery_provider_default?: Database["public"]["Enums"]["ped_delivery_provider"]
           expedition_check_required?: boolean
           external_menu_url?: string | null
           fulfillment_modes?: Database["public"]["Enums"]["ped_fulfillment_mode"][]
           id?: string
+          max_delivery_distance_meters?: number | null
+          min_order_amount?: number
           notifications_enabled?: boolean
           onboarding_completed_at?: string | null
           onboarding_step?: number
           operational_state?: Database["public"]["Enums"]["ped_unit_state"]
           paused_until?: string | null
+          pickup_code_required?: boolean
           pickup_deadline_minutes?: number
           prep_time_minutes?: number
           print_copies?: number
           print_stations?: Database["public"]["Enums"]["ped_print_station"][]
           printer_enabled?: boolean
           responsible_user_id?: string | null
+          scheduled_lead_minutes?: number
+          scheduled_max_days?: number
           scheduled_orders_enabled?: boolean
+          service_fee_percent?: number
           sound_enabled?: boolean
+          tables_enabled?: boolean
           test_order_completed_at?: string | null
           timezone?: string
           unidade_id: string
@@ -8776,23 +9136,31 @@ export type Database = {
           company_id?: string
           created_at?: string
           delay_tolerance_minutes?: number
+          delivery_provider_default?: Database["public"]["Enums"]["ped_delivery_provider"]
           expedition_check_required?: boolean
           external_menu_url?: string | null
           fulfillment_modes?: Database["public"]["Enums"]["ped_fulfillment_mode"][]
           id?: string
+          max_delivery_distance_meters?: number | null
+          min_order_amount?: number
           notifications_enabled?: boolean
           onboarding_completed_at?: string | null
           onboarding_step?: number
           operational_state?: Database["public"]["Enums"]["ped_unit_state"]
           paused_until?: string | null
+          pickup_code_required?: boolean
           pickup_deadline_minutes?: number
           prep_time_minutes?: number
           print_copies?: number
           print_stations?: Database["public"]["Enums"]["ped_print_station"][]
           printer_enabled?: boolean
           responsible_user_id?: string | null
+          scheduled_lead_minutes?: number
+          scheduled_max_days?: number
           scheduled_orders_enabled?: boolean
+          service_fee_percent?: number
           sound_enabled?: boolean
+          tables_enabled?: boolean
           test_order_completed_at?: string | null
           timezone?: string
           unidade_id?: string
@@ -10668,6 +11036,14 @@ export type Database = {
         }
         Returns: Json
       }
+      ped_activate_scheduled_order: {
+        Args: {
+          p_expected_version?: number
+          p_idempotency_key?: string
+          p_order_id: string
+        }
+        Returns: Json
+      }
       ped_apply_order_adjustment: {
         Args: {
           p_amount: number
@@ -10686,6 +11062,19 @@ export type Database = {
       ped_assert_orders_operation: {
         Args: { p_company_id: string; p_operation: string }
         Returns: undefined
+      }
+      ped_assign_courier: {
+        Args: {
+          p_courier_name?: string
+          p_courier_phone?: string
+          p_courier_user_id?: string
+          p_order_id: string
+        }
+        Returns: Json
+      }
+      ped_attach_order_to_session: {
+        Args: { p_order_id: string; p_session_id: string }
+        Returns: Json
       }
       ped_await_order_pickup: {
         Args: {
@@ -10711,8 +11100,25 @@ export type Database = {
         }
         Returns: Json
       }
+      ped_close_table_session: {
+        Args: {
+          p_force?: boolean
+          p_service_fee_percent?: number
+          p_session_id: string
+        }
+        Returns: Json
+      }
       ped_complete_order: {
         Args: {
+          p_expected_version?: number
+          p_idempotency_key?: string
+          p_order_id: string
+        }
+        Returns: Json
+      }
+      ped_confirm_pickup: {
+        Args: {
+          p_code?: string
           p_expected_version?: number
           p_idempotency_key?: string
           p_order_id: string
@@ -10744,6 +11150,7 @@ export type Database = {
         Returns: Json
       }
       ped_create_test_order: { Args: { p_unit_id: string }; Returns: Json }
+      ped_delete_delivery_zone: { Args: { p_zone_id: string }; Returns: Json }
       ped_dispatch_order: {
         Args: {
           p_courier_name?: string
@@ -10783,7 +11190,25 @@ export type Database = {
         }
         Returns: Json
       }
+      ped_generate_pickup_code: { Args: { p_order_id: string }; Returns: Json }
+      ped_hold_scheduled_order: {
+        Args: {
+          p_expected_version?: number
+          p_idempotency_key?: string
+          p_order_id: string
+        }
+        Returns: Json
+      }
       ped_is_order_courier: { Args: { p_order_id: string }; Returns: boolean }
+      ped_mark_delivery_failed: {
+        Args: {
+          p_expected_version?: number
+          p_idempotency_key?: string
+          p_order_id: string
+          p_reason: string
+        }
+        Returns: Json
+      }
       ped_mark_order_delivered: {
         Args: {
           p_expected_version?: number
@@ -10797,6 +11222,19 @@ export type Database = {
           p_expected_version?: number
           p_idempotency_key?: string
           p_order_id: string
+        }
+        Returns: Json
+      }
+      ped_merge_table_sessions: {
+        Args: { p_source_session_id: string; p_target_session_id: string }
+        Returns: Json
+      }
+      ped_open_table_session: {
+        Args: {
+          p_customer_name?: string
+          p_guests?: number
+          p_note?: string
+          p_table_id: string
         }
         Returns: Json
       }
@@ -10827,6 +11265,34 @@ export type Database = {
           object_name: string
         }[]
       }
+      ped_quote_delivery: {
+        Args: {
+          p_bairro?: string
+          p_cep?: string
+          p_distance_meters?: number
+          p_subtotal?: number
+          p_unit_id: string
+        }
+        Returns: Json
+      }
+      ped_refund_order_payment: {
+        Args: { p_amount: number; p_payment_id: string; p_reason?: string }
+        Returns: Json
+      }
+      ped_register_order_payment: {
+        Args: {
+          p_amount: number
+          p_external_payment_id?: string
+          p_idempotency_key?: string
+          p_is_online?: boolean
+          p_kind: string
+          p_note?: string
+          p_order_id: string
+          p_payment_method_id?: string
+          p_tendered_amount?: number
+        }
+        Returns: Json
+      }
       ped_reorder_catalog: {
         Args: { p_ids: string[]; p_kind: string }
         Returns: number
@@ -10853,23 +11319,31 @@ export type Database = {
           company_id: string
           created_at: string
           delay_tolerance_minutes: number
+          delivery_provider_default: Database["public"]["Enums"]["ped_delivery_provider"]
           expedition_check_required: boolean
           external_menu_url: string | null
           fulfillment_modes: Database["public"]["Enums"]["ped_fulfillment_mode"][]
           id: string
+          max_delivery_distance_meters: number | null
+          min_order_amount: number
           notifications_enabled: boolean
           onboarding_completed_at: string | null
           onboarding_step: number
           operational_state: Database["public"]["Enums"]["ped_unit_state"]
           paused_until: string | null
+          pickup_code_required: boolean
           pickup_deadline_minutes: number
           prep_time_minutes: number
           print_copies: number
           print_stations: Database["public"]["Enums"]["ped_print_station"][]
           printer_enabled: boolean
           responsible_user_id: string | null
+          scheduled_lead_minutes: number
+          scheduled_max_days: number
           scheduled_orders_enabled: boolean
+          service_fee_percent: number
           sound_enabled: boolean
+          tables_enabled: boolean
           test_order_completed_at: string | null
           timezone: string
           unidade_id: string
@@ -10906,6 +11380,35 @@ export type Database = {
         }
         Returns: Json
       }
+      ped_save_unit_service_settings: {
+        Args: {
+          p_delivery_provider_default?: string
+          p_max_delivery_distance_meters?: number
+          p_min_order_amount?: number
+          p_pickup_code_required?: boolean
+          p_scheduled_lead_minutes?: number
+          p_scheduled_max_days?: number
+          p_service_fee_percent?: number
+          p_tables_enabled?: boolean
+          p_unit_id: string
+        }
+        Returns: Json
+      }
+      ped_set_order_delivery: {
+        Args: {
+          p_address?: Json
+          p_courier_phone?: string
+          p_eta_minutes?: number
+          p_expected_version?: number
+          p_fee_amount?: number
+          p_order_id: string
+          p_partner_name?: string
+          p_provider?: string
+          p_tracking_code?: string
+          p_zone_id?: string
+        }
+        Returns: Json
+      }
       ped_set_order_item_prepared: {
         Args: { p_item_id: string; p_prepared?: boolean }
         Returns: Json
@@ -10922,6 +11425,18 @@ export type Database = {
         }
         Returns: Json
       }
+      ped_sync_order_payment_status: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
+      ped_table_session_summary: {
+        Args: { p_session_id: string }
+        Returns: Json
+      }
+      ped_transfer_table_session: {
+        Args: { p_session_id: string; p_target_table_id: string }
+        Returns: Json
+      }
       ped_unit_checklist: { Args: { p_unit_id: string }; Returns: Json }
       ped_update_print_job: {
         Args: {
@@ -10929,6 +11444,49 @@ export type Database = {
           p_job_id: string
           p_printer_name?: string
           p_status: Database["public"]["Enums"]["ped_print_job_status"]
+        }
+        Returns: Json
+      }
+      ped_upsert_delivery_zone: {
+        Args: {
+          p_bairros?: string[]
+          p_cep_end?: string
+          p_cep_start?: string
+          p_eta_minutes?: number
+          p_fee_amount?: number
+          p_is_active?: boolean
+          p_kind: string
+          p_max_distance_meters?: number
+          p_min_distance_meters?: number
+          p_min_order_amount?: number
+          p_name: string
+          p_provider?: string
+          p_sort_order?: number
+          p_unit_id: string
+          p_zone_id?: string
+        }
+        Returns: Json
+      }
+      ped_upsert_service_area: {
+        Args: {
+          p_area_id?: string
+          p_is_active?: boolean
+          p_name: string
+          p_sort_order?: number
+          p_unit_id: string
+        }
+        Returns: Json
+      }
+      ped_upsert_table: {
+        Args: {
+          p_area_id?: string
+          p_code: string
+          p_is_active?: boolean
+          p_label?: string
+          p_seats?: number
+          p_sort_order?: number
+          p_table_id?: string
+          p_unit_id: string
         }
         Returns: Json
       }
