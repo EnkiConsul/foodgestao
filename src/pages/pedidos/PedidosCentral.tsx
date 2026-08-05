@@ -19,7 +19,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OrdersGuard } from "@/components/orders/OrdersGuard";
-import { OrdersTrialBanner } from "@/components/orders/OrdersTrialBanner";
 import { OrderCard } from "@/components/orders/board/OrderCard";
 import { OrderDetailsSheet } from "@/components/orders/board/OrderDetailsSheet";
 import { ManualOrderDialog } from "@/components/orders/board/ManualOrderDialog";
@@ -121,8 +120,6 @@ function PedidosCentralContent() {
           content="Central de Pedidos 360°FOOD: fila em tempo real, produção, entrega e pedidos manuais de balcão, telefone e WhatsApp."
         />
       </Helmet>
-
-      <OrdersTrialBanner entitlement={entitlement} />
 
       <header className="mb-4 flex flex-wrap items-center gap-3">
         <Button asChild variant="ghost" size="icon" aria-label="Voltar ao módulo Pedidos">

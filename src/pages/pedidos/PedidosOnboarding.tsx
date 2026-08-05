@@ -26,7 +26,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { OrdersGuard } from "@/components/orders/OrdersGuard";
-import { OrdersTrialBanner } from "@/components/orders/OrdersTrialBanner";
 import { StepErrors } from "@/components/orders/onboarding/StepErrors";
 import { StepOperacao } from "@/components/orders/onboarding/StepOperacao";
 import { useOrdersEntitlement } from "@/hooks/useOrdersEntitlement";
@@ -493,7 +492,7 @@ function StepAbertura({ unit }: { unit: OrdersUnit }) {
 
 // ---------------- Página ----------------
 function OnboardingContent() {
-  const { entitlement } = useOrdersEntitlement("orders.settings");
+  useOrdersEntitlement("orders.settings");
   const { data: units, isLoading } = useOrdersUnits();
   const [unitId, setUnitId] = useState<string | null>(null);
   const [step, setStep] = useState(1);
@@ -530,8 +529,6 @@ function OnboardingContent() {
           content="Onboarding do módulo Pedidos 360°: cadastre a operação, configure a unidade, prepare o recebimento e abra para pedidos."
         />
       </Helmet>
-
-      <OrdersTrialBanner entitlement={entitlement} />
 
       <div className="mb-4 flex items-start gap-3">
         <Button asChild variant="ghost" size="icon" className="shrink-0">
