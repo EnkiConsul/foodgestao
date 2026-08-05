@@ -148,9 +148,58 @@ export function completeTruncatedName(raw: string, fullName: string | null): str
   return desc;
 }
 
+/**
+ * Sanitiza uma descrição vinda do provedor: remove caracteres de controle,
+ * colapsa espaços, corta placeholders inúteis ("-", "null", "sem descricao")
+ * e limita o tamanho.
+ */
+const PLACEHOLDER_RE =
+  /^(n\/?a|null|undefined|nil|none|sem\s+descri[cç][aã]o|sem\s+informa[cç][aã]o|desconhecido|\?+|0+)$/i;
+
+export const MAX_DESCRIPTION_LENGTH = 255;
+
+export function sanitizeDescription(raw: string | null | undefined): string {
+  const s = String(raw ?? '')
+    // remove caracteres de controle (inclui \u0000, \t, \n) e substitutos
+    .replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ')
+    .replace(/\uFFFD/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    // pontuação solta nas bordas
+    .replace(/^[\s\-–—_.,;:|/\\*]+|[\s\-–—_.,;:|/\\*]+$/g, '')
+    .trim();
+  if (!s) return '';
+  if (PLACEHOLDER_RE.test(s)) return '';
+  return s.slice(0, MAX_DESCRIPTION_LENGTH).trim();
+}
+
+/**
+ * Escolhe a descrição de origem correta: `description` é o campo canônico do
+ * Pluggy; só caímos para `descriptionRaw` quando o canônico está vazio,
+ * é placeholder, ou é claramente menos informativo (genérico enquanto o raw
+ * traz contraparte).
+ */
+export function pickSourceDescription(t: EnrichInput): string {
+  const primary = sanitizeDescription(t.description);
+  const fallback = sanitizeDescription(t.descriptionRaw);
+
+  if (!primary) return fallback;
+  if (!fallback) return primary;
+  if (isGenericDescription(primary) && !isGenericDescription(fallback)) return fallback;
+  if (isBankLabelDescription(primary) && !isBankLabelDescription(fallback) && !isGenericDescription(fallback)) {
+    return fallback;
+  }
+  // Mesmo conteúdo, mas o banco truncou o campo canônico.
+  const nPrimary = normalizeName(primary);
+  const nFallback = normalizeName(fallback);
+  if (nFallback.length > nPrimary.length && nFallback.startsWith(nPrimary)) return fallback;
+  return primary;
+}
+
 /** Descrição final a ser exibida na conciliação. */
 export function buildDescription(t: EnrichInput, options: EnrichOptions = {}): string {
-  const raw = (t.description ?? t.descriptionRaw ?? '').trim();
+  const raw = pickSourceDescription(t);
+
   if (!isGenericDescription(raw)) {
     // "BANCO SICOOB S.A." não diz nada sobre o pagamento: se houver
     // estabelecimento/contraparte identificado, usamos esse nome.
