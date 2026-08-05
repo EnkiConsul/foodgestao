@@ -11699,6 +11699,18 @@ export type Database = {
         }
         Returns: Json
       }
+      ped_export_dataset: {
+        Args: {
+          p_company_id: string
+          p_dataset: string
+          p_from?: string
+          p_include_test?: boolean
+          p_limit?: number
+          p_to?: string
+          p_unit_id?: string
+        }
+        Returns: Json
+      }
       ped_export_orders: {
         Args: {
           p_company_id: string
@@ -11832,6 +11844,8 @@ export type Database = {
         }
         Returns: Json
       }
+      ped_mask_name: { Args: { p_value: string }; Returns: string }
+      ped_mask_phone: { Args: { p_value: string }; Returns: string }
       ped_merge_table_sessions: {
         Args: { p_source_session_id: string; p_target_session_id: string }
         Returns: Json
@@ -11845,6 +11859,7 @@ export type Database = {
         }
         Returns: Json
       }
+      ped_ops_health: { Args: { p_company_id: string }; Returns: Json }
       ped_order_transition: {
         Args: {
           p_expected_version?: number
@@ -11971,6 +11986,16 @@ export type Database = {
         Returns: number
       }
       ped_replay_dead_letter: { Args: { p_id: string }; Returns: Json }
+      ped_reports_overview: {
+        Args: {
+          p_company_id: string
+          p_from?: string
+          p_include_test?: boolean
+          p_to?: string
+          p_unit_id?: string
+        }
+        Returns: Json
+      }
       ped_request_order_cancellation: {
         Args: {
           p_expected_version?: number

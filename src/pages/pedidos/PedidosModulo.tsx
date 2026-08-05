@@ -9,6 +9,7 @@ import {
   Loader2,
   MessageCircle,
   PackageCheck,
+  BarChart3,
   Plug,
 
   ShoppingCart,
@@ -136,6 +137,11 @@ export default function PedidosModulo() {
                 <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
                   <Link to="/pedidos/expedicao">
                     <PackageCheck className="mr-2 h-4 w-4" /> Expedição
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
+                  <Link to="/pedidos/relatorios">
+                    <BarChart3 className="mr-2 h-4 w-4" /> Relatórios
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
