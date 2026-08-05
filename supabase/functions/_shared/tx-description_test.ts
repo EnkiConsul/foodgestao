@@ -4,6 +4,7 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   buildDescription,
+  pickSourceDescription,
   completeTruncatedName,
   externalCounterpartyName,
 } from "./tx-description.ts";
@@ -26,7 +27,7 @@ Deno.test("completa nome cortado pelo banco", () => {
   };
   assertEquals(
     buildDescription(tx, OWN),
-    "PIX ENVIADO   BYTEDANCE BRASIL TECNOLOGIA LTDA.",
+    "PIX ENVIADO BYTEDANCE BRASIL TECNOLOGIA LTDA.",
   );
 });
 
@@ -40,7 +41,7 @@ Deno.test("descrição completa não é alterada", () => {
     },
     merchant: { businessName: "SANEAMENTO DE GOIAS S/A" },
   };
-  assertEquals(buildDescription(tx, OWN), "PIX ENVIADO   SANEAGO");
+  assertEquals(buildDescription(tx, OWN), "PIX ENVIADO SANEAGO");
 });
 
 Deno.test("rótulo genérico é enriquecido com a contraparte", () => {
@@ -91,7 +92,7 @@ Deno.test("sem contraparte: preserva descrição do banco (tarifa)", () => {
     merchant: null,
   };
   assertEquals(externalCounterpartyName(tx, OWN), null);
-  assertEquals(buildDescription(tx, OWN), "TARIFA AVULSA ENVIO PIX   21/07/2026");
+  assertEquals(buildDescription(tx, OWN), "TARIFA AVULSA ENVIO PIX 21/07/2026");
 });
 
 Deno.test("completeTruncatedName: casos de borda", () => {
@@ -101,4 +102,28 @@ Deno.test("completeTruncatedName: casos de borda", () => {
   assertEquals(completeTruncatedName("COMPRA AB", "ABCDEF COMERCIO LTDA"), "COMPRA AB");
   // Nome já completo na descrição.
   assertEquals(completeTruncatedName("PIX PARA ACME LTDA", "ACME LTDA"), "PIX PARA ACME LTDA");
+});
+
+Deno.test("sanitiza controle, espaços e placeholders", () => {
+  assertEquals(
+    buildDescription({ description: "  PIX\tRECEBIDO   ACME\u0000 LTDA  ", amount: 10 }, OWN),
+    "PIX RECEBIDO ACME LTDA",
+  );
+  assertEquals(
+    buildDescription({ description: "  ---  ", descriptionRaw: "COMPRA MERCADO XYZ", amount: -10 }, OWN),
+    "COMPRA MERCADO XYZ",
+  );
+});
+
+Deno.test("fallback para descriptionRaw quando canônico é genérico/vazio", () => {
+  assertEquals(pickSourceDescription({ description: null, descriptionRaw: "TARIFA" }), "TARIFA");
+  assertEquals(pickSourceDescription({ description: "PIX ENVIADO", descriptionRaw: "PIX ENVIADO PADARIA SOL" }), "PIX ENVIADO PADARIA SOL");
+  assertEquals(pickSourceDescription({ description: "NETFLIX", descriptionRaw: "PIX" }), "NETFLIX");
+  assertEquals(pickSourceDescription({ description: "null", descriptionRaw: "N/A" }), "");
+  assertEquals(pickSourceDescription({ description: "COMPRA MERC", descriptionRaw: "COMPRA MERCADO SOL" }), "COMPRA MERCADO SOL");
+});
+
+Deno.test("nunca retorna vazio", () => {
+  assertEquals(buildDescription({ description: "", descriptionRaw: "", amount: 0 }), "Transferência recebido de contraparte não identificada");
+  assertEquals(buildDescription({ description: "?????", amount: 0 }), "Transferência recebido de contraparte não identificada");
 });
