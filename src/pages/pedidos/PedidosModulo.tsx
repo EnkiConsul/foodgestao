@@ -4,10 +4,13 @@ import {
   ArrowLeft,
   Bike,
   CheckCircle2,
+  ChefHat,
   ClipboardList,
   Loader2,
   MessageCircle,
+  PackageCheck,
   ShoppingCart,
+
   Sparkles,
   UtensilsCrossed,
 } from "lucide-react";
