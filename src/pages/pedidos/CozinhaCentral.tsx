@@ -43,7 +43,7 @@ import { detectConnector, printTickets, type PrintTicketInput } from "@/lib/orde
 import { cn } from "@/lib/utils";
 
 function CozinhaContent() {
-  const { readOnly } = useOrdersEntitlement("orders.kitchen");
+  const { entitlement, readOnly } = useOrdersEntitlement("orders.kitchen");
   const { entitlement: printEnt } = useOrdersEntitlement("orders.print");
   const { data: units } = useOrdersUnits();
 
@@ -137,13 +137,14 @@ function CozinhaContent() {
         printer: prefs.printerName || null,
         connector,
       });
+      const errorMessage = outcome.ok ? null : outcome.error;
       await updateJob.mutateAsync({
         jobId: job.job_id,
         status: outcome.ok ? "printed" : "failed",
-        error: outcome.ok ? null : outcome.error,
+        error: errorMessage,
         printerName: prefs.printerName || null,
       });
-      if (!outcome.ok) toast.error(outcome.error);
+      if (errorMessage) toast.error(errorMessage);
     },
     [printEnt.allowed, station, prefs.copies, prefs.printerName, enqueue, buildTicketInputs, connector, updateJob],
   );
@@ -195,7 +196,7 @@ function CozinhaContent() {
           <link rel="canonical" href="/pedidos/cozinha" />
         </Helmet>
 
-        <OrdersTrialBanner />
+        <OrdersTrialBanner entitlement={entitlement} />
 
         <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
