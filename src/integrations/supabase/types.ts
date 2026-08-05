@@ -9675,6 +9675,33 @@ export type Database = {
           },
         ]
       }
+      ped_worker_nonces: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          purpose: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          purpose: string
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          purpose?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           billing_period: Database["public"]["Enums"]["billing_period"]
@@ -12208,6 +12235,11 @@ export type Database = {
         }
         Returns: Json
       }
+      ped_worker_nonce_consume: {
+        Args: { p_purpose: string; p_token: string }
+        Returns: boolean
+      }
+      ped_worker_nonce_issue: { Args: { p_purpose: string }; Returns: string }
       plin_ia_accounts_balance: {
         Args: {
           _company_id?: string
