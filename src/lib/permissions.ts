@@ -79,6 +79,10 @@ export function getDefaultPermissions(role: CompanyRole): PermissionsMap {
         budgets: "view",
         reports: "view",
         cash_flow: "view",
+        // Pedidos: chaves canônicas começam fechadas (fail closed).
+        ...(Object.fromEntries(
+          ORDERS_PERMISSION_KEYS.map((k) => [k, "none"]),
+        ) as PermissionsMap),
       };
   }
 }
@@ -91,6 +95,8 @@ export function resolvePermission(
   if (!role) return "none";
   if (role === "owner" || role === "admin") return "edit";
   if (role === "viewer") return "view";
+  // Módulo Pedidos: ausência de chave = sem acesso (nunca `edit`).
+  if (isOrdersPermissionKey(module)) return permissions?.[module] ?? "none";
   return permissions?.[module] ?? "edit";
 }
 
