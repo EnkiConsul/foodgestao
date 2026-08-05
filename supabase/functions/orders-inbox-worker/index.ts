@@ -177,8 +177,9 @@ async function applyEvent(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const auth = authorizeWorker(req);
+  const auth = await authorizeWorker(req, "orders-inbox-worker");
   if (!auth.ok) return json({ error: auth.code }, auth.status);
+
 
   const admin = createClient(
     Deno.env.get("SUPABASE_URL")!,
