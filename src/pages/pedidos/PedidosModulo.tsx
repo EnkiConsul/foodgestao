@@ -139,6 +139,11 @@ export default function PedidosModulo() {
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
+                  <Link to="/pedidos/relatorios">
+                    <BarChart3 className="mr-2 h-4 w-4" /> Relatórios
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
                   <Link to="/pedidos/integracoes">
                     <Plug className="mr-2 h-4 w-4" /> Integrações
                   </Link>
