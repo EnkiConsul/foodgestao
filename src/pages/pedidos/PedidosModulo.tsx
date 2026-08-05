@@ -9,6 +9,7 @@ import {
   Loader2,
   MessageCircle,
   PackageCheck,
+  BarChart3,
   Plug,
 
   ShoppingCart,
