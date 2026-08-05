@@ -136,9 +136,15 @@ export default function PedidosModulo() {
                     <PackageCheck className="mr-2 h-4 w-4" /> Expedição
                   </Link>
                 </Button>
+                <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
+                  <Link to="/pedidos/integracoes">
+                    <Plug className="mr-2 h-4 w-4" /> Integrações
+                  </Link>
+                </Button>
                 <Button asChild variant="ghost" size="lg" className="w-full sm:w-auto">
                   <Link to="/pedidos/onboarding">Configurar unidade</Link>
                 </Button>
+
               </div>
 
             </>
