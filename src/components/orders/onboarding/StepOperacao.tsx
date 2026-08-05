@@ -76,8 +76,8 @@ export function StepOperacao({ unit, onSaved }: Props) {
       <div className="rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground">
         <p>
           Empresa: <strong className="text-foreground">{company?.name ?? "—"}</strong>
-          {company?.cnpj ? ` • CNPJ ${company.cnpj}` : ""}
         </p>
+
         <p className="mt-1">
           Responsável pela unidade: <strong className="text-foreground">você</strong> (
           {user?.email ?? "usuário atual"}).
