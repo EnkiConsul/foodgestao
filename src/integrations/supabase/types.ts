@@ -8540,6 +8540,10 @@ export type Database = {
         Args: { _connection_id: string }
         Returns: Json
       }
+      can_use_orders_module: {
+        Args: { p_company_id: string; p_operation?: string }
+        Returns: Json
+      }
       categorize_transaction: {
         Args: {
           p_company_id?: string
@@ -9439,6 +9443,7 @@ export type Database = {
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       soft_delete_account: { Args: { _account_id: string }; Returns: undefined }
+      start_orders_trial: { Args: { p_company_id: string }; Returns: Json }
       sync_of_account_balance: {
         Args: { _account_id: string; _new_balance: number }
         Returns: undefined
