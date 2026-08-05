@@ -52,33 +52,116 @@ export interface EnrichInput {
   merchant?: any;
 }
 
-/** Nome da contraparte (quando disponível), independente do rótulo do banco. */
-export function counterpartyName(t: EnrichInput): string | null {
-  const amt = Number(t.amount ?? 0);
+export interface EnrichOptions {
+  /** Documentos (CNPJ/CPF) da própria empresa — nunca são contraparte. */
+  ownDocuments?: (string | null | undefined)[];
+  /** Nomes/razões sociais da própria empresa — nunca são contraparte. */
+  ownNames?: (string | null | undefined)[];
+}
+
+function digitsOf(v: unknown): string {
+  return String(v ?? '').replace(/\D/g, '');
+}
+
+/** Normaliza para comparação: sem acento, maiúsculo, espaços colapsados. */
+function normalizeName(v: string): string {
+  return v
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Nome da contraparte EXTERNA: pagador em entradas, recebedor em saídas,
+ * descartando o próprio titular (documento ou nome da empresa) antes de
+ * considerar o `merchant` — em créditos o Pluggy às vezes traz a própria
+ * empresa como merchant.
+ */
+export function externalCounterpartyName(
+  t: EnrichInput,
+  options: EnrichOptions = {},
+): string | null {
+  const ownDocs = new Set(
+    (options.ownDocuments ?? []).map(digitsOf).filter((d) => d.length >= 11),
+  );
+  const ownNames = new Set(
+    (options.ownNames ?? [])
+      .map((n) => normalizeName(String(n ?? '')))
+      .filter((n) => n.length > 2),
+  );
+
+  const isEntrada = Number(t.amount ?? 0) >= 0;
   const pd = t.paymentData ?? null;
-  const side = amt < 0 ? pd?.receiver : pd?.payer;
-  const name: string | null = side?.name ?? null;
-  if (name && name.trim()) return name.trim();
-  const merchantName: string | null =
-    t.merchant?.name ?? t.merchant?.businessName ?? null;
-  if (merchantName && merchantName.trim()) return merchantName.trim();
+  const primary = isEntrada ? pd?.payer : pd?.receiver;
+  const secondary = isEntrada ? pd?.receiver : pd?.payer;
+
+  const candidates: { name?: unknown; document?: unknown }[] = [
+    { name: primary?.name, document: primary?.documentNumber?.value },
+    { name: t.merchant?.businessName ?? t.merchant?.name, document: t.merchant?.cnpj },
+    { name: secondary?.name, document: secondary?.documentNumber?.value },
+  ];
+
+  for (const c of candidates) {
+    const name = String(c.name ?? '').trim();
+    if (!name) continue;
+    const doc = digitsOf(c.document);
+    if (doc && ownDocs.has(doc)) continue;
+    if (ownNames.has(normalizeName(name))) continue;
+    return name;
+  }
   return null;
 }
 
+/** Nome da contraparte (quando disponível), independente do rótulo do banco. */
+export function counterpartyName(t: EnrichInput, options: EnrichOptions = {}): string | null {
+  return externalCounterpartyName(t, options);
+}
+
+/**
+ * Alguns bancos (Santander, por exemplo) cortam a descrição em ~30/60
+ * caracteres, deixando o nome da contraparte incompleto
+ * ("PIX ENVIADO   BYTEDANCE BRASIL TECNOLOG"). Quando o final da descrição é
+ * um prefixo estrito do nome completo, completamos o nome preservando o
+ * rótulo da operação.
+ */
+export function completeTruncatedName(raw: string, fullName: string | null): string {
+  const desc = raw.trim();
+  const name = (fullName ?? '').trim();
+  if (!desc || name.length < 4) return desc;
+
+  const normName = normalizeName(name);
+  if (normalizeName(desc).includes(normName)) return desc;
+
+  const tokens = [...desc.matchAll(/\S+/g)];
+  // Do maior sufixo para o menor: preferimos completar o trecho mais longo.
+  for (let k = tokens.length; k >= 1; k--) {
+    const start = tokens[tokens.length - k].index ?? 0;
+    const tail = desc.slice(start);
+    const normTail = normalizeName(tail);
+    if (normTail.length < 6) continue;
+    if (normName.length <= normTail.length) continue;
+    if (!normName.startsWith(normTail)) continue;
+    return `${desc.slice(0, start)}${name}`;
+  }
+  return desc;
+}
+
 /** Descrição final a ser exibida na conciliação. */
-export function buildDescription(t: EnrichInput): string {
+export function buildDescription(t: EnrichInput, options: EnrichOptions = {}): string {
   const raw = (t.description ?? t.descriptionRaw ?? '').trim();
   if (!isGenericDescription(raw)) {
     // "BANCO SICOOB S.A." não diz nada sobre o pagamento: se houver
     // estabelecimento/contraparte identificado, usamos esse nome.
     if (isBankLabelDescription(raw)) {
-      const merchantName: string | null =
-        t.merchant?.businessName ?? t.merchant?.name ?? null;
-      const better = (merchantName ?? counterpartyName(t) ?? '').trim();
+      const better = (externalCounterpartyName(t, options) ?? '').trim();
       if (better && !isBankLabelDescription(better)) return better;
     }
-    return raw;
+    // Nome cortado pelo banco: completa com o nome da contraparte externa.
+    return completeTruncatedName(raw, externalCounterpartyName(t, options));
   }
+
 
   const amt = Number(t.amount ?? 0);
   const pd = t.paymentData ?? null;
@@ -97,7 +180,7 @@ export function buildDescription(t: EnrichInput): string {
             : 'Transferência';
   const verb = amt < 0 ? 'enviado para' : 'recebido de';
 
-  const name = counterpartyName(t);
+  const name = externalCounterpartyName(t, options);
   if (name) return `${label} ${verb} ${name}`;
 
   const masked = maskDocument(side?.documentNumber?.value);

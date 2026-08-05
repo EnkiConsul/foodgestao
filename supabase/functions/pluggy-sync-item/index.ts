@@ -407,15 +407,32 @@ Deno.serve(async (req) => {
       .map((a) => a?.taxNumber ?? a?.owner?.taxNumber ?? null)
       .filter((v: unknown): v is string => typeof v === 'string' && v.length > 0);
 
+    // Nome/razão social e CNPJ cadastrados: em créditos o Pluggy às vezes
+    // devolve a própria empresa como `merchant`.
+    const ownNames: string[] = [];
+    try {
+      const { data: ownCompany } = await admin
+        .from('companies')
+        .select('name, trade_name, cnpj')
+        .eq('id', effectiveCompanyId)
+        .maybeSingle();
+      if (ownCompany?.name) ownNames.push(ownCompany.name);
+      if (ownCompany?.trade_name) ownNames.push(ownCompany.trade_name);
+      if (ownCompany?.cnpj) ownDocuments.push(ownCompany.cnpj);
+    } catch (_e) { /* opcional */ }
+
+    const enrichOptions = { ownDocuments, ownNames };
+
     for (const acc of accounts) {
       if (pausedIds.has(acc.id)) continue;
       const txs = await listTransactions(acc.id, fmt(from), fmt(to));
       if (txs.length === 0) continue;
       const rows = txs.map((t: any) => {
         const amt = Number(t.amount ?? 0);
-        const counterparty = counterpartyName(t);
-        const description = buildDescription(t);
+        const counterparty = counterpartyName(t, enrichOptions);
+        const description = buildDescription(t, enrichOptions);
         const doc = extractCounterpartyDocument(t, ownDocuments);
+
 
         return {
           company_id: effectiveCompanyId,
