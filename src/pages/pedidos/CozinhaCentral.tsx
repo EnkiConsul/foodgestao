@@ -137,7 +137,7 @@ function CozinhaContent() {
         printer: prefs.printerName || null,
         connector,
       });
-      const errorMessage = outcome.ok ? null : outcome.error;
+      const errorMessage = !outcome.ok ? outcome.error : null;
       await updateJob.mutateAsync({
         jobId: job.job_id,
         status: outcome.ok ? "printed" : "failed",
