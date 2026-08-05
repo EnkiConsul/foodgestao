@@ -66,6 +66,7 @@ const PedidosCentral = lazyWithRetry(() => import("./pages/pedidos/PedidosCentra
 const CozinhaCentral = lazyWithRetry(() => import("./pages/pedidos/CozinhaCentral"));
 const ExpedicaoCentral = lazyWithRetry(() => import("./pages/pedidos/ExpedicaoCentral"));
 const PedidosIntegracoes = lazyWithRetry(() => import("./pages/pedidos/PedidosIntegracoes"));
+const PedidosRelatorios = lazyWithRetry(() => import("./pages/pedidos/PedidosRelatorios"));
 
 const CategorizacaoIA = lazyWithRetry(() => import("./pages/CategorizacaoIA"));
 const Mais = lazyWithRetry(() => import("./pages/Mais"));
