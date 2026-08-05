@@ -139,7 +139,7 @@ function ExpedicaoContent() {
         printer: prefs.printerName || null,
         connector,
       });
-      const errorMessage = !outcome.ok ? outcome.error : null;
+      const errorMessage = "error" in outcome ? outcome.error : null;
       await updateJob.mutateAsync({
         jobId: job.job_id,
         status: outcome.ok ? "printed" : "failed",
