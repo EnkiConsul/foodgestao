@@ -7503,6 +7503,618 @@ export type Database = {
           },
         ]
       }
+      ped_order_adjustments: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          idempotency_key: string | null
+          kind: Database["public"]["Enums"]["ped_adjustment_kind"]
+          order_id: string
+          reason: string | null
+          total_after: number
+          total_before: number
+        }
+        Insert: {
+          amount: number
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          idempotency_key?: string | null
+          kind: Database["public"]["Enums"]["ped_adjustment_kind"]
+          order_id: string
+          reason?: string | null
+          total_after?: number
+          total_before?: number
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          idempotency_key?: string | null
+          kind?: Database["public"]["Enums"]["ped_adjustment_kind"]
+          order_id?: string
+          reason?: string | null
+          total_after?: number
+          total_before?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_order_adjustments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_order_adjustments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "ped_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_order_channels: {
+        Row: {
+          code: string
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          kind: Database["public"]["Enums"]["ped_order_channel"]
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          kind?: Database["public"]["Enums"]["ped_order_channel"]
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          kind?: Database["public"]["Enums"]["ped_order_channel"]
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_order_channels_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_order_deliveries: {
+        Row: {
+          address: Json
+          assigned_at: string | null
+          company_id: string
+          courier_name: string | null
+          courier_phone: string | null
+          courier_user_id: string | null
+          created_at: string
+          delivered_at: string | null
+          distance_meters: number | null
+          fee_amount: number
+          id: string
+          order_id: string
+          picked_up_at: string | null
+          status: Database["public"]["Enums"]["ped_delivery_status"]
+          updated_at: string
+        }
+        Insert: {
+          address?: Json
+          assigned_at?: string | null
+          company_id: string
+          courier_name?: string | null
+          courier_phone?: string | null
+          courier_user_id?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          distance_meters?: number | null
+          fee_amount?: number
+          id?: string
+          order_id: string
+          picked_up_at?: string | null
+          status?: Database["public"]["Enums"]["ped_delivery_status"]
+          updated_at?: string
+        }
+        Update: {
+          address?: Json
+          assigned_at?: string | null
+          company_id?: string
+          courier_name?: string | null
+          courier_phone?: string | null
+          courier_user_id?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          distance_meters?: number | null
+          fee_amount?: number
+          id?: string
+          order_id?: string
+          picked_up_at?: string | null
+          status?: Database["public"]["Enums"]["ped_delivery_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_order_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_order_deliveries_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "ped_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_order_item_options: {
+        Row: {
+          company_id: string
+          created_at: string
+          group_name_snapshot: string | null
+          id: string
+          item_id: string
+          name_snapshot: string
+          option_id: string | null
+          order_id: string
+          quantity: number
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          group_name_snapshot?: string | null
+          id?: string
+          item_id: string
+          name_snapshot: string
+          option_id?: string | null
+          order_id: string
+          quantity?: number
+          total_price?: number
+          unit_price?: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          group_name_snapshot?: string | null
+          id?: string
+          item_id?: string
+          name_snapshot?: string
+          option_id?: string | null
+          order_id?: string
+          quantity?: number
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_order_item_options_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_order_item_options_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "ped_order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_order_item_options_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "ped_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_order_item_options_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "ped_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_order_items: {
+        Row: {
+          company_id: string
+          created_at: string
+          description_snapshot: string | null
+          id: string
+          name_snapshot: string
+          notes: string | null
+          options_price: number
+          order_id: string
+          product_id: string | null
+          quantity: number
+          sort_order: number
+          total_price: number
+          unit_price: number
+          variant_id: string | null
+          variant_name_snapshot: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description_snapshot?: string | null
+          id?: string
+          name_snapshot: string
+          notes?: string | null
+          options_price?: number
+          order_id: string
+          product_id?: string | null
+          quantity?: number
+          sort_order?: number
+          total_price?: number
+          unit_price?: number
+          variant_id?: string | null
+          variant_name_snapshot?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description_snapshot?: string | null
+          id?: string
+          name_snapshot?: string
+          notes?: string | null
+          options_price?: number
+          order_id?: string
+          product_id?: string | null
+          quantity?: number
+          sort_order?: number
+          total_price?: number
+          unit_price?: number
+          variant_id?: string | null
+          variant_name_snapshot?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_order_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "ped_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "ped_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_order_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "ped_product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_order_payments: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string
+          created_by: string | null
+          external_payment_id: string | null
+          id: string
+          is_online: boolean
+          kind: Database["public"]["Enums"]["ped_payment_kind"]
+          order_id: string
+          paid_at: string | null
+          payment_method_id: string | null
+          refunded_amount: number
+          status: Database["public"]["Enums"]["ped_payment_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          external_payment_id?: string | null
+          id?: string
+          is_online?: boolean
+          kind?: Database["public"]["Enums"]["ped_payment_kind"]
+          order_id: string
+          paid_at?: string | null
+          payment_method_id?: string | null
+          refunded_amount?: number
+          status?: Database["public"]["Enums"]["ped_payment_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          external_payment_id?: string | null
+          id?: string
+          is_online?: boolean
+          kind?: Database["public"]["Enums"]["ped_payment_kind"]
+          order_id?: string
+          paid_at?: string | null
+          payment_method_id?: string | null
+          refunded_amount?: number
+          status?: Database["public"]["Enums"]["ped_payment_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_order_payments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_order_payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "ped_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_order_payments_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_order_status_history: {
+        Row: {
+          changed_by: string | null
+          company_id: string
+          created_at: string
+          from_status: Database["public"]["Enums"]["ped_order_status"] | null
+          id: string
+          idempotency_key: string | null
+          metadata: Json
+          order_id: string
+          reason: string | null
+          source: Database["public"]["Enums"]["ped_history_source"]
+          to_status: Database["public"]["Enums"]["ped_order_status"]
+          version_after: number
+        }
+        Insert: {
+          changed_by?: string | null
+          company_id: string
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["ped_order_status"] | null
+          id?: string
+          idempotency_key?: string | null
+          metadata?: Json
+          order_id: string
+          reason?: string | null
+          source?: Database["public"]["Enums"]["ped_history_source"]
+          to_status: Database["public"]["Enums"]["ped_order_status"]
+          version_after?: number
+        }
+        Update: {
+          changed_by?: string | null
+          company_id?: string
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["ped_order_status"] | null
+          id?: string
+          idempotency_key?: string | null
+          metadata?: Json
+          order_id?: string
+          reason?: string | null
+          source?: Database["public"]["Enums"]["ped_history_source"]
+          to_status?: Database["public"]["Enums"]["ped_order_status"]
+          version_after?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_order_status_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_order_status_history_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "ped_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_orders: {
+        Row: {
+          accepted_at: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          channel_id: string | null
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          delivered_at: string | null
+          delivery_fee: number
+          discount_amount: number
+          dispatched_at: string | null
+          display_number: number
+          estimated_net_amount: number
+          external_order_id: string | null
+          id: string
+          idempotency_key: string | null
+          is_test: boolean
+          notes: string | null
+          order_timing: Database["public"]["Enums"]["ped_order_timing"]
+          order_type: Database["public"]["Enums"]["ped_fulfillment_mode"]
+          original_total_amount: number
+          payment_status: Database["public"]["Enums"]["ped_payment_status"]
+          placed_at: string
+          preparation_started_at: string | null
+          ready_at: string | null
+          scheduled_start_at: string | null
+          scheduled_window_end: string | null
+          scheduled_window_start: string | null
+          service_fee: number
+          status: Database["public"]["Enums"]["ped_order_status"]
+          subtotal: number
+          total_amount: number
+          unit_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          accepted_at?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          channel_id?: string | null
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          delivered_at?: string | null
+          delivery_fee?: number
+          discount_amount?: number
+          dispatched_at?: string | null
+          display_number: number
+          estimated_net_amount?: number
+          external_order_id?: string | null
+          id?: string
+          idempotency_key?: string | null
+          is_test?: boolean
+          notes?: string | null
+          order_timing?: Database["public"]["Enums"]["ped_order_timing"]
+          order_type: Database["public"]["Enums"]["ped_fulfillment_mode"]
+          original_total_amount?: number
+          payment_status?: Database["public"]["Enums"]["ped_payment_status"]
+          placed_at?: string
+          preparation_started_at?: string | null
+          ready_at?: string | null
+          scheduled_start_at?: string | null
+          scheduled_window_end?: string | null
+          scheduled_window_start?: string | null
+          service_fee?: number
+          status?: Database["public"]["Enums"]["ped_order_status"]
+          subtotal?: number
+          total_amount?: number
+          unit_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          accepted_at?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          channel_id?: string | null
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          delivered_at?: string | null
+          delivery_fee?: number
+          discount_amount?: number
+          dispatched_at?: string | null
+          display_number?: number
+          estimated_net_amount?: number
+          external_order_id?: string | null
+          id?: string
+          idempotency_key?: string | null
+          is_test?: boolean
+          notes?: string | null
+          order_timing?: Database["public"]["Enums"]["ped_order_timing"]
+          order_type?: Database["public"]["Enums"]["ped_fulfillment_mode"]
+          original_total_amount?: number
+          payment_status?: Database["public"]["Enums"]["ped_payment_status"]
+          placed_at?: string
+          preparation_started_at?: string | null
+          ready_at?: string | null
+          scheduled_start_at?: string | null
+          scheduled_window_end?: string | null
+          scheduled_window_start?: string | null
+          service_fee?: number
+          status?: Database["public"]["Enums"]["ped_order_status"]
+          subtotal?: number
+          total_amount?: number
+          unit_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_orders_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "ped_order_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_orders_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "ped_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ped_product_availability: {
         Row: {
           channels: Database["public"]["Enums"]["ped_order_channel"][]
@@ -9915,13 +10527,100 @@ export type Database = {
         }
         Returns: Json
       }
+      ped_accept_order: {
+        Args: {
+          p_expected_version?: number
+          p_idempotency_key?: string
+          p_order_id: string
+        }
+        Returns: Json
+      }
+      ped_apply_order_adjustment: {
+        Args: {
+          p_amount: number
+          p_expected_version?: number
+          p_idempotency_key?: string
+          p_kind: Database["public"]["Enums"]["ped_adjustment_kind"]
+          p_order_id: string
+          p_reason?: string
+        }
+        Returns: Json
+      }
       ped_assert_can_manage: {
         Args: { p_company_id: string; p_operation?: string }
         Returns: Json
       }
+      ped_assert_orders_operation: {
+        Args: { p_company_id: string; p_operation: string }
+        Returns: undefined
+      }
+      ped_await_order_pickup: {
+        Args: {
+          p_expected_version?: number
+          p_idempotency_key?: string
+          p_order_id: string
+        }
+        Returns: Json
+      }
       ped_can_edit_catalog: { Args: { p_company_id: string }; Returns: boolean }
+      ped_can_operate_orders: {
+        Args: { p_company_id: string; p_operation: string }
+        Returns: boolean
+      }
       ped_can_read_catalog: { Args: { p_company_id: string }; Returns: boolean }
+      ped_can_read_orders: { Args: { p_company_id: string }; Returns: boolean }
+      ped_cancel_order: {
+        Args: {
+          p_expected_version?: number
+          p_idempotency_key?: string
+          p_order_id: string
+          p_reason: string
+        }
+        Returns: Json
+      }
+      ped_complete_order: {
+        Args: {
+          p_expected_version?: number
+          p_idempotency_key?: string
+          p_order_id: string
+        }
+        Returns: Json
+      }
+      ped_create_order: {
+        Args: {
+          p_channel_id?: string
+          p_customer_id?: string
+          p_customer_name?: string
+          p_customer_phone?: string
+          p_delivery?: Json
+          p_delivery_fee?: number
+          p_discount_amount?: number
+          p_external_order_id?: string
+          p_idempotency_key?: string
+          p_is_test?: boolean
+          p_items: Json
+          p_notes?: string
+          p_order_timing?: Database["public"]["Enums"]["ped_order_timing"]
+          p_order_type?: Database["public"]["Enums"]["ped_fulfillment_mode"]
+          p_scheduled_start_at?: string
+          p_scheduled_window_end?: string
+          p_scheduled_window_start?: string
+          p_service_fee?: number
+          p_unit_id: string
+        }
+        Returns: Json
+      }
       ped_create_test_order: { Args: { p_unit_id: string }; Returns: Json }
+      ped_dispatch_order: {
+        Args: {
+          p_courier_name?: string
+          p_courier_user_id?: string
+          p_expected_version?: number
+          p_idempotency_key?: string
+          p_order_id: string
+        }
+        Returns: Json
+      }
       ped_duplicate_menu_to_unit: {
         Args: {
           p_menu_id: string
@@ -9938,6 +10637,43 @@ export type Database = {
         }
         Returns: string
       }
+      ped_is_order_courier: { Args: { p_order_id: string }; Returns: boolean }
+      ped_mark_order_delivered: {
+        Args: {
+          p_expected_version?: number
+          p_idempotency_key?: string
+          p_order_id: string
+        }
+        Returns: Json
+      }
+      ped_mark_order_ready: {
+        Args: {
+          p_expected_version?: number
+          p_idempotency_key?: string
+          p_order_id: string
+        }
+        Returns: Json
+      }
+      ped_order_transition: {
+        Args: {
+          p_expected_version?: number
+          p_idempotency_key?: string
+          p_metadata?: Json
+          p_operation: string
+          p_order_id: string
+          p_reason?: string
+          p_source?: Database["public"]["Enums"]["ped_history_source"]
+          p_to: Database["public"]["Enums"]["ped_order_status"]
+        }
+        Returns: Json
+      }
+      ped_order_transition_allowed: {
+        Args: {
+          p_from: Database["public"]["Enums"]["ped_order_status"]
+          p_to: Database["public"]["Enums"]["ped_order_status"]
+        }
+        Returns: boolean
+      }
       ped_orphan_product_images: {
         Args: { p_company_id: string }
         Returns: {
@@ -9948,6 +10684,15 @@ export type Database = {
       ped_reorder_catalog: {
         Args: { p_ids: string[]; p_kind: string }
         Returns: number
+      }
+      ped_request_order_cancellation: {
+        Args: {
+          p_expected_version?: number
+          p_idempotency_key?: string
+          p_order_id: string
+          p_reason: string
+        }
+        Returns: Json
       }
       ped_resolve_unit: {
         Args: { p_operation?: string; p_unit_id: string }
@@ -10010,6 +10755,14 @@ export type Database = {
       }
       ped_set_unit_state: {
         Args: { p_paused_until?: string; p_state: string; p_unit_id: string }
+        Returns: Json
+      }
+      ped_start_order_preparation: {
+        Args: {
+          p_expected_version?: number
+          p_idempotency_key?: string
+          p_order_id: string
+        }
         Returns: Json
       }
       ped_unit_checklist: { Args: { p_unit_id: string }; Returns: Json }
@@ -10565,24 +11318,60 @@ export type Database = {
         | "trial_expirado"
       parcel_direction: "entrada" | "saida"
       ped_accept_mode: "manual" | "automatic"
+      ped_adjustment_kind:
+        | "discount"
+        | "surcharge"
+        | "delivery_fee"
+        | "service_fee"
+        | "refund"
+        | "correction"
       ped_catalog_state:
         | "draft"
         | "active"
         | "paused"
         | "unavailable"
         | "archived"
+      ped_delivery_status:
+        | "pending"
+        | "assigned"
+        | "picked_up"
+        | "delivered"
+        | "failed"
+        | "cancelled"
       ped_fulfillment_mode:
         | "delivery"
         | "pickup"
         | "counter"
         | "table"
         | "dine_in"
+      ped_history_source:
+        | "painel"
+        | "api"
+        | "integracao"
+        | "automacao"
+        | "cliente"
+        | "sistema"
       ped_order_channel:
         | "balcao"
         | "link_proprio"
         | "whatsapp"
         | "telefone"
         | "integracao"
+      ped_order_status:
+        | "pending_acceptance"
+        | "accepted"
+        | "preparation_started"
+        | "ready"
+        | "awaiting_pickup"
+        | "dispatched"
+        | "delivered"
+        | "completed"
+        | "cancellation_requested"
+        | "cancelled"
+        | "partially_refunded"
+        | "refunded"
+        | "failed"
+      ped_order_timing: "immediate" | "scheduled"
       ped_payment_kind:
         | "pix"
         | "dinheiro"
@@ -10591,6 +11380,14 @@ export type Database = {
         | "vale"
         | "online"
         | "outro"
+      ped_payment_status:
+        | "pending"
+        | "authorized"
+        | "paid"
+        | "partially_refunded"
+        | "refunded"
+        | "failed"
+        | "cancelled"
       ped_unit_state:
         | "setup"
         | "closed"
@@ -11005,12 +11802,28 @@ export const Constants = {
       ],
       parcel_direction: ["entrada", "saida"],
       ped_accept_mode: ["manual", "automatic"],
+      ped_adjustment_kind: [
+        "discount",
+        "surcharge",
+        "delivery_fee",
+        "service_fee",
+        "refund",
+        "correction",
+      ],
       ped_catalog_state: [
         "draft",
         "active",
         "paused",
         "unavailable",
         "archived",
+      ],
+      ped_delivery_status: [
+        "pending",
+        "assigned",
+        "picked_up",
+        "delivered",
+        "failed",
+        "cancelled",
       ],
       ped_fulfillment_mode: [
         "delivery",
@@ -11019,6 +11832,14 @@ export const Constants = {
         "table",
         "dine_in",
       ],
+      ped_history_source: [
+        "painel",
+        "api",
+        "integracao",
+        "automacao",
+        "cliente",
+        "sistema",
+      ],
       ped_order_channel: [
         "balcao",
         "link_proprio",
@@ -11026,6 +11847,22 @@ export const Constants = {
         "telefone",
         "integracao",
       ],
+      ped_order_status: [
+        "pending_acceptance",
+        "accepted",
+        "preparation_started",
+        "ready",
+        "awaiting_pickup",
+        "dispatched",
+        "delivered",
+        "completed",
+        "cancellation_requested",
+        "cancelled",
+        "partially_refunded",
+        "refunded",
+        "failed",
+      ],
+      ped_order_timing: ["immediate", "scheduled"],
       ped_payment_kind: [
         "pix",
         "dinheiro",
@@ -11034,6 +11871,15 @@ export const Constants = {
         "vale",
         "online",
         "outro",
+      ],
+      ped_payment_status: [
+        "pending",
+        "authorized",
+        "paid",
+        "partially_refunded",
+        "refunded",
+        "failed",
+        "cancelled",
       ],
       ped_unit_state: [
         "setup",
