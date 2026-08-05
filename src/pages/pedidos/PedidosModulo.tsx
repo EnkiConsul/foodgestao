@@ -123,10 +123,21 @@ export default function PedidosModulo() {
                     <UtensilsCrossed className="mr-2 h-4 w-4" /> Gerenciar cardápio
                   </Link>
                 </Button>
+                <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
+                  <Link to="/pedidos/cozinha">
+                    <ChefHat className="mr-2 h-4 w-4" /> Cozinha
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
+                  <Link to="/pedidos/expedicao">
+                    <PackageCheck className="mr-2 h-4 w-4" /> Expedição
+                  </Link>
+                </Button>
                 <Button asChild variant="ghost" size="lg" className="w-full sm:w-auto">
                   <Link to="/pedidos/onboarding">Configurar unidade</Link>
                 </Button>
               </div>
+
             </>
 
           ) : canStartTrial ? (
