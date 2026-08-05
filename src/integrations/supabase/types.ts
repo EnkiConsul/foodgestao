@@ -7284,6 +7284,7 @@ export type Database = {
           id: string
           menu_id: string
           name: string
+          print_station: Database["public"]["Enums"]["ped_print_station"] | null
           sort_order: number
           state: Database["public"]["Enums"]["ped_catalog_state"]
           updated_at: string
@@ -7296,6 +7297,9 @@ export type Database = {
           id?: string
           menu_id: string
           name: string
+          print_station?:
+            | Database["public"]["Enums"]["ped_print_station"]
+            | null
           sort_order?: number
           state?: Database["public"]["Enums"]["ped_catalog_state"]
           updated_at?: string
@@ -7308,6 +7312,9 @@ export type Database = {
           id?: string
           menu_id?: string
           name?: string
+          print_station?:
+            | Database["public"]["Enums"]["ped_print_station"]
+            | null
           sort_order?: number
           state?: Database["public"]["Enums"]["ped_catalog_state"]
           updated_at?: string
@@ -7754,9 +7761,11 @@ export type Database = {
           notes: string | null
           options_price: number
           order_id: string
+          prepared_at: string | null
           product_id: string | null
           quantity: number
           sort_order: number
+          station: Database["public"]["Enums"]["ped_print_station"] | null
           total_price: number
           unit_price: number
           variant_id: string | null
@@ -7771,9 +7780,11 @@ export type Database = {
           notes?: string | null
           options_price?: number
           order_id: string
+          prepared_at?: string | null
           product_id?: string | null
           quantity?: number
           sort_order?: number
+          station?: Database["public"]["Enums"]["ped_print_station"] | null
           total_price?: number
           unit_price?: number
           variant_id?: string | null
@@ -7788,9 +7799,11 @@ export type Database = {
           notes?: string | null
           options_price?: number
           order_id?: string
+          prepared_at?: string | null
           product_id?: string | null
           quantity?: number
           sort_order?: number
+          station?: Database["public"]["Enums"]["ped_print_station"] | null
           total_price?: number
           unit_price?: number
           variant_id?: string | null
@@ -8115,6 +8128,98 @@ export type Database = {
           },
         ]
       }
+      ped_print_jobs: {
+        Row: {
+          attempts: number
+          company_id: string
+          copies: number
+          created_at: string
+          id: string
+          idempotency_key: string
+          is_reprint: boolean
+          last_error: string | null
+          order_id: string
+          printed_at: string | null
+          printer_name: string | null
+          reason: string | null
+          reprint_of: string | null
+          requested_by: string | null
+          station: Database["public"]["Enums"]["ped_print_station"]
+          status: Database["public"]["Enums"]["ped_print_job_status"]
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          company_id: string
+          copies?: number
+          created_at?: string
+          id?: string
+          idempotency_key: string
+          is_reprint?: boolean
+          last_error?: string | null
+          order_id: string
+          printed_at?: string | null
+          printer_name?: string | null
+          reason?: string | null
+          reprint_of?: string | null
+          requested_by?: string | null
+          station: Database["public"]["Enums"]["ped_print_station"]
+          status?: Database["public"]["Enums"]["ped_print_job_status"]
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          company_id?: string
+          copies?: number
+          created_at?: string
+          id?: string
+          idempotency_key?: string
+          is_reprint?: boolean
+          last_error?: string | null
+          order_id?: string
+          printed_at?: string | null
+          printer_name?: string | null
+          reason?: string | null
+          reprint_of?: string | null
+          requested_by?: string | null
+          station?: Database["public"]["Enums"]["ped_print_station"]
+          status?: Database["public"]["Enums"]["ped_print_job_status"]
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_print_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_print_jobs_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "ped_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_print_jobs_reprint_of_fkey"
+            columns: ["reprint_of"]
+            isOneToOne: false
+            referencedRelation: "ped_print_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_print_jobs_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "ped_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ped_product_availability: {
         Row: {
           channels: Database["public"]["Enums"]["ped_order_channel"][]
@@ -8303,6 +8408,7 @@ export type Database = {
           name: string
           paused_until: string | null
           prep_time_minutes: number | null
+          print_station: Database["public"]["Enums"]["ped_print_station"] | null
           sort_order: number
           state: Database["public"]["Enums"]["ped_catalog_state"]
           stock_quantity: number | null
@@ -8323,6 +8429,9 @@ export type Database = {
           name: string
           paused_until?: string | null
           prep_time_minutes?: number | null
+          print_station?:
+            | Database["public"]["Enums"]["ped_print_station"]
+            | null
           sort_order?: number
           state?: Database["public"]["Enums"]["ped_catalog_state"]
           stock_quantity?: number | null
@@ -8343,6 +8452,9 @@ export type Database = {
           name?: string
           paused_until?: string | null
           prep_time_minutes?: number | null
+          print_station?:
+            | Database["public"]["Enums"]["ped_print_station"]
+            | null
           sort_order?: number
           state?: Database["public"]["Enums"]["ped_catalog_state"]
           stock_quantity?: number | null
@@ -8592,11 +8704,13 @@ export type Database = {
           accept_mode: Database["public"]["Enums"]["ped_accept_mode"]
           activated_at: string | null
           activated_by: string | null
+          auto_print_enabled: boolean
           channels: Database["public"]["Enums"]["ped_order_channel"][]
           codigo_interno: string | null
           company_id: string
           created_at: string
           delay_tolerance_minutes: number
+          expedition_check_required: boolean
           external_menu_url: string | null
           fulfillment_modes: Database["public"]["Enums"]["ped_fulfillment_mode"][]
           id: string
@@ -8607,6 +8721,8 @@ export type Database = {
           paused_until: string | null
           pickup_deadline_minutes: number
           prep_time_minutes: number
+          print_copies: number
+          print_stations: Database["public"]["Enums"]["ped_print_station"][]
           printer_enabled: boolean
           responsible_user_id: string | null
           scheduled_orders_enabled: boolean
@@ -8621,11 +8737,13 @@ export type Database = {
           accept_mode?: Database["public"]["Enums"]["ped_accept_mode"]
           activated_at?: string | null
           activated_by?: string | null
+          auto_print_enabled?: boolean
           channels?: Database["public"]["Enums"]["ped_order_channel"][]
           codigo_interno?: string | null
           company_id: string
           created_at?: string
           delay_tolerance_minutes?: number
+          expedition_check_required?: boolean
           external_menu_url?: string | null
           fulfillment_modes?: Database["public"]["Enums"]["ped_fulfillment_mode"][]
           id?: string
@@ -8636,6 +8754,8 @@ export type Database = {
           paused_until?: string | null
           pickup_deadline_minutes?: number
           prep_time_minutes?: number
+          print_copies?: number
+          print_stations?: Database["public"]["Enums"]["ped_print_station"][]
           printer_enabled?: boolean
           responsible_user_id?: string | null
           scheduled_orders_enabled?: boolean
@@ -8650,11 +8770,13 @@ export type Database = {
           accept_mode?: Database["public"]["Enums"]["ped_accept_mode"]
           activated_at?: string | null
           activated_by?: string | null
+          auto_print_enabled?: boolean
           channels?: Database["public"]["Enums"]["ped_order_channel"][]
           codigo_interno?: string | null
           company_id?: string
           created_at?: string
           delay_tolerance_minutes?: number
+          expedition_check_required?: boolean
           external_menu_url?: string | null
           fulfillment_modes?: Database["public"]["Enums"]["ped_fulfillment_mode"][]
           id?: string
@@ -8665,6 +8787,8 @@ export type Database = {
           paused_until?: string | null
           pickup_deadline_minutes?: number
           prep_time_minutes?: number
+          print_copies?: number
+          print_stations?: Database["public"]["Enums"]["ped_print_station"][]
           printer_enabled?: boolean
           responsible_user_id?: string | null
           scheduled_orders_enabled?: boolean
@@ -10646,6 +10770,19 @@ export type Database = {
         }
         Returns: string
       }
+      ped_enqueue_print_job: {
+        Args: {
+          p_copies?: number
+          p_idempotency_key: string
+          p_is_reprint?: boolean
+          p_order_id: string
+          p_printer_name?: string
+          p_reason?: string
+          p_reprint_of?: string
+          p_station: Database["public"]["Enums"]["ped_print_station"]
+        }
+        Returns: Json
+      }
       ped_is_order_courier: { Args: { p_order_id: string }; Returns: boolean }
       ped_mark_order_delivered: {
         Args: {
@@ -10710,11 +10847,13 @@ export type Database = {
           accept_mode: Database["public"]["Enums"]["ped_accept_mode"]
           activated_at: string | null
           activated_by: string | null
+          auto_print_enabled: boolean
           channels: Database["public"]["Enums"]["ped_order_channel"][]
           codigo_interno: string | null
           company_id: string
           created_at: string
           delay_tolerance_minutes: number
+          expedition_check_required: boolean
           external_menu_url: string | null
           fulfillment_modes: Database["public"]["Enums"]["ped_fulfillment_mode"][]
           id: string
@@ -10725,6 +10864,8 @@ export type Database = {
           paused_until: string | null
           pickup_deadline_minutes: number
           prep_time_minutes: number
+          print_copies: number
+          print_stations: Database["public"]["Enums"]["ped_print_station"][]
           printer_enabled: boolean
           responsible_user_id: string | null
           scheduled_orders_enabled: boolean
@@ -10765,6 +10906,10 @@ export type Database = {
         }
         Returns: Json
       }
+      ped_set_order_item_prepared: {
+        Args: { p_item_id: string; p_prepared?: boolean }
+        Returns: Json
+      }
       ped_set_unit_state: {
         Args: { p_paused_until?: string; p_state: string; p_unit_id: string }
         Returns: Json
@@ -10778,6 +10923,15 @@ export type Database = {
         Returns: Json
       }
       ped_unit_checklist: { Args: { p_unit_id: string }; Returns: Json }
+      ped_update_print_job: {
+        Args: {
+          p_error?: string
+          p_job_id: string
+          p_printer_name?: string
+          p_status: Database["public"]["Enums"]["ped_print_job_status"]
+        }
+        Returns: Json
+      }
       ped_upsert_unit: {
         Args: {
           p_cidade?: string
@@ -11400,6 +11554,13 @@ export type Database = {
         | "refunded"
         | "failed"
         | "cancelled"
+      ped_print_job_status:
+        | "queued"
+        | "printing"
+        | "printed"
+        | "failed"
+        | "cancelled"
+      ped_print_station: "cozinha" | "bar" | "caixa" | "expedicao"
       ped_unit_state:
         | "setup"
         | "closed"
@@ -11893,6 +12054,14 @@ export const Constants = {
         "failed",
         "cancelled",
       ],
+      ped_print_job_status: [
+        "queued",
+        "printing",
+        "printed",
+        "failed",
+        "cancelled",
+      ],
+      ped_print_station: ["cozinha", "bar", "caixa", "expedicao"],
       ped_unit_state: [
         "setup",
         "closed",
