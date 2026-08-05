@@ -65,6 +65,8 @@ const PedidosAssinatura = lazyWithRetry(() => import("./pages/pedidos/PedidosAss
 const PedidosCentral = lazyWithRetry(() => import("./pages/pedidos/PedidosCentral"));
 const CozinhaCentral = lazyWithRetry(() => import("./pages/pedidos/CozinhaCentral"));
 const ExpedicaoCentral = lazyWithRetry(() => import("./pages/pedidos/ExpedicaoCentral"));
+const PedidosIntegracoes = lazyWithRetry(() => import("./pages/pedidos/PedidosIntegracoes"));
+
 const CategorizacaoIA = lazyWithRetry(() => import("./pages/CategorizacaoIA"));
 const Mais = lazyWithRetry(() => import("./pages/Mais"));
 
@@ -392,6 +394,8 @@ const AppRoutes = () => (
         <Route path="/pedidos/central" element={<PedidosCentral />} />
         <Route path="/pedidos/cozinha" element={<CozinhaCentral />} />
         <Route path="/pedidos/expedicao" element={<ExpedicaoCentral />} />
+        <Route path="/pedidos/integracoes" element={<PedidosIntegracoes />} />
+
         <Route path="/mais" element={<Mais />} />
       </Route>
       <Route
