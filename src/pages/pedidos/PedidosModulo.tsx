@@ -109,20 +109,26 @@ export default function PedidosModulo() {
           ) : usable ? (
             <>
               <p className="text-sm text-muted-foreground">
-                Módulo liberado para <strong>{companyName}</strong>. As telas operacionais serão
-                habilitadas nas próximas etapas de implantação.
+                Módulo liberado para <strong>{companyName}</strong>. Abra a Central de Pedidos para
+                operar a fila em tempo real.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button asChild size="lg" className="w-full sm:w-auto">
-                  <Link to="/pedidos/onboarding">
-                    <ClipboardList className="mr-2 h-4 w-4" /> Ativar minha unidade
+                  <Link to="/pedidos/central">
+                    <ClipboardList className="mr-2 h-4 w-4" /> Abrir Central de Pedidos
                   </Link>
                 </Button>
-                <Button disabled variant="outline" size="lg" className="w-full sm:w-auto">
-                  Abrir fila de pedidos (em implantação)
+                <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
+                  <Link to="/pedidos/cardapio">
+                    <UtensilsCrossed className="mr-2 h-4 w-4" /> Gerenciar cardápio
+                  </Link>
+                </Button>
+                <Button asChild variant="ghost" size="lg" className="w-full sm:w-auto">
+                  <Link to="/pedidos/onboarding">Configurar unidade</Link>
                 </Button>
               </div>
             </>
+
           ) : canStartTrial ? (
             <>
               <p className="text-sm text-muted-foreground">
