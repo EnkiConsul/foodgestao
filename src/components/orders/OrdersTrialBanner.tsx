@@ -3,14 +3,20 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { OrdersEntitlement } from "@/lib/orders/entitlement";
+import {
+  formatTrialDeadline,
+  formatTrialTimeLeft,
+  ordersTrialCountdown,
+} from "@/lib/orders/trial";
 
 /** Banner de status do trial / modo consulta do módulo Pedidos. */
 export function OrdersTrialBanner({ entitlement }: { entitlement: OrdersEntitlement }) {
   const status = entitlement.effective_status;
 
   if (status === "trial") {
-    const days = entitlement.days_left ?? 0;
-    const urgent = days <= 2;
+    const countdown = ordersTrialCountdown(entitlement.trial_ends_at);
+    const urgent = countdown.level === "critical" || countdown.level === "warning";
+    const deadline = formatTrialDeadline(entitlement.trial_ends_at);
     return (
       <div
         className={cn(
@@ -20,22 +26,15 @@ export function OrdersTrialBanner({ entitlement }: { entitlement: OrdersEntitlem
       >
         <Clock className={cn("h-4 w-4 shrink-0", urgent ? "text-destructive" : "text-primary")} />
         <span className="flex-1 min-w-0">
-          Teste gratuito do Pedidos 360°: <strong>{days} {days === 1 ? "dia" : "dias"}</strong> restantes
-          {entitlement.trial_ends_at
-            ? ` (encerra em ${new Date(entitlement.trial_ends_at).toLocaleDateString("pt-BR")})`
+          Teste gratuito do Pedidos 360°: restam{" "}
+          <strong>{formatTrialTimeLeft(countdown)}</strong>
+          {deadline ? ` — encerra em ${deadline}` : ""}.
+          {countdown.isLastDay
+            ? " Depois desse horário o módulo entra em modo consulta e novos pedidos são bloqueados."
             : ""}
-          .
         </span>
         <Button asChild size="sm" variant={urgent ? "destructive" : "default"}>
-          <a
-            href={`https://wa.me/5562992365959?text=${encodeURIComponent(
-              "Olá! Quero contratar o módulo Pedidos 360° no 360°FOOD.",
-            )}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Contratar
-          </a>
+          <Link to="/pedidos/assinatura">Contratar</Link>
         </Button>
       </div>
     );
@@ -47,11 +46,11 @@ export function OrdersTrialBanner({ entitlement }: { entitlement: OrdersEntitlem
         <Lock className="h-4 w-4 shrink-0 text-destructive" />
         <span className="flex-1 min-w-0">
           {status === "trial_expirado"
-            ? "Seu teste gratuito terminou. O módulo está em modo consulta: novas operações estão bloqueadas."
+            ? "Seu teste gratuito terminou. O módulo está em modo consulta: os dados continuam disponíveis, mas novas operações estão bloqueadas."
             : "Módulo indisponível. Acesso limitado à consulta dos dados já registrados."}
         </span>
-        <Button asChild size="sm" variant="outline">
-          <Link to="/hub">Ver módulos</Link>
+        <Button asChild size="sm" variant="destructive">
+          <Link to="/pedidos/assinatura">Contratar módulo</Link>
         </Button>
       </div>
     );
