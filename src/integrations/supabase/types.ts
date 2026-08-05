@@ -7275,6 +7275,485 @@ export type Database = {
         }
         Relationships: []
       }
+      ped_menu_categories: {
+        Row: {
+          archived_at: string | null
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          menu_id: string
+          name: string
+          sort_order: number
+          state: Database["public"]["Enums"]["ped_catalog_state"]
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          menu_id: string
+          name: string
+          sort_order?: number
+          state?: Database["public"]["Enums"]["ped_catalog_state"]
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          menu_id?: string
+          name?: string
+          sort_order?: number
+          state?: Database["public"]["Enums"]["ped_catalog_state"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_menu_categories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_menu_categories_menu_id_fkey"
+            columns: ["menu_id"]
+            isOneToOne: false
+            referencedRelation: "ped_menus"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_menus: {
+        Row: {
+          archived_at: string | null
+          channels: Database["public"]["Enums"]["ped_order_channel"][]
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_default: boolean
+          name: string
+          sort_order: number
+          state: Database["public"]["Enums"]["ped_catalog_state"]
+          unit_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          channels?: Database["public"]["Enums"]["ped_order_channel"][]
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          name: string
+          sort_order?: number
+          state?: Database["public"]["Enums"]["ped_catalog_state"]
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          channels?: Database["public"]["Enums"]["ped_order_channel"][]
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          sort_order?: number
+          state?: Database["public"]["Enums"]["ped_catalog_state"]
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_menus_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_menus_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "ped_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_option_groups: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          is_required: boolean
+          max_choices: number
+          min_choices: number
+          name: string
+          product_id: string
+          sort_order: number
+          state: Database["public"]["Enums"]["ped_catalog_state"]
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          max_choices?: number
+          min_choices?: number
+          name: string
+          product_id: string
+          sort_order?: number
+          state?: Database["public"]["Enums"]["ped_catalog_state"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          max_choices?: number
+          min_choices?: number
+          name?: string
+          product_id?: string
+          sort_order?: number
+          state?: Database["public"]["Enums"]["ped_catalog_state"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_option_groups_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_option_groups_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "ped_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_options: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string | null
+          group_id: string
+          id: string
+          max_quantity: number
+          name: string
+          price_cents: number
+          sort_order: number
+          state: Database["public"]["Enums"]["ped_catalog_state"]
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description?: string | null
+          group_id: string
+          id?: string
+          max_quantity?: number
+          name: string
+          price_cents?: number
+          sort_order?: number
+          state?: Database["public"]["Enums"]["ped_catalog_state"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          group_id?: string
+          id?: string
+          max_quantity?: number
+          name?: string
+          price_cents?: number
+          sort_order?: number
+          state?: Database["public"]["Enums"]["ped_catalog_state"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_options_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_options_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "ped_option_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_product_availability: {
+        Row: {
+          channels: Database["public"]["Enums"]["ped_order_channel"][]
+          company_id: string
+          created_at: string
+          ends_at: string | null
+          id: string
+          product_id: string
+          starts_at: string | null
+          unit_id: string | null
+          updated_at: string
+          weekday: number | null
+        }
+        Insert: {
+          channels?: Database["public"]["Enums"]["ped_order_channel"][]
+          company_id: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          product_id: string
+          starts_at?: string | null
+          unit_id?: string | null
+          updated_at?: string
+          weekday?: number | null
+        }
+        Update: {
+          channels?: Database["public"]["Enums"]["ped_order_channel"][]
+          company_id?: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          product_id?: string
+          starts_at?: string | null
+          unit_id?: string | null
+          updated_at?: string
+          weekday?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_product_availability_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_product_availability_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "ped_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_product_availability_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "ped_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_product_unit_overrides: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          paused_until: string | null
+          price_cents: number | null
+          product_id: string
+          state: Database["public"]["Enums"]["ped_catalog_state"] | null
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          paused_until?: string | null
+          price_cents?: number | null
+          product_id: string
+          state?: Database["public"]["Enums"]["ped_catalog_state"] | null
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          paused_until?: string | null
+          price_cents?: number | null
+          product_id?: string
+          state?: Database["public"]["Enums"]["ped_catalog_state"] | null
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_product_unit_overrides_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_product_unit_overrides_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "ped_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_product_unit_overrides_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "ped_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_product_variants: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          price_cents: number
+          product_id: string
+          sort_order: number
+          state: Database["public"]["Enums"]["ped_catalog_state"]
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          price_cents?: number
+          product_id: string
+          sort_order?: number
+          state?: Database["public"]["Enums"]["ped_catalog_state"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          price_cents?: number
+          product_id?: string
+          sort_order?: number
+          state?: Database["public"]["Enums"]["ped_catalog_state"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_product_variants_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "ped_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_products: {
+        Row: {
+          allows_notes: boolean
+          archived_at: string | null
+          base_price_cents: number
+          category_id: string
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          image_path: string | null
+          internal_code: string | null
+          name: string
+          paused_until: string | null
+          prep_time_minutes: number | null
+          sort_order: number
+          state: Database["public"]["Enums"]["ped_catalog_state"]
+          stock_quantity: number | null
+          track_stock: boolean
+          updated_at: string
+        }
+        Insert: {
+          allows_notes?: boolean
+          archived_at?: string | null
+          base_price_cents?: number
+          category_id: string
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_path?: string | null
+          internal_code?: string | null
+          name: string
+          paused_until?: string | null
+          prep_time_minutes?: number | null
+          sort_order?: number
+          state?: Database["public"]["Enums"]["ped_catalog_state"]
+          stock_quantity?: number | null
+          track_stock?: boolean
+          updated_at?: string
+        }
+        Update: {
+          allows_notes?: boolean
+          archived_at?: string | null
+          base_price_cents?: number
+          category_id?: string
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_path?: string | null
+          internal_code?: string | null
+          name?: string
+          paused_until?: string | null
+          prep_time_minutes?: number | null
+          sort_order?: number
+          state?: Database["public"]["Enums"]["ped_catalog_state"]
+          stock_quantity?: number | null
+          track_stock?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "ped_menu_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_products_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ped_test_orders: {
         Row: {
           channel: Database["public"]["Enums"]["ped_order_channel"]
@@ -9440,7 +9919,36 @@ export type Database = {
         Args: { p_company_id: string; p_operation?: string }
         Returns: Json
       }
+      ped_can_edit_catalog: { Args: { p_company_id: string }; Returns: boolean }
+      ped_can_read_catalog: { Args: { p_company_id: string }; Returns: boolean }
       ped_create_test_order: { Args: { p_unit_id: string }; Returns: Json }
+      ped_duplicate_menu_to_unit: {
+        Args: {
+          p_menu_id: string
+          p_new_name?: string
+          p_target_unit_id: string
+        }
+        Returns: string
+      }
+      ped_duplicate_product: {
+        Args: {
+          p_new_name?: string
+          p_product_id: string
+          p_target_category_id?: string
+        }
+        Returns: string
+      }
+      ped_orphan_product_images: {
+        Args: { p_company_id: string }
+        Returns: {
+          created_at: string
+          object_name: string
+        }[]
+      }
+      ped_reorder_catalog: {
+        Args: { p_ids: string[]; p_kind: string }
+        Returns: number
+      }
       ped_resolve_unit: {
         Args: { p_operation?: string; p_unit_id: string }
         Returns: {
@@ -10057,6 +10565,12 @@ export type Database = {
         | "trial_expirado"
       parcel_direction: "entrada" | "saida"
       ped_accept_mode: "manual" | "automatic"
+      ped_catalog_state:
+        | "draft"
+        | "active"
+        | "paused"
+        | "unavailable"
+        | "archived"
       ped_fulfillment_mode:
         | "delivery"
         | "pickup"
@@ -10491,6 +11005,13 @@ export const Constants = {
       ],
       parcel_direction: ["entrada", "saida"],
       ped_accept_mode: ["manual", "automatic"],
+      ped_catalog_state: [
+        "draft",
+        "active",
+        "paused",
+        "unavailable",
+        "archived",
+      ],
       ped_fulfillment_mode: [
         "delivery",
         "pickup",
