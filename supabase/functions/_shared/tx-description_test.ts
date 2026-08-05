@@ -27,7 +27,7 @@ Deno.test("completa nome cortado pelo banco", () => {
   };
   assertEquals(
     buildDescription(tx, OWN),
-    "PIX ENVIADO   BYTEDANCE BRASIL TECNOLOGIA LTDA.",
+    "PIX ENVIADO BYTEDANCE BRASIL TECNOLOGIA LTDA.",
   );
 });
 
@@ -41,7 +41,7 @@ Deno.test("descrição completa não é alterada", () => {
     },
     merchant: { businessName: "SANEAMENTO DE GOIAS S/A" },
   };
-  assertEquals(buildDescription(tx, OWN), "PIX ENVIADO   SANEAGO");
+  assertEquals(buildDescription(tx, OWN), "PIX ENVIADO SANEAGO");
 });
 
 Deno.test("rótulo genérico é enriquecido com a contraparte", () => {
@@ -92,7 +92,7 @@ Deno.test("sem contraparte: preserva descrição do banco (tarifa)", () => {
     merchant: null,
   };
   assertEquals(externalCounterpartyName(tx, OWN), null);
-  assertEquals(buildDescription(tx, OWN), "TARIFA AVULSA ENVIO PIX   21/07/2026");
+  assertEquals(buildDescription(tx, OWN), "TARIFA AVULSA ENVIO PIX 21/07/2026");
 });
 
 Deno.test("completeTruncatedName: casos de borda", () => {
