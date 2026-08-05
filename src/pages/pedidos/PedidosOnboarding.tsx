@@ -492,7 +492,7 @@ function StepAbertura({ unit }: { unit: OrdersUnit }) {
 
 // ---------------- Página ----------------
 function OnboardingContent() {
-  const { entitlement } = useOrdersEntitlement("orders.settings");
+  useOrdersEntitlement("orders.settings");
   const { data: units, isLoading } = useOrdersUnits();
   const [unitId, setUnitId] = useState<string | null>(null);
   const [step, setStep] = useState(1);
