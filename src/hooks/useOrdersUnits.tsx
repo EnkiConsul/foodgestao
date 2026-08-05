@@ -23,7 +23,11 @@ export interface OrdersUnit {
   channels: OrderChannel[];
   accept_mode: "manual" | "automatic";
   prep_time_minutes: number;
+  accept_deadline_minutes: number | null;
+  delay_tolerance_minutes: number | null;
+  pickup_deadline_minutes: number | null;
   scheduled_orders_enabled: boolean;
+
   sound_enabled: boolean;
   notifications_enabled: boolean;
   printer_enabled: boolean;

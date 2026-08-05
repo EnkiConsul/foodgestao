@@ -61,6 +61,7 @@ const CartoesCredito = lazyWithRetry(() => import("./pages/CartoesCredito"));
 const PedidosModulo = lazyWithRetry(() => import("./pages/pedidos/PedidosModulo"));
 const PedidosOnboarding = lazyWithRetry(() => import("./pages/pedidos/PedidosOnboarding"));
 const PedidosCardapio = lazyWithRetry(() => import("./pages/pedidos/PedidosCardapio"));
+const PedidosCentral = lazyWithRetry(() => import("./pages/pedidos/PedidosCentral"));
 const CategorizacaoIA = lazyWithRetry(() => import("./pages/CategorizacaoIA"));
 const Mais = lazyWithRetry(() => import("./pages/Mais"));
 
@@ -384,6 +385,7 @@ const AppRoutes = () => (
         <Route path="/pedidos" element={<PedidosModulo />} />
         <Route path="/pedidos/onboarding" element={<PedidosOnboarding />} />
         <Route path="/pedidos/cardapio" element={<PedidosCardapio />} />
+        <Route path="/pedidos/central" element={<PedidosCentral />} />
         <Route path="/mais" element={<Mais />} />
       </Route>
       <Route

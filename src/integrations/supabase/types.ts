@@ -8588,6 +8588,7 @@ export type Database = {
       }
       ped_units: {
         Row: {
+          accept_deadline_minutes: number
           accept_mode: Database["public"]["Enums"]["ped_accept_mode"]
           activated_at: string | null
           activated_by: string | null
@@ -8595,6 +8596,7 @@ export type Database = {
           codigo_interno: string | null
           company_id: string
           created_at: string
+          delay_tolerance_minutes: number
           external_menu_url: string | null
           fulfillment_modes: Database["public"]["Enums"]["ped_fulfillment_mode"][]
           id: string
@@ -8603,6 +8605,7 @@ export type Database = {
           onboarding_step: number
           operational_state: Database["public"]["Enums"]["ped_unit_state"]
           paused_until: string | null
+          pickup_deadline_minutes: number
           prep_time_minutes: number
           printer_enabled: boolean
           responsible_user_id: string | null
@@ -8614,6 +8617,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accept_deadline_minutes?: number
           accept_mode?: Database["public"]["Enums"]["ped_accept_mode"]
           activated_at?: string | null
           activated_by?: string | null
@@ -8621,6 +8625,7 @@ export type Database = {
           codigo_interno?: string | null
           company_id: string
           created_at?: string
+          delay_tolerance_minutes?: number
           external_menu_url?: string | null
           fulfillment_modes?: Database["public"]["Enums"]["ped_fulfillment_mode"][]
           id?: string
@@ -8629,6 +8634,7 @@ export type Database = {
           onboarding_step?: number
           operational_state?: Database["public"]["Enums"]["ped_unit_state"]
           paused_until?: string | null
+          pickup_deadline_minutes?: number
           prep_time_minutes?: number
           printer_enabled?: boolean
           responsible_user_id?: string | null
@@ -8640,6 +8646,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accept_deadline_minutes?: number
           accept_mode?: Database["public"]["Enums"]["ped_accept_mode"]
           activated_at?: string | null
           activated_by?: string | null
@@ -8647,6 +8654,7 @@ export type Database = {
           codigo_interno?: string | null
           company_id?: string
           created_at?: string
+          delay_tolerance_minutes?: number
           external_menu_url?: string | null
           fulfillment_modes?: Database["public"]["Enums"]["ped_fulfillment_mode"][]
           id?: string
@@ -8655,6 +8663,7 @@ export type Database = {
           onboarding_step?: number
           operational_state?: Database["public"]["Enums"]["ped_unit_state"]
           paused_until?: string | null
+          pickup_deadline_minutes?: number
           prep_time_minutes?: number
           printer_enabled?: boolean
           responsible_user_id?: string | null
@@ -10697,6 +10706,7 @@ export type Database = {
       ped_resolve_unit: {
         Args: { p_operation?: string; p_unit_id: string }
         Returns: {
+          accept_deadline_minutes: number
           accept_mode: Database["public"]["Enums"]["ped_accept_mode"]
           activated_at: string | null
           activated_by: string | null
@@ -10704,6 +10714,7 @@ export type Database = {
           codigo_interno: string | null
           company_id: string
           created_at: string
+          delay_tolerance_minutes: number
           external_menu_url: string | null
           fulfillment_modes: Database["public"]["Enums"]["ped_fulfillment_mode"][]
           id: string
@@ -10712,6 +10723,7 @@ export type Database = {
           onboarding_step: number
           operational_state: Database["public"]["Enums"]["ped_unit_state"]
           paused_until: string | null
+          pickup_deadline_minutes: number
           prep_time_minutes: number
           printer_enabled: boolean
           responsible_user_id: string | null
