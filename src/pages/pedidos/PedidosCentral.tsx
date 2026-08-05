@@ -38,6 +38,7 @@ import {
   PENDENCY_LABELS,
   columnForStatus,
   pendenciesFor,
+  primaryActionFor,
   type PendencyKind,
 } from "@/lib/orders/board";
 
@@ -58,7 +59,7 @@ function PedidosCentralContent() {
     () => (units ?? []).find((u) => u.id === unitId) ?? (units ?? [])[0] ?? null,
     [units, unitId],
   );
-  const deadlines = useUnitDeadlines(unit as never);
+  const deadlines = useUnitDeadlines(unit);
   const { orders, isLoading, refetch, isFetching, online } = useOrdersBoard(unit?.id ?? null);
   const action = useOrderAction();
 
