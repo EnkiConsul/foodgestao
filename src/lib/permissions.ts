@@ -1,9 +1,16 @@
 // Module-level permission system for company members.
 // Keys are stable strings used in the DB column `company_members.permissions` (jsonb).
 
+import {
+  ORDERS_PERMISSION_KEYS,
+  ORDERS_PERMISSION_LABELS,
+  isOrdersPermissionKey,
+  type OrdersPermissionKey,
+} from "@/lib/orders/permissions";
+
 export type PermissionLevel = "none" | "view" | "edit";
 
-export type ModuleKey =
+export type FinanceModuleKey =
   | "dashboard"
   | "transactions"
   | "accounts"
@@ -14,6 +21,8 @@ export type ModuleKey =
   | "reports"
   | "cash_flow"
   | "attachments";
+
+export type ModuleKey = FinanceModuleKey | OrdersPermissionKey;
 
 export const MODULE_LABELS: Record<ModuleKey, string> = {
   dashboard: "Dashboard",
@@ -26,9 +35,23 @@ export const MODULE_LABELS: Record<ModuleKey, string> = {
   reports: "Relatórios",
   cash_flow: "Fluxo de Caixa",
   attachments: "Anexos",
+  ...ORDERS_PERMISSION_LABELS,
 };
 
-export const ALL_MODULES = Object.keys(MODULE_LABELS) as ModuleKey[];
+export const FINANCE_MODULES: FinanceModuleKey[] = [
+  "dashboard",
+  "transactions",
+  "accounts",
+  "categories",
+  "contacts",
+  "payment_methods",
+  "budgets",
+  "reports",
+  "cash_flow",
+  "attachments",
+];
+
+export const ALL_MODULES = [...FINANCE_MODULES, ...ORDERS_PERMISSION_KEYS] as ModuleKey[];
 
 export type CompanyRole = "owner" | "admin" | "member" | "viewer";
 
@@ -56,6 +79,10 @@ export function getDefaultPermissions(role: CompanyRole): PermissionsMap {
         budgets: "view",
         reports: "view",
         cash_flow: "view",
+        // Pedidos: chaves canônicas começam fechadas (fail closed).
+        ...(Object.fromEntries(
+          ORDERS_PERMISSION_KEYS.map((k) => [k, "none"]),
+        ) as PermissionsMap),
       };
   }
 }
@@ -68,6 +95,8 @@ export function resolvePermission(
   if (!role) return "none";
   if (role === "owner" || role === "admin") return "edit";
   if (role === "viewer") return "view";
+  // Módulo Pedidos: ausência de chave = sem acesso (nunca `edit`).
+  if (isOrdersPermissionKey(module)) return permissions?.[module] ?? "none";
   return permissions?.[module] ?? "edit";
 }
 
