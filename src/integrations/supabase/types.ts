@@ -7275,6 +7275,322 @@ export type Database = {
         }
         Relationships: []
       }
+      ped_test_orders: {
+        Row: {
+          channel: Database["public"]["Enums"]["ped_order_channel"]
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          fulfillment_mode: Database["public"]["Enums"]["ped_fulfillment_mode"]
+          id: string
+          is_test: boolean
+          items: Json
+          status: string
+          total: number
+          unit_id: string
+        }
+        Insert: {
+          channel: Database["public"]["Enums"]["ped_order_channel"]
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          fulfillment_mode: Database["public"]["Enums"]["ped_fulfillment_mode"]
+          id?: string
+          is_test?: boolean
+          items?: Json
+          status?: string
+          total?: number
+          unit_id: string
+        }
+        Update: {
+          channel?: Database["public"]["Enums"]["ped_order_channel"]
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          fulfillment_mode?: Database["public"]["Enums"]["ped_fulfillment_mode"]
+          id?: string
+          is_test?: boolean
+          items?: Json
+          status?: string
+          total?: number
+          unit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_test_orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_test_orders_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "ped_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_unit_hour_exceptions: {
+        Row: {
+          closes_at: string | null
+          company_id: string
+          created_at: string
+          exception_date: string
+          id: string
+          is_closed: boolean
+          note: string | null
+          opens_at: string | null
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          closes_at?: string | null
+          company_id: string
+          created_at?: string
+          exception_date: string
+          id?: string
+          is_closed?: boolean
+          note?: string | null
+          opens_at?: string | null
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          closes_at?: string | null
+          company_id?: string
+          created_at?: string
+          exception_date?: string
+          id?: string
+          is_closed?: boolean
+          note?: string | null
+          opens_at?: string | null
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_unit_hour_exceptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_unit_hour_exceptions_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "ped_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_unit_hours: {
+        Row: {
+          closes_at: string
+          company_id: string
+          created_at: string
+          id: string
+          opens_at: string
+          unit_id: string
+          updated_at: string
+          weekday: number
+        }
+        Insert: {
+          closes_at: string
+          company_id: string
+          created_at?: string
+          id?: string
+          opens_at: string
+          unit_id: string
+          updated_at?: string
+          weekday: number
+        }
+        Update: {
+          closes_at?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          opens_at?: string
+          unit_id?: string
+          updated_at?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_unit_hours_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_unit_hours_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "ped_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_unit_payment_options: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          kind: Database["public"]["Enums"]["ped_payment_kind"]
+          label: string | null
+          payment_method_id: string | null
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kind: Database["public"]["Enums"]["ped_payment_kind"]
+          label?: string | null
+          payment_method_id?: string | null
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kind?: Database["public"]["Enums"]["ped_payment_kind"]
+          label?: string | null
+          payment_method_id?: string | null
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_unit_payment_options_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_unit_payment_options_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_unit_payment_options_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "ped_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ped_units: {
+        Row: {
+          accept_mode: Database["public"]["Enums"]["ped_accept_mode"]
+          activated_at: string | null
+          activated_by: string | null
+          channels: Database["public"]["Enums"]["ped_order_channel"][]
+          codigo_interno: string | null
+          company_id: string
+          created_at: string
+          external_menu_url: string | null
+          fulfillment_modes: Database["public"]["Enums"]["ped_fulfillment_mode"][]
+          id: string
+          notifications_enabled: boolean
+          onboarding_completed_at: string | null
+          onboarding_step: number
+          operational_state: Database["public"]["Enums"]["ped_unit_state"]
+          paused_until: string | null
+          prep_time_minutes: number
+          printer_enabled: boolean
+          responsible_user_id: string | null
+          scheduled_orders_enabled: boolean
+          sound_enabled: boolean
+          test_order_completed_at: string | null
+          timezone: string
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          accept_mode?: Database["public"]["Enums"]["ped_accept_mode"]
+          activated_at?: string | null
+          activated_by?: string | null
+          channels?: Database["public"]["Enums"]["ped_order_channel"][]
+          codigo_interno?: string | null
+          company_id: string
+          created_at?: string
+          external_menu_url?: string | null
+          fulfillment_modes?: Database["public"]["Enums"]["ped_fulfillment_mode"][]
+          id?: string
+          notifications_enabled?: boolean
+          onboarding_completed_at?: string | null
+          onboarding_step?: number
+          operational_state?: Database["public"]["Enums"]["ped_unit_state"]
+          paused_until?: string | null
+          prep_time_minutes?: number
+          printer_enabled?: boolean
+          responsible_user_id?: string | null
+          scheduled_orders_enabled?: boolean
+          sound_enabled?: boolean
+          test_order_completed_at?: string | null
+          timezone?: string
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          accept_mode?: Database["public"]["Enums"]["ped_accept_mode"]
+          activated_at?: string | null
+          activated_by?: string | null
+          channels?: Database["public"]["Enums"]["ped_order_channel"][]
+          codigo_interno?: string | null
+          company_id?: string
+          created_at?: string
+          external_menu_url?: string | null
+          fulfillment_modes?: Database["public"]["Enums"]["ped_fulfillment_mode"][]
+          id?: string
+          notifications_enabled?: boolean
+          onboarding_completed_at?: string | null
+          onboarding_step?: number
+          operational_state?: Database["public"]["Enums"]["ped_unit_state"]
+          paused_until?: string | null
+          prep_time_minutes?: number
+          printer_enabled?: boolean
+          responsible_user_id?: string | null
+          scheduled_orders_enabled?: boolean
+          sound_enabled?: boolean
+          test_order_completed_at?: string | null
+          timezone?: string
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_units_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_units_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: true
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plans: {
         Row: {
           billing_period: Database["public"]["Enums"]["billing_period"]
@@ -8496,6 +8812,7 @@ export type Database = {
       _test_balance_engine: { Args: never; Returns: string }
       _test_delete_account_authz: { Args: never; Returns: string }
       _test_delete_account_hard_regression: { Args: never; Returns: Json }
+      activate_orders_unit: { Args: { p_unit_id: string }; Returns: Json }
       adjust_account_balance: {
         Args: {
           _account_id: string
@@ -9119,6 +9436,90 @@ export type Database = {
         }
         Returns: Json
       }
+      ped_assert_can_manage: {
+        Args: { p_company_id: string; p_operation?: string }
+        Returns: Json
+      }
+      ped_create_test_order: { Args: { p_unit_id: string }; Returns: Json }
+      ped_resolve_unit: {
+        Args: { p_operation?: string; p_unit_id: string }
+        Returns: {
+          accept_mode: Database["public"]["Enums"]["ped_accept_mode"]
+          activated_at: string | null
+          activated_by: string | null
+          channels: Database["public"]["Enums"]["ped_order_channel"][]
+          codigo_interno: string | null
+          company_id: string
+          created_at: string
+          external_menu_url: string | null
+          fulfillment_modes: Database["public"]["Enums"]["ped_fulfillment_mode"][]
+          id: string
+          notifications_enabled: boolean
+          onboarding_completed_at: string | null
+          onboarding_step: number
+          operational_state: Database["public"]["Enums"]["ped_unit_state"]
+          paused_until: string | null
+          prep_time_minutes: number
+          printer_enabled: boolean
+          responsible_user_id: string | null
+          scheduled_orders_enabled: boolean
+          sound_enabled: boolean
+          test_order_completed_at: string | null
+          timezone: string
+          unidade_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ped_units"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      ped_save_unit_receiving: {
+        Args: {
+          p_accept_mode?: string
+          p_external_menu_url?: string
+          p_notifications_enabled?: boolean
+          p_payment_kinds: string[]
+          p_printer_enabled?: boolean
+          p_sound_enabled?: boolean
+          p_unit_id: string
+        }
+        Returns: Json
+      }
+      ped_save_unit_service: {
+        Args: {
+          p_channels?: string[]
+          p_exceptions?: Json
+          p_fulfillment_modes: string[]
+          p_hours?: Json
+          p_prep_time_minutes?: number
+          p_scheduled_orders_enabled?: boolean
+          p_unit_id: string
+        }
+        Returns: Json
+      }
+      ped_set_unit_state: {
+        Args: { p_paused_until?: string; p_state: string; p_unit_id: string }
+        Returns: Json
+      }
+      ped_unit_checklist: { Args: { p_unit_id: string }; Returns: Json }
+      ped_upsert_unit: {
+        Args: {
+          p_cidade?: string
+          p_codigo_interno?: string
+          p_company_id: string
+          p_endereco?: string
+          p_nome: string
+          p_responsible_user_id?: string
+          p_telefone?: string
+          p_timezone?: string
+          p_uf?: string
+          p_unit_id?: string
+        }
+        Returns: Json
+      }
       plin_ia_accounts_balance: {
         Args: {
           _company_id?: string
@@ -9655,6 +10056,34 @@ export type Database = {
         | "not_contracted"
         | "trial_expirado"
       parcel_direction: "entrada" | "saida"
+      ped_accept_mode: "manual" | "automatic"
+      ped_fulfillment_mode:
+        | "delivery"
+        | "pickup"
+        | "counter"
+        | "table"
+        | "dine_in"
+      ped_order_channel:
+        | "balcao"
+        | "link_proprio"
+        | "whatsapp"
+        | "telefone"
+        | "integracao"
+      ped_payment_kind:
+        | "pix"
+        | "dinheiro"
+        | "credito"
+        | "debito"
+        | "vale"
+        | "online"
+        | "outro"
+      ped_unit_state:
+        | "setup"
+        | "closed"
+        | "open"
+        | "paused"
+        | "scheduled_only"
+        | "suspended"
       pluggy_connection_status:
         | "created"
         | "updating"
@@ -10061,6 +10490,38 @@ export const Constants = {
         "trial_expirado",
       ],
       parcel_direction: ["entrada", "saida"],
+      ped_accept_mode: ["manual", "automatic"],
+      ped_fulfillment_mode: [
+        "delivery",
+        "pickup",
+        "counter",
+        "table",
+        "dine_in",
+      ],
+      ped_order_channel: [
+        "balcao",
+        "link_proprio",
+        "whatsapp",
+        "telefone",
+        "integracao",
+      ],
+      ped_payment_kind: [
+        "pix",
+        "dinheiro",
+        "credito",
+        "debito",
+        "vale",
+        "online",
+        "outro",
+      ],
+      ped_unit_state: [
+        "setup",
+        "closed",
+        "open",
+        "paused",
+        "scheduled_only",
+        "suspended",
+      ],
       pluggy_connection_status: [
         "created",
         "updating",
