@@ -166,7 +166,8 @@ export function sanitizeDescription(raw: string | null | undefined): string {
     .replace(/\s+/g, ' ')
     .trim()
     // pontuação solta nas bordas
-    .replace(/^[\s\-–—_.,;:|/\\*]+/g, '')\n    .replace(/[\s\-–—_,;:|/\\*]+$/g, '')
+    .replace(/^[\s\-–—_.,;:|/\\*]+/g, '')
+    .replace(/[\s\-–—_,;:|/\\*]+$/g, '')
     .trim();
   if (!s) return '';
   if (PLACEHOLDER_RE.test(s)) return '';
