@@ -19,6 +19,9 @@ export const ORDERS_PERMISSION_KEYS = [
   "orders.delivery",
   "orders.reports",
   "orders.customer_data",
+  "orders.kitchen",
+  "orders.expedition",
+  "orders.print",
 ] as const;
 
 export type OrdersPermissionKey = (typeof ORDERS_PERMISSION_KEYS)[number];
@@ -36,6 +39,9 @@ export const ORDERS_PERMISSION_LABELS: Record<OrdersPermissionKey, string> = {
   "orders.delivery": "Entregas e entregadores",
   "orders.reports": "Relatórios de pedidos",
   "orders.customer_data": "Dados de clientes",
+  "orders.kitchen": "Modo cozinha",
+  "orders.expedition": "Modo expedição",
+  "orders.print": "Impressão de comandas",
 };
 
 /** Operações somente leitura — as demais exigem nível `edit`. */
