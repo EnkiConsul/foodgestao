@@ -9,6 +9,8 @@ import {
   Loader2,
   MessageCircle,
   PackageCheck,
+  Plug,
+
   ShoppingCart,
 
   Sparkles,
