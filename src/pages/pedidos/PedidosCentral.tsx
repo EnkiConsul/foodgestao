@@ -254,37 +254,14 @@ function PedidosCentralContent() {
                         isBusy={action.isPending && action.variables?.orderId === o.id}
                         onOpen={setSelected}
                         onPrimaryAction={(order) => {
-                          const map: Record<string, OrderAction> = {
-                            accept: "accept",
-                            start: "start",
-                            ready: "ready",
-                            await_pickup: "await_pickup",
-                            dispatch: "dispatch",
-                            deliver: "deliver",
-                            complete: "complete",
-                            cancel: "cancel",
-                          };
-                          const primary = order.status;
-                          void primary;
-                          const act = map[
-                            (
-                              {
-                                pending_acceptance: "accept",
-                                accepted: "start",
-                                preparation_started: "ready",
-                                ready: order.order_type === "delivery" ? "dispatch" : "await_pickup",
-                                awaiting_pickup: "deliver",
-                                dispatched: "deliver",
-                                delivered: "complete",
-                              } as Record<string, string>
-                            )[order.status] ?? ""
-                          ];
-                          if (!act) {
+                          const primary = primaryActionFor(order);
+                          if (!primary || primary.action === "cancel") {
                             setSelected(order);
                             return;
                           }
-                          runAction(order, act);
+                          runAction(order, primary.action);
                         }}
+
                       />
                     ))
                   )}
