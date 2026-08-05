@@ -1,19 +1,25 @@
-# Ativar o módulo Pedidos para a Raptor Systems
+# Corrigir o menu lateral do módulo Pedidos
 
-## Situação atual
+## Diagnóstico confirmado
 
-O módulo Pedidos da Raptor Systems está com status **trial**, iniciado em 05/08/2026 e com expiração em 12/08/2026. Nada está faltando em configuração: o trial é o estado padrão criado no primeiro acesso ao módulo.
+O Hub e o menu lateral usam fontes diferentes. O Hub já considera o módulo Pedidos disponível, mas `AppSidebar` ainda associa o módulo `pedidos` diretamente ao componente genérico `ComingSoonMenu`, que imprime “Em breve” de forma fixa.
 
-Para o módulo ficar permanentemente disponível, ele precisa passar para o status **ativo**, sem data de término.
+As páginas operacionais já estão registradas e acessíveis: início, onboarding, central, cardápio, cozinha, expedição, relatórios, integrações e assinatura.
 
-## O que será feito
+## Implementação
 
-- Ativar o módulo Pedidos da empresa Raptor Systems, sem cobrança e sem data de expiração.
-- Manter o registro de que o teste gratuito já foi usado, para não permitir um novo trial no futuro.
-- Nenhuma mudança de código, tela ou faturamento: a tela de assinatura e o fluxo de contratação continuam como estão.
+- Criar o menu lateral próprio do **Pedidos 360°**, seguindo o mesmo padrão visual e de navegação dos demais módulos.
+- Incluir links para Início, Central de Pedidos, Cardápio, Cozinha, Expedição, Relatórios, Integrações e Configuração da unidade.
+- Substituir somente o `ComingSoonMenu` do módulo Pedidos pelo novo menu; CRM e RH continuarão marcados como “Em breve”.
+- Manter o menu Conta e o link para o Hub sem alterações.
+
+## Validação
+
+- Abrir `/pedidos` e páginas internas para confirmar o destaque correto do item ativo.
+- Verificar o menu expandido e recolhido, sem sobreposição ou rótulos truncados.
+- Confirmar que o Hub continua mostrando Pedidos como disponível e que os demais módulos não foram afetados.
 
 ## Detalhes técnicos
 
-- Atualização de dados na tabela `company_modules` para a linha `module = 'pedidos'` da empresa `Raptor Systems`: `status = 'active'`, `ends_at = null`.
-- Após a mudança, a RPC `can_use_orders_module` passa a retornar `effective_status = 'active'` e o Hub deixa de exibir o selo de Trial.
-- Sem alterações de schema, RLS ou Edge Functions.
+- Reutilizar os componentes compartilhados `SidebarSection` e `SidebarNavItem` e os ícones já adotados nas páginas do módulo.
+- A correção é exclusivamente de navegação/apresentação; não altera trial, contratação, permissões ou dados do backend.
