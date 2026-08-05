@@ -45,10 +45,9 @@ export function ModuleSwitcherChip() {
         </SheetHeader>
 
         <div className="mt-4 space-y-2">
-          {MODULES.map((mod) => {
+          {MODULES.filter((mod) => mod.available && isModuleUsable(getStatus(mod.slug))).map((mod) => {
             const activeSlug = MODULE_TO_ACTIVE[mod.slug];
-            const status = getStatus(mod.slug);
-            const usable = isModuleUsable(status) && mod.available;
+            const usable = true;
             const isActive = activeSlug === active;
             const Icon = mod.icon;
             return (
@@ -87,7 +86,7 @@ export function ModuleSwitcherChip() {
           }}
         >
           <LayoutGrid className="h-4 w-4" />
-          Voltar ao Hub
+          Conhecer outros módulos
         </Button>
       </SheetContent>
     </Sheet>
