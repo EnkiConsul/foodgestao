@@ -180,7 +180,7 @@ export function buildDescription(t: EnrichInput, options: EnrichOptions = {}): s
             : 'Transferência';
   const verb = amt < 0 ? 'enviado para' : 'recebido de';
 
-  const name = counterpartyName(t);
+  const name = externalCounterpartyName(t, options);
   if (name) return `${label} ${verb} ${name}`;
 
   const masked = maskDocument(side?.documentNumber?.value);
