@@ -196,8 +196,13 @@ export function pickSourceDescription(t: EnrichInput): string {
   return primary;
 }
 
-/** Descrição final a ser exibida na conciliação. */
+/** Descrição final a ser exibida na conciliação (sanitizada e limitada). */
 export function buildDescription(t: EnrichInput, options: EnrichOptions = {}): string {
+  return sanitizeDescription(buildDescriptionInternal(t, options)) ||
+    'Lançamento sem descrição';
+}
+
+function buildDescriptionInternal(t: EnrichInput, options: EnrichOptions = {}): string {
   const raw = pickSourceDescription(t);
 
   if (!isGenericDescription(raw)) {
