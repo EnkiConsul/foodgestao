@@ -195,32 +195,67 @@ function CozinhaContent() {
           <link rel="canonical" href="/pedidos/cozinha" />
         </Helmet>
 
-        <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Button asChild variant="ghost" size="icon" className="min-h-11 min-w-11">
-              <Link to="/pedidos/central" aria-label="Voltar para a central de pedidos">
-                <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-              </Link>
-            </Button>
-            <div>
-              <h1 className="flex items-center gap-2 text-2xl font-bold">
-                <ChefHat className="h-6 w-6 text-primary" aria-hidden="true" /> Cozinha
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {queue.length} comanda{queue.length === 1 ? "" : "s"} em produção
-                {lateTickets.length > 0 ? ` · ${lateTickets.length} atrasada(s)` : ""}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
+        <OrdersPageHeader
+          backTo="/pedidos/central"
+          backLabel="Voltar para a central de pedidos"
+          title="Cozinha"
+          icon={<ChefHat className="h-6 w-6 text-primary" aria-hidden="true" />}
+          subtitle={`${queue.length} comanda${queue.length === 1 ? "" : "s"} em produção${
+            lateTickets.length > 0 ? ` · ${lateTickets.length} atrasada(s)` : ""
+          }`}
+          actions={
+            <>
+              {(units ?? []).length > 1 && (
+                <Select value={unit?.id ?? ""} onValueChange={setUnitId}>
+                  <SelectTrigger
+                    id="kitchen-unit"
+                    aria-label="Unidade"
+                    className="hidden min-h-11 w-48 md:flex"
+                  >
+                    <SelectValue placeholder="Unidade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(units ?? []).map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 md:min-h-11 md:min-w-11"
+                aria-label={dark ? "Usar tema claro" : "Usar tema escuro"}
+                onClick={() => setDark((v) => !v)}
+              >
+                {dark ? (
+                  <Sun className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <Moon className="h-4 w-4" aria-hidden="true" />
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 md:min-h-11 md:min-w-11"
+                aria-label="Atualizar fila"
+                onClick={() => void refetch()}
+              >
+                <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} aria-hidden="true" />
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-3">
             {(units ?? []).length > 1 && (
-              <div className="flex items-center gap-2">
-                <Label htmlFor="kitchen-unit" className="text-xs">
+              <div className="space-y-1 md:hidden">
+                <Label htmlFor="kitchen-unit-mobile" className="text-[11px] text-muted-foreground">
                   Unidade
                 </Label>
                 <Select value={unit?.id ?? ""} onValueChange={setUnitId}>
-                  <SelectTrigger id="kitchen-unit" className="min-h-11 w-48">
+                  <SelectTrigger id="kitchen-unit-mobile" className="min-h-11">
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
@@ -233,45 +268,30 @@ function CozinhaContent() {
                 </Select>
               </div>
             )}
-            <Button
-              variant="outline"
-              size="icon"
-              className="min-h-11 min-w-11"
-              aria-label={dark ? "Usar tema claro" : "Usar tema escuro"}
-              onClick={() => setDark((v) => !v)}
-            >
-              {dark ? <Sun className="h-4 w-4" aria-hidden="true" /> : <Moon className="h-4 w-4" aria-hidden="true" />}
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="min-h-11 min-w-11"
-              aria-label="Atualizar fila"
-              onClick={() => void refetch()}
-            >
-              <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} aria-hidden="true" />
-            </Button>
+
+            <ScrollRow>
+              <Tabs value={station} onValueChange={(v) => setStation(v as PrintStation | "all")}>
+                <TabsList className="h-11">
+                  <TabsTrigger value="all">Todas</TabsTrigger>
+                  {PRINT_STATIONS.filter((s) => s !== "expedicao").map((s) => (
+                    <TabsTrigger key={s} value={s}>
+                      {STATION_LABELS[s]}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            </ScrollRow>
           </div>
-        </header>
+        </OrdersPageHeader>
 
-        <div className="mb-4 space-y-3">
-          <Tabs value={station} onValueChange={(v) => setStation(v as PrintStation | "all")}>
-            <TabsList>
-              <TabsTrigger value="all">Todas</TabsTrigger>
-              {PRINT_STATIONS.filter((s) => s !== "expedicao").map((s) => (
-                <TabsTrigger key={s} value={s}>
-                  {STATION_LABELS[s]}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-
+        <div className="mb-4">
           <AlertsControl
             alerts={alerts}
             pendingCount={lateTickets.length}
             onAcknowledgeAll={() => alerts.acknowledgeAll(lateTickets.map((t) => `late:${t.id}`))}
           />
         </div>
+
 
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Carregando fila de produção…</p>
