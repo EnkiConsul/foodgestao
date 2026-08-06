@@ -87,7 +87,7 @@ const UF_TIMEZONE: Record<string, (typeof TIMEZONES)[number]> = {
   RN: "America/Fortaleza",
   PB: "America/Fortaleza",
   PE: "America/Recife",
-  AL: "America/Maceio" as never,
+  AL: "America/Recife",
   BA: "America/Bahia",
   SE: "America/Bahia",
 };
