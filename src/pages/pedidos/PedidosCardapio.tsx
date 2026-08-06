@@ -1,8 +1,6 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
 import {
-  ArrowLeft,
   ChevronDown,
   ChevronUp,
   Copy,
@@ -30,6 +28,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { OrdersGuard } from "@/components/orders/OrdersGuard";
+import { OrdersPageHeader } from "@/components/orders/OrdersPageHeader";
 import { ProductSheet } from "@/components/orders/catalog/ProductSheet";
 import {
   CATALOG_STATE_LABELS,
@@ -122,17 +121,25 @@ function CatalogContent() {
         <meta name="description" content="Monte o cardápio do módulo Pedidos: categorias, produtos, variações, complementos e disponibilidade por unidade." />
       </Helmet>
 
-      <div className="mb-6 flex flex-wrap items-start gap-3">
-        <Button asChild variant="ghost" size="sm">
-          <Link to="/pedidos"><ArrowLeft className="mr-2 h-4 w-4" /> Pedidos</Link>
-        </Button>
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-bold md:text-3xl">Cardápio</h1>
-          <p className="text-sm text-muted-foreground">
-            Categorias, produtos, variações, complementos e disponibilidade por unidade.
-          </p>
-        </div>
-      </div>
+      <OrdersPageHeader
+        backTo="/pedidos"
+        backLabel="Voltar ao módulo Pedidos"
+        title="Cardápio"
+        icon={<UtensilsCrossed className="h-6 w-6 text-primary" aria-hidden="true" />}
+        subtitle="Categorias, produtos, variações e disponibilidade por unidade."
+        actions={
+          !readOnly && (menus ?? []).length > 0 ? (
+            <Button
+              className="min-h-10 md:min-h-11"
+              disabled={!activeMenuId}
+              onClick={() => { setSheetProduct(null); setSheetOpen(true); }}
+            >
+              <Plus className="h-4 w-4 md:mr-2" aria-hidden="true" />
+              <span className="hidden md:inline">Novo produto</span>
+            </Button>
+          ) : undefined
+        }
+      />
 
       {(menus ?? []).length === 0 ? (
         <Card>
@@ -165,7 +172,7 @@ function CatalogContent() {
           <Card className="mb-4">
             <CardContent className="flex flex-wrap items-center gap-2 p-4">
               <Select value={activeMenuId ?? ""} onValueChange={(v) => { setMenuId(v); setCategoryFilter("all"); }}>
-                <SelectTrigger className="w-full sm:w-64"><SelectValue placeholder="Cardápio" /></SelectTrigger>
+                <SelectTrigger className="min-h-11 w-full sm:w-64"><SelectValue placeholder="Cardápio" /></SelectTrigger>
                 <SelectContent>
                   {(menus ?? []).map((m) => (
                     <SelectItem key={m.id} value={m.id}>
@@ -178,15 +185,16 @@ function CatalogContent() {
               {activeMenu && (
                 <Badge variant={CATALOG_STATE_VARIANTS[activeMenu.state]}>{CATALOG_STATE_LABELS[activeMenu.state]}</Badge>
               )}
-              <div className="ml-auto flex flex-wrap items-center gap-2">
+              <div className="grid w-full gap-2 sm:ml-auto sm:flex sm:w-auto sm:flex-wrap sm:items-center">
                 <Select value={dupUnitId} onValueChange={setDupUnitId}>
-                  <SelectTrigger className="w-44"><SelectValue placeholder="Duplicar para..." /></SelectTrigger>
+                  <SelectTrigger className="min-h-11 w-full sm:w-44"><SelectValue placeholder="Duplicar para..." /></SelectTrigger>
                   <SelectContent>
                     {(units ?? []).map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <Button
                   variant="outline"
+                  className="min-h-11"
                   disabled={readOnly || !dupUnitId || !activeMenuId || duplicateMenu.isPending}
                   onClick={async () => {
                     const id = await duplicateMenu.mutateAsync({ menuId: activeMenuId!, targetUnitId: dupUnitId });
@@ -201,20 +209,20 @@ function CatalogContent() {
           </Card>
 
           {/* busca e filtros */}
-          <div className="mb-4 flex flex-wrap items-center gap-2">
+          <div className="mb-4 grid gap-2 sm:flex sm:flex-wrap sm:items-center">
             <div className="relative min-w-[200px] flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-9" placeholder="Buscar produto ou código" value={search} onChange={(e) => setSearch(e.target.value)} />
+              <Input className="min-h-11 pl-9" placeholder="Buscar produto ou código" value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full min-h-11 sm:w-44"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as categorias</SelectItem>
                 {(categories ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={stateFilter} onValueChange={(v) => setStateFilter(v as typeof stateFilter)}>
-              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full min-h-11 sm:w-40"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="not_archived">Ativos e rascunhos</SelectItem>
                 <SelectItem value="all">Todos</SelectItem>
@@ -228,16 +236,17 @@ function CatalogContent() {
 
           {/* criação rápida de categoria */}
           <div className="mb-4 flex gap-2">
-            <Input placeholder="Nova categoria (ex.: Hambúrgueres)" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} disabled={readOnly} />
+            <Input className="min-h-11" placeholder="Nova categoria (ex.: Hambúrgueres)" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} disabled={readOnly} />
             <Button
               variant="outline"
+              className="min-h-11 shrink-0"
               disabled={readOnly || !newCategoryName.trim() || !activeMenuId}
               onClick={async () => {
                 await saveCategory.mutateAsync({ menu_id: activeMenuId!, name: newCategoryName });
                 setNewCategoryName("");
               }}
             >
-              <Plus className="mr-2 h-4 w-4" /> Categoria
+              <Plus className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Categoria</span>
             </Button>
           </div>
 
@@ -280,7 +289,7 @@ function CatalogContent() {
                           { unitId: null, channel: null, now: new Date() },
                         );
                         return (
-                          <li key={p.id} className="flex flex-wrap items-center gap-3 rounded-lg border p-3">
+                          <li key={p.id} className="grid grid-cols-[3rem_1fr] items-center gap-x-3 gap-y-2 rounded-lg border p-3 sm:flex sm:flex-wrap">
                             <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
                               <ImageOff className="h-4 w-4 text-muted-foreground" />
                             </div>
@@ -296,11 +305,13 @@ function CatalogContent() {
                                 {p.prep_time_minutes ? ` · ${p.prep_time_minutes} min` : ""}
                               </p>
                             </button>
-                            <Badge variant={CATALOG_STATE_VARIANTS[p.state]}>{CATALOG_STATE_LABELS[p.state]}</Badge>
-                            {!availability.available && availability.reason && p.state === "active" && (
-                              <Badge variant="destructive">{UNAVAILABLE_LABELS[availability.reason]}</Badge>
-                            )}
-                            <div className="flex items-center gap-1">
+                            <div className="col-start-2 flex flex-wrap items-center gap-1 sm:col-auto">
+                              <Badge variant={CATALOG_STATE_VARIANTS[p.state]}>{CATALOG_STATE_LABELS[p.state]}</Badge>
+                              {!availability.available && availability.reason && p.state === "active" && (
+                                <Badge variant="destructive">{UNAVAILABLE_LABELS[availability.reason]}</Badge>
+                              )}
+                            </div>
+                            <div className="col-span-2 flex items-center gap-1 border-t pt-2 sm:col-span-1 sm:border-0 sm:pt-0">
                               <Button size="icon" variant="ghost" disabled={readOnly || index === 0}
                                 onClick={() => reorder.mutate({ kind: "product", ids: moveItem(items.map((x) => x.id), index, index - 1) })}>
                                 <ChevronUp className="h-4 w-4" />
