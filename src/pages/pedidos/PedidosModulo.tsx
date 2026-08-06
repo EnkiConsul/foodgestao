@@ -257,8 +257,9 @@ export default function PedidosModulo() {
           </section>
 
           <section aria-labelledby="atalhos" className="space-y-3">
-            <h2 id="atalhos" className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            <h2 id="atalhos" className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               Atalhos do módulo
+              <HelpHint text={HELP.atalhos} label="Ajuda sobre os atalhos do módulo" />
             </h2>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {SHORTCUTS.map(({ to, icon: Icon, title, desc }) => (

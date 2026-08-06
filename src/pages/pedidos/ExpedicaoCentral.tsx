@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { OrdersGuard } from "@/components/orders/OrdersGuard";
+import { HelpHint } from "@/components/common/HelpHint";
 import { OrdersPageHeader } from "@/components/orders/OrdersPageHeader";
 import { AlertsControl } from "@/components/orders/alerts/AlertsControl";
 import { useOrdersAlerts } from "@/hooks/useOrdersAlerts";
@@ -42,6 +43,18 @@ const EMPTY_CHECK: ExpeditionChecklistState = {
   packagingChecked: false,
   drinksChecked: false,
 };
+
+
+const HELP = {
+  title: "Conferência dos pedidos prontos: confira itens, defina o entregador e libere a saída.",
+  unit: "Escolha qual unidade da rede você quer acompanhar.",
+  requireChecklist: "Exige que os itens sejam conferidos antes de liberar o pedido para saída.",
+  refresh: "Atualiza a fila de expedição manualmente.",
+  checklistItem: "Marque quando este item da conferência estiver concluído.",
+  courier: "Nome de quem vai entregar o pedido, exibido na comanda impressa.",
+  release: "Libera o pedido para entrega ou retirada, avançando sua etapa.",
+  print: "Envia a via de expedição para a impressora.",
+} as const;
 
 function ExpedicaoContent() {
   const { entitlement, readOnly } = useOrdersEntitlement("orders.expedition");
