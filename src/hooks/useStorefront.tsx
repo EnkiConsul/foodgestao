@@ -153,11 +153,11 @@ export function useRemoveStorefrontMedia() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ unitId, kind, path }: { unitId: string; kind: "logo" | "banner"; path: string | null }) => {
-      const column = kind === "logo" ? "logo_url" : "banner_url";
       const { error } = await supabase
         .from("ped_storefronts")
-        .update({ [column]: null })
+        .update(kind === "logo" ? { logo_url: null } : { banner_url: null })
         .eq("unit_id", unitId);
+
       if (error) throw error;
       if (path) await supabase.storage.from(BUCKET).remove([path]);
     },
