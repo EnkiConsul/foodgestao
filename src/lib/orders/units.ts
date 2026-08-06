@@ -71,6 +71,50 @@ export const TIMEZONES = [
   "America/Noronha",
 ] as const;
 
+/** Fuso horário sugerido a partir da UF da empresa. */
+const UF_TIMEZONE: Record<string, (typeof TIMEZONES)[number]> = {
+  AC: "America/Rio_Branco",
+  AM: "America/Manaus",
+  RR: "America/Manaus",
+  RO: "America/Manaus",
+  MT: "America/Cuiaba",
+  MS: "America/Cuiaba",
+  PA: "America/Belem",
+  AP: "America/Belem",
+  MA: "America/Fortaleza",
+  PI: "America/Fortaleza",
+  CE: "America/Fortaleza",
+  RN: "America/Fortaleza",
+  PB: "America/Fortaleza",
+  PE: "America/Recife",
+  AL: "America/Maceio" as never,
+  BA: "America/Bahia",
+  SE: "America/Bahia",
+};
+
+export function timezoneForUf(uf?: string | null): (typeof TIMEZONES)[number] {
+  const key = (uf ?? "").trim().toUpperCase();
+  const tz = UF_TIMEZONE[key];
+  return tz && (TIMEZONES as readonly string[]).includes(tz) ? tz : TIMEZONES[0];
+}
+
+/** Monta o endereço da unidade a partir das partes cadastradas na empresa. */
+export function composeCompanyAddress(company: {
+  logradouro?: string | null;
+  numero?: string | null;
+  complemento?: string | null;
+  bairro?: string | null;
+  address?: string | null;
+}): string {
+  const street = [company.logradouro, company.numero].filter(Boolean).join(", ");
+  const parts = [street, company.complemento, company.bairro].filter(
+    (p) => typeof p === "string" && p.trim().length > 0,
+  ) as string[];
+  const composed = parts.join(" — ").trim();
+  return composed || (company.address ?? "").trim();
+}
+
+
 export interface HourPeriod {
   weekday: number;
   opens_at: string; // HH:MM
