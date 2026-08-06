@@ -280,11 +280,30 @@ export const ONBOARDING_STEPS = [
   { step: 1, title: "Cadastre sua operação", desc: "Unidade, responsável e endereço." },
   { step: 2, title: "Configure sua unidade", desc: "Atendimento, horários e preparo." },
   { step: 3, title: "Prepare o recebimento", desc: "Pagamentos, som e notificações." },
-  { step: 4, title: "Teste e abra a unidade", desc: "Checklist, pedido simulado e abertura." },
+  { step: 4, title: "Crie sua página de cardápio", desc: "Link próprio, tema, logo e QR code." },
+  { step: 5, title: "Teste e abra a unidade", desc: "Checklist, pedido simulado e abertura." },
 ] as const;
+
+/** Última etapa controlada pelo servidor (`ped_units.onboarding_step`). */
+export const SERVER_STEPS = 4;
+/** Etapa da loja online e etapa de abertura, na numeração da tela. */
+export const STEP_STOREFRONT = 4;
+export const STEP_OPENING = 5;
 
 export function onboardingProgress(step: number, activated: boolean): number {
   if (activated) return 100;
   const clamped = Math.min(Math.max(step, 1), 5);
   return Math.round(((clamped - 1) / 4) * 100);
 }
+
+/** Progresso considerando a etapa da loja online (5 etapas na tela). */
+export function onboardingProgressWithStorefront(
+  serverStep: number,
+  storefrontPublished: boolean,
+  activated: boolean,
+): number {
+  if (activated) return 100;
+  const done = Math.min(Math.max(serverStep, 1), SERVER_STEPS) - 1 + (storefrontPublished ? 1 : 0);
+  return Math.round((done / 5) * 100);
+}
+

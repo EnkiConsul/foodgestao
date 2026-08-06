@@ -173,6 +173,8 @@ const Checkout = lazyWithRetry(() => import("./pages/Checkout"));
 const CheckoutPagamento = lazyWithRetry(() => import("./pages/CheckoutPagamento"));
 const Faturas = lazyWithRetry(() => import("./pages/Faturas"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
+const LojaOnline = lazyWithRetry(() => import("./pages/storefront/LojaOnline"));
+
 const Unsubscribe = lazyWithRetry(() => import("./pages/Unsubscribe"));
 const Privacidade = lazyWithRetry(() => import("./pages/legal/Privacidade"));
 const Termos = lazyWithRetry(() => import("./pages/legal/Termos"));
@@ -514,7 +516,9 @@ const AppRoutes = () => (
         <Route path="/admin/mais" element={<Mais />} />
 
       </Route>
+      <Route path="/c/:slug" element={<LojaOnline />} />
       <Route path="/convite/:token" element={<AcceptInvite />} />
+
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/privacidade" element={<Privacidade />} />
       <Route path="/termos" element={<Termos />} />

@@ -28,6 +28,8 @@ import { OrdersPageHeader } from "@/components/orders/OrdersPageHeader";
 import { HelpHint } from "@/components/common/HelpHint";
 import { StepErrors } from "@/components/orders/onboarding/StepErrors";
 import { StepOperacao } from "@/components/orders/onboarding/StepOperacao";
+import StepCardapioOnline from "@/components/orders/onboarding/StepCardapioOnline";
+import { useStorefront } from "@/hooks/useStorefront";
 import { useOrdersEntitlement } from "@/hooks/useOrdersEntitlement";
 import {
   useActivateOrdersUnit,
@@ -52,7 +54,7 @@ import {
   UNIT_STATE_LABELS,
   WEEKDAYS,
   isValidMenuUrl,
-  onboardingProgress,
+  onboardingProgressWithStorefront,
   validateHourExceptions,
   validateHourPeriods,
   type ChecklistItem,
@@ -83,7 +85,10 @@ const HELP = {
   step1: "Dados de identificação da unidade: nome, código, contato e localização.",
   step2: "Como a unidade atende, quais canais usa e os horários de funcionamento.",
   step3: "Como os pedidos são recebidos: pagamentos, aceite e alertas.",
+  step4Cardapio:
+    "Gera uma página pública de cardápio com link próprio e QR code, montada com os produtos já cadastrados.",
   step4: "Checklist final e abertura da unidade para começar a receber pedidos.",
+
 } as const;
 
 // ---------------- Etapa 2 ----------------
@@ -547,12 +552,18 @@ function OnboardingContent() {
   useEffect(() => {
     if (unit) {
       setUnitId(unit.id);
-      setStep((prev) => Math.max(prev, Math.min(unit.onboarding_step, 4)));
+      setStep((prev) => Math.max(prev, Math.min(unit.onboarding_step, 5)));
     }
   }, [unit?.id, unit?.onboarding_step, unit]);
 
   const activated = Boolean(unit?.activated_at);
-  const progress = onboardingProgress(unit?.onboarding_step ?? 1, activated);
+  const { data: storefront } = useStorefront(unit?.id ?? null);
+  const storefrontPublished = Boolean(storefront?.is_published);
+  const progress = onboardingProgressWithStorefront(
+    unit?.onboarding_step ?? 1,
+    storefrontPublished,
+    activated,
+  );
 
   if (isLoading) {
     return (
@@ -618,7 +629,13 @@ function OnboardingContent() {
       <div className="space-y-3">
         {ONBOARDING_STEPS.map((s) => {
           const active = step === s.step;
-          const done = (unit?.onboarding_step ?? 1) > s.step || (activated && s.step === 4);
+          const serverStep = unit?.onboarding_step ?? 1;
+          const done =
+            s.step <= 3
+              ? serverStep > s.step
+              : s.step === 4
+                ? storefrontPublished
+                : activated;
           const locked = !unit && s.step > 1;
           return (
             <Card key={s.step} className={active ? "border-primary/40" : undefined}>
@@ -647,7 +664,9 @@ function OnboardingContent() {
                               ? HELP.step2
                               : s.step === 3
                                 ? HELP.step3
-                                : HELP.step4
+                                : s.step === 4
+                                  ? HELP.step4Cardapio
+                                  : HELP.step4
                         }
                       />
                     </span>
@@ -667,7 +686,10 @@ function OnboardingContent() {
                     )}
                     {s.step === 2 && unit && <StepUnidade unit={unit} onSaved={() => setStep(3)} />}
                     {s.step === 3 && unit && <StepRecebimento unit={unit} onSaved={() => setStep(4)} />}
-                    {s.step === 4 && unit && <StepAbertura unit={unit} />}
+                    {s.step === 4 && unit && (
+                      <StepCardapioOnline unit={unit} onSaved={() => setStep(5)} />
+                    )}
+                    {s.step === 5 && unit && <StepAbertura unit={unit} />}
                     {s.step > 1 && !unit && (
                       <p className="text-sm text-muted-foreground">
                         Cadastre a operação na etapa 1 para continuar.
