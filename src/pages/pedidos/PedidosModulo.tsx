@@ -321,6 +321,8 @@ export default function PedidosModulo() {
                         Iniciar meus {ORDERS_TRIAL_DAYS} dias gratuitos
                       </Button>
                     </AlertDialogTrigger>
+                      <HelpHint text={HELP.trial} label="Ajuda sobre o teste gratuito" />
+                    </div>
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Iniciar teste gratuito?</AlertDialogTitle>

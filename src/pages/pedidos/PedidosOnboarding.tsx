@@ -637,22 +637,23 @@ function OnboardingContent() {
                     {done ? <CheckCircle2 className="h-4 w-4" /> : s.step}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold">{s.title}</span>
+                    <span className="flex items-center gap-1.5 text-sm font-semibold">
+                      {s.title}
+                      <HelpHint
+                        text={
+                          s.step === 1
+                            ? HELP.step1
+                            : s.step === 2
+                              ? HELP.step2
+                              : s.step === 3
+                                ? HELP.step3
+                                : HELP.step4
+                        }
+                      />
+                    </span>
                     <span className="block text-xs text-muted-foreground">{s.desc}</span>
                   </span>
                 </button>
-                <HelpHint
-                  className="ml-11 -mt-1"
-                  text={
-                    s.step === 1
-                      ? HELP.step1
-                      : s.step === 2
-                        ? HELP.step2
-                        : s.step === 3
-                          ? HELP.step3
-                          : HELP.step4
-                  }
-                />
                 {active && (
                   <div className="mt-4 border-t pt-4">
                     {s.step === 1 && (
