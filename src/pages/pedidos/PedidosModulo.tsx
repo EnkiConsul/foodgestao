@@ -185,7 +185,10 @@ export default function PedidosModulo() {
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Pedidos 360°</h1>
+              <h1 className="flex items-center gap-1.5 text-2xl font-bold tracking-tight md:text-3xl">
+                Pedidos 360°
+                <HelpHint text={HELP.titulo} label="Ajuda sobre o módulo Pedidos" />
+              </h1>
               {usable && (
                 <Badge className="gap-1">
                   <CheckCircle2 className="h-3 w-3" aria-hidden="true" />

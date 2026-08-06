@@ -320,9 +320,15 @@ function CatalogContent() {
                               className="min-w-0 flex-1 text-left"
                               onClick={() => { setSheetProduct(p); setSheetOpen(true); }}
                             >
-                              <p className="truncate text-sm font-medium">{p.name}</p>
+                              <span className="flex items-center gap-1.5">
+                                <p className="truncate text-sm font-medium">{p.name}</p>
+                                <HelpHint text={HELP.produto} />
+                              </span>
                               <p className="truncate text-xs text-muted-foreground">
-                                {formatCents(p.base_price_cents)}
+                                <span className="inline-flex items-center gap-1">
+                                  {formatCents(p.base_price_cents)}
+                                  <HelpHint text={HELP.preco} />
+                                </span>
                                 {p.internal_code ? ` · ${p.internal_code}` : ""}
                                 {p.prep_time_minutes ? ` · ${p.prep_time_minutes} min` : ""}
                               </p>
@@ -332,6 +338,7 @@ function CatalogContent() {
                               {!availability.available && availability.reason && p.state === "active" && (
                                 <Badge variant="destructive">{UNAVAILABLE_LABELS[availability.reason]}</Badge>
                               )}
+                              <HelpHint text={HELP.disponibilidade} />
                             </div>
                             <div className="col-span-2 flex items-center gap-1 border-t pt-2 sm:col-span-1 sm:border-0 sm:pt-0">
                               <Button size="icon" variant="ghost" disabled={readOnly || index === 0}
