@@ -356,10 +356,7 @@ export default function LojaOnline() {
         product={product}
         open={productOpen}
         onOpenChange={setProductOpen}
-        onAdd={(item) => {
-          if (store.store.online_cart_enabled) addItem(item);
-          else addItem(item);
-        }}
+        onAdd={addItem}
       />
 
       <StorefrontCheckoutSheet
