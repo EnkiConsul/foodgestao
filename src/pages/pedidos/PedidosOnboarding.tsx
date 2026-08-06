@@ -135,8 +135,9 @@ function StepUnidade({ unit, onSaved }: { unit: OrdersUnit; onSaved: () => void 
   return (
     <div className="space-y-5">
       <div className="space-y-2">
-        <Label>
+        <Label className="flex items-center gap-1.5">
           Formas de atendimento <span className="text-destructive">*</span>
+          <HelpHint text={HELP.formasAtendimento} />
         </Label>
         <div className="grid gap-2 sm:grid-cols-2">
           {FULFILLMENT_MODES.map((m) => (
@@ -149,8 +150,9 @@ function StepUnidade({ unit, onSaved }: { unit: OrdersUnit; onSaved: () => void 
       </div>
 
       <div className="space-y-2">
-        <Label>
+        <Label className="flex items-center gap-1.5">
           Canais de origem do pedido <span className="text-destructive">*</span>
+          <HelpHint text={HELP.canaisOrigem} />
         </Label>
         <div className="grid gap-2 sm:grid-cols-2">
           {ORDER_CHANNELS.map((c) => (
@@ -167,14 +169,17 @@ function StepUnidade({ unit, onSaved }: { unit: OrdersUnit; onSaved: () => void 
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="prep">
+          <Label htmlFor="prep" className="flex items-center gap-1.5">
             Tempo padrão de preparo (min) <span className="text-destructive">*</span>
+            <HelpHint text={HELP.prep} />
           </Label>
           <Input id="prep" type="number" min={1} max={480} value={prep} onChange={(e) => setPrep(Number(e.target.value))} />
         </div>
         <div className="flex items-center justify-between rounded-md border p-3">
           <div>
-            <p className="text-sm font-medium">Pedidos agendados</p>
+            <p className="flex items-center gap-1.5 text-sm font-medium">
+              Pedidos agendados <HelpHint text={HELP.agendados} />
+            </p>
             <p className="text-xs text-muted-foreground">Opcional</p>
           </div>
           <Switch checked={scheduled} onCheckedChange={setScheduled} />
@@ -183,8 +188,9 @@ function StepUnidade({ unit, onSaved }: { unit: OrdersUnit; onSaved: () => void 
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label>
+          <Label className="flex items-center gap-1.5">
             Horários de funcionamento <span className="text-destructive">*</span>
+            <HelpHint text={HELP.horarios} />
           </Label>
           <Button
             type="button"
@@ -249,7 +255,9 @@ function StepUnidade({ unit, onSaved }: { unit: OrdersUnit; onSaved: () => void 
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label>Feriados e datas especiais (opcional)</Label>
+          <Label className="flex items-center gap-1.5">
+            Feriados e datas especiais (opcional) <HelpHint text={HELP.feriados} />
+          </Label>
           <Button
             type="button"
             size="sm"
@@ -369,8 +377,9 @@ function StepRecebimento({ unit, onSaved }: { unit: OrdersUnit; onSaved: () => v
   return (
     <div className="space-y-5">
       <div className="space-y-2">
-        <Label>
+        <Label className="flex items-center gap-1.5">
           Formas de recebimento <span className="text-destructive">*</span>
+          <HelpHint text={HELP.recebimento} />
         </Label>
         <div className="grid gap-2 sm:grid-cols-2">
           {PAYMENT_KINDS.map((k) => (
@@ -389,8 +398,9 @@ function StepRecebimento({ unit, onSaved }: { unit: OrdersUnit; onSaved: () => v
       </div>
 
       <div className="space-y-1.5">
-        <Label>
+        <Label className="flex items-center gap-1.5">
           Aceite dos pedidos <span className="text-destructive">*</span>
+          <HelpHint text={HELP.aceite} />
         </Label>
         <Select value={acceptMode} onValueChange={(v) => setAcceptMode(v as "manual" | "automatic")}>
           <SelectTrigger>
@@ -404,7 +414,10 @@ function StepRecebimento({ unit, onSaved }: { unit: OrdersUnit; onSaved: () => v
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="menu">Link do cardápio (próprio ou externo) <span className="text-destructive">*</span></Label>
+        <Label htmlFor="menu" className="flex items-center gap-1.5">
+          Link do cardápio (próprio ou externo) <span className="text-destructive">*</span>
+          <HelpHint text={HELP.linkCardapio} />
+        </Label>
         <Input id="menu" value={menu} onChange={(e) => setMenu(e.target.value)} placeholder="https://..." />
       </div>
 

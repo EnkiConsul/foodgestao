@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OrdersGuard } from "@/components/orders/OrdersGuard";
+import { HelpHint } from "@/components/common/HelpHint";
 import { OrdersPageHeader, ScrollRow } from "@/components/orders/OrdersPageHeader";
 import { AlertsControl } from "@/components/orders/alerts/AlertsControl";
 import { KitchenTicket } from "@/components/orders/kitchen/KitchenTicket";
@@ -40,6 +41,21 @@ import {
 import { FULFILLMENT_LABELS } from "@/lib/orders/board";
 import { detectConnector, printTickets, type PrintTicketInput } from "@/lib/orders/print";
 import { cn } from "@/lib/utils";
+
+
+const HELP = {
+  title: "Fila de produção da cozinha: acompanhe as comandas por estação e o tempo de preparo.",
+  unit: "Escolha qual unidade da rede você quer acompanhar.",
+  theme: "Alterna entre tema claro e escuro, útil para telas na cozinha com pouca luz.",
+  refresh: "Atualiza a fila de comandas manualmente.",
+  tabAll: "Mostra todas as comandas, de todas as estações de produção.",
+  tabStation: "Mostra apenas as comandas desta estação de produção.",
+  start: "Marca que a comanda começou a ser preparada.",
+  ready: "Marca a comanda como pronta e libera para expedição.",
+  toggleItem: "Marca este item como preparado.",
+  print: "Envia esta comanda para a impressora da estação.",
+  printQueue: "Fila de impressões: acompanhe status, reimprima ou ajuste a impressora.",
+} as const;
 
 function CozinhaContent() {
   const { entitlement, readOnly } = useOrdersEntitlement("orders.kitchen");

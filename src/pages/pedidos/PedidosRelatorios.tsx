@@ -59,6 +59,14 @@ const TIMING_LABEL: Record<string, string> = {
   scheduled: "Agendado",
 };
 
+const EXPORT_HELP: Record<OrdersExportDataset, string> = {
+  orders: "Dados completos de cabeçalho, valores e horários de cada pedido.",
+  items: "Lista de produtos vendidos, quantidades e tempos de preparo por pedido.",
+  payments: "Formas de pagamento usadas, valores recebidos e estornos.",
+  cancellations: "Pedidos cancelados, com motivo e data do cancelamento.",
+  customers: "Dados de clientes vinculados aos pedidos; só disponível com permissão específica.",
+};
+
 const EXPORTS: { key: OrdersExportDataset; label: string; hint: string }[] = [
   { key: "orders", label: "Pedidos", hint: "Cabeçalho, valores e marcos de tempo" },
   { key: "items", label: "Itens", hint: "Produtos, quantidades e preparo" },
@@ -571,7 +579,10 @@ export default function PedidosRelatorios() {
                       className="flex items-center justify-between gap-3 rounded-lg border p-3"
                     >
                       <div>
-                        <p className="text-sm font-medium">{item.label}</p>
+                        <p className="flex items-center gap-1.5 text-sm font-medium">
+                          {item.label}
+                          <HelpHint text={EXPORT_HELP[item.key]} />
+                        </p>
                         <p className="text-xs text-muted-foreground">{item.hint}</p>
                       </div>
                       <Button
