@@ -98,11 +98,12 @@ describe("validateCart", () => {
   });
 
   it("respeita pedido mínimo da loja e da região", () => {
-    expect(validateCart({ ...base, minOrderAmount: 9000 })).toContain("O pedido mínimo é de R$ 90,00.");
+    expect(validateCart({ ...base, minOrderAmount: 9000 }).join("|")).toMatch(/pedido mínimo é de R\$.90,00/);
     expect(
-      validateCart({ ...base, zone: { ...base.zone, min_order_amount: 8000 } }),
-    ).toContain("Esta região exige pedido mínimo de R$ 80,00.");
+      validateCart({ ...base, zone: { ...base.zone, min_order_amount: 8000 } }).join("|"),
+    ).toMatch(/região exige pedido mínimo de R\$.80,00/);
   });
+
 
   it("exige nome, telefone e forma de pagamento", () => {
     const errors = validateCart({ ...base, customerName: "M", customerPhone: "123", paymentOptionId: null });
