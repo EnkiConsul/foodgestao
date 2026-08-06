@@ -233,8 +233,9 @@ export default function PedidosModulo() {
         <>
           <section aria-labelledby="operacao-agora" className="space-y-3">
             <div className="flex items-end justify-between gap-3">
-              <h2 id="operacao-agora" className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              <h2 id="operacao-agora" className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                 Operação agora
+                <HelpHint text={HELP.operacao} label="Ajuda sobre a operação de agora" />
               </h2>
               {unit && (
                 <Link to="/pedidos/central" className="text-xs font-medium text-primary hover:underline">

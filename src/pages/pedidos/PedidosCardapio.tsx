@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { OrdersGuard } from "@/components/orders/OrdersGuard";
 import { OrdersPageHeader } from "@/components/orders/OrdersPageHeader";
+import { HelpHint } from "@/components/common/HelpHint";
 import { ProductSheet } from "@/components/orders/catalog/ProductSheet";
 import {
   CATALOG_STATE_LABELS,
@@ -54,6 +55,16 @@ import {
 } from "@/hooks/useOrdersCatalog";
 import { useOrdersEntitlement } from "@/hooks/useOrdersEntitlement";
 import { useOrdersUnits } from "@/hooks/useOrdersUnits";
+
+
+const HELP = {
+  pageTitle: "Monte o cardápio: crie categorias, cadastre produtos e defina preço e disponibilidade.",
+  cardapio: "Conjunto de categorias e produtos oferecidos. Pode haver mais de um por unidade.",
+  categoria: "Agrupa produtos parecidos, ex.: Bebidas, Lanches. Organiza a exibição no cardápio.",
+  produto: "Item vendido: nome, preço, foto, variações e complementos.",
+  disponibilidade: "Indica se o produto está disponível, pausado ou fora de estoque para venda agora.",
+  preco: "Valor de venda do produto exibido ao cliente no momento do pedido.",
+} as const;
 
 function CatalogContent() {
   const { entitlement } = useOrdersEntitlement("orders.catalog");
@@ -126,7 +137,12 @@ function CatalogContent() {
         backLabel="Voltar ao módulo Pedidos"
         title="Cardápio"
         icon={<UtensilsCrossed className="h-6 w-6 text-primary" aria-hidden="true" />}
-        subtitle="Categorias, produtos, variações e disponibilidade por unidade."
+        subtitle={
+          <span className="inline-flex items-center gap-1">
+            Categorias, produtos, variações e disponibilidade por unidade.
+            <HelpHint text={HELP.pageTitle} />
+          </span>
+        }
         actions={
           !readOnly && (menus ?? []).length > 0 ? (
             <Button
@@ -171,6 +187,7 @@ function CatalogContent() {
           {/* seletor de cardápio + duplicação entre unidades */}
           <Card className="mb-4">
             <CardContent className="flex flex-wrap items-center gap-2 p-4">
+              <HelpHint text={HELP.cardapio} className="shrink-0" />
               <Select value={activeMenuId ?? ""} onValueChange={(v) => { setMenuId(v); setCategoryFilter("all"); }}>
                 <SelectTrigger className="min-h-11 w-full sm:w-64"><SelectValue placeholder="Cardápio" /></SelectTrigger>
                 <SelectContent>
@@ -235,6 +252,10 @@ function CatalogContent() {
           </div>
 
           {/* criação rápida de categoria */}
+          <div className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span>Nova categoria</span>
+            <HelpHint text={HELP.categoria} />
+          </div>
           <div className="mb-4 flex gap-2">
             <Input className="min-h-11" placeholder="Nova categoria (ex.: Hambúrgueres)" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} disabled={readOnly} />
             <Button
@@ -262,6 +283,7 @@ function CatalogContent() {
                 <CardContent className="p-4">
                   <div className="mb-3 flex items-center gap-2">
                     <h2 className="min-w-0 flex-1 truncate font-semibold">{category.name}</h2>
+                    <HelpHint text={HELP.categoria} />
                     <Badge variant="outline">{items.length}</Badge>
                     <Button size="icon" variant="ghost" disabled={readOnly || catIndex === 0}
                       onClick={() => reorder.mutate({ kind: "category", ids: moveItem(grouped.map((g) => g.category.id), catIndex, catIndex - 1) })}>
