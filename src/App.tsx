@@ -514,7 +514,9 @@ const AppRoutes = () => (
         <Route path="/admin/mais" element={<Mais />} />
 
       </Route>
+      <Route path="/c/:slug" element={<LojaOnline />} />
       <Route path="/convite/:token" element={<AcceptInvite />} />
+
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/privacidade" element={<Privacidade />} />
       <Route path="/termos" element={<Termos />} />
