@@ -22,6 +22,18 @@ import {
   validateUnitIdentity,
 } from "@/lib/orders/units";
 import { StepErrors } from "@/components/orders/onboarding/StepErrors";
+import { HelpHint } from "@/components/common/HelpHint";
+
+
+const HELP = {
+  nome: "Nome usado para identificar esta unidade em relatórios e telas do módulo.",
+  codigo: "Código próprio para identificar a unidade internamente, ex.: LOJA-01.",
+  telefone: "Telefone de contato da unidade, exibido em documentos e integrações.",
+  endereco: "Endereço completo da unidade, usado em entregas e no cardápio.",
+  cidade: "Cidade onde a unidade está localizada.",
+  uf: "Estado (sigla) onde a unidade está localizada, ex.: GO.",
+  timezone: "Fuso horário usado para calcular os horários de funcionamento da unidade.",
+} as const;
 
 interface Props {
   unit: OrdersUnit | null;
@@ -158,8 +170,9 @@ export function StepOperacao({ unit, onSaved }: Props) {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="unit-nome">
+          <Label htmlFor="unit-nome" className="flex items-center gap-1.5">
             Nome da unidade <span className="text-destructive">*</span>
+            <HelpHint text={HELP.nome} />
           </Label>
           <Input
             id="unit-nome"
@@ -170,28 +183,39 @@ export function StepOperacao({ unit, onSaved }: Props) {
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="unit-codigo">Código interno (opcional)</Label>
+          <Label htmlFor="unit-codigo" className="flex items-center gap-1.5">
+            Código interno (opcional) <HelpHint text={HELP.codigo} />
+          </Label>
           <Input id="unit-codigo" value={codigo} maxLength={30} onChange={(e) => setCodigo(e.target.value)} placeholder="Ex.: LOJA-01" />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="unit-telefone">Telefone (opcional)</Label>
+          <Label htmlFor="unit-telefone" className="flex items-center gap-1.5">
+            Telefone (opcional) <HelpHint text={HELP.telefone} />
+          </Label>
           <Input id="unit-telefone" value={telefone} maxLength={20} onChange={(e) => setTelefone(e.target.value)} placeholder="(62) 99999-0000" />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="unit-endereco">Endereço (opcional)</Label>
+          <Label htmlFor="unit-endereco" className="flex items-center gap-1.5">
+            Endereço (opcional) <HelpHint text={HELP.endereco} />
+          </Label>
           <Input id="unit-endereco" value={endereco} maxLength={200} onChange={(e) => setEndereco(e.target.value)} placeholder="Rua, número, bairro" />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="unit-cidade">Cidade (opcional)</Label>
+          <Label htmlFor="unit-cidade" className="flex items-center gap-1.5">
+            Cidade (opcional) <HelpHint text={HELP.cidade} />
+          </Label>
           <Input id="unit-cidade" value={cidade} maxLength={80} onChange={(e) => setCidade(e.target.value)} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="unit-uf">UF (opcional)</Label>
+          <Label htmlFor="unit-uf" className="flex items-center gap-1.5">
+            UF (opcional) <HelpHint text={HELP.uf} />
+          </Label>
           <Input id="unit-uf" value={uf} maxLength={2} onChange={(e) => setUf(e.target.value.toUpperCase())} placeholder="GO" />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
-          <Label>
+          <Label className="flex items-center gap-1.5">
             Fuso horário da unidade <span className="text-destructive">*</span>
+            <HelpHint text={HELP.timezone} />
           </Label>
           <Select value={timezone} onValueChange={setTimezone}>
             <SelectTrigger>

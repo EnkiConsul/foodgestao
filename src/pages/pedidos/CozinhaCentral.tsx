@@ -50,10 +50,6 @@ const HELP = {
   refresh: "Atualiza a fila de comandas manualmente.",
   tabAll: "Mostra todas as comandas, de todas as estações de produção.",
   tabStation: "Mostra apenas as comandas desta estação de produção.",
-  start: "Marca que a comanda começou a ser preparada.",
-  ready: "Marca a comanda como pronta e libera para expedição.",
-  toggleItem: "Marca este item como preparado.",
-  print: "Envia esta comanda para a impressora da estação.",
   printQueue: "Fila de impressões: acompanhe status, reimprima ou ajuste a impressora.",
 } as const;
 
@@ -221,6 +217,7 @@ function CozinhaContent() {
           }`}
           actions={
             <>
+              <HelpHint text={HELP.title} label="Ajuda sobre a página Cozinha" className="hidden md:inline-flex" />
               {(units ?? []).length > 1 && (
                 <Select value={unit?.id ?? ""} onValueChange={setUnitId}>
                   <SelectTrigger
@@ -252,6 +249,7 @@ function CozinhaContent() {
                   <Moon className="h-4 w-4" aria-hidden="true" />
                 )}
               </Button>
+              <HelpHint text={HELP.theme} label="Ajuda sobre o tema da tela" className="hidden md:inline-flex" />
               <Button
                 variant="outline"
                 size="icon"
@@ -261,14 +259,16 @@ function CozinhaContent() {
               >
                 <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} aria-hidden="true" />
               </Button>
+              <HelpHint text={HELP.refresh} label="Ajuda sobre atualizar a fila" className="hidden md:inline-flex" />
             </>
           }
         >
           <div className="space-y-3">
             {(units ?? []).length > 1 && (
               <div className="space-y-1 md:hidden">
-                <Label htmlFor="kitchen-unit-mobile" className="text-[11px] text-muted-foreground">
+                <Label htmlFor="kitchen-unit-mobile" className="flex items-center gap-1 text-[11px] text-muted-foreground">
                   Unidade
+                  <HelpHint text={HELP.unit} label="Ajuda sobre escolha de unidade" />
                 </Label>
                 <Select value={unit?.id ?? ""} onValueChange={setUnitId}>
                   <SelectTrigger id="kitchen-unit-mobile" className="min-h-11">
@@ -288,10 +288,14 @@ function CozinhaContent() {
             <ScrollRow>
               <Tabs value={station} onValueChange={(v) => setStation(v as PrintStation | "all")}>
                 <TabsList className="h-11">
-                  <TabsTrigger value="all">Todas</TabsTrigger>
+                  <TabsTrigger value="all" className="gap-1">
+                    Todas
+                    <HelpHint text={HELP.tabAll} label="Ajuda sobre a aba Todas" />
+                  </TabsTrigger>
                   {PRINT_STATIONS.filter((s) => s !== "expedicao").map((s) => (
-                    <TabsTrigger key={s} value={s}>
+                    <TabsTrigger key={s} value={s} className="gap-1">
                       {STATION_LABELS[s]}
+                      <HelpHint text={HELP.tabStation} label={`Ajuda sobre a estação ${STATION_LABELS[s]}`} />
                     </TabsTrigger>
                   ))}
                 </TabsList>
@@ -338,6 +342,12 @@ function CozinhaContent() {
         )}
 
         <div className="mt-6">
+          {printEnt.allowed && (
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              Fila de impressão
+              <HelpHint text={HELP.printQueue} label="Ajuda sobre a fila de impressão" />
+            </p>
+          )}
           {printEnt.allowed ? (
             <PrintQueuePanel
               jobs={printJobs ?? []}

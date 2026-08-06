@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OrdersGuard } from "@/components/orders/OrdersGuard";
+import { HelpHint } from "@/components/common/HelpHint";
 import { OrdersPageHeader, ScrollRow } from "@/components/orders/OrdersPageHeader";
 import { ResponsiveTable } from "@/components/orders/ResponsiveTable";
 import {
@@ -42,6 +43,23 @@ const PROVIDER_LABEL: Record<string, string> = {
   anota_ai: "Anota AI",
   goomer: "Goomer",
   custom: "Canal próprio",
+};
+
+
+const HELP = {
+  title: "Monitoramento das filas de entrada e saída das integrações com canais externos de pedidos.",
+  kpiInbox: "Eventos recebidos de canais externos que ainda aguardam processamento.",
+  kpiOutbox: "Mensagens que ainda precisam ser enviadas para os canais externos.",
+  kpiLag: "Há quanto tempo o evento pendente mais antigo está esperando na fila.",
+  kpiFailures: "Eventos ou mensagens que esgotaram as tentativas e precisam de atenção manual.",
+  tabCanais: "Canais de venda externos cadastrados e sua situação de aprovação.",
+  tabEntrada: "Eventos recebidos dos canais externos e o status de processamento de cada um.",
+  tabSaida: "Mensagens enviadas aos canais externos e o status de entrega de cada uma.",
+  tabFalhas: "Eventos e mensagens que falharam definitivamente após todas as tentativas.",
+  canais: "Canais externos cadastrados, com provedor, situação e data de aprovação.",
+  entrada: "Eventos recebidos dos canais externos, com tentativas e resultado do processamento.",
+  saida: "Mensagens enviadas aos canais externos, com tentativas e status de entrega.",
+  falhas: "Falhas definitivas de entrada ou saída, com motivo e data de ocorrência.",
 };
 
 function statusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
@@ -93,16 +111,19 @@ export default function PedidosIntegracoes() {
           icon={<Plug className="h-6 w-6 text-primary" aria-hidden="true" />}
           subtitle="Base para canais externos — apenas o simulador está ativo."
           actions={
-            <Badge variant="outline" className="hidden gap-1 lg:inline-flex">
-              <ShieldCheck className="h-3.5 w-3.5" /> Ativação exige aprovação
-            </Badge>
+            <>
+              <HelpHint text={HELP.title} />
+              <Badge variant="outline" className="hidden gap-1 lg:inline-flex">
+                <ShieldCheck className="h-3.5 w-3.5" /> Ativação exige aprovação
+              </Badge>
+            </>
           }
         />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Eventos na fila</CardTitle>
+              <CardTitle className="text-sm font-medium flex items-center gap-1.5">Eventos na fila<HelpHint text={HELP.kpiInbox} /></CardTitle>
               <Inbox className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -114,7 +135,7 @@ export default function PedidosIntegracoes() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Envios pendentes</CardTitle>
+              <CardTitle className="text-sm font-medium flex items-center gap-1.5">Envios pendentes<HelpHint text={HELP.kpiOutbox} /></CardTitle>
               <Send className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -126,7 +147,7 @@ export default function PedidosIntegracoes() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Atraso da fila</CardTitle>
+              <CardTitle className="text-sm font-medium flex items-center gap-1.5">Atraso da fila<HelpHint text={HELP.kpiLag} /></CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -136,7 +157,7 @@ export default function PedidosIntegracoes() {
           </Card>
           <Card className={openDeadLetters > 0 ? "border-destructive/50" : undefined}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Falhas em análise</CardTitle>
+              <CardTitle className="text-sm font-medium flex items-center gap-1.5">Falhas em análise<HelpHint text={HELP.kpiFailures} /></CardTitle>
               <AlertTriangle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -149,10 +170,10 @@ export default function PedidosIntegracoes() {
         <Tabs defaultValue="canais">
           <ScrollRow>
             <TabsList className="h-11">
-            <TabsTrigger value="canais">Canais</TabsTrigger>
-            <TabsTrigger value="entrada">Entrada</TabsTrigger>
-            <TabsTrigger value="saida">Saída</TabsTrigger>
-            <TabsTrigger value="falhas">Falhas</TabsTrigger>
+            <TabsTrigger value="canais" className="gap-1.5">Canais<HelpHint text={HELP.tabCanais} /></TabsTrigger>
+            <TabsTrigger value="entrada" className="gap-1.5">Entrada<HelpHint text={HELP.tabEntrada} /></TabsTrigger>
+            <TabsTrigger value="saida" className="gap-1.5">Saída<HelpHint text={HELP.tabSaida} /></TabsTrigger>
+            <TabsTrigger value="falhas" className="gap-1.5">Falhas<HelpHint text={HELP.tabFalhas} /></TabsTrigger>
             </TabsList>
           </ScrollRow>
 
@@ -161,6 +182,7 @@ export default function PedidosIntegracoes() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Plug className="h-4 w-4" /> Canais cadastrados
+                  <HelpHint text={HELP.canais} />
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -197,6 +219,7 @@ export default function PedidosIntegracoes() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Activity className="h-4 w-4" /> Eventos recebidos
+                  <HelpHint text={HELP.entrada} />
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -234,6 +257,7 @@ export default function PedidosIntegracoes() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Send className="h-4 w-4" /> Mensagens enviadas
+                  <HelpHint text={HELP.saida} />
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -271,6 +295,7 @@ export default function PedidosIntegracoes() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <AlertTriangle className="h-4 w-4" /> Falhas definitivas
+                  <HelpHint text={HELP.falhas} />
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
