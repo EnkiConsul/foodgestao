@@ -1,9 +1,7 @@
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
 import {
   Activity,
   AlertTriangle,
-  ArrowLeft,
   Clock,
   Inbox,
   Plug,
@@ -14,15 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { OrdersGuard } from "@/components/orders/OrdersGuard";
+import { OrdersPageHeader, ScrollRow } from "@/components/orders/OrdersPageHeader";
+import { ResponsiveTable } from "@/components/orders/ResponsiveTable";
 import {
   useOrdersDeadLetters,
   useOrdersInbox,
@@ -94,23 +86,18 @@ export default function PedidosIntegracoes() {
       </Helmet>
 
       <div className="space-y-6 pb-10">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="space-y-1">
-            <Button asChild variant="ghost" size="sm" className="-ml-2">
-              <Link to="/pedidos">
-                <ArrowLeft className="mr-2 h-4 w-4" /> Módulo Pedidos
-              </Link>
-            </Button>
-            <h1 className="text-2xl font-semibold tracking-tight">Integrações e filas</h1>
-            <p className="text-sm text-muted-foreground">
-              Base para conectar canais externos. Nenhum marketplace real está ativo — só o
-              simulador, usado para validar recebimento, reenvio e falhas.
-            </p>
-          </div>
-          <Badge variant="outline" className="gap-1">
-            <ShieldCheck className="h-3.5 w-3.5" /> Ativação exige aprovação da plataforma
-          </Badge>
-        </div>
+        <OrdersPageHeader
+          backTo="/pedidos"
+          backLabel="Voltar ao módulo Pedidos"
+          title="Integrações e filas"
+          icon={<Plug className="h-6 w-6 text-primary" aria-hidden="true" />}
+          subtitle="Base para canais externos — apenas o simulador está ativo."
+          actions={
+            <Badge variant="outline" className="hidden gap-1 lg:inline-flex">
+              <ShieldCheck className="h-3.5 w-3.5" /> Ativação exige aprovação
+            </Badge>
+          }
+        />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
@@ -160,12 +147,14 @@ export default function PedidosIntegracoes() {
         </div>
 
         <Tabs defaultValue="canais">
-          <TabsList>
+          <ScrollRow>
+            <TabsList className="h-11">
             <TabsTrigger value="canais">Canais</TabsTrigger>
             <TabsTrigger value="entrada">Entrada</TabsTrigger>
             <TabsTrigger value="saida">Saída</TabsTrigger>
             <TabsTrigger value="falhas">Falhas</TabsTrigger>
-          </TabsList>
+            </TabsList>
+          </ScrollRow>
 
           <TabsContent value="canais" className="mt-4">
             <Card>
@@ -175,43 +164,30 @@ export default function PedidosIntegracoes() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                {integrations.length === 0 ? (
-                  <p className="p-6 text-sm text-muted-foreground">
-                    Nenhum canal cadastrado. Integrações reais só podem ser ativadas após
-                    homologação e aprovação da plataforma.
-                  </p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Canal</TableHead>
-                        <TableHead>Provedor</TableHead>
-                        <TableHead>Situação</TableHead>
-                        <TableHead>Aprovação</TableHead>
-                        <TableHead>Último evento</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {integrations.map((row) => (
-                        <TableRow key={row.id}>
-                          <TableCell className="font-medium">{row.display_name}</TableCell>
-                          <TableCell>{PROVIDER_LABEL[row.provider] ?? row.provider}</TableCell>
-                          <TableCell>
-                            <Badge variant={statusVariant(row.status)}>
-                              {STATUS_LABEL[row.status] ?? row.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                            {row.approved_at ? formatDateTime(row.approved_at) : "Não aprovado"}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                            {formatDateTime(row.last_event_at)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
+                <ResponsiveTable
+                  rows={integrations}
+                  getKey={(row) => row.id}
+                  empty="Nenhum canal cadastrado. Integrações reais exigem homologação e aprovação da plataforma."
+                  columns={[
+                    { key: "name", header: "Canal", primary: true, cell: (row) => row.display_name },
+                    { key: "provider", header: "Provedor", cell: (row) => PROVIDER_LABEL[row.provider] ?? row.provider },
+                    {
+                      key: "status",
+                      header: "Situação",
+                      cell: (row) => (
+                        <Badge variant={statusVariant(row.status)}>
+                          {STATUS_LABEL[row.status] ?? row.status}
+                        </Badge>
+                      ),
+                    },
+                    {
+                      key: "approved",
+                      header: "Aprovação",
+                      cell: (row) => (row.approved_at ? formatDateTime(row.approved_at) : "Não aprovado"),
+                    },
+                    { key: "last", header: "Último evento", cell: (row) => formatDateTime(row.last_event_at) },
+                  ]}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -224,46 +200,31 @@ export default function PedidosIntegracoes() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                {inbox.length === 0 ? (
-                  <p className="p-6 text-sm text-muted-foreground">Nenhum evento recebido ainda.</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Evento</TableHead>
-                        <TableHead>Pedido externo</TableHead>
-                        <TableHead>Situação</TableHead>
-                        <TableHead>Tentativas</TableHead>
-                        <TableHead>Recebido</TableHead>
-                        <TableHead>Detalhe</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {inbox.map((row) => (
-                        <TableRow key={row.id}>
-                          <TableCell className="font-medium">{row.event_type}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {row.external_order_id ?? "—"}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={statusVariant(row.status)}>
-                              {STATUS_LABEL[row.status] ?? row.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-sm">
-                            {row.attempts}/{row.max_attempts}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                            {formatDateTime(row.received_at)}
-                          </TableCell>
-                          <TableCell className="max-w-[280px] text-sm text-muted-foreground">
-                            {row.error_message ?? (row.order_id ? "Pedido criado" : "—")}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
+                <ResponsiveTable
+                  rows={inbox}
+                  getKey={(row) => row.id}
+                  empty="Nenhum evento recebido ainda."
+                  columns={[
+                    { key: "event", header: "Evento", primary: true, cell: (row) => row.event_type },
+                    { key: "ext", header: "Pedido externo", cell: (row) => row.external_order_id ?? "—" },
+                    {
+                      key: "status",
+                      header: "Situação",
+                      cell: (row) => (
+                        <Badge variant={statusVariant(row.status)}>
+                          {STATUS_LABEL[row.status] ?? row.status}
+                        </Badge>
+                      ),
+                    },
+                    { key: "att", header: "Tentativas", cell: (row) => `${row.attempts}/${row.max_attempts}` },
+                    { key: "at", header: "Recebido", cell: (row) => formatDateTime(row.received_at) },
+                    {
+                      key: "detail",
+                      header: "Detalhe",
+                      cell: (row) => row.error_message ?? (row.order_id ? "Pedido criado" : "—"),
+                    },
+                  ]}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -276,44 +237,31 @@ export default function PedidosIntegracoes() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                {outbox.length === 0 ? (
-                  <p className="p-6 text-sm text-muted-foreground">Nenhuma mensagem na fila.</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Ação</TableHead>
-                        <TableHead>Provedor</TableHead>
-                        <TableHead>Situação</TableHead>
-                        <TableHead>Tentativas</TableHead>
-                        <TableHead>Criada</TableHead>
-                        <TableHead>Detalhe</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {outbox.map((row) => (
-                        <TableRow key={row.id}>
-                          <TableCell className="font-medium">{row.operation}</TableCell>
-                          <TableCell>{PROVIDER_LABEL[row.provider] ?? row.provider}</TableCell>
-                          <TableCell>
-                            <Badge variant={statusVariant(row.status)}>
-                              {STATUS_LABEL[row.status] ?? row.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-sm">
-                            {row.attempts}/{row.max_attempts}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                            {formatDateTime(row.created_at)}
-                          </TableCell>
-                          <TableCell className="max-w-[280px] text-sm text-muted-foreground">
-                            {row.error_message ?? (row.sent_at ? "Enviada" : "—")}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
+                <ResponsiveTable
+                  rows={outbox}
+                  getKey={(row) => row.id}
+                  empty="Nenhuma mensagem na fila."
+                  columns={[
+                    { key: "op", header: "Ação", primary: true, cell: (row) => row.operation },
+                    { key: "provider", header: "Provedor", cell: (row) => PROVIDER_LABEL[row.provider] ?? row.provider },
+                    {
+                      key: "status",
+                      header: "Situação",
+                      cell: (row) => (
+                        <Badge variant={statusVariant(row.status)}>
+                          {STATUS_LABEL[row.status] ?? row.status}
+                        </Badge>
+                      ),
+                    },
+                    { key: "att", header: "Tentativas", cell: (row) => `${row.attempts}/${row.max_attempts}` },
+                    { key: "at", header: "Criada", cell: (row) => formatDateTime(row.created_at) },
+                    {
+                      key: "detail",
+                      header: "Detalhe",
+                      cell: (row) => row.error_message ?? (row.sent_at ? "Enviada" : "—"),
+                    },
+                  ]}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -326,40 +274,27 @@ export default function PedidosIntegracoes() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                {deadLetters.length === 0 ? (
-                  <p className="p-6 text-sm text-muted-foreground">
-                    Nenhuma falha definitiva registrada.
-                  </p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Origem</TableHead>
-                        <TableHead>Evento</TableHead>
-                        <TableHead>Motivo</TableHead>
-                        <TableHead>Tentativas</TableHead>
-                        <TableHead>Quando</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {deadLetters.map((row) => (
-                        <TableRow key={row.id}>
-                          <TableCell className="font-medium">
-                            {row.source === "inbox" ? "Entrada" : "Saída"}
-                          </TableCell>
-                          <TableCell>{row.event_type ?? "—"}</TableCell>
-                          <TableCell className="max-w-[320px] text-sm text-muted-foreground">
-                            {row.error_message ?? row.error_class ?? "—"}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-sm">{row.attempts}</TableCell>
-                          <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                            {formatDateTime(row.created_at)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
+                <ResponsiveTable
+                  rows={deadLetters}
+                  getKey={(row) => row.id}
+                  empty="Nenhuma falha definitiva registrada."
+                  columns={[
+                    {
+                      key: "source",
+                      header: "Origem",
+                      primary: true,
+                      cell: (row) => (row.source === "inbox" ? "Entrada" : "Saída"),
+                    },
+                    { key: "event", header: "Evento", cell: (row) => row.event_type ?? "—" },
+                    {
+                      key: "reason",
+                      header: "Motivo",
+                      cell: (row) => row.error_message ?? row.error_class ?? "—",
+                    },
+                    { key: "att", header: "Tentativas", cell: (row) => row.attempts },
+                    { key: "at", header: "Quando", cell: (row) => formatDateTime(row.created_at) },
+                  ]}
+                />
               </CardContent>
             </Card>
           </TabsContent>
