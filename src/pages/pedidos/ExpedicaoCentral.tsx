@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
-import { ArrowLeft, PackageCheck, RefreshCw, Truck } from "lucide-react";
+import { PackageCheck, RefreshCw, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { OrdersGuard } from "@/components/orders/OrdersGuard";
+import { OrdersPageHeader } from "@/components/orders/OrdersPageHeader";
 import { AlertsControl } from "@/components/orders/alerts/AlertsControl";
 import { useOrdersAlerts } from "@/hooks/useOrdersAlerts";
 import { useOrdersEntitlement } from "@/hooks/useOrdersEntitlement";
@@ -261,7 +261,7 @@ function ExpedicaoContent() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
           {queue.map((ticket) => {
             const state = checkOf(ticket.id);
             const isDelivery = ticket.orderType === "delivery";
