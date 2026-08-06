@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import {
   Activity,
   AlertTriangle,
-  ArrowLeft,
   BarChart3,
   Clock,
   Download,
@@ -26,15 +25,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { OrdersGuard } from "@/components/orders/OrdersGuard";
+import { OrdersPageHeader, ScrollRow } from "@/components/orders/OrdersPageHeader";
+import { ResponsiveTable } from "@/components/orders/ResponsiveTable";
 import { useOrdersUnits } from "@/hooks/useOrdersUnits";
 import {
   useOrdersExport,
@@ -125,21 +118,16 @@ export default function PedidosRelatorios() {
       </Helmet>
 
       <div className="space-y-6 pb-10">
-        <div className="space-y-1">
-          <Button asChild variant="ghost" size="sm" className="-ml-2">
-            <Link to="/pedidos">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Módulo Pedidos
-            </Link>
-          </Button>
-          <h1 className="text-2xl font-semibold tracking-tight">Relatórios operacionais</h1>
-          <p className="text-sm text-muted-foreground">
-            Visão operacional dos pedidos. Não substitui os relatórios contábeis nem o DRE — os
-            valores aqui são de operação, sem apuração fiscal.
-          </p>
-        </div>
+        <OrdersPageHeader
+          backTo="/pedidos"
+          backLabel="Voltar ao módulo Pedidos"
+          title="Relatórios operacionais"
+          icon={<BarChart3 className="h-6 w-6 text-primary" aria-hidden="true" />}
+          subtitle="Indicadores de operação — não substituem os relatórios contábeis nem o DRE."
+        />
 
         <Card>
-          <CardContent className="grid gap-4 pt-6 md:grid-cols-4">
+          <CardContent className="grid gap-4 pt-6 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1.5">
               <Label htmlFor="rep-from">De</Label>
               <Input
@@ -176,7 +164,7 @@ export default function PedidosRelatorios() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-end gap-3">
+            <div className="flex items-end gap-3 sm:col-span-2 lg:col-span-1">
               <div className="flex items-center gap-2">
                 <Switch
                   id="rep-test"
@@ -262,13 +250,15 @@ export default function PedidosRelatorios() {
         </div>
 
         <Tabs defaultValue="resumo">
-          <TabsList className="flex-wrap">
-            <TabsTrigger value="resumo">Resumo</TabsTrigger>
-            <TabsTrigger value="operacao">Operação</TabsTrigger>
-            <TabsTrigger value="produtos">Produtos e pico</TabsTrigger>
-            <TabsTrigger value="tecnico">Saúde técnica</TabsTrigger>
-            <TabsTrigger value="exportar">Exportar</TabsTrigger>
-          </TabsList>
+          <ScrollRow>
+            <TabsList className="h-11">
+              <TabsTrigger value="resumo">Resumo</TabsTrigger>
+              <TabsTrigger value="operacao">Operação</TabsTrigger>
+              <TabsTrigger value="produtos">Produtos e pico</TabsTrigger>
+              <TabsTrigger value="tecnico">Saúde técnica</TabsTrigger>
+              <TabsTrigger value="exportar">Exportar</TabsTrigger>
+            </TabsList>
+          </ScrollRow>
 
           <TabsContent value="resumo" className="mt-4 space-y-4">
             <Card>
@@ -300,32 +290,16 @@ export default function PedidosRelatorios() {
                   <CardTitle className="text-base">Pedidos por unidade</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Unidade</TableHead>
-                        <TableHead className="text-right">Pedidos</TableHead>
-                        <TableHead className="text-right">Receita</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(report?.by_unit ?? []).length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={3} className="text-sm text-muted-foreground">
-                            Nenhum pedido no período.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        report?.by_unit.map((row) => (
-                          <TableRow key={row.unit_id}>
-                            <TableCell className="font-medium">{row.unit_name}</TableCell>
-                            <TableCell className="text-right">{row.orders}</TableCell>
-                            <TableCell className="text-right">{money(row.revenue)}</TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+                  <ResponsiveTable
+                    rows={report?.by_unit ?? []}
+                    getKey={(row) => row.unit_id}
+                    empty="Nenhum pedido no período."
+                    columns={[
+                      { key: "unit", header: "Unidade", primary: true, cell: (row) => row.unit_name },
+                      { key: "orders", header: "Pedidos", align: "right", cell: (row) => row.orders },
+                      { key: "revenue", header: "Receita", align: "right", cell: (row) => money(row.revenue) },
+                    ]}
+                  />
                 </CardContent>
               </Card>
 
@@ -424,34 +398,21 @@ export default function PedidosRelatorios() {
                 <CardTitle className="text-base">Pedidos por dia</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Dia</TableHead>
-                      <TableHead className="text-right">Pedidos</TableHead>
-                      <TableHead className="text-right">Receita</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(report?.by_day ?? []).length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={3} className="text-sm text-muted-foreground">
-                          Nenhum pedido no período.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      report?.by_day.map((row) => (
-                        <TableRow key={row.day}>
-                          <TableCell>
-                            {new Date(`${row.day}T12:00:00`).toLocaleDateString("pt-BR")}
-                          </TableCell>
-                          <TableCell className="text-right">{row.orders}</TableCell>
-                          <TableCell className="text-right">{money(row.revenue)}</TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                <ResponsiveTable
+                  rows={report?.by_day ?? []}
+                  getKey={(row) => row.day}
+                  empty="Nenhum pedido no período."
+                  columns={[
+                    {
+                      key: "day",
+                      header: "Dia",
+                      primary: true,
+                      cell: (row) => new Date(`${row.day}T12:00:00`).toLocaleDateString("pt-BR"),
+                    },
+                    { key: "orders", header: "Pedidos", align: "right", cell: (row) => row.orders },
+                    { key: "revenue", header: "Receita", align: "right", cell: (row) => money(row.revenue) },
+                  ]}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -462,36 +423,17 @@ export default function PedidosRelatorios() {
                 <CardTitle className="text-base">Produtos mais vendidos</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Produto</TableHead>
-                      <TableHead className="text-right">Qtd.</TableHead>
-                      <TableHead className="text-right">Receita</TableHead>
-                      <TableHead className="text-right">Preparo</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(report?.top_products ?? []).length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-sm text-muted-foreground">
-                          Sem itens vendidos no período.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      report?.top_products.map((row) => (
-                        <TableRow key={row.product}>
-                          <TableCell className="font-medium">{row.product}</TableCell>
-                          <TableCell className="text-right">{row.quantity}</TableCell>
-                          <TableCell className="text-right">{money(row.revenue)}</TableCell>
-                          <TableCell className="text-right">
-                            {duration(row.avg_prep_seconds)}
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                <ResponsiveTable
+                  rows={report?.top_products ?? []}
+                  getKey={(row) => row.product}
+                  empty="Sem itens vendidos no período."
+                  columns={[
+                    { key: "product", header: "Produto", primary: true, cell: (row) => row.product },
+                    { key: "qty", header: "Qtd.", align: "right", cell: (row) => row.quantity },
+                    { key: "revenue", header: "Receita", align: "right", cell: (row) => money(row.revenue) },
+                    { key: "prep", header: "Preparo", align: "right", cell: (row) => duration(row.avg_prep_seconds) },
+                  ]}
+                />
               </CardContent>
             </Card>
 
