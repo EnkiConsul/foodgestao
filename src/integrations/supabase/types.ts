@@ -12644,6 +12644,10 @@ export type Database = {
       show_trgm: { Args: { "": string }; Returns: string[] }
       soft_delete_account: { Args: { _account_id: string }; Returns: undefined }
       start_orders_trial: { Args: { p_company_id: string }; Returns: Json }
+      storefront_public_asset_allowed: {
+        Args: { p_path: string }
+        Returns: boolean
+      }
       storefront_public_create_order: {
         Args: {
           p_address?: Json
