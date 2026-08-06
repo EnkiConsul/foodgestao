@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { Loader2, Save } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Building2, Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,8 +13,14 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { supabase } from "@/integrations/supabase/client";
 import { useSaveOrdersUnitIdentity, type OrdersUnit } from "@/hooks/useOrdersUnits";
-import { TIMEZONES, validateUnitIdentity } from "@/lib/orders/units";
+import {
+  TIMEZONES,
+  composeCompanyAddress,
+  timezoneForUf,
+  validateUnitIdentity,
+} from "@/lib/orders/units";
 import { StepErrors } from "@/components/orders/onboarding/StepErrors";
 
 interface Props {
@@ -27,6 +34,22 @@ export function StepOperacao({ unit, onSaved }: Props) {
   const company = companies.find((c) => c.id === selectedCompanyId);
   const save = useSaveOrdersUnitIdentity();
 
+  const { data: companyDetails } = useQuery({
+    queryKey: ["orders-onboarding-company", selectedCompanyId],
+    enabled: Boolean(selectedCompanyId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("companies")
+        .select(
+          "id, name, trade_name, phone, whatsapp, address, cep, logradouro, numero, complemento, bairro, cidade, uf",
+        )
+        .eq("id", selectedCompanyId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const [nome, setNome] = useState("");
   const [codigo, setCodigo] = useState("");
   const [telefone, setTelefone] = useState("");
@@ -36,15 +59,46 @@ export function StepOperacao({ unit, onSaved }: Props) {
   const [timezone, setTimezone] = useState<string>(TIMEZONES[0]);
   const [errors, setErrors] = useState<string[]>([]);
 
+  const companyDefaults = useMemo(() => {
+    if (!companyDetails) return null;
+    return {
+      nome: (companyDetails.trade_name || companyDetails.name || "").trim(),
+      telefone: (companyDetails.phone || companyDetails.whatsapp || "").trim(),
+      endereco: composeCompanyAddress(companyDetails),
+      cidade: (companyDetails.cidade || "").trim(),
+      uf: (companyDetails.uf || "").trim().toUpperCase(),
+      timezone: timezoneForUf(companyDetails.uf),
+    };
+  }, [companyDetails]);
+
+  const applyCompanyDefaults = useCallback(() => {
+    if (!companyDefaults) return;
+    setNome(companyDefaults.nome);
+    setTelefone(companyDefaults.telefone);
+    setEndereco(companyDefaults.endereco);
+    setCidade(companyDefaults.cidade);
+    setUf(companyDefaults.uf);
+    setTimezone(companyDefaults.timezone);
+  }, [companyDefaults]);
+
   useEffect(() => {
-    setNome(unit?.nome ?? company?.name ?? "");
+    // Dados já salvos na unidade sempre prevalecem; o cadastro da empresa
+    // só preenche o que ainda está vazio.
+    setNome(unit?.nome ?? companyDefaults?.nome ?? company?.name ?? "");
     setCodigo(unit?.codigo_interno ?? "");
-    setTelefone(unit?.telefone ?? "");
-    setEndereco(unit?.endereco ?? "");
-    setCidade(unit?.cidade ?? "");
-    setUf(unit?.uf ?? "");
-    setTimezone(unit?.timezone ?? TIMEZONES[0]);
-  }, [unit, company?.name]);
+    setTelefone(unit?.telefone ?? companyDefaults?.telefone ?? "");
+    setEndereco(unit?.endereco ?? companyDefaults?.endereco ?? "");
+    setCidade(unit?.cidade ?? companyDefaults?.cidade ?? "");
+    setUf(unit?.uf ?? companyDefaults?.uf ?? "");
+    setTimezone(unit?.timezone ?? companyDefaults?.timezone ?? TIMEZONES[0]);
+  }, [unit, company?.name, companyDefaults]);
+
+  const prefilled = Boolean(
+    !unit &&
+      companyDefaults &&
+      (companyDefaults.telefone || companyDefaults.endereco || companyDefaults.cidade),
+  );
+  const readyToAdvance = Boolean(nome.trim() && timezone);
 
   const responsavel = useMemo(
     () => unit?.responsible_user_id ?? user?.id ?? null,
@@ -82,6 +136,24 @@ export function StepOperacao({ unit, onSaved }: Props) {
           Responsável pela unidade: <strong className="text-foreground">você</strong> (
           {user?.email ?? "usuário atual"}).
         </p>
+        {prefilled && (
+          <p className="mt-2 text-foreground">
+            Preenchemos os campos abaixo com os dados da sua empresa — confira e ajuste se
+            precisar.
+          </p>
+        )}
+        {companyDefaults && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-2"
+            onClick={applyCompanyDefaults}
+          >
+            <Building2 className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
+            Usar dados da empresa
+          </Button>
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -141,9 +213,9 @@ export function StepOperacao({ unit, onSaved }: Props) {
 
       <StepErrors errors={errors} />
 
-      <Button onClick={submit} disabled={save.isPending} className="w-full sm:w-auto">
+      <Button onClick={submit} disabled={save.isPending} className="min-h-11 w-full sm:w-auto">
         {save.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-        Salvar e continuar
+        {prefilled && readyToAdvance ? "Salvar e ir para configuração" : "Salvar e continuar"}
       </Button>
     </div>
   );
