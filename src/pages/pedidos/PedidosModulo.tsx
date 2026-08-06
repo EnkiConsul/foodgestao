@@ -32,6 +32,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { HelpHint } from "@/components/common/HelpHint";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useOrdersEntitlement, useStartOrdersTrial } from "@/hooks/useOrdersEntitlement";
