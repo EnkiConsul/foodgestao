@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
-import { ArrowLeft, ChefHat, Moon, RefreshCw, Sun } from "lucide-react";
+import { ChefHat, Moon, RefreshCw, Sun } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OrdersGuard } from "@/components/orders/OrdersGuard";
+import { OrdersPageHeader, ScrollRow } from "@/components/orders/OrdersPageHeader";
 import { AlertsControl } from "@/components/orders/alerts/AlertsControl";
 import { KitchenTicket } from "@/components/orders/kitchen/KitchenTicket";
 import { PrintQueuePanel } from "@/components/orders/print/PrintQueuePanel";
