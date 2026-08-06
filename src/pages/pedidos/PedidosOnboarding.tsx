@@ -423,13 +423,15 @@ function StepRecebimento({ unit, onSaved }: { unit: OrdersUnit; onSaved: () => v
 
       <div className="grid gap-3 sm:grid-cols-3">
         {[
-          { label: "Som de novo pedido", value: sound, set: setSound, opt: false },
-          { label: "Notificações", value: notif, set: setNotif, opt: false },
-          { label: "Impressora", value: printer, set: setPrinter, opt: true },
+          { label: "Som de novo pedido", value: sound, set: setSound, opt: false, help: HELP.som },
+          { label: "Notificações", value: notif, set: setNotif, opt: false, help: HELP.notificacoes },
+          { label: "Impressora", value: printer, set: setPrinter, opt: true, help: HELP.impressora },
         ].map((item) => (
           <div key={item.label} className="flex items-center justify-between rounded-md border p-3">
             <div>
-              <p className="text-sm font-medium">{item.label}</p>
+              <p className="flex items-center gap-1.5 text-sm font-medium">
+                {item.label} <HelpHint text={item.help} />
+              </p>
               <p className="text-xs text-muted-foreground">{item.opt ? "Opcional" : "Recomendado"}</p>
             </div>
             <Switch checked={item.value} onCheckedChange={item.set} />
@@ -459,7 +461,9 @@ function StepAbertura({ unit }: { unit: OrdersUnit }) {
   return (
     <div className="space-y-5">
       <div>
-        <p className="mb-2 text-sm font-medium">Checklist obrigatório</p>
+        <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+          Checklist obrigatório <HelpHint text={HELP.checklist} />
+        </p>
         <div className="rounded-md border divide-y">
           {CHECKLIST_ITEMS.map((key) => {
             const ok = items[key] === true;
@@ -481,7 +485,9 @@ function StepAbertura({ unit }: { unit: OrdersUnit }) {
       </div>
 
       <div className="rounded-md border p-3">
-        <p className="text-sm font-medium">Pedido de teste</p>
+        <p className="flex items-center gap-1.5 text-sm font-medium">
+          Pedido de teste <HelpHint text={HELP.pedidoTeste} />
+        </p>
         <p className="mb-3 text-xs text-muted-foreground">
           Simulação isolada: não altera estoque, não gera cobrança, relatórios, lançamentos financeiros
           ou mensagens ao cliente.
@@ -571,7 +577,12 @@ function OnboardingContent() {
         backLabel="Voltar ao módulo Pedidos"
         title="Ativar sua primeira unidade"
         icon={<Store className="h-6 w-6 text-primary" aria-hidden="true" />}
-        subtitle="Cada etapa é gravada separadamente — salve e continue depois."
+        subtitle={
+          <span className="inline-flex items-center gap-1">
+            Cada etapa é gravada separadamente — salve e continue depois.
+            <HelpHint text={HELP.pageTitle} />
+          </span>
+        }
         actions={
           unit ? (
             <Badge variant={activated ? "default" : "secondary"} className="shrink-0">
@@ -630,6 +641,18 @@ function OnboardingContent() {
                     <span className="block text-xs text-muted-foreground">{s.desc}</span>
                   </span>
                 </button>
+                <HelpHint
+                  className="ml-11 -mt-1"
+                  text={
+                    s.step === 1
+                      ? HELP.step1
+                      : s.step === 2
+                        ? HELP.step2
+                        : s.step === 3
+                          ? HELP.step3
+                          : HELP.step4
+                  }
+                />
                 {active && (
                   <div className="mt-4 border-t pt-4">
                     {s.step === 1 && (

@@ -94,11 +94,6 @@ const HELP = {
   horariosPico: "Distribuição dos pedidos por hora do dia, para planejar equipe e estoque.",
   saudeTecnica: "Indicadores técnicos: pedidos parados, falhas de impressão e falhas definitivas nas integrações.",
   exportacoesSeguras: "Exportações em CSV que respeitam o período e a unidade filtrados, com dados sensíveis mascarados quando necessário.",
-  exportOrders: "Dados completos de cabeçalho, valores e horários de cada pedido.",
-  exportItems: "Lista de produtos vendidos, quantidades e tempos de preparo por pedido.",
-  exportPayments: "Formas de pagamento usadas, valores recebidos e estornos.",
-  exportCancellations: "Pedidos cancelados, com motivo e data do cancelamento.",
-  exportCustomers: "Dados de clientes vinculados aos pedidos; só disponível com permissão específica.",
 };
 
 function money(cents: number | undefined): string {

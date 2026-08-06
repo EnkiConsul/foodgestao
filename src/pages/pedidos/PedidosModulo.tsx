@@ -312,6 +312,7 @@ export default function PedidosModulo() {
                     cobrança automática ao final do período.
                   </p>
                   <AlertDialog>
+                    <div className="flex items-center gap-1.5">
                     <AlertDialogTrigger asChild>
                       <Button size="lg" className="w-full sm:w-auto" disabled={startTrial.isPending}>
                         {startTrial.isPending && (
