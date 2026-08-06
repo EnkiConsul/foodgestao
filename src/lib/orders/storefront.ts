@@ -85,7 +85,7 @@ export const THEME_TOKENS: Record<StorefrontTheme, ThemeTokens> = {
   },
 };
 
-export function themeStyle(theme: StorefrontTheme, primary: string): React.CSSProperties {
+export function themeStyle(theme: StorefrontTheme, primary: string): Record<string, string> {
   const t = THEME_TOKENS[theme] ?? THEME_TOKENS.classic;
   return {
     // Variáveis consumidas pelos componentes da loja pública.
