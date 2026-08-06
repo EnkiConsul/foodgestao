@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { OrdersGuard } from "@/components/orders/OrdersGuard";
 import { OrdersPageHeader } from "@/components/orders/OrdersPageHeader";
+import { HelpHint } from "@/components/common/HelpHint";
 import { StepErrors } from "@/components/orders/onboarding/StepErrors";
 import { StepOperacao } from "@/components/orders/onboarding/StepOperacao";
 import { useOrdersEntitlement } from "@/hooks/useOrdersEntitlement";
@@ -61,6 +62,29 @@ import {
   type OrderChannel,
   type PaymentKind,
 } from "@/lib/orders/units";
+
+
+const HELP = {
+  pageTitle: "Ative sua primeira unidade em 4 etapas: operação, unidade, recebimento e abertura.",
+  formasAtendimento: "Como os pedidos chegam ao cliente: retirada, entrega, no local etc.",
+  canaisOrigem: "De onde o pedido é feito: app, WhatsApp, totem, etc. Diferente da forma de atendimento.",
+  prep: "Tempo médio para preparar um pedido. Usado para estimar prazos ao cliente.",
+  agendados: "Permite que o cliente marque um horário futuro para retirar ou receber o pedido.",
+  horarios: "Dias e horários em que a unidade aceita pedidos. Sem período, o dia fica fechado.",
+  feriados: "Datas específicas com horário diferente ou fechamento, além da regra semanal.",
+  recebimento: "Formas de pagamento aceitas nos pedidos desta unidade.",
+  aceite: "Define se cada pedido precisa ser confirmado manualmente ou entra já aceito.",
+  linkCardapio: "Endereço onde o cliente acessa o cardápio, próprio ou de outra plataforma.",
+  som: "Toca um alerta sonoro sempre que um novo pedido chegar.",
+  notificacoes: "Envia avisos de novos pedidos e atualizações de status.",
+  impressora: "Imprime automaticamente os pedidos aceitos na cozinha ou balcão.",
+  checklist: "Itens que precisam estar prontos antes de abrir a unidade para pedidos reais.",
+  pedidoTeste: "Cria um pedido fictício para validar o fluxo, sem afetar dados reais.",
+  step1: "Dados de identificação da unidade: nome, código, contato e localização.",
+  step2: "Como a unidade atende, quais canais usa e os horários de funcionamento.",
+  step3: "Como os pedidos são recebidos: pagamentos, aceite e alertas.",
+  step4: "Checklist final e abertura da unidade para começar a receber pedidos.",
+} as const;
 
 // ---------------- Etapa 2 ----------------
 function StepUnidade({ unit, onSaved }: { unit: OrdersUnit; onSaved: () => void }) {
@@ -111,8 +135,9 @@ function StepUnidade({ unit, onSaved }: { unit: OrdersUnit; onSaved: () => void 
   return (
     <div className="space-y-5">
       <div className="space-y-2">
-        <Label>
+        <Label className="flex items-center gap-1.5">
           Formas de atendimento <span className="text-destructive">*</span>
+          <HelpHint text={HELP.formasAtendimento} />
         </Label>
         <div className="grid gap-2 sm:grid-cols-2">
           {FULFILLMENT_MODES.map((m) => (
@@ -125,8 +150,9 @@ function StepUnidade({ unit, onSaved }: { unit: OrdersUnit; onSaved: () => void 
       </div>
 
       <div className="space-y-2">
-        <Label>
+        <Label className="flex items-center gap-1.5">
           Canais de origem do pedido <span className="text-destructive">*</span>
+          <HelpHint text={HELP.canaisOrigem} />
         </Label>
         <div className="grid gap-2 sm:grid-cols-2">
           {ORDER_CHANNELS.map((c) => (
@@ -143,14 +169,17 @@ function StepUnidade({ unit, onSaved }: { unit: OrdersUnit; onSaved: () => void 
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="prep">
+          <Label htmlFor="prep" className="flex items-center gap-1.5">
             Tempo padrão de preparo (min) <span className="text-destructive">*</span>
+            <HelpHint text={HELP.prep} />
           </Label>
           <Input id="prep" type="number" min={1} max={480} value={prep} onChange={(e) => setPrep(Number(e.target.value))} />
         </div>
         <div className="flex items-center justify-between rounded-md border p-3">
           <div>
-            <p className="text-sm font-medium">Pedidos agendados</p>
+            <p className="flex items-center gap-1.5 text-sm font-medium">
+              Pedidos agendados <HelpHint text={HELP.agendados} />
+            </p>
             <p className="text-xs text-muted-foreground">Opcional</p>
           </div>
           <Switch checked={scheduled} onCheckedChange={setScheduled} />
@@ -159,8 +188,9 @@ function StepUnidade({ unit, onSaved }: { unit: OrdersUnit; onSaved: () => void 
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label>
+          <Label className="flex items-center gap-1.5">
             Horários de funcionamento <span className="text-destructive">*</span>
+            <HelpHint text={HELP.horarios} />
           </Label>
           <Button
             type="button"
@@ -225,7 +255,9 @@ function StepUnidade({ unit, onSaved }: { unit: OrdersUnit; onSaved: () => void 
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label>Feriados e datas especiais (opcional)</Label>
+          <Label className="flex items-center gap-1.5">
+            Feriados e datas especiais (opcional) <HelpHint text={HELP.feriados} />
+          </Label>
           <Button
             type="button"
             size="sm"
@@ -345,8 +377,9 @@ function StepRecebimento({ unit, onSaved }: { unit: OrdersUnit; onSaved: () => v
   return (
     <div className="space-y-5">
       <div className="space-y-2">
-        <Label>
+        <Label className="flex items-center gap-1.5">
           Formas de recebimento <span className="text-destructive">*</span>
+          <HelpHint text={HELP.recebimento} />
         </Label>
         <div className="grid gap-2 sm:grid-cols-2">
           {PAYMENT_KINDS.map((k) => (
@@ -365,8 +398,9 @@ function StepRecebimento({ unit, onSaved }: { unit: OrdersUnit; onSaved: () => v
       </div>
 
       <div className="space-y-1.5">
-        <Label>
+        <Label className="flex items-center gap-1.5">
           Aceite dos pedidos <span className="text-destructive">*</span>
+          <HelpHint text={HELP.aceite} />
         </Label>
         <Select value={acceptMode} onValueChange={(v) => setAcceptMode(v as "manual" | "automatic")}>
           <SelectTrigger>
@@ -380,19 +414,24 @@ function StepRecebimento({ unit, onSaved }: { unit: OrdersUnit; onSaved: () => v
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="menu">Link do cardápio (próprio ou externo) <span className="text-destructive">*</span></Label>
+        <Label htmlFor="menu" className="flex items-center gap-1.5">
+          Link do cardápio (próprio ou externo) <span className="text-destructive">*</span>
+          <HelpHint text={HELP.linkCardapio} />
+        </Label>
         <Input id="menu" value={menu} onChange={(e) => setMenu(e.target.value)} placeholder="https://..." />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
         {[
-          { label: "Som de novo pedido", value: sound, set: setSound, opt: false },
-          { label: "Notificações", value: notif, set: setNotif, opt: false },
-          { label: "Impressora", value: printer, set: setPrinter, opt: true },
+          { label: "Som de novo pedido", value: sound, set: setSound, opt: false, help: HELP.som },
+          { label: "Notificações", value: notif, set: setNotif, opt: false, help: HELP.notificacoes },
+          { label: "Impressora", value: printer, set: setPrinter, opt: true, help: HELP.impressora },
         ].map((item) => (
           <div key={item.label} className="flex items-center justify-between rounded-md border p-3">
             <div>
-              <p className="text-sm font-medium">{item.label}</p>
+              <p className="flex items-center gap-1.5 text-sm font-medium">
+                {item.label} <HelpHint text={item.help} />
+              </p>
               <p className="text-xs text-muted-foreground">{item.opt ? "Opcional" : "Recomendado"}</p>
             </div>
             <Switch checked={item.value} onCheckedChange={item.set} />
@@ -422,7 +461,9 @@ function StepAbertura({ unit }: { unit: OrdersUnit }) {
   return (
     <div className="space-y-5">
       <div>
-        <p className="mb-2 text-sm font-medium">Checklist obrigatório</p>
+        <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+          Checklist obrigatório <HelpHint text={HELP.checklist} />
+        </p>
         <div className="rounded-md border divide-y">
           {CHECKLIST_ITEMS.map((key) => {
             const ok = items[key] === true;
@@ -444,7 +485,9 @@ function StepAbertura({ unit }: { unit: OrdersUnit }) {
       </div>
 
       <div className="rounded-md border p-3">
-        <p className="text-sm font-medium">Pedido de teste</p>
+        <p className="flex items-center gap-1.5 text-sm font-medium">
+          Pedido de teste <HelpHint text={HELP.pedidoTeste} />
+        </p>
         <p className="mb-3 text-xs text-muted-foreground">
           Simulação isolada: não altera estoque, não gera cobrança, relatórios, lançamentos financeiros
           ou mensagens ao cliente.
@@ -534,7 +577,12 @@ function OnboardingContent() {
         backLabel="Voltar ao módulo Pedidos"
         title="Ativar sua primeira unidade"
         icon={<Store className="h-6 w-6 text-primary" aria-hidden="true" />}
-        subtitle="Cada etapa é gravada separadamente — salve e continue depois."
+        subtitle={
+          <span className="inline-flex items-center gap-1">
+            Cada etapa é gravada separadamente — salve e continue depois.
+            <HelpHint text={HELP.pageTitle} />
+          </span>
+        }
         actions={
           unit ? (
             <Badge variant={activated ? "default" : "secondary"} className="shrink-0">
@@ -589,7 +637,20 @@ function OnboardingContent() {
                     {done ? <CheckCircle2 className="h-4 w-4" /> : s.step}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold">{s.title}</span>
+                    <span className="flex items-center gap-1.5 text-sm font-semibold">
+                      {s.title}
+                      <HelpHint
+                        text={
+                          s.step === 1
+                            ? HELP.step1
+                            : s.step === 2
+                              ? HELP.step2
+                              : s.step === 3
+                                ? HELP.step3
+                                : HELP.step4
+                        }
+                      />
+                    </span>
                     <span className="block text-xs text-muted-foreground">{s.desc}</span>
                   </span>
                 </button>

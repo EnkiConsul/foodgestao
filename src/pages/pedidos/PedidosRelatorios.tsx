@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { OrdersGuard } from "@/components/orders/OrdersGuard";
+import { HelpHint } from "@/components/common/HelpHint";
 import { OrdersPageHeader, ScrollRow } from "@/components/orders/OrdersPageHeader";
 import { ResponsiveTable } from "@/components/orders/ResponsiveTable";
 import { useOrdersUnits } from "@/hooks/useOrdersUnits";
@@ -58,6 +59,14 @@ const TIMING_LABEL: Record<string, string> = {
   scheduled: "Agendado",
 };
 
+const EXPORT_HELP: Record<OrdersExportDataset, string> = {
+  orders: "Dados completos de cabeçalho, valores e horários de cada pedido.",
+  items: "Lista de produtos vendidos, quantidades e tempos de preparo por pedido.",
+  payments: "Formas de pagamento usadas, valores recebidos e estornos.",
+  cancellations: "Pedidos cancelados, com motivo e data do cancelamento.",
+  customers: "Dados de clientes vinculados aos pedidos; só disponível com permissão específica.",
+};
+
 const EXPORTS: { key: OrdersExportDataset; label: string; hint: string }[] = [
   { key: "orders", label: "Pedidos", hint: "Cabeçalho, valores e marcos de tempo" },
   { key: "items", label: "Itens", hint: "Produtos, quantidades e preparo" },
@@ -65,6 +74,27 @@ const EXPORTS: { key: OrdersExportDataset; label: string; hint: string }[] = [
   { key: "cancellations", label: "Cancelamentos", hint: "Motivos e datas" },
   { key: "customers", label: "Clientes", hint: "Exige permissão de dados de clientes" },
 ];
+
+
+const HELP = {
+  title: "Indicadores operacionais do módulo Pedidos: volume, tempos e atrasos. Não substitui relatórios contábeis.",
+  kpiOrders: "Total de pedidos criados no período e filtros escolhidos, com quantos foram concluídos ou cancelados.",
+  kpiTicket: "Vendas brutas dividido pelo número de pedidos do período selecionado.",
+  kpiTime: "Tempo médio entre a criação e a conclusão do pedido, incluindo aceite, preparo e entrega.",
+  kpiDelays: "Pedidos que ultrapassaram o tempo de tolerância definido na unidade.",
+  tabResumo: "Visão geral de valores, pedidos por unidade, canal e tipo.",
+  tabOperacao: "Tempos de cozinha, desempenho de entrega e volume por dia.",
+  tabProdutos: "Produtos mais vendidos e horários com mais pedidos.",
+  tabTecnico: "Situação técnica da operação: pedidos travados, impressão e falhas.",
+  tabExportar: "Baixe os dados detalhados do período em arquivos CSV.",
+  valoresPeriodo: "Soma de vendas, descontos, taxas e reembolsos no período e filtros escolhidos.",
+  pedidosUnidade: "Quantidade de pedidos e receita gerada por cada unidade no período.",
+  pedidosCanalTipo: "Pedidos agrupados por canal de venda (site, app, balcão etc.) e por tipo (entrega, retirada, salão).",
+  produtosVendidos: "Ranking dos produtos com mais unidades vendidas e o tempo médio de preparo de cada um.",
+  horariosPico: "Distribuição dos pedidos por hora do dia, para planejar equipe e estoque.",
+  saudeTecnica: "Indicadores técnicos: pedidos parados, falhas de impressão e falhas definitivas nas integrações.",
+  exportacoesSeguras: "Exportações em CSV que respeitam o período e a unidade filtrados, com dados sensíveis mascarados quando necessário.",
+};
 
 function money(cents: number | undefined): string {
   return ((cents ?? 0) / 100).toLocaleString("pt-BR", {
@@ -124,6 +154,7 @@ export default function PedidosRelatorios() {
           title="Relatórios operacionais"
           icon={<BarChart3 className="h-6 w-6 text-primary" aria-hidden="true" />}
           subtitle="Indicadores de operação — não substituem os relatórios contábeis nem o DRE."
+          actions={<HelpHint text={HELP.title} />}
         />
 
         <Card>
@@ -190,7 +221,7 @@ export default function PedidosRelatorios() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pedidos no período</CardTitle>
+              <CardTitle className="text-sm font-medium flex items-center gap-1.5">Pedidos no período<HelpHint text={HELP.kpiOrders} /></CardTitle>
               <ShoppingBag className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -205,7 +236,7 @@ export default function PedidosRelatorios() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Ticket médio</CardTitle>
+              <CardTitle className="text-sm font-medium flex items-center gap-1.5">Ticket médio<HelpHint text={HELP.kpiTicket} /></CardTitle>
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -219,7 +250,7 @@ export default function PedidosRelatorios() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tempo médio total</CardTitle>
+              <CardTitle className="text-sm font-medium flex items-center gap-1.5">Tempo médio total<HelpHint text={HELP.kpiTime} /></CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -235,7 +266,7 @@ export default function PedidosRelatorios() {
             className={(totals?.late_orders ?? 0) > 0 ? "border-destructive/50" : undefined}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Atrasos</CardTitle>
+              <CardTitle className="text-sm font-medium flex items-center gap-1.5">Atrasos<HelpHint text={HELP.kpiDelays} /></CardTitle>
               <AlertTriangle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -252,18 +283,18 @@ export default function PedidosRelatorios() {
         <Tabs defaultValue="resumo">
           <ScrollRow>
             <TabsList className="h-11">
-              <TabsTrigger value="resumo">Resumo</TabsTrigger>
-              <TabsTrigger value="operacao">Operação</TabsTrigger>
-              <TabsTrigger value="produtos">Produtos e pico</TabsTrigger>
-              <TabsTrigger value="tecnico">Saúde técnica</TabsTrigger>
-              <TabsTrigger value="exportar">Exportar</TabsTrigger>
+              <TabsTrigger value="resumo" className="gap-1.5">Resumo<HelpHint text={HELP.tabResumo} /></TabsTrigger>
+              <TabsTrigger value="operacao" className="gap-1.5">Operação<HelpHint text={HELP.tabOperacao} /></TabsTrigger>
+              <TabsTrigger value="produtos" className="gap-1.5">Produtos e pico<HelpHint text={HELP.tabProdutos} /></TabsTrigger>
+              <TabsTrigger value="tecnico" className="gap-1.5">Saúde técnica<HelpHint text={HELP.tabTecnico} /></TabsTrigger>
+              <TabsTrigger value="exportar" className="gap-1.5">Exportar<HelpHint text={HELP.tabExportar} /></TabsTrigger>
             </TabsList>
           </ScrollRow>
 
           <TabsContent value="resumo" className="mt-4 space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Valores do período</CardTitle>
+                <CardTitle className="flex items-center gap-1.5 text-base">Valores do período<HelpHint text={HELP.valoresPeriodo} /></CardTitle>
               </CardHeader>
               <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {[
@@ -287,7 +318,7 @@ export default function PedidosRelatorios() {
             <div className="grid gap-4 lg:grid-cols-2">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Pedidos por unidade</CardTitle>
+                  <CardTitle className="flex items-center gap-1.5 text-base">Pedidos por unidade<HelpHint text={HELP.pedidosUnidade} /></CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                   <ResponsiveTable
@@ -305,7 +336,7 @@ export default function PedidosRelatorios() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Pedidos por canal e tipo</CardTitle>
+                  <CardTitle className="flex items-center gap-1.5 text-base">Pedidos por canal e tipo<HelpHint text={HELP.pedidosCanalTipo} /></CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
@@ -420,7 +451,7 @@ export default function PedidosRelatorios() {
           <TabsContent value="produtos" className="mt-4 grid gap-4 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Produtos mais vendidos</CardTitle>
+                <CardTitle className="flex items-center gap-1.5 text-base">Produtos mais vendidos<HelpHint text={HELP.produtosVendidos} /></CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <ResponsiveTable
@@ -439,7 +470,7 @@ export default function PedidosRelatorios() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Horários de pico</CardTitle>
+                <CardTitle className="flex items-center gap-1.5 text-base">Horários de pico<HelpHint text={HELP.horariosPico} /></CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {peak.length === 0 ? (
@@ -528,7 +559,7 @@ export default function PedidosRelatorios() {
           <TabsContent value="exportar" className="mt-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Exportações seguras</CardTitle>
+                <CardTitle className="flex items-center gap-1.5 text-base">Exportações seguras<HelpHint text={HELP.exportacoesSeguras} /></CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-muted-foreground">
@@ -543,7 +574,10 @@ export default function PedidosRelatorios() {
                       className="flex items-center justify-between gap-3 rounded-lg border p-3"
                     >
                       <div>
-                        <p className="text-sm font-medium">{item.label}</p>
+                        <p className="flex items-center gap-1.5 text-sm font-medium">
+                          {item.label}
+                          <HelpHint text={EXPORT_HELP[item.key]} />
+                        </p>
                         <p className="text-xs text-muted-foreground">{item.hint}</p>
                       </div>
                       <Button

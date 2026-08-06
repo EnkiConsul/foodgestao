@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { OrdersGuard } from "@/components/orders/OrdersGuard";
+import { HelpHint } from "@/components/common/HelpHint";
 import { OrdersPageHeader } from "@/components/orders/OrdersPageHeader";
 import { AlertsControl } from "@/components/orders/alerts/AlertsControl";
 import { useOrdersAlerts } from "@/hooks/useOrdersAlerts";
@@ -42,6 +43,18 @@ const EMPTY_CHECK: ExpeditionChecklistState = {
   packagingChecked: false,
   drinksChecked: false,
 };
+
+
+const HELP = {
+  title: "Conferência dos pedidos prontos: confira itens, defina o entregador e libere a saída.",
+  unit: "Escolha qual unidade da rede você quer acompanhar.",
+  requireChecklist: "Exige que os itens sejam conferidos antes de liberar o pedido para saída.",
+  refresh: "Atualiza a fila de expedição manualmente.",
+  checklistItem: "Marque quando este item da conferência estiver concluído.",
+  courier: "Nome de quem vai entregar o pedido, exibido na comanda impressa.",
+  release: "Libera o pedido para entrega ou retirada, avançando sua etapa.",
+  print: "Envia a via de expedição para a impressora.",
+} as const;
 
 function ExpedicaoContent() {
   const { entitlement, readOnly } = useOrdersEntitlement("orders.expedition");
@@ -192,11 +205,13 @@ function ExpedicaoContent() {
         }`}
         actions={
           <>
+            <HelpHint text={HELP.title} label="Ajuda sobre a página Expedição" className="hidden md:inline-flex" />
             <div className="hidden items-center gap-2 md:flex">
               <Switch id="require-check" checked={requireChecklist} onCheckedChange={setRequireChecklist} />
               <Label htmlFor="require-check" className="text-xs">
                 Exigir conferência
               </Label>
+              <HelpHint text={HELP.requireChecklist} label="Ajuda sobre exigir conferência" />
             </div>
             <Button
               variant="outline"
@@ -207,14 +222,16 @@ function ExpedicaoContent() {
             >
               <RefreshCw className={isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"} aria-hidden="true" />
             </Button>
+            <HelpHint text={HELP.refresh} label="Ajuda sobre atualizar a fila" className="hidden md:inline-flex" />
           </>
         }
       >
         <div className="flex flex-wrap items-end gap-3">
           {(units ?? []).length > 1 && (
             <div className="min-w-40 flex-1 space-y-1 md:max-w-64 md:flex-none">
-              <Label htmlFor="exp-unit" className="text-[11px] text-muted-foreground">
+              <Label htmlFor="exp-unit" className="flex items-center gap-1 text-[11px] text-muted-foreground">
                 Unidade
+                <HelpHint text={HELP.unit} label="Ajuda sobre escolha de unidade" />
               </Label>
               <Select value={unit?.id ?? ""} onValueChange={setUnitId}>
                 <SelectTrigger id="exp-unit" className="min-h-11">
@@ -236,8 +253,9 @@ function ExpedicaoContent() {
               checked={requireChecklist}
               onCheckedChange={setRequireChecklist}
             />
-            <Label htmlFor="require-check-mobile" className="text-xs">
+            <Label htmlFor="require-check-mobile" className="flex items-center gap-1 text-xs">
               Exigir conferência
+              <HelpHint text={HELP.requireChecklist} label="Ajuda sobre exigir conferência" />
             </Label>
           </div>
         </div>
@@ -299,6 +317,10 @@ function ExpedicaoContent() {
                   {!readOnly && (
                     <>
                       <div className="space-y-2 rounded-md border p-2">
+                        <p className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+                          Conferência
+                          <HelpHint text={HELP.checklistItem} label="Ajuda sobre a conferência de itens" />
+                        </p>
                         {EXPEDITION_CHECKS.map((key) => (
                           <div key={key} className="flex items-center gap-2">
                             <Checkbox
@@ -315,8 +337,9 @@ function ExpedicaoContent() {
 
                       {isDelivery && (
                         <div className="space-y-1">
-                          <Label htmlFor={`courier-${ticket.id}`} className="text-xs">
+                          <Label htmlFor={`courier-${ticket.id}`} className="flex items-center gap-1 text-xs">
                             Entregador
+                            <HelpHint text={HELP.courier} label="Ajuda sobre o campo entregador" />
                           </Label>
                           <Input
                             id={`courier-${ticket.id}`}
@@ -331,7 +354,7 @@ function ExpedicaoContent() {
                         </div>
                       )}
 
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <Button
                           className="min-h-11 flex-1"
                           disabled={action.isPending || !canReleaseExpedition(state, requireChecklist)}
@@ -344,15 +367,19 @@ function ExpedicaoContent() {
                               ? "Confirmar entrega"
                               : "Concluir pedido"}
                         </Button>
+                        <HelpHint text={HELP.release} label="Ajuda sobre liberar o pedido" />
                         {printEnt.allowed && (
-                          <Button
-                            variant="outline"
-                            className="min-h-11"
-                            disabled={enqueue.isPending || updateJob.isPending}
-                            onClick={() => void handlePrint(ticket)}
-                          >
-                            Imprimir via
-                          </Button>
+                          <>
+                            <Button
+                              variant="outline"
+                              className="min-h-11"
+                              disabled={enqueue.isPending || updateJob.isPending}
+                              onClick={() => void handlePrint(ticket)}
+                            >
+                              Imprimir via
+                            </Button>
+                            <HelpHint text={HELP.print} label="Ajuda sobre imprimir a via de expedição" />
+                          </>
                         )}
                       </div>
                     </>

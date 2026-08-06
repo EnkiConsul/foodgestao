@@ -32,6 +32,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { HelpHint } from "@/components/common/HelpHint";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useOrdersEntitlement, useStartOrdersTrial } from "@/hooks/useOrdersEntitlement";
@@ -40,12 +41,37 @@ import { useOrdersBoard } from "@/hooks/useOrdersBoard";
 import { columnForStatus } from "@/lib/orders/board";
 import { ORDERS_TRIAL_DAYS } from "@/lib/orders/entitlement";
 
+const HELP = {
+  titulo: "Painel do módulo Pedidos: acompanhe a operação do dia e acesse as telas de trabalho.",
+  central: "Abre a fila de pedidos, onde você aceita, acompanha e finaliza cada pedido.",
+  operacao: "Contadores em tempo real dos pedidos da unidade, agrupados por etapa.",
+  atalhos: "Acesso rápido às telas do módulo: cozinha, expedição, cardápio, relatórios e ajustes.",
+  trial: "Libera o módulo completo por alguns dias para teste, sem cobrança automática no fim.",
+} as const;
+
+const STAT_HELP: Record<string, string> = {
+  Novos: "Pedidos recebidos que ainda não foram aceitos pela loja.",
+  "Em preparo": "Pedidos aceitos e em produção na cozinha.",
+  Prontos: "Pedidos finalizados, aguardando entrega ou retirada.",
+  "Entrega / retirada": "Pedidos já despachados ao cliente ou no balcão de retirada.",
+};
+
+const SHORTCUT_HELP: Record<string, string> = {
+  "/pedidos/cozinha": "Fila de produção: veja o que preparar e marque cada item como pronto.",
+  "/pedidos/expedicao": "Controle de saída: despacho, entregador responsável e retirada no balcão.",
+  "/pedidos/cardapio": "Cadastro de produtos, preços, variações e o que está disponível para venda.",
+  "/pedidos/relatorios": "Indicadores da operação: volume, ticket médio, tempos e atrasos.",
+  "/pedidos/integracoes": "Filas de eventos trocados com canais externos e falhas para revisar.",
+  "/pedidos/onboarding": "Configuração da unidade: horários, prazos, canais, som e impressão.",
+};
+
 const HIGHLIGHTS = [
   { icon: ClipboardList, title: "Pedidos em tempo real", desc: "Balcão, mesa, retirada e delivery em uma fila só." },
   { icon: UtensilsCrossed, title: "Produção organizada", desc: "Acompanhe preparo e entrega por etapa." },
   { icon: Bike, title: "Entregas controladas", desc: "Despacho, entregador e status do cliente." },
   { icon: Sparkles, title: "Sem depender do Financeiro", desc: "Opere Pedidos mesmo sem configurar contas ou categorias." },
 ];
+
 
 const SHORTCUTS = [
   {
@@ -115,8 +141,9 @@ function LiveStats({ unitId }: { unitId: string | null }) {
       {stats.map((s) => (
         <Card key={s.label} className="border-border/70">
           <CardContent className="p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {s.label}
+              <HelpHint text={STAT_HELP[s.label] ?? s.hint} label={`Ajuda sobre ${s.label}`} />
             </p>
             {isLoading && !orders.length ? (
               <Skeleton className="mt-2 h-8 w-12" />
@@ -160,7 +187,10 @@ export default function PedidosModulo() {
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Pedidos 360°</h1>
+              <h1 className="flex items-center gap-1.5 text-2xl font-bold tracking-tight md:text-3xl">
+                Pedidos 360°
+                <HelpHint text={HELP.titulo} label="Ajuda sobre o módulo Pedidos" />
+              </h1>
               {usable && (
                 <Badge className="gap-1">
                   <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
@@ -179,13 +209,16 @@ export default function PedidosModulo() {
           </div>
 
           {usable && (
-            <Button asChild size="lg" className="w-full shrink-0 sm:w-auto">
+            <div className="flex w-full shrink-0 items-center gap-1.5 sm:w-auto">
+            <Button asChild size="lg" className="w-full sm:w-auto">
               <Link to="/pedidos/central">
                 <ClipboardList className="mr-2 h-4 w-4" aria-hidden="true" />
                 Abrir Central de Pedidos
                 <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
               </Link>
             </Button>
+              <HelpHint text={HELP.central} label="Ajuda sobre a Central de Pedidos" />
+            </div>
           )}
         </div>
       </header>
@@ -208,8 +241,9 @@ export default function PedidosModulo() {
         <>
           <section aria-labelledby="operacao-agora" className="space-y-3">
             <div className="flex items-end justify-between gap-3">
-              <h2 id="operacao-agora" className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              <h2 id="operacao-agora" className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                 Operação agora
+                <HelpHint text={HELP.operacao} label="Ajuda sobre a operação de agora" />
               </h2>
               {unit && (
                 <Link to="/pedidos/central" className="text-xs font-medium text-primary hover:underline">
@@ -232,34 +266,40 @@ export default function PedidosModulo() {
           </section>
 
           <section aria-labelledby="atalhos" className="space-y-3">
-            <h2 id="atalhos" className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            <h2 id="atalhos" className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               Atalhos do módulo
+              <HelpHint text={HELP.atalhos} label="Ajuda sobre os atalhos do módulo" />
             </h2>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {SHORTCUTS.map(({ to, icon: Icon, title, desc }) => (
-                <Link
-                  key={to}
-                  to={to}
-                  className="group rounded-xl border bg-card p-4 transition-colors hover:border-primary/50 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <Icon className="h-4 w-4" aria-hidden="true" />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="flex items-center gap-1 text-sm font-semibold">
-                        {title}
-                        <ArrowRight
-                          className="h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100"
-                          aria-hidden="true"
-                        />
-                      </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">{desc}</p>
+                <div key={to} className="relative">
+                  <Link
+                    to={to}
+                    className="group block rounded-xl border bg-card p-4 pr-10 transition-colors hover:border-primary/50 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <Icon className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-1 text-sm font-semibold">
+                          {title}
+                          <ArrowRight
+                            className="h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100"
+                            aria-hidden="true"
+                          />
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{desc}</p>
+                      </div>
                     </div>
-                  </div>
-                </Link>
+                  </Link>
+                  <span className="absolute right-3 top-3">
+                    <HelpHint text={SHORTCUT_HELP[to] ?? desc} label={`Ajuda sobre ${title}`} />
+                  </span>
+                </div>
               ))}
             </div>
+
           </section>
         </>
       ) : (
@@ -287,6 +327,7 @@ export default function PedidosModulo() {
                     cobrança automática ao final do período.
                   </p>
                   <AlertDialog>
+                    <div className="flex items-center gap-1.5">
                     <AlertDialogTrigger asChild>
                       <Button size="lg" className="w-full sm:w-auto" disabled={startTrial.isPending}>
                         {startTrial.isPending && (
@@ -295,6 +336,8 @@ export default function PedidosModulo() {
                         Iniciar meus {ORDERS_TRIAL_DAYS} dias gratuitos
                       </Button>
                     </AlertDialogTrigger>
+                      <HelpHint text={HELP.trial} label="Ajuda sobre o teste gratuito" />
+                    </div>
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Iniciar teste gratuito?</AlertDialogTitle>
