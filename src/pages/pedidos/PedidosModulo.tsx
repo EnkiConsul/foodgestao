@@ -209,13 +209,16 @@ export default function PedidosModulo() {
           </div>
 
           {usable && (
-            <Button asChild size="lg" className="w-full shrink-0 sm:w-auto">
+            <div className="flex w-full shrink-0 items-center gap-1.5 sm:w-auto">
+            <Button asChild size="lg" className="w-full sm:w-auto">
               <Link to="/pedidos/central">
                 <ClipboardList className="mr-2 h-4 w-4" aria-hidden="true" />
                 Abrir Central de Pedidos
                 <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
               </Link>
             </Button>
+              <HelpHint text={HELP.central} label="Ajuda sobre a Central de Pedidos" />
+            </div>
           )}
         </div>
       </header>
