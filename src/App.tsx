@@ -173,6 +173,8 @@ const Checkout = lazyWithRetry(() => import("./pages/Checkout"));
 const CheckoutPagamento = lazyWithRetry(() => import("./pages/CheckoutPagamento"));
 const Faturas = lazyWithRetry(() => import("./pages/Faturas"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
+const LojaOnline = lazyWithRetry(() => import("./pages/storefront/LojaOnline"));
+
 const Unsubscribe = lazyWithRetry(() => import("./pages/Unsubscribe"));
 const Privacidade = lazyWithRetry(() => import("./pages/legal/Privacidade"));
 const Termos = lazyWithRetry(() => import("./pages/legal/Termos"));
