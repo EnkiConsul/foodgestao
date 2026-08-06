@@ -40,12 +40,37 @@ import { useOrdersBoard } from "@/hooks/useOrdersBoard";
 import { columnForStatus } from "@/lib/orders/board";
 import { ORDERS_TRIAL_DAYS } from "@/lib/orders/entitlement";
 
+const HELP = {
+  titulo: "Painel do módulo Pedidos: acompanhe a operação do dia e acesse as telas de trabalho.",
+  central: "Abre a fila de pedidos, onde você aceita, acompanha e finaliza cada pedido.",
+  operacao: "Contadores em tempo real dos pedidos da unidade, agrupados por etapa.",
+  atalhos: "Acesso rápido às telas do módulo: cozinha, expedição, cardápio, relatórios e ajustes.",
+  trial: "Libera o módulo completo por alguns dias para teste, sem cobrança automática no fim.",
+} as const;
+
+const STAT_HELP: Record<string, string> = {
+  Novos: "Pedidos recebidos que ainda não foram aceitos pela loja.",
+  "Em preparo": "Pedidos aceitos e em produção na cozinha.",
+  Prontos: "Pedidos finalizados, aguardando entrega ou retirada.",
+  "Entrega / retirada": "Pedidos já despachados ao cliente ou no balcão de retirada.",
+};
+
+const SHORTCUT_HELP: Record<string, string> = {
+  "/pedidos/cozinha": "Fila de produção: veja o que preparar e marque cada item como pronto.",
+  "/pedidos/expedicao": "Controle de saída: despacho, entregador responsável e retirada no balcão.",
+  "/pedidos/cardapio": "Cadastro de produtos, preços, variações e o que está disponível para venda.",
+  "/pedidos/relatorios": "Indicadores da operação: volume, ticket médio, tempos e atrasos.",
+  "/pedidos/integracoes": "Filas de eventos trocados com canais externos e falhas para revisar.",
+  "/pedidos/onboarding": "Configuração da unidade: horários, prazos, canais, som e impressão.",
+};
+
 const HIGHLIGHTS = [
   { icon: ClipboardList, title: "Pedidos em tempo real", desc: "Balcão, mesa, retirada e delivery em uma fila só." },
   { icon: UtensilsCrossed, title: "Produção organizada", desc: "Acompanhe preparo e entrega por etapa." },
   { icon: Bike, title: "Entregas controladas", desc: "Despacho, entregador e status do cliente." },
   { icon: Sparkles, title: "Sem depender do Financeiro", desc: "Opere Pedidos mesmo sem configurar contas ou categorias." },
 ];
+
 
 const SHORTCUTS = [
   {

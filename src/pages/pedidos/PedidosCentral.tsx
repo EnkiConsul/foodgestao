@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OrdersGuard } from "@/components/orders/OrdersGuard";
+import { HelpHint } from "@/components/common/HelpHint";
 import { OrderCard } from "@/components/orders/board/OrderCard";
 import { OrderDetailsSheet } from "@/components/orders/board/OrderDetailsSheet";
 import { ManualOrderDialog } from "@/components/orders/board/ManualOrderDialog";
@@ -43,6 +44,19 @@ import {
   type BoardColumnId,
   type PendencyKind,
 } from "@/lib/orders/board";
+
+
+const HELP = {
+  title: "Visão geral em tempo real dos pedidos: acompanhe o fluxo do recebimento até a entrega.",
+  sound: "Toca um alerta sonoro sempre que um novo pedido chegar na fila.",
+  refresh: "Atualiza a fila de pedidos manualmente, sem esperar a atualização automática.",
+  manualOrder: "Cadastra um pedido feito por telefone, balcão ou WhatsApp diretamente na fila.",
+  unit: "Escolha qual unidade da rede você quer acompanhar.",
+  tabQuadros: "Mostra os pedidos organizados por etapa: novos, em produção, prontos e entregues.",
+  tabPendencias: "Lista só os pedidos com algum problema, como atraso ou pagamento pendente.",
+  columnPrefix: "Etapa do fluxo: ",
+  pendencyPrefix: "Tipo de pendência: ",
+} as const;
 
 function PedidosCentralContent() {
   const { entitlement, readOnly } = useOrdersEntitlement("orders.dashboard");

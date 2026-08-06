@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { OrdersGuard } from "@/components/orders/OrdersGuard";
+import { HelpHint } from "@/components/common/HelpHint";
 import { OrdersPageHeader, ScrollRow } from "@/components/orders/OrdersPageHeader";
 import { ResponsiveTable } from "@/components/orders/ResponsiveTable";
 import { useOrdersUnits } from "@/hooks/useOrdersUnits";
@@ -65,6 +66,32 @@ const EXPORTS: { key: OrdersExportDataset; label: string; hint: string }[] = [
   { key: "cancellations", label: "Cancelamentos", hint: "Motivos e datas" },
   { key: "customers", label: "Clientes", hint: "Exige permissão de dados de clientes" },
 ];
+
+
+const HELP = {
+  title: "Indicadores operacionais do módulo Pedidos: volume, tempos e atrasos. Não substitui relatórios contábeis.",
+  kpiOrders: "Total de pedidos criados no período e filtros escolhidos, com quantos foram concluídos ou cancelados.",
+  kpiTicket: "Vendas brutas dividido pelo número de pedidos do período selecionado.",
+  kpiTime: "Tempo médio entre a criação e a conclusão do pedido, incluindo aceite, preparo e entrega.",
+  kpiDelays: "Pedidos que ultrapassaram o tempo de tolerância definido na unidade.",
+  tabResumo: "Visão geral de valores, pedidos por unidade, canal e tipo.",
+  tabOperacao: "Tempos de cozinha, desempenho de entrega e volume por dia.",
+  tabProdutos: "Produtos mais vendidos e horários com mais pedidos.",
+  tabTecnico: "Situação técnica da operação: pedidos travados, impressão e falhas.",
+  tabExportar: "Baixe os dados detalhados do período em arquivos CSV.",
+  valoresPeriodo: "Soma de vendas, descontos, taxas e reembolsos no período e filtros escolhidos.",
+  pedidosUnidade: "Quantidade de pedidos e receita gerada por cada unidade no período.",
+  pedidosCanalTipo: "Pedidos agrupados por canal de venda (site, app, balcão etc.) e por tipo (entrega, retirada, salão).",
+  produtosVendidos: "Ranking dos produtos com mais unidades vendidas e o tempo médio de preparo de cada um.",
+  horariosPico: "Distribuição dos pedidos por hora do dia, para planejar equipe e estoque.",
+  saudeTecnica: "Indicadores técnicos: pedidos parados, falhas de impressão e falhas definitivas nas integrações.",
+  exportacoesSeguras: "Exportações em CSV que respeitam o período e a unidade filtrados, com dados sensíveis mascarados quando necessário.",
+  exportOrders: "Dados completos de cabeçalho, valores e horários de cada pedido.",
+  exportItems: "Lista de produtos vendidos, quantidades e tempos de preparo por pedido.",
+  exportPayments: "Formas de pagamento usadas, valores recebidos e estornos.",
+  exportCancellations: "Pedidos cancelados, com motivo e data do cancelamento.",
+  exportCustomers: "Dados de clientes vinculados aos pedidos; só disponível com permissão específica.",
+};
 
 function money(cents: number | undefined): string {
   return ((cents ?? 0) / 100).toLocaleString("pt-BR", {
