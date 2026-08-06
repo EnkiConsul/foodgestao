@@ -188,7 +188,10 @@ function PedidosCentralContent() {
             </Link>
           </Button>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-lg font-bold leading-tight md:text-2xl">Central de Pedidos</h1>
+            <h1 className="flex items-center gap-1.5 truncate text-lg font-bold leading-tight md:text-2xl">
+              <span className="truncate">Central de Pedidos</span>
+              <HelpHint text={HELP.title} label="Ajuda sobre a central de pedidos" />
+            </h1>
             <p className="flex items-center gap-1.5 truncate text-[11px] text-muted-foreground md:text-xs">
               <span
                 className={cn(
@@ -227,6 +230,7 @@ function PedidosCentralContent() {
                 )}
                 Som
               </Label>
+              <HelpHint text={HELP.sound} label="Ajuda sobre o som de novos pedidos" />
             </div>
             <Button
               variant="ghost"
@@ -254,14 +258,18 @@ function PedidosCentralContent() {
                 aria-hidden="true"
               />
             </Button>
+            <HelpHint text={HELP.refresh} label="Ajuda sobre atualizar a fila" className="hidden md:inline-flex" />
             {!readOnly && (
-              <Button
-                className="hidden min-h-11 md:inline-flex"
-                onClick={() => setManualOpen(true)}
-                disabled={!unit}
-              >
-                <Plus className="mr-2 h-4 w-4" aria-hidden="true" /> Pedido manual
-              </Button>
+              <span className="hidden items-center gap-1 md:inline-flex">
+                <Button
+                  className="min-h-11"
+                  onClick={() => setManualOpen(true)}
+                  disabled={!unit}
+                >
+                  <Plus className="mr-2 h-4 w-4" aria-hidden="true" /> Pedido manual
+                </Button>
+                <HelpHint text={HELP.manualOrder} label="Ajuda sobre pedido manual" />
+              </span>
             )}
           </div>
         </div>
@@ -269,8 +277,9 @@ function PedidosCentralContent() {
         {/* Controles: unidade + visão */}
         <div className="mt-3 flex flex-wrap items-end gap-2 md:gap-3">
           <div className="min-w-40 flex-1 space-y-1 md:max-w-64 md:flex-none">
-            <Label htmlFor="board-unit" className="text-[11px] text-muted-foreground">
+            <Label htmlFor="board-unit" className="flex items-center gap-1 text-[11px] text-muted-foreground">
               Unidade
+              <HelpHint text={HELP.unit} label="Ajuda sobre escolha de unidade" />
             </Label>
             <Select value={unit?.id ?? ""} onValueChange={setUnitId}>
               <SelectTrigger id="board-unit" className="min-h-11">
@@ -288,7 +297,10 @@ function PedidosCentralContent() {
 
           <Tabs value={view} onValueChange={(v) => setView(v as typeof view)} className="shrink-0">
             <TabsList className="h-11">
-              <TabsTrigger value="quadros">Quadros</TabsTrigger>
+              <TabsTrigger value="quadros" className="gap-1">
+                Quadros
+                <HelpHint text={HELP.tabQuadros} label="Ajuda sobre a aba Quadros" />
+              </TabsTrigger>
               <TabsTrigger value="pendencias" className="gap-1">
                 Pendências
                 {pendencyCount > 0 && (
@@ -296,6 +308,7 @@ function PedidosCentralContent() {
                     {pendencyCount}
                   </Badge>
                 )}
+                <HelpHint text={HELP.tabPendencias} label="Ajuda sobre a aba Pendências" />
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -382,8 +395,9 @@ function PedidosCentralContent() {
                 >
                   <div className="sticky top-0 z-10 rounded-lg bg-muted/60 px-2 py-2 backdrop-blur">
                     <div className="flex items-center justify-between gap-2">
-                      <h2 id={`col-${col.id}`} className="truncate text-sm font-semibold">
-                        {col.title}
+                      <h2 id={`col-${col.id}`} className="flex min-w-0 items-center gap-1 truncate text-sm font-semibold">
+                        <span className="truncate">{col.title}</span>
+                        <HelpHint text={`${HELP.columnPrefix}${col.hint}`} label={`Ajuda sobre a etapa ${col.title}`} />
                       </h2>
                       <Badge variant="secondary">{list.length}</Badge>
                     </div>
@@ -422,6 +436,10 @@ function PedidosCentralContent() {
                     <AlertTriangle className="h-4 w-4 text-destructive" aria-hidden="true" />
                     {PENDENCY_LABELS[kind]}
                     <Badge variant="destructive">{list.length}</Badge>
+                    <HelpHint
+                      text={`${HELP.pendencyPrefix}${PENDENCY_LABELS[kind]}`}
+                      label={`Ajuda sobre a pendência ${PENDENCY_LABELS[kind]}`}
+                    />
                   </h2>
                   <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                     {list.map((o) => (

@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { OrdersGuard } from "@/components/orders/OrdersGuard";
 import { OrdersPageHeader } from "@/components/orders/OrdersPageHeader";
+import { HelpHint } from "@/components/common/HelpHint";
 import { StepErrors } from "@/components/orders/onboarding/StepErrors";
 import { StepOperacao } from "@/components/orders/onboarding/StepOperacao";
 import { useOrdersEntitlement } from "@/hooks/useOrdersEntitlement";
@@ -61,6 +62,29 @@ import {
   type OrderChannel,
   type PaymentKind,
 } from "@/lib/orders/units";
+
+
+const HELP = {
+  pageTitle: "Ative sua primeira unidade em 4 etapas: operação, unidade, recebimento e abertura.",
+  formasAtendimento: "Como os pedidos chegam ao cliente: retirada, entrega, no local etc.",
+  canaisOrigem: "De onde o pedido é feito: app, WhatsApp, totem, etc. Diferente da forma de atendimento.",
+  prep: "Tempo médio para preparar um pedido. Usado para estimar prazos ao cliente.",
+  agendados: "Permite que o cliente marque um horário futuro para retirar ou receber o pedido.",
+  horarios: "Dias e horários em que a unidade aceita pedidos. Sem período, o dia fica fechado.",
+  feriados: "Datas específicas com horário diferente ou fechamento, além da regra semanal.",
+  recebimento: "Formas de pagamento aceitas nos pedidos desta unidade.",
+  aceite: "Define se cada pedido precisa ser confirmado manualmente ou entra já aceito.",
+  linkCardapio: "Endereço onde o cliente acessa o cardápio, próprio ou de outra plataforma.",
+  som: "Toca um alerta sonoro sempre que um novo pedido chegar.",
+  notificacoes: "Envia avisos de novos pedidos e atualizações de status.",
+  impressora: "Imprime automaticamente os pedidos aceitos na cozinha ou balcão.",
+  checklist: "Itens que precisam estar prontos antes de abrir a unidade para pedidos reais.",
+  pedidoTeste: "Cria um pedido fictício para validar o fluxo, sem afetar dados reais.",
+  step1: "Dados de identificação da unidade: nome, código, contato e localização.",
+  step2: "Como a unidade atende, quais canais usa e os horários de funcionamento.",
+  step3: "Como os pedidos são recebidos: pagamentos, aceite e alertas.",
+  step4: "Checklist final e abertura da unidade para começar a receber pedidos.",
+} as const;
 
 // ---------------- Etapa 2 ----------------
 function StepUnidade({ unit, onSaved }: { unit: OrdersUnit; onSaved: () => void }) {
