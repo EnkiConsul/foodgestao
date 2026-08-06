@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
 import {
-  ArrowLeft,
   CheckCircle2,
   CircleDashed,
   Loader2,
@@ -26,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { OrdersGuard } from "@/components/orders/OrdersGuard";
+import { OrdersPageHeader } from "@/components/orders/OrdersPageHeader";
 import { StepErrors } from "@/components/orders/onboarding/StepErrors";
 import { StepOperacao } from "@/components/orders/onboarding/StepOperacao";
 import { useOrdersEntitlement } from "@/hooks/useOrdersEntitlement";
@@ -186,7 +185,7 @@ function StepUnidade({ unit, onSaved }: { unit: OrdersUnit; onSaved: () => void 
                   setHours(hours.map((x, idx) => (idx === i ? { ...x, weekday: Number(v) } : x)))
                 }
               >
-                <SelectTrigger className="w-[130px]">
+                <SelectTrigger className="min-h-11 w-full sm:w-[130px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -199,14 +198,14 @@ function StepUnidade({ unit, onSaved }: { unit: OrdersUnit; onSaved: () => void 
               </Select>
               <Input
                 type="time"
-                className="w-[110px]"
+                className="min-h-11 w-[46%] sm:w-[110px]"
                 value={h.opens_at}
                 onChange={(e) => setHours(hours.map((x, idx) => (idx === i ? { ...x, opens_at: e.target.value } : x)))}
               />
               <span className="text-xs text-muted-foreground">às</span>
               <Input
                 type="time"
-                className="w-[110px]"
+                className="min-h-11 w-[46%] sm:w-[110px]"
                 value={h.closes_at}
                 onChange={(e) => setHours(hours.map((x, idx) => (idx === i ? { ...x, closes_at: e.target.value } : x)))}
               />
@@ -245,7 +244,7 @@ function StepUnidade({ unit, onSaved }: { unit: OrdersUnit; onSaved: () => void 
           <div key={`${i}-${e.exception_date}`} className="flex flex-wrap items-center gap-2 rounded-md border p-2">
             <Input
               type="date"
-              className="w-[150px]"
+              className="min-h-11 w-full sm:w-[150px]"
               value={e.exception_date}
               onChange={(ev) =>
                 setExceptions(exceptions.map((x, idx) => (idx === i ? { ...x, exception_date: ev.target.value } : x)))
@@ -530,29 +529,25 @@ function OnboardingContent() {
         />
       </Helmet>
 
-      <div className="mb-4 flex items-start gap-3">
-        <Button asChild variant="ghost" size="icon" className="shrink-0">
-          <Link to="/pedidos" aria-label="Voltar">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-bold md:text-2xl">Ativar sua primeira unidade</h1>
-          <p className="text-xs text-muted-foreground md:text-sm">
-            Você pode salvar e continuar depois — cada etapa é gravada separadamente.
-          </p>
+      <OrdersPageHeader
+        backTo="/pedidos"
+        backLabel="Voltar ao módulo Pedidos"
+        title="Ativar sua primeira unidade"
+        icon={<Store className="h-6 w-6 text-primary" aria-hidden="true" />}
+        subtitle="Cada etapa é gravada separadamente — salve e continue depois."
+        actions={
+          unit ? (
+            <Badge variant={activated ? "default" : "secondary"} className="shrink-0">
+              {UNIT_STATE_LABELS[unit.operational_state]}
+            </Badge>
+          ) : undefined
+        }
+      >
+        <div>
+          <Progress value={progress} className="h-2" />
+          <p className="mt-1 text-xs text-muted-foreground">{progress}% concluído</p>
         </div>
-        {unit && (
-          <Badge variant={activated ? "default" : "secondary"} className="shrink-0">
-            {UNIT_STATE_LABELS[unit.operational_state]}
-          </Badge>
-        )}
-      </div>
-
-      <div className="mb-4">
-        <Progress value={progress} className="h-2" />
-        <p className="mt-1 text-xs text-muted-foreground">{progress}% concluído</p>
-      </div>
+      </OrdersPageHeader>
 
       {units && units.length > 1 && (
         <div className="mb-4">

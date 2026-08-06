@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
 import {
   AlertTriangle,
-  ArrowLeft,
   CheckCircle2,
   Clock,
   Download,
@@ -28,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { OrdersPageHeader } from "@/components/orders/OrdersPageHeader";
 import { useOrdersEntitlement } from "@/hooks/useOrdersEntitlement";
 import {
   useContractOrdersModule,
@@ -71,7 +70,7 @@ export default function PedidosAssinatura() {
   const inFlight = snapshot?.usage?.in_flight_orders ?? 0;
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-3xl pb-10">
       <Helmet>
         <title>Contratar Pedidos 360° — Assinatura do módulo</title>
         <meta
@@ -80,22 +79,21 @@ export default function PedidosAssinatura() {
         />
       </Helmet>
 
-      <Button asChild variant="ghost" size="sm" className="mb-4 -ml-2">
-        <Link to="/pedidos">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar ao módulo Pedidos
-        </Link>
-      </Button>
+      <OrdersPageHeader
+        backTo="/pedidos"
+        backLabel="Voltar ao módulo Pedidos"
+        title="Assinatura do Pedidos 360°"
+        icon={<ShieldCheck className="h-6 w-6 text-primary" aria-hidden="true" />}
+        subtitle={
+          active
+            ? "Módulo ativo. Nada expira e nenhuma operação fica bloqueada."
+            : consulta
+              ? "Modo consulta: leitura e exportação liberadas, novas operações bloqueadas."
+              : "Contrate para continuar operando quando o teste gratuito terminar."
+        }
+      />
 
       {!isLoading && <OrdersTrialBanner entitlement={entitlement} />}
-
-      <h1 className="text-2xl font-bold md:text-3xl">Assinatura do Pedidos 360°</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        {active
-          ? "Módulo ativo. Nada expira e nenhuma operação fica bloqueada."
-          : consulta
-            ? "Modo consulta: os dados seguem disponíveis para leitura e exportação, mas novas operações estão bloqueadas."
-            : "Contrate para continuar operando quando o teste gratuito terminar."}
-      </p>
 
       <div className="mt-6 grid gap-4">
         <Card>
@@ -225,7 +223,7 @@ export default function PedidosAssinatura() {
 
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button className="w-full" disabled={!canContract || contract.isPending}>
+                    <Button className="min-h-11 w-full" disabled={!canContract || contract.isPending}>
                       {contract.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Contratar módulo Pedidos
                     </Button>
@@ -261,12 +259,13 @@ export default function PedidosAssinatura() {
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Exportar seus pedidos</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-3 text-sm">
+          <CardContent className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center">
             <p className="min-w-0 flex-1 text-muted-foreground">
               Baixe o histórico de pedidos em CSV. Disponível também em modo consulta.
             </p>
             <Button
               variant="outline"
+              className="min-h-11 w-full sm:w-auto"
               onClick={() => exportOrders.mutate(undefined)}
               disabled={exportOrders.isPending}
             >
