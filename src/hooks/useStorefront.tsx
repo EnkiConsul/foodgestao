@@ -121,20 +121,20 @@ export function useUploadStorefrontMedia() {
       const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true });
       if (upErr) throw upErr;
 
-      const column = kind === "logo" ? "logo_url" : "banner_url";
       const { data: current } = await supabase
         .from("ped_storefronts")
-        .select(`id, ${column}`)
+        .select("id, logo_url, banner_url")
         .eq("unit_id", unitId)
         .maybeSingle();
 
-      const previous = (current as Record<string, string | null> | null)?.[column] ?? null;
+      const previous = (kind === "logo" ? current?.logo_url : current?.banner_url) ?? null;
 
       const { error } = await supabase
         .from("ped_storefronts")
-        .update({ [column]: path })
+        .update(kind === "logo" ? { logo_url: path } : { banner_url: path })
         .eq("unit_id", unitId);
       if (error) throw error;
+
 
       if (previous && previous !== path) {
         await supabase.storage.from(BUCKET).remove([previous]);
