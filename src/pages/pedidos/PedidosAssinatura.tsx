@@ -43,6 +43,7 @@ import {
   summarizeTrialUsage,
 } from "@/lib/orders/trial";
 import type { ModuleStatus } from "@/lib/modules";
+import { HelpHint } from "@/components/common/HelpHint";
 
 const KEEP_LIST = [
   "Empresa e unidades",
@@ -51,6 +52,14 @@ const KEEP_LIST = [
   "Pedidos e histórico completo",
   "Usuários, permissões e configurações",
 ];
+
+
+const HELP = {
+  status: "Situação atual da assinatura: teste gratuito, ativo, modo consulta ou não contratado.",
+  usado: "Resumo do que já foi cadastrado e usado no módulo durante o período de teste.",
+  contratacao: "Ao contratar, todos os dados e configurações do período de teste são mantidos.",
+  exportar: "Baixa o histórico de pedidos em CSV para guardar ou usar em outra ferramenta.",
+} as const;
 
 export default function PedidosAssinatura() {
   const { entitlement, isLoading } = useOrdersEntitlement("orders.dashboard");
@@ -107,6 +116,7 @@ export default function PedidosAssinatura() {
                 <Clock className="h-4 w-4 text-primary" />
               )}
               Situação atual
+              <HelpHint text={HELP.status} />
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
@@ -165,7 +175,9 @@ export default function PedidosAssinatura() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">O que você já usou</CardTitle>
+            <CardTitle className="flex items-center gap-1.5 text-base">
+              O que você já usou <HelpHint text={HELP.usado} />
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -195,6 +207,7 @@ export default function PedidosAssinatura() {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Sparkles className="h-4 w-4 text-primary" /> A contratação preserva tudo
+              <HelpHint text={HELP.contratacao} />
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
@@ -257,7 +270,9 @@ export default function PedidosAssinatura() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Exportar seus pedidos</CardTitle>
+            <CardTitle className="flex items-center gap-1.5 text-base">
+              Exportar seus pedidos <HelpHint text={HELP.exportar} />
+            </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center">
             <p className="min-w-0 flex-1 text-muted-foreground">

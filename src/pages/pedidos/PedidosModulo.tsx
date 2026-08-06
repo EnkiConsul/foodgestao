@@ -140,8 +140,9 @@ function LiveStats({ unitId }: { unitId: string | null }) {
       {stats.map((s) => (
         <Card key={s.label} className="border-border/70">
           <CardContent className="p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {s.label}
+              <HelpHint text={STAT_HELP[s.label] ?? s.hint} label={`Ajuda sobre ${s.label}`} />
             </p>
             {isLoading && !orders.length ? (
               <Skeleton className="mt-2 h-8 w-12" />
