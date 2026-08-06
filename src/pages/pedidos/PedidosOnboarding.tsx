@@ -85,7 +85,10 @@ const HELP = {
   step1: "Dados de identificação da unidade: nome, código, contato e localização.",
   step2: "Como a unidade atende, quais canais usa e os horários de funcionamento.",
   step3: "Como os pedidos são recebidos: pagamentos, aceite e alertas.",
+  step4Cardapio:
+    "Gera uma página pública de cardápio com link próprio e QR code, montada com os produtos já cadastrados.",
   step4: "Checklist final e abertura da unidade para começar a receber pedidos.",
+
 } as const;
 
 // ---------------- Etapa 2 ----------------
