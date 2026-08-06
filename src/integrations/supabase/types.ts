@@ -9152,6 +9152,81 @@ export type Database = {
           },
         ]
       }
+      ped_storefronts: {
+        Row: {
+          about: string | null
+          banner_url: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          headline: string | null
+          id: string
+          is_published: boolean
+          logo_url: string | null
+          online_cart_enabled: boolean
+          primary_color: string
+          published_at: string | null
+          slug: string
+          theme: string
+          unit_id: string
+          updated_at: string
+          whatsapp_phone: string | null
+        }
+        Insert: {
+          about?: string | null
+          banner_url?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          headline?: string | null
+          id?: string
+          is_published?: boolean
+          logo_url?: string | null
+          online_cart_enabled?: boolean
+          primary_color?: string
+          published_at?: string | null
+          slug: string
+          theme?: string
+          unit_id: string
+          updated_at?: string
+          whatsapp_phone?: string | null
+        }
+        Update: {
+          about?: string | null
+          banner_url?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          headline?: string | null
+          id?: string
+          is_published?: boolean
+          logo_url?: string | null
+          online_cart_enabled?: boolean
+          primary_color?: string
+          published_at?: string | null
+          slug?: string
+          theme?: string
+          unit_id?: string
+          updated_at?: string
+          whatsapp_phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ped_storefronts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ped_storefronts_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: true
+            referencedRelation: "ped_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ped_table_sessions: {
         Row: {
           closed_at: string | null
@@ -12569,6 +12644,29 @@ export type Database = {
       show_trgm: { Args: { "": string }; Returns: string[] }
       soft_delete_account: { Args: { _account_id: string }; Returns: undefined }
       start_orders_trial: { Args: { p_company_id: string }; Returns: Json }
+      storefront_public_create_order: {
+        Args: {
+          p_address?: Json
+          p_customer_name: string
+          p_customer_phone: string
+          p_items: Json
+          p_notes?: string
+          p_order_type: string
+          p_payment_option_id?: string
+          p_slug: string
+          p_zone_id?: string
+        }
+        Returns: Json
+      }
+      storefront_public_get: { Args: { p_slug: string }; Returns: Json }
+      storefront_public_track_order: {
+        Args: { p_display_number: number; p_phone: string; p_slug: string }
+        Returns: Json
+      }
+      storefront_slug_available: {
+        Args: { p_slug: string; p_unit_id?: string }
+        Returns: boolean
+      }
       sync_of_account_balance: {
         Args: { _account_id: string; _new_balance: number }
         Returns: undefined
