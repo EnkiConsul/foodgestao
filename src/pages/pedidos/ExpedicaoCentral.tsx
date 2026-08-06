@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
-import { ArrowLeft, PackageCheck, RefreshCw, Truck } from "lucide-react";
+import { PackageCheck, RefreshCw, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { OrdersGuard } from "@/components/orders/OrdersGuard";
+import { OrdersPageHeader } from "@/components/orders/OrdersPageHeader";
 import { AlertsControl } from "@/components/orders/alerts/AlertsControl";
 import { useOrdersAlerts } from "@/hooks/useOrdersAlerts";
 import { useOrdersEntitlement } from "@/hooks/useOrdersEntitlement";
@@ -182,32 +182,42 @@ function ExpedicaoContent() {
         <link rel="canonical" href="/pedidos/expedicao" />
       </Helmet>
 
-      <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Button asChild variant="ghost" size="icon" className="min-h-11 min-w-11">
-            <Link to="/pedidos/central" aria-label="Voltar para a central de pedidos">
-              <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="flex items-center gap-2 text-2xl font-bold">
-              <PackageCheck className="h-6 w-6 text-primary" aria-hidden="true" /> Expedição
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {queue.length} pedido{queue.length === 1 ? "" : "s"} na conferência
-              {stalled.length > 0 ? ` · ${stalled.length} aguardando saída` : ""}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
+      <OrdersPageHeader
+        backTo="/pedidos/central"
+        backLabel="Voltar para a central de pedidos"
+        title="Expedição"
+        icon={<PackageCheck className="h-6 w-6 text-primary" aria-hidden="true" />}
+        subtitle={`${queue.length} pedido${queue.length === 1 ? "" : "s"} na conferência${
+          stalled.length > 0 ? ` · ${stalled.length} aguardando saída` : ""
+        }`}
+        actions={
+          <>
+            <div className="hidden items-center gap-2 md:flex">
+              <Switch id="require-check" checked={requireChecklist} onCheckedChange={setRequireChecklist} />
+              <Label htmlFor="require-check" className="text-xs">
+                Exigir conferência
+              </Label>
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 md:min-h-11 md:min-w-11"
+              aria-label="Atualizar fila de expedição"
+              onClick={() => void refetch()}
+            >
+              <RefreshCw className={isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"} aria-hidden="true" />
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-wrap items-end gap-3">
           {(units ?? []).length > 1 && (
-            <div className="flex items-center gap-2">
-              <Label htmlFor="exp-unit" className="text-xs">
+            <div className="min-w-40 flex-1 space-y-1 md:max-w-64 md:flex-none">
+              <Label htmlFor="exp-unit" className="text-[11px] text-muted-foreground">
                 Unidade
               </Label>
               <Select value={unit?.id ?? ""} onValueChange={setUnitId}>
-                <SelectTrigger id="exp-unit" className="min-h-11 w-48">
+                <SelectTrigger id="exp-unit" className="min-h-11">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
@@ -220,23 +230,18 @@ function ExpedicaoContent() {
               </Select>
             </div>
           )}
-          <div className="flex items-center gap-2">
-            <Switch id="require-check" checked={requireChecklist} onCheckedChange={setRequireChecklist} />
-            <Label htmlFor="require-check" className="text-xs">
+          <div className="flex items-center gap-2 md:hidden">
+            <Switch
+              id="require-check-mobile"
+              checked={requireChecklist}
+              onCheckedChange={setRequireChecklist}
+            />
+            <Label htmlFor="require-check-mobile" className="text-xs">
               Exigir conferência
             </Label>
           </div>
-          <Button
-            variant="outline"
-            size="icon"
-            className="min-h-11 min-w-11"
-            aria-label="Atualizar fila de expedição"
-            onClick={() => void refetch()}
-          >
-            <RefreshCw className={isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"} aria-hidden="true" />
-          </Button>
         </div>
-      </header>
+      </OrdersPageHeader>
 
       <div className="mb-4">
         <AlertsControl
@@ -245,6 +250,7 @@ function ExpedicaoContent() {
           onAcknowledgeAll={() => alerts.acknowledgeAll(stalled.map((t) => `pickup:${t.id}`))}
         />
       </div>
+
 
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando fila de expedição…</p>
@@ -255,7 +261,7 @@ function ExpedicaoContent() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
           {queue.map((ticket) => {
             const state = checkOf(ticket.id);
             const isDelivery = ticket.orderType === "delivery";
