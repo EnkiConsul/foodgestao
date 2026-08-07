@@ -2,6 +2,8 @@
  * Loja online (cardápio público) — tipos, temas e regras compartilhadas
  * entre a configuração no onboarding e a página pública `/c/:slug`.
  */
+import { PUBLIC_SITE_ORIGIN } from "@/lib/siteOrigin";
+
 
 // ---------------- Configuração ----------------
 
