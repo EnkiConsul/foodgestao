@@ -105,10 +105,13 @@ export function useUploadStorefrontMedia() {
       unitId,
       kind,
       file,
+      slug,
     }: {
       unitId: string;
       kind: "logo" | "banner";
       file: File;
+      /** Slug atual do formulário: usado para criar a loja caso ainda não exista. */
+      slug?: string;
     }) => {
       if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
       if (!/^image\/(png|jpeg|jpg|webp)$/i.test(file.type)) {
@@ -128,13 +131,30 @@ export function useUploadStorefrontMedia() {
         .maybeSingle();
 
       const previous = (kind === "logo" ? current?.logo_url : current?.banner_url) ?? null;
+      const mediaPatch = kind === "logo" ? { logo_url: path } : { banner_url: path };
 
-      const { error } = await supabase
-        .from("ped_storefronts")
-        .update(kind === "logo" ? { logo_url: path } : { banner_url: path })
-        .eq("unit_id", unitId);
-      if (error) throw error;
-
+      if (current?.id) {
+        const { data: updated, error } = await supabase
+          .from("ped_storefronts")
+          .update(mediaPatch)
+          .eq("unit_id", unitId)
+          .select("id")
+          .maybeSingle();
+        if (error) throw error;
+        if (!updated) throw new Error("Não foi possível salvar a imagem na loja.");
+      } else {
+        const cleanSlug = (slug ?? "").trim().toLowerCase();
+        if (cleanSlug.length < 3) {
+          throw new Error("Defina o endereço da loja (link) antes de enviar imagens.");
+        }
+        const { error } = await supabase.from("ped_storefronts").insert({
+          company_id: selectedCompanyId,
+          unit_id: unitId,
+          slug: cleanSlug,
+          ...mediaPatch,
+        });
+        if (error) throw error;
+      }
 
       if (previous && previous !== path) {
         await supabase.storage.from(BUCKET).remove([previous]);
