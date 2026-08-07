@@ -54,8 +54,10 @@ function MediaField({
   hint: string;
   path: string | null;
   unitId: string;
+  slug: string;
   kind: "logo" | "banner";
   aspect: string;
+  slug: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const upload = useUploadStorefrontMedia();
@@ -104,7 +106,7 @@ function MediaField({
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
-          if (file) upload.mutate({ unitId, kind, file });
+          if (file) upload.mutate({ unitId, kind, file, slug });
           e.target.value = "";
         }}
       />
@@ -330,6 +332,7 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
           path={store?.logo_url ?? null}
           unitId={unit.id}
           kind="logo"
+          slug={slug}
           aspect="aspect-square max-w-[160px]"
         />
         <MediaField
@@ -338,6 +341,7 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
           path={store?.banner_url ?? null}
           unitId={unit.id}
           kind="banner"
+          slug={slug}
           aspect="aspect-[3/1]"
         />
       </div>
