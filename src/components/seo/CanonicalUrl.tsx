@@ -1,7 +1,8 @@
 import { Helmet } from "react-helmet-async";
 import { useLocation } from "react-router-dom";
+import { PUBLIC_SITE_ORIGIN } from "@/lib/siteOrigin";
 
-const SITE_ORIGIN = "https://gestor360food.com";
+const SITE_ORIGIN = PUBLIC_SITE_ORIGIN;
 
 /**
  * Emits a canonical <link> and <meta property="og:url"> pointing to the

@@ -23,6 +23,7 @@ import {
   type PublicProduct,
   type PublicStorefront,
 } from "@/lib/orders/storefront";
+import { PUBLIC_SITE_ORIGIN } from "@/lib/siteOrigin";
 
 export default function LojaOnline() {
   const { slug } = useParams<{ slug: string }>();
@@ -101,17 +102,17 @@ export default function LojaOnline() {
       <Helmet>
         <title>{`${store.unit.name} — Cardápio online`}</title>
         <meta name="description" content={description} />
-        <link rel="canonical" href={`https://gestor360food.com/c/${store.store.slug}`} />
+        <link rel="canonical" href={`${PUBLIC_SITE_ORIGIN}/c/${store.store.slug}`} />
         <meta property="og:title" content={`${store.unit.name} — Cardápio online`} />
         <meta property="og:description" content={description} />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={`https://gestor360food.com/c/${store.store.slug}`} />
+        <meta property="og:url" content={`${PUBLIC_SITE_ORIGIN}/c/${store.store.slug}`} />
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Restaurant",
             name: store.unit.name,
-            url: `https://gestor360food.com/c/${store.store.slug}`,
+            url: `${PUBLIC_SITE_ORIGIN}/c/${store.store.slug}`,
             servesCuisine: "Comida",
             telephone: store.store.whatsapp_phone ?? undefined,
             hasMenu: {
