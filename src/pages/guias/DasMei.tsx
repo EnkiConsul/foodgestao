@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 
-const PAGE_URL = "https://gestor360food.com/guias/das-mei";
+const PAGE_URL = "https://www.gestor360food.com/guias/das-mei";
 const TITLE = "DAS MEI 2026: o que é, valores, prazos e como pagar";
 const DESCRIPTION =
   "Guia completo do DAS MEI: o que é, valores atualizados de 2026, datas de vencimento, como emitir o boleto, o que acontece se atrasar e dicas para se organizar.";
@@ -53,7 +53,7 @@ export default function DasMei() {
     publisher: {
       "@type": "Organization",
       name: "360°FOOD",
-      logo: { "@type": "ImageObject", url: "https://gestor360food.com/icon-512.png" },
+      logo: { "@type": "ImageObject", url: "https://www.gestor360food.com/icon-512.png" },
     },
     mainEntityOfPage: PAGE_URL,
     datePublished: "2026-06-30",

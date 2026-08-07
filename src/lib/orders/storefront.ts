@@ -2,6 +2,8 @@
  * Loja online (cardápio público) — tipos, temas e regras compartilhadas
  * entre a configuração no onboarding e a página pública `/c/:slug`.
  */
+import { PUBLIC_SITE_ORIGIN } from "@/lib/siteOrigin";
+
 
 // ---------------- Configuração ----------------
 
@@ -175,10 +177,12 @@ export function onlyDigits(value: string): string {
   return value.replace(/\D/g, "");
 }
 
-/** URL pública da loja, usada no QR code e no compartilhamento. */
+/**
+ * URL pública da loja, usada no QR code e no compartilhamento.
+ * Sempre no domínio oficial — nunca no host do preview.
+ */
 export function storefrontPublicUrl(slug: string): string {
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://gestor360food.com";
-  return `${origin}/c/${slug}`;
+  return `${PUBLIC_SITE_ORIGIN}/c/${slug}`;
 }
 
 /** URL de imagem servida pela Edge Function (buckets são privados). */
