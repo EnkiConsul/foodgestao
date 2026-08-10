@@ -193,6 +193,26 @@ export function ProductSheet({ product, categoryId, categories = [], open, onOpe
 
           {/* ------------------------------------------------ dados */}
           <TabsContent value="dados" className="space-y-4 pt-4">
+            {isNew && (
+              <div className="space-y-2">
+                <Label>Categoria *</Label>
+                {categories.length === 0 ? (
+                  <p className="text-xs text-destructive">
+                    Nenhuma categoria cadastrada neste cardápio. Crie uma categoria antes de cadastrar produtos.
+                  </p>
+                ) : (
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={disabled}>
+                    <SelectTrigger><SelectValue placeholder="Selecione a categoria" /></SelectTrigger>
+                    <SelectContent>
+                      {categories.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="prod-name">Nome *</Label>
               <Input id="prod-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={160} disabled={disabled} />
