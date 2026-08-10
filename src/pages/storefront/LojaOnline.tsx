@@ -672,7 +672,7 @@ export default function LojaOnline() {
                       <div className="mt-auto flex justify-end pt-3">
                         {p.available ? (
                           <span
-                            className="inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] transition group-hover:text-[color:var(--sf-on-primary)]"
+                            className="inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] transition-colors group-hover:border-[color:var(--sf-primary)] group-hover:bg-[color:var(--sf-primary)] group-hover:text-[color:var(--sf-on-primary)]"
                             style={{
                               background: "var(--sf-accent)",
                               borderColor: "var(--sf-border)",
