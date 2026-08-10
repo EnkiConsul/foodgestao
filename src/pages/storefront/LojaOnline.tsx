@@ -134,10 +134,11 @@ export default function LojaOnline() {
 
       {/* Capa */}
       <header>
-        <div className="relative h-32 w-full sm:h-44" style={{ background: "var(--sf-primary)" }}>
-          {banner && <img src={banner} alt="" className="h-full w-full object-cover" />}
+        <div className="relative h-32 w-full overflow-hidden sm:h-44" style={{ background: "var(--sf-primary)" }}>
+          {banner && <img src={banner} alt="" loading="eager" className="absolute inset-0 h-full w-full object-cover" />}
         </div>
-        <div className="mx-auto -mt-8 max-w-3xl px-4">
+        <div className="relative z-10 mx-auto -mt-8 max-w-3xl px-4">
+
           <div
             className="flex items-start gap-3 rounded-xl border p-3 shadow-sm"
             style={{ background: "var(--sf-surface)", borderColor: "var(--sf-border)" }}
