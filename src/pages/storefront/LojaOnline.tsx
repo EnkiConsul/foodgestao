@@ -25,6 +25,7 @@ import StorefrontTrackDialog from "@/components/storefront/StorefrontTrackDialog
 import { usePublicStorefront } from "@/hooks/usePublicStorefront";
 import type { PlacedOrder } from "@/hooks/usePublicStorefront";
 import {
+  bannerImageStyle,
   cartCount,
   cartSubtotal,
   cartToWhatsappText,
@@ -32,6 +33,7 @@ import {
   groupHoursByWeekday,
   isStorefrontOpen,
   nextOpeningLabel,
+  normalizeBannerDisplay,
   storefrontMediaUrl,
   themeStyle,
   whatsappLink,
@@ -40,6 +42,7 @@ import {
   type PublicProduct,
   type PublicStorefront,
 } from "@/lib/orders/storefront";
+
 import { PUBLIC_SITE_ORIGIN } from "@/lib/siteOrigin";
 
 /** Normaliza texto para busca (sem acento, minúsculo). */
@@ -178,6 +181,8 @@ export default function LojaOnline() {
 
   const logo = storefrontMediaUrl(store.store.slug, "ped-storefront", store.store.logo_url);
   const banner = storefrontMediaUrl(store.store.slug, "ped-storefront", store.store.banner_url);
+  const bannerDisplay = normalizeBannerDisplay(store.store);
+
   const count = cartCount(items);
   const subtotal = cartSubtotal(items);
   const minOrder = store.unit.min_order_amount ?? 0;
@@ -329,10 +334,12 @@ export default function LojaOnline() {
                 src={banner}
                 alt=""
                 loading="eager"
-                className="absolute inset-0 h-full w-full object-contain"
+                className="absolute inset-0 h-full w-full"
+                style={bannerImageStyle(bannerDisplay)}
               />
             </>
           )}
+
           <div
             className="absolute inset-x-0 bottom-0 h-1/3"
             style={{

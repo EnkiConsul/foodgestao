@@ -35,17 +35,21 @@ import { useStorefrontCatalogPreview } from "@/hooks/useStorefrontCatalogPreview
 import { useLogoPalette } from "@/hooks/useLogoPalette";
 import type { OrdersUnit } from "@/hooks/useOrdersUnits";
 
+import BannerFramer, { type BannerDisplay } from "@/components/orders/onboarding/BannerFramer";
 import {
+  BANNER_DEFAULTS,
   STOREFRONT_THEMES,
   THEME_TOKENS,
   formatCents,
   isValidSlug,
+  normalizeBannerDisplay,
   onlyDigits,
   slugify,
   storefrontPublicUrl,
   validateStorefront,
   type StorefrontTheme,
 } from "@/lib/orders/storefront";
+
 
 const COLOR_PRESETS = ["#EB6119", "#0F1B3D", "#16A34A", "#DC2626", "#7C3AED", "#0891B2"];
 
@@ -208,6 +212,12 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
   const [about, setAbout] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [cart, setCart] = useState(true);
+  const [banner, setBanner] = useState<BannerDisplay>({
+    fit: BANNER_DEFAULTS.fit,
+    zoom: BANNER_DEFAULTS.zoom,
+    focusX: BANNER_DEFAULTS.focusX,
+    focusY: BANNER_DEFAULTS.focusY,
+  });
   const [errors, setErrors] = useState<string[]>([]);
   const [qr, setQr] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
@@ -221,14 +231,18 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
       setAbout(store.about ?? "");
       setWhatsapp(store.whatsapp_phone ?? "");
       setCart(store.online_cart_enabled);
+      setBanner(normalizeBannerDisplay(store));
     } else if (!touched) {
       setSlug(slugify(unit.nome));
       setWhatsapp(unit.telefone ?? "");
     }
   }, [store, unit.nome, unit.telefone, touched]);
 
+
   const published = Boolean(store?.is_published);
   const { data: logoPreview } = useStorefrontMediaPreview(store?.logo_url ?? null);
+  const { data: bannerPreview } = useStorefrontMediaPreview(store?.banner_url ?? null);
+
   const { data: logoPalette = [] } = useLogoPalette(logoPreview ?? null);
   const publicUrl = useMemo(() => (slug ? storefrontPublicUrl(slug) : ""), [slug]);
 
@@ -278,7 +292,12 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
         about: about.trim() || null,
         whatsapp_phone: onlyDigits(whatsapp) || null,
         online_cart_enabled: cart,
+        banner_fit: banner.fit,
+        banner_zoom: banner.zoom,
+        banner_focus_x: banner.focusX,
+        banner_focus_y: banner.focusY,
         ...(publish === undefined ? {} : { is_published: publish }),
+
       },
       { onSuccess: () => publish !== false && onSaved() },
     );
@@ -469,8 +488,10 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
           slug={slug}
           aspect="aspect-[16/6]"
         />
-
       </div>
+
+      <BannerFramer preview={bannerPreview ?? null} value={banner} onChange={setBanner} />
+
 
       {/* Textos */}
       <div className="space-y-1.5">
