@@ -111,7 +111,28 @@ export function ProductSheet({ product, categoryId, categories = [], menuId, ope
   useEffect(() => {
     if (!open) return;
     setSelectedCategory(product?.category_id ?? categoryId ?? "");
+    setCreatingCategory(false);
+    setNewCategoryName("");
   }, [open, product?.category_id, categoryId]);
+
+  const saveCategory = useSaveCategory();
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+
+  const handleCreateCategory = async () => {
+    const trimmed = newCategoryName.trim();
+    if (!menuId || !trimmed) return;
+    try {
+      const id = await saveCategory.mutateAsync({ menu_id: menuId, name: trimmed });
+      setSelectedCategory(id);
+      setNewCategoryName("");
+      setCreatingCategory(false);
+    } catch {
+      /* o hook já exibe o erro */
+    }
+  };
+
+
 
 
 
