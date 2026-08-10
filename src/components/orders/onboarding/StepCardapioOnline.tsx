@@ -337,7 +337,7 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
         />
         <MediaField
           label="Banner"
-          hint="Formato largo (1200x400), até 3 MB."
+          hint="Formato largo, 1600×480 px (10:3). PNG, JPG ou WEBP até 3 MB."
           path={store?.banner_url ?? null}
           unitId={unit.id}
           kind="banner"
