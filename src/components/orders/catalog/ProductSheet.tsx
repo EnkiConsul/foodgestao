@@ -74,7 +74,7 @@ interface Props {
 
 
 /** Editor completo do produto: dados, imagem, variações, complementos, disponibilidade e preços por unidade. */
-export function ProductSheet({ product, categoryId, open, onOpenChange, readOnly }: Props) {
+export function ProductSheet({ product, categoryId, categories = [], open, onOpenChange, readOnly }: Props) {
   const isNew = !product;
   const detail = useOrdersProductDetail(product?.id ?? null);
   const { data: units } = useOrdersUnits();
