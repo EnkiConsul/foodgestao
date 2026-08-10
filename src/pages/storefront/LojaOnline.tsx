@@ -312,25 +312,38 @@ export default function LojaOnline() {
 
       {/* Capa */}
       <header>
-        <div className="relative h-48 w-full overflow-hidden sm:h-64" style={{ background: "var(--sf-primary)" }}>
+        <div
+          className="relative w-full overflow-hidden aspect-[16/9] max-h-[300px] sm:aspect-[16/6] sm:max-h-[420px]"
+          style={{ background: "var(--sf-primary)" }}
+        >
           {banner && (
-            <img
-              src={banner}
-              alt=""
-              loading="eager"
-              className="absolute inset-0 h-full w-full object-cover"
-            />
+            <>
+              {/* Preenchimento desfocado para não recortar a arte */}
+              <img
+                src={banner}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 h-full w-full scale-110 object-cover blur-xl"
+              />
+              <img
+                src={banner}
+                alt=""
+                loading="eager"
+                className="absolute inset-0 h-full w-full object-contain"
+              />
+            </>
           )}
           <div
-            className="absolute inset-0"
+            className="absolute inset-x-0 bottom-0 h-1/3"
             style={{
               background:
-                "linear-gradient(to top, var(--sf-bg) 0%, color-mix(in srgb, var(--sf-bg) 35%, transparent) 45%, rgba(0,0,0,.18) 100%)",
+                "linear-gradient(to top, var(--sf-bg) 0%, color-mix(in srgb, var(--sf-bg) 20%, transparent) 70%, transparent 100%)",
             }}
           />
         </div>
 
-        <div className="relative z-10 mx-auto -mt-20 max-w-3xl px-4">
+        <div className="relative z-10 mx-auto mt-3 max-w-3xl px-4 sm:-mt-12">
+
           <div
             className="rounded-[2rem] border p-5 shadow-xl sm:p-6"
             style={{ background: "var(--sf-surface)", borderColor: "var(--sf-border)" }}
