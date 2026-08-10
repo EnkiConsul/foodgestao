@@ -12,53 +12,14 @@ import "./index.css";
 
 installStaleBundleRecovery();
 
-
-// PWA: register service worker only in production, outside Lovable preview/iframe.
-const isInIframe = (() => {
-  try {
-    return window.self !== window.top;
-  } catch {
-    return true;
-  }
-})();
-
-const host = window.location.hostname;
-const isPreviewHost =
-  host.includes("id-preview--") ||
-  host.includes("lovableproject.com") ||
-  host.includes("lovable.app") && host.includes("--");
-
-// Kill-switch: allow `?sw=off` to force-unregister any SW and clear caches.
-const swOff = new URLSearchParams(window.location.search).get("sw") === "off";
-
-if (swOff && "serviceWorker" in navigator) {
-  navigator.serviceWorker.getRegistrations().then(async (regs) => {
-    await Promise.allSettled(regs.map((r) => r.unregister()));
-    if ("caches" in window) {
-      const keys = await caches.keys();
-      await Promise.allSettled(keys.map((k) => caches.delete(k)));
-    }
-    window.location.replace(window.location.pathname);
-  });
-} else if (import.meta.env.PROD && !isInIframe && !isPreviewHost && "serviceWorker" in navigator) {
-  import("virtual:pwa-register").then(({ registerSW }) => {
-    const updateSW = registerSW({
-      immediate: true,
-      onNeedRefresh: () => {
-        // New version available: apply immediately to avoid stale-bundle white screens.
-        updateSW(true);
-      },
-      onRegisteredSW: (_swUrl, registration) => {
-        if (!registration) return;
-        // Periodically check for updates so long-lived tabs pick up new deploys.
-        setInterval(() => registration.update().catch(() => {}), 60 * 60 * 1000);
-      },
-    });
-  });
-} else if ("serviceWorker" in navigator && (isInIframe || isPreviewHost)) {
-  // Cleanup any previously registered SW in preview/iframe contexts.
-  navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister()));
+// Offline caching was removed because an old app-shell cache could route valid
+// public storefront URLs to the legacy 404 page. The replacement /sw.js also
+// unregisters returning browsers that have not loaded this bundle yet.
+if ("serviceWorker" in navigator) {
+  void navigator.serviceWorker
+    .getRegistrations()
+    .then((registrations) => Promise.allSettled(registrations.map((registration) => registration.unregister())))
+    .catch(() => undefined);
 }
-
 
 createRoot(document.getElementById("root")!).render(<App />);
