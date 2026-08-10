@@ -55,6 +55,7 @@ import {
   useRemoveProductImage,
   useReorderCatalog,
   useSaveAvailability,
+  useSaveCategory,
   useSaveOption,
   useSaveOptionGroup,
   useSaveProduct,
@@ -69,6 +70,8 @@ interface Props {
   product: OrdersProduct | null;
   categoryId: string | null;
   categories?: { id: string; name: string }[];
+  /** Cardápio ativo — habilita o atalho de criar categoria aqui mesmo. */
+  menuId?: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   readOnly?: boolean;
@@ -76,7 +79,7 @@ interface Props {
 
 
 /** Editor completo do produto: dados, imagem, variações, complementos, disponibilidade e preços por unidade. */
-export function ProductSheet({ product, categoryId, categories = [], open, onOpenChange, readOnly }: Props) {
+export function ProductSheet({ product, categoryId, categories = [], menuId, open, onOpenChange, readOnly }: Props) {
   const isNew = !product;
   const detail = useOrdersProductDetail(product?.id ?? null);
   const { data: units } = useOrdersUnits();
@@ -108,7 +111,28 @@ export function ProductSheet({ product, categoryId, categories = [], open, onOpe
   useEffect(() => {
     if (!open) return;
     setSelectedCategory(product?.category_id ?? categoryId ?? "");
+    setCreatingCategory(false);
+    setNewCategoryName("");
   }, [open, product?.category_id, categoryId]);
+
+  const saveCategory = useSaveCategory();
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+
+  const handleCreateCategory = async () => {
+    const trimmed = newCategoryName.trim();
+    if (!menuId || !trimmed) return;
+    try {
+      const id = await saveCategory.mutateAsync({ menu_id: menuId, name: trimmed });
+      setSelectedCategory(id);
+      setNewCategoryName("");
+      setCreatingCategory(false);
+    } catch {
+      /* o hook já exibe o erro */
+    }
+  };
+
+
 
 
 
@@ -199,10 +223,24 @@ export function ProductSheet({ product, categoryId, categories = [], open, onOpe
           <TabsContent value="dados" className="space-y-4 pt-4">
             {isNew && (
               <div className="space-y-2">
-                <Label>Categoria *</Label>
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Categoria *</Label>
+                  {menuId && !disabled && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => setCreatingCategory((v) => !v)}
+                    >
+                      <Plus className="mr-1 h-3.5 w-3.5" />
+                      Nova categoria
+                    </Button>
+                  )}
+                </div>
                 {categories.length === 0 ? (
-                  <p className="text-xs text-destructive">
-                    Nenhuma categoria cadastrada neste cardápio. Crie uma categoria antes de cadastrar produtos.
+                  <p className="text-xs text-muted-foreground">
+                    Nenhuma categoria cadastrada neste cardápio. Crie uma agora mesmo em “Nova categoria”.
                   </p>
                 ) : (
                   <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={disabled}>
@@ -214,8 +252,38 @@ export function ProductSheet({ product, categoryId, categories = [], open, onOpe
                     </SelectContent>
                   </Select>
                 )}
+
+                {menuId && (creatingCategory || categories.length === 0) && !disabled && (
+                  <div className="flex items-end gap-2 rounded-md border border-dashed p-2">
+                    <div className="flex-1 space-y-1">
+                      <Label htmlFor="prod-new-cat" className="text-xs">Nome da nova categoria</Label>
+                      <Input
+                        id="prod-new-cat"
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        placeholder="Ex.: Pizzas"
+                        maxLength={80}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            void handleCreateCategory();
+                          }
+                        }}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={!newCategoryName.trim() || saveCategory.isPending}
+                      onClick={() => void handleCreateCategory()}
+                    >
+                      {saveCategory.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar"}
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
+
 
             <div className="space-y-2">
               <Label htmlFor="prod-name">Nome *</Label>

@@ -378,6 +378,7 @@ function CatalogContent() {
         product={sheetProduct}
         categoryId={categoryFilter !== "all" ? categoryFilter : (categories ?? [])[0]?.id ?? null}
         categories={(categories ?? []).map((c) => ({ id: c.id, name: c.name }))}
+        menuId={activeMenuId}
 
         open={sheetOpen}
         onOpenChange={setSheetOpen}
