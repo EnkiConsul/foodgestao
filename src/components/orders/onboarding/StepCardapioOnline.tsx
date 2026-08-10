@@ -290,7 +290,12 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
         about: about.trim() || null,
         whatsapp_phone: onlyDigits(whatsapp) || null,
         online_cart_enabled: cart,
+        banner_fit: banner.fit,
+        banner_zoom: banner.zoom,
+        banner_focus_x: banner.focusX,
+        banner_focus_y: banner.focusY,
         ...(publish === undefined ? {} : { is_published: publish }),
+
       },
       { onSuccess: () => publish !== false && onSaved() },
     );
