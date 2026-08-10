@@ -369,6 +369,11 @@ export interface PublicStorefront {
     primary_color: string;
     logo_url: string | null;
     banner_url: string | null;
+    banner_fit?: string | null;
+    banner_zoom?: number | null;
+    banner_focus_x?: number | null;
+    banner_focus_y?: number | null;
+
     headline: string | null;
     about: string | null;
     whatsapp_phone: string | null;
