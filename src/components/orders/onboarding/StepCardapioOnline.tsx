@@ -54,7 +54,6 @@ function MediaField({
   hint: string;
   path: string | null;
   unitId: string;
-  slug: string;
   kind: "logo" | "banner";
   aspect: string;
   slug: string;
