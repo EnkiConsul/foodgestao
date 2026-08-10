@@ -13,6 +13,7 @@ import {
   cartToWhatsappText,
   computeCartTotals,
   formatCents,
+  themeStyle,
   validateCart,
   whatsappLink,
   type CartItem,
@@ -106,13 +107,24 @@ export default function StorefrontCheckoutSheet({
     );
   };
 
-  const surface = { background: "var(--sf-surface)", color: "var(--sf-text)" };
+  // O Sheet é renderizado num portal fora da página da loja: reaplica o tema aqui.
+  const theme = themeStyle(data.store.theme, data.store.primary_color);
+  const surface = {
+    ...theme,
+    background: "var(--sf-surface)",
+    color: "var(--sf-text)",
+    fontFamily: "var(--sf-font-body)",
+  };
   const border = { borderColor: "var(--sf-border)" };
   const fieldStyle = { background: "var(--sf-bg)", borderColor: "var(--sf-border)", color: "var(--sf-text)" };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-h-[94vh] overflow-y-auto rounded-t-2xl border-0 p-0" style={surface}>
+      <SheetContent
+        side="bottom"
+        className="mx-auto max-h-[94vh] overflow-y-auto rounded-t-2xl border-0 p-0 sm:max-w-lg sm:rounded-2xl"
+        style={surface}
+      >
         {placed ? (
           <div className="space-y-4 p-6 text-center">
             <CheckCircle2 className="mx-auto h-12 w-12" style={{ color: "var(--sf-primary)" }} />

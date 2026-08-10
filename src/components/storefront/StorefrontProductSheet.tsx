@@ -7,10 +7,12 @@ import {
   cartItemUnitTotal,
   formatCents,
   storefrontMediaUrl,
+  themeStyle,
   validateProductSelection,
   type CartItem,
   type CartOption,
   type PublicProduct,
+  type StorefrontTheme,
 } from "@/lib/orders/storefront";
 
 interface Props {
@@ -19,9 +21,20 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAdd: (item: CartItem) => void;
+  /** Tema da loja — o Sheet vive num portal fora da página, precisa das variáveis aqui. */
+  theme: StorefrontTheme;
+  primaryColor: string;
 }
 
-export default function StorefrontProductSheet({ slug, product, open, onOpenChange, onAdd }: Props) {
+export default function StorefrontProductSheet({
+  slug,
+  product,
+  open,
+  onOpenChange,
+  onAdd,
+  theme,
+  primaryColor,
+}: Props) {
   const [variantId, setVariantId] = useState<string | null>(null);
   const [options, setOptions] = useState<CartOption[]>([]);
   const [notes, setNotes] = useState("");
@@ -95,11 +108,24 @@ export default function StorefrontProductSheet({ slug, product, open, onOpenChan
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="max-h-[92vh] overflow-y-auto rounded-t-2xl border-0 p-0"
-        style={{ background: "var(--sf-surface)", color: "var(--sf-text)" }}
+        className="mx-auto flex max-h-[88vh] flex-col overflow-hidden rounded-t-2xl border-0 p-0 sm:max-w-lg sm:rounded-2xl"
+        style={{
+          ...themeStyle(theme, primaryColor),
+          background: "var(--sf-surface)",
+          color: "var(--sf-text)",
+          fontFamily: "var(--sf-font-body)",
+        }}
       >
-        {image && <img src={image} alt={product.name} className="h-44 w-full object-cover" loading="lazy" />}
-        <div className="space-y-5 p-4 pb-28">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        {image && (
+          <img
+            src={image}
+            alt={product.name}
+            className="h-40 w-full flex-none object-cover sm:h-48"
+            loading="lazy"
+          />
+        )}
+        <div className="space-y-5 p-4 pb-6">
           <SheetHeader className="space-y-1 text-left">
             <SheetTitle style={{ color: "var(--sf-text)" }}>{product.name}</SheetTitle>
             {product.description && (
@@ -206,9 +232,10 @@ export default function StorefrontProductSheet({ slug, product, open, onOpenChan
             </ul>
           )}
         </div>
+        </div>
 
         <div
-          className="sticky bottom-0 flex items-center gap-3 border-t p-3"
+          className="flex flex-none items-center gap-3 border-t p-3"
           style={{ background: "var(--sf-surface)", borderColor: "var(--sf-border)" }}
         >
           <div
