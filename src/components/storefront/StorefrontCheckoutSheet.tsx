@@ -13,6 +13,7 @@ import {
   cartToWhatsappText,
   computeCartTotals,
   formatCents,
+  themeStyle,
   validateCart,
   whatsappLink,
   type CartItem,
