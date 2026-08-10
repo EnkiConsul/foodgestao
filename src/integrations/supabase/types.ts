@@ -9155,7 +9155,11 @@ export type Database = {
       ped_storefronts: {
         Row: {
           about: string | null
+          banner_fit: string
+          banner_focus_x: number
+          banner_focus_y: number
           banner_url: string | null
+          banner_zoom: number
           company_id: string
           created_at: string
           created_by: string | null
@@ -9174,7 +9178,11 @@ export type Database = {
         }
         Insert: {
           about?: string | null
+          banner_fit?: string
+          banner_focus_x?: number
+          banner_focus_y?: number
           banner_url?: string | null
+          banner_zoom?: number
           company_id: string
           created_at?: string
           created_by?: string | null
@@ -9193,7 +9201,11 @@ export type Database = {
         }
         Update: {
           about?: string | null
+          banner_fit?: string
+          banner_focus_x?: number
+          banner_focus_y?: number
           banner_url?: string | null
+          banner_zoom?: number
           company_id?: string
           created_at?: string
           created_by?: string | null
