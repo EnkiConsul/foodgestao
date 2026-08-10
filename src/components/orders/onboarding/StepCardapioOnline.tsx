@@ -212,6 +212,12 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
   const [about, setAbout] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [cart, setCart] = useState(true);
+  const [banner, setBanner] = useState<BannerDisplay>({
+    fit: BANNER_DEFAULTS.fit,
+    zoom: BANNER_DEFAULTS.zoom,
+    focusX: BANNER_DEFAULTS.focusX,
+    focusY: BANNER_DEFAULTS.focusY,
+  });
   const [errors, setErrors] = useState<string[]>([]);
   const [qr, setQr] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
@@ -225,11 +231,13 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
       setAbout(store.about ?? "");
       setWhatsapp(store.whatsapp_phone ?? "");
       setCart(store.online_cart_enabled);
+      setBanner(normalizeBannerDisplay(store));
     } else if (!touched) {
       setSlug(slugify(unit.nome));
       setWhatsapp(unit.telefone ?? "");
     }
   }, [store, unit.nome, unit.telefone, touched]);
+
 
   const published = Boolean(store?.is_published);
   const { data: logoPreview } = useStorefrontMediaPreview(store?.logo_url ?? null);
