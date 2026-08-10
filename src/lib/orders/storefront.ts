@@ -186,9 +186,10 @@ export function isValidSlug(slug: string): boolean {
   return /^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(s) && !s.includes("--");
 }
 
-export function isValidHexColor(value: string): boolean {
-  return /^#[0-9a-fA-F]{6}$/.test(value.trim());
+export function isValidHexColor(value: string | null | undefined): boolean {
+  return /^#[0-9a-fA-F]{6}$/.test((value ?? "").trim());
 }
+
 
 /** Valida a configuração antes de salvar/publicar. */
 export function validateStorefront(input: {
