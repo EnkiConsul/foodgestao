@@ -686,30 +686,31 @@ export default function LojaOnline() {
                       )}
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col">
-                      <div className="flex items-start justify-between gap-3">
-                        <h3
-                          className="min-w-0 text-base font-bold leading-tight sm:text-lg"
-                          style={{ fontFamily: "var(--sf-font-head)" }}
-                        >
-                          {p.name}
-                        </h3>
-                        {p.available && (
+                      <h3
+                        className="text-base font-bold leading-tight sm:text-lg"
+                        style={{ fontFamily: "var(--sf-font-head)" }}
+                      >
+                        {p.name}
+                      </h3>
+                      {p.available && (
+                        <p className="mt-1 flex items-baseline gap-1.5">
+                          {p.variants.length > 0 && (
+                            <span
+                              className="text-[10px] font-bold uppercase tracking-[0.14em]"
+                              style={{ color: "var(--sf-muted)" }}
+                            >
+                              a partir de
+                            </span>
+                          )}
                           <span
-                            className="shrink-0 text-base font-bold tabular-nums sm:text-lg"
+                            className="text-base font-bold tabular-nums sm:text-lg"
                             style={{ color: "var(--sf-primary)", fontFamily: "var(--sf-font-head)" }}
                           >
                             {formatCents(price)}
                           </span>
-                        )}
-                      </div>
-                      {p.variants.length > 0 && p.available && (
-                        <p
-                          className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.14em]"
-                          style={{ color: "var(--sf-muted)" }}
-                        >
-                          a partir de
                         </p>
                       )}
+
                       {p.description && (
                         <p
                           className="mt-1.5 line-clamp-2 text-sm leading-relaxed"
