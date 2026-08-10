@@ -28,7 +28,9 @@ import {
   useStorefrontMediaPreview,
   useUploadStorefrontMedia,
 } from "@/hooks/useStorefront";
+import { useLogoPalette } from "@/hooks/useLogoPalette";
 import type { OrdersUnit } from "@/hooks/useOrdersUnits";
+
 import {
   STOREFRONT_THEMES,
   THEME_TOKENS,
@@ -145,7 +147,10 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
   }, [store, unit.nome, unit.telefone, touched]);
 
   const published = Boolean(store?.is_published);
+  const { data: logoPreview } = useStorefrontMediaPreview(store?.logo_url ?? null);
+  const { data: logoPalette = [] } = useLogoPalette(logoPreview ?? null);
   const publicUrl = useMemo(() => (slug ? storefrontPublicUrl(slug) : ""), [slug]);
+
   const slugChanged = !store || store.slug !== slug.trim().toLowerCase();
   const { data: available, isFetching: checkingSlug } = useSlugAvailability(
     slugChanged && isValidSlug(slug) ? slug.trim().toLowerCase() : "",
@@ -303,7 +308,27 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
         <Label>
           Cor principal <span className="text-destructive">*</span>
         </Label>
+        {logoPalette.length > 0 && (
+          <div className="space-y-1.5">
+            <p className="text-xs text-muted-foreground">Cores da sua logo</p>
+            <div className="flex flex-wrap items-center gap-2">
+              {logoPalette.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  aria-label={`Usar cor da logo ${c}`}
+                  onClick={() => setColor(c)}
+                  className={`h-8 w-8 rounded-full border-2 ${color.toLowerCase() === c.toLowerCase() ? "border-foreground" : "border-transparent"}`}
+                  style={{ background: c }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
         <div className="flex flex-wrap items-center gap-2">
+          {logoPalette.length > 0 && (
+            <span className="w-full text-xs text-muted-foreground">Sugestões</span>
+          )}
           {COLOR_PRESETS.map((c) => (
             <button
               key={c}
@@ -323,6 +348,7 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
           />
         </div>
       </div>
+
 
       {/* Imagens */}
       <div className="grid gap-4 sm:grid-cols-2">
