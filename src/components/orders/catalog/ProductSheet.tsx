@@ -402,7 +402,7 @@ export function ProductSheet({ product, categoryId, categories = [], menuId, ope
                     )}
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">JPG, PNG, WEBP ou AVIF · até 5 MB.</p>
+                <p className="text-xs text-muted-foreground">JPG, PNG, WEBP ou AVIF · até 5 MB. A foto é recortada no centro e padronizada em 1:1 (1200 × 1200 px) — envie preferencialmente uma imagem quadrada.</p>
               </div>
             )}
 
@@ -730,7 +730,7 @@ export function ProductSheet({ product, categoryId, categories = [], menuId, ope
           <TabsContent value="preview" className="pt-4">
             <div className="overflow-hidden rounded-xl border">
               {imageQuery.data && (
-                <img src={imageQuery.data} alt={`Prévia de ${name}`} className="h-40 w-full object-cover" />
+                <img src={imageQuery.data} alt={`Prévia de ${name}`} className="aspect-square w-full object-cover" />
               )}
               <div className="space-y-3 p-4">
                 <div className="flex items-start justify-between gap-3">
