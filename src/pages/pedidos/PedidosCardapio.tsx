@@ -5,6 +5,7 @@ import {
   ChevronUp,
   Copy,
   ImageOff,
+  ListOrdered,
   Archive,
   Pause,
   Play,
@@ -31,6 +32,7 @@ import { OrdersGuard } from "@/components/orders/OrdersGuard";
 import { OrdersPageHeader } from "@/components/orders/OrdersPageHeader";
 import { HelpHint } from "@/components/common/HelpHint";
 import { ProductSheet } from "@/components/orders/catalog/ProductSheet";
+import { CategoriesDialog } from "@/components/orders/catalog/CategoriesDialog";
 import {
   CATALOG_STATE_LABELS,
   CATALOG_STATE_VARIANTS,
@@ -88,6 +90,7 @@ function CatalogContent() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<OrdersProduct | null>(null);
   const [dupUnitId, setDupUnitId] = useState<string>("");
+  const [categoriesDialogOpen, setCategoriesDialogOpen] = useState(false);
 
   const saveMenu = useSaveMenu();
   const saveCategory = useSaveCategory();
@@ -203,6 +206,14 @@ function CatalogContent() {
                 <Badge variant={CATALOG_STATE_VARIANTS[activeMenu.state]}>{CATALOG_STATE_LABELS[activeMenu.state]}</Badge>
               )}
               <div className="grid w-full gap-2 sm:ml-auto sm:flex sm:w-auto sm:flex-wrap sm:items-center">
+                <Button
+                  variant="outline"
+                  className="min-h-11"
+                  disabled={!activeMenuId}
+                  onClick={() => setCategoriesDialogOpen(true)}
+                >
+                  <ListOrdered className="mr-2 h-4 w-4" /> Categorias
+                </Button>
                 <Select value={dupUnitId} onValueChange={setDupUnitId}>
                   <SelectTrigger className="min-h-11 w-full sm:w-44"><SelectValue placeholder="Duplicar para..." /></SelectTrigger>
                   <SelectContent>
@@ -373,6 +384,13 @@ function CatalogContent() {
           </div>
         </>
       )}
+
+      <CategoriesDialog
+        menuId={activeMenuId}
+        open={categoriesDialogOpen}
+        onOpenChange={setCategoriesDialogOpen}
+        readOnly={readOnly}
+      />
 
       <ProductSheet
         product={sheetProduct}
