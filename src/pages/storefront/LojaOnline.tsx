@@ -299,7 +299,7 @@ export default function LojaOnline() {
 
       {/* Capa */}
       <header>
-        <div className="relative h-40 w-full overflow-hidden sm:h-64" style={{ background: "var(--sf-primary)" }}>
+        <div className="relative h-48 w-full overflow-hidden sm:h-64" style={{ background: "var(--sf-primary)" }}>
           {banner && (
             <img
               src={banner}
@@ -310,59 +310,77 @@ export default function LojaOnline() {
           )}
           <div
             className="absolute inset-0"
-            style={{ background: "linear-gradient(to top, rgba(0,0,0,.65), rgba(0,0,0,.15) 55%, rgba(0,0,0,0))" }}
+            style={{
+              background:
+                "linear-gradient(to top, var(--sf-bg) 0%, color-mix(in srgb, var(--sf-bg) 35%, transparent) 45%, rgba(0,0,0,.18) 100%)",
+            }}
           />
         </div>
 
-        <div className="relative z-10 mx-auto -mt-12 max-w-3xl px-4">
+        <div className="relative z-10 mx-auto -mt-20 max-w-3xl px-4">
           <div
-            className="rounded-2xl border p-4 shadow-lg"
+            className="rounded-[2rem] border p-5 shadow-xl sm:p-6"
             style={{ background: "var(--sf-surface)", borderColor: "var(--sf-border)" }}
           >
-            <div className="flex items-start gap-3">
-              <div
-                className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border shadow-sm sm:h-24 sm:w-24"
-                style={{ borderColor: "var(--sf-border)", background: "var(--sf-bg)" }}
-              >
-                {logo ? (
-                  <img src={logo} alt={`Logo de ${store.unit.name}`} className="h-full w-full object-cover" />
-                ) : (
-                  <Store className="h-8 w-8" style={{ color: "var(--sf-muted)" }} aria-hidden="true" />
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
-                    style={
-                      openNow
-                        ? { background: "var(--sf-primary)", color: "var(--sf-on-primary)" }
-                        : { background: "var(--sf-border)", color: "var(--sf-text)" }
-                    }
-                  >
-                    <span
-                      className="h-1.5 w-1.5 rounded-full"
-                      style={{ background: openNow ? "var(--sf-on-primary)" : "var(--sf-muted)" }}
-                    />
-                    {openNow ? "Aberto agora" : "Fechado"}
-                  </span>
-                  {!openNow && nextOpening && (
-                    <span className="text-xs" style={{ color: "var(--sf-muted)" }}>
-                      {nextOpening}
-                    </span>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-4">
+                <div
+                  className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-4 shadow-lg sm:h-24 sm:w-24"
+                  style={{ borderColor: "var(--sf-surface)", background: "var(--sf-accent)" }}
+                >
+                  {logo ? (
+                    <img src={logo} alt={`Logo de ${store.unit.name}`} className="h-full w-full object-cover" />
+                  ) : (
+                    <Store className="h-8 w-8" style={{ color: "var(--sf-muted)" }} aria-hidden="true" />
                   )}
                 </div>
-                <h1 className="mt-1.5 text-xl font-extrabold leading-tight sm:text-2xl">{store.unit.name}</h1>
-                {store.store.headline && (
-                  <p className="mt-0.5 text-sm" style={{ color: "var(--sf-muted)" }}>
-                    {store.store.headline}
-                  </p>
-                )}
+                <div className="min-w-0 flex-1 pt-1">
+                  <div className="flex items-center gap-2">
+                    <h1
+                      className="min-w-0 text-xl font-bold leading-tight tracking-tight sm:text-2xl"
+                      style={{ fontFamily: "var(--sf-font-head)" }}
+                    >
+                      {store.unit.name}
+                    </h1>
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{
+                        background: openNow ? "var(--sf-sage)" : "var(--sf-border)",
+                        boxShadow: openNow ? "0 0 8px var(--sf-sage)" : "none",
+                      }}
+                      aria-hidden="true"
+                    />
+                  </div>
+                  {store.store.headline && (
+                    <p className="mt-1 text-sm" style={{ color: "var(--sf-muted)" }}>
+                      {store.store.headline}
+                    </p>
+                  )}
+                  {!openNow && nextOpening && (
+                    <p className="mt-1 text-xs" style={{ color: "var(--sf-muted)" }}>
+                      {nextOpening}
+                    </p>
+                  )}
+                </div>
               </div>
+              <span
+                className="hidden shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] sm:block"
+                style={
+                  openNow
+                    ? {
+                        background: "color-mix(in srgb, var(--sf-sage) 16%, transparent)",
+                        borderColor: "color-mix(in srgb, var(--sf-sage) 35%, transparent)",
+                        color: "var(--sf-sage)",
+                      }
+                    : { background: "var(--sf-accent)", borderColor: "var(--sf-border)", color: "var(--sf-muted)" }
+                }
+              >
+                {openNow ? "Aberto agora" : "Fechado"}
+              </span>
             </div>
 
             {/* Confiança: prazo, entrega, mínimo, pagamento */}
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <InfoTile
                 icon={<Timer className="h-4 w-4" />}
                 label="Preparo"
@@ -383,57 +401,46 @@ export default function LojaOnline() {
               <InfoTile
                 icon={<CreditCard className="h-4 w-4" />}
                 label="Pagamento"
-                value={
-                  store.payment_options.length > 0
-                    ? store.payment_options
-                        .slice(0, 2)
-                        .map((p) => p.label)
-                        .join(", ")
-                    : "Na entrega"
-                }
+                value={paymentSummary}
               />
             </div>
 
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               {store.store.whatsapp_phone && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  style={{ borderColor: "var(--sf-border)", color: "var(--sf-text)", background: "transparent" }}
-                  asChild
+                <a
+                  href={whatsappLink(
+                    store.store.whatsapp_phone,
+                    items.length > 0
+                      ? cartToWhatsappText(items, store.unit.name)
+                      : `Olá! Vi o cardápio de ${store.unit.name} e quero fazer um pedido.`,
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold shadow-lg transition hover:opacity-95"
+                  style={{ background: "var(--sf-sage)", color: "var(--sf-on-sage)" }}
                 >
-                  <a
-                    href={whatsappLink(
-                      store.store.whatsapp_phone,
-                      items.length > 0
-                        ? cartToWhatsappText(items, store.unit.name)
-                        : `Olá! Vi o cardápio de ${store.unit.name} e quero fazer um pedido.`,
-                    )}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <MessageCircle className="mr-2 h-4 w-4" /> Pedir no WhatsApp
-                  </a>
-                </Button>
+                  <MessageCircle className="h-4 w-4" aria-hidden="true" /> Pedir no WhatsApp
+                </a>
               )}
               <StorefrontTrackDialog
                 slug={store.store.slug}
                 initialNumber={lastOrder?.number}
                 initialPhone={lastOrder?.phone}
                 trigger={
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    style={{ borderColor: "var(--sf-border)", color: "var(--sf-text)", background: "transparent" }}
+                  <button
+                    type="button"
+                    className="flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-semibold transition hover:opacity-90"
+                    style={{ background: "var(--sf-accent)", color: "var(--sf-muted)" }}
                   >
-                    <Receipt className="mr-2 h-4 w-4" /> Acompanhar pedido
-                  </Button>
+                    <Receipt className="h-4 w-4" aria-hidden="true" /> Acompanhar pedido
+                  </button>
                 }
               />
             </div>
           </div>
         </div>
       </header>
+
 
       <main className="mx-auto max-w-3xl px-4">
         {!openNow && (
