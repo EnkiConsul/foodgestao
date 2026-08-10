@@ -55,6 +55,7 @@ import {
   useRemoveProductImage,
   useReorderCatalog,
   useSaveAvailability,
+  useSaveCategory,
   useSaveOption,
   useSaveOptionGroup,
   useSaveProduct,
