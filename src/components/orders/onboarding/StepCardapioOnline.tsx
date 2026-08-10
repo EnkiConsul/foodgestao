@@ -232,6 +232,11 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
     unit.id,
   );
 
+  const { data: catalog } = useStorefrontCatalogPreview(unit.id);
+  const catalogEmpty = Boolean(catalog && catalog.totalProducts === 0);
+
+
+
   useEffect(() => {
     if (!published || !publicUrl) {
       setQr(null);
