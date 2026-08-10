@@ -108,7 +108,7 @@ export default function StorefrontProductSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="mx-auto flex h-[88vh] max-h-[88vh] flex-col overflow-hidden rounded-t-2xl border-0 p-0 sm:max-w-lg sm:rounded-2xl"
+        className="mx-auto flex max-h-[88vh] flex-col overflow-hidden rounded-t-2xl border-0 p-0 sm:max-w-lg sm:rounded-2xl"
         style={{
           ...themeStyle(theme, primaryColor),
           background: "var(--sf-surface)",
