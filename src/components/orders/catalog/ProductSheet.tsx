@@ -137,12 +137,24 @@ export function ProductSheet({ product, categoryId, categories = [], open, onOpe
   const disabled = !!readOnly;
 
   async function handleSave() {
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      toast.error("Informe o nome do produto.");
+      return;
+    }
     const cents = parsePriceToCents(price);
-    if (cents === null || cents < 0) return;
+    if (cents === null || cents < 0) {
+      toast.error("Informe um preço válido.");
+      return;
+    }
+    const targetCategory = product?.category_id ?? selectedCategory;
+    if (!targetCategory) {
+      toast.error("Selecione uma categoria. Cadastre uma categoria no cardápio antes de criar produtos.");
+      return;
+    }
     await saveProduct.mutateAsync({
       id: product?.id,
-      category_id: product?.category_id ?? categoryId!,
+      category_id: targetCategory,
+
       name,
       description,
       internal_code: internalCode,
