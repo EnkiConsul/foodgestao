@@ -5,7 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTrackPublicOrder } from "@/hooks/usePublicStorefront";
-import { ORDER_TYPE_LABELS, PUBLIC_STATUS_LABELS, formatCents, onlyDigits } from "@/lib/orders/storefront";
+import {
+  ORDER_TYPE_LABELS,
+  PUBLIC_STATUS_LABELS,
+  formatCents,
+  onlyDigits,
+  themeStyle,
+  type StorefrontTheme,
+} from "@/lib/orders/storefront";
 
 const STEPS = [
   { key: "placed_at", label: "Pedido recebido" },
@@ -20,11 +27,15 @@ export default function StorefrontTrackDialog({
   initialNumber,
   initialPhone,
   trigger,
+  theme,
+  primaryColor,
 }: {
   slug: string;
   initialNumber?: number | null;
   initialPhone?: string | null;
   trigger: React.ReactNode;
+  theme: StorefrontTheme;
+  primaryColor: string;
 }) {
   const [open, setOpen] = useState(false);
   const [numberInput, setNumberInput] = useState(initialNumber ? String(initialNumber) : "");
@@ -41,7 +52,12 @@ export default function StorefrontTrackDialog({
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent
         className="max-w-md border-0"
-        style={{ background: "var(--sf-surface)", color: "var(--sf-text)" }}
+        style={{
+          ...themeStyle(theme, primaryColor),
+          background: "var(--sf-surface)",
+          color: "var(--sf-text)",
+          fontFamily: "var(--sf-font-body)",
+        }}
       >
         <DialogHeader>
           <DialogTitle style={{ color: "var(--sf-text)" }}>Acompanhar pedido</DialogTitle>
