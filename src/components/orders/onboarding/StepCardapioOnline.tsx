@@ -49,12 +49,12 @@ function MediaField({
   unitId,
   kind,
   aspect,
+  slug,
 }: {
   label: string;
   hint: string;
   path: string | null;
   unitId: string;
-  slug: string;
   kind: "logo" | "banner";
   aspect: string;
   slug: string;
@@ -328,7 +328,7 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
       <div className="grid gap-4 sm:grid-cols-2">
         <MediaField
           label="Logo"
-          hint="Quadrada, PNG ou JPG até 3 MB."
+          hint="Quadrada, 512×512 px. PNG, JPG ou WEBP até 3 MB."
           path={store?.logo_url ?? null}
           unitId={unit.id}
           kind="logo"
@@ -337,7 +337,7 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
         />
         <MediaField
           label="Banner"
-          hint="Formato largo (1200x400), até 3 MB."
+          hint="Formato largo, 1600×480 px (10:3). PNG, JPG ou WEBP até 3 MB."
           path={store?.banner_url ?? null}
           unitId={unit.id}
           kind="banner"
