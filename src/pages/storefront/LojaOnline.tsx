@@ -204,13 +204,15 @@ export default function LojaOnline() {
 
   return (
     <div
-      className="min-h-screen pb-32"
+      className="min-h-screen pb-36 antialiased"
       style={{
         ...themeStyle(store.store.theme, store.store.primary_color),
         background: "var(--sf-bg)",
         color: "var(--sf-text)",
+        fontFamily: "var(--sf-font-body)",
       }}
     >
+
       <Helmet>
         <title>{`${store.unit.name} — Cardápio online`}</title>
         <meta name="description" content={description} />
