@@ -7,7 +7,48 @@ import { PUBLIC_SITE_ORIGIN } from "@/lib/siteOrigin";
 
 // ---------------- Configuração ----------------
 
+/** Como o banner ocupa a área da capa: inteiro (contain) ou preenchendo (cover). */
+export type BannerFit = "contain" | "cover";
+
+export const BANNER_DEFAULTS = {
+  fit: "contain" as BannerFit,
+  zoom: 1,
+  focusX: 50,
+  focusY: 50,
+};
+
+/** Limita os ajustes de banner vindos do banco/formulário. */
+export function normalizeBannerDisplay(input: {
+  banner_fit?: string | null;
+  banner_zoom?: number | string | null;
+  banner_focus_x?: number | string | null;
+  banner_focus_y?: number | string | null;
+}) {
+  const num = (v: unknown, fallback: number, min: number, max: number) => {
+    const n = typeof v === "string" ? Number(v) : typeof v === "number" ? v : NaN;
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(max, Math.max(min, n));
+  };
+  return {
+    fit: input.banner_fit === "cover" ? ("cover" as BannerFit) : BANNER_DEFAULTS.fit,
+    zoom: num(input.banner_zoom, BANNER_DEFAULTS.zoom, 1, 3),
+    focusX: num(input.banner_focus_x, BANNER_DEFAULTS.focusX, 0, 100),
+    focusY: num(input.banner_focus_y, BANNER_DEFAULTS.focusY, 0, 100),
+  };
+}
+
+/** Estilo inline aplicado à <img> do banner (capa da LP e prévia no editor). */
+export function bannerImageStyle(d: { fit: BannerFit; zoom: number; focusX: number; focusY: number }) {
+  return {
+    objectFit: d.fit,
+    objectPosition: `${d.focusX}% ${d.focusY}%`,
+    transform: `scale(${d.zoom})`,
+    transformOrigin: `${d.focusX}% ${d.focusY}%`,
+  } as const;
+}
+
 export interface StorefrontConfig {
+
   id: string;
   company_id: string;
   unit_id: string;
