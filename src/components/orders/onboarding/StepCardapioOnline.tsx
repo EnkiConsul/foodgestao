@@ -146,7 +146,13 @@ function MediaField({
       <Label>{label}</Label>
       <div className={`relative overflow-hidden rounded-lg border bg-muted/40 ${aspect}`}>
         {preview ? (
-          <img src={preview} alt={label} className="h-full w-full object-cover" loading="lazy" />
+          <img
+            src={preview}
+            alt={label}
+            className={`h-full w-full ${kind === "banner" ? "object-contain" : "object-cover"}`}
+            loading="lazy"
+          />
+
         ) : (
           <div className="flex h-full items-center justify-center text-muted-foreground">
             <ImageIcon className="h-6 w-6" aria-hidden="true" />
