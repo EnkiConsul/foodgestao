@@ -727,26 +727,40 @@ export default function LojaOnline() {
         )}
 
         {/* Horários */}
-        <section className="mt-8">
-          <h2 className="flex items-center gap-1.5 text-base font-bold">
-            <Clock className="h-4 w-4" aria-hidden="true" /> Horário de atendimento
-          </h2>
-          <ul
-            className="mt-2 divide-y rounded-xl border text-sm"
-            style={{ background: "var(--sf-surface)", borderColor: "var(--sf-border)" }}
+        <section className="mt-10">
+          <div
+            className="relative overflow-hidden rounded-[2rem] p-6 sm:p-8"
+            style={{ background: "var(--sf-ink)", color: "var(--sf-on-ink)" }}
           >
-            {hours.map((h) => (
-              <li
-                key={h.weekday}
-                className="flex justify-between gap-2 px-3 py-2"
-                style={{ borderColor: "var(--sf-border)" }}
-              >
-                <span style={{ color: "var(--sf-muted)" }}>{h.label}</span>
-                <span className="tabular-nums">{h.periods.length > 0 ? h.periods.join(" · ") : "Fechado"}</span>
-              </li>
-            ))}
-          </ul>
+            <Clock
+              className="pointer-events-none absolute -right-4 -top-4 h-32 w-32 opacity-10"
+              aria-hidden="true"
+            />
+            <h2
+              className="mb-5 text-xs font-bold uppercase tracking-[0.2em]"
+              style={{ color: "var(--sf-primary)", fontFamily: "var(--sf-font-head)" }}
+            >
+              Horário de atendimento
+            </h2>
+            <ul className="relative z-10 space-y-3 text-sm">
+              {hours.map((h, index) => (
+                <li
+                  key={h.weekday}
+                  className={`flex items-center justify-between gap-3 ${
+                    index < hours.length - 1 ? "border-b pb-2.5" : ""
+                  }`}
+                  style={{ borderColor: "rgba(255,255,255,.12)" }}
+                >
+                  <span style={{ color: "var(--sf-ink-muted)" }}>{h.label}</span>
+                  <span className="font-bold tabular-nums" style={{ fontFamily: "var(--sf-font-head)" }}>
+                    {h.periods.length > 0 ? h.periods.join(" · ") : "Fechado"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
+
 
         <footer className="mt-10 pb-6 text-center text-xs" style={{ color: "var(--sf-muted)" }}>
           Cardápio digital por 360°FOOD
