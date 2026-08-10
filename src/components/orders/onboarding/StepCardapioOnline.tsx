@@ -328,7 +328,7 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
       <div className="grid gap-4 sm:grid-cols-2">
         <MediaField
           label="Logo"
-          hint="Quadrada, PNG ou JPG até 3 MB."
+          hint="Quadrada, 512×512 px. PNG, JPG ou WEBP até 3 MB."
           path={store?.logo_url ?? null}
           unitId={unit.id}
           kind="logo"
