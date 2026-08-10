@@ -266,9 +266,10 @@ export default function LojaOnline() {
             <p className="mt-1 text-xs" style={{ color: "var(--sf-muted)" }}>
               Os itens desta loja serão publicados em breve.
             </p>
-            {whatsappLink && (
+            {store.store.whatsapp_phone && (
               <a
-                href={whatsappLink}
+                href={whatsappLink(store.store.whatsapp_phone, `Olá! Vi o cardápio de ${store.unit.name}.`)}
+
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-3 inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold"
