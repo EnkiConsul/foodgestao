@@ -69,6 +69,8 @@ interface Props {
   product: OrdersProduct | null;
   categoryId: string | null;
   categories?: { id: string; name: string }[];
+  /** Cardápio ativo — habilita o atalho de criar categoria aqui mesmo. */
+  menuId?: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   readOnly?: boolean;
@@ -76,7 +78,7 @@ interface Props {
 
 
 /** Editor completo do produto: dados, imagem, variações, complementos, disponibilidade e preços por unidade. */
-export function ProductSheet({ product, categoryId, categories = [], open, onOpenChange, readOnly }: Props) {
+export function ProductSheet({ product, categoryId, categories = [], menuId, open, onOpenChange, readOnly }: Props) {
   const isNew = !product;
   const detail = useOrdersProductDetail(product?.id ?? null);
   const { data: units } = useOrdersUnits();
