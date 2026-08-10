@@ -33,6 +33,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
+    // Versão antiga em cache no aparelho: limpa e recarrega sozinho.
+    if (isStaleBundleError(error)) void recoverFromStaleBundle();
     logger.error("Falha de renderização contida pelo ErrorBoundary", error, {
       scope: this.props.scope ?? "boundary",
       componentStack: info.componentStack?.slice(0, 2000),
@@ -43,6 +45,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   private reset = () => this.setState({ error: null });
 
   private reload = () => window.location.reload();
+
 
   render() {
     const { error } = this.state;
