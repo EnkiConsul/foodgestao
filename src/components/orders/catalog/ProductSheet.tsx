@@ -161,7 +161,7 @@ export function ProductSheet({ product, categoryId, categories = [], menuId, ope
   const [availEnd, setAvailEnd] = useState("");
   const [availChannels, setAvailChannels] = useState<OrderChannel[]>([]);
 
-  const imageQuery = useProductImageUrl(product?.image_path ?? null);
+  const imageQuery = useProductImageUrl(product?.image_path ?? null, product?.updated_at ?? null);
   const basePriceCents = parsePriceToCents(price) ?? 0;
 
   const previewPrice = useMemo(() => {

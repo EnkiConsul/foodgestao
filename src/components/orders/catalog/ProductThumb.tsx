@@ -4,11 +4,12 @@ import { useProductImageUrl } from "@/hooks/useOrdersCatalog";
 interface ProductThumbProps {
   path: string | null;
   alt: string;
+  version?: string | null;
   className?: string;
 }
 
-export function ProductThumb({ path, alt, className }: ProductThumbProps) {
-  const { data: url } = useProductImageUrl(path);
+export function ProductThumb({ path, alt, version, className }: ProductThumbProps) {
+  const { data: url } = useProductImageUrl(path, version);
 
   return (
     <div
