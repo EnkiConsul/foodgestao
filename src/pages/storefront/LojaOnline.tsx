@@ -332,10 +332,12 @@ export default function LojaOnline() {
                 src={banner}
                 alt=""
                 loading="eager"
-                className="absolute inset-0 h-full w-full object-contain"
+                className="absolute inset-0 h-full w-full"
+                style={bannerImageStyle(bannerDisplay)}
               />
             </>
           )}
+
           <div
             className="absolute inset-x-0 bottom-0 h-1/3"
             style={{
