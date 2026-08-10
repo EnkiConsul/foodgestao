@@ -153,22 +153,26 @@ export function ProductSheet({ product, categoryId, categories = [], open, onOpe
       toast.error("Selecione uma categoria. Cadastre uma categoria no cardápio antes de criar produtos.");
       return;
     }
-    await saveProduct.mutateAsync({
-      id: product?.id,
-      category_id: targetCategory,
-
-      name,
-      description,
-      internal_code: internalCode,
-      base_price_cents: cents,
-      prep_time_minutes: prep ? Number(prep) : null,
-      allows_notes: allowsNotes,
-      track_stock: trackStock,
-      stock_quantity: trackStock ? Number(stock || 0) : null,
-      state,
-    });
-    if (isNew) onOpenChange(false);
+    try {
+      await saveProduct.mutateAsync({
+        id: product?.id,
+        category_id: targetCategory,
+        name,
+        description,
+        internal_code: internalCode,
+        base_price_cents: cents,
+        prep_time_minutes: prep ? Number(prep) : null,
+        allows_notes: allowsNotes,
+        track_stock: trackStock,
+        stock_quantity: trackStock ? Number(stock || 0) : null,
+        state,
+      });
+      if (isNew) onOpenChange(false);
+    } catch {
+      /* erro já exibido pelo hook */
+    }
   }
+
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
