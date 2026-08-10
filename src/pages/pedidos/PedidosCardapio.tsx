@@ -100,6 +100,12 @@ function CatalogContent() {
   const archiveProduct = useArchiveProduct();
   const reorder = useReorderCatalog();
 
+  /** Mantém a ficha sincronizada com a lista (ex.: foto enviada durante a edição). */
+  const activeSheetProduct = useMemo(() => {
+    if (!sheetProduct) return null;
+    return (products ?? []).find((p) => p.id === sheetProduct.id) ?? sheetProduct;
+  }, [products, sheetProduct]);
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return (products ?? []).filter((p) => {
@@ -393,7 +399,7 @@ function CatalogContent() {
       />
 
       <ProductSheet
-        product={sheetProduct}
+        product={activeSheetProduct}
         categoryId={categoryFilter !== "all" ? categoryFilter : (categories ?? [])[0]?.id ?? null}
         categories={(categories ?? []).map((c) => ({ id: c.id, name: c.name }))}
         menuId={activeMenuId}
