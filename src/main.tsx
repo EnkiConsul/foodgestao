@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
+import { installStaleBundleRecovery } from "./lib/staleBundle";
 import "@fontsource/urbanist/600.css";
 import "@fontsource/urbanist/700.css";
 import "@fontsource/urbanist/800.css";
@@ -8,6 +9,9 @@ import "@fontsource/epilogue/400.css";
 import "@fontsource/epilogue/500.css";
 import "@fontsource/epilogue/600.css";
 import "./index.css";
+
+installStaleBundleRecovery();
+
 
 // PWA: register service worker only in production, outside Lovable preview/iframe.
 const isInIframe = (() => {
