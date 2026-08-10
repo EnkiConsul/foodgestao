@@ -218,7 +218,14 @@ export default function LojaOnline() {
 
       <Helmet>
         <title>{`${store.unit.name} — Cardápio online`}</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Figtree:wght@400;500;600;700&display=swap"
+        />
         <meta name="description" content={description} />
+
         <link rel="canonical" href={`${PUBLIC_SITE_ORIGIN}/c/${store.store.slug}`} />
         <meta property="og:title" content={`${store.unit.name} — Cardápio online`} />
         <meta property="og:description" content={description} />
