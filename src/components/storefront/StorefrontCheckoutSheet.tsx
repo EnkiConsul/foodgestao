@@ -106,7 +106,14 @@ export default function StorefrontCheckoutSheet({
     );
   };
 
-  const surface = { background: "var(--sf-surface)", color: "var(--sf-text)" };
+  // O Sheet é renderizado num portal fora da página da loja: reaplica o tema aqui.
+  const theme = themeStyle(data.store.theme, data.store.primary_color);
+  const surface = {
+    ...theme,
+    background: "var(--sf-surface)",
+    color: "var(--sf-text)",
+    fontFamily: "var(--sf-font-body)",
+  };
   const border = { borderColor: "var(--sf-border)" };
   const fieldStyle = { background: "var(--sf-bg)", borderColor: "var(--sf-border)", color: "var(--sf-text)" };
 
