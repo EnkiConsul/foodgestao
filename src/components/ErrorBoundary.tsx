@@ -3,6 +3,8 @@ import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { logger, toErrorMessage } from "@/lib/logger";
+import { isStaleBundleError, recoverFromStaleBundle } from "@/lib/staleBundle";
+
 
 interface ErrorBoundaryProps {
   children: ReactNode;
