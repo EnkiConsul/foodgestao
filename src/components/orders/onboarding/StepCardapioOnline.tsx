@@ -35,17 +35,21 @@ import { useStorefrontCatalogPreview } from "@/hooks/useStorefrontCatalogPreview
 import { useLogoPalette } from "@/hooks/useLogoPalette";
 import type { OrdersUnit } from "@/hooks/useOrdersUnits";
 
+import BannerFramer, { type BannerDisplay } from "@/components/orders/onboarding/BannerFramer";
 import {
+  BANNER_DEFAULTS,
   STOREFRONT_THEMES,
   THEME_TOKENS,
   formatCents,
   isValidSlug,
+  normalizeBannerDisplay,
   onlyDigits,
   slugify,
   storefrontPublicUrl,
   validateStorefront,
   type StorefrontTheme,
 } from "@/lib/orders/storefront";
+
 
 const COLOR_PRESETS = ["#EB6119", "#0F1B3D", "#16A34A", "#DC2626", "#7C3AED", "#0891B2"];
 
