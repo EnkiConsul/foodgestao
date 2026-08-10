@@ -329,9 +329,8 @@ function CatalogContent() {
                         );
                         return (
                           <li key={p.id} className="grid grid-cols-[3rem_1fr] items-center gap-x-3 gap-y-2 rounded-lg border p-3 sm:flex sm:flex-wrap">
-                            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
-                              <ImageOff className="h-4 w-4 text-muted-foreground" />
-                            </div>
+                            <ProductThumb path={p.image_path} alt={p.name} />
+
                             <button
                               type="button"
                               className="min-w-0 flex-1 text-left"
