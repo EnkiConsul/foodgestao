@@ -307,6 +307,19 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
         </AlertDescription>
       </Alert>
 
+      <CatalogPreview unit={unit} />
+
+      {catalogEmpty && (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="text-xs">
+            Sua loja será publicada sem itens até você cadastrar produtos no cardápio.
+          </AlertDescription>
+        </Alert>
+      )}
+
+
+
       {/* Link da loja */}
       <div className="space-y-1.5">
         <Label htmlFor="sf-slug">
