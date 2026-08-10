@@ -49,6 +49,7 @@ function MediaField({
   unitId,
   kind,
   aspect,
+  slug,
 }: {
   label: string;
   hint: string;
