@@ -592,18 +592,21 @@ export default function LojaOnline() {
             }}
             className="mt-7 scroll-mt-28"
           >
-            <div className="flex items-baseline justify-between gap-2">
-              <h2 className="text-lg font-bold">{category.name}</h2>
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-bold sm:text-2xl" style={{ fontFamily: "var(--sf-font-head)" }}>
+                {category.name}
+              </h2>
+              <span className="h-px flex-1" style={{ background: "var(--sf-border)" }} aria-hidden="true" />
               <span className="text-xs" style={{ color: "var(--sf-muted)" }}>
                 {category.products.length} {category.products.length === 1 ? "item" : "itens"}
               </span>
             </div>
             {category.description && (
-              <p className="mt-0.5 text-xs" style={{ color: "var(--sf-muted)" }}>
+              <p className="mt-1 text-xs" style={{ color: "var(--sf-muted)" }}>
                 {category.description}
               </p>
             )}
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
               {category.products.map((p) => {
                 const image = storefrontMediaUrl(store.store.slug, "ped-produtos", p.image_path);
                 const price = fromPrice(p);
@@ -613,32 +616,75 @@ export default function LojaOnline() {
                     type="button"
                     disabled={!p.available}
                     onClick={() => openProduct(p)}
-                    className="group relative flex w-full items-stretch gap-3 overflow-hidden rounded-xl border p-3 text-left transition hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+                    className="group relative flex w-full items-stretch gap-4 rounded-3xl border p-4 text-left transition hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
                     style={{ background: "var(--sf-surface)", borderColor: "var(--sf-border)" }}
                   >
+                    <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl sm:h-32 sm:w-32">
+                      {image ? (
+                        <img
+                          src={image}
+                          alt={p.name}
+                          loading="lazy"
+                          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        />
+                      ) : (
+                        <div
+                          className="flex h-full w-full items-center justify-center"
+                          style={{ background: "var(--sf-accent)" }}
+                        >
+                          <Store className="h-6 w-6" style={{ color: "var(--sf-muted)" }} aria-hidden="true" />
+                        </div>
+                      )}
+                    </div>
                     <div className="flex min-w-0 flex-1 flex-col">
-                      <p className="text-sm font-semibold leading-snug">{p.name}</p>
+                      <div className="flex items-start justify-between gap-3">
+                        <h3
+                          className="min-w-0 text-base font-bold leading-tight sm:text-lg"
+                          style={{ fontFamily: "var(--sf-font-head)" }}
+                        >
+                          {p.name}
+                        </h3>
+                        {p.available && (
+                          <span
+                            className="shrink-0 text-base font-bold tabular-nums sm:text-lg"
+                            style={{ color: "var(--sf-primary)", fontFamily: "var(--sf-font-head)" }}
+                          >
+                            {formatCents(price)}
+                          </span>
+                        )}
+                      </div>
+                      {p.variants.length > 0 && p.available && (
+                        <p
+                          className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.14em]"
+                          style={{ color: "var(--sf-muted)" }}
+                        >
+                          a partir de
+                        </p>
+                      )}
                       {p.description && (
-                        <p className="mt-0.5 line-clamp-2 text-xs leading-snug" style={{ color: "var(--sf-muted)" }}>
+                        <p
+                          className="mt-1.5 line-clamp-2 text-sm leading-relaxed"
+                          style={{ color: "var(--sf-muted)" }}
+                        >
                           {p.description}
                         </p>
                       )}
-                      <div className="mt-auto pt-2">
+                      <div className="mt-auto flex justify-end pt-3">
                         {p.available ? (
-                          <p className="text-sm font-bold" style={{ color: "var(--sf-primary)" }}>
-                            {p.variants.length > 0 && (
-                              <span
-                                className="mr-1 text-[10px] font-medium uppercase"
-                                style={{ color: "var(--sf-muted)" }}
-                              >
-                                a partir de
-                              </span>
-                            )}
-                            {formatCents(price)}
-                          </p>
+                          <span
+                            className="inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] transition group-hover:text-[color:var(--sf-on-primary)]"
+                            style={{
+                              background: "var(--sf-accent)",
+                              borderColor: "var(--sf-border)",
+                              color: "var(--sf-primary)",
+                            }}
+                          >
+                            Adicionar
+                            <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                          </span>
                         ) : (
                           <span
-                            className="inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                            className="inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold"
                             style={{ background: "var(--sf-border)", color: "var(--sf-muted)" }}
                           >
                             Indisponível
@@ -646,36 +692,11 @@ export default function LojaOnline() {
                         )}
                       </div>
                     </div>
-                    <div className="relative shrink-0">
-                      {image ? (
-                        <img
-                          src={image}
-                          alt={p.name}
-                          loading="lazy"
-                          className="h-24 w-24 rounded-lg object-cover"
-                        />
-                      ) : (
-                        <div
-                          className="flex h-24 w-24 items-center justify-center rounded-lg"
-                          style={{ background: "var(--sf-bg)" }}
-                        >
-                          <Store className="h-5 w-5" style={{ color: "var(--sf-muted)" }} aria-hidden="true" />
-                        </div>
-                      )}
-                      {p.available && (
-                        <span
-                          className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full shadow-md"
-                          style={{ background: "var(--sf-primary)", color: "var(--sf-on-primary)" }}
-                          aria-hidden="true"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </span>
-                      )}
-                    </div>
                   </button>
                 );
               })}
             </div>
+
           </section>
         ))}
 
