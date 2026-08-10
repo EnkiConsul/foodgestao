@@ -16,6 +16,11 @@ export interface StorefrontConfig {
   primary_color: string;
   logo_url: string | null;
   banner_url: string | null;
+  banner_fit: BannerFit;
+  banner_zoom: number;
+  banner_focus_x: number;
+  banner_focus_y: number;
+
   headline: string | null;
   about: string | null;
   whatsapp_phone: string | null;
