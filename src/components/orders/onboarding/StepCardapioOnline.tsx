@@ -486,8 +486,10 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
           slug={slug}
           aspect="aspect-[16/6]"
         />
-
       </div>
+
+      <BannerFramer preview={bannerPreview ?? null} value={banner} onChange={setBanner} />
+
 
       {/* Textos */}
       <div className="space-y-1.5">
