@@ -99,6 +99,16 @@ export function ProductSheet({ product, categoryId, categories = [], open, onOpe
   const [trackStock, setTrackStock] = useState(product?.track_stock ?? false);
   const [stock, setStock] = useState(product?.stock_quantity ? String(product.stock_quantity) : "0");
   const [state, setState] = useState<CatalogState>(product?.state ?? "draft");
+  const [selectedCategory, setSelectedCategory] = useState<string>(
+    product?.category_id ?? categoryId ?? "",
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    setSelectedCategory(product?.category_id ?? categoryId ?? "");
+  }, [open, product?.category_id, categoryId]);
+
+
 
   const [variantName, setVariantName] = useState("");
   const [variantPrice, setVariantPrice] = useState("");
