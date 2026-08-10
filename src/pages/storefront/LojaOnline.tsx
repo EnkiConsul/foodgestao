@@ -746,9 +746,14 @@ export default function LojaOnline() {
 
         {/* Sobre */}
         {store.store.about && (
-          <section className="mt-9">
-            <h2 className="text-base font-bold">Sobre a loja</h2>
-            <p className="mt-1 whitespace-pre-line text-sm" style={{ color: "var(--sf-muted)" }}>
+          <section className="mt-10">
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-bold sm:text-2xl" style={{ fontFamily: "var(--sf-font-head)" }}>
+                Sobre a loja
+              </h2>
+              <span className="h-px flex-1" style={{ background: "var(--sf-border)" }} aria-hidden="true" />
+            </div>
+            <p className="mt-3 whitespace-pre-line text-sm leading-relaxed" style={{ color: "var(--sf-muted)" }}>
               {store.store.about}
             </p>
           </section>
@@ -756,11 +761,19 @@ export default function LojaOnline() {
 
         {/* Entrega */}
         {store.zones.length > 0 && (
-          <section className="mt-8">
-            <h2 className="flex items-center gap-1.5 text-base font-bold">
-              <MapPin className="h-4 w-4" aria-hidden="true" /> Área de entrega
-            </h2>
-            <ul className="mt-2 space-y-2">
+          <section className="mt-10">
+            <div className="flex items-center gap-4">
+              <h2
+                className="flex items-center gap-2 text-xl font-bold sm:text-2xl"
+                style={{ fontFamily: "var(--sf-font-head)" }}
+              >
+                <MapPin className="h-5 w-5" style={{ color: "var(--sf-primary)" }} aria-hidden="true" /> Área de
+                entrega
+              </h2>
+              <span className="h-px flex-1" style={{ background: "var(--sf-border)" }} aria-hidden="true" />
+            </div>
+            <ul className="mt-4 space-y-2">
+
               {store.zones.map((z) => (
                 <li
                   key={z.id}
