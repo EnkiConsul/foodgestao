@@ -805,16 +805,22 @@ export default function LojaOnline() {
 function InfoTile({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div
-      className="rounded-lg border px-2.5 py-2"
-      style={{ borderColor: "var(--sf-border)", background: "var(--sf-bg)" }}
+      className="flex flex-col items-center rounded-2xl border px-2.5 py-3 text-center"
+      style={{ borderColor: "var(--sf-border)", background: "var(--sf-accent)" }}
     >
-      <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide" style={{ color: "var(--sf-muted)" }}>
-        <span style={{ color: "var(--sf-primary)" }}>{icon}</span>
+      <span className="mb-1" style={{ color: "var(--sf-primary)" }} aria-hidden="true">
+        {icon}
+      </span>
+      <p
+        className="text-[10px] font-bold uppercase tracking-[0.14em]"
+        style={{ color: "var(--sf-muted)" }}
+      >
         {label}
       </p>
-      <p className="mt-0.5 truncate text-sm font-semibold" title={value}>
+      <p className="mt-0.5 w-full truncate text-xs font-semibold" title={value}>
         {value}
       </p>
     </div>
   );
 }
+
