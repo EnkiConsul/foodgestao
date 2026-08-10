@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -11,7 +11,9 @@ import {
   Trash2,
   Upload,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,13 +68,15 @@ import { useOrdersUnits } from "@/hooks/useOrdersUnits";
 interface Props {
   product: OrdersProduct | null;
   categoryId: string | null;
+  categories?: { id: string; name: string }[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   readOnly?: boolean;
 }
 
+
 /** Editor completo do produto: dados, imagem, variações, complementos, disponibilidade e preços por unidade. */
-export function ProductSheet({ product, categoryId, open, onOpenChange, readOnly }: Props) {
+export function ProductSheet({ product, categoryId, categories = [], open, onOpenChange, readOnly }: Props) {
   const isNew = !product;
   const detail = useOrdersProductDetail(product?.id ?? null);
   const { data: units } = useOrdersUnits();
@@ -97,6 +101,16 @@ export function ProductSheet({ product, categoryId, open, onOpenChange, readOnly
   const [trackStock, setTrackStock] = useState(product?.track_stock ?? false);
   const [stock, setStock] = useState(product?.stock_quantity ? String(product.stock_quantity) : "0");
   const [state, setState] = useState<CatalogState>(product?.state ?? "draft");
+  const [selectedCategory, setSelectedCategory] = useState<string>(
+    product?.category_id ?? categoryId ?? "",
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    setSelectedCategory(product?.category_id ?? categoryId ?? "");
+  }, [open, product?.category_id, categoryId]);
+
+
 
   const [variantName, setVariantName] = useState("");
   const [variantPrice, setVariantPrice] = useState("");
@@ -125,24 +139,40 @@ export function ProductSheet({ product, categoryId, open, onOpenChange, readOnly
   const disabled = !!readOnly;
 
   async function handleSave() {
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      toast.error("Informe o nome do produto.");
+      return;
+    }
     const cents = parsePriceToCents(price);
-    if (cents === null || cents < 0) return;
-    await saveProduct.mutateAsync({
-      id: product?.id,
-      category_id: product?.category_id ?? categoryId!,
-      name,
-      description,
-      internal_code: internalCode,
-      base_price_cents: cents,
-      prep_time_minutes: prep ? Number(prep) : null,
-      allows_notes: allowsNotes,
-      track_stock: trackStock,
-      stock_quantity: trackStock ? Number(stock || 0) : null,
-      state,
-    });
-    if (isNew) onOpenChange(false);
+    if (cents === null || cents < 0) {
+      toast.error("Informe um preço válido.");
+      return;
+    }
+    const targetCategory = product?.category_id ?? selectedCategory;
+    if (!targetCategory) {
+      toast.error("Selecione uma categoria. Cadastre uma categoria no cardápio antes de criar produtos.");
+      return;
+    }
+    try {
+      await saveProduct.mutateAsync({
+        id: product?.id,
+        category_id: targetCategory,
+        name,
+        description,
+        internal_code: internalCode,
+        base_price_cents: cents,
+        prep_time_minutes: prep ? Number(prep) : null,
+        allows_notes: allowsNotes,
+        track_stock: trackStock,
+        stock_quantity: trackStock ? Number(stock || 0) : null,
+        state,
+      });
+      if (isNew) onOpenChange(false);
+    } catch {
+      /* erro já exibido pelo hook */
+    }
   }
+
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -167,6 +197,26 @@ export function ProductSheet({ product, categoryId, open, onOpenChange, readOnly
 
           {/* ------------------------------------------------ dados */}
           <TabsContent value="dados" className="space-y-4 pt-4">
+            {isNew && (
+              <div className="space-y-2">
+                <Label>Categoria *</Label>
+                {categories.length === 0 ? (
+                  <p className="text-xs text-destructive">
+                    Nenhuma categoria cadastrada neste cardápio. Crie uma categoria antes de cadastrar produtos.
+                  </p>
+                ) : (
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={disabled}>
+                    <SelectTrigger><SelectValue placeholder="Selecione a categoria" /></SelectTrigger>
+                    <SelectContent>
+                      {categories.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="prod-name">Nome *</Label>
               <Input id="prod-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={160} disabled={disabled} />

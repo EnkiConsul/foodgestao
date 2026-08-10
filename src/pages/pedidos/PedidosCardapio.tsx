@@ -377,6 +377,8 @@ function CatalogContent() {
       <ProductSheet
         product={sheetProduct}
         categoryId={categoryFilter !== "all" ? categoryFilter : (categories ?? [])[0]?.id ?? null}
+        categories={(categories ?? []).map((c) => ({ id: c.id, name: c.name }))}
+
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         readOnly={readOnly}

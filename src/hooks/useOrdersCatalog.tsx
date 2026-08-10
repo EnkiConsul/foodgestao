@@ -359,7 +359,12 @@ export function useSaveProduct() {
       invalidate();
       toast.success("Produto salvo.");
     },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : "Não foi possível salvar o produto.";
+      toast.error(msg);
+    },
   });
+
 }
 
 export function useToggleProductPause() {
