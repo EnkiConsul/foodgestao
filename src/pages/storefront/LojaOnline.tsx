@@ -755,29 +755,56 @@ export default function LojaOnline() {
 
       {/* Barra do carrinho */}
       {store.store.online_cart_enabled && count > 0 && (
-        <div
-          className="fixed inset-x-0 bottom-0 z-30 border-t p-3 shadow-[0_-6px_20px_rgba(0,0,0,.12)]"
-          style={{ background: "var(--sf-surface)", borderColor: "var(--sf-border)" }}
-        >
-          <div className="mx-auto max-w-3xl space-y-1.5">
+        <div className="fixed inset-x-0 bottom-4 z-30 px-4">
+          <div className="mx-auto max-w-lg space-y-2">
             {missingToMin > 0 && (
-              <p className="text-center text-xs" style={{ color: "var(--sf-muted)" }}>
+              <p
+                className="mx-auto w-fit rounded-full px-3 py-1 text-center text-xs shadow-sm"
+                style={{ background: "var(--sf-surface)", color: "var(--sf-muted)" }}
+              >
                 Faltam <strong style={{ color: "var(--sf-primary)" }}>{formatCents(missingToMin)}</strong> para o
                 pedido mínimo
               </p>
             )}
-            <Button
-              className="h-12 w-full justify-between border-0 text-base font-semibold"
-              style={{ background: "var(--sf-primary)", color: "var(--sf-on-primary)" }}
+            <button
+              type="button"
               onClick={() => setCheckoutOpen(true)}
+              className="flex w-full items-center justify-between rounded-2xl p-4 text-left transition hover:scale-[1.01]"
+              style={{
+                background: "var(--sf-primary)",
+                color: "var(--sf-on-primary)",
+                boxShadow: "0 18px 40px -12px rgba(0,0,0,.45)",
+              }}
             >
-              <span className="inline-flex items-center gap-2">
-                <ShoppingBag className="h-4 w-4" /> Ver carrinho ({count})
+              <span className="flex items-center gap-3">
+                <span className="relative rounded-xl bg-white/20 p-2.5">
+                  <ShoppingBag className="h-5 w-5" aria-hidden="true" />
+                  <span
+                    className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold shadow"
+                    style={{ background: "var(--sf-on-primary)", color: "var(--sf-primary)" }}
+                  >
+                    {count}
+                  </span>
+                </span>
+                <span>
+                  <span className="block text-base font-bold" style={{ fontFamily: "var(--sf-font-head)" }}>
+                    Ver carrinho
+                  </span>
+                  <span className="block text-[10px] font-bold uppercase tracking-[0.14em] opacity-70">
+                    {count} {count === 1 ? "item selecionado" : "itens selecionados"}
+                  </span>
+                </span>
               </span>
-              <span className="tabular-nums">{formatCents(subtotal)}</span>
-            </Button>
+              <span className="text-right">
+                <span className="block text-[10px] font-bold uppercase tracking-[0.14em] opacity-70">Total</span>
+                <span className="block text-xl font-bold tabular-nums" style={{ fontFamily: "var(--sf-font-head)" }}>
+                  {formatCents(subtotal)}
+                </span>
+              </span>
+            </button>
           </div>
         </div>
+
       )}
 
       <StorefrontProductSheet
