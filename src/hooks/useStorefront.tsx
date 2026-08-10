@@ -53,8 +53,13 @@ export interface SaveStorefrontInput {
   online_cart_enabled: boolean;
   logo_url?: string | null;
   banner_url?: string | null;
+  banner_fit?: "contain" | "cover";
+  banner_zoom?: number;
+  banner_focus_x?: number;
+  banner_focus_y?: number;
   is_published?: boolean;
 }
+
 
 export function useSaveStorefront() {
   const qc = useQueryClient();
