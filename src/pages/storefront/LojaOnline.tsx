@@ -450,11 +450,17 @@ export default function LojaOnline() {
 
         {/* Destaques */}
         {highlights.length > 0 && !query && (
-          <section className="mt-6">
-            <h2 className="flex items-center gap-1.5 text-base font-bold">
-              <Flame className="h-4 w-4" style={{ color: "var(--sf-primary)" }} aria-hidden="true" /> Destaques
-            </h2>
-            <div className="-mx-4 mt-2 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2">
+          <section className="mt-8">
+            <div className="flex items-center gap-4">
+              <h2
+                className="flex items-center gap-2 text-xl font-bold sm:text-2xl"
+                style={{ fontFamily: "var(--sf-font-head)" }}
+              >
+                <Flame className="h-5 w-5" style={{ color: "var(--sf-primary)" }} aria-hidden="true" /> Destaques
+              </h2>
+              <span className="h-px flex-1" style={{ background: "var(--sf-border)" }} aria-hidden="true" />
+            </div>
+            <div className="-mx-4 mt-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2">
               {highlights.map((p) => {
                 const image = storefrontMediaUrl(store.store.slug, "ped-produtos", p.image_path);
                 return (
@@ -462,18 +468,38 @@ export default function LojaOnline() {
                     key={p.id}
                     type="button"
                     onClick={() => openProduct(p)}
-                    className="w-40 shrink-0 snap-start overflow-hidden rounded-xl border text-left transition hover:opacity-95"
+                    className="group w-44 shrink-0 snap-start overflow-hidden rounded-3xl border p-2 text-left transition hover:shadow-lg"
                     style={{ background: "var(--sf-surface)", borderColor: "var(--sf-border)" }}
                   >
-                    {image && <img src={image} alt={p.name} loading="lazy" className="h-28 w-full object-cover" />}
-                    <div className="p-2.5">
-                      <p className="line-clamp-2 text-sm font-semibold leading-snug">{p.name}</p>
-                      <p className="mt-1 text-sm font-bold" style={{ color: "var(--sf-primary)" }}>
-                        {p.variants.length > 0 && (
-                          <span className="mr-1 text-[10px] font-medium" style={{ color: "var(--sf-muted)" }}>
-                            a partir de
-                          </span>
-                        )}
+                    {image && (
+                      <div className="overflow-hidden rounded-2xl">
+                        <img
+                          src={image}
+                          alt={p.name}
+                          loading="lazy"
+                          className="aspect-square w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        />
+                      </div>
+                    )}
+                    <div className="px-1.5 pb-1 pt-3">
+                      <p
+                        className="line-clamp-2 text-sm font-bold leading-snug"
+                        style={{ fontFamily: "var(--sf-font-head)" }}
+                      >
+                        {p.name}
+                      </p>
+                      {p.variants.length > 0 && (
+                        <p
+                          className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em]"
+                          style={{ color: "var(--sf-muted)" }}
+                        >
+                          a partir de
+                        </p>
+                      )}
+                      <p
+                        className="mt-1 text-base font-bold tabular-nums"
+                        style={{ color: "var(--sf-primary)", fontFamily: "var(--sf-font-head)" }}
+                      >
                         {formatCents(fromPrice(p))}
                       </p>
                     </div>
@@ -486,21 +512,21 @@ export default function LojaOnline() {
 
         {/* Busca + navegação por categorias */}
         <div
-          className="sticky top-[52px] z-20 -mx-4 mt-4 space-y-2 px-4 pb-2 pt-2"
-          style={{ background: "var(--sf-bg)" }}
+          className="sticky top-[52px] z-20 -mx-4 mt-6 space-y-3 px-4 pb-3 pt-3 backdrop-blur-xl"
+          style={{ background: "color-mix(in srgb, var(--sf-bg) 88%, transparent)" }}
         >
           <div className="relative">
             <Search
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
+              className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2"
               style={{ color: "var(--sf-muted)" }}
               aria-hidden="true"
             />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar no cardápio (ex.: calabresa)"
+              placeholder="Qual pizza você deseja hoje?"
               aria-label="Buscar no cardápio"
-              className="h-11 rounded-full pl-9 pr-9"
+              className="h-12 rounded-2xl pl-11 pr-10 text-sm shadow-sm"
               style={{ background: "var(--sf-surface)", borderColor: "var(--sf-border)", color: "var(--sf-text)" }}
             />
             {query && (
@@ -508,7 +534,7 @@ export default function LojaOnline() {
                 type="button"
                 onClick={() => setQuery("")}
                 aria-label="Limpar busca"
-                className="absolute right-3 top-1/2 -translate-y-1/2"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2"
                 style={{ color: "var(--sf-muted)" }}
               >
                 <X className="h-4 w-4" />
@@ -525,7 +551,9 @@ export default function LojaOnline() {
                     key={c.id}
                     type="button"
                     onClick={() => scrollToCategory(c.id)}
-                    className="whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-medium transition"
+                    className={`whitespace-nowrap rounded-full border px-5 py-2 text-sm transition ${
+                      active ? "font-bold shadow-md" : "font-semibold"
+                    }`}
                     style={
                       active
                         ? {
@@ -543,6 +571,7 @@ export default function LojaOnline() {
             </nav>
           )}
         </div>
+
 
         {/* Cardápio vazio */}
         {store.categories.length === 0 && (
