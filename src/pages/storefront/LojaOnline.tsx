@@ -459,6 +459,8 @@ export default function LojaOnline() {
                 slug={store.store.slug}
                 initialNumber={lastOrder?.number}
                 initialPhone={lastOrder?.phone}
+                theme={store.store.theme}
+                primaryColor={store.store.primary_color}
                 trigger={
                   <button
                     type="button"
