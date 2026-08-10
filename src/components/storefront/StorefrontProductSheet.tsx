@@ -232,9 +232,10 @@ export default function StorefrontProductSheet({
             </ul>
           )}
         </div>
+        </div>
 
         <div
-          className="sticky bottom-0 flex items-center gap-3 border-t p-3"
+          className="flex flex-none items-center gap-3 border-t p-3"
           style={{ background: "var(--sf-surface)", borderColor: "var(--sf-border)" }}
         >
           <div
