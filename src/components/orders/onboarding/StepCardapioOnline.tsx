@@ -241,6 +241,8 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
 
   const published = Boolean(store?.is_published);
   const { data: logoPreview } = useStorefrontMediaPreview(store?.logo_url ?? null);
+  const { data: bannerPreview } = useStorefrontMediaPreview(store?.banner_url ?? null);
+
   const { data: logoPalette = [] } = useLogoPalette(logoPreview ?? null);
   const publicUrl = useMemo(() => (slug ? storefrontPublicUrl(slug) : ""), [slug]);
 
