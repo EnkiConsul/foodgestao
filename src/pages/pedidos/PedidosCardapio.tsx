@@ -4,7 +4,6 @@ import {
   ChevronDown,
   ChevronUp,
   Copy,
-  ImageOff,
   ListOrdered,
   Archive,
   Pause,
@@ -32,6 +31,7 @@ import { OrdersGuard } from "@/components/orders/OrdersGuard";
 import { OrdersPageHeader } from "@/components/orders/OrdersPageHeader";
 import { HelpHint } from "@/components/common/HelpHint";
 import { ProductSheet } from "@/components/orders/catalog/ProductSheet";
+import { ProductThumb } from "@/components/orders/catalog/ProductThumb";
 import { CategoriesDialog } from "@/components/orders/catalog/CategoriesDialog";
 import {
   CATALOG_STATE_LABELS,
