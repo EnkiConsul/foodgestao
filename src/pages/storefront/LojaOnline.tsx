@@ -181,6 +181,8 @@ export default function LojaOnline() {
 
   const logo = storefrontMediaUrl(store.store.slug, "ped-storefront", store.store.logo_url);
   const banner = storefrontMediaUrl(store.store.slug, "ped-storefront", store.store.banner_url);
+  const bannerDisplay = normalizeBannerDisplay(store.store);
+
   const count = cartCount(items);
   const subtotal = cartSubtotal(items);
   const minOrder = store.unit.min_order_amount ?? 0;
