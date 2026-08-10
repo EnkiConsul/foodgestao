@@ -49,6 +49,8 @@ export interface OrdersProduct {
   paused_until: string | null;
   sort_order: number;
   archived_at: string | null;
+  updated_at?: string | null;
+
 }
 
 export interface OrdersVariant {
