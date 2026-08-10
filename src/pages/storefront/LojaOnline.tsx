@@ -25,6 +25,7 @@ import StorefrontTrackDialog from "@/components/storefront/StorefrontTrackDialog
 import { usePublicStorefront } from "@/hooks/usePublicStorefront";
 import type { PlacedOrder } from "@/hooks/usePublicStorefront";
 import {
+  bannerImageStyle,
   cartCount,
   cartSubtotal,
   cartToWhatsappText,
@@ -32,6 +33,7 @@ import {
   groupHoursByWeekday,
   isStorefrontOpen,
   nextOpeningLabel,
+  normalizeBannerDisplay,
   storefrontMediaUrl,
   themeStyle,
   whatsappLink,
@@ -40,6 +42,7 @@ import {
   type PublicProduct,
   type PublicStorefront,
 } from "@/lib/orders/storefront";
+
 import { PUBLIC_SITE_ORIGIN } from "@/lib/siteOrigin";
 
 /** Normaliza texto para busca (sem acento, minúsculo). */
