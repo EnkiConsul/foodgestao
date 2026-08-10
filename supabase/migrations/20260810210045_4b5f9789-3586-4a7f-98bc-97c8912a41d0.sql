@@ -1,0 +1,2 @@
+ALTER TABLE public.ped_storefronts DROP CONSTRAINT IF EXISTS ped_storefronts_theme_valid;
+ALTER TABLE public.ped_storefronts ADD CONSTRAINT ped_storefronts_theme_valid CHECK (theme = ANY (ARRAY['classic'::text, 'dark'::text, 'fresh'::text, 'bold'::text]));
