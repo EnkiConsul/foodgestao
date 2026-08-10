@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { CatalogState } from "@/lib/orders/catalog";
+import { normalizeProductImage } from "@/lib/orders/productImage";
 import { buildProductImagePath, validateProductImage } from "@/lib/orders/catalog";
 import type { OrderChannel } from "@/lib/orders/units";
 
@@ -596,10 +597,11 @@ export function useUploadProductImage() {
         toast.error(problem);
         throw new Error(problem);
       }
-      const path = buildProductImagePath(selectedCompanyId!, input.productId, input.file.name);
+      const normalized = await normalizeProductImage(input.file);
+      const path = buildProductImagePath(selectedCompanyId!, input.productId, normalized.name);
       const { error: upErr } = await supabase.storage
         .from(PRODUCT_IMAGE_BUCKET)
-        .upload(path, input.file, { contentType: input.file.type, upsert: false });
+        .upload(path, normalized, { contentType: normalized.type, upsert: false });
       if (upErr) fail(upErr, "Não foi possível enviar a imagem.");
 
       const { error } = await supabase.from("ped_products").update({ image_path: path }).eq("id", input.productId);
