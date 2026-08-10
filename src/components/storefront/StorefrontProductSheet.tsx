@@ -108,7 +108,7 @@ export default function StorefrontProductSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="mx-auto flex max-h-[92vh] flex-col overflow-y-auto rounded-t-2xl border-0 p-0 sm:max-w-lg sm:rounded-2xl"
+        className="mx-auto flex h-[88vh] max-h-[88vh] flex-col overflow-hidden rounded-t-2xl border-0 p-0 sm:max-w-lg sm:rounded-2xl"
         style={{
           ...themeStyle(theme, primaryColor),
           background: "var(--sf-surface)",
@@ -116,15 +116,16 @@ export default function StorefrontProductSheet({
           fontFamily: "var(--sf-font-body)",
         }}
       >
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {image && (
           <img
             src={image}
             alt={product.name}
-            className="max-h-56 w-full flex-none object-cover"
+            className="h-40 w-full flex-none object-cover sm:h-48"
             loading="lazy"
           />
         )}
-        <div className="space-y-5 p-4 pb-28">
+        <div className="space-y-5 p-4 pb-6">
           <SheetHeader className="space-y-1 text-left">
             <SheetTitle style={{ color: "var(--sf-text)" }}>{product.name}</SheetTitle>
             {product.description && (
