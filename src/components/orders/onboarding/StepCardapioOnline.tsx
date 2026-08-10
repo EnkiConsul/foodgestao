@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import QRCode from "qrcode";
 import {
+  AlertTriangle,
   Check,
   Copy,
   ExternalLink,
@@ -9,6 +11,7 @@ import {
   QrCode,
   Save,
   Trash2,
+  UtensilsCrossed,
   Upload,
   X,
 } from "lucide-react";
@@ -28,12 +31,14 @@ import {
   useStorefrontMediaPreview,
   useUploadStorefrontMedia,
 } from "@/hooks/useStorefront";
+import { useStorefrontCatalogPreview } from "@/hooks/useStorefrontCatalogPreview";
 import { useLogoPalette } from "@/hooks/useLogoPalette";
 import type { OrdersUnit } from "@/hooks/useOrdersUnits";
 
 import {
   STOREFRONT_THEMES,
   THEME_TOKENS,
+  formatCents,
   isValidSlug,
   onlyDigits,
   slugify,
@@ -43,6 +48,76 @@ import {
 } from "@/lib/orders/storefront";
 
 const COLOR_PRESETS = ["#EB6119", "#0F1B3D", "#16A34A", "#DC2626", "#7C3AED", "#0891B2"];
+
+/** Itens que a loja pública vai exibir — vem do cardápio já cadastrado. */
+function CatalogPreview({ unit }: { unit: OrdersUnit }) {
+  const { data, isLoading } = useStorefrontCatalogPreview(unit.id);
+
+  return (
+    <div className="space-y-3 rounded-lg border p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-medium">Itens do cardápio</p>
+          <p className="text-xs text-muted-foreground">
+            {data?.menuName
+              ? `Cardápio "${data.menuName}" · unidade ${unit.nome}`
+              : `Unidade ${unit.nome}`}
+          </p>
+        </div>
+        <Badge variant={data && data.totalProducts > 0 ? "default" : "secondary"}>
+          {data ? `${data.totalProducts} ${data.totalProducts === 1 ? "item" : "itens"}` : "—"}
+        </Badge>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-3">
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+        </div>
+      ) : !data || data.totalProducts === 0 ? (
+        <div className="space-y-2 rounded-md bg-muted/40 p-3 text-center">
+          <UtensilsCrossed className="mx-auto h-5 w-5 text-muted-foreground" aria-hidden="true" />
+          <p className="text-sm font-medium">Nenhum item no cardápio desta empresa</p>
+          <p className="text-xs text-muted-foreground">
+            A página pública mostra automaticamente os produtos cadastrados nesta empresa. Cadastre
+            categorias e produtos para eles aparecerem aqui.
+          </p>
+          <Button asChild size="sm" variant="outline">
+            <Link to="/pedidos/cardapio">Cadastrar cardápio</Link>
+          </Button>
+        </div>
+      ) : (
+        <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
+          {data.categories.map((cat) => (
+            <div key={cat.id} className="space-y-1.5">
+              <p className="text-xs font-semibold uppercase text-muted-foreground">{cat.name}</p>
+              <ul className="space-y-1">
+                {cat.products.map((p) => (
+                  <li key={p.id} className="flex items-center justify-between gap-2 text-sm">
+                    <span className="min-w-0 truncate">{p.name}</span>
+                    <span className="flex shrink-0 items-center gap-2">
+                      {!p.available && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          Indisponível
+                        </Badge>
+                      )}
+                      <span className="tabular-nums text-muted-foreground">
+                        {formatCents(p.base_price_cents)}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+      <p className="text-xs text-muted-foreground">
+        Produtos cadastrados em outra empresa não aparecem nesta loja.
+      </p>
+    </div>
+  );
+}
+
 
 function MediaField({
   label,
@@ -157,6 +232,11 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
     unit.id,
   );
 
+  const { data: catalog } = useStorefrontCatalogPreview(unit.id);
+  const catalogEmpty = Boolean(catalog && catalog.totalProducts === 0);
+
+
+
   useEffect(() => {
     if (!published || !publicUrl) {
       setQr(null);
@@ -231,6 +311,19 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
           cadastrados aparecem automaticamente — nada é duplicado aqui.
         </AlertDescription>
       </Alert>
+
+      <CatalogPreview unit={unit} />
+
+      {catalogEmpty && (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="text-xs">
+            Sua loja será publicada sem itens até você cadastrar produtos no cardápio.
+          </AlertDescription>
+        </Alert>
+      )}
+
+
 
       {/* Link da loja */}
       <div className="space-y-1.5">
