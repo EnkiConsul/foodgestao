@@ -66,10 +66,12 @@ import { useOrdersUnits } from "@/hooks/useOrdersUnits";
 interface Props {
   product: OrdersProduct | null;
   categoryId: string | null;
+  categories?: { id: string; name: string }[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   readOnly?: boolean;
 }
+
 
 /** Editor completo do produto: dados, imagem, variações, complementos, disponibilidade e preços por unidade. */
 export function ProductSheet({ product, categoryId, open, onOpenChange, readOnly }: Props) {
