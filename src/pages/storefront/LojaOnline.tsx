@@ -184,10 +184,16 @@ export default function LojaOnline() {
   const missingToMin = Math.max(0, minOrder - subtotal);
   const minFee = store.zones.length > 0 ? Math.min(...store.zones.map((z) => z.fee_amount)) : null;
   const freeDelivery = store.zones.some((z) => z.fee_amount === 0);
+  const paymentLabels = store.payment_options
+    .map((p) => (p.label ?? "").trim())
+    .filter((l) => l.length > 0);
+  const paymentSummary = paymentLabels.length > 0 ? paymentLabels.slice(0, 2).join(", ") : "A combinar";
+
   const description =
     store.store.headline?.trim() ||
     store.store.about?.trim()?.slice(0, 150) ||
     `Cardápio online de ${store.unit.name}. Peça pizza para entrega ou retirada.`;
+
 
   const scrollToCategory = (id: string) => {
     const el = sectionRefs.current[id];
@@ -204,16 +210,25 @@ export default function LojaOnline() {
 
   return (
     <div
-      className="min-h-screen pb-32"
+      className="min-h-screen pb-36 antialiased"
       style={{
         ...themeStyle(store.store.theme, store.store.primary_color),
         background: "var(--sf-bg)",
         color: "var(--sf-text)",
+        fontFamily: "var(--sf-font-body)",
       }}
     >
+
       <Helmet>
         <title>{`${store.unit.name} — Cardápio online`}</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Figtree:wght@400;500;600;700&display=swap"
+        />
         <meta name="description" content={description} />
+
         <link rel="canonical" href={`${PUBLIC_SITE_ORIGIN}/c/${store.store.slug}`} />
         <meta property="og:title" content={`${store.unit.name} — Cardápio online`} />
         <meta property="og:description" content={description} />
@@ -297,7 +312,7 @@ export default function LojaOnline() {
 
       {/* Capa */}
       <header>
-        <div className="relative h-40 w-full overflow-hidden sm:h-64" style={{ background: "var(--sf-primary)" }}>
+        <div className="relative h-48 w-full overflow-hidden sm:h-64" style={{ background: "var(--sf-primary)" }}>
           {banner && (
             <img
               src={banner}
@@ -308,59 +323,77 @@ export default function LojaOnline() {
           )}
           <div
             className="absolute inset-0"
-            style={{ background: "linear-gradient(to top, rgba(0,0,0,.65), rgba(0,0,0,.15) 55%, rgba(0,0,0,0))" }}
+            style={{
+              background:
+                "linear-gradient(to top, var(--sf-bg) 0%, color-mix(in srgb, var(--sf-bg) 35%, transparent) 45%, rgba(0,0,0,.18) 100%)",
+            }}
           />
         </div>
 
-        <div className="relative z-10 mx-auto -mt-12 max-w-3xl px-4">
+        <div className="relative z-10 mx-auto -mt-20 max-w-3xl px-4">
           <div
-            className="rounded-2xl border p-4 shadow-lg"
+            className="rounded-[2rem] border p-5 shadow-xl sm:p-6"
             style={{ background: "var(--sf-surface)", borderColor: "var(--sf-border)" }}
           >
-            <div className="flex items-start gap-3">
-              <div
-                className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border shadow-sm sm:h-24 sm:w-24"
-                style={{ borderColor: "var(--sf-border)", background: "var(--sf-bg)" }}
-              >
-                {logo ? (
-                  <img src={logo} alt={`Logo de ${store.unit.name}`} className="h-full w-full object-cover" />
-                ) : (
-                  <Store className="h-8 w-8" style={{ color: "var(--sf-muted)" }} aria-hidden="true" />
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
-                    style={
-                      openNow
-                        ? { background: "var(--sf-primary)", color: "var(--sf-on-primary)" }
-                        : { background: "var(--sf-border)", color: "var(--sf-text)" }
-                    }
-                  >
-                    <span
-                      className="h-1.5 w-1.5 rounded-full"
-                      style={{ background: openNow ? "var(--sf-on-primary)" : "var(--sf-muted)" }}
-                    />
-                    {openNow ? "Aberto agora" : "Fechado"}
-                  </span>
-                  {!openNow && nextOpening && (
-                    <span className="text-xs" style={{ color: "var(--sf-muted)" }}>
-                      {nextOpening}
-                    </span>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-4">
+                <div
+                  className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-4 shadow-lg sm:h-24 sm:w-24"
+                  style={{ borderColor: "var(--sf-surface)", background: "var(--sf-accent)" }}
+                >
+                  {logo ? (
+                    <img src={logo} alt={`Logo de ${store.unit.name}`} className="h-full w-full object-cover" />
+                  ) : (
+                    <Store className="h-8 w-8" style={{ color: "var(--sf-muted)" }} aria-hidden="true" />
                   )}
                 </div>
-                <h1 className="mt-1.5 text-xl font-extrabold leading-tight sm:text-2xl">{store.unit.name}</h1>
-                {store.store.headline && (
-                  <p className="mt-0.5 text-sm" style={{ color: "var(--sf-muted)" }}>
-                    {store.store.headline}
-                  </p>
-                )}
+                <div className="min-w-0 flex-1 pt-1">
+                  <div className="flex items-center gap-2">
+                    <h1
+                      className="min-w-0 text-xl font-bold leading-tight tracking-tight sm:text-2xl"
+                      style={{ fontFamily: "var(--sf-font-head)" }}
+                    >
+                      {store.unit.name}
+                    </h1>
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{
+                        background: openNow ? "var(--sf-sage)" : "var(--sf-border)",
+                        boxShadow: openNow ? "0 0 8px var(--sf-sage)" : "none",
+                      }}
+                      aria-hidden="true"
+                    />
+                  </div>
+                  {store.store.headline && (
+                    <p className="mt-1 text-sm" style={{ color: "var(--sf-muted)" }}>
+                      {store.store.headline}
+                    </p>
+                  )}
+                  {!openNow && nextOpening && (
+                    <p className="mt-1 text-xs" style={{ color: "var(--sf-muted)" }}>
+                      {nextOpening}
+                    </p>
+                  )}
+                </div>
               </div>
+              <span
+                className="hidden shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] sm:block"
+                style={
+                  openNow
+                    ? {
+                        background: "color-mix(in srgb, var(--sf-sage) 16%, transparent)",
+                        borderColor: "color-mix(in srgb, var(--sf-sage) 35%, transparent)",
+                        color: "var(--sf-sage)",
+                      }
+                    : { background: "var(--sf-accent)", borderColor: "var(--sf-border)", color: "var(--sf-muted)" }
+                }
+              >
+                {openNow ? "Aberto agora" : "Fechado"}
+              </span>
             </div>
 
             {/* Confiança: prazo, entrega, mínimo, pagamento */}
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <InfoTile
                 icon={<Timer className="h-4 w-4" />}
                 label="Preparo"
@@ -381,57 +414,46 @@ export default function LojaOnline() {
               <InfoTile
                 icon={<CreditCard className="h-4 w-4" />}
                 label="Pagamento"
-                value={
-                  store.payment_options.length > 0
-                    ? store.payment_options
-                        .slice(0, 2)
-                        .map((p) => p.label)
-                        .join(", ")
-                    : "Na entrega"
-                }
+                value={paymentSummary}
               />
             </div>
 
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               {store.store.whatsapp_phone && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  style={{ borderColor: "var(--sf-border)", color: "var(--sf-text)", background: "transparent" }}
-                  asChild
+                <a
+                  href={whatsappLink(
+                    store.store.whatsapp_phone,
+                    items.length > 0
+                      ? cartToWhatsappText(items, store.unit.name)
+                      : `Olá! Vi o cardápio de ${store.unit.name} e quero fazer um pedido.`,
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold shadow-lg transition hover:opacity-95"
+                  style={{ background: "var(--sf-sage)", color: "var(--sf-on-sage)" }}
                 >
-                  <a
-                    href={whatsappLink(
-                      store.store.whatsapp_phone,
-                      items.length > 0
-                        ? cartToWhatsappText(items, store.unit.name)
-                        : `Olá! Vi o cardápio de ${store.unit.name} e quero fazer um pedido.`,
-                    )}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <MessageCircle className="mr-2 h-4 w-4" /> Pedir no WhatsApp
-                  </a>
-                </Button>
+                  <MessageCircle className="h-4 w-4" aria-hidden="true" /> Pedir no WhatsApp
+                </a>
               )}
               <StorefrontTrackDialog
                 slug={store.store.slug}
                 initialNumber={lastOrder?.number}
                 initialPhone={lastOrder?.phone}
                 trigger={
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    style={{ borderColor: "var(--sf-border)", color: "var(--sf-text)", background: "transparent" }}
+                  <button
+                    type="button"
+                    className="flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-semibold transition hover:opacity-90"
+                    style={{ background: "var(--sf-accent)", color: "var(--sf-muted)" }}
                   >
-                    <Receipt className="mr-2 h-4 w-4" /> Acompanhar pedido
-                  </Button>
+                    <Receipt className="h-4 w-4" aria-hidden="true" /> Acompanhar pedido
+                  </button>
                 }
               />
             </div>
           </div>
         </div>
       </header>
+
 
       <main className="mx-auto max-w-3xl px-4">
         {!openNow && (
@@ -448,11 +470,17 @@ export default function LojaOnline() {
 
         {/* Destaques */}
         {highlights.length > 0 && !query && (
-          <section className="mt-6">
-            <h2 className="flex items-center gap-1.5 text-base font-bold">
-              <Flame className="h-4 w-4" style={{ color: "var(--sf-primary)" }} aria-hidden="true" /> Destaques
-            </h2>
-            <div className="-mx-4 mt-2 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2">
+          <section className="mt-8">
+            <div className="flex items-center gap-4">
+              <h2
+                className="flex items-center gap-2 text-xl font-bold sm:text-2xl"
+                style={{ fontFamily: "var(--sf-font-head)" }}
+              >
+                <Flame className="h-5 w-5" style={{ color: "var(--sf-primary)" }} aria-hidden="true" /> Destaques
+              </h2>
+              <span className="h-px flex-1" style={{ background: "var(--sf-border)" }} aria-hidden="true" />
+            </div>
+            <div className="-mx-4 mt-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2">
               {highlights.map((p) => {
                 const image = storefrontMediaUrl(store.store.slug, "ped-produtos", p.image_path);
                 return (
@@ -460,18 +488,38 @@ export default function LojaOnline() {
                     key={p.id}
                     type="button"
                     onClick={() => openProduct(p)}
-                    className="w-40 shrink-0 snap-start overflow-hidden rounded-xl border text-left transition hover:opacity-95"
+                    className="group w-44 shrink-0 snap-start overflow-hidden rounded-3xl border p-2 text-left transition hover:shadow-lg"
                     style={{ background: "var(--sf-surface)", borderColor: "var(--sf-border)" }}
                   >
-                    {image && <img src={image} alt={p.name} loading="lazy" className="h-28 w-full object-cover" />}
-                    <div className="p-2.5">
-                      <p className="line-clamp-2 text-sm font-semibold leading-snug">{p.name}</p>
-                      <p className="mt-1 text-sm font-bold" style={{ color: "var(--sf-primary)" }}>
-                        {p.variants.length > 0 && (
-                          <span className="mr-1 text-[10px] font-medium" style={{ color: "var(--sf-muted)" }}>
-                            a partir de
-                          </span>
-                        )}
+                    {image && (
+                      <div className="overflow-hidden rounded-2xl">
+                        <img
+                          src={image}
+                          alt={p.name}
+                          loading="lazy"
+                          className="aspect-square w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        />
+                      </div>
+                    )}
+                    <div className="px-1.5 pb-1 pt-3">
+                      <p
+                        className="line-clamp-2 text-sm font-bold leading-snug"
+                        style={{ fontFamily: "var(--sf-font-head)" }}
+                      >
+                        {p.name}
+                      </p>
+                      {p.variants.length > 0 && (
+                        <p
+                          className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em]"
+                          style={{ color: "var(--sf-muted)" }}
+                        >
+                          a partir de
+                        </p>
+                      )}
+                      <p
+                        className="mt-1 text-base font-bold tabular-nums"
+                        style={{ color: "var(--sf-primary)", fontFamily: "var(--sf-font-head)" }}
+                      >
                         {formatCents(fromPrice(p))}
                       </p>
                     </div>
@@ -484,21 +532,21 @@ export default function LojaOnline() {
 
         {/* Busca + navegação por categorias */}
         <div
-          className="sticky top-[52px] z-20 -mx-4 mt-4 space-y-2 px-4 pb-2 pt-2"
-          style={{ background: "var(--sf-bg)" }}
+          className="sticky top-[52px] z-20 -mx-4 mt-6 space-y-3 px-4 pb-3 pt-3 backdrop-blur-xl"
+          style={{ background: "color-mix(in srgb, var(--sf-bg) 88%, transparent)" }}
         >
           <div className="relative">
             <Search
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
+              className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2"
               style={{ color: "var(--sf-muted)" }}
               aria-hidden="true"
             />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar no cardápio (ex.: calabresa)"
+              placeholder="Qual pizza você deseja hoje?"
               aria-label="Buscar no cardápio"
-              className="h-11 rounded-full pl-9 pr-9"
+              className="h-12 rounded-2xl pl-11 pr-10 text-sm shadow-sm"
               style={{ background: "var(--sf-surface)", borderColor: "var(--sf-border)", color: "var(--sf-text)" }}
             />
             {query && (
@@ -506,7 +554,7 @@ export default function LojaOnline() {
                 type="button"
                 onClick={() => setQuery("")}
                 aria-label="Limpar busca"
-                className="absolute right-3 top-1/2 -translate-y-1/2"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2"
                 style={{ color: "var(--sf-muted)" }}
               >
                 <X className="h-4 w-4" />
@@ -523,7 +571,9 @@ export default function LojaOnline() {
                     key={c.id}
                     type="button"
                     onClick={() => scrollToCategory(c.id)}
-                    className="whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-medium transition"
+                    className={`whitespace-nowrap rounded-full border px-5 py-2 text-sm transition ${
+                      active ? "font-bold shadow-md" : "font-semibold"
+                    }`}
                     style={
                       active
                         ? {
@@ -541,6 +591,7 @@ export default function LojaOnline() {
             </nav>
           )}
         </div>
+
 
         {/* Cardápio vazio */}
         {store.categories.length === 0 && (
@@ -590,18 +641,21 @@ export default function LojaOnline() {
             }}
             className="mt-7 scroll-mt-28"
           >
-            <div className="flex items-baseline justify-between gap-2">
-              <h2 className="text-lg font-bold">{category.name}</h2>
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-bold sm:text-2xl" style={{ fontFamily: "var(--sf-font-head)" }}>
+                {category.name}
+              </h2>
+              <span className="h-px flex-1" style={{ background: "var(--sf-border)" }} aria-hidden="true" />
               <span className="text-xs" style={{ color: "var(--sf-muted)" }}>
                 {category.products.length} {category.products.length === 1 ? "item" : "itens"}
               </span>
             </div>
             {category.description && (
-              <p className="mt-0.5 text-xs" style={{ color: "var(--sf-muted)" }}>
+              <p className="mt-1 text-xs" style={{ color: "var(--sf-muted)" }}>
                 {category.description}
               </p>
             )}
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
               {category.products.map((p) => {
                 const image = storefrontMediaUrl(store.store.slug, "ped-produtos", p.image_path);
                 const price = fromPrice(p);
@@ -611,32 +665,70 @@ export default function LojaOnline() {
                     type="button"
                     disabled={!p.available}
                     onClick={() => openProduct(p)}
-                    className="group relative flex w-full items-stretch gap-3 overflow-hidden rounded-xl border p-3 text-left transition hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+                    className="group relative flex w-full items-stretch gap-4 rounded-3xl border p-4 text-left transition hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
                     style={{ background: "var(--sf-surface)", borderColor: "var(--sf-border)" }}
                   >
+                    <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl sm:h-32 sm:w-32">
+                      {image ? (
+                        <img
+                          src={image}
+                          alt={p.name}
+                          loading="lazy"
+                          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        />
+                      ) : (
+                        <div
+                          className="flex h-full w-full items-center justify-center"
+                          style={{ background: "var(--sf-accent)" }}
+                        >
+                          <Store className="h-6 w-6" style={{ color: "var(--sf-muted)" }} aria-hidden="true" />
+                        </div>
+                      )}
+                    </div>
                     <div className="flex min-w-0 flex-1 flex-col">
-                      <p className="text-sm font-semibold leading-snug">{p.name}</p>
+                      <h3
+                        className="text-base font-bold leading-tight sm:text-lg"
+                        style={{ fontFamily: "var(--sf-font-head)" }}
+                      >
+                        {p.name}
+                      </h3>
+                      {p.available && (
+                        <p className="mt-1 flex items-baseline gap-1.5">
+                          {p.variants.length > 0 && (
+                            <span
+                              className="text-[10px] font-bold uppercase tracking-[0.14em]"
+                              style={{ color: "var(--sf-muted)" }}
+                            >
+                              a partir de
+                            </span>
+                          )}
+                          <span
+                            className="text-base font-bold tabular-nums sm:text-lg"
+                            style={{ color: "var(--sf-primary)", fontFamily: "var(--sf-font-head)" }}
+                          >
+                            {formatCents(price)}
+                          </span>
+                        </p>
+                      )}
+
                       {p.description && (
-                        <p className="mt-0.5 line-clamp-2 text-xs leading-snug" style={{ color: "var(--sf-muted)" }}>
+                        <p
+                          className="mt-1.5 line-clamp-2 text-sm leading-relaxed"
+                          style={{ color: "var(--sf-muted)" }}
+                        >
                           {p.description}
                         </p>
                       )}
-                      <div className="mt-auto pt-2">
+                      <div className="mt-auto flex justify-end pt-3">
                         {p.available ? (
-                          <p className="text-sm font-bold" style={{ color: "var(--sf-primary)" }}>
-                            {p.variants.length > 0 && (
-                              <span
-                                className="mr-1 text-[10px] font-medium uppercase"
-                                style={{ color: "var(--sf-muted)" }}
-                              >
-                                a partir de
-                              </span>
-                            )}
-                            {formatCents(price)}
-                          </p>
+                          <span className="inline-flex items-center gap-1.5 rounded-xl border border-[color:var(--sf-border)] bg-[color:var(--sf-accent)] px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--sf-primary)] transition-colors group-hover:border-[color:var(--sf-primary)] group-hover:bg-[color:var(--sf-primary)] group-hover:text-[color:var(--sf-on-primary)]">
+
+                            Adicionar
+                            <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                          </span>
                         ) : (
                           <span
-                            className="inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                            className="inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold"
                             style={{ background: "var(--sf-border)", color: "var(--sf-muted)" }}
                           >
                             Indisponível
@@ -644,44 +736,24 @@ export default function LojaOnline() {
                         )}
                       </div>
                     </div>
-                    <div className="relative shrink-0">
-                      {image ? (
-                        <img
-                          src={image}
-                          alt={p.name}
-                          loading="lazy"
-                          className="h-24 w-24 rounded-lg object-cover"
-                        />
-                      ) : (
-                        <div
-                          className="flex h-24 w-24 items-center justify-center rounded-lg"
-                          style={{ background: "var(--sf-bg)" }}
-                        >
-                          <Store className="h-5 w-5" style={{ color: "var(--sf-muted)" }} aria-hidden="true" />
-                        </div>
-                      )}
-                      {p.available && (
-                        <span
-                          className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full shadow-md"
-                          style={{ background: "var(--sf-primary)", color: "var(--sf-on-primary)" }}
-                          aria-hidden="true"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </span>
-                      )}
-                    </div>
                   </button>
                 );
               })}
             </div>
+
           </section>
         ))}
 
         {/* Sobre */}
         {store.store.about && (
-          <section className="mt-9">
-            <h2 className="text-base font-bold">Sobre a loja</h2>
-            <p className="mt-1 whitespace-pre-line text-sm" style={{ color: "var(--sf-muted)" }}>
+          <section className="mt-10">
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-bold sm:text-2xl" style={{ fontFamily: "var(--sf-font-head)" }}>
+                Sobre a loja
+              </h2>
+              <span className="h-px flex-1" style={{ background: "var(--sf-border)" }} aria-hidden="true" />
+            </div>
+            <p className="mt-3 whitespace-pre-line text-sm leading-relaxed" style={{ color: "var(--sf-muted)" }}>
               {store.store.about}
             </p>
           </section>
@@ -689,11 +761,19 @@ export default function LojaOnline() {
 
         {/* Entrega */}
         {store.zones.length > 0 && (
-          <section className="mt-8">
-            <h2 className="flex items-center gap-1.5 text-base font-bold">
-              <MapPin className="h-4 w-4" aria-hidden="true" /> Área de entrega
-            </h2>
-            <ul className="mt-2 space-y-2">
+          <section className="mt-10">
+            <div className="flex items-center gap-4">
+              <h2
+                className="flex items-center gap-2 text-xl font-bold sm:text-2xl"
+                style={{ fontFamily: "var(--sf-font-head)" }}
+              >
+                <MapPin className="h-5 w-5" style={{ color: "var(--sf-primary)" }} aria-hidden="true" /> Área de
+                entrega
+              </h2>
+              <span className="h-px flex-1" style={{ background: "var(--sf-border)" }} aria-hidden="true" />
+            </div>
+            <ul className="mt-4 space-y-2">
+
               {store.zones.map((z) => (
                 <li
                   key={z.id}
@@ -725,26 +805,40 @@ export default function LojaOnline() {
         )}
 
         {/* Horários */}
-        <section className="mt-8">
-          <h2 className="flex items-center gap-1.5 text-base font-bold">
-            <Clock className="h-4 w-4" aria-hidden="true" /> Horário de atendimento
-          </h2>
-          <ul
-            className="mt-2 divide-y rounded-xl border text-sm"
-            style={{ background: "var(--sf-surface)", borderColor: "var(--sf-border)" }}
+        <section className="mt-10">
+          <div
+            className="relative overflow-hidden rounded-[2rem] p-6 sm:p-8"
+            style={{ background: "var(--sf-ink)", color: "var(--sf-on-ink)" }}
           >
-            {hours.map((h) => (
-              <li
-                key={h.weekday}
-                className="flex justify-between gap-2 px-3 py-2"
-                style={{ borderColor: "var(--sf-border)" }}
-              >
-                <span style={{ color: "var(--sf-muted)" }}>{h.label}</span>
-                <span className="tabular-nums">{h.periods.length > 0 ? h.periods.join(" · ") : "Fechado"}</span>
-              </li>
-            ))}
-          </ul>
+            <Clock
+              className="pointer-events-none absolute -right-4 -top-4 h-32 w-32 opacity-10"
+              aria-hidden="true"
+            />
+            <h2
+              className="mb-5 text-xs font-bold uppercase tracking-[0.2em]"
+              style={{ color: "var(--sf-primary)", fontFamily: "var(--sf-font-head)" }}
+            >
+              Horário de atendimento
+            </h2>
+            <ul className="relative z-10 space-y-3 text-sm">
+              {hours.map((h, index) => (
+                <li
+                  key={h.weekday}
+                  className={`flex items-center justify-between gap-3 ${
+                    index < hours.length - 1 ? "border-b pb-2.5" : ""
+                  }`}
+                  style={{ borderColor: "rgba(255,255,255,.12)" }}
+                >
+                  <span style={{ color: "var(--sf-ink-muted)" }}>{h.label}</span>
+                  <span className="font-bold tabular-nums" style={{ fontFamily: "var(--sf-font-head)" }}>
+                    {h.periods.length > 0 ? h.periods.join(" · ") : "Fechado"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
+
 
         <footer className="mt-10 pb-6 text-center text-xs" style={{ color: "var(--sf-muted)" }}>
           Cardápio digital por 360°FOOD
@@ -753,29 +847,56 @@ export default function LojaOnline() {
 
       {/* Barra do carrinho */}
       {store.store.online_cart_enabled && count > 0 && (
-        <div
-          className="fixed inset-x-0 bottom-0 z-30 border-t p-3 shadow-[0_-6px_20px_rgba(0,0,0,.12)]"
-          style={{ background: "var(--sf-surface)", borderColor: "var(--sf-border)" }}
-        >
-          <div className="mx-auto max-w-3xl space-y-1.5">
+        <div className="fixed inset-x-0 bottom-4 z-30 px-4">
+          <div className="mx-auto max-w-lg space-y-2">
             {missingToMin > 0 && (
-              <p className="text-center text-xs" style={{ color: "var(--sf-muted)" }}>
+              <p
+                className="mx-auto w-fit rounded-full px-3 py-1 text-center text-xs shadow-sm"
+                style={{ background: "var(--sf-surface)", color: "var(--sf-muted)" }}
+              >
                 Faltam <strong style={{ color: "var(--sf-primary)" }}>{formatCents(missingToMin)}</strong> para o
                 pedido mínimo
               </p>
             )}
-            <Button
-              className="h-12 w-full justify-between border-0 text-base font-semibold"
-              style={{ background: "var(--sf-primary)", color: "var(--sf-on-primary)" }}
+            <button
+              type="button"
               onClick={() => setCheckoutOpen(true)}
+              className="flex w-full items-center justify-between rounded-2xl p-4 text-left transition hover:scale-[1.01]"
+              style={{
+                background: "var(--sf-primary)",
+                color: "var(--sf-on-primary)",
+                boxShadow: "0 18px 40px -12px rgba(0,0,0,.45)",
+              }}
             >
-              <span className="inline-flex items-center gap-2">
-                <ShoppingBag className="h-4 w-4" /> Ver carrinho ({count})
+              <span className="flex items-center gap-3">
+                <span className="relative rounded-xl bg-white/20 p-2.5">
+                  <ShoppingBag className="h-5 w-5" aria-hidden="true" />
+                  <span
+                    className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold shadow"
+                    style={{ background: "var(--sf-on-primary)", color: "var(--sf-primary)" }}
+                  >
+                    {count}
+                  </span>
+                </span>
+                <span>
+                  <span className="block text-base font-bold" style={{ fontFamily: "var(--sf-font-head)" }}>
+                    Ver carrinho
+                  </span>
+                  <span className="block text-[10px] font-bold uppercase tracking-[0.14em] opacity-70">
+                    {count} {count === 1 ? "item selecionado" : "itens selecionados"}
+                  </span>
+                </span>
               </span>
-              <span className="tabular-nums">{formatCents(subtotal)}</span>
-            </Button>
+              <span className="text-right">
+                <span className="block text-[10px] font-bold uppercase tracking-[0.14em] opacity-70">Total</span>
+                <span className="block text-xl font-bold tabular-nums" style={{ fontFamily: "var(--sf-font-head)" }}>
+                  {formatCents(subtotal)}
+                </span>
+              </span>
+            </button>
           </div>
         </div>
+
       )}
 
       <StorefrontProductSheet
@@ -803,16 +924,22 @@ export default function LojaOnline() {
 function InfoTile({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div
-      className="rounded-lg border px-2.5 py-2"
-      style={{ borderColor: "var(--sf-border)", background: "var(--sf-bg)" }}
+      className="flex flex-col items-center rounded-2xl border px-2.5 py-3 text-center"
+      style={{ borderColor: "var(--sf-border)", background: "var(--sf-accent)" }}
     >
-      <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide" style={{ color: "var(--sf-muted)" }}>
-        <span style={{ color: "var(--sf-primary)" }}>{icon}</span>
+      <span className="mb-1" style={{ color: "var(--sf-primary)" }} aria-hidden="true">
+        {icon}
+      </span>
+      <p
+        className="text-[10px] font-bold uppercase tracking-[0.14em]"
+        style={{ color: "var(--sf-muted)" }}
+      >
         {label}
       </p>
-      <p className="mt-0.5 truncate text-sm font-semibold" title={value}>
+      <p className="mt-0.5 w-full truncate text-xs font-semibold" title={value}>
         {value}
       </p>
     </div>
   );
 }
+
