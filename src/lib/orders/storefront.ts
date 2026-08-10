@@ -42,18 +42,36 @@ export interface ThemeTokens {
   border: string;
   /** Cor do texto sobre a cor primária. */
   onPrimary: string;
+  /** Superfície levemente tingida (selos, blocos internos). */
+  accent: string;
+  /** Cor de ação secundária (WhatsApp). */
+  sage: string;
+  /** Texto sobre a cor de ação secundária. */
+  onSage: string;
+  /** Bloco escuro de destaque (horários). */
+  ink: string;
+  /** Texto sobre o bloco escuro. */
+  onInk: string;
+  /** Texto secundário sobre o bloco escuro. */
+  inkMuted: string;
 }
 
 export const THEME_TOKENS: Record<StorefrontTheme, ThemeTokens> = {
   classic: {
     label: "Clássico",
-    desc: "Fundo claro e cartões brancos. Combina com qualquer marca.",
-    bg: "#F6F6F7",
+    desc: "Fundo quente e cartões brancos. Combina com qualquer marca.",
+    bg: "#FAF7F2",
     surface: "#FFFFFF",
-    text: "#17181C",
-    muted: "#6B7280",
-    border: "#E5E7EB",
+    text: "#292524",
+    muted: "#78716C",
+    border: "#EDE7DF",
     onPrimary: "#FFFFFF",
+    accent: "#F7F2EB",
+    sage: "#87A878",
+    onSage: "#FFFFFF",
+    ink: "#292524",
+    onInk: "#FAFAF9",
+    inkMuted: "#D6D3D1",
   },
   dark: {
     label: "Escuro",
@@ -64,6 +82,12 @@ export const THEME_TOKENS: Record<StorefrontTheme, ThemeTokens> = {
     muted: "#A9B4CC",
     border: "#25355F",
     onPrimary: "#FFFFFF",
+    accent: "#1B2C5C",
+    sage: "#87A878",
+    onSage: "#0F1B3D",
+    ink: "#0A1330",
+    onInk: "#F8FAFC",
+    inkMuted: "#A9B4CC",
   },
   fresh: {
     label: "Leve",
@@ -74,6 +98,12 @@ export const THEME_TOKENS: Record<StorefrontTheme, ThemeTokens> = {
     muted: "#7A6A5A",
     border: "#EADFD1",
     onPrimary: "#FFFFFF",
+    accent: "#F6EFE5",
+    sage: "#87A878",
+    onSage: "#FFFFFF",
+    ink: "#3A2E24",
+    onInk: "#FBF7F1",
+    inkMuted: "#D8C9B6",
   },
   bold: {
     label: "Contrastado",
@@ -84,6 +114,12 @@ export const THEME_TOKENS: Record<StorefrontTheme, ThemeTokens> = {
     muted: "#A3A3A3",
     border: "#2E2E2E",
     onPrimary: "#101010",
+    accent: "#232323",
+    sage: "#87A878",
+    onSage: "#101010",
+    ink: "#000000",
+    onInk: "#FAFAFA",
+    inkMuted: "#A3A3A3",
   },
 };
 
@@ -96,10 +132,19 @@ export function themeStyle(theme: StorefrontTheme, primary: string): Record<stri
     ["--sf-text" as string]: t.text,
     ["--sf-muted" as string]: t.muted,
     ["--sf-border" as string]: t.border,
-    ["--sf-primary" as string]: isValidHexColor(primary) ? primary : "#EB6119",
+    ["--sf-primary" as string]: isValidHexColor(primary) ? primary : "#C4654A",
     ["--sf-on-primary" as string]: t.onPrimary,
+    ["--sf-accent" as string]: t.accent,
+    ["--sf-sage" as string]: t.sage,
+    ["--sf-on-sage" as string]: t.onSage,
+    ["--sf-ink" as string]: t.ink,
+    ["--sf-on-ink" as string]: t.onInk,
+    ["--sf-ink-muted" as string]: t.inkMuted,
+    ["--sf-font-head" as string]: "'Outfit', ui-sans-serif, system-ui, sans-serif",
+    ["--sf-font-body" as string]: "'Figtree', ui-sans-serif, system-ui, sans-serif",
   };
 }
+
 
 // ---------------- Slug ----------------
 
