@@ -184,8 +184,11 @@ export default function LojaOnline() {
   const missingToMin = Math.max(0, minOrder - subtotal);
   const minFee = store.zones.length > 0 ? Math.min(...store.zones.map((z) => z.fee_amount)) : null;
   const freeDelivery = store.zones.some((z) => z.fee_amount === 0);
-  const paymentLabels = store.payment_options.map((p) => p.label).filter((l) => l.trim().length > 0);
+  const paymentLabels = store.payment_options
+    .map((p) => (p.label ?? "").trim())
+    .filter((l) => l.length > 0);
   const paymentSummary = paymentLabels.length > 0 ? paymentLabels.slice(0, 2).join(", ") : "A combinar";
+
   const description =
     store.store.headline?.trim() ||
     store.store.about?.trim()?.slice(0, 150) ||
