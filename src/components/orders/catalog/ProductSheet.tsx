@@ -108,12 +108,24 @@ export function ProductSheet({ product, categoryId, categories = [], menuId, ope
     product?.category_id ?? categoryId ?? "",
   );
 
+  // Re-hidrata o formulário ao abrir ou ao trocar de produto (ex.: produto duplicado),
+  // pois o componente permanece montado entre aberturas.
   useEffect(() => {
     if (!open) return;
+    setName(product?.name ?? "");
+    setDescription(product?.description ?? "");
+    setInternalCode(product?.internal_code ?? "");
+    setPrice(centsToInput(product?.base_price_cents ?? 0));
+    setPrep(product?.prep_time_minutes ? String(product.prep_time_minutes) : "");
+    setAllowsNotes(product?.allows_notes ?? true);
+    setTrackStock(product?.track_stock ?? false);
+    setStock(product?.stock_quantity ? String(product.stock_quantity) : "0");
+    setState((product?.state ?? "draft") as CatalogState);
     setSelectedCategory(product?.category_id ?? categoryId ?? "");
     setCreatingCategory(false);
     setNewCategoryName("");
-  }, [open, product?.category_id, categoryId]);
+  }, [open, product?.id, categoryId]);
+
 
   const saveCategory = useSaveCategory();
   const [creatingCategory, setCreatingCategory] = useState(false);
