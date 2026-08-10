@@ -49,6 +49,8 @@ export interface OrdersProduct {
   paused_until: string | null;
   sort_order: number;
   archived_at: string | null;
+  updated_at?: string | null;
+
 }
 
 export interface OrdersVariant {
@@ -573,18 +575,22 @@ export function useSaveUnitOverride() {
 
 // ------------------------------------------------------------- imagens
 
-export function useProductImageUrl(path: string | null) {
+export function useProductImageUrl(path: string | null, version?: string | null) {
   return useQuery({
-    queryKey: [CATALOG_KEY, "image", path],
+    queryKey: [CATALOG_KEY, "image", path, version ?? null],
     enabled: !!path,
     staleTime: 45 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase.storage.from(PRODUCT_IMAGE_BUCKET).createSignedUrl(path!, 3600);
       if (error) throw error;
-      return data.signedUrl;
+      // cache-bust: garante que o browser recarregue a prévia após novo upload
+      const stamp = version ? String(new Date(version).getTime() || version) : String(Date.now());
+      const url = data.signedUrl;
+      return `${url}${url.includes("?") ? "&" : "?"}v=${encodeURIComponent(stamp)}`;
     },
   });
 }
+
 
 export function useUploadProductImage() {
   const invalidate = useInvalidateCatalog();

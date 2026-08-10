@@ -329,7 +329,7 @@ function CatalogContent() {
                         );
                         return (
                           <li key={p.id} className="grid grid-cols-[3rem_1fr] items-center gap-x-3 gap-y-2 rounded-lg border p-3 sm:flex sm:flex-wrap">
-                            <ProductThumb path={p.image_path} alt={p.name} />
+                            <ProductThumb path={p.image_path} alt={p.name} version={p.updated_at} />
 
                             <button
                               type="button"
