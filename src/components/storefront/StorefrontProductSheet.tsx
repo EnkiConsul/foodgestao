@@ -7,10 +7,12 @@ import {
   cartItemUnitTotal,
   formatCents,
   storefrontMediaUrl,
+  themeStyle,
   validateProductSelection,
   type CartItem,
   type CartOption,
   type PublicProduct,
+  type StorefrontTheme,
 } from "@/lib/orders/storefront";
 
 interface Props {
@@ -19,9 +21,20 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAdd: (item: CartItem) => void;
+  /** Tema da loja — o Sheet vive num portal fora da página, precisa das variáveis aqui. */
+  theme: StorefrontTheme;
+  primaryColor: string;
 }
 
-export default function StorefrontProductSheet({ slug, product, open, onOpenChange, onAdd }: Props) {
+export default function StorefrontProductSheet({
+  slug,
+  product,
+  open,
+  onOpenChange,
+  onAdd,
+  theme,
+  primaryColor,
+}: Props) {
   const [variantId, setVariantId] = useState<string | null>(null);
   const [options, setOptions] = useState<CartOption[]>([]);
   const [notes, setNotes] = useState("");
