@@ -925,6 +925,8 @@ export default function LojaOnline() {
         open={productOpen}
         onOpenChange={setProductOpen}
         onAdd={addItem}
+        theme={store.store.theme}
+        primaryColor={store.store.primary_color}
       />
 
       <StorefrontCheckoutSheet
