@@ -456,13 +456,14 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
         />
         <MediaField
           label="Banner"
-          hint="Formato largo, 1600×480 px (10:3). PNG, JPG ou WEBP até 3 MB."
+          hint="Ideal 1600×600 px (16:6), mínimo 1200×450 px. Mantenha textos e logo na área central — as bordas podem ser preenchidas. PNG, JPG ou WEBP até 3 MB."
           path={store?.banner_url ?? null}
           unitId={unit.id}
           kind="banner"
           slug={slug}
-          aspect="aspect-[3/1]"
+          aspect="aspect-[16/6]"
         />
+
       </div>
 
       {/* Textos */}
