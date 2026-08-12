@@ -112,16 +112,33 @@ async def scenario_revalidate(browser) -> list[str]:
     await wait_for_menu(page)
     await page.wait_for_timeout(1000)
 
+    snapshot_ok = await page.evaluate(
+        """(slug) => {
+            const key = 'sf-snapshot:' + slug;
+            const raw = localStorage.getItem(key);
+            if (!raw) return false;
+            const parsed = JSON.parse(raw);
+            // Envelhece o snapshot para forçar a revalidação no próximo carregamento.
+            parsed.savedAt = Date.now() - 10 * 60 * 1000;
+            localStorage.setItem(key, JSON.stringify(parsed));
+            return true;
+        }""",
+        SLUG,
+    )
+
     state = {"navs": [], "rpc": [], "errors": []}
     track(page, state)
     await page.reload(wait_until="domcontentloaded")
     title = await wait_for_menu(page)
     await page.wait_for_timeout(2500)
 
+    if not snapshot_ok:
+        fails.append("revalidate: snapshot local do cardápio não foi gravado")
     if not title:
         fails.append("revalidate: cardápio não renderizou na segunda visita")
     if not state["rpc"]:
         fails.append("revalidate: não revalidou os dados (sem storefront_public_get)")
+
     if len(state["navs"]) > MAX_NAVIGATIONS:
         fails.append(f"revalidate: loop de navegação ({len(state['navs'])})")
     print(f"  revalidate: h1={title!r} navs={len(state['navs'])} rpc={len(state['rpc'])}")
