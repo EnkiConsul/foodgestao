@@ -49,6 +49,10 @@ import {
   validateStorefront,
   type StorefrontTheme,
 } from "@/lib/orders/storefront";
+import { prefetchStorefront } from "@/lib/orders/storefrontPrefetch";
+import { useQueryClient } from "@tanstack/react-query";
+
+
 
 
 const COLOR_PRESETS = ["#EB6119", "#0F1B3D", "#16A34A", "#DC2626", "#7C3AED", "#0891B2"];
