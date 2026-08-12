@@ -26,14 +26,18 @@ export function isStaleBundleError(message: unknown): boolean {
   return STALE_PATTERNS.some((p) => text.includes(p));
 }
 
-/** Limpa caches/SW e recarrega — no máximo uma vez por sessão. */
-export async function recoverFromStaleBundle(): Promise<boolean> {
+/**
+ * Limpa caches/SW e recarrega — no máximo uma vez por sessão.
+ * Com `force = true` (ação manual do usuário) o guard de sessão é ignorado.
+ */
+export async function recoverFromStaleBundle(force = false): Promise<boolean> {
   try {
-    if (sessionStorage.getItem(FLAG)) return false;
+    if (!force && sessionStorage.getItem(FLAG)) return false;
     sessionStorage.setItem(FLAG, "1");
   } catch {
     // sessionStorage bloqueado (modo privado antigo do iOS): segue sem guarda.
   }
+
 
   try {
     if ("caches" in window) {

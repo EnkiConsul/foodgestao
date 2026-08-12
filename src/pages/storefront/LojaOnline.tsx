@@ -22,7 +22,9 @@ import { Input } from "@/components/ui/input";
 import StorefrontProductSheet from "@/components/storefront/StorefrontProductSheet";
 import StorefrontCheckoutSheet from "@/components/storefront/StorefrontCheckoutSheet";
 import StorefrontTrackDialog from "@/components/storefront/StorefrontTrackDialog";
+import { recoverFromStaleBundle } from "@/lib/staleBundle";
 import { usePublicStorefront } from "@/hooks/usePublicStorefront";
+
 import type { PlacedOrder } from "@/hooks/usePublicStorefront";
 import {
   bannerImageStyle,
@@ -71,6 +73,19 @@ export default function LojaOnline() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [compact, setCompact] = useState(false);
+  const [slowLoad, setSlowLoad] = useState(false);
+
+  // Rede de segurança: se o carregamento travar (bundle/cache antigo no
+  // aparelho), oferecemos uma saída em vez de girar para sempre.
+  useEffect(() => {
+    if (!isLoading) {
+      setSlowLoad(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setSlowLoad(true), 8000);
+    return () => window.clearTimeout(timer);
+  }, [isLoading]);
+
 
   const store = data && data.found ? (data as PublicStorefront) : null;
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
@@ -157,11 +172,21 @@ export default function LojaOnline() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        {slowLoad && (
+          <>
+            <p className="max-w-sm text-sm text-muted-foreground">
+              O cardápio está demorando para abrir. Isso costuma ser uma versão antiga guardada no seu
+              navegador — toque abaixo para limpar e tentar de novo.
+            </p>
+            <Button onClick={() => void recoverFromStaleBundle(true)}>Recarregar cardápio</Button>
+          </>
+        )}
       </div>
     );
   }
+
 
   if (isError || !store) {
     return (
