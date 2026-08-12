@@ -246,6 +246,14 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
   const { data: logoPalette = [] } = useLogoPalette(logoPreview ?? null);
   const publicUrl = useMemo(() => (slug ? storefrontPublicUrl(slug) : ""), [slug]);
 
+  // Pré-cache: aquece rota, dados e imagens do cardápio publicado, para que
+  // abrir/compartilhar o link já encontre tudo pronto.
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (store?.slug) void prefetchStorefront(queryClient, store.slug);
+  }, [queryClient, store?.slug]);
+
+
   const slugChanged = !store || store.slug !== slug.trim().toLowerCase();
   const { data: available, isFetching: checkingSlug } = useSlugAvailability(
     slugChanged && isValidSlug(slug) ? slug.trim().toLowerCase() : "",
