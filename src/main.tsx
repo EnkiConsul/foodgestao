@@ -1,6 +1,8 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import { installStaleBundleRecovery } from "./lib/staleBundle";
+import { isStorefrontPath, purgeLegacyServiceWorker } from "./lib/storefrontSwGuard";
+
 import "@fontsource/urbanist/600.css";
 import "@fontsource/urbanist/700.css";
 import "@fontsource/urbanist/800.css";
@@ -13,13 +15,19 @@ import "./index.css";
 installStaleBundleRecovery();
 
 // Offline caching was removed because an old app-shell cache could route valid
-// public storefront URLs to the legacy 404 page. The replacement /sw.js also
-// unregisters returning browsers that have not loaded this bundle yet.
+// public storefront URLs to the legacy 404 page. Aqui desregistramos qualquer
+// Service Worker remanescente; nas rotas /c/* a rotina abaixo também apaga os
+// caches antigos e recarrega uma vez para garantir o bundle novo no celular.
 if ("serviceWorker" in navigator) {
-  void navigator.serviceWorker
-    .getRegistrations()
-    .then((registrations) => Promise.allSettled(registrations.map((registration) => registration.unregister())))
-    .catch(() => undefined);
+  if (isStorefrontPath(window.location.pathname)) {
+    void purgeLegacyServiceWorker();
+  } else {
+    void navigator.serviceWorker
+      .getRegistrations()
+      .then((registrations) => Promise.allSettled(registrations.map((registration) => registration.unregister())))
+      .catch(() => undefined);
+  }
 }
+
 
 createRoot(document.getElementById("root")!).render(<App />);
