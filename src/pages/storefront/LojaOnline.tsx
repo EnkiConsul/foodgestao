@@ -71,6 +71,19 @@ export default function LojaOnline() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [compact, setCompact] = useState(false);
+  const [slowLoad, setSlowLoad] = useState(false);
+
+  // Rede de segurança: se o carregamento travar (bundle/cache antigo no
+  // aparelho), oferecemos uma saída em vez de girar para sempre.
+  useEffect(() => {
+    if (!isLoading) {
+      setSlowLoad(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setSlowLoad(true), 8000);
+    return () => window.clearTimeout(timer);
+  }, [isLoading]);
+
 
   const store = data && data.found ? (data as PublicStorefront) : null;
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
