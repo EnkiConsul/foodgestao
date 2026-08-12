@@ -2,21 +2,31 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { CartItem, PublicStorefront, PublicStorefrontResult } from "@/lib/orders/storefront";
 import { cartToPayload } from "@/lib/orders/storefront";
+import {
+  fetchStorefront,
+  readStorefrontSnapshot,
+  storefrontQueryKey,
+} from "@/lib/orders/storefrontPrefetch";
 
-/** Cardápio público da loja — não exige login (RPC SECURITY DEFINER). */
+/**
+ * Cardápio público da loja — não exige login (RPC SECURITY DEFINER).
+ * Usa o snapshot local (pré-cache) como dado inicial e revalida em background,
+ * então a página pinta imediatamente em visitas repetidas.
+ */
 export function usePublicStorefront(slug: string | undefined) {
+  const snapshot = readStorefrontSnapshot(slug);
+
   return useQuery({
-    queryKey: ["storefront-public", slug],
+    queryKey: storefrontQueryKey(slug ?? ""),
     enabled: !!slug,
     staleTime: 60_000,
     retry: 1,
-    queryFn: async (): Promise<PublicStorefrontResult> => {
-      const { data, error } = await supabase.rpc("storefront_public_get", { p_slug: slug! });
-      if (error) throw error;
-      return (data ?? { found: false }) as PublicStorefrontResult;
-    },
+    initialData: snapshot?.data,
+    initialDataUpdatedAt: snapshot?.savedAt,
+    queryFn: (): Promise<PublicStorefrontResult> => fetchStorefront(slug!),
   });
 }
+
 
 export interface PlaceOrderInput {
   slug: string;

@@ -24,6 +24,8 @@ import StorefrontCheckoutSheet from "@/components/storefront/StorefrontCheckoutS
 import StorefrontTrackDialog from "@/components/storefront/StorefrontTrackDialog";
 import { recoverFromStaleBundle } from "@/lib/staleBundle";
 import { purgeLegacyServiceWorker } from "@/lib/storefrontSwGuard";
+import { preloadStorefrontMedia } from "@/lib/orders/storefrontPrefetch";
+
 
 import { usePublicStorefront } from "@/hooks/usePublicStorefront";
 
@@ -94,9 +96,15 @@ export default function LojaOnline() {
     void purgeLegacyServiceWorker();
   }, []);
 
-
   const store = data && data.found ? (data as PublicStorefront) : null;
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+
+  // Pré-carrega banner, logo e as primeiras imagens de produto assim que os
+  // dados chegam (inclusive do snapshot local), reduzindo o tempo percebido.
+  useEffect(() => {
+    if (store) preloadStorefrontMedia(store);
+  }, [store]);
+
 
   const addItem = (item: CartItem) => {
     setItems((prev) => {

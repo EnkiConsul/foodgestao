@@ -49,6 +49,10 @@ import {
   validateStorefront,
   type StorefrontTheme,
 } from "@/lib/orders/storefront";
+import { prefetchStorefront } from "@/lib/orders/storefrontPrefetch";
+import { useQueryClient } from "@tanstack/react-query";
+
+
 
 
 const COLOR_PRESETS = ["#EB6119", "#0F1B3D", "#16A34A", "#DC2626", "#7C3AED", "#0891B2"];
@@ -245,6 +249,14 @@ export default function StepCardapioOnline({ unit, onSaved }: { unit: OrdersUnit
 
   const { data: logoPalette = [] } = useLogoPalette(logoPreview ?? null);
   const publicUrl = useMemo(() => (slug ? storefrontPublicUrl(slug) : ""), [slug]);
+
+  // Pré-cache: aquece rota, dados e imagens do cardápio publicado, para que
+  // abrir/compartilhar o link já encontre tudo pronto.
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (store?.slug) void prefetchStorefront(queryClient, store.slug);
+  }, [queryClient, store?.slug]);
+
 
   const slugChanged = !store || store.slug !== slug.trim().toLowerCase();
   const { data: available, isFetching: checkingSlug } = useSlugAvailability(
