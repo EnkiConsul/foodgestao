@@ -95,6 +95,8 @@ export default function LojaOnline() {
   }, []);
 
 
+
+
   const store = data && data.found ? (data as PublicStorefront) : null;
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
