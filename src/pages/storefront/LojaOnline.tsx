@@ -23,6 +23,8 @@ import StorefrontProductSheet from "@/components/storefront/StorefrontProductShe
 import StorefrontCheckoutSheet from "@/components/storefront/StorefrontCheckoutSheet";
 import StorefrontTrackDialog from "@/components/storefront/StorefrontTrackDialog";
 import { recoverFromStaleBundle } from "@/lib/staleBundle";
+import { purgeLegacyServiceWorker } from "@/lib/storefrontSwGuard";
+
 import { usePublicStorefront } from "@/hooks/usePublicStorefront";
 
 import type { PlacedOrder } from "@/hooks/usePublicStorefront";
@@ -85,6 +87,12 @@ export default function LojaOnline() {
     const timer = window.setTimeout(() => setSlowLoad(true), 8000);
     return () => window.clearTimeout(timer);
   }, [isLoading]);
+
+  // Navegação interna até /c/*: garante a limpeza do Service Worker antigo
+  // mesmo quando a página não foi carregada direto pela URL pública.
+  useEffect(() => {
+    void purgeLegacyServiceWorker();
+  }, []);
 
 
   const store = data && data.found ? (data as PublicStorefront) : null;
