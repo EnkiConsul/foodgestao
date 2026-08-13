@@ -1119,7 +1119,7 @@ export default function ConciliacaoPluggy() {
                             {creatingContact === r.id
                               ? <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                               : <UserPlus className="mr-1 h-3 w-3" />}
-                            Cadastrar {counterpartyByRow[r.id]?.name ?? counterpartyByRow[r.id]?.document}
+                            Cadastrar {counterpartyByRow[r.id]?.name ?? "contato"}
                           </Button>
                         )}
                         </>
