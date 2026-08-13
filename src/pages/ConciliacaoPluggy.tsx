@@ -343,12 +343,27 @@ export default function ConciliacaoPluggy() {
       supabase.from("companies").select("cnpj").eq("id", selectedCompanyId).maybeSingle(),
     ]);
 
+    // Erros de carregamento não podem passar em silêncio: sem isso, listas
+    // como fornecedores/clientes ficam vazias sem nenhum aviso ao usuário.
+    const loadErrors: string[] = [];
+    if (connsError) loadErrors.push(`conexões: ${connsError.message}`);
+    if (stagingError) loadErrors.push(`lançamentos: ${stagingError.message}`);
+    if (accsError) loadErrors.push(`contas: ${accsError.message}`);
+    if (catsError) loadErrors.push(`categorias: ${catsError.message}`);
+    if (pmsError) loadErrors.push(`formas de pagamento: ${pmsError.message}`);
+    if (ctsError) loadErrors.push(`fornecedores/clientes: ${ctsError.message}`);
+    if (loadErrors.length > 0) {
+      toast.error("Falha ao carregar dados da conciliação", {
+        description: loadErrors.join(" • "),
+      });
+    }
+
     setConnections((conns ?? []) as Connection[]);
     setRows((staging ?? []) as StagingRow[]);
     setAccounts(((accs ?? []) as any[]).map((a) => ({ id: a.id, name: a.name })));
     setPaymentMethods(((pms ?? []) as any[]).map((p) => ({ id: p.id, name: p.name })));
     setContacts(((cts ?? []) as any[]).map((c) => ({
-      id: c.id, name: c.name, type: c.type ?? null, document: c.document ?? null,
+      id: c.id, name: c.name, type: c.contact_type ?? null, document: c.document ?? null,
     })));
     setBanks(((bks ?? []) as any[]).map((b) => ({ id: b.id, name: b.name, tax_id: b.tax_id ?? null })));
     setCompanyCnpj(((comp ?? null) as { cnpj?: string | null } | null)?.cnpj ?? null);
