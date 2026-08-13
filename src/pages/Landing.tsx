@@ -5,6 +5,7 @@ import { FeaturesGrid } from "@/components/landing/FeaturesGrid";
 import { FinalCta } from "@/components/landing/FinalCta";
 import { GuaranteeStrip } from "@/components/landing/GuaranteeStrip";
 import { HeroSection } from "@/components/landing/HeroSection";
+import { ModulesSection } from "@/components/landing/ModulesSection";
 import { PersonaCards } from "@/components/landing/PersonaCards";
 import { PersonasStrip } from "@/components/landing/PersonasStrip";
 import { PricingSection } from "@/components/landing/PricingSection";
