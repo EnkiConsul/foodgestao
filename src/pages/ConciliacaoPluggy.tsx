@@ -849,7 +849,7 @@ export default function ConciliacaoPluggy() {
 
 
       {pendingFiltered.length > 0 && (
-        <div className="flex flex-col gap-2 rounded-md border border-primary/40 bg-primary/5 p-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="hidden flex-col gap-2 rounded-md border border-primary/40 bg-primary/5 p-2 sm:flex sm:flex-row sm:flex-wrap sm:items-center">
           <span className="text-sm" role="status" aria-live="polite">
             {selected.size > 0
               ? `${selected.size} de ${pendingFiltered.length} pendente(s) selecionado(s)`
@@ -909,6 +909,29 @@ export default function ConciliacaoPluggy() {
 
           </div>
 
+        </div>
+      )}
+
+      {/* Mobile: resumo da fila + seleção rápida */}
+      {pendingFiltered.length > 0 && (
+        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground sm:hidden">
+          <span role="status" aria-live="polite">
+            {selected.size > 0
+              ? `${selected.size} de ${pendingFiltered.length} selecionado(s)`
+              : `${pendingFiltered.length} pendente(s)`}
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 px-2 text-xs"
+            onClick={() =>
+              allPendingSelected
+                ? setSelected(new Set())
+                : setSelected(new Set(pendingFiltered.map((r) => r.id)))
+            }
+          >
+            {allPendingSelected ? "Limpar seleção" : "Selecionar todos"}
+          </Button>
         </div>
       )}
 
