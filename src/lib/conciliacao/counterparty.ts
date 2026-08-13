@@ -114,6 +114,44 @@ export interface ExtractOptions {
   ownDocuments?: (string | null | undefined)[];
 }
 
+/**
+ * Alguns bancos não devolvem `payer.name` / `receiver.name`, mas a descrição
+ * já traz a contraparte ("Pix enviado para ANTONIA BARROS RODRIGUES",
+ * "Pagamento Boleto STONE IP S.A."). Extraímos esse trecho como último recurso.
+ */
+const DESC_AFTER_RE =
+  /(?:enviad[ao]s?\s+(?:para|a)|recebid[ao]s?\s+(?:de|do|da)|pago\s+(?:para|a)|pagamento\s+(?:de\s+)?boleto|boleto|compra\s+(?:em|no|na)|para|de)\s+(.+)$/i;
+
+const OP_LABEL_RE =
+  /^\s*(pix|ted|doc|tev|transf(er[eê]ncia)?|pagamento|pgto|boleto|d[eé]bito|cr[eé]dito|compra|cart[aã]o)\b[\s.:\-/]*/i;
+
+export function nameFromDescription(description: string | null | undefined): string | null {
+  let s = String(description ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!s) return null;
+
+  const m = DESC_AFTER_RE.exec(s);
+  if (m?.[1]) s = m[1].trim();
+  else {
+    // Sem preposição: remove apenas o rótulo da operação no início.
+    const stripped = s.replace(OP_LABEL_RE, "").trim();
+    if (!stripped || stripped === s) return null;
+    s = stripped;
+  }
+
+  // Remove rótulos residuais ("Pix ACME LTDA") e ruído final.
+  s = s.replace(OP_LABEL_RE, "").replace(/[\s.\-–—_,;:|/]+$/g, "").trim();
+
+  // Descarta sobras numéricas / documentos / termos genéricos.
+  if (s.length < 3) return null;
+  if (!/[a-zA-ZÀ-ÿ]{3}/.test(s)) return null;
+  if (onlyDigits(s).length >= 11 && !/[a-zA-ZÀ-ÿ]{3}/.test(s.replace(/\d/g, ""))) return null;
+  if (/^(contraparte|terceiros?|n[aã]o\s+identificad)/i.test(s)) return null;
+
+  return s.slice(0, 120);
+}
+
 /** Extrai nome + documento da contraparte de um lançamento importado. */
 export function extractCounterparty(
   row: CounterpartyRow,
@@ -139,7 +177,8 @@ export function extractCounterparty(
 
   if (external && (external.name || onlyDigits(external.document).length >= 11)) {
     return {
-      name: external.name,
+      // Último recurso: nome dentro da descrição do extrato.
+      name: external.name ?? nameFromDescription(row.description),
       document: formatDocument(external.document),
       documentType: documentTypeOf(external.document),
       internal: false,
@@ -158,9 +197,10 @@ export function extractCounterparty(
 export function counterpartyLabel(cp: Counterparty): string | null {
   if (cp.name && cp.document) return `${cp.name} • ${cp.documentType ?? ""} ${cp.document}`.trim();
   if (cp.name) return cp.name;
-  if (cp.document) return `${cp.documentType ?? "Documento"} ${cp.document}`;
+  if (cp.document) return `Contraparte não identificada • ${cp.documentType ?? "Documento"} ${cp.document}`;
   return null;
 }
+
 
 export interface BankOpt {
   id: string;
