@@ -67,10 +67,10 @@ export function ContactSelectContent({
 
       {shown.map((c) => (
         <SelectItem key={c.id} value={c.id}>
-          <span className="flex items-center gap-2">
-            <span>{c.name}</span>
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="truncate">{c.name}</span>
             {c.type && (
-              <span className="text-[10px] uppercase text-muted-foreground">
+              <span className="shrink-0 text-[10px] uppercase text-muted-foreground">
                 {TYPE_LABELS[c.type] ?? c.type}
               </span>
             )}
