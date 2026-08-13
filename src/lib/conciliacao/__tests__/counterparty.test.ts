@@ -5,6 +5,7 @@ import {
   isInternalBankCharge,
   matchBankByConnector,
   counterpartyLabel,
+  nameFromDescription,
 } from "../counterparty";
 
 const OWN = "58.241.366/0001-32";
