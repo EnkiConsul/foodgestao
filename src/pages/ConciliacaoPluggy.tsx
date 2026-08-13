@@ -18,7 +18,9 @@ import { CATEGORY_INDENT_STEP, categoryGuideLevels } from "@/lib/categories/disp
 import { CategoryTypeBadge } from "@/components/categorias/CategoryTypeBadge";
 import { buildCategoryTree, type Category } from "@/lib/categories/tree";
 import { StagingCard } from "@/components/conciliacao/StagingCard";
+import { ContactSelectContent } from "@/components/conciliacao/ContactSelectContent";
 import { suggestPaymentMethodId } from "@/lib/conciliacao/paymentMethodInference";
+import { fetchAllCompanyContacts } from "@/lib/conciliacao/contacts";
 import {
   counterpartyLabel,
   extractCounterparty,
@@ -120,12 +122,6 @@ interface Connection {
 
 interface AccountOpt { id: string; name: string; }
 interface ContactOpt { id: string; name: string; type: string | null; document: string | null; }
-
-const CONTACT_TYPE_LABELS: Record<string, string> = {
-  cliente: "Cliente",
-  fornecedor: "Fornecedor",
-  ambos: "Ambos",
-};
 interface CategoryOpt {
   id: string;
   name: string;
@@ -341,10 +337,7 @@ export default function ConciliacaoPluggy() {
       supabase.rpc("get_accessible_payment_methods", {
         _context: "pj", _company_id: selectedCompanyId,
       }),
-      supabase.from("contacts")
-        .select("id, name, contact_type, document, is_active, contact_companies!inner(company_id)")
-        .eq("contact_companies.company_id", selectedCompanyId)
-        .order("name"),
+      fetchAllCompanyContacts(selectedCompanyId),
       supabase.from("banks").select("id, name, tax_id").eq("is_active", true),
       supabase.from("companies").select("cnpj").eq("id", selectedCompanyId).maybeSingle(),
     ]);
@@ -368,9 +361,7 @@ export default function ConciliacaoPluggy() {
     setRows((staging ?? []) as StagingRow[]);
     setAccounts(((accs ?? []) as any[]).map((a) => ({ id: a.id, name: a.name })));
     setPaymentMethods(((pms ?? []) as any[]).map((p) => ({ id: p.id, name: p.name })));
-    setContacts(((cts ?? []) as any[]).map((c) => ({
-      id: c.id, name: c.name, type: c.contact_type ?? null, document: c.document ?? null,
-    })));
+    setContacts((cts ?? []) as ContactOpt[]);
     setBanks(((bks ?? []) as any[]).map((b) => ({ id: b.id, name: b.name, tax_id: b.tax_id ?? null })));
     setCompanyCnpj(((comp ?? null) as { cnpj?: string | null } | null)?.cnpj ?? null);
     setCategories((cats ?? []) as CategoryOpt[]);
@@ -1120,20 +1111,7 @@ export default function ConciliacaoPluggy() {
                           <SelectTrigger className="h-8 min-w-[160px] text-xs">
                             <SelectValue placeholder={isEntrada ? "Cliente…" : "Fornecedor…"} />
                           </SelectTrigger>
-                          <SelectContent className="max-h-[420px]">
-                            {contacts.map((c) => (
-                              <SelectItem key={c.id} value={c.id}>
-                                <span className="flex items-center gap-2">
-                                  <span>{c.name}</span>
-                                  {c.type && (
-                                    <span className="text-[10px] uppercase text-muted-foreground">
-                                      {CONTACT_TYPE_LABELS[c.type] ?? c.type}
-                                    </span>
-                                  )}
-                                </span>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
+                          <ContactSelectContent contacts={contacts} className="max-h-[420px]" />
                         </Select>
                         {rowContact[r.id] && rowContact[r.id] === suggestedContact[r.id] && (
                           <p className="mt-1 text-[10px] text-muted-foreground">identificado pelo extrato</p>

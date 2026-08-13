@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ContactSelectContent } from "@/components/conciliacao/ContactSelectContent";
 import type { ReactNode } from "react";
 
 interface AccountOpt {
@@ -33,7 +34,8 @@ export interface StagingCardRow {
 interface ContactOpt {
   id: string;
   name: string;
-  type?: string | null;
+  type: string | null;
+  document: string | null;
 }
 
 interface StagingCardProps {
@@ -277,13 +279,7 @@ export function StagingCard({
                   <SelectTrigger className="h-9 w-full text-xs">
                     <SelectValue placeholder="Não informado" />
                   </SelectTrigger>
-                  <SelectContent className="max-h-[50vh]">
-                    {contacts.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                  <ContactSelectContent contacts={contacts} className="max-h-[50vh]" />
                 </Select>
                 {contact && contactSuggested && (
                   <p className="mt-1 text-[10px] text-muted-foreground">identificado pelo extrato</p>
