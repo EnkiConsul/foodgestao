@@ -277,13 +277,7 @@ export function StagingCard({
                   <SelectTrigger className="h-9 w-full text-xs">
                     <SelectValue placeholder="Não informado" />
                   </SelectTrigger>
-                  <SelectContent className="max-h-[50vh]">
-                    {contacts.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                  <ContactSelectContent contacts={contacts} className="max-h-[50vh]" />
                 </Select>
                 {contact && contactSuggested && (
                   <p className="mt-1 text-[10px] text-muted-foreground">identificado pelo extrato</p>
