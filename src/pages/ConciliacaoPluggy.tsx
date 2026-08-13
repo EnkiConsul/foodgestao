@@ -927,8 +927,9 @@ export default function ConciliacaoPluggy() {
         </CardContent></Card>
       ) : (
         <>
-        {/* Mobile e tablet: um card por lançamento (2 colunas fluidas no tablet) */}
-        <div className="space-y-2 sm:columns-2 sm:gap-2 sm:space-y-0 lg:hidden [&>*]:mb-2 [&>*]:break-inside-avoid">
+        {/* Mobile e tablet: um card por lançamento */}
+        <div className="space-y-2 lg:hidden">
+
 
           {filtered.map((r) => {
             const isEntrada = r.amount >= 0;
