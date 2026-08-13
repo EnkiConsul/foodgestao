@@ -304,13 +304,13 @@ export default function ConciliacaoPluggy() {
     }
 
     const [
-      { data: conns },
-      { data: staging },
-      { data: accs },
-      { data: cats },
+      { data: conns, error: connsError },
+      { data: staging, error: stagingError },
+      { data: accs, error: accsError },
+      { data: cats, error: catsError },
       { data: pluggyAccts },
-      { data: pms },
-      { data: cts },
+      { data: pms, error: pmsError },
+      { data: cts, error: ctsError },
       { data: bks },
       { data: comp },
     ] = await Promise.all([
