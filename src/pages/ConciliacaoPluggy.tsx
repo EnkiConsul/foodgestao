@@ -747,20 +747,8 @@ export default function ConciliacaoPluggy() {
         </Button>
       </div>
 
-      <div className="hidden grid-cols-3 gap-2 md:grid">
-        <Card><CardContent className="p-3">
-          <p className="text-[11px] text-muted-foreground sm:text-xs">Pendentes</p>
-          <p className="text-base font-bold text-warning sm:text-lg">{counts.pending}</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-3">
-          <p className="text-[11px] text-muted-foreground sm:text-xs">Confirmados</p>
-          <p className="text-base font-bold text-success sm:text-lg">{counts.confirmed}</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-3">
-          <p className="text-[11px] text-muted-foreground sm:text-xs">Ignorados</p>
-          <p className="text-base font-bold text-muted-foreground sm:text-lg">{counts.ignored}</p>
-        </CardContent></Card>
-      </div>
+
+
 
       {scopeUnresolved && (
         <Card className="border-warning/50 bg-warning/10">
@@ -771,7 +759,7 @@ export default function ConciliacaoPluggy() {
         </Card>
       )}
 
-      <div className="sticky top-14 z-20 -mx-3 space-y-2 border-b bg-background/95 px-3 py-2 backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:px-0 md:py-0 md:backdrop-blur-none">
+      <div className="sticky top-14 z-20 -mx-3 space-y-2 border-b bg-background/95 px-3 py-2 backdrop-blur md:-mx-6 md:px-6 md:py-3 lg:top-16">
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           {!scope && (
             <Select value={connectionId} onValueChange={setConnectionId}>
@@ -784,16 +772,7 @@ export default function ConciliacaoPluggy() {
               </SelectContent>
             </Select>
           )}
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="hidden sm:flex sm:w-[160px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pending">Pendentes</SelectItem>
-              <SelectItem value="confirmed">Confirmados</SelectItem>
-              <SelectItem value="ignored">Ignorados</SelectItem>
-              <SelectItem value="all">Todos</SelectItem>
-            </SelectContent>
-          </Select>
-          <div className="relative w-full sm:flex-1 sm:min-w-[180px]">
+          <div className="relative w-full sm:flex-1 sm:min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar descrição..."
@@ -814,8 +793,13 @@ export default function ConciliacaoPluggy() {
           </div>
         </div>
 
-        {/* Mobile: filtros de status como chips roláveis com contagem */}
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5 sm:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {/* Filtros de status como chips com contagem (todos os tamanhos de tela) */}
+        <div
+          role="tablist"
+          aria-label="Filtrar por status"
+          className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5 sm:flex-wrap sm:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+
           {([
             { value: "pending", label: "Pendentes", count: counts.pending },
             { value: "confirmed", label: "Confirmados", count: counts.confirmed },
@@ -943,8 +927,10 @@ export default function ConciliacaoPluggy() {
         </CardContent></Card>
       ) : (
         <>
-        {/* Mobile: um card por lançamento */}
-        <div className="space-y-2 md:hidden">
+        {/* Mobile e tablet: um card por lançamento */}
+        <div className="space-y-2 lg:hidden">
+
+
           {filtered.map((r) => {
             const isEntrada = r.amount >= 0;
             return (
@@ -1000,8 +986,8 @@ export default function ConciliacaoPluggy() {
           })}
         </div>
 
-        {/* Desktop: tabela completa */}
-        <Card className="hidden md:block"><CardContent className="p-0 overflow-x-auto">
+        {/* Desktop (lg+): tabela completa */}
+        <Card className="hidden lg:block"><CardContent className="p-0 overflow-x-auto">
 
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs text-muted-foreground">
