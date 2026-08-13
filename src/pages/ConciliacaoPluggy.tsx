@@ -640,10 +640,18 @@ export default function ConciliacaoPluggy() {
     });
   }, [suggestedContact]);
 
-  /** Cria o contato a partir dos dados do extrato e o vincula ao lançamento. */
-  const createContactFromStatement = async (row: StagingRow) => {
+  /**
+   * Cria o contato a partir dos dados do extrato e o vincula ao lançamento.
+   * Nunca usa o documento como nome: sem nome identificado, pedimos ao usuário.
+   */
+  const createContactFromStatement = async (row: StagingRow, overrideName?: string) => {
     const cp = counterpartyByRow[row.id];
     if (!cp?.name && !cp?.document) return;
+    const name = (overrideName ?? cp.name ?? "").trim();
+    if (!name) {
+      setContactNamePrompt({ rowId: row.id, name: "", document: cp.document });
+      return;
+    }
     setCreatingContact(row.id);
     try {
       const { data: auth } = await supabase.auth.getUser();
@@ -654,7 +662,7 @@ export default function ConciliacaoPluggy() {
         .from("contacts")
         .insert({
           user_id: userId,
-          name: cp.name ?? `Contraparte ${cp.document}`,
+          name,
           document: cp.document,
           contact_type: (cp.internal ? "fornecedor" : isEntrada ? "cliente" : "fornecedor") as never,
           visible_pf: false,
@@ -672,14 +680,16 @@ export default function ConciliacaoPluggy() {
       } as never);
       setContacts((prev) => [
         ...prev,
-        { id: newId, name: cp.name ?? cp.document ?? "Contato", type: null, document: cp.document },
+        { id: newId, name, type: null, document: cp.document },
       ].sort((a, b) => a.name.localeCompare(b.name)));
       setRowContact((prev) => ({ ...prev, [row.id]: newId }));
+      setContactNamePrompt(null);
       toast.success("Contato cadastrado e vinculado");
     } finally {
       setCreatingContact(null);
     }
   };
+
 
   if (contextType !== "pj") {
     return (
