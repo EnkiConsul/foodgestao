@@ -84,6 +84,9 @@ export default function AdminModulos() {
         description="Ative, suspenda ou cancele módulos por empresa. Financeiro é ativado automaticamente."
       />
 
+      <ModulosCatalogoCard />
+
+
       <Card>
         <CardContent className="p-4">
           <div className="relative max-w-sm">
