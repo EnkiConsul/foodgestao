@@ -216,6 +216,10 @@ export default function ConciliacaoPluggy() {
   const [banks, setBanks] = useState<BankOpt[]>([]);
   const [companyCnpj, setCompanyCnpj] = useState<string | null>(null);
   const [creatingContact, setCreatingContact] = useState<string | null>(null);
+  // Cadastro de contato sem nome no extrato: pedimos o nome antes de salvar.
+  const [contactNamePrompt, setContactNamePrompt] = useState<
+    { rowId: string; name: string; document: string | null } | null
+  >(null);
   const [categories, setCategories] = useState<CategoryOpt[]>([]);
   const categoryOptionsReceita = useMemo(() => buildCategoryOptions(categories, "entrada"), [categories]);
   const categoryOptionsDespesa = useMemo(() => buildCategoryOptions(categories, "saida"), [categories]);
