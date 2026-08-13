@@ -985,7 +985,7 @@ export default function ConciliacaoPluggy() {
         </div>
 
         {/* Desktop: tabela completa */}
-        <Card className="hidden md:block"><CardContent className="p-0 overflow-x-auto">
+        <Card className="hidden lg:block"><CardContent className="p-0 overflow-x-auto">
 
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs text-muted-foreground">
