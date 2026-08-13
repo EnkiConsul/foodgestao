@@ -7158,7 +7158,10 @@ export type Database = {
           id: string
           nome: string
           ordem: number
+          show_on_hub: boolean
+          show_on_landing: boolean
           slug: string
+          updated_at: string
         }
         Insert: {
           ativo?: boolean
@@ -7168,7 +7171,10 @@ export type Database = {
           id?: string
           nome: string
           ordem?: number
+          show_on_hub?: boolean
+          show_on_landing?: boolean
           slug: string
+          updated_at?: string
         }
         Update: {
           ativo?: boolean
@@ -7178,7 +7184,10 @@ export type Database = {
           id?: string
           nome?: string
           ordem?: number
+          show_on_hub?: boolean
+          show_on_landing?: boolean
           slug?: string
+          updated_at?: string
         }
         Relationships: []
       }

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useCompanyModules } from "@/hooks/useCompanyModules";
+import { useModulosCatalogo } from "@/hooks/useModulosCatalogo";
 import { MODULES, isModuleUsable, statusLabel, type ModuleDefinition, type ModuleStatus } from "@/lib/modules";
 import { cn } from "@/lib/utils";
 
@@ -80,6 +81,16 @@ function ModuleCard({ def, status }: { def: ModuleDefinition; status: ModuleStat
 export default function Hub() {
   const { contextType, companies, selectedCompanyId } = useCompanyContext();
   const { getStatus, isLoading } = useCompanyModules();
+  const { data: catalogo } = useModulosCatalogo();
+
+  // Somente módulos ativos e marcados para aparecer no Hub (backoffice).
+  // Enquanto o catálogo não carrega, mantém a lista padrão.
+  const visibleModules = catalogo
+    ? MODULES.filter((def) => {
+        const entry = catalogo.find((c) => c.slug === def.slug);
+        return entry ? entry.show_on_hub : false;
+      })
+    : MODULES;
 
   const contextLabel = contextType === "pj"
     ? companies.find((c) => c.id === selectedCompanyId)?.name ?? "Empresa"
@@ -101,7 +112,7 @@ export default function Hub() {
       </div>
 
       <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-3">
-        {MODULES.map((def) => (
+        {visibleModules.map((def) => (
           <ModuleCard
             key={def.slug}
             def={def}
@@ -109,6 +120,9 @@ export default function Hub() {
           />
         ))}
       </div>
+      {visibleModules.length === 0 && (
+        <p className="text-sm text-muted-foreground">Nenhum módulo disponível no momento.</p>
+      )}
     </div>
   );
 }
