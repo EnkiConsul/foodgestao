@@ -366,9 +366,7 @@ export default function ConciliacaoPluggy() {
     setRows((staging ?? []) as StagingRow[]);
     setAccounts(((accs ?? []) as any[]).map((a) => ({ id: a.id, name: a.name })));
     setPaymentMethods(((pms ?? []) as any[]).map((p) => ({ id: p.id, name: p.name })));
-    setContacts(((cts ?? []) as any[]).map((c) => ({
-      id: c.id, name: c.name, type: c.contact_type ?? null, document: c.document ?? null,
-    })));
+    setContacts((cts ?? []) as ContactOpt[]);
     setBanks(((bks ?? []) as any[]).map((b) => ({ id: b.id, name: b.name, tax_id: b.tax_id ?? null })));
     setCompanyCnpj(((comp ?? null) as { cnpj?: string | null } | null)?.cnpj ?? null);
     setCategories((cats ?? []) as CategoryOpt[]);
