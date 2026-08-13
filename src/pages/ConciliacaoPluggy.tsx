@@ -928,7 +928,7 @@ export default function ConciliacaoPluggy() {
       ) : (
         <>
         {/* Mobile: um card por lançamento */}
-        <div className="space-y-2 md:hidden">
+        <div className="grid gap-2 sm:grid-cols-2 lg:hidden">
           {filtered.map((r) => {
             const isEntrada = r.amount >= 0;
             return (
