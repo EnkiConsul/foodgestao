@@ -336,8 +336,7 @@ export default function ConciliacaoPluggy() {
         _context: "pj", _company_id: selectedCompanyId,
       }),
       supabase.from("contacts")
-        .select("id, name, type, document, is_active, contact_companies!inner(company_id)")
-        .eq("is_active", true)
+        .select("id, name, contact_type, document, is_active, contact_companies!inner(company_id)")
         .eq("contact_companies.company_id", selectedCompanyId)
         .order("name"),
       supabase.from("banks").select("id, name, tax_id").eq("is_active", true),
