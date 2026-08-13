@@ -25,6 +25,7 @@ export default function Landing() {
         <ComparisonSection utm={utm} />
         <PersonaCards utm={utm} />
         <FeaturesGrid />
+        <ModulesSection />
         <GuaranteeStrip utm={utm} />
         <PricingSection utm={utm} />
         <FaqSection />
