@@ -747,20 +747,8 @@ export default function ConciliacaoPluggy() {
         </Button>
       </div>
 
-      <div className="hidden grid-cols-3 gap-2 md:grid">
-        <Card><CardContent className="p-3">
-          <p className="text-[11px] text-muted-foreground sm:text-xs">Pendentes</p>
-          <p className="text-base font-bold text-warning sm:text-lg">{counts.pending}</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-3">
-          <p className="text-[11px] text-muted-foreground sm:text-xs">Confirmados</p>
-          <p className="text-base font-bold text-success sm:text-lg">{counts.confirmed}</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-3">
-          <p className="text-[11px] text-muted-foreground sm:text-xs">Ignorados</p>
-          <p className="text-base font-bold text-muted-foreground sm:text-lg">{counts.ignored}</p>
-        </CardContent></Card>
-      </div>
+
+
 
       {scopeUnresolved && (
         <Card className="border-warning/50 bg-warning/10">
