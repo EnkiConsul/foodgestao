@@ -120,6 +120,12 @@ interface Connection {
 
 interface AccountOpt { id: string; name: string; }
 interface ContactOpt { id: string; name: string; type: string | null; document: string | null; }
+
+const CONTACT_TYPE_LABELS: Record<string, string> = {
+  cliente: "Cliente",
+  fornecedor: "Fornecedor",
+  ambos: "Ambos",
+};
 interface CategoryOpt {
   id: string;
   name: string;
@@ -304,13 +310,13 @@ export default function ConciliacaoPluggy() {
     }
 
     const [
-      { data: conns },
-      { data: staging },
-      { data: accs },
-      { data: cats },
+      { data: conns, error: connsError },
+      { data: staging, error: stagingError },
+      { data: accs, error: accsError },
+      { data: cats, error: catsError },
       { data: pluggyAccts },
-      { data: pms },
-      { data: cts },
+      { data: pms, error: pmsError },
+      { data: cts, error: ctsError },
       { data: bks },
       { data: comp },
     ] = await Promise.all([
@@ -336,20 +342,34 @@ export default function ConciliacaoPluggy() {
         _context: "pj", _company_id: selectedCompanyId,
       }),
       supabase.from("contacts")
-        .select("id, name, type, document, is_active, contact_companies!inner(company_id)")
-        .eq("is_active", true)
+        .select("id, name, contact_type, document, is_active, contact_companies!inner(company_id)")
         .eq("contact_companies.company_id", selectedCompanyId)
         .order("name"),
       supabase.from("banks").select("id, name, tax_id").eq("is_active", true),
       supabase.from("companies").select("cnpj").eq("id", selectedCompanyId).maybeSingle(),
     ]);
 
+    // Erros de carregamento não podem passar em silêncio: sem isso, listas
+    // como fornecedores/clientes ficam vazias sem nenhum aviso ao usuário.
+    const loadErrors: string[] = [];
+    if (connsError) loadErrors.push(`conexões: ${connsError.message}`);
+    if (stagingError) loadErrors.push(`lançamentos: ${stagingError.message}`);
+    if (accsError) loadErrors.push(`contas: ${accsError.message}`);
+    if (catsError) loadErrors.push(`categorias: ${catsError.message}`);
+    if (pmsError) loadErrors.push(`formas de pagamento: ${pmsError.message}`);
+    if (ctsError) loadErrors.push(`fornecedores/clientes: ${ctsError.message}`);
+    if (loadErrors.length > 0) {
+      toast.error("Falha ao carregar dados da conciliação", {
+        description: loadErrors.join(" • "),
+      });
+    }
+
     setConnections((conns ?? []) as Connection[]);
     setRows((staging ?? []) as StagingRow[]);
     setAccounts(((accs ?? []) as any[]).map((a) => ({ id: a.id, name: a.name })));
     setPaymentMethods(((pms ?? []) as any[]).map((p) => ({ id: p.id, name: p.name })));
     setContacts(((cts ?? []) as any[]).map((c) => ({
-      id: c.id, name: c.name, type: c.type ?? null, document: c.document ?? null,
+      id: c.id, name: c.name, type: c.contact_type ?? null, document: c.document ?? null,
     })));
     setBanks(((bks ?? []) as any[]).map((b) => ({ id: b.id, name: b.name, tax_id: b.tax_id ?? null })));
     setCompanyCnpj(((comp ?? null) as { cnpj?: string | null } | null)?.cnpj ?? null);
@@ -663,13 +683,14 @@ export default function ConciliacaoPluggy() {
       const userId = auth.user?.id;
       if (!userId || !selectedCompanyId) { toast.error("Sessão expirada"); return; }
       const isEntrada = row.amount >= 0;
+      const contactType = cp.internal ? "fornecedor" : isEntrada ? "cliente" : "fornecedor";
       const { data: created, error } = await supabase
         .from("contacts")
         .insert({
           user_id: userId,
           name,
           document: cp.document,
-          contact_type: (cp.internal ? "fornecedor" : isEntrada ? "cliente" : "fornecedor") as never,
+          contact_type: contactType as never,
           visible_pf: false,
         } as never)
         .select("id")
@@ -685,7 +706,7 @@ export default function ConciliacaoPluggy() {
       } as never);
       setContacts((prev) => [
         ...prev,
-        { id: newId, name, type: null, document: cp.document },
+        { id: newId, name, type: contactType, document: cp.document },
       ].sort((a, b) => a.name.localeCompare(b.name)));
       setRowContact((prev) => ({ ...prev, [row.id]: newId }));
       setContactNamePrompt(null);
@@ -1101,7 +1122,16 @@ export default function ConciliacaoPluggy() {
                           </SelectTrigger>
                           <SelectContent className="max-h-[420px]">
                             {contacts.map((c) => (
-                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                              <SelectItem key={c.id} value={c.id}>
+                                <span className="flex items-center gap-2">
+                                  <span>{c.name}</span>
+                                  {c.type && (
+                                    <span className="text-[10px] uppercase text-muted-foreground">
+                                      {CONTACT_TYPE_LABELS[c.type] ?? c.type}
+                                    </span>
+                                  )}
+                                </span>
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
