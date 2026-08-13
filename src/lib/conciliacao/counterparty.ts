@@ -140,14 +140,17 @@ export function nameFromDescription(description: string | null | undefined): str
     s = stripped;
   }
 
-  // Remove rótulos residuais ("Pix ACME LTDA") e ruído final.
-  s = s.replace(OP_LABEL_RE, "").replace(/[\s.\-–—_,;:|/]+$/g, "").trim();
+  // Remove rótulos residuais ("Pix ACME LTDA") e ruído final (preserva "S.A.").
+  s = s.replace(OP_LABEL_RE, "").replace(/[\s\-–—_,;:|/]+$/g, "").trim();
 
   // Descarta sobras numéricas / documentos / termos genéricos.
   if (s.length < 3) return null;
   if (!/[a-zA-ZÀ-ÿ]{3}/.test(s)) return null;
   if (onlyDigits(s).length >= 11 && !/[a-zA-ZÀ-ÿ]{3}/.test(s.replace(/\d/g, ""))) return null;
   if (/^(contraparte|terceiros?|n[aã]o\s+identificad)/i.test(s)) return null;
+  // Sobrou apenas o complemento da operação ("enviada", "recebido").
+  if (/^(enviad|recebid|efetuad|realizad|pag[oa]|pgto|debitad|creditad)\S*$/i.test(s)) return null;
+
 
   return s.slice(0, 120);
 }
