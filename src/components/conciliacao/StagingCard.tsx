@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ContactSelectContent } from "@/components/conciliacao/ContactSelectContent";
 import type { ReactNode } from "react";
 
 interface AccountOpt {
