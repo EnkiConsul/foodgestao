@@ -337,7 +337,7 @@ export function StagingCard({
                     {isEntrada ? "Cliente" : "Fornecedor"}
                   </label>
                   <Select value={contact} onValueChange={onContactChange} disabled={disabled}>
-                    <SelectTrigger className="h-10 w-full text-sm">
+                    <SelectTrigger className="h-10 w-full text-sm [&>span]:block [&>span]:truncate [&>span]:text-left">
                       <SelectValue placeholder="Não informado" />
                     </SelectTrigger>
                     <ContactSelectContent contacts={contacts} className="max-h-[50vh]" />

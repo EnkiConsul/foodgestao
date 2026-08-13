@@ -1166,7 +1166,7 @@ export default function ConciliacaoPluggy() {
                           onValueChange={(v) => setRowContact((p) => ({ ...p, [r.id]: v }))}
                           disabled={disabled}
                         >
-                          <SelectTrigger className="h-8 min-w-[160px] text-xs">
+                          <SelectTrigger className="h-8 w-[180px] min-w-[160px] max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left">
                             <SelectValue placeholder={isEntrada ? "Cliente…" : "Fornecedor…"} />
                           </SelectTrigger>
                           <ContactSelectContent contacts={contacts} className="max-h-[420px]" />
