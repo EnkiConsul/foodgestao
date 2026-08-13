@@ -1263,6 +1263,42 @@ export default function ConciliacaoPluggy() {
         </>
       )}
 
+      {/* Mobile: barra de ações em lote flutuante */}
+      {selected.size > 0 && (
+        <div
+          className="fixed inset-x-0 z-40 px-3 sm:hidden"
+          style={{ bottom: "calc(4.5rem + env(safe-area-inset-bottom))" }}
+        >
+          <div className="flex items-center gap-2 rounded-xl border border-primary/40 bg-card p-2 shadow-lg">
+            <span className="pl-1 text-xs font-medium">{selected.size} selec.</span>
+            <Button
+              variant="ghost"
+              className="h-9 px-2 text-xs"
+              onClick={() => setSelected(new Set())}
+              aria-label="Limpar seleção"
+            >
+              Limpar
+            </Button>
+            <Button
+              variant="outline"
+              className="ml-auto h-9 px-3"
+              onClick={ignoreSelected}
+              disabled={bulkBusy !== null}
+            >
+              {bulkBusy === "ignore"
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : <X className="h-4 w-4" />}
+            </Button>
+            <Button className="h-9 px-3 text-xs" onClick={confirmSelected} disabled={bulkBusy !== null}>
+              {bulkBusy === "confirm"
+                ? <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                : <Check className="mr-1 h-4 w-4" />}
+              Confirmar
+            </Button>
+          </div>
+        </div>
+      )}
+
       <Dialog open={!!contactNamePrompt} onOpenChange={(o) => !o && setContactNamePrompt(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
