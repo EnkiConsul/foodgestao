@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2, UserPlus } from "lucide-react";
 import { format, parseISO } from "date-fns";
@@ -216,6 +217,10 @@ export default function ConciliacaoPluggy() {
   const [banks, setBanks] = useState<BankOpt[]>([]);
   const [companyCnpj, setCompanyCnpj] = useState<string | null>(null);
   const [creatingContact, setCreatingContact] = useState<string | null>(null);
+  // Cadastro de contato sem nome no extrato: pedimos o nome antes de salvar.
+  const [contactNamePrompt, setContactNamePrompt] = useState<
+    { rowId: string; name: string; document: string | null } | null
+  >(null);
   const [categories, setCategories] = useState<CategoryOpt[]>([]);
   const categoryOptionsReceita = useMemo(() => buildCategoryOptions(categories, "entrada"), [categories]);
   const categoryOptionsDespesa = useMemo(() => buildCategoryOptions(categories, "saida"), [categories]);
@@ -640,10 +645,18 @@ export default function ConciliacaoPluggy() {
     });
   }, [suggestedContact]);
 
-  /** Cria o contato a partir dos dados do extrato e o vincula ao lançamento. */
-  const createContactFromStatement = async (row: StagingRow) => {
+  /**
+   * Cria o contato a partir dos dados do extrato e o vincula ao lançamento.
+   * Nunca usa o documento como nome: sem nome identificado, pedimos ao usuário.
+   */
+  const createContactFromStatement = async (row: StagingRow, overrideName?: string) => {
     const cp = counterpartyByRow[row.id];
     if (!cp?.name && !cp?.document) return;
+    const name = (overrideName ?? cp.name ?? "").trim();
+    if (!name) {
+      setContactNamePrompt({ rowId: row.id, name: "", document: cp.document });
+      return;
+    }
     setCreatingContact(row.id);
     try {
       const { data: auth } = await supabase.auth.getUser();
@@ -654,7 +667,7 @@ export default function ConciliacaoPluggy() {
         .from("contacts")
         .insert({
           user_id: userId,
-          name: cp.name ?? `Contraparte ${cp.document}`,
+          name,
           document: cp.document,
           contact_type: (cp.internal ? "fornecedor" : isEntrada ? "cliente" : "fornecedor") as never,
           visible_pf: false,
@@ -672,14 +685,16 @@ export default function ConciliacaoPluggy() {
       } as never);
       setContacts((prev) => [
         ...prev,
-        { id: newId, name: cp.name ?? cp.document ?? "Contato", type: null, document: cp.document },
+        { id: newId, name, type: null, document: cp.document },
       ].sort((a, b) => a.name.localeCompare(b.name)));
       setRowContact((prev) => ({ ...prev, [row.id]: newId }));
+      setContactNamePrompt(null);
       toast.success("Contato cadastrado e vinculado");
     } finally {
       setCreatingContact(null);
     }
   };
+
 
   if (contextType !== "pj") {
     return (
@@ -1104,7 +1119,7 @@ export default function ConciliacaoPluggy() {
                             {creatingContact === r.id
                               ? <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                               : <UserPlus className="mr-1 h-3 w-3" />}
-                            Cadastrar {counterpartyByRow[r.id]?.name ?? counterpartyByRow[r.id]?.document}
+                            Cadastrar {counterpartyByRow[r.id]?.name ?? "contato"}
                           </Button>
                         )}
                         </>
@@ -1168,6 +1183,52 @@ export default function ConciliacaoPluggy() {
         </>
       )}
 
+      <Dialog open={!!contactNamePrompt} onOpenChange={(o) => !o && setContactNamePrompt(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cadastrar contato</DialogTitle>
+            <DialogDescription>
+              O extrato não trouxe o nome da contraparte
+              {contactNamePrompt?.document ? ` (${contactNamePrompt.document})` : ""}. Informe o nome
+              para cadastrar o fornecedor/cliente.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            autoFocus
+            placeholder="Nome do fornecedor/cliente"
+            value={contactNamePrompt?.name ?? ""}
+            onChange={(e) =>
+              setContactNamePrompt((prev) => (prev ? { ...prev, name: e.target.value } : prev))
+            }
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              const p = contactNamePrompt;
+              const row = p ? rows.find((r) => r.id === p.rowId) : null;
+              if (row && (p?.name ?? "").trim().length >= 2) createContactFromStatement(row, p!.name);
+            }}
+          />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setContactNamePrompt(null)}>Cancelar</Button>
+            <Button
+              disabled={
+                (contactNamePrompt?.name ?? "").trim().length < 2 ||
+                creatingContact === contactNamePrompt?.rowId
+              }
+              onClick={() => {
+                const p = contactNamePrompt;
+                const row = p ? rows.find((r) => r.id === p.rowId) : null;
+                if (row && p) createContactFromStatement(row, p.name);
+              }}
+            >
+              {creatingContact === contactNamePrompt?.rowId && (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              )}
+              Cadastrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 }

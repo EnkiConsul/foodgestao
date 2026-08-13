@@ -5,6 +5,7 @@ import {
   isInternalBankCharge,
   matchBankByConnector,
   counterpartyLabel,
+  nameFromDescription,
 } from "../counterparty";
 
 const OWN = "58.241.366/0001-32";
@@ -126,5 +127,40 @@ describe("helpers", () => {
     expect(
       counterpartyLabel({ name: "ACME", document: "11.222.333/0001-44", documentType: "CNPJ", internal: false }),
     ).toBe("ACME • CNPJ 11.222.333/0001-44");
+  });
+});
+
+describe("nameFromDescription", () => {
+  it("extrai o nome de PIX enviado/recebido", () => {
+    expect(nameFromDescription("Pix enviado para ANTONIA BARROS RODRIGUES")).toBe("ANTONIA BARROS RODRIGUES");
+    expect(nameFromDescription("PIX RECEBIDO DE JOAO DA SILVA")).toBe("JOAO DA SILVA");
+  });
+
+  it("extrai o nome de boleto e compra", () => {
+    expect(nameFromDescription("Pagamento Boleto STONE IP S.A.")).toBe("STONE IP S.A.");
+    expect(nameFromDescription("Compra no ASSAI ATACADISTA")).toBe("ASSAI ATACADISTA");
+  });
+
+  it("ignora descrições genéricas ou numéricas", () => {
+    expect(nameFromDescription("PIX")).toBeNull();
+    expect(nameFromDescription("Transferência enviada")).toBeNull();
+    expect(nameFromDescription("Pix enviado para 288.327.521-15")).toBeNull();
+    expect(nameFromDescription("")).toBeNull();
+  });
+
+  it("usa a descrição como último recurso na contraparte", () => {
+    const cp = extractCounterparty({
+      amount: -116,
+      description: "Pix enviado para ANTONIA BARROS RODRIGUES",
+      raw: { paymentData: { receiver: { documentNumber: { type: "CPF", value: "28832752115" } } } },
+    });
+    expect(cp.name).toBe("ANTONIA BARROS RODRIGUES");
+    expect(cp.document).toBe("288.327.521-15");
+  });
+
+  it("rotula contraparte não identificada quando só há documento", () => {
+    expect(
+      counterpartyLabel({ name: null, document: "288.327.521-15", documentType: "CPF", internal: false }),
+    ).toBe("Contraparte não identificada • CPF 288.327.521-15");
   });
 });
