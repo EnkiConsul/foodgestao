@@ -1116,20 +1116,7 @@ export default function ConciliacaoPluggy() {
                           <SelectTrigger className="h-8 min-w-[160px] text-xs">
                             <SelectValue placeholder={isEntrada ? "Cliente…" : "Fornecedor…"} />
                           </SelectTrigger>
-                          <SelectContent className="max-h-[420px]">
-                            {contacts.map((c) => (
-                              <SelectItem key={c.id} value={c.id}>
-                                <span className="flex items-center gap-2">
-                                  <span>{c.name}</span>
-                                  {c.type && (
-                                    <span className="text-[10px] uppercase text-muted-foreground">
-                                      {CONTACT_TYPE_LABELS[c.type] ?? c.type}
-                                    </span>
-                                  )}
-                                </span>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
+                          <ContactSelectContent contacts={contacts} className="max-h-[420px]" />
                         </Select>
                         {rowContact[r.id] && rowContact[r.id] === suggestedContact[r.id] && (
                           <p className="mt-1 text-[10px] text-muted-foreground">identificado pelo extrato</p>
