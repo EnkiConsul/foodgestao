@@ -927,7 +927,7 @@ export default function ConciliacaoPluggy() {
         </CardContent></Card>
       ) : (
         <>
-        {/* Mobile: um card por lançamento */}
+        {/* Mobile e tablet: um card por lançamento */}
         <div className="grid gap-2 sm:grid-cols-2 lg:hidden">
           {filtered.map((r) => {
             const isEntrada = r.amount >= 0;
@@ -984,7 +984,7 @@ export default function ConciliacaoPluggy() {
           })}
         </div>
 
-        {/* Desktop: tabela completa */}
+        {/* Desktop (lg+): tabela completa */}
         <Card className="hidden lg:block"><CardContent className="p-0 overflow-x-auto">
 
           <table className="w-full text-sm">
