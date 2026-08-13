@@ -747,7 +747,7 @@ export default function ConciliacaoPluggy() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="hidden grid-cols-3 gap-2 md:grid">
         <Card><CardContent className="p-3">
           <p className="text-[11px] text-muted-foreground sm:text-xs">Pendentes</p>
           <p className="text-base font-bold text-warning sm:text-lg">{counts.pending}</p>
@@ -771,30 +771,79 @@ export default function ConciliacaoPluggy() {
         </Card>
       )}
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-        {!scope && (
-          <Select value={connectionId} onValueChange={setConnectionId}>
-            <SelectTrigger className="w-full sm:w-[220px]"><SelectValue /></SelectTrigger>
+      <div className="sticky top-14 z-20 -mx-3 space-y-2 border-b bg-background/95 px-3 py-2 backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:px-0 md:py-0 md:backdrop-blur-none">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          {!scope && (
+            <Select value={connectionId} onValueChange={setConnectionId}>
+              <SelectTrigger className="h-10 w-full sm:h-9 sm:w-[220px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as conexões</SelectItem>
+                {connections.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.connector_name ?? "Banco"}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="hidden sm:flex sm:w-[160px]"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todas as conexões</SelectItem>
-              {connections.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.connector_name ?? "Banco"}</SelectItem>
-              ))}
+              <SelectItem value="pending">Pendentes</SelectItem>
+              <SelectItem value="confirmed">Confirmados</SelectItem>
+              <SelectItem value="ignored">Ignorados</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
             </SelectContent>
           </Select>
-        )}
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[160px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="pending">Pendentes</SelectItem>
-            <SelectItem value="confirmed">Confirmados</SelectItem>
-            <SelectItem value="ignored">Ignorados</SelectItem>
-            <SelectItem value="all">Todos</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="relative w-full sm:flex-1 sm:min-w-[180px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar descrição..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+          <div className="relative w-full sm:flex-1 sm:min-w-[180px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar descrição..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-10 pl-10 sm:h-9"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                aria-label="Limpar busca"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile: filtros de status como chips roláveis com contagem */}
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5 sm:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {([
+            { value: "pending", label: "Pendentes", count: counts.pending },
+            { value: "confirmed", label: "Confirmados", count: counts.confirmed },
+            { value: "ignored", label: "Ignorados", count: counts.ignored },
+            { value: "all", label: "Todos", count: counts.pending + counts.confirmed + counts.ignored },
+          ] as const).map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => setStatusFilter(f.value)}
+              className={cn(
+                "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-medium transition-colors",
+                statusFilter === f.value
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-card text-muted-foreground",
+              )}
+            >
+              {f.label}
+              <span
+                className={cn(
+                  "rounded-full px-1.5 text-[10px] tabular-nums",
+                  statusFilter === f.value ? "bg-primary-foreground/20" : "bg-muted",
+                )}
+              >
+                {f.count}
+              </span>
+            </button>
+          ))}
         </div>
       </div>
 
