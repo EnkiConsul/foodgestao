@@ -1182,6 +1182,52 @@ export default function ConciliacaoPluggy() {
         </>
       )}
 
+      <Dialog open={!!contactNamePrompt} onOpenChange={(o) => !o && setContactNamePrompt(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cadastrar contato</DialogTitle>
+            <DialogDescription>
+              O extrato não trouxe o nome da contraparte
+              {contactNamePrompt?.document ? ` (${contactNamePrompt.document})` : ""}. Informe o nome
+              para cadastrar o fornecedor/cliente.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            autoFocus
+            placeholder="Nome do fornecedor/cliente"
+            value={contactNamePrompt?.name ?? ""}
+            onChange={(e) =>
+              setContactNamePrompt((prev) => (prev ? { ...prev, name: e.target.value } : prev))
+            }
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              const p = contactNamePrompt;
+              const row = p ? rows.find((r) => r.id === p.rowId) : null;
+              if (row && (p?.name ?? "").trim().length >= 2) createContactFromStatement(row, p!.name);
+            }}
+          />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setContactNamePrompt(null)}>Cancelar</Button>
+            <Button
+              disabled={
+                (contactNamePrompt?.name ?? "").trim().length < 2 ||
+                creatingContact === contactNamePrompt?.rowId
+              }
+              onClick={() => {
+                const p = contactNamePrompt;
+                const row = p ? rows.find((r) => r.id === p.rowId) : null;
+                if (row && p) createContactFromStatement(row, p.name);
+              }}
+            >
+              {creatingContact === contactNamePrompt?.rowId && (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              )}
+              Cadastrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 }
