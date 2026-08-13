@@ -677,13 +677,14 @@ export default function ConciliacaoPluggy() {
       const userId = auth.user?.id;
       if (!userId || !selectedCompanyId) { toast.error("Sessão expirada"); return; }
       const isEntrada = row.amount >= 0;
+      const contactType = cp.internal ? "fornecedor" : isEntrada ? "cliente" : "fornecedor";
       const { data: created, error } = await supabase
         .from("contacts")
         .insert({
           user_id: userId,
           name,
           document: cp.document,
-          contact_type: (cp.internal ? "fornecedor" : isEntrada ? "cliente" : "fornecedor") as never,
+          contact_type: contactType as never,
           visible_pf: false,
         } as never)
         .select("id")
@@ -699,7 +700,7 @@ export default function ConciliacaoPluggy() {
       } as never);
       setContacts((prev) => [
         ...prev,
-        { id: newId, name, type: null, document: cp.document },
+        { id: newId, name, type: contactType, document: cp.document },
       ].sort((a, b) => a.name.localeCompare(b.name)));
       setRowContact((prev) => ({ ...prev, [row.id]: newId }));
       setContactNamePrompt(null);
