@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useCompanyModules } from "@/hooks/useCompanyModules";
+import { useModulosCatalogo } from "@/hooks/useModulosCatalogo";
 import { MODULES, isModuleUsable, statusLabel, type ModuleDefinition, type ModuleStatus } from "@/lib/modules";
 import { cn } from "@/lib/utils";
 
