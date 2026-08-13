@@ -341,10 +341,7 @@ export default function ConciliacaoPluggy() {
       supabase.rpc("get_accessible_payment_methods", {
         _context: "pj", _company_id: selectedCompanyId,
       }),
-      supabase.from("contacts")
-        .select("id, name, contact_type, document, is_active, contact_companies!inner(company_id)")
-        .eq("contact_companies.company_id", selectedCompanyId)
-        .order("name"),
+      fetchAllCompanyContacts(selectedCompanyId),
       supabase.from("banks").select("id, name, tax_id").eq("is_active", true),
       supabase.from("companies").select("cnpj").eq("id", selectedCompanyId).maybeSingle(),
     ]);
