@@ -122,12 +122,6 @@ interface Connection {
 
 interface AccountOpt { id: string; name: string; }
 interface ContactOpt { id: string; name: string; type: string | null; document: string | null; }
-
-const CONTACT_TYPE_LABELS: Record<string, string> = {
-  cliente: "Cliente",
-  fornecedor: "Fornecedor",
-  ambos: "Ambos",
-};
 interface CategoryOpt {
   id: string;
   name: string;
