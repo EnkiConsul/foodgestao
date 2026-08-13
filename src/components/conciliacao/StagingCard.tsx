@@ -34,7 +34,8 @@ export interface StagingCardRow {
 interface ContactOpt {
   id: string;
   name: string;
-  type?: string | null;
+  type: string | null;
+  document: string | null;
 }
 
 interface StagingCardProps {
