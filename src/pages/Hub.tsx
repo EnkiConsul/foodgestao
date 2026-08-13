@@ -81,6 +81,16 @@ function ModuleCard({ def, status }: { def: ModuleDefinition; status: ModuleStat
 export default function Hub() {
   const { contextType, companies, selectedCompanyId } = useCompanyContext();
   const { getStatus, isLoading } = useCompanyModules();
+  const { data: catalogo } = useModulosCatalogo();
+
+  // Somente módulos ativos e marcados para aparecer no Hub (backoffice).
+  // Enquanto o catálogo não carrega, mantém a lista padrão.
+  const visibleModules = catalogo
+    ? MODULES.filter((def) => {
+        const entry = catalogo.find((c) => c.slug === def.slug);
+        return entry ? entry.show_on_hub : false;
+      })
+    : MODULES;
 
   const contextLabel = contextType === "pj"
     ? companies.find((c) => c.id === selectedCompanyId)?.name ?? "Empresa"
