@@ -19,6 +19,7 @@ import { CategoryTypeBadge } from "@/components/categorias/CategoryTypeBadge";
 import { buildCategoryTree, type Category } from "@/lib/categories/tree";
 import { StagingCard } from "@/components/conciliacao/StagingCard";
 import { suggestPaymentMethodId } from "@/lib/conciliacao/paymentMethodInference";
+import { fetchAllCompanyContacts } from "@/lib/conciliacao/contacts";
 import {
   counterpartyLabel,
   extractCounterparty,
