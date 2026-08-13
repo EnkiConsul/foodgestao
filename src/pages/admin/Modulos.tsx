@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Search, Loader2 } from "lucide-react";
 import { MODULES, statusLabel, type AppModule, type ModuleStatus, MODULE_BY_SLUG } from "@/lib/modules";
+import { ModulosCatalogoCard } from "@/components/admin/ModulosCatalogoCard";
 
 interface CompanyRow { id: string; name: string; trade_name: string | null }
 interface ModuleRow { id: string; company_id: string; module: AppModule; status: ModuleStatus }
