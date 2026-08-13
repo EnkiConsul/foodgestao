@@ -112,7 +112,7 @@ export default function Hub() {
       </div>
 
       <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-3">
-        {MODULES.map((def) => (
+        {visibleModules.map((def) => (
           <ModuleCard
             key={def.slug}
             def={def}
@@ -120,6 +120,9 @@ export default function Hub() {
           />
         ))}
       </div>
+      {visibleModules.length === 0 && (
+        <p className="text-sm text-muted-foreground">Nenhum módulo disponível no momento.</p>
+      )}
     </div>
   );
 }
