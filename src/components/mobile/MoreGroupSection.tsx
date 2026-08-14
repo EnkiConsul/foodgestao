@@ -292,6 +292,12 @@ function IFoodTile({
       )}>
         {item.label}
       </span>
+      {item.badge && (
+        <span className="mt-0.5 block text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+          {item.badge}
+        </span>
+      )}
+
     </button>
   );
 }
