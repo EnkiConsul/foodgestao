@@ -3585,7 +3585,13 @@ export type Database = {
           adicional_percentual: number
           aprendiz: boolean
           aprovacao_status: Database["public"]["Enums"]["dp_aprovacao_status"]
+          assiduidade_criterio: string | null
+          assiduidade_max_atrasos: number | null
+          assiduidade_tolerancia_min: number
           ativo: boolean
+          base_dias_mes: number | null
+          base_horas_mes: number | null
+          base_salarial: number | null
           cargo: string | null
           cargo_id: string | null
           company_id: string
@@ -3619,6 +3625,8 @@ export type Database = {
           optante_adiantamento: boolean
           perfil_acesso: Database["public"]["Enums"]["dp_perfil_acesso"]
           possui_folha_ponto: boolean
+          premio_assiduidade: boolean
+          premio_assiduidade_valor: number | null
           regime: Database["public"]["Enums"]["dp_regime_trabalho"]
           salario_base: number | null
           sexo: string | null
@@ -3630,6 +3638,7 @@ export type Database = {
           vale_transporte: boolean
           vale_transporte_valor_dia: number | null
           valor_hora: number | null
+          valor_hora_manual: boolean
           vinculo_label: string | null
           whatsapp: string | null
         }
@@ -3638,7 +3647,13 @@ export type Database = {
           adicional_percentual?: number
           aprendiz?: boolean
           aprovacao_status?: Database["public"]["Enums"]["dp_aprovacao_status"]
+          assiduidade_criterio?: string | null
+          assiduidade_max_atrasos?: number | null
+          assiduidade_tolerancia_min?: number
           ativo?: boolean
+          base_dias_mes?: number | null
+          base_horas_mes?: number | null
+          base_salarial?: number | null
           cargo?: string | null
           cargo_id?: string | null
           company_id: string
@@ -3672,6 +3687,8 @@ export type Database = {
           optante_adiantamento?: boolean
           perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"]
           possui_folha_ponto?: boolean
+          premio_assiduidade?: boolean
+          premio_assiduidade_valor?: number | null
           regime?: Database["public"]["Enums"]["dp_regime_trabalho"]
           salario_base?: number | null
           sexo?: string | null
@@ -3683,6 +3700,7 @@ export type Database = {
           vale_transporte?: boolean
           vale_transporte_valor_dia?: number | null
           valor_hora?: number | null
+          valor_hora_manual?: boolean
           vinculo_label?: string | null
           whatsapp?: string | null
         }
@@ -3691,7 +3709,13 @@ export type Database = {
           adicional_percentual?: number
           aprendiz?: boolean
           aprovacao_status?: Database["public"]["Enums"]["dp_aprovacao_status"]
+          assiduidade_criterio?: string | null
+          assiduidade_max_atrasos?: number | null
+          assiduidade_tolerancia_min?: number
           ativo?: boolean
+          base_dias_mes?: number | null
+          base_horas_mes?: number | null
+          base_salarial?: number | null
           cargo?: string | null
           cargo_id?: string | null
           company_id?: string
@@ -3725,6 +3749,8 @@ export type Database = {
           optante_adiantamento?: boolean
           perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"]
           possui_folha_ponto?: boolean
+          premio_assiduidade?: boolean
+          premio_assiduidade_valor?: number | null
           regime?: Database["public"]["Enums"]["dp_regime_trabalho"]
           salario_base?: number | null
           sexo?: string | null
@@ -3736,6 +3762,7 @@ export type Database = {
           vale_transporte?: boolean
           vale_transporte_valor_dia?: number | null
           valor_hora?: number | null
+          valor_hora_manual?: boolean
           vinculo_label?: string | null
           whatsapp?: string | null
         }
