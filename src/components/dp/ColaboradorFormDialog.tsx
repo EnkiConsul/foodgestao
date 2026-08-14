@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
+import { ColaboradorJornadaPanel } from "@/components/dp/ColaboradorJornadaPanel";
 import {
   RemuneracaoFields,
   remuneracaoBlank,
@@ -27,8 +29,12 @@ import {
   ajustarFormaPagamento,
   remuneracaoPendente,
   permiteAdiantamento as permiteAdiantamentoRemuneracao,
+  BASE_HORAS_MES_PADRAO,
+  BASE_DIAS_MES_PADRAO,
   type FormaPagamento,
+  type AssiduidadeCriterio,
 } from "@/lib/dp/remuneracao";
+
 
 
 
