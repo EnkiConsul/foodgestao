@@ -3,13 +3,24 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { valorHoraDe, apuracaoParaLancamento, type LinhaApuracao } from "@/lib/dp/apuracao";
+import { apuracaoParaLancamento, type LinhaApuracao } from "@/lib/dp/apuracao";
+import {
+  remuneracaoPendente,
+  valorHoraEfetivo,
+  type FormaPagamento,
+} from "@/lib/dp/remuneracao";
 
 export interface BaseSalarial {
   salarioBase: number | null;
   cargaSemanalHoras: number | null;
   valorHora?: number;
+  formaPagamento: FormaPagamento;
+  dependentes: number;
+  adicionalPercentual: number;
+  /** Motivo do bloqueio quando a remuneração não está cadastrada. */
+  pendencia: string | null;
 }
+
 
 /**
  * Fase 12 — Base salarial dos colaboradores e envio da apuração do ponto
@@ -27,7 +38,9 @@ export function useDpFolhaApuracao(competencia: string) {
       const [colabRes, configRes] = await Promise.all([
         supabase
           .from("dp_colaboradores")
-          .select("id, cargo_id, dp_cargos:cargo_id(salario_base)")
+          .select(
+            "id, cargo_id, forma_pagamento, salario_base, valor_hora, dependentes_irrf, adicional_percentual, dp_cargos:cargo_id(salario_base)",
+          )
           .eq("company_id", selectedCompanyId!)
           .eq("ativo", true),
         supabase
@@ -45,16 +58,25 @@ export function useDpFolhaApuracao(competencia: string) {
       }
 
       const bases = new Map<string, BaseSalarial>();
-      for (const c of colabRes.data ?? []) {
-        const cargo = (c as { dp_cargos?: { salario_base: number | null } | null }).dp_cargos;
-        const salarioBase = cargo?.salario_base ?? null;
+      for (const c of (colabRes.data ?? []) as any[]) {
         const cargaSemanalHoras = cargas.get(c.id) ?? null;
+        const remuneracao = {
+          forma_pagamento: (c.forma_pagamento ?? "mensalista") as FormaPagamento,
+          salario_base: c.salario_base ?? null,
+          valor_hora: c.valor_hora ?? null,
+          salario_cargo: c.dp_cargos?.salario_base ?? null,
+        };
         bases.set(c.id, {
-          salarioBase,
+          salarioBase: remuneracao.salario_base ?? remuneracao.salario_cargo ?? null,
           cargaSemanalHoras,
-          valorHora: valorHoraDe(salarioBase, cargaSemanalHoras),
+          valorHora: valorHoraEfetivo(remuneracao, cargaSemanalHoras),
+          formaPagamento: remuneracao.forma_pagamento,
+          dependentes: Number(c.dependentes_irrf ?? 0),
+          adicionalPercentual: Number(c.adicional_percentual ?? 0),
+          pendencia: remuneracaoPendente(remuneracao),
         });
       }
+
       return bases;
     },
   });
@@ -86,12 +108,22 @@ export function useDpFolhaApuracao(competencia: string) {
     mutationFn: async (linhas: LinhaApuracao[]) => {
       if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
 
+      const bases = basesQuery.data;
       const lancamentos = linhas
-        .map((l) => apuracaoParaLancamento(l))
+        .map((l) => {
+          const base = bases?.get(l.colaborador_id);
+          return apuracaoParaLancamento(l, {
+            dependentes: base?.dependentes ?? 0,
+            adicionalPercentual: base?.adicionalPercentual ?? 0,
+          });
+        })
         .filter((l): l is NonNullable<typeof l> => !!l);
       if (!lancamentos.length) {
-        throw new Error("Nenhum colaborador com salário base cadastrado no cargo.");
+        throw new Error(
+          "Nenhum colaborador com remuneração cadastrada. Informe salário ou valor da hora no cadastro do colaborador.",
+        );
       }
+
 
       let periodoId = periodoQuery.data?.id ?? null;
       let status = periodoQuery.data?.status ?? null;
@@ -144,8 +176,9 @@ export function useDpFolhaApuracao(competencia: string) {
   const semSalario = useMemo(() => {
     const bases = basesQuery.data;
     if (!bases) return 0;
-    return [...bases.values()].filter((b) => !b.valorHora).length;
+    return [...bases.values()].filter((b) => !!b.pendencia).length;
   }, [basesQuery.data]);
+
 
   return {
     bases: basesQuery.data ?? new Map<string, BaseSalarial>(),

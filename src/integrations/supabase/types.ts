@@ -3582,6 +3582,7 @@ export type Database = {
       dp_colaboradores: {
         Row: {
           acesso_portal_ate: string | null
+          adicional_percentual: number
           aprendiz: boolean
           aprovacao_status: Database["public"]["Enums"]["dp_aprovacao_status"]
           ativo: boolean
@@ -3593,6 +3594,7 @@ export type Database = {
           data_admissao: string | null
           data_desligamento: string | null
           data_nascimento: string | null
+          dependentes_irrf: number
           desligado_em: string | null
           desligado_por: string | null
           dp_permissions: Json
@@ -3604,6 +3606,7 @@ export type Database = {
           email_portal: string | null
           endereco: Json | null
           folga_fixa_semana: number | null
+          forma_pagamento: Database["public"]["Enums"]["dp_forma_pagamento"]
           fundamental_concluido: boolean
           id: string
           matricula: string | null
@@ -3617,16 +3620,21 @@ export type Database = {
           perfil_acesso: Database["public"]["Enums"]["dp_perfil_acesso"]
           possui_folha_ponto: boolean
           regime: Database["public"]["Enums"]["dp_regime_trabalho"]
+          salario_base: number | null
           sexo: string | null
           sindicato_id: string | null
           telefone: string | null
           unidade_id: string | null
           updated_at: string
           user_id: string | null
+          vale_transporte: boolean
+          vale_transporte_valor_dia: number | null
+          valor_hora: number | null
           whatsapp: string | null
         }
         Insert: {
           acesso_portal_ate?: string | null
+          adicional_percentual?: number
           aprendiz?: boolean
           aprovacao_status?: Database["public"]["Enums"]["dp_aprovacao_status"]
           ativo?: boolean
@@ -3638,6 +3646,7 @@ export type Database = {
           data_admissao?: string | null
           data_desligamento?: string | null
           data_nascimento?: string | null
+          dependentes_irrf?: number
           desligado_em?: string | null
           desligado_por?: string | null
           dp_permissions?: Json
@@ -3649,6 +3658,7 @@ export type Database = {
           email_portal?: string | null
           endereco?: Json | null
           folga_fixa_semana?: number | null
+          forma_pagamento?: Database["public"]["Enums"]["dp_forma_pagamento"]
           fundamental_concluido?: boolean
           id?: string
           matricula?: string | null
@@ -3662,16 +3672,21 @@ export type Database = {
           perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"]
           possui_folha_ponto?: boolean
           regime?: Database["public"]["Enums"]["dp_regime_trabalho"]
+          salario_base?: number | null
           sexo?: string | null
           sindicato_id?: string | null
           telefone?: string | null
           unidade_id?: string | null
           updated_at?: string
           user_id?: string | null
+          vale_transporte?: boolean
+          vale_transporte_valor_dia?: number | null
+          valor_hora?: number | null
           whatsapp?: string | null
         }
         Update: {
           acesso_portal_ate?: string | null
+          adicional_percentual?: number
           aprendiz?: boolean
           aprovacao_status?: Database["public"]["Enums"]["dp_aprovacao_status"]
           ativo?: boolean
@@ -3683,6 +3698,7 @@ export type Database = {
           data_admissao?: string | null
           data_desligamento?: string | null
           data_nascimento?: string | null
+          dependentes_irrf?: number
           desligado_em?: string | null
           desligado_por?: string | null
           dp_permissions?: Json
@@ -3694,6 +3710,7 @@ export type Database = {
           email_portal?: string | null
           endereco?: Json | null
           folga_fixa_semana?: number | null
+          forma_pagamento?: Database["public"]["Enums"]["dp_forma_pagamento"]
           fundamental_concluido?: boolean
           id?: string
           matricula?: string | null
@@ -3707,12 +3724,16 @@ export type Database = {
           perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"]
           possui_folha_ponto?: boolean
           regime?: Database["public"]["Enums"]["dp_regime_trabalho"]
+          salario_base?: number | null
           sexo?: string | null
           sindicato_id?: string | null
           telefone?: string | null
           unidade_id?: string | null
           updated_at?: string
           user_id?: string | null
+          vale_transporte?: boolean
+          vale_transporte_valor_dia?: number | null
+          valor_hora?: number | null
           whatsapp?: string | null
         }
         Relationships: [
@@ -11378,6 +11399,15 @@ export type Database = {
         Args: { _periodo_id: string }
         Returns: number
       }
+      dp_folha_pendencias_remuneracao: {
+        Args: { _company_id: string }
+        Returns: {
+          colaborador_id: string
+          forma_pagamento: Database["public"]["Enums"]["dp_forma_pagamento"]
+          motivo: string
+          nome: string
+        }[]
+      }
       dp_folha_reabrir_periodo: {
         Args: { _periodo_id: string }
         Returns: undefined
@@ -12817,6 +12847,7 @@ export type Database = {
         | "vale_alimentacao"
         | "vale_transporte"
         | "rescisao"
+      dp_forma_pagamento: "mensalista" | "horista" | "diarista"
       dp_mensagem_canal: "whatsapp" | "email" | "sms"
       dp_motivo_desligamento:
         | "pedido_demissao"
@@ -13328,6 +13359,7 @@ export const Constants = {
         "vale_transporte",
         "rescisao",
       ],
+      dp_forma_pagamento: ["mensalista", "horista", "diarista"],
       dp_mensagem_canal: ["whatsapp", "email", "sms"],
       dp_motivo_desligamento: [
         "pedido_demissao",

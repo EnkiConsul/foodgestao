@@ -8,11 +8,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useUpsertDpColaborador, type DpColaborador } from "@/hooks/useDpColaboradores";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
+import { useDpBeneficios } from "@/hooks/useDpBeneficios";
 import { Textarea } from "@/components/ui/textarea";
 import { maskCpf, isValidCpf } from "@/lib/cpf";
 import { MOTIVO_DESLIGAMENTO_OPTIONS, ELEGIBILIDADE_OPTIONS } from "@/lib/dp/desligamento";
 import type { Database } from "@/integrations/supabase/types";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
+import {
+  RemuneracaoFields,
+  remuneracaoBlank,
+  numeroBR,
+  type RemuneracaoFormState,
+} from "@/components/dp/RemuneracaoFields";
+import {
+  formaPagamentoPadrao,
+  remuneracaoPendente,
+  permiteAdiantamento as permiteAdiantamentoRemuneracao,
+  type FormaPagamento,
+} from "@/lib/dp/remuneracao";
+
+
 
 
 type Regime = Database["public"]["Enums"]["dp_regime_trabalho"];
@@ -97,7 +112,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const upsert = useUpsertDpColaborador();
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
+  const { beneficios, atribuicoes, saveAtribuicao } = useDpBeneficios();
   const [form, setForm] = useState(blank);
+
 
   const isEdit = !!colaborador?.id;
   const isDesligado = isEdit && !!colaborador?.data_desligamento;
@@ -105,10 +122,32 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const policy = contratoPolicy(VINCULO_TO_REGIME[form.tipo_vinculo]);
 
 
+  const [rem, setRem] = useState<RemuneracaoFormState>(remuneracaoBlank);
+  const patchRem = (patch: Partial<RemuneracaoFormState>) => setRem((r) => ({ ...r, ...patch }));
+
   useEffect(() => {
     if (!open) return;
     const c = (colaborador ?? {}) as any;
+    const regime = c.regime ? String(c.regime) : "clt";
+    setRem({
+      ...remuneracaoBlank,
+      forma_pagamento: (c.forma_pagamento ?? formaPagamentoPadrao(regime)) as FormaPagamento,
+      salario_base: c.salario_base != null ? String(c.salario_base).replace(".", ",") : "",
+      valor_hora: c.valor_hora != null ? String(c.valor_hora).replace(".", ",") : "",
+      dependentes_irrf: String(c.dependentes_irrf ?? 0),
+      adicional_percentual: String(c.adicional_percentual ?? 0).replace(".", ","),
+      vale_transporte: !!c.vale_transporte,
+      vale_transporte_valor_dia:
+        c.vale_transporte_valor_dia != null ? String(c.vale_transporte_valor_dia).replace(".", ",") : "",
+      beneficios: Object.fromEntries(
+        (atribuicoes ?? [])
+          .filter((a: any) => a.colaborador_id === c.id && a.ativo)
+          .map((a: any) => [a.beneficio_id, true]),
+      ),
+
+    });
     setForm({
+
       nome: c.nome ?? "",
       cpf: c.cpf ? maskCpf(c.cpf) : "",
       matricula: c.matricula ?? "",
@@ -130,19 +169,28 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       possui_folha_ponto: c.possui_folha_ponto ?? false,
       optante_adiantamento: c.optante_adiantamento ?? false,
     });
-  }, [open, colaborador]);
+  }, [open, colaborador, atribuicoes]);
 
   const unidadeSelecionada = (unidades.data ?? []).find((u) => u.id === form.unidade_id) as any;
+  const cargoSelecionado = (cargos.data ?? []).find((c) => c.id === form.cargo_id) as any;
+  const salarioCargo = cargoSelecionado?.salario_base ?? null;
+
+  // Adiantamento depende do contrato e da forma de pagamento (intermitente não tem).
+  const permiteAdiantamento =
+    policy.permiteAdiantamento &&
+    permiteAdiantamentoRemuneracao(VINCULO_TO_REGIME[form.tipo_vinculo], rem.forma_pagamento);
 
   useEffect(() => {
-    if (!policy.permiteAdiantamento) {
+    if (!permiteAdiantamento) {
       setForm((f) => (f.optante_adiantamento ? { ...f, optante_adiantamento: false } : f));
       return;
     }
     if (unidadeSelecionada?.tem_adiantamento && !isEdit) {
       setForm((f) => (f.optante_adiantamento ? f : { ...f, optante_adiantamento: true }));
     }
-  }, [unidadeSelecionada?.tem_adiantamento, isEdit, policy.permiteAdiantamento]);
+  }, [unidadeSelecionada?.tem_adiantamento, isEdit, permiteAdiantamento]);
+
+
 
   const submit = async () => {
     if (!form.nome.trim()) { toast.error("Nome é obrigatório"); return; }
@@ -201,8 +249,30 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
     const cargoNome = (cargos.data ?? []).find((c) => c.id === form.cargo_id)?.nome ?? null;
 
+    // Remuneração é pré-requisito da folha: bloqueia o cadastro sem valor.
+    const salarioNum = numeroBR(rem.salario_base);
+    const valorHoraNum = numeroBR(rem.valor_hora);
+    const pendencia = remuneracaoPendente({
+      forma_pagamento: rem.forma_pagamento,
+      salario_base: salarioNum || null,
+      valor_hora: valorHoraNum || null,
+      salario_cargo: salarioCargo,
+    });
+    if (pendencia) { toast.error(pendencia); return; }
+
+    const adicionalNum = numeroBR(rem.adicional_percentual);
+    if (adicionalNum < 0 || adicionalNum > 100) {
+      toast.error("Adicional deve estar entre 0% e 100%");
+      return;
+    }
+    const vtDiaNum = numeroBR(rem.vale_transporte_valor_dia);
+    if (rem.vale_transporte && vtDiaNum <= 0) {
+      toast.error("Informe o valor diário do vale-transporte");
+      return;
+    }
+
     try {
-      await upsert.mutateAsync({
+      const colaboradorId = await upsert.mutateAsync({
         id: colaborador?.id,
         nome: form.nome.trim(),
         cpf: form.cpf.replace(/\D/g, "") || null,
@@ -223,7 +293,15 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             : null,
 
         possui_folha_ponto: form.possui_folha_ponto,
-        optante_adiantamento: policy.permiteAdiantamento ? form.optante_adiantamento : false,
+        optante_adiantamento: permiteAdiantamento ? form.optante_adiantamento : false,
+
+        forma_pagamento: rem.forma_pagamento,
+        salario_base: rem.forma_pagamento === "horista" ? null : salarioNum || null,
+        valor_hora: rem.forma_pagamento === "horista" ? valorHoraNum || null : null,
+        dependentes_irrf: Math.max(0, Math.trunc(numeroBR(rem.dependentes_irrf))),
+        adicional_percentual: adicionalNum,
+        vale_transporte: rem.vale_transporte,
+        vale_transporte_valor_dia: rem.vale_transporte ? vtDiaNum : null,
         ...(isDesligado
           ? {
               data_desligamento: form.data_desligamento,
@@ -235,12 +313,36 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             }
           : {}),
       } as any);
+
+      // Sincroniza a ficha de benefícios marcada no cadastro.
+      const hoje = new Date().toISOString().slice(0, 10);
+      for (const b of beneficios) {
+        const marcado = !!rem.beneficios[b.id];
+        const atual = (atribuicoes ?? []).find(
+          (a: any) => a.colaborador_id === colaboradorId && a.beneficio_id === b.id,
+        ) as any;
+        if (!marcado && !atual) continue;
+        if (!!atual?.ativo === marcado) continue;
+        await saveAtribuicao.mutateAsync({
+          id: atual?.id,
+          colaborador_id: colaboradorId,
+          beneficio_id: b.id,
+          valor: Number(atual?.valor ?? b.valor_padrao ?? 0),
+          desconto_valor: Number(atual?.desconto_valor ?? 0),
+          data_inicio: atual?.data_inicio ?? hoje,
+          data_fim: atual?.data_fim ?? null,
+          ativo: marcado,
+          observacao: atual?.observacao ?? null,
+        });
+      }
+
       toast.success(isEdit ? "Colaborador atualizado" : "Colaborador cadastrado");
       onOpenChange(false);
     } catch (e) {
       toast.error("Erro ao salvar", { description: e instanceof Error ? e.message : String(e) });
     }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -399,6 +501,14 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           </div>
 
 
+          {/* Remuneração e benefícios — base da folha de pagamento */}
+          <RemuneracaoFields
+            value={rem}
+            onChange={patchRem}
+            salarioCargo={salarioCargo}
+            cargoInsalubre={!!cargoSelecionado?.insalubridade || !!cargoSelecionado?.periculosidade}
+            beneficios={beneficios}
+          />
 
 
           {/* Folha de ponto (condicional) */}
@@ -414,7 +524,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           )}
 
           {/* Adiantamento — apenas para contratos com salário mensal em folha */}
-          {policy.permiteAdiantamento ? (
+          {permiteAdiantamento ? (
             <div className="col-span-2 flex items-center gap-3 rounded-xl border border-border p-3">
               <Switch
                 id="optante_adiantamento"

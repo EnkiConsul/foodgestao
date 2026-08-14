@@ -40,11 +40,17 @@ export function useUpsertDpColaborador() {
       if (input.id) {
         const { error } = await supabase.from("dp_colaboradores").update(payload).eq("id", input.id);
         if (error) throw error;
-      } else {
-        const { error } = await supabase.from("dp_colaboradores").insert(payload);
-        if (error) throw error;
+        return input.id;
       }
+      const { data, error } = await supabase
+        .from("dp_colaboradores")
+        .insert(payload)
+        .select("id")
+        .single();
+      if (error) throw error;
+      return data.id as string;
     },
+
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_colaboradores"] }),
   });
 }

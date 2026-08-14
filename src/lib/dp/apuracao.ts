@@ -220,6 +220,8 @@ export interface LancamentoFolha {
   descontos: {
     faltas: number;
     dsr: number;
+    dependentes?: number;
+    extras?: { descricao: string; natureza: "provento" | "desconto"; valor: number; tributavel?: boolean }[];
     proventos: { normais: number; extras50: number; extras100: number; noturno: number };
     horas: {
       normais: number;
@@ -236,11 +238,23 @@ export interface LancamentoFolha {
 
 const round2 = (v: number) => Math.round(v * 100) / 100;
 
-/** Converte a apuração monetizada em lançamento de folha (rascunho). */
-export function apuracaoParaLancamento(linha: LinhaApuracao): LancamentoFolha | null {
+/**
+ * Converte a apuração monetizada em lançamento de folha (rascunho).
+ *
+ * `opts` traz os dados de remuneração cadastrados no colaborador:
+ * dependentes de IRRF e adicional de insalubridade/periculosidade.
+ */
+export function apuracaoParaLancamento(
+  linha: LinhaApuracao,
+  opts?: { dependentes?: number | null; adicionalPercentual?: number | null },
+): LancamentoFolha | null {
   const v = linha.rubricas.valores;
   if (!v) return null;
-  const bruto = round2(v.normais + v.extras50 + v.extras100 + v.noturno);
+
+  const proventos = round2(v.normais + v.extras50 + v.extras100 + v.noturno);
+  const perc = Math.min(100, Math.max(0, opts?.adicionalPercentual ?? 0));
+  const adicional = perc > 0 ? round2(proventos * (perc / 100)) : 0;
+  const bruto = round2(proventos + adicional);
   const descFaltas = round2(v.descontoFaltas);
   const descDsr = round2(v.descontoDsr);
   return {
@@ -250,6 +264,12 @@ export function apuracaoParaLancamento(linha: LinhaApuracao): LancamentoFolha | 
     descontos: {
       faltas: descFaltas,
       dsr: descDsr,
+      dependentes: Math.max(0, Math.trunc(opts?.dependentes ?? 0)),
+      extras:
+        adicional > 0
+          ? [{ descricao: "Adicional insalubridade/periculosidade", natureza: "provento" as const, valor: adicional, tributavel: true }]
+          : [],
+
       proventos: {
         normais: round2(v.normais),
         extras50: round2(v.extras50),
