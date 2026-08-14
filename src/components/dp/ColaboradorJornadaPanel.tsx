@@ -400,67 +400,145 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
       </div>
 
       <section className="space-y-2">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-sm font-semibold">Dias da semana</h3>
-          <span className="text-xs tabular-nums text-muted-foreground">{formatarHoras(carga)}/semana</span>
+          <div className="flex items-center gap-2">
+            <Button type="button" size="sm" variant="outline" className="h-8 text-xs" onClick={() => aplicarEscala("6x1")}>
+              6x1
+            </Button>
+            <Button type="button" size="sm" variant="outline" className="h-8 text-xs" onClick={() => aplicarEscala("5x2")}>
+              5x2
+            </Button>
+            <span className="text-xs tabular-nums text-muted-foreground">{formatarHoras(carga)}/semana</span>
+          </div>
         </div>
         <ul className="divide-y rounded-lg border">
           {dias.map((dia) => {
-            const turno = turnoDoDia(dia, config.turno_padrao_id, turnosResolvidos);
+            const override = overrides[dia.dow];
+            const turno = turnoDoDia(
+              override ? { ...dia, turno_id: `${VIRTUAL_PREFIX}${dia.dow}` } : dia,
+              config.turno_padrao_id,
+              turnosEfetivos,
+            );
             return (
-              <li key={dia.dow} className="flex flex-wrap items-center gap-3 p-3">
-                <Switch
-                  checked={dia.trabalha}
-                  onCheckedChange={() => alternarDia(dia.dow)}
-                  aria-label={`Trabalha ${DOW_LABEL[dia.dow]}`}
-                />
-                <span className="w-24 shrink-0 text-sm font-medium">{DOW_LABEL[dia.dow]}</span>
-                {dia.trabalha ? (
-                  <div className="ml-auto flex min-w-[11rem] flex-1 items-center gap-2">
-                    <Select
-                      value={dia.turno_id ?? "padrao"}
-                      onValueChange={(v) => definirTurnoDia(dia.dow, v)}
-                    >
-                      <SelectTrigger className="h-9 text-xs" aria-label={`Turno de ${DOW_LABEL[dia.dow]}`}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="padrao">Turno padrão</SelectItem>
-                        {turnosResolvidos.map((t) => (
-                          <SelectItem key={t.id} value={t.id}>{t.nome} — {formatarFaixaTurno(t)}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      type="button" size="icon" variant="ghost" className="h-9 w-9 shrink-0"
-                      aria-label="Criar novo turno" onClick={() => setNovoTurnoOpen(true)}
-                    >
-                      <Plus className="h-4 w-4" aria-hidden="true" />
-                    </Button>
-                    <span className="w-24 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
-                      {turno ? formatarFaixaTurno(turno) : "sem turno"}
-                    </span>
+              <li key={dia.dow} className="space-y-2 p-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <Switch
+                    checked={dia.trabalha}
+                    onCheckedChange={() => alternarDia(dia.dow)}
+                    aria-label={`Trabalha ${DOW_LABEL[dia.dow]}`}
+                  />
+                  <span className="w-24 shrink-0 text-sm font-medium">{DOW_LABEL[dia.dow]}</span>
+                  {dia.trabalha ? (
+                    <div className="ml-auto flex min-w-[11rem] flex-1 items-center gap-2">
+                      <Select
+                        value={dia.turno_id ?? "padrao"}
+                        onValueChange={(v) => definirTurnoDia(dia.dow, v)}
+                        disabled={!!override}
+                      >
+                        <SelectTrigger className="h-9 text-xs" aria-label={`Turno de ${DOW_LABEL[dia.dow]}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="padrao">Turno padrão</SelectItem>
+                          {turnosResolvidos.map((t) => (
+                            <SelectItem key={t.id} value={t.id}>{t.nome} — {formatarFaixaTurno(t)}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        type="button" size="icon" variant="ghost" className="h-9 w-9 shrink-0"
+                        aria-label="Criar novo turno" onClick={() => setNovoTurnoOpen(true)}
+                      >
+                        <Plus className="h-4 w-4" aria-hidden="true" />
+                      </Button>
+                      <span className="w-24 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+                        {turno ? formatarFaixaTurno(turno) : "sem turno"}
+                      </span>
+                    </div>
+                  ) : (
+                    <Badge variant="secondary" className="ml-auto">Folga</Badge>
+                  )}
+                </div>
+
+                {dia.trabalha && (
+                  <div className="space-y-2 pl-[3.25rem]">
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Switch
+                        checked={!!override}
+                        onCheckedChange={(v) => alternarHorarioProprio(dia.dow, v)}
+                        aria-label={`Horário diferente em ${DOW_LABEL[dia.dow]}`}
+                      />
+                      Usar horário diferente neste dia
+                    </label>
+                    {override && (
+                      <div className="grid gap-2 sm:grid-cols-3">
+                        <div className="space-y-1">
+                          <Label className="text-[11px]" htmlFor={`h-ent-${dia.dow}`}>Entrada</Label>
+                          <Input
+                            id={`h-ent-${dia.dow}`} type="time" className="h-9"
+                            value={override.entrada}
+                            onChange={(e) => definirHorarioDia(dia.dow, { entrada: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[11px]" htmlFor={`h-sai-${dia.dow}`}>Saída</Label>
+                          <Input
+                            id={`h-sai-${dia.dow}`} type="time" className="h-9"
+                            value={override.saida}
+                            onChange={(e) => definirHorarioDia(dia.dow, { saida: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[11px]" htmlFor={`h-int-${dia.dow}`}>Intervalo (min)</Label>
+                          <Input
+                            id={`h-int-${dia.dow}`} type="number" min={0} inputMode="numeric" className="h-9"
+                            value={override.intervalo_minutos}
+                            onChange={(e) => definirHorarioDia(dia.dow, { intervalo_minutos: Number(e.target.value || 0) })}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <Badge variant="secondary" className="ml-auto">Folga</Badge>
                 )}
               </li>
             );
           })}
         </ul>
+        {Object.keys(overrides).length > 0 && (
+          <p className="flex items-start gap-2 text-xs text-muted-foreground">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            Ao salvar, cada horário diferente vira um turno reutilizável (ou reaproveita um turno igual já cadastrado).
+          </p>
+        )}
       </section>
 
-      {policy.exigeFolgaSemanal && (
-        <label className="flex items-start gap-3 rounded-lg border p-3">
-          <Switch checked={folgaVariavel} onCheckedChange={setFolgaVariavel} aria-label="Folga variável" />
-          <span className="text-sm">
-            Folga variável conforme escala
-            <span className="block text-xs text-muted-foreground">
-              Os dias de folga mudam a cada semana e são definidos na escala do mês.
-            </span>
-          </span>
-        </label>
+      {policy.folgaSemanal !== "nao_se_aplica" && (
+        <section className="space-y-2 rounded-lg border p-3">
+          <Label htmlFor="ct-folga">{policy.folgaLabel}</Label>
+          <Select
+            value={folgaVariavel ? "variavel" : folgaFixaDow === null ? "nenhuma" : String(folgaFixaDow)}
+            onValueChange={(v) => {
+              if (v === "variavel") { setFolgaVariavel(true); setFolgaFixaDow(null); return; }
+              setFolgaVariavel(false);
+              definirFolgaFixa(v === "nenhuma" ? null : Number(v));
+            }}
+          >
+            <SelectTrigger id="ct-folga" className="h-10"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="nenhuma">
+                {policy.folgaSemanal === "obrigatoria" ? "Sem folga fixa definida" : "Sem dia definido"}
+              </SelectItem>
+              <SelectItem value="variavel">Variável conforme escala</SelectItem>
+              {[0, 1, 2, 3, 4, 5, 6].map((dow) => (
+                <SelectItem key={dow} value={String(dow)}>{DOW_LABEL[dow]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {policy.folgaHint && <p className="text-xs text-muted-foreground">{policy.folgaHint}</p>}
+        </section>
       )}
+
 
       {validacoes.length > 0 && (
         <ul className="space-y-1.5">
