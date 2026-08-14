@@ -41,7 +41,7 @@ export function ModuloEmDesenvolvimentoGate({
 
   return (
     <ModuloEmDesenvolvimentoScreen
-      titulo={titulo ?? TITULOS[module] ?? "este recurso"}
+      titulo={titulo ?? (module ? TITULOS[module] : undefined) ?? "este recurso"}
       voltarPara={surface === "portal" ? "/dp/meu" : "/dp"}
       voltarLabel={surface === "portal" ? "Voltar ao início" : "Voltar ao DP 360°"}
     />
