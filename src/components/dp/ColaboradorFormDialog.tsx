@@ -448,8 +448,18 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         });
       }
 
-      toast.success(isEdit ? "Colaborador atualizado" : "Colaborador cadastrado");
-      onOpenChange(false);
+      if (isEdit || criadoId) {
+        toast.success("Colaborador atualizado");
+        onOpenChange(false);
+        return;
+      }
+
+      // Cadastro novo: o registro passa a existir, então a jornada já pode ser
+      // gravada sem sair da tela — levamos o administrador para a aba de turno.
+      setCriadoId(colaboradorId);
+      setTab("jornada");
+      toast.success("Colaborador cadastrado — defina o turno e a jornada");
+
     } catch (e) {
       toast.error("Erro ao salvar", { description: e instanceof Error ? e.message : String(e) });
     }
