@@ -45,14 +45,16 @@ export function TurnoForm({
 }: TurnoFormProps) {
   const [form, setForm] = useState<DpTurnoForm>(initial ?? TURNO_FORM_DEFAULT);
   const [apelidoAberto, setApelidoAberto] = useState(false);
-  const [cienciaAberta, setCienciaAberta] = useState(false);
+  const [ciente, setCiente] = useState(false);
+  const [justificativa, setJustificativa] = useState("");
 
   useEffect(() => {
     if (open) {
       const base = initial ?? TURNO_FORM_DEFAULT;
       setForm(base);
       setApelidoAberto(!!base.nome?.trim());
-      setCienciaAberta(false);
+      setCiente(false);
+      setJustificativa("");
     }
   }, [open, initial]);
 
@@ -77,19 +79,18 @@ export function TurnoForm({
 
   const construir = (): DpTurnoForm => ({ ...form, nome: nomeFinal, categoria });
 
+  // A ciência é confirmada dentro do próprio formulário: modais empilhados
+  // (turno dentro do cadastro do colaborador) impediam o salvamento.
+  const bloqueadoPorCiencia = !!alertaIntervalo && !ciente;
+
   const submit = () => {
-    if (turnoTemErro(validacoes)) return;
-    if (alertaIntervalo) {
-      setCienciaAberta(true);
-      return;
-    }
-    onSubmit({ form: construir() });
+    if (turnoTemErro(validacoes) || bloqueadoPorCiencia) return;
+    onSubmit({
+      form: construir(),
+      ciencia: alertaIntervalo ? { confirmada: true, justificativa: justificativa.trim() || null } : null,
+    });
   };
 
-  const confirmarCiencia = (justificativa: string) => {
-    setCienciaAberta(false);
-    onSubmit({ form: construir(), ciencia: { confirmada: true, justificativa } });
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
