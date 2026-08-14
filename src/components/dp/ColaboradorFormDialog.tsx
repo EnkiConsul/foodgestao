@@ -41,6 +41,16 @@ const VINCULO_TO_REGIME: Record<string, Regime> = {
   Temporario: "temporario",
 };
 
+// Mapa reverso: o banco guarda apenas `regime`, então na edição resolvemos o
+// rótulo canônico do vínculo a partir dele (Sócio/PJ/Autônomo compartilham `pj`).
+const REGIME_TO_VINCULO: Record<string, string> = {
+  clt: "CLT",
+  intermitente: "Intermitente",
+  estagio: "Estagiario",
+  temporario: "Temporario",
+  pj: "PJ",
+  mei: "PJ",
+};
 
 const DIAS_SEMANA = [
   { value: "none", label: "Nenhuma" },
@@ -113,7 +123,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       elegivel_recontratacao: c.elegivel_recontratacao ?? NONE_DESLIG,
       observacao_desligamento: c.observacao_desligamento ?? "",
       
-      tipo_vinculo: c.tipo_vinculo ?? (c.regime ? String(c.regime).toUpperCase() : "CLT"),
+      tipo_vinculo: c.regime ? REGIME_TO_VINCULO[String(c.regime)] ?? "CLT" : "CLT",
       folga_fixa_semana: c.folga_fixa_semana != null ? String(c.folga_fixa_semana) : "none",
       perfil_acesso: c.perfil_acesso ?? "colaborador",
       ativo: c.ativo ?? true,
@@ -125,10 +135,14 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const unidadeSelecionada = (unidades.data ?? []).find((u) => u.id === form.unidade_id) as any;
 
   useEffect(() => {
+    if (!policy.permiteAdiantamento) {
+      setForm((f) => (f.optante_adiantamento ? { ...f, optante_adiantamento: false } : f));
+      return;
+    }
     if (unidadeSelecionada?.tem_adiantamento && !isEdit) {
       setForm((f) => (f.optante_adiantamento ? f : { ...f, optante_adiantamento: true }));
     }
-  }, [unidadeSelecionada?.tem_adiantamento, isEdit]);
+  }, [unidadeSelecionada?.tem_adiantamento, isEdit, policy.permiteAdiantamento]);
 
   const submit = async () => {
     if (!form.nome.trim()) { toast.error("Nome é obrigatório"); return; }
@@ -209,7 +223,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             : null,
 
         possui_folha_ponto: form.possui_folha_ponto,
-        optante_adiantamento: form.optante_adiantamento,
+        optante_adiantamento: policy.permiteAdiantamento ? form.optante_adiantamento : false,
         ...(isDesligado
           ? {
               data_desligamento: form.data_desligamento,
@@ -399,20 +413,27 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             </div>
           )}
 
-          {/* Adiantamento */}
-          <div className="col-span-2 flex items-center gap-3 rounded-xl border border-border p-3">
-            <Switch
-              id="optante_adiantamento"
-              checked={form.optante_adiantamento}
-              onCheckedChange={(v) => setForm({ ...form, optante_adiantamento: v })}
-            />
-            <Label htmlFor="optante_adiantamento" className="cursor-pointer">Opta por Adiantamento Salarial</Label>
-            {unidadeSelecionada?.tem_adiantamento && unidadeSelecionada?.dia_adiantamento && (
-              <span className="text-xs text-muted-foreground ml-auto">
-                Dia do adiantamento: {unidadeSelecionada.dia_adiantamento}
-              </span>
-            )}
-          </div>
+          {/* Adiantamento — apenas para contratos com salário mensal em folha */}
+          {policy.permiteAdiantamento ? (
+            <div className="col-span-2 flex items-center gap-3 rounded-xl border border-border p-3">
+              <Switch
+                id="optante_adiantamento"
+                checked={form.optante_adiantamento}
+                onCheckedChange={(v) => setForm({ ...form, optante_adiantamento: v })}
+              />
+              <Label htmlFor="optante_adiantamento" className="cursor-pointer">Opta por Adiantamento Salarial</Label>
+              {unidadeSelecionada?.tem_adiantamento && unidadeSelecionada?.dia_adiantamento && (
+                <span className="text-xs text-muted-foreground ml-auto">
+                  Dia do adiantamento: {unidadeSelecionada.dia_adiantamento}
+                </span>
+              )}
+            </div>
+          ) : (
+            <p className="col-span-2 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+              <strong className="text-foreground">Adiantamento salarial não se aplica.</strong>{" "}
+              {policy.adiantamentoHint}
+            </p>
+          )}
 
           {/* Desligamento (editável quando o colaborador está desligado) */}
           {isDesligado && (

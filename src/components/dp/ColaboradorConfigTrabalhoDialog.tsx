@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { CalendarClock, CalendarOff, Info, AlertTriangle, Save, Trash2 } from "lucide-react";
+import { CalendarClock, CalendarOff, Info, AlertTriangle, Save, Trash2, Plus, Users } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
@@ -12,7 +12,9 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useDpTurnos } from "@/hooks/useDpTurnos";
+import { useDpTurnos, TURNO_FORM_DEFAULT, type DpTurnoForm } from "@/hooks/useDpTurnos";
+import { TurnoForm } from "@/components/dp/TurnoForm";
+import { CopiarConfigColaboradorDialog, type ConfigCopiada } from "@/components/dp/CopiarConfigColaboradorDialog";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
@@ -50,7 +52,10 @@ export function ColaboradorConfigTrabalhoDialog({ colaborador, open, onOpenChang
   const [inicio, setInicio] = useState(hoje());
   const [obs, setObs] = useState("");
 
-  const { turnos: turnosUnidade } = useDpTurnos(unidadeId === "none" ? null : unidadeId);
+  const [novoTurnoOpen, setNovoTurnoOpen] = useState(false);
+  const [copiarOpen, setCopiarOpen] = useState(false);
+
+  const { turnos: turnosUnidade, criar: criarTurno } = useDpTurnos(unidadeId === "none" ? null : unidadeId);
   const turnosAtivos = useMemo(() => turnosUnidade.filter((t) => t.ativo), [turnosUnidade]);
 
   const turnosResolvidos: TurnoResolvido[] = useMemo(
@@ -107,6 +112,25 @@ export function ColaboradorConfigTrabalhoDialog({ colaborador, open, onOpenChang
   const definirTurnoDia = (dow: number, turnoId: string) =>
     setDias((prev) => prev.map((d) => (d.dow === dow ? { ...d, turno_id: turnoId === "padrao" ? null : turnoId } : d)));
 
+  /** Cria o turno já dentro do cadastro do colaborador e o seleciona. */
+  const onCriarTurno = async (form: DpTurnoForm) => {
+    try {
+      const criado = await criarTurno.mutateAsync(form);
+      if (criado?.id) setTurnoPadraoId(criado.id);
+      setNovoTurnoOpen(false);
+      toast.success("Turno criado e selecionado");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível criar o turno");
+    }
+  };
+
+  const onCopiarConfig = (c: ConfigCopiada) => {
+    setTurnoPadraoId(c.turno_padrao_id ?? "none");
+    setFolgaVariavel(c.folga_variavel);
+    setDias(normalizarDias(c.dias));
+    toast.success("Configuração copiada — revise e salve");
+  };
+
   const onSalvar = async () => {
     if (bloqueado) { toast.error("Corrija os pontos indicados antes de salvar."); return; }
     try {
@@ -139,6 +163,13 @@ export function ColaboradorConfigTrabalhoDialog({ colaborador, open, onOpenChang
         </DialogHeader>
 
         <div className="flex-1 space-y-5 overflow-y-auto p-4">
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => setCopiarOpen(true)}>
+              <Users className="h-4 w-4" aria-hidden="true" />
+              Copiar de outro colaborador
+            </Button>
+          </div>
+
           {policy.jornadaHint && (
             <p className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground">
               <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
@@ -165,19 +196,27 @@ export function ColaboradorConfigTrabalhoDialog({ colaborador, open, onOpenChang
 
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="ct-turno">Turno padrão</Label>
-              <Select value={turnoPadraoId} onValueChange={setTurnoPadraoId}>
-                <SelectTrigger id="ct-turno">
-                  <SelectValue placeholder={turnosResolvidos.length ? "Selecione" : "Nenhum turno cadastrado"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Definir turno dia a dia</SelectItem>
-                  {turnosResolvidos.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>{t.nome} — {formatarFaixaTurno(t)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={turnoPadraoId} onValueChange={setTurnoPadraoId}>
+                  <SelectTrigger id="ct-turno" className="flex-1">
+                    <SelectValue placeholder={turnosResolvidos.length ? "Selecione" : "Crie o primeiro turno"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Definir turno dia a dia</SelectItem>
+                    {turnosResolvidos.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>{t.nome} — {formatarFaixaTurno(t)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button type="button" variant="outline" className="shrink-0 gap-1.5" onClick={() => setNovoTurnoOpen(true)}>
+                  <Plus className="h-4 w-4" aria-hidden="true" />
+                  Novo turno
+                </Button>
+              </div>
               <p className="text-xs text-muted-foreground">
-                Vale para todos os dias trabalhados. Você pode trocar o turno em dias específicos abaixo.
+                {turnosResolvidos.length
+                  ? "Vale para todos os dias trabalhados. Você pode trocar o turno em dias específicos abaixo."
+                  : "Nenhum turno cadastrado nesta unidade ainda — crie o primeiro aqui mesmo, sem sair do cadastro."}
               </p>
             </div>
           </div>
@@ -214,6 +253,12 @@ export function ColaboradorConfigTrabalhoDialog({ colaborador, open, onOpenChang
                             ))}
                           </SelectContent>
                         </Select>
+                        <Button
+                          type="button" size="icon" variant="ghost" className="h-9 w-9 shrink-0"
+                          aria-label="Criar novo turno" onClick={() => setNovoTurnoOpen(true)}
+                        >
+                          <Plus className="h-4 w-4" aria-hidden="true" />
+                        </Button>
                         <span className="w-24 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
                           {turno ? formatarFaixaTurno(turno) : "sem turno"}
                         </span>
@@ -328,6 +373,28 @@ export function ColaboradorConfigTrabalhoDialog({ colaborador, open, onOpenChang
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <TurnoForm
+        open={novoTurnoOpen}
+        onOpenChange={setNovoTurnoOpen}
+        titulo="Novo turno"
+        unidades={unidades.map((u) => ({ id: u.id, nome: u.nome }))}
+        initial={{
+          ...TURNO_FORM_DEFAULT,
+          unidade_id: unidadeId === "none" ? null : unidadeId,
+        }}
+        saving={criarTurno.isPending}
+        onSubmit={(f) => void onCriarTurno(f)}
+      />
+
+      <CopiarConfigColaboradorDialog
+        open={copiarOpen}
+        onOpenChange={setCopiarOpen}
+        colaboradorId={colaborador?.id}
+        unidadeId={unidadeId === "none" ? null : unidadeId}
+        turnos={turnosResolvidos}
+        onCopiar={onCopiarConfig}
+      />
     </Dialog>
   );
 }

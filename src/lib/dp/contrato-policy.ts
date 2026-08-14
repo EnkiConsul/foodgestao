@@ -34,6 +34,10 @@ export interface ContratoPolicy {
   jornadaLabel: string;
   /** Texto explicativo exibido quando a jornada é apenas disponibilidade. */
   jornadaHint: string | null;
+  /** Admite adiantamento salarial quinzenal (salário mensal fixo em folha). */
+  permiteAdiantamento: boolean;
+  /** Motivo exibido quando o adiantamento não se aplica ao contrato. */
+  adiantamentoHint: string | null;
 }
 
 const CLT_LIKE: ContratoPolicy = {
@@ -47,6 +51,8 @@ const CLT_LIKE: ContratoPolicy = {
   horasPorConvocacao: false,
   jornadaLabel: "Jornada",
   jornadaHint: null,
+  permiteAdiantamento: true,
+  adiantamentoHint: null,
 };
 
 const INTERMITENTE: ContratoPolicy = {
@@ -61,6 +67,9 @@ const INTERMITENTE: ContratoPolicy = {
   jornadaLabel: "Jornada (disponibilidade habitual)",
   jornadaHint:
     "Esta jornada representa a disponibilidade habitual do colaborador. A carga efetiva será calculada pelas convocações realizadas.",
+  permiteAdiantamento: false,
+  adiantamentoHint:
+    "O contrato intermitente é pago por convocação, sem salário mensal fixo — não há adiantamento quinzenal.",
 };
 
 const PJ_LIKE: ContratoPolicy = {
@@ -74,6 +83,8 @@ const PJ_LIKE: ContratoPolicy = {
   horasPorConvocacao: false,
   jornadaLabel: "Jornada",
   jornadaHint: null,
+  permiteAdiantamento: false,
+  adiantamentoHint: "Contratos PJ/MEI não entram em folha, portanto não têm adiantamento salarial.",
 };
 
 const POLICIES: Record<RegimeTrabalho, ContratoPolicy> = {
