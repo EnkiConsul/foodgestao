@@ -50,5 +50,6 @@ Nenhuma tela testa o regime direto: o comportamento sai de `contrato-policy.ts`,
 - Migração: adicionar `entrada_override`, `saida_override`, `intervalo_minutos_override` em `dp_colaborador_config_dias` **ou** manter o modelo atual criando/reaproveitando `dp_turnos` por horário. Preferência pela segunda opção (sem migração), para que escala, ponto e apuração continuem lendo o snapshot do turno sem alteração.
 - `src/components/dp/ColaboradorJornadaPanel.tsx`: campos por dia, seletor de folga semanal, atalhos 6x1/5x2, passar `folga_fixa_dow` real no salvamento.
 - `src/lib/dp/config-trabalho.ts`: `normalizarDias` já aceita `folgaFixaDow`; ajustar resumo e validações para o novo campo.
+- `src/lib/dp/contrato-policy.ts`: novo indicador `folgaSemanal: "obrigatoria" | "opcional" | "nao_se_aplica"` e rótulo próprio, derivando o comportamento de CLT, PJ/MEI, freelancer e intermitente.
 - `src/hooks/useDpColaboradorConfigTrabalho.tsx`: persistir `folga_fixa_dow`.
 - Verificação: teste Playwright salvando turno com intervalo 30 e 0, e conferindo horários distintos em sexta/sábado/domingo.
