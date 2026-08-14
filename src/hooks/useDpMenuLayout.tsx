@@ -65,7 +65,7 @@ export function useDpMenuLayout(surface: DpMenuSurfaceKey = "dp") {
       {
         onSuccess: () => toast.success("Menu organizado"),
         onError: () => toast.error("Não foi possível salvar a ordem do menu"),
-      } as never,
+      },
     );
   };
 
@@ -75,7 +75,7 @@ export function useDpMenuLayout(surface: DpMenuSurfaceKey = "dp") {
     delete map[surface];
     save(
       { extras: { ...extras, [EXTRAS_KEY]: map } },
-      { onSuccess: () => toast.success("Menu restaurado ao padrão") } as never,
+      { onSuccess: () => toast.success("Menu restaurado ao padrão") },
     );
   };
 
