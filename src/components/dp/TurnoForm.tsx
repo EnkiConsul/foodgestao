@@ -288,25 +288,26 @@ export function TurnoForm({
         </div>
 
         <div className="shrink-0 border-t bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6">
+          {bloqueadoPorCiencia && (
+            <p className="mb-2 text-xs text-destructive">
+              Confirme a ciência do intervalo acima para liberar o salvamento.
+            </p>
+          )}
           <div className="flex gap-2">
             <Button variant="outline" className="h-11 flex-1" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button className="h-11 flex-1" onClick={submit} disabled={saving || erros.length > 0}>
+            <Button
+              className="h-11 flex-1"
+              onClick={submit}
+              disabled={saving || erros.length > 0 || bloqueadoPorCiencia}
+            >
               {saving ? "Salvando..." : "Salvar turno"}
             </Button>
           </div>
         </div>
       </DialogContent>
-
-      <CienciaLegalDialog
-        open={cienciaAberta}
-        alertas={alertaIntervalo ? [{ campo: alertaIntervalo.campo, mensagem: alertaIntervalo.mensagem }] : []}
-        titulo="Intervalo abaixo do mínimo legal (art. 71 da CLT)"
-        onCancel={() => setCienciaAberta(false)}
-        onConfirm={confirmarCiencia}
-        confirming={saving}
-      />
     </Dialog>
   );
 }
+
