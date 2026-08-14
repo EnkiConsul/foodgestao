@@ -59,8 +59,10 @@ export function TurnoForm({
   const set = <K extends keyof DpTurnoForm>(k: K, v: DpTurnoForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
+  const { labels: categoriaLabels } = useTurnoCategoriaLabels();
+  const categoriasDisponiveis = useMemo(() => categoriasTurno(categoriaLabels), [categoriaLabels]);
   const categoria = form.categoria ?? sugerirCategoria(form.entrada);
-  const nomeAutomatico = nomeSugeridoTurno(categoria, form.entrada, form.saida);
+  const nomeAutomatico = nomeSugeridoTurno(categoria, form.entrada, form.saida, categoriaLabels);
   const nomeFinal = form.nome?.trim() ? form.nome.trim() : nomeAutomatico;
 
   const validacoes = useMemo(
