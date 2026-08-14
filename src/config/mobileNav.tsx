@@ -76,7 +76,10 @@ export type NavLeaf = {
   end?: boolean;
   /** Se true, ocupa a linha inteira na página "Mais" (item de destaque). */
   featured?: boolean;
+  /** Selo discreto ao lado do rótulo (ex.: "Em breve"). */
+  badge?: string;
 };
+
 
 /** Chave semântica de cor para o chip do grupo na página "Mais". */
 export type GroupAccent = "primary" | "navy" | "amber" | "slate" | "muted";
