@@ -247,8 +247,30 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
     const cargoNome = (cargos.data ?? []).find((c) => c.id === form.cargo_id)?.nome ?? null;
 
+    // Remuneração é pré-requisito da folha: bloqueia o cadastro sem valor.
+    const salarioNum = numeroBR(rem.salario_base);
+    const valorHoraNum = numeroBR(rem.valor_hora);
+    const pendencia = remuneracaoPendente({
+      forma_pagamento: rem.forma_pagamento,
+      salario_base: salarioNum || null,
+      valor_hora: valorHoraNum || null,
+      salario_cargo: salarioCargo,
+    });
+    if (pendencia) { toast.error(pendencia); return; }
+
+    const adicionalNum = numeroBR(rem.adicional_percentual);
+    if (adicionalNum < 0 || adicionalNum > 100) {
+      toast.error("Adicional deve estar entre 0% e 100%");
+      return;
+    }
+    const vtDiaNum = numeroBR(rem.vale_transporte_valor_dia);
+    if (rem.vale_transporte && vtDiaNum <= 0) {
+      toast.error("Informe o valor diário do vale-transporte");
+      return;
+    }
+
     try {
-      await upsert.mutateAsync({
+      const colaboradorId = await upsert.mutateAsync({
         id: colaborador?.id,
         nome: form.nome.trim(),
         cpf: form.cpf.replace(/\D/g, "") || null,
@@ -269,7 +291,15 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             : null,
 
         possui_folha_ponto: form.possui_folha_ponto,
-        optante_adiantamento: policy.permiteAdiantamento ? form.optante_adiantamento : false,
+        optante_adiantamento: permiteAdiantamento ? form.optante_adiantamento : false,
+
+        forma_pagamento: rem.forma_pagamento,
+        salario_base: rem.forma_pagamento === "horista" ? null : salarioNum || null,
+        valor_hora: rem.forma_pagamento === "horista" ? valorHoraNum || null : null,
+        dependentes_irrf: Math.max(0, Math.trunc(numeroBR(rem.dependentes_irrf))),
+        adicional_percentual: adicionalNum,
+        vale_transporte: rem.vale_transporte,
+        vale_transporte_valor_dia: rem.vale_transporte ? vtDiaNum : null,
         ...(isDesligado
           ? {
               data_desligamento: form.data_desligamento,
@@ -281,12 +311,36 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             }
           : {}),
       } as any);
+
+      // Sincroniza a ficha de benefícios marcada no cadastro.
+      const hoje = new Date().toISOString().slice(0, 10);
+      for (const b of beneficios) {
+        const marcado = !!rem.beneficios[b.id];
+        const atual = (atribuicoes ?? []).find(
+          (a: any) => a.colaborador_id === colaboradorId && a.beneficio_id === b.id,
+        ) as any;
+        if (!marcado && !atual) continue;
+        if (!!atual?.ativo === marcado) continue;
+        await saveAtribuicao.mutateAsync({
+          id: atual?.id,
+          colaborador_id: colaboradorId,
+          beneficio_id: b.id,
+          valor: Number(atual?.valor ?? b.valor_padrao ?? 0),
+          desconto_valor: Number(atual?.desconto_valor ?? 0),
+          data_inicio: atual?.data_inicio ?? hoje,
+          data_fim: atual?.data_fim ?? null,
+          ativo: marcado,
+          observacao: atual?.observacao ?? null,
+        });
+      }
+
       toast.success(isEdit ? "Colaborador atualizado" : "Colaborador cadastrado");
       onOpenChange(false);
     } catch (e) {
       toast.error("Erro ao salvar", { description: e instanceof Error ? e.message : String(e) });
     }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
