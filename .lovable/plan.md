@@ -30,10 +30,20 @@ Regra: **um cargo = um salário**.
 - Cargos: passam a ser criados/completados pelo cadastro do colaborador e a tela de Cargos ganha um aviso quando um cargo tem colaboradores com salário divergente, com atalho para normalizar.
 - A tela de Cargos mantém a mesma regra: bloqueia salvar dois cargos ativos com nome igual e avisa quando o salário do cargo é alterado, informando quantos colaboradores usam aquele cargo.
 
+## 4. Ajustes na lista de colaboradores e nos turnos
+
+- **Remover o ícone de relógio** ("Trabalho") da lista de colaboradores (desktop e mobile): a configuração de turno passa a ser feita apenas pela aba **Turno & Jornada** dentro de Editar.
+- **CPF formatado** no padrão 000.000.000-00 em toda a exibição (lista, cards, diálogo de acesso) e com máscara enquanto o administrador digita; o valor gravado continua apenas com números.
+- **Categorias de turno renomeáveis**: as categorias deixam de ter nomes fixos. Cada empresa pode editar o rótulo (ex.: "Almoço" → "Turno do almoço") em Configurações do DP, e os novos rótulos aparecem em todos os lugares que hoje mostram a categoria (cadastro de turno, nome sugerido, escala, operação do dia). Os códigos internos não mudam, então nada existente quebra.
+- **Intervalos padrão**: os atalhos passam a ser apenas **Sem intervalo, 30, 60 e 120 minutos** (o campo numérico continua aberto para valores específicos).
+
 ## Detalhes técnicos
 
 - `ColaboradorJornadaPanel.tsx`: novo estado `vigenciaModo` (`admissao` | `nova_data`); recebe `dataAdmissao` via prop de `ColaboradorFormDialog` e `ColaboradorConfigTrabalhoDialog`.
 - `src/lib/dp/cargos.ts` (novo): `salarioReferencia`, `compararSalarioCargo` (retorna `ok` | `cargo_sem_salario` | `divergente`) e `sugerirNomeVariacao(nome, cargosExistentes)` — com testes unitários em `src/lib/dp/__tests__/cargos.test.ts`.
 - `ColaboradorFormDialog.tsx`: intercepta o submit, roda a comparação e abre `CargoSalarioConflitoDialog.tsx` (novo) ou o confirm de "definir salário do cargo"; usa `useDpCargos().salvar` para criar/atualizar o cargo antes de gravar o colaborador.
 - `CargoQuickCreateDialog.tsx` (novo): criação inline de cargo a partir do select.
-- Sem mudança de banco: `dp_cargos.salario_base` e `dp_colaboradores.salario_base`/`base_salarial` já existem.
+- `DpColaboradores.tsx`: remoção das ações de relógio (desktop e mobile) e uso de `formatarCpf` de `src/lib/cpf.ts` (função de máscara adicionada lá); máscara também no input de CPF do cadastro.
+- `turno-utils.ts`: `DEFAULT_INTERVALOS = [0, 30, 60, 120]` e `CATEGORIA_LABEL` passa a ser resolvido por uma função `categoriaLabel(cat, overrides)`; os rótulos personalizados vêm de uma nova coluna jsonb `turno_categoria_labels` em `dp_config_dp` (migração), lida pelo hook de configuração do DP e editável em Configurações do DP.
+- Sem outras mudanças de banco: `dp_cargos.salario_base` e `dp_colaboradores.salario_base`/`base_salarial` já existem.
+
