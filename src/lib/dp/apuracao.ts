@@ -251,7 +251,10 @@ export function apuracaoParaLancamento(
   const v = linha.rubricas.valores;
   if (!v) return null;
 
-  const bruto = round2(v.normais + v.extras50 + v.extras100 + v.noturno);
+  const proventos = round2(v.normais + v.extras50 + v.extras100 + v.noturno);
+  const perc = Math.min(100, Math.max(0, opts?.adicionalPercentual ?? 0));
+  const adicional = perc > 0 ? round2(proventos * (perc / 100)) : 0;
+  const bruto = round2(proventos + adicional);
   const descFaltas = round2(v.descontoFaltas);
   const descDsr = round2(v.descontoDsr);
   return {
@@ -261,6 +264,12 @@ export function apuracaoParaLancamento(
     descontos: {
       faltas: descFaltas,
       dsr: descDsr,
+      dependentes: Math.max(0, Math.trunc(opts?.dependentes ?? 0)),
+      extras:
+        adicional > 0
+          ? [{ descricao: "Adicional insalubridade/periculosidade", natureza: "provento" as const, valor: adicional, tributavel: true }]
+          : [],
+
       proventos: {
         normais: round2(v.normais),
         extras50: round2(v.extras50),
