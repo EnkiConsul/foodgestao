@@ -282,7 +282,7 @@ const PORTAL_GROUPS: DpNavGroup[] = [
     ],
     items: [
       { label: "Meus Documentos", to: "/dp/meu/documentos", icon: FileText, shortcut: true, shortLabel: "Documentos" },
-      { label: "Meus Contracheques", to: "/dp/meu/contracheque", icon: Receipt, shortcut: true, shortLabel: "Contracheques" },
+      { label: "Meus Contracheques", to: "/dp/meu/contracheque", icon: Receipt, shortLabel: "Contracheques", badge: "Em breve" },
       { label: "Atestados", to: "/dp/meu/atestados", icon: HeartPulse },
       { label: "Disciplinar", to: "/dp/meu/disciplinar", icon: ShieldAlert },
       { label: "Sindicato", to: "/dp/meu/sindicato", icon: Scale },
