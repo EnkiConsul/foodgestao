@@ -35,6 +35,6 @@ CLT efetivo · CLT intermitente · Estagiário · Temporário · PJ · Sócio ·
 
 - Banco: adicionar `freelancer` ao enum `dp_regime_trabalho`. Sem mudança de tabelas.
 - `src/lib/dp/contrato-policy.ts`: novos campos `formasPagamento: FormaPagamento[]`, `formaPagamentoPadrao`, `entraNaFolha`, `exigeCienciaSemRegistro` + política `FREELANCER`. `src/lib/dp/remuneracao.ts` passa a derivar `formaPagamentoPadrao`/opções da política em vez de constante fixa.
-- `src/components/dp/RemuneracaoFields.tsx`: recebe as opções permitidas via prop; `src/components/dp/ColaboradorFormDialog.tsx` reduz `TIPOS_VINCULO`, ajusta `VINCULO_TO_REGIME`/`REGIME_TO_VINCULO` e aciona o `CienciaLegalDialog` no submit quando o regime exige.
+- `src/components/dp/RemuneracaoFields.tsx`: recebe as opções permitidas via prop; `src/components/dp/ColaboradorFormDialog.tsx` ajusta `TIPOS_VINCULO` (rótulos CLT efetivo/CLT intermitente, Sócio mantido, Autônomo removido), `VINCULO_TO_REGIME`/`REGIME_TO_VINCULO` e aciona o `CienciaLegalDialog` no submit quando o regime exige.
 - Folha: `dp_folha_gerar_lancamentos` / apuração passam a ignorar regimes sem folha (`freelancer`, `pj`, `mei`) — hoje o filtro é apenas por colaborador ativo.
 - Testes: casos novos em `src/lib/dp/__tests__/contrato-policy.test.ts` e `remuneracao.test.ts` cobrindo formas permitidas por vínculo e o padrão do freelancer.
