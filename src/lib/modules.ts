@@ -1,4 +1,14 @@
-import { Wallet, Users, Handshake, UserCheck, ShoppingCart, type LucideIcon } from "lucide-react";
+import {
+  Wallet,
+  Users,
+  Handshake,
+  UserCheck,
+  ShoppingCart,
+  Clock,
+  CalendarDays,
+  Receipt,
+  type LucideIcon,
+} from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 export type AppModule = Database["public"]["Enums"]["app_module"];
@@ -12,7 +22,14 @@ export interface ModuleDefinition {
   icon: LucideIcon;
   entryRoute: string;
   available: boolean; // se o módulo já tem implementação minimamente utilizável
+  /** Módulo vendido separadamente (unidade comercial). */
+  sellable?: boolean;
+  /** Módulo pai — usado para agrupar submódulos no backoffice. */
+  parent?: AppModule;
+  /** Pré-requisitos declarados (espelho de module_dependencies, só para UI). */
+  requires?: AppModule[];
 }
+
 
 export const MODULES: ModuleDefinition[] = [
   {
