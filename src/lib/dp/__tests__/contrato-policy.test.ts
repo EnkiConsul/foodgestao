@@ -58,3 +58,24 @@ describe("contratoPolicy", () => {
     expect(isIntermitente(null)).toBe(false);
   });
 });
+
+describe("formas de pagamento por regime", () => {
+  it("intermitente não admite mensalista", () => {
+    expect(formasPagamentoDoRegime("intermitente")).toEqual(["horista", "diarista"]);
+    expect(formaPagamentoValida("intermitente", "mensalista")).toBe("horista");
+  });
+
+  it("freelancer é diarista/horista, fora da folha e exige ciência legal", () => {
+    const p = contratoPolicy("freelancer");
+    expect(p.formasPagamento).toEqual(["diarista", "horista"]);
+    expect(p.entraEmFolha).toBe(false);
+    expect(p.exigeCienciaLegal).toBe(true);
+    expect(p.cienciaLegalMensagem).toBeTruthy();
+    expect(p.permiteAdiantamento).toBe(false);
+  });
+
+  it("CLT mantém mensalista como padrão e entra em folha", () => {
+    expect(formaPagamentoValida("clt", "mensalista")).toBe("mensalista");
+    expect(contratoPolicy("clt").entraEmFolha).toBe(true);
+  });
+});

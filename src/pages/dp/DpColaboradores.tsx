@@ -30,18 +30,27 @@ import { ColaboradorConfigTrabalhoDialog } from "@/components/dp/ColaboradorConf
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { supabase } from "@/integrations/supabase/client";
+import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import { MOTIVO_DESLIGAMENTO_LABEL, ELEGIBILIDADE_LABEL, acessoPortalAtivo, diasRestantesCarencia } from "@/lib/dp/desligamento";
 
 const fmtDate = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "—");
 
 
-const REGIME_LABEL: Record<string, string> = {
-  clt: "CLT",
-  pj: "PJ",
-  estagio: "Estagiário",
-  temporario: "Temporário",
-  mei: "MEI",
+// Rótulo do vínculo: usa o escolhido no cadastro (Sócio/PJ) e cai na política do contrato.
+const VINCULO_LABEL: Record<string, string> = {
+  CLT: "CLT efetivo",
+  Intermitente: "CLT intermitente",
+  Estagiario: "Estagiário",
+  Temporario: "Temporário",
+  PJ: "PJ",
+  Socio: "Sócio",
+  Freelancer: "Freelancer (sem registro)",
 };
+
+const vinculoLabel = (c: { regime?: string | null; vinculo_label?: string | null }): string =>
+  (c.vinculo_label ? VINCULO_LABEL[c.vinculo_label] : null) ??
+  (c.regime ? contratoPolicy(c.regime).label : null) ??
+  "—";
 
 const PERFIL_LABEL: Record<string, string> = {
   colaborador: "Colaborador",
@@ -364,7 +373,7 @@ export default function DpColaboradores() {
                         <div className="font-mono text-[11px] text-muted-foreground">{c.cpf ?? "—"}</div>
                         <div className="mt-1 flex flex-wrap gap-1">
                           <Badge variant="outline" className="h-4 px-1 text-[10px] uppercase border-primary/30 text-primary bg-primary/5">
-                            {REGIME_LABEL[c.regime ?? ""] ?? c.regime ?? "—"}
+                            {vinculoLabel(c as any)}
                           </Badge>
                           {folha && (
                             <Badge variant="outline" className="h-4 px-1 text-[10px]">Ponto</Badge>
@@ -520,7 +529,7 @@ export default function DpColaboradores() {
 
               <div className="flex flex-wrap gap-1.5">
                 <Badge variant="outline" className="uppercase border-primary/30 text-primary bg-primary/5 text-[11px]">
-                  {REGIME_LABEL[c.regime ?? ""] ?? c.regime ?? "—"}
+                  {vinculoLabel(c as any)}
                 </Badge>
                 <Badge
                   variant="outline"
