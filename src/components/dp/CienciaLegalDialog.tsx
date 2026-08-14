@@ -28,7 +28,7 @@ interface Props {
  * dominical menos protetiva que o padrão legal. Não bloqueia a operação: exige
  * confirmação explícita, que fica registrada em dp_regras_historico.
  */
-export function CienciaLegalDialog({ open, alertas, onCancel, onConfirm, confirming }: Props) {
+export function CienciaLegalDialog({ open, alertas, titulo, onCancel, onConfirm, confirming }: Props) {
   const [ciente, setCiente] = useState(false);
   const [justificativa, setJustificativa] = useState("");
 
@@ -45,7 +45,7 @@ export function CienciaLegalDialog({ open, alertas, onCancel, onConfirm, confirm
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-destructive" aria-hidden="true" />
-            Periodicidade menos protetiva que o padrão legal
+            {titulo ?? "Periodicidade menos protetiva que o padrão legal"}
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-3 text-left">
