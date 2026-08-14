@@ -49,6 +49,43 @@ export const MODULES: ModuleDefinition[] = [
     icon: Users,
     entryRoute: "/dp",
     available: true,
+    sellable: true,
+  },
+  {
+    slug: "ponto",
+    name: "Ponto 360°",
+    shortName: "Ponto",
+    description: "Registro de ponto, espelho, ajustes e apuração de horas.",
+    icon: Clock,
+    entryRoute: "/dp/ponto",
+    available: true,
+    sellable: true,
+    parent: "dp",
+    requires: ["dp"],
+  },
+  {
+    slug: "escala",
+    name: "Escala 360°",
+    shortName: "Escala",
+    description: "Gerador de escalas, turnos, folgas e convocações.",
+    icon: CalendarDays,
+    entryRoute: "/dp/escalas",
+    available: true,
+    sellable: true,
+    parent: "dp",
+    requires: ["dp"],
+  },
+  {
+    slug: "folha",
+    name: "Folha 360°",
+    shortName: "Folha",
+    description: "Folha de pagamento, provisões, rescisão e holerite.",
+    icon: Receipt,
+    entryRoute: "/dp/folha",
+    available: true,
+    sellable: true,
+    parent: "dp",
+    requires: ["dp", "ponto"],
   },
   {
     slug: "crm",
@@ -76,12 +113,20 @@ export const MODULES: ModuleDefinition[] = [
     icon: ShoppingCart,
     entryRoute: "/pedidos",
     available: true,
+    sellable: true,
   },
 ];
 
 export const MODULE_BY_SLUG: Record<AppModule, ModuleDefinition> = Object.fromEntries(
   MODULES.map((m) => [m.slug, m]),
 ) as Record<AppModule, ModuleDefinition>;
+
+/** Módulos comercializáveis individualmente (backoffice / contratação). */
+export const SELLABLE_MODULES: ModuleDefinition[] = MODULES.filter((m) => m.sellable);
+
+/** Submódulos vendáveis do DP. */
+export const DP_SUBMODULES: AppModule[] = ["ponto", "escala", "folha"];
+
 
 export function statusLabel(status: ModuleStatus): string {
   switch (status) {
