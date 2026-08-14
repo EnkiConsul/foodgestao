@@ -24,6 +24,17 @@ export interface ContratoPolicy {
   validaCargaSemanal: boolean;
   /** Exige definição de folga semanal fixa/variável no vínculo. */
   exigeFolgaSemanal: boolean;
+  /**
+   * Como o campo de folga semanal se comporta no cadastro:
+   *  - "obrigatoria" → CLT e assemelhados (DSR exigido);
+   *  - "opcional" → PJ/MEI/freelancer (referência operacional, sem DSR);
+   *  - "nao_se_aplica" → intermitente (trabalho por convocação).
+   */
+  folgaSemanal: "obrigatoria" | "opcional" | "nao_se_aplica";
+  /** Rótulo do campo de folga conforme o contrato. */
+  folgaLabel: string;
+  /** Texto de apoio do campo de folga (null quando dispensável). */
+  folgaHint: string | null;
   /** Entra nos relatórios de conformidade de DSR. */
   participaConformidadeDsr: boolean;
   /** Entra na geração automática de escala de folgas. */
@@ -57,6 +68,9 @@ const CLT_LIKE: ContratoPolicy = {
   jornadaComoDisponibilidade: false,
   validaCargaSemanal: true,
   exigeFolgaSemanal: true,
+  folgaSemanal: "obrigatoria",
+  folgaLabel: "Folga semanal",
+  folgaHint: "O descanso semanal remunerado é obrigatório: escolha um dia fixo ou marque folga variável conforme a escala.",
   participaConformidadeDsr: true,
   participaEscalaAutomatica: true,
   horasPorConvocacao: false,
@@ -76,6 +90,9 @@ const INTERMITENTE: ContratoPolicy = {
   jornadaComoDisponibilidade: true,
   validaCargaSemanal: false,
   exigeFolgaSemanal: false,
+  folgaSemanal: "nao_se_aplica",
+  folgaLabel: "Folga semanal",
+  folgaHint: null,
   participaConformidadeDsr: false,
   participaEscalaAutomatica: false,
   horasPorConvocacao: true,
@@ -99,6 +116,9 @@ const FREELANCER: ContratoPolicy = {
   jornadaComoDisponibilidade: true,
   validaCargaSemanal: false,
   exigeFolgaSemanal: false,
+  folgaSemanal: "opcional",
+  folgaLabel: "Dias sem previsão de trabalho",
+  folgaHint: "Freelancer não tem jornada contratual nem DSR. Marcar dias aqui serve apenas como referência para escala e operação.",
   participaConformidadeDsr: false,
   participaEscalaAutomatica: false,
   horasPorConvocacao: true,
@@ -121,6 +141,9 @@ const PJ_LIKE: ContratoPolicy = {
   jornadaComoDisponibilidade: false,
   validaCargaSemanal: false,
   exigeFolgaSemanal: false,
+  folgaSemanal: "opcional",
+  folgaLabel: "Dias sem previsão de trabalho",
+  folgaHint: "Contratos PJ/MEI não têm descanso semanal remunerado. Este campo é apenas referência operacional para a escala.",
   participaConformidadeDsr: false,
   participaEscalaAutomatica: true,
   horasPorConvocacao: false,

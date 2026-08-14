@@ -13,7 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   CORES_TURNO, DEFAULT_INTERVALOS, categoriasTurno,
   cargaLiquidaHoras, formatarFaixaTurno, intervaloAbaixoDoLegal, nomeSugeridoTurno,
@@ -45,14 +45,16 @@ export function TurnoForm({
 }: TurnoFormProps) {
   const [form, setForm] = useState<DpTurnoForm>(initial ?? TURNO_FORM_DEFAULT);
   const [apelidoAberto, setApelidoAberto] = useState(false);
-  const [cienciaAberta, setCienciaAberta] = useState(false);
+  const [ciente, setCiente] = useState(false);
+  const [justificativa, setJustificativa] = useState("");
 
   useEffect(() => {
     if (open) {
       const base = initial ?? TURNO_FORM_DEFAULT;
       setForm(base);
       setApelidoAberto(!!base.nome?.trim());
-      setCienciaAberta(false);
+      setCiente(false);
+      setJustificativa("");
     }
   }, [open, initial]);
 
@@ -77,19 +79,18 @@ export function TurnoForm({
 
   const construir = (): DpTurnoForm => ({ ...form, nome: nomeFinal, categoria });
 
+  // A ciência é confirmada dentro do próprio formulário: modais empilhados
+  // (turno dentro do cadastro do colaborador) impediam o salvamento.
+  const bloqueadoPorCiencia = !!alertaIntervalo && !ciente;
+
   const submit = () => {
-    if (turnoTemErro(validacoes)) return;
-    if (alertaIntervalo) {
-      setCienciaAberta(true);
-      return;
-    }
-    onSubmit({ form: construir() });
+    if (turnoTemErro(validacoes) || bloqueadoPorCiencia) return;
+    onSubmit({
+      form: construir(),
+      ciencia: alertaIntervalo ? { confirmada: true, justificativa: justificativa.trim() || null } : null,
+    });
   };
 
-  const confirmarCiencia = (justificativa: string) => {
-    setCienciaAberta(false);
-    onSubmit({ form: construir(), ciencia: { confirmada: true, justificativa } });
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -181,17 +182,36 @@ export function TurnoForm({
           </div>
 
           {alertaIntervalo && (
-            <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-3">
+            <div className="space-y-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3">
               <p className="flex items-center gap-2 text-sm font-medium text-destructive">
                 <ShieldAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
-                Intervalo abaixo do mínimo legal
+                Intervalo abaixo do mínimo legal (art. 71 da CLT)
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">{alertaIntervalo.mensagem}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Ao salvar, será solicitada a confirmação de ciência do responsável, registrada no histórico de regras.
-              </p>
+              <p className="text-xs text-muted-foreground">{alertaIntervalo.mensagem}</p>
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="turno-ciencia"
+                  checked={ciente}
+                  onCheckedChange={(v) => setCiente(v === true)}
+                />
+                <Label htmlFor="turno-ciencia" className="text-xs font-normal leading-snug">
+                  Estou ciente de que esta configuração é menos protetiva que o padrão legal e assumo a
+                  responsabilidade. A confirmação, meu usuário e o horário ficam registrados no histórico de regras.
+                </Label>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="turno-justificativa" className="text-xs">Justificativa (opcional)</Label>
+                <Textarea
+                  id="turno-justificativa"
+                  rows={2}
+                  value={justificativa}
+                  onChange={(e) => setJustificativa(e.target.value)}
+                  placeholder="Ex.: intervalo reduzido por acordo coletivo"
+                />
+              </div>
             </div>
           )}
+
 
           {avisos.map((a) => (
             <p key={a.mensagem} className="flex items-start gap-2 text-xs text-amber-600">
@@ -287,25 +307,26 @@ export function TurnoForm({
         </div>
 
         <div className="shrink-0 border-t bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6">
+          {bloqueadoPorCiencia && (
+            <p className="mb-2 text-xs text-destructive">
+              Confirme a ciência do intervalo acima para liberar o salvamento.
+            </p>
+          )}
           <div className="flex gap-2">
             <Button variant="outline" className="h-11 flex-1" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button className="h-11 flex-1" onClick={submit} disabled={saving || erros.length > 0}>
+            <Button
+              className="h-11 flex-1"
+              onClick={submit}
+              disabled={saving || erros.length > 0 || bloqueadoPorCiencia}
+            >
               {saving ? "Salvando..." : "Salvar turno"}
             </Button>
           </div>
         </div>
       </DialogContent>
-
-      <CienciaLegalDialog
-        open={cienciaAberta}
-        alertas={alertaIntervalo ? [{ campo: alertaIntervalo.campo, mensagem: alertaIntervalo.mensagem }] : []}
-        titulo="Intervalo abaixo do mínimo legal (art. 71 da CLT)"
-        onCancel={() => setCienciaAberta(false)}
-        onConfirm={confirmarCiencia}
-        confirming={saving}
-      />
     </Dialog>
   );
 }
+
