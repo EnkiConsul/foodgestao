@@ -118,10 +118,27 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const policy = contratoPolicy(VINCULO_TO_REGIME[form.tipo_vinculo]);
 
 
+  const [rem, setRem] = useState<RemuneracaoFormState>(remuneracaoBlank);
+  const patchRem = (patch: Partial<RemuneracaoFormState>) => setRem((r) => ({ ...r, ...patch }));
+
   useEffect(() => {
     if (!open) return;
     const c = (colaborador ?? {}) as any;
+    const regime = c.regime ? String(c.regime) : "clt";
+    setRem({
+      ...remuneracaoBlank,
+      forma_pagamento: (c.forma_pagamento ?? formaPagamentoPadrao(regime)) as FormaPagamento,
+      salario_base: c.salario_base != null ? String(c.salario_base).replace(".", ",") : "",
+      valor_hora: c.valor_hora != null ? String(c.valor_hora).replace(".", ",") : "",
+      dependentes_irrf: String(c.dependentes_irrf ?? 0),
+      adicional_percentual: String(c.adicional_percentual ?? 0).replace(".", ","),
+      vale_transporte: !!c.vale_transporte,
+      vale_transporte_valor_dia:
+        c.vale_transporte_valor_dia != null ? String(c.vale_transporte_valor_dia).replace(".", ",") : "",
+      beneficios: {},
+    });
     setForm({
+
       nome: c.nome ?? "",
       cpf: c.cpf ? maskCpf(c.cpf) : "",
       matricula: c.matricula ?? "",
