@@ -129,6 +129,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const [form, setForm] = useState(blank);
   const { selectedCompanyId } = useCompanyContext();
   const [cienciaAberta, setCienciaAberta] = useState(false);
+  const [tab, setTab] = useState<"dados" | "jornada" | "remuneracao">("dados");
+  /** Id do colaborador recém-criado — permite salvar a jornada sem sair do cadastro. */
+  const [criadoId, setCriadoId] = useState<string | null>(null);
   // Ciência do risco jurídico do vínculo sem registro, válida para este salvamento.
   const cienciaConfirmada = useRef<{ justificativa: string } | null>(null);
 
@@ -145,6 +148,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   useEffect(() => {
     if (!open) return;
     cienciaConfirmada.current = null;
+    setTab("dados");
+    setCriadoId(null);
     const c = (colaborador ?? {}) as any;
     const regime = c.regime ? String(c.regime) : "clt";
     setRem({
@@ -167,8 +172,18 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           .filter((a: any) => a.colaborador_id === c.id && a.ativo)
           .map((a: any) => [a.beneficio_id, true]),
       ),
-
+      base_salarial: c.base_salarial != null ? String(c.base_salarial).replace(".", ",") : "",
+      base_horas_mes: String(c.base_horas_mes ?? BASE_HORAS_MES_PADRAO),
+      base_dias_mes: String(c.base_dias_mes ?? BASE_DIAS_MES_PADRAO),
+      valor_hora_manual: !!c.valor_hora_manual,
+      premio_assiduidade: !!c.premio_assiduidade,
+      premio_assiduidade_valor:
+        c.premio_assiduidade_valor != null ? String(c.premio_assiduidade_valor).replace(".", ",") : "",
+      assiduidade_criterio: (c.assiduidade_criterio ?? "sem_faltas_sem_atrasos") as AssiduidadeCriterio,
+      assiduidade_tolerancia_min: String(c.assiduidade_tolerancia_min ?? 10),
+      assiduidade_max_atrasos: String(c.assiduidade_max_atrasos ?? 2),
     });
+
     setForm({
 
       nome: c.nome ?? "",
