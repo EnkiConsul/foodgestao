@@ -176,8 +176,9 @@ export function useDpFolhaApuracao(competencia: string) {
   const semSalario = useMemo(() => {
     const bases = basesQuery.data;
     if (!bases) return 0;
-    return [...bases.values()].filter((b) => !b.valorHora).length;
+    return [...bases.values()].filter((b) => !!b.pendencia).length;
   }, [basesQuery.data]);
+
 
   return {
     bases: basesQuery.data ?? new Map<string, BaseSalarial>(),
