@@ -56,7 +56,10 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
   const [unidadeId, setUnidadeId] = useState<string>("none");
   const [turnoPadraoId, setTurnoPadraoId] = useState<string>("none");
   const [folgaVariavel, setFolgaVariavel] = useState(false);
+  const [folgaFixaDow, setFolgaFixaDow] = useState<number | null>(null);
   const [dias, setDias] = useState<DiaConfig[]>(diasPadrao());
+  /** Horário próprio de um dia (sexta, sábado, domingo etc.) antes de virar turno. */
+  const [overrides, setOverrides] = useState<Record<number, HorarioDia>>({});
   const [inicio, setInicio] = useState(hoje());
   /** "base" = admissão (ou vigência atual) · "nova_data" = mudança de horário. */
   const [vigenciaModo, setVigenciaModo] = useState<"base" | "nova_data">("base");
@@ -88,6 +91,7 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
       setUnidadeId(vigente.unidade_id ?? "none");
       setTurnoPadraoId(vigente.turno_padrao_id ?? "none");
       setFolgaVariavel(vigente.folga_variavel);
+      setFolgaFixaDow(vigente.folga_fixa_dow ?? null);
       setDias(normalizarDias(vigente.dias.map((d) => ({ dow: d.dow, trabalha: d.trabalha, turno_id: d.turno_id }))));
       setObs(vigente.observacoes ?? "");
       setInicio(vigente.vigencia_inicio ?? admissao ?? hoje());
@@ -95,29 +99,51 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
       setUnidadeId(colaborador?.unidade_id ?? "none");
       setTurnoPadraoId("none");
       setFolgaVariavel(false);
+      setFolgaFixaDow(null);
       setDias(diasPadrao());
       setObs("");
       setInicio(admissao ?? hoje());
     }
+    setOverrides({});
     setVigenciaModo("base");
   }, [active, vigente, colaborador?.unidade_id, admissao]);
 
+  /** Dias com o horário próprio apontando para um turno virtual (só na tela). */
+  const diasEfetivos: DiaConfig[] = useMemo(
+    () => dias.map((d) => (overrides[d.dow] ? { ...d, turno_id: `${VIRTUAL_PREFIX}${d.dow}` } : d)),
+    [dias, overrides],
+  );
+
+  const turnosEfetivos: TurnoResolvido[] = useMemo(
+    () => [
+      ...turnosResolvidos,
+      ...Object.entries(overrides).map(([dow, h]) => ({
+        id: `${VIRTUAL_PREFIX}${dow}`,
+        nome: `Horário de ${DOW_LABEL[Number(dow)]}`,
+        cor: null,
+        entrada: h.entrada,
+        saida: h.saida,
+        intervalo_minutos: h.intervalo_minutos,
+      })),
+    ],
+    [turnosResolvidos, overrides],
+  );
 
   const config = useMemo(
     () => ({
       turno_padrao_id: turnoPadraoId === "none" ? null : turnoPadraoId,
       folga_variavel: folgaVariavel,
-      folga_fixa_dow: null,
-      dias,
+      folga_fixa_dow: folgaFixaDow,
+      dias: diasEfetivos,
     }),
-    [turnoPadraoId, folgaVariavel, dias],
+    [turnoPadraoId, folgaVariavel, folgaFixaDow, diasEfetivos],
   );
 
   const validacoes = useMemo(
-    () => validarConfigTrabalho(config, turnosResolvidos, { regime: colaborador?.regime, vigenciaInicio: inicio }),
-    [config, turnosResolvidos, colaborador?.regime, inicio],
+    () => validarConfigTrabalho(config, turnosEfetivos, { regime: colaborador?.regime, vigenciaInicio: inicio }),
+    [config, turnosEfetivos, colaborador?.regime, inicio],
   );
-  const carga = cargaSemanalConfig(config, turnosResolvidos);
+  const carga = cargaSemanalConfig(config, turnosEfetivos);
   const bloqueado = configTemErro(validacoes);
 
   const alternarDia = (dow: number) =>
@@ -125,6 +151,55 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
 
   const definirTurnoDia = (dow: number, turnoId: string) =>
     setDias((prev) => prev.map((d) => (d.dow === dow ? { ...d, turno_id: turnoId === "padrao" ? null : turnoId } : d)));
+
+  /** Liga/desliga o horário próprio do dia, partindo do turno atualmente previsto. */
+  const alternarHorarioProprio = (dow: number, ativar: boolean) => {
+    setOverrides((prev) => {
+      const next = { ...prev };
+      if (!ativar) {
+        delete next[dow];
+        return next;
+      }
+      const dia = dias.find((d) => d.dow === dow);
+      const base = dia ? turnoDoDia(dia, config.turno_padrao_id, turnosResolvidos) : null;
+      next[dow] = {
+        entrada: base?.entrada ?? "08:00",
+        saida: base?.saida ?? "17:00",
+        intervalo_minutos: base?.intervalo_minutos ?? 60,
+      };
+      return next;
+    });
+  };
+
+  const definirHorarioDia = (dow: number, patch: Partial<HorarioDia>) =>
+    setOverrides((prev) => (prev[dow] ? { ...prev, [dow]: { ...prev[dow], ...patch } } : prev));
+
+  /** Define a folga semanal fixa, desmarcando o dia escolhido. */
+  const definirFolgaFixa = (dow: number | null) => {
+    setFolgaFixaDow(dow);
+    if (dow === null) return;
+    setFolgaVariavel(false);
+    setDias((prev) => prev.map((d) => (d.dow === dow ? { ...d, trabalha: false } : d)));
+    setOverrides((prev) => {
+      const next = { ...prev };
+      delete next[dow];
+      return next;
+    });
+  };
+
+  /** Atalhos de escala: 6x1 usa a folga escolhida (domingo por padrão) e 5x2 folga sáb/dom. */
+  const aplicarEscala = (modo: "6x1" | "5x2") => {
+    if (modo === "6x1") {
+      const folga = folgaFixaDow ?? 0;
+      setFolgaVariavel(false);
+      setFolgaFixaDow(folga);
+      setDias((prev) => prev.map((d) => ({ ...d, trabalha: d.dow !== folga })));
+      return;
+    }
+    setFolgaVariavel(false);
+    setFolgaFixaDow(0);
+    setDias((prev) => prev.map((d) => ({ ...d, trabalha: d.dow !== 0 && d.dow !== 6 })));
+  };
 
   /** Cria o turno já dentro do cadastro do colaborador e o seleciona. */
   const onCriarTurno = async (payload: TurnoSubmitPayload) => {
@@ -142,8 +217,43 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
     setTurnoPadraoId(c.turno_padrao_id ?? "none");
     setFolgaVariavel(c.folga_variavel);
     setDias(normalizarDias(c.dias));
+    setOverrides({});
     toast.success("Configuração copiada — revise e salve");
   };
+
+  /**
+   * Resolve os horários próprios em turnos reais: reaproveita um turno com o
+   * mesmo horário na unidade ou cria um novo, mantendo escala/ponto lendo turno.
+   */
+  const resolverDias = async (): Promise<DiaConfig[]> => {
+    const unidade = unidadeId === "none" ? null : unidadeId;
+    const resolvidos: DiaConfig[] = [];
+    for (const dia of dias) {
+      const h = overrides[dia.dow];
+      if (!dia.trabalha || !h) { resolvidos.push(dia); continue; }
+      const existente = turnosAtivos.find(
+        (t) => (t.entrada ?? "").slice(0, 5) === h.entrada
+          && (t.saida ?? "").slice(0, 5) === h.saida
+          && (t.intervalo_minutos ?? 0) === h.intervalo_minutos,
+      );
+      if (existente) { resolvidos.push({ ...dia, turno_id: existente.id }); continue; }
+      const criado = await criarTurno.mutateAsync({
+        form: {
+          ...TURNO_FORM_DEFAULT,
+          unidade_id: unidade,
+          entrada: h.entrada,
+          saida: h.saida,
+          intervalo_minutos: h.intervalo_minutos,
+          nome: nomeSugeridoTurno(sugerirCategoria(h.entrada), h.entrada, h.saida),
+          categoria: sugerirCategoria(h.entrada),
+        },
+        ciencia: intervaloAbaixoDoLegal(h) ? { confirmada: true, justificativa: "Horário próprio do dia definido no cadastro do colaborador" } : null,
+      });
+      resolvidos.push({ ...dia, turno_id: criado.id });
+    }
+    return resolvidos;
+  };
+
 
   const onSalvar = async () => {
     if (!colaborador?.id) {
