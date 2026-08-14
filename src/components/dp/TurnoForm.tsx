@@ -182,17 +182,36 @@ export function TurnoForm({
           </div>
 
           {alertaIntervalo && (
-            <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-3">
+            <div className="space-y-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3">
               <p className="flex items-center gap-2 text-sm font-medium text-destructive">
                 <ShieldAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
-                Intervalo abaixo do mínimo legal
+                Intervalo abaixo do mínimo legal (art. 71 da CLT)
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">{alertaIntervalo.mensagem}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Ao salvar, será solicitada a confirmação de ciência do responsável, registrada no histórico de regras.
-              </p>
+              <p className="text-xs text-muted-foreground">{alertaIntervalo.mensagem}</p>
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="turno-ciencia"
+                  checked={ciente}
+                  onCheckedChange={(v) => setCiente(v === true)}
+                />
+                <Label htmlFor="turno-ciencia" className="text-xs font-normal leading-snug">
+                  Estou ciente de que esta configuração é menos protetiva que o padrão legal e assumo a
+                  responsabilidade. A confirmação, meu usuário e o horário ficam registrados no histórico de regras.
+                </Label>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="turno-justificativa" className="text-xs">Justificativa (opcional)</Label>
+                <Textarea
+                  id="turno-justificativa"
+                  rows={2}
+                  value={justificativa}
+                  onChange={(e) => setJustificativa(e.target.value)}
+                  placeholder="Ex.: intervalo reduzido por acordo coletivo"
+                />
+              </div>
             </div>
           )}
+
 
           {avisos.map((a) => (
             <p key={a.mensagem} className="flex items-start gap-2 text-xs text-amber-600">
