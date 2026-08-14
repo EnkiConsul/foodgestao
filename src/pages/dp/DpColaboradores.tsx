@@ -589,11 +589,8 @@ export default function DpColaboradores() {
 
       <ColaboradorFormDialog open={dialogOpen} onOpenChange={setDialogOpen} colaborador={editing} />
 
-      <ColaboradorConfigTrabalhoDialog
-        colaborador={jornadaTarget}
-        open={!!jornadaTarget}
-        onOpenChange={(o) => !o && setJornadaTarget(null)}
-      />
+
+
 
       <DesligamentoDialog colaborador={toDesligar} onOpenChange={(o) => !o && setToDesligar(null)} />
 
