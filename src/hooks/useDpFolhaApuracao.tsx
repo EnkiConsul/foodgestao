@@ -3,13 +3,24 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { valorHoraDe, apuracaoParaLancamento, type LinhaApuracao } from "@/lib/dp/apuracao";
+import { apuracaoParaLancamento, type LinhaApuracao } from "@/lib/dp/apuracao";
+import {
+  remuneracaoPendente,
+  valorHoraEfetivo,
+  type FormaPagamento,
+} from "@/lib/dp/remuneracao";
 
 export interface BaseSalarial {
   salarioBase: number | null;
   cargaSemanalHoras: number | null;
   valorHora?: number;
+  formaPagamento: FormaPagamento;
+  dependentes: number;
+  adicionalPercentual: number;
+  /** Motivo do bloqueio quando a remuneração não está cadastrada. */
+  pendencia: string | null;
 }
+
 
 /**
  * Fase 12 — Base salarial dos colaboradores e envio da apuração do ponto
