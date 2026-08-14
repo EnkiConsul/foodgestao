@@ -6,12 +6,12 @@ Hoje o cadastro oferece as três formas de pagamento (mensalista, horista, diari
 
 A política de contrato (`contrato-policy.ts`) passa a declarar quais formas de pagamento cada vínculo aceita, e o seletor só mostra essas opções:
 
-- CLT / Estagiário / Temporário: Mensalista (padrão), Horista, Diarista
-- Intermitente: Horista (padrão), Diarista — mensalista deixa de existir
-- PJ: Mensalista (contrato fixo), Horista, Diarista
+- CLT efetivo / Estagiário / Temporário: Mensalista (padrão), Horista, Diarista
+- CLT intermitente: Horista (padrão), Diarista — mensalista deixa de existir
+- PJ / Sócio: Mensalista (pró-labore ou contrato fixo), Horista, Diarista
 - Freelancer: Diarista (padrão), Horista
 
-Ao trocar o vínculo, se a forma atual não for permitida, o formulário passa automaticamente para a forma padrão daquele vínculo e mostra uma nota curta explicando. Adiantamento quinzenal continua restrito a mensalista com folha (CLT/estágio/temporário).
+Ao trocar o vínculo, se a forma atual não for permitida, o formulário passa automaticamente para a forma padrão daquele vínculo e mostra uma nota curta explicando. Adiantamento quinzenal continua restrito a mensalista com folha (CLT efetivo/estágio/temporário).
 
 ## 2. Novo vínculo: Freelancer (sem registro)
 
