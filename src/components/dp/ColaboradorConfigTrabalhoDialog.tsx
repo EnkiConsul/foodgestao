@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDpTurnos, TURNO_FORM_DEFAULT, type DpTurnoForm } from "@/hooks/useDpTurnos";
-import { TurnoForm } from "@/components/dp/TurnoForm";
+import { TurnoForm, type TurnoSubmitPayload } from "@/components/dp/TurnoForm";
 import { CopiarConfigColaboradorDialog, type ConfigCopiada } from "@/components/dp/CopiarConfigColaboradorDialog";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
