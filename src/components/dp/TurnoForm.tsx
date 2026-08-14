@@ -110,7 +110,7 @@ export function TurnoForm({
             <Select value={categoria} onValueChange={(v) => set("categoria", v)}>
               <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {CATEGORIAS_TURNO.map((c) => (
+                {categoriasDisponiveis.map((c) => (
                   <SelectItem key={c.v} value={c.v}>{c.label}</SelectItem>
                 ))}
               </SelectContent>
