@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { NavLink, useLocation, Link, useNavigate } from "react-router-dom";
-import { ChevronDown, LogOut, ArrowLeft } from "lucide-react";
+import { ChevronDown, LogOut, ArrowLeft, ListOrdered } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import assinatura360 from "@/assets/360food-assinatura.png.asset.json";
 import symbol360 from "@/assets/360food-symbol.png.asset.json";
@@ -22,6 +22,9 @@ import {
   type DpNavSurface,
 } from "@/config/dpNavigation";
 import { makeIsActive } from "@/lib/nav-active";
+import { applyMenuLayout } from "@/lib/dp/menuLayout";
+import { useDpMenuLayout } from "@/hooks/useDpMenuLayout";
+import { OrganizarMenuDialog } from "@/components/dp/OrganizarMenuDialog";
 
 type Sub = { title: string; url: string; icon: LucideIcon; end?: boolean; badge?: string };
 type Item =
@@ -91,7 +94,14 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
   const collapsed = state === "collapsed";
   const { user, signOut } = useAuth();
   const meuResumo = useDpMeuResumo();
-  const items = variant === "portal" ? PORTAL_ITEMS : ADMIN_ITEMS;
+  const surfaceKey = variant === "portal" ? "portal" : "dp";
+  const { layout } = useDpMenuLayout(surfaceKey);
+  const [organizarOpen, setOrganizarOpen] = useState(false);
+  const items = useMemo(() => {
+    const base = variant === "portal" ? DP_PORTAL_NAV : DP_ADMIN_NAV;
+    if (!layout) return variant === "portal" ? PORTAL_ITEMS : ADMIN_ITEMS;
+    return buildItems(applyMenuLayout(base, layout));
+  }, [variant, layout]);
   const subtitle = variant === "portal" ? "Portal do Colaborador" : "DP 360°";
 
   // Toggle exclusivo para grupos do admin (apenas 1 grupo aberto por vez).
@@ -143,6 +153,21 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
       </SidebarContent>
 
       <SidebarFooter className="border-t border-[hsl(var(--dp-border))] bg-white p-3 space-y-2">
+        {!collapsed && (
+          <button
+            type="button"
+            onClick={() => setOrganizarOpen(true)}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <ListOrdered className="h-3.5 w-3.5" />
+            Organizar menu
+          </button>
+        )}
+        <OrganizarMenuDialog
+          open={organizarOpen}
+          onOpenChange={setOrganizarOpen}
+          surface={surfaceKey}
+        />
         {variant === "admin" && !collapsed && (
           <Link
             to="/hub"
