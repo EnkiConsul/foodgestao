@@ -23,7 +23,7 @@ import {
 } from "@/config/dpNavigation";
 import { makeIsActive } from "@/lib/nav-active";
 
-type Sub = { title: string; url: string; icon: LucideIcon; end?: boolean };
+type Sub = { title: string; url: string; icon: LucideIcon; end?: boolean; badge?: string };
 type Item =
   | { kind: "link"; title: string; url: string; icon: LucideIcon; end?: boolean; home?: boolean }
   | { kind: "group"; title: string; icon: LucideIcon; prefixes: string[]; items: Sub[]; hubUrl?: string };
@@ -33,8 +33,9 @@ type Item =
  * `src/config/dpNavigation.tsx`.
  */
 function toSub(item: DpNavItem): Sub {
-  return { title: item.label, url: item.to, icon: item.icon, end: item.end };
+  return { title: item.label, url: item.to, icon: item.icon, end: item.end, badge: item.badge };
 }
+
 
 function toGroup(group: DpNavGroup): Item {
   return {
