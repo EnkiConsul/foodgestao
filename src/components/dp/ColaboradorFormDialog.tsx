@@ -137,7 +137,12 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       vale_transporte: !!c.vale_transporte,
       vale_transporte_valor_dia:
         c.vale_transporte_valor_dia != null ? String(c.vale_transporte_valor_dia).replace(".", ",") : "",
-      beneficios: {},
+      beneficios: Object.fromEntries(
+        (atribuicoes ?? [])
+          .filter((a: any) => a.colaborador_id === c.id && a.ativo)
+          .map((a: any) => [a.beneficio_id, true]),
+      ),
+
     });
     setForm({
 
