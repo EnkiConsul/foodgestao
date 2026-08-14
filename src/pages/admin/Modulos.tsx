@@ -14,9 +14,24 @@ import { MODULES, statusLabel, type AppModule, type ModuleStatus, MODULE_BY_SLUG
 import { ModulosCatalogoCard } from "@/components/admin/ModulosCatalogoCard";
 
 interface CompanyRow { id: string; name: string; trade_name: string | null }
-interface ModuleRow { id: string; company_id: string; module: AppModule; status: ModuleStatus }
+interface ModuleRow {
+  id: string;
+  company_id: string;
+  module: AppModule;
+  status: ModuleStatus;
+  starts_at: string | null;
+  ends_at: string | null;
+  trial_iniciado_em: string | null;
+  trial_termina_em: string | null;
+}
 
 const STATUS_OPTIONS: ModuleStatus[] = ["not_contracted", "trial", "active", "suspended", "canceled"];
+
+function formatDate(value: string | null): string | null {
+  if (!value) return null;
+  return new Date(value).toLocaleDateString("pt-BR");
+}
+
 
 export default function AdminModulos() {
   const [search, setSearch] = useState("");
