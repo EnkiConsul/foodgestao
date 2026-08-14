@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Clock, AlertTriangle, Info } from "lucide-react";
+import { Clock, AlertTriangle, Info, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,12 +13,19 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import {
   CATEGORIAS_TURNO, CORES_TURNO, DEFAULT_INTERVALOS,
-  cargaLiquidaHoras, formatarFaixaTurno, sugerirCategoria, turnoTemErro, validarTurno,
+  cargaLiquidaHoras, formatarFaixaTurno, intervaloAbaixoDoLegal, nomeSugeridoTurno,
+  sugerirCategoria, turnoTemErro, validarTurno,
 } from "@/lib/dp/turno-utils";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
-import { TURNO_FORM_DEFAULT, type DpTurnoForm } from "@/hooks/useDpTurnos";
+import { TURNO_FORM_DEFAULT, type CienciaTurno, type DpTurnoForm } from "@/hooks/useDpTurnos";
+
+export interface TurnoSubmitPayload {
+  form: DpTurnoForm;
+  ciencia?: CienciaTurno | null;
+}
 
 interface TurnoFormProps {
   open: boolean;
@@ -27,7 +34,7 @@ interface TurnoFormProps {
   unidades: { id: string; nome: string }[];
   saving?: boolean;
   titulo: string;
-  onSubmit: (form: DpTurnoForm) => void;
+  onSubmit: (payload: TurnoSubmitPayload) => void;
 }
 
 const SEM_UNIDADE = "__todas__";
@@ -36,22 +43,49 @@ export function TurnoForm({
   open, onOpenChange, initial, unidades, saving, titulo, onSubmit,
 }: TurnoFormProps) {
   const [form, setForm] = useState<DpTurnoForm>(initial ?? TURNO_FORM_DEFAULT);
+  const [apelidoAberto, setApelidoAberto] = useState(false);
+  const [cienciaAberta, setCienciaAberta] = useState(false);
 
   useEffect(() => {
-    if (open) setForm(initial ?? TURNO_FORM_DEFAULT);
+    if (open) {
+      const base = initial ?? TURNO_FORM_DEFAULT;
+      setForm(base);
+      setApelidoAberto(!!base.nome?.trim());
+      setCienciaAberta(false);
+    }
   }, [open, initial]);
 
   const set = <K extends keyof DpTurnoForm>(k: K, v: DpTurnoForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  const validacoes = useMemo(() => validarTurno(form), [form]);
+  const categoria = form.categoria ?? sugerirCategoria(form.entrada);
+  const nomeAutomatico = nomeSugeridoTurno(categoria, form.entrada, form.saida);
+  const nomeFinal = form.nome?.trim() ? form.nome.trim() : nomeAutomatico;
+
+  const validacoes = useMemo(
+    () => validarTurno({ ...form, nome: nomeFinal }),
+    [form, nomeFinal],
+  );
   const erros = validacoes.filter((v) => v.nivel === "erro");
-  const avisos = validacoes.filter((v) => v.nivel === "aviso");
+  // O intervalo abaixo do mínimo legal tem tratamento próprio (ciência registrada).
+  const avisos = validacoes.filter((v) => v.nivel === "aviso" && v.campo !== "intervalo_minutos");
   const carga = cargaLiquidaHoras(form);
+  const alertaIntervalo = useMemo(() => intervaloAbaixoDoLegal(form), [form]);
+
+  const construir = (): DpTurnoForm => ({ ...form, nome: nomeFinal, categoria });
 
   const submit = () => {
     if (turnoTemErro(validacoes)) return;
-    onSubmit({ ...form, categoria: form.categoria ?? sugerirCategoria(form.entrada) });
+    if (alertaIntervalo) {
+      setCienciaAberta(true);
+      return;
+    }
+    onSubmit({ form: construir() });
+  };
+
+  const confirmarCiencia = (justificativa: string) => {
+    setCienciaAberta(false);
+    onSubmit({ form: construir(), ciencia: { confirmada: true, justificativa } });
   };
 
   return (
@@ -69,14 +103,18 @@ export function TurnoForm({
 
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
           <div className="space-y-1.5">
-            <Label htmlFor="turno-nome">Nome do turno</Label>
-            <Input
-              id="turno-nome"
-              value={form.nome}
-              onChange={(e) => set("nome", e.target.value)}
-              placeholder="Ex.: Jantar, Abertura, Delivery"
-              className="h-11"
-            />
+            <Label>Categoria do turno</Label>
+            <Select value={categoria} onValueChange={(v) => set("categoria", v)}>
+              <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {CATEGORIAS_TURNO.map((c) => (
+                  <SelectItem key={c.v} value={c.v}>{c.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              O nome do turno é gerado por aqui: <span className="font-medium text-foreground">{nomeAutomatico}</span>
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -139,6 +177,19 @@ export function TurnoForm({
             </p>
           </div>
 
+          {alertaIntervalo && (
+            <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-3">
+              <p className="flex items-center gap-2 text-sm font-medium text-destructive">
+                <ShieldAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
+                Intervalo abaixo do mínimo legal
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">{alertaIntervalo.mensagem}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Ao salvar, será solicitada a confirmação de ciência do responsável, registrada no histórico de regras.
+              </p>
+            </div>
+          )}
+
           {avisos.map((a) => (
             <p key={a.mensagem} className="flex items-start gap-2 text-xs text-amber-600">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
@@ -152,36 +203,20 @@ export function TurnoForm({
             </p>
           ))}
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Categoria</Label>
-              <Select
-                value={form.categoria ?? sugerirCategoria(form.entrada)}
-                onValueChange={(v) => set("categoria", v)}
-              >
-                <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CATEGORIAS_TURNO.map((c) => (
-                    <SelectItem key={c.v} value={c.v}>{c.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Unidade</Label>
-              <Select
-                value={form.unidade_id ?? SEM_UNIDADE}
-                onValueChange={(v) => set("unidade_id", v === SEM_UNIDADE ? null : v)}
-              >
-                <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={SEM_UNIDADE}>Todas as unidades</SelectItem>
-                  {unidades.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-1.5">
+            <Label>Unidade</Label>
+            <Select
+              value={form.unidade_id ?? SEM_UNIDADE}
+              onValueChange={(v) => set("unidade_id", v === SEM_UNIDADE ? null : v)}
+            >
+              <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SEM_UNIDADE}>Todas as unidades</SelectItem>
+                {unidades.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-1.5">
@@ -203,28 +238,30 @@ export function TurnoForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          {apelidoAberto ? (
             <div className="space-y-1.5">
-              <Label htmlFor="turno-vig-ini">Vigência início</Label>
+              <Label htmlFor="turno-apelido">Apelido (opcional)</Label>
               <Input
-                id="turno-vig-ini"
-                type="date"
-                value={form.vigencia_inicio ?? ""}
-                onChange={(e) => set("vigencia_inicio", e.target.value || null)}
+                id="turno-apelido"
+                value={form.nome ?? ""}
+                onChange={(e) => set("nome", e.target.value)}
+                placeholder={nomeAutomatico}
                 className="h-11"
               />
+              <p className="text-xs text-muted-foreground">
+                Útil quando há dois turnos da mesma categoria (ex.: Jantar Salão e Jantar Delivery).
+              </p>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="turno-vig-fim">Vigência fim</Label>
-              <Input
-                id="turno-vig-fim"
-                type="date"
-                value={form.vigencia_fim ?? ""}
-                onChange={(e) => set("vigencia_fim", e.target.value || null)}
-                className="h-11"
-              />
-            </div>
-          </div>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-9 px-2 text-xs"
+              onClick={() => setApelidoAberto(true)}
+            >
+              Personalizar nome
+            </Button>
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="turno-desc">Observações</Label>
@@ -257,6 +294,15 @@ export function TurnoForm({
           </div>
         </div>
       </DialogContent>
+
+      <CienciaLegalDialog
+        open={cienciaAberta}
+        alertas={alertaIntervalo ? [{ campo: alertaIntervalo.campo, mensagem: alertaIntervalo.mensagem }] : []}
+        titulo="Intervalo abaixo do mínimo legal (art. 71 da CLT)"
+        onCancel={() => setCienciaAberta(false)}
+        onConfirm={confirmarCiencia}
+        confirming={saving}
+      />
     </Dialog>
   );
 }
