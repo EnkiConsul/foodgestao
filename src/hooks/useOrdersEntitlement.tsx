@@ -25,14 +25,17 @@ export function useOrdersEntitlement(
     enabled,
     staleTime: 30_000,
     queryFn: async (): Promise<OrdersEntitlement> => {
-      const { data, error } = await supabase.rpc("can_use_orders_module", {
+      // Caso especial do motor genérico de módulos (`can_use_module`).
+      const { data, error } = await supabase.rpc("can_use_module", {
         p_company_id: selectedCompanyId!,
+        p_module: "pedidos",
         p_operation: operation,
       });
       if (error) throw error;
       return { ...DENIED_ENTITLEMENT, ...(data as object) } as OrdersEntitlement;
     },
   });
+
 
   const entitlement: OrdersEntitlement = query.data ?? {
     ...DENIED_ENTITLEMENT,
