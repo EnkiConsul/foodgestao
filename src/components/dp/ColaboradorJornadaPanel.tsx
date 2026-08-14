@@ -275,16 +275,20 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
     }
     if (bloqueado) { toast.error("Corrija os pontos indicados antes de salvar."); return; }
     try {
+      const diasResolvidos = await resolverDias();
       await salvar.mutateAsync({
         unidade_id: unidadeId === "none" ? null : unidadeId,
         turno_padrao_id: turnoPadraoId === "none" ? null : turnoPadraoId,
         folga_variavel: folgaVariavel,
-        folga_fixa_dow: null,
+        folga_fixa_dow: folgaVariavel ? null : folgaFixaDow,
         observacoes: obs.trim() || null,
         vigencia_inicio: inicio,
-        dias,
+        dias: diasResolvidos,
       });
+      setDias(diasResolvidos);
+      setOverrides({});
       toast.success("Configuração de trabalho salva");
+
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível salvar a configuração");
     }
