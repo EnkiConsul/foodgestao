@@ -46,13 +46,30 @@ export const DP_ROUTE_MODULES: DpRouteModuleRule[] = [
  */
 export const MODULOS_EM_DESENVOLVIMENTO: AppModule[] = ["ponto", "folha"];
 
+/**
+ * Rotas pausadas individualmente (não pertencem a um módulo comercial pausado).
+ * Para liberar, remova a rota desta lista.
+ */
+export const ROTAS_EM_DESENVOLVIMENTO: string[] = ["/dp/conformidade"];
+
 export function isModuleEmDesenvolvimento(module: AppModule): boolean {
   return MODULOS_EM_DESENVOLVIMENTO.includes(module);
 }
 
-/** A rota pertence a um módulo pausado? */
+/** A rota está pausada individualmente? */
+export function isRotaEmDesenvolvimento(pathname: string): boolean {
+  const path = pathname.replace(/\/+$/, "") || "/";
+  return ROTAS_EM_DESENVOLVIMENTO.some(
+    (rota) => path === rota || path.startsWith(`${rota}/`),
+  );
+}
+
+/** A rota pertence a um módulo pausado (ou está pausada individualmente)? */
 export function isDpRouteEmDesenvolvimento(pathname: string): boolean {
-  return isModuleEmDesenvolvimento(moduleForDpRoute(pathname));
+  return (
+    isRotaEmDesenvolvimento(pathname) ||
+    isModuleEmDesenvolvimento(moduleForDpRoute(pathname))
+  );
 }
 
 
