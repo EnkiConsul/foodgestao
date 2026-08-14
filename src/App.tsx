@@ -12,6 +12,8 @@ import { usePageviewTracking } from "@/hooks/usePageviewTracking";
 import { ModuleGuard } from "@/components/modules/ModuleGuard";
 import { ModulePlaceholder } from "@/components/modules/ModulePlaceholder";
 import { DpLayout } from "@/components/dp/DpLayout";
+import { ModuloEmDesenvolvimentoGate } from "@/components/dp/ModuloEmDesenvolvimentoGate";
+
 import { ColaboradorShell } from "./components/dp/ColaboradorShell";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
