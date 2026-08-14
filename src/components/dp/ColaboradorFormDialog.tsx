@@ -501,6 +501,14 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           </div>
 
 
+          {/* Remuneração e benefícios — base da folha de pagamento */}
+          <RemuneracaoFields
+            value={rem}
+            onChange={patchRem}
+            salarioCargo={salarioCargo}
+            cargoInsalubre={!!cargoSelecionado?.insalubridade || !!cargoSelecionado?.periculosidade}
+            beneficios={beneficios}
+          />
 
 
           {/* Folha de ponto (condicional) */}
