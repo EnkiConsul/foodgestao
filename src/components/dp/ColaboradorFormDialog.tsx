@@ -359,7 +359,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
     try {
       const colaboradorId = await upsert.mutateAsync({
-        id: colaborador?.id,
+        id: colaborador?.id ?? criadoId ?? undefined,
         nome: form.nome.trim(),
         cpf: form.cpf.replace(/\D/g, "") || null,
         matricula: form.matricula.trim() || null,
@@ -389,6 +389,21 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         adicional_percentual: adicionalNum,
         vale_transporte: rem.vale_transporte,
         vale_transporte_valor_dia: rem.vale_transporte ? vtDiaNum : null,
+
+        // Base de cálculo do valor da hora/dia
+        base_salarial: usaBaseCalculo ? numeroBR(rem.base_salarial) || null : null,
+        base_horas_mes: numeroBR(rem.base_horas_mes) || BASE_HORAS_MES_PADRAO,
+        base_dias_mes: numeroBR(rem.base_dias_mes) || BASE_DIAS_MES_PADRAO,
+        valor_hora_manual: usaBaseCalculo ? rem.valor_hora_manual : false,
+
+        // Assiduidade e pontualidade
+        premio_assiduidade: rem.premio_assiduidade,
+        premio_assiduidade_valor: rem.premio_assiduidade ? premioNum || null : null,
+        assiduidade_criterio: rem.premio_assiduidade ? rem.assiduidade_criterio : null,
+        assiduidade_tolerancia_min: Math.max(0, Math.trunc(numeroBR(rem.assiduidade_tolerancia_min))),
+        assiduidade_max_atrasos: rem.premio_assiduidade
+          ? Math.max(0, Math.trunc(numeroBR(rem.assiduidade_max_atrasos)))
+          : null,
         ...(isDesligado
           ? {
               data_desligamento: form.data_desligamento,
@@ -400,6 +415,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             }
           : {}),
       } as any);
+
 
       // Sincroniza a ficha de benefícios marcada no cadastro.
       const hoje = new Date().toISOString().slice(0, 10);
