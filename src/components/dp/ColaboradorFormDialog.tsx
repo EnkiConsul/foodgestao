@@ -22,9 +22,11 @@ import {
 } from "@/components/dp/RemuneracaoFields";
 import {
   formaPagamentoPadrao,
+  remuneracaoPendente,
   permiteAdiantamento as permiteAdiantamentoRemuneracao,
   type FormaPagamento,
 } from "@/lib/dp/remuneracao";
+
 
 
 
