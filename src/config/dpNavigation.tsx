@@ -231,7 +231,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
 ];
 
 const ADMIN_DIRECT: DpNavItem[] = [
-  { label: "Conformidade", to: "/dp/conformidade", icon: ShieldCheck, end: true, badge: "Em breve" },
+  { label: "SESMT", to: "/dp/conformidade", icon: ShieldCheck, end: true, badge: "Em breve" },
   { label: "Analytics de RH", to: "/dp/analytics", icon: BarChart3, shortcut: true, shortLabel: "Analytics" },
   { label: "Configurações do DP", to: "/dp/configuracoes", icon: Settings },
 ];
