@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { contratoPolicy, isIntermitente } from "@/lib/dp/contrato-policy";
+import {
+  contratoPolicy,
+  isIntermitente,
+  formasPagamentoDoRegime,
+  formaPagamentoValida,
+} from "@/lib/dp/contrato-policy";
 
 describe("contratoPolicy", () => {
   it("trata CLT como jornada obrigatória com validações celetistas", () => {
