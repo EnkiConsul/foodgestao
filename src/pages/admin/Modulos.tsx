@@ -139,7 +139,7 @@ export default function AdminModulos() {
               </TableHeader>
               <TableBody>
                 {filtered.map((c) => {
-                  const mods = modulesByCompany.get(c.id) ?? ({} as Record<AppModule, ModuleStatus>);
+                  const mods = modulesByCompany.get(c.id) ?? {};
                   return (
                     <TableRow key={c.id}>
                       <TableCell>
@@ -147,9 +147,12 @@ export default function AdminModulos() {
                         {c.trade_name && <div className="text-xs text-muted-foreground">{c.trade_name}</div>}
                       </TableCell>
                       {MODULES.map((m) => {
-                        const status = mods[m.slug] ?? "not_contracted";
+                        const row = mods[m.slug];
+                        const status: ModuleStatus = row?.status ?? "not_contracted";
+                        const trialEnd = formatDate(row?.trial_termina_em ?? null);
+                        const startedAt = formatDate(row?.starts_at ?? null);
                         return (
-                          <TableCell key={m.slug}>
+                          <TableCell key={m.slug} className="align-top">
                             <Select
                               value={status}
                               onValueChange={(val) =>
@@ -167,9 +170,19 @@ export default function AdminModulos() {
                                 ))}
                               </SelectContent>
                             </Select>
+                            <div className="mt-1 space-y-0.5 text-[10px] leading-tight text-muted-foreground">
+                              {startedAt && <div>Início: {startedAt}</div>}
+                              {trialEnd && <div>Teste até {trialEnd}</div>}
+                              {row?.trial_iniciado_em && <div>Teste já utilizado</div>}
+                              {m.parent && <div>Requer {MODULE_BY_SLUG[m.parent].shortName}</div>}
+                            </div>
                           </TableCell>
                         );
                       })}
+                    </TableRow>
+                  );
+                })}
+
                     </TableRow>
                   );
                 })}
