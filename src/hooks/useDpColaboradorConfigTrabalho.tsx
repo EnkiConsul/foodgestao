@@ -67,6 +67,41 @@ export function useDpColaboradorConfigTrabalho(colaboradorId?: string | null) {
       if (!colaboradorId) throw new Error("Colaborador não informado.");
 
       const aberta = (query.data ?? []).find((c) => !c.vigencia_fim);
+
+      // Mesma vigência da configuração em aberto: corrige a versão atual em vez
+      // de criar uma nova (evita histórico duplicado ao ajustar dias/turnos).
+      if (aberta && aberta.vigencia_inicio === form.vigencia_inicio) {
+        const { error } = await supabase
+          .from("dp_colaborador_config_trabalho")
+          .update({
+            unidade_id: form.unidade_id,
+            turno_padrao_id: form.turno_padrao_id,
+            folga_variavel: form.folga_variavel,
+            folga_fixa_dow: form.folga_variavel ? null : form.folga_fixa_dow,
+            observacoes: form.observacoes,
+          })
+          .eq("id", aberta.id);
+        if (error) throw error;
+
+        const { error: errDel } = await supabase
+          .from("dp_colaborador_config_dias")
+          .delete()
+          .eq("config_id", aberta.id);
+        if (errDel) throw errDel;
+
+        const { error: errDias } = await supabase.from("dp_colaborador_config_dias").insert(
+          form.dias.map((d) => ({
+            company_id: selectedCompanyId,
+            config_id: aberta.id,
+            dow: d.dow,
+            trabalha: d.trabalha,
+            turno_id: d.turno_id,
+          })),
+        );
+        if (errDias) throw errDias;
+        return { id: aberta.id };
+      }
+
       if (aberta) {
         const fim = diaAnterior(form.vigencia_inicio);
         const { error } = await supabase
@@ -75,6 +110,7 @@ export function useDpColaboradorConfigTrabalho(colaboradorId?: string | null) {
           .eq("id", aberta.id);
         if (error) throw error;
       }
+
 
       const { data, error } = await supabase
         .from("dp_colaborador_config_trabalho")
