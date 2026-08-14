@@ -167,19 +167,28 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       possui_folha_ponto: c.possui_folha_ponto ?? false,
       optante_adiantamento: c.optante_adiantamento ?? false,
     });
-  }, [open, colaborador]);
+  }, [open, colaborador, atribuicoes]);
 
   const unidadeSelecionada = (unidades.data ?? []).find((u) => u.id === form.unidade_id) as any;
+  const cargoSelecionado = (cargos.data ?? []).find((c) => c.id === form.cargo_id) as any;
+  const salarioCargo = cargoSelecionado?.salario_base ?? null;
+
+  // Adiantamento depende do contrato e da forma de pagamento (intermitente não tem).
+  const permiteAdiantamento =
+    policy.permiteAdiantamento &&
+    permiteAdiantamentoRemuneracao(VINCULO_TO_REGIME[form.tipo_vinculo], rem.forma_pagamento);
 
   useEffect(() => {
-    if (!policy.permiteAdiantamento) {
+    if (!permiteAdiantamento) {
       setForm((f) => (f.optante_adiantamento ? { ...f, optante_adiantamento: false } : f));
       return;
     }
     if (unidadeSelecionada?.tem_adiantamento && !isEdit) {
       setForm((f) => (f.optante_adiantamento ? f : { ...f, optante_adiantamento: true }));
     }
-  }, [unidadeSelecionada?.tem_adiantamento, isEdit, policy.permiteAdiantamento]);
+  }, [unidadeSelecionada?.tem_adiantamento, isEdit, permiteAdiantamento]);
+
+
 
   const submit = async () => {
     if (!form.nome.trim()) { toast.error("Nome é obrigatório"); return; }
