@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
+import { ColaboradorJornadaPanel } from "@/components/dp/ColaboradorJornadaPanel";
 import {
   RemuneracaoFields,
   remuneracaoBlank,
@@ -27,8 +29,12 @@ import {
   ajustarFormaPagamento,
   remuneracaoPendente,
   permiteAdiantamento as permiteAdiantamentoRemuneracao,
+  BASE_HORAS_MES_PADRAO,
+  BASE_DIAS_MES_PADRAO,
   type FormaPagamento,
+  type AssiduidadeCriterio,
 } from "@/lib/dp/remuneracao";
+
 
 
 
@@ -123,6 +129,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const [form, setForm] = useState(blank);
   const { selectedCompanyId } = useCompanyContext();
   const [cienciaAberta, setCienciaAberta] = useState(false);
+  const [tab, setTab] = useState<"dados" | "jornada" | "remuneracao">("dados");
+  /** Id do colaborador recém-criado — permite salvar a jornada sem sair do cadastro. */
+  const [criadoId, setCriadoId] = useState<string | null>(null);
   // Ciência do risco jurídico do vínculo sem registro, válida para este salvamento.
   const cienciaConfirmada = useRef<{ justificativa: string } | null>(null);
 
@@ -139,6 +148,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   useEffect(() => {
     if (!open) return;
     cienciaConfirmada.current = null;
+    setTab("dados");
+    setCriadoId(null);
     const c = (colaborador ?? {}) as any;
     const regime = c.regime ? String(c.regime) : "clt";
     setRem({
@@ -161,8 +172,18 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           .filter((a: any) => a.colaborador_id === c.id && a.ativo)
           .map((a: any) => [a.beneficio_id, true]),
       ),
-
+      base_salarial: c.base_salarial != null ? String(c.base_salarial).replace(".", ",") : "",
+      base_horas_mes: String(c.base_horas_mes ?? BASE_HORAS_MES_PADRAO),
+      base_dias_mes: String(c.base_dias_mes ?? BASE_DIAS_MES_PADRAO),
+      valor_hora_manual: !!c.valor_hora_manual,
+      premio_assiduidade: !!c.premio_assiduidade,
+      premio_assiduidade_valor:
+        c.premio_assiduidade_valor != null ? String(c.premio_assiduidade_valor).replace(".", ",") : "",
+      assiduidade_criterio: (c.assiduidade_criterio ?? "sem_faltas_sem_atrasos") as AssiduidadeCriterio,
+      assiduidade_tolerancia_min: String(c.assiduidade_tolerancia_min ?? 10),
+      assiduidade_max_atrasos: String(c.assiduidade_max_atrasos ?? 2),
     });
+
     setForm({
 
       nome: c.nome ?? "",
@@ -330,6 +351,15 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       return;
     }
 
+    // Base de cálculo só se aplica a horista/diarista.
+    const usaBaseCalculo = rem.forma_pagamento === "horista" || rem.forma_pagamento === "diarista";
+    const premioNum = numeroBR(rem.premio_assiduidade_valor);
+    if (rem.premio_assiduidade && premioNum <= 0) {
+      toast.error("Informe o valor do prêmio de assiduidade");
+      return;
+    }
+
+
     // Vínculo sem registro em carteira exige ciência formal do risco jurídico.
     if (policy.exigeCienciaLegal && !cienciaConfirmada.current) {
       setCienciaAberta(true);
@@ -338,7 +368,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
     try {
       const colaboradorId = await upsert.mutateAsync({
-        id: colaborador?.id,
+        id: colaborador?.id ?? criadoId ?? undefined,
         nome: form.nome.trim(),
         cpf: form.cpf.replace(/\D/g, "") || null,
         matricula: form.matricula.trim() || null,
@@ -368,6 +398,21 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         adicional_percentual: adicionalNum,
         vale_transporte: rem.vale_transporte,
         vale_transporte_valor_dia: rem.vale_transporte ? vtDiaNum : null,
+
+        // Base de cálculo do valor da hora/dia
+        base_salarial: usaBaseCalculo ? numeroBR(rem.base_salarial) || null : null,
+        base_horas_mes: numeroBR(rem.base_horas_mes) || BASE_HORAS_MES_PADRAO,
+        base_dias_mes: numeroBR(rem.base_dias_mes) || BASE_DIAS_MES_PADRAO,
+        valor_hora_manual: usaBaseCalculo ? rem.valor_hora_manual : false,
+
+        // Assiduidade e pontualidade
+        premio_assiduidade: rem.premio_assiduidade,
+        premio_assiduidade_valor: rem.premio_assiduidade ? premioNum || null : null,
+        assiduidade_criterio: rem.premio_assiduidade ? rem.assiduidade_criterio : null,
+        assiduidade_tolerancia_min: Math.max(0, Math.trunc(numeroBR(rem.assiduidade_tolerancia_min))),
+        assiduidade_max_atrasos: rem.premio_assiduidade
+          ? Math.max(0, Math.trunc(numeroBR(rem.assiduidade_max_atrasos)))
+          : null,
         ...(isDesligado
           ? {
               data_desligamento: form.data_desligamento,
@@ -379,6 +424,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             }
           : {}),
       } as any);
+
 
       // Sincroniza a ficha de benefícios marcada no cadastro.
       const hoje = new Date().toISOString().slice(0, 10);
@@ -402,8 +448,18 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         });
       }
 
-      toast.success(isEdit ? "Colaborador atualizado" : "Colaborador cadastrado");
-      onOpenChange(false);
+      if (isEdit || criadoId) {
+        toast.success("Colaborador atualizado");
+        onOpenChange(false);
+        return;
+      }
+
+      // Cadastro novo: o registro passa a existir, então a jornada já pode ser
+      // gravada sem sair da tela — levamos o administrador para a aba de turno.
+      setCriadoId(colaboradorId);
+      setTab("jornada");
+      toast.success("Colaborador cadastrado — defina o turno e a jornada");
+
     } catch (e) {
       toast.error("Erro ao salvar", { description: e instanceof Error ? e.message : String(e) });
     }
@@ -412,10 +468,20 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar Colaborador" : "Novo Colaborador"}</DialogTitle>
         </DialogHeader>
+
+        <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="w-full">
+          <TabsList className="w-full justify-start overflow-x-auto">
+            <TabsTrigger value="dados">Dados</TabsTrigger>
+            <TabsTrigger value="jornada">Turno &amp; Jornada</TabsTrigger>
+            <TabsTrigger value="remuneracao">Remuneração</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="dados" className="mt-0">
+
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
           {/* Nome */}
@@ -567,17 +633,6 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           </div>
 
 
-          {/* Remuneração e benefícios — base da folha de pagamento */}
-          <RemuneracaoFields
-            value={rem}
-            onChange={patchRem}
-            salarioCargo={salarioCargo}
-            cargoInsalubre={!!cargoSelecionado?.insalubridade || !!cargoSelecionado?.periculosidade}
-            regime={regimeSelecionado}
-            beneficios={beneficios}
-          />
-
-
           {/* Folha de ponto (condicional) */}
           {unidadeSelecionada?.possui_relogio_ponto && (
             <div className="col-span-2 flex items-center gap-3 rounded-xl border border-border p-3">
@@ -590,27 +645,6 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             </div>
           )}
 
-          {/* Adiantamento — apenas para contratos com salário mensal em folha */}
-          {permiteAdiantamento ? (
-            <div className="col-span-2 flex items-center gap-3 rounded-xl border border-border p-3">
-              <Switch
-                id="optante_adiantamento"
-                checked={form.optante_adiantamento}
-                onCheckedChange={(v) => setForm({ ...form, optante_adiantamento: v })}
-              />
-              <Label htmlFor="optante_adiantamento" className="cursor-pointer">Opta por Adiantamento Salarial</Label>
-              {unidadeSelecionada?.tem_adiantamento && unidadeSelecionada?.dia_adiantamento && (
-                <span className="text-xs text-muted-foreground ml-auto">
-                  Dia do adiantamento: {unidadeSelecionada.dia_adiantamento}
-                </span>
-              )}
-            </div>
-          ) : (
-            <p className="col-span-2 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-              <strong className="text-foreground">Adiantamento salarial não se aplica.</strong>{" "}
-              {policy.adiantamentoHint}
-            </p>
-          )}
 
           {/* Desligamento (editável quando o colaborador está desligado) */}
           {isDesligado && (
@@ -681,16 +715,71 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
               </div>
             </div>
           )}
-        </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="jornada" className="mt-4">
+            <ColaboradorJornadaPanel
+              colaborador={
+                colaborador?.id || criadoId
+                  ? {
+                      id: colaborador?.id ?? criadoId,
+                      nome: form.nome,
+                      regime: regimeSelecionado,
+                      unidade_id: form.unidade_id || null,
+                    }
+                  : { id: null, nome: form.nome, regime: regimeSelecionado, unidade_id: form.unidade_id || null }
+              }
+              active={tab === "jornada"}
+            />
+          </TabsContent>
+
+          <TabsContent value="remuneracao" className="mt-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {/* Remuneração e benefícios — base da folha de pagamento */}
+              <RemuneracaoFields
+                value={rem}
+                onChange={patchRem}
+                salarioCargo={salarioCargo}
+                cargoInsalubre={!!cargoSelecionado?.insalubridade || !!cargoSelecionado?.periculosidade}
+                regime={regimeSelecionado}
+                beneficios={beneficios}
+              />
+
+              {/* Adiantamento — apenas para contratos com salário mensal em folha */}
+              {permiteAdiantamento ? (
+                <div className="col-span-2 flex items-center gap-3 rounded-xl border border-border p-3">
+                  <Switch
+                    id="optante_adiantamento"
+                    checked={form.optante_adiantamento}
+                    onCheckedChange={(v) => setForm({ ...form, optante_adiantamento: v })}
+                  />
+                  <Label htmlFor="optante_adiantamento" className="cursor-pointer">Opta por Adiantamento Salarial</Label>
+                  {unidadeSelecionada?.tem_adiantamento && unidadeSelecionada?.dia_adiantamento && (
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      Dia do adiantamento: {unidadeSelecionada.dia_adiantamento}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <p className="col-span-2 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                  <strong className="text-foreground">Adiantamento salarial não se aplica.</strong>{" "}
+                  {policy.adiantamentoHint}
+                </p>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={upsert.isPending}>
-            Cancelar
+            {criadoId ? "Concluir" : "Cancelar"}
           </Button>
           <Button onClick={submit} disabled={upsert.isPending}>
-            {upsert.isPending ? "Salvando..." : isEdit ? "Atualizar" : "Criar"}
+            {upsert.isPending ? "Salvando..." : isEdit || criadoId ? "Atualizar" : "Criar"}
           </Button>
         </DialogFooter>
+
       </DialogContent>
 
       <CienciaLegalDialog

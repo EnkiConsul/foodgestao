@@ -151,5 +151,112 @@ export function remuneracaoPendente(r: RemuneracaoColaborador): string | null {
     : "Salário base não informado (colaborador e cargo)";
 }
 
+// ------------------------------------------------------------------
+// Base de cálculo do valor da hora / do dia
+// ------------------------------------------------------------------
+
+/** Bases de horas mensais usualmente praticadas (220h = 44h semanais). */
+export const BASES_HORAS_MES = [220, 200, 180, 150, 120];
+
+/** Base de horas mensais padrão quando o administrador não informa. */
+export const BASE_HORAS_MES_PADRAO = 220;
+
+/** Base de dias mensais padrão para diaristas. */
+export const BASE_DIAS_MES_PADRAO = 30;
+
+/**
+ * Valor da hora derivado da base salarial informada no cadastro
+ * (base salarial ÷ base de horas). `null` quando faltam dados.
+ */
+export function valorHoraPorBase(
+  baseSalarial?: number | null,
+  baseHoras?: number | null,
+): number | null {
+  const salario = num(baseSalarial);
+  const horas = num(baseHoras);
+  if (salario <= 0 || horas <= 0) return null;
+  return round2(salario / horas);
+}
+
+/**
+ * Valor do dia derivado da base salarial informada no cadastro
+ * (base salarial ÷ base de dias). `null` quando faltam dados.
+ */
+export function valorDiaPorBase(
+  baseSalarial?: number | null,
+  baseDias?: number | null,
+): number | null {
+  const salario = num(baseSalarial);
+  const dias = num(baseDias);
+  if (salario <= 0 || dias <= 0) return null;
+  return round2(salario / dias);
+}
+
+// ------------------------------------------------------------------
+// Assiduidade e pontualidade
+// ------------------------------------------------------------------
+
+export type AssiduidadeCriterio = "sem_faltas_sem_atrasos" | "sem_faltas" | "proporcional";
+
+export const ASSIDUIDADE_CRITERIO_LABEL: Record<AssiduidadeCriterio, string> = {
+  sem_faltas_sem_atrasos: "Sem faltas e sem atrasos",
+  sem_faltas: "Sem faltas (atrasos tolerados)",
+  proporcional: "Perde proporcional por ocorrência",
+};
+
+export const ASSIDUIDADE_CRITERIO_OPTIONS: { value: AssiduidadeCriterio; label: string }[] = [
+  { value: "sem_faltas_sem_atrasos", label: ASSIDUIDADE_CRITERIO_LABEL.sem_faltas_sem_atrasos },
+  { value: "sem_faltas", label: ASSIDUIDADE_CRITERIO_LABEL.sem_faltas },
+  { value: "proporcional", label: ASSIDUIDADE_CRITERIO_LABEL.proporcional },
+];
+
+export interface AssiduidadeConfig {
+  premio_assiduidade?: boolean | null;
+  premio_assiduidade_valor?: number | null;
+  assiduidade_criterio?: AssiduidadeCriterio | string | null;
+  assiduidade_tolerancia_min?: number | null;
+  assiduidade_max_atrasos?: number | null;
+}
+
+export interface OcorrenciasMes {
+  faltas: number;
+  /** Atrasos que ultrapassaram a tolerância diária. */
+  atrasos: number;
+  /** Dias efetivamente previstos no mês, usado no critério proporcional. */
+  diasPrevistos?: number;
+}
+
+/**
+ * Prêmio de assiduidade devido no mês conforme o critério cadastrado.
+ * Função pura — a folha (quando ativada) consome este resultado.
+ */
+export function premioAssiduidadeDevido(
+  cfg: AssiduidadeConfig,
+  oc: OcorrenciasMes,
+): number {
+  const valor = num(cfg.premio_assiduidade_valor);
+  if (!cfg.premio_assiduidade || valor <= 0) return 0;
+
+  const faltas = Math.max(0, num(oc.faltas));
+  const atrasos = Math.max(0, num(oc.atrasos));
+  const criterio = (cfg.assiduidade_criterio ?? "sem_faltas_sem_atrasos") as AssiduidadeCriterio;
+
+  if (criterio === "sem_faltas") {
+    return faltas > 0 ? 0 : valor;
+  }
+  if (criterio === "proporcional") {
+    const dias = Math.max(1, num(oc.diasPrevistos) || 22);
+    const ocorrencias = faltas + atrasos;
+    if (ocorrencias <= 0) return valor;
+    const proporcao = Math.max(0, 1 - ocorrencias / dias);
+    return round2(valor * proporcao);
+  }
+  // sem_faltas_sem_atrasos — respeita o máximo de atrasos tolerados.
+  const maxAtrasos = Math.max(0, num(cfg.assiduidade_max_atrasos));
+  if (faltas > 0) return 0;
+  return atrasos > maxAtrasos ? 0 : valor;
+}
+
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
 const round2 = (v: number) => Math.round(v * 100) / 100;
+
