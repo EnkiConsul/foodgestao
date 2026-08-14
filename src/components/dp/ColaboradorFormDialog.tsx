@@ -110,7 +110,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const upsert = useUpsertDpColaborador();
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
+  const { beneficios, atribuicoes, saveAtribuicao } = useDpBeneficios();
   const [form, setForm] = useState(blank);
+
 
   const isEdit = !!colaborador?.id;
   const isDesligado = isEdit && !!colaborador?.data_desligamento;
