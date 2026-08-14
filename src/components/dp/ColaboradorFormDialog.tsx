@@ -351,6 +351,15 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       return;
     }
 
+    // Base de cálculo só se aplica a horista/diarista.
+    const usaBaseCalculo = rem.forma_pagamento === "horista" || rem.forma_pagamento === "diarista";
+    const premioNum = numeroBR(rem.premio_assiduidade_valor);
+    if (rem.premio_assiduidade && premioNum <= 0) {
+      toast.error("Informe o valor do prêmio de assiduidade");
+      return;
+    }
+
+
     // Vínculo sem registro em carteira exige ciência formal do risco jurídico.
     if (policy.exigeCienciaLegal && !cienciaConfirmada.current) {
       setCienciaAberta(true);
