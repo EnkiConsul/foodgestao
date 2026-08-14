@@ -7,11 +7,17 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { AlertaCiencia } from "@/lib/dp/dsr-rules";
+
+/** Qualquer alerta com campo e mensagem — folga dominical, intervalo etc. */
+export interface AlertaCienciaExibivel {
+  campo: string;
+  mensagem: string;
+}
 
 interface Props {
   open: boolean;
-  alertas: AlertaCiencia[];
+  alertas: AlertaCienciaExibivel[];
+  titulo?: string;
   onCancel: () => void;
   onConfirm: (justificativa: string) => void;
   confirming?: boolean;
