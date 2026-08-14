@@ -68,9 +68,39 @@ function camposTurno(form: DpTurnoForm) {
   };
 }
 
+export interface CienciaTurno {
+  confirmada: boolean;
+  justificativa?: string | null;
+}
+
 export function useDpTurnos(unidadeId?: string | null) {
   const { selectedCompanyId } = useCompanyContext();
   const qc = useQueryClient();
+
+  /**
+   * Registra a alteração do turno em dp_regras_historico. Substitui o controle
+   * manual de vigência: toda mudança fica com autor, horário e antes/depois.
+   */
+  const registrarHistorico = async (params: {
+    registro_id: string | null;
+    valor_antigo: unknown | null;
+    valor_novo: unknown;
+    ciencia?: CienciaTurno | null;
+  }) => {
+    if (!selectedCompanyId) return;
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth?.user?.id) return;
+    await supabase.from("dp_regras_historico").insert({
+      company_id: selectedCompanyId,
+      usuario_id: auth.user.id,
+      tabela: "dp_turnos",
+      registro_id: params.registro_id,
+      valor_antigo: (params.valor_antigo ?? null) as never,
+      valor_novo: params.valor_novo as never,
+      justificativa: params.ciencia?.justificativa?.trim() || null,
+      ciencia_confirmada: !!params.ciencia?.confirmada,
+    });
+  };
 
   const query = useQuery({
     queryKey: ["dp_turnos", selectedCompanyId],
@@ -92,14 +122,16 @@ export function useDpTurnos(unidadeId?: string | null) {
   };
 
   const criar = useMutation({
-    mutationFn: async (form: DpTurnoForm) => {
+    mutationFn: async ({ form, ciencia }: { form: DpTurnoForm; ciencia?: CienciaTurno | null }) => {
       if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
+      const campos = camposTurno(form);
       const { data, error } = await supabase
         .from("dp_turnos")
-        .insert({ company_id: selectedCompanyId, ...camposTurno(form) })
+        .insert({ company_id: selectedCompanyId, ...campos })
         .select("id")
         .single();
       if (error) throw error;
+      await registrarHistorico({ registro_id: data.id, valor_antigo: null, valor_novo: campos, ciencia });
       return data;
     },
     onSuccess: invalidate,
@@ -107,9 +139,18 @@ export function useDpTurnos(unidadeId?: string | null) {
 
   /** Edita o turno no lugar — aplica-se a todas as escalas ainda não publicadas. */
   const atualizar = useMutation({
-    mutationFn: async ({ id, form }: { id: string; form: DpTurnoForm }) => {
-      const { error } = await supabase.from("dp_turnos").update(camposTurno(form)).eq("id", id);
+    mutationFn: async ({
+      id, form, anterior, ciencia,
+    }: { id: string; form: DpTurnoForm; anterior?: DpTurnoRow | null; ciencia?: CienciaTurno | null }) => {
+      const campos = camposTurno(form);
+      const { error } = await supabase.from("dp_turnos").update(campos).eq("id", id);
       if (error) throw error;
+      await registrarHistorico({
+        registro_id: id,
+        valor_antigo: anterior ? camposTurno(turnoParaForm(anterior)) : null,
+        valor_novo: campos,
+        ciencia,
+      });
     },
     onSuccess: invalidate,
   });
@@ -117,16 +158,20 @@ export function useDpTurnos(unidadeId?: string | null) {
   /**
    * Cria uma nova versão do turno preservando o histórico:
    * o turno anterior é desativado e encerrado, e a nova versão aponta para a origem.
+   * As datas de vigência são definidas pelo sistema — nunca informadas à mão.
    */
   const novaVersao = useMutation({
-    mutationFn: async ({ atual, form }: { atual: DpTurnoRow; form: DpTurnoForm }) => {
+    mutationFn: async ({
+      atual, form, ciencia,
+    }: { atual: DpTurnoRow; form: DpTurnoForm; ciencia?: CienciaTurno | null }) => {
       if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
       const hoje = new Date().toISOString().slice(0, 10);
+      const campos = camposTurno(form);
       const { data, error } = await supabase
         .from("dp_turnos")
         .insert({
           company_id: selectedCompanyId,
-          ...camposTurno(form),
+          ...campos,
           versao: (atual.versao ?? 1) + 1,
           turno_origem_id: atual.turno_origem_id ?? atual.id,
           vigencia_inicio: form.vigencia_inicio ?? hoje,
@@ -140,6 +185,12 @@ export function useDpTurnos(unidadeId?: string | null) {
         .update({ ativo: false, vigencia_fim: atual.vigencia_fim ?? hoje })
         .eq("id", atual.id);
       if (errFechar) throw errFechar;
+      await registrarHistorico({
+        registro_id: data.id,
+        valor_antigo: camposTurno(turnoParaForm(atual)),
+        valor_novo: { ...campos, versao: (atual.versao ?? 1) + 1, vigencia_inicio: form.vigencia_inicio ?? hoje },
+        ciencia,
+      });
       return data;
     },
     onSuccess: invalidate,
