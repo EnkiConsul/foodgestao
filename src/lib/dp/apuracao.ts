@@ -220,6 +220,8 @@ export interface LancamentoFolha {
   descontos: {
     faltas: number;
     dsr: number;
+    dependentes?: number;
+    extras?: { descricao: string; natureza: "provento" | "desconto"; valor: number; tributavel?: boolean }[];
     proventos: { normais: number; extras50: number; extras100: number; noturno: number };
     horas: {
       normais: number;
@@ -236,10 +238,19 @@ export interface LancamentoFolha {
 
 const round2 = (v: number) => Math.round(v * 100) / 100;
 
-/** Converte a apuração monetizada em lançamento de folha (rascunho). */
-export function apuracaoParaLancamento(linha: LinhaApuracao): LancamentoFolha | null {
+/**
+ * Converte a apuração monetizada em lançamento de folha (rascunho).
+ *
+ * `opts` traz os dados de remuneração cadastrados no colaborador:
+ * dependentes de IRRF e adicional de insalubridade/periculosidade.
+ */
+export function apuracaoParaLancamento(
+  linha: LinhaApuracao,
+  opts?: { dependentes?: number | null; adicionalPercentual?: number | null },
+): LancamentoFolha | null {
   const v = linha.rubricas.valores;
   if (!v) return null;
+
   const bruto = round2(v.normais + v.extras50 + v.extras100 + v.noturno);
   const descFaltas = round2(v.descontoFaltas);
   const descDsr = round2(v.descontoDsr);
