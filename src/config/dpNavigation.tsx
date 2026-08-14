@@ -134,9 +134,9 @@ const ADMIN_GROUPS: DpNavGroup[] = [
     icon: Fingerprint,
     matchPrefixes: ["/dp/ponto"],
     items: [
-      { label: "Espelho de Ponto", to: "/dp/ponto", icon: Fingerprint, end: true },
-      { label: "Ponto do Time", to: "/dp/ponto/time", icon: Users, end: true, shortcut: true },
-      { label: "Apuração para Folha", to: "/dp/ponto/apuracao", icon: Calculator, end: true },
+      { label: "Espelho de Ponto", to: "/dp/ponto", icon: Fingerprint, end: true, badge: "Em breve" },
+      { label: "Ponto do Time", to: "/dp/ponto/time", icon: Users, end: true, badge: "Em breve" },
+      { label: "Apuração para Folha", to: "/dp/ponto/apuracao", icon: Calculator, end: true, badge: "Em breve" },
     ],
   },
   {
@@ -149,14 +149,15 @@ const ADMIN_GROUPS: DpNavGroup[] = [
         to: "/dp/folha",
         icon: Receipt,
         end: true,
-        shortcut: true,
+        badge: "Em breve",
       },
-      { label: "Provisões de Férias e 13º", to: "/dp/folha/provisoes", icon: Palmtree, end: true },
-      { label: "Rescisões", to: "/dp/rescisoes", icon: FileSignature },
-      { label: "Relatórios da Folha", to: "/dp/folha/relatorios", icon: FileBarChart, end: true },
+      { label: "Provisões de Férias e 13º", to: "/dp/folha/provisoes", icon: Palmtree, end: true, badge: "Em breve" },
+      { label: "Rescisões", to: "/dp/rescisoes", icon: FileSignature, badge: "Em breve" },
+      { label: "Relatórios da Folha", to: "/dp/folha/relatorios", icon: FileBarChart, end: true, badge: "Em breve" },
       { label: "Benefícios", to: "/dp/beneficios", icon: Gift, shortcut: true },
     ],
   },
+
   {
     label: "Documentos",
     icon: FileText,
