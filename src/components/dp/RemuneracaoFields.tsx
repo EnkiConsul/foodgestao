@@ -5,7 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
-  FORMA_PAGAMENTO_OPTIONS,
+  formaPagamentoOptions,
   valeTransporteDoMes,
   type FormaPagamento,
 } from "@/lib/dp/remuneracao";
@@ -48,6 +48,8 @@ interface Props {
   cargoInsalubre?: boolean;
   beneficios: Beneficio[];
   cargoInsalubreHint?: string;
+  /** Regime do vínculo — restringe as formas de pagamento admitidas. */
+  regime?: string | null;
 }
 
 /**
@@ -60,8 +62,10 @@ export function RemuneracaoFields({
   salarioCargo,
   cargoInsalubre,
   beneficios,
+  regime,
 }: Props) {
   const forma = value.forma_pagamento;
+  const formaOptions = formaPagamentoOptions(regime);
   const salario = numeroBR(value.salario_base) || salarioCargo || 0;
   const vt = valeTransporteDoMes(
     {
@@ -90,7 +94,7 @@ export function RemuneracaoFields({
           >
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              {FORMA_PAGAMENTO_OPTIONS.map((o) => (
+              {formaOptions.map((o) => (
                 <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
               ))}
             </SelectContent>

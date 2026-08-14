@@ -38,7 +38,18 @@ export interface ContratoPolicy {
   permiteAdiantamento: boolean;
   /** Motivo exibido quando o adiantamento não se aplica ao contrato. */
   adiantamentoHint: string | null;
+  /** Formas de pagamento admitidas pelo contrato (ordem de exibição). */
+  formasPagamento: FormaPagamentoRegime[];
+  /** O contrato gera folha de pagamento CLT (encargos, holerite). */
+  entraEmFolha: boolean;
+  /** Exige ciência formal do risco jurídico no cadastro (sem registro em carteira). */
+  exigeCienciaLegal: boolean;
+  /** Mensagem da ciência jurídica exibida no cadastro. */
+  cienciaLegalMensagem: string | null;
 }
+
+/** Formas de pagamento do banco, repetidas aqui para evitar ciclo de import. */
+export type FormaPagamentoRegime = "mensalista" | "horista" | "diarista";
 
 const CLT_LIKE: ContratoPolicy = {
   regime: "clt",
@@ -53,6 +64,10 @@ const CLT_LIKE: ContratoPolicy = {
   jornadaHint: null,
   permiteAdiantamento: true,
   adiantamentoHint: null,
+  formasPagamento: ["mensalista", "horista", "diarista"],
+  entraEmFolha: true,
+  exigeCienciaLegal: false,
+  cienciaLegalMensagem: null,
 };
 
 const INTERMITENTE: ContratoPolicy = {
@@ -70,6 +85,34 @@ const INTERMITENTE: ContratoPolicy = {
   permiteAdiantamento: false,
   adiantamentoHint:
     "O contrato intermitente é pago por convocação, sem salário mensal fixo — não há adiantamento quinzenal.",
+  // Intermitente é pago pelas horas/dias efetivamente convocados (art. 452-A CLT):
+  // não existe salário mensal fixo.
+  formasPagamento: ["horista", "diarista"],
+  entraEmFolha: true,
+  exigeCienciaLegal: false,
+  cienciaLegalMensagem: null,
+};
+
+const FREELANCER: ContratoPolicy = {
+  regime: "freelancer",
+  label: "Freelancer (sem registro)",
+  jornadaComoDisponibilidade: true,
+  validaCargaSemanal: false,
+  exigeFolgaSemanal: false,
+  participaConformidadeDsr: false,
+  participaEscalaAutomatica: false,
+  horasPorConvocacao: true,
+  jornadaLabel: "Jornada (disponibilidade habitual)",
+  jornadaHint:
+    "Freelancer não tem jornada contratual. O que for cadastrado aqui serve apenas como disponibilidade para escala e ponto.",
+  permiteAdiantamento: false,
+  adiantamentoHint:
+    "Freelancer é pago por acerto avulso, fora da folha CLT — não há adiantamento salarial.",
+  formasPagamento: ["diarista", "horista"],
+  entraEmFolha: false,
+  exigeCienciaLegal: true,
+  cienciaLegalMensagem:
+    "Freelancer sem registro em carteira não possui vínculo formalizado. Havendo habitualidade, subordinação, pessoalidade e onerosidade, a Justiça do Trabalho pode reconhecer vínculo empregatício (arts. 2º e 3º da CLT), com recolhimento retroativo de verbas e encargos. O pagamento fica fora da folha CLT, como acerto avulso.",
 };
 
 const PJ_LIKE: ContratoPolicy = {
@@ -85,6 +128,10 @@ const PJ_LIKE: ContratoPolicy = {
   jornadaHint: null,
   permiteAdiantamento: false,
   adiantamentoHint: "Contratos PJ/MEI não entram em folha, portanto não têm adiantamento salarial.",
+  formasPagamento: ["mensalista", "diarista", "horista"],
+  entraEmFolha: false,
+  exigeCienciaLegal: false,
+  cienciaLegalMensagem: null,
 };
 
 const POLICIES: Record<RegimeTrabalho, ContratoPolicy> = {
@@ -94,6 +141,7 @@ const POLICIES: Record<RegimeTrabalho, ContratoPolicy> = {
   intermitente: INTERMITENTE,
   pj: PJ_LIKE,
   mei: { ...PJ_LIKE, regime: "mei", label: "MEI" },
+  freelancer: FREELANCER,
 };
 
 /** Política do regime informado. Regime desconhecido/ausente cai no padrão CLT. */
@@ -105,4 +153,21 @@ export function contratoPolicy(regime?: string | null): ContratoPolicy {
 /** Atalho de leitura — prefira `contratoPolicy(...)` para decidir comportamento. */
 export function isIntermitente(regime?: string | null): boolean {
   return contratoPolicy(regime).jornadaComoDisponibilidade;
+}
+
+/** Formas de pagamento admitidas pelo regime (nunca vazio). */
+export function formasPagamentoDoRegime(regime?: string | null): FormaPagamentoRegime[] {
+  const formas = contratoPolicy(regime).formasPagamento;
+  return formas.length ? formas : ["mensalista"];
+}
+
+/** Garante uma forma de pagamento válida para o regime (usa a 1ª admitida). */
+export function formaPagamentoValida(
+  regime: string | null | undefined,
+  forma?: string | null,
+): FormaPagamentoRegime {
+  const permitidas = formasPagamentoDoRegime(regime);
+  return permitidas.includes(forma as FormaPagamentoRegime)
+    ? (forma as FormaPagamentoRegime)
+    : permitidas[0];
 }

@@ -3630,6 +3630,7 @@ export type Database = {
           vale_transporte: boolean
           vale_transporte_valor_dia: number | null
           valor_hora: number | null
+          vinculo_label: string | null
           whatsapp: string | null
         }
         Insert: {
@@ -3682,6 +3683,7 @@ export type Database = {
           vale_transporte?: boolean
           vale_transporte_valor_dia?: number | null
           valor_hora?: number | null
+          vinculo_label?: string | null
           whatsapp?: string | null
         }
         Update: {
@@ -3734,6 +3736,7 @@ export type Database = {
           vale_transporte?: boolean
           vale_transporte_valor_dia?: number | null
           valor_hora?: number | null
+          vinculo_label?: string | null
           whatsapp?: string | null
         }
         Relationships: [
@@ -12967,6 +12970,7 @@ export type Database = {
         | "temporario"
         | "mei"
         | "intermitente"
+        | "freelancer"
       dp_regra_dsr: "clt" | "cct" | "propria"
       dp_sindicato_tipo: "patronal" | "laboral"
       dp_solicitacao_status: "pendente" | "aprovada" | "recusada" | "cancelada"
@@ -13484,6 +13488,7 @@ export const Constants = {
         "temporario",
         "mei",
         "intermitente",
+        "freelancer",
       ],
       dp_regra_dsr: ["clt", "cct", "propria"],
       dp_sindicato_tipo: ["patronal", "laboral"],

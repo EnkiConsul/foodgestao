@@ -7,7 +7,7 @@
 // ------------------------------------------------------------------
 
 import type { Database } from "@/integrations/supabase/types";
-import { contratoPolicy } from "./contrato-policy";
+import { contratoPolicy, formasPagamentoDoRegime, formaPagamentoValida } from "./contrato-policy";
 
 export type FormaPagamento = Database["public"]["Enums"]["dp_forma_pagamento"];
 
@@ -29,9 +29,35 @@ export const DIAS_UTEIS_MES = 22;
 /** Limite legal do desconto de vale-transporte (art. 4º, Lei 7.418/85). */
 export const VT_DESCONTO_MAXIMO = 0.06;
 
-/** Forma de pagamento sugerida pelo vínculo (intermitente é pago por hora). */
+/** Formas de pagamento oferecidas no cadastro conforme o vínculo. */
+export function formaPagamentoOptions(
+  regime?: string | null,
+): { value: FormaPagamento; label: string }[] {
+  return formasPagamentoDoRegime(regime).map((value) => ({
+    value: value as FormaPagamento,
+    label: FORMA_PAGAMENTO_LABEL[value as FormaPagamento],
+  }));
+}
+
+/** Forma de pagamento sugerida pelo vínculo (a 1ª admitida pelo contrato). */
 export function formaPagamentoPadrao(regime?: string | null): FormaPagamento {
-  return contratoPolicy(regime).horasPorConvocacao ? "horista" : "mensalista";
+  return formasPagamentoDoRegime(regime)[0] as FormaPagamento;
+}
+
+/**
+ * Ajusta a forma de pagamento ao vínculo: dados legados incompatíveis
+ * (ex.: intermitente mensalista) caem na primeira forma admitida.
+ */
+export function ajustarFormaPagamento(
+  regime?: string | null,
+  forma?: string | null,
+): FormaPagamento {
+  return formaPagamentoValida(regime, forma) as FormaPagamento;
+}
+
+/** O vínculo gera folha de pagamento CLT (freelancer/PJ ficam fora). */
+export function entraEmFolha(regime?: string | null): boolean {
+  return contratoPolicy(regime).entraEmFolha;
 }
 
 /**

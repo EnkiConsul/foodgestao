@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,8 @@ import { maskCpf, isValidCpf } from "@/lib/cpf";
 import { MOTIVO_DESLIGAMENTO_OPTIONS, ELEGIBILIDADE_OPTIONS } from "@/lib/dp/desligamento";
 import type { Database } from "@/integrations/supabase/types";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import {
   RemuneracaoFields,
   remuneracaoBlank,
@@ -22,6 +24,7 @@ import {
 } from "@/components/dp/RemuneracaoFields";
 import {
   formaPagamentoPadrao,
+  ajustarFormaPagamento,
   remuneracaoPendente,
   permiteAdiantamento as permiteAdiantamentoRemuneracao,
   type FormaPagamento,
@@ -32,14 +35,17 @@ import {
 
 type Regime = Database["public"]["Enums"]["dp_regime_trabalho"];
 
+// Rótulos do vínculo exibidos no cadastro. O comportamento legal vem sempre do
+// regime (VINCULO_TO_REGIME); o rótulo escolhido é guardado em `vinculo_label`
+// para que Sócio/PJ voltem corretamente na edição.
 const TIPOS_VINCULO: { value: string; label: string }[] = [
-  { value: "CLT", label: "CLT" },
-  { value: "Intermitente", label: "Intermitente" },
-  { value: "Socio", label: "Sócio" },
+  { value: "CLT", label: "CLT efetivo" },
+  { value: "Intermitente", label: "CLT intermitente" },
   { value: "Estagiario", label: "Estagiário" },
-  { value: "PJ", label: "PJ" },
-  { value: "Autonomo", label: "Autônomo" },
   { value: "Temporario", label: "Temporário" },
+  { value: "PJ", label: "PJ" },
+  { value: "Socio", label: "Sócio" },
+  { value: "Freelancer", label: "Freelancer (sem registro)" },
 ];
 
 // (Dropdown "Regime de Trabalho" removido: duplicava o Tipo de Vínculo e não era persistido.
@@ -52,8 +58,8 @@ const VINCULO_TO_REGIME: Record<string, Regime> = {
   Socio: "pj",
   Estagiario: "estagio",
   PJ: "pj",
-  Autonomo: "pj",
   Temporario: "temporario",
+  Freelancer: "freelancer",
 };
 
 // Mapa reverso: o banco guarda apenas `regime`, então na edição resolvemos o
@@ -65,6 +71,7 @@ const REGIME_TO_VINCULO: Record<string, string> = {
   temporario: "Temporario",
   pj: "PJ",
   mei: "PJ",
+  freelancer: "Freelancer",
 };
 
 const DIAS_SEMANA = [
@@ -114,6 +121,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const cargos = useDpCargos();
   const { beneficios, atribuicoes, saveAtribuicao } = useDpBeneficios();
   const [form, setForm] = useState(blank);
+  const { selectedCompanyId } = useCompanyContext();
+  const [cienciaAberta, setCienciaAberta] = useState(false);
+  // Ciência do risco jurídico do vínculo sem registro, válida para este salvamento.
+  const cienciaConfirmada = useRef<{ justificativa: string } | null>(null);
 
 
   const isEdit = !!colaborador?.id;
@@ -127,11 +138,17 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
   useEffect(() => {
     if (!open) return;
+    cienciaConfirmada.current = null;
     const c = (colaborador ?? {}) as any;
     const regime = c.regime ? String(c.regime) : "clt";
     setRem({
       ...remuneracaoBlank,
-      forma_pagamento: (c.forma_pagamento ?? formaPagamentoPadrao(regime)) as FormaPagamento,
+      // Dados legados incompatíveis (ex.: intermitente mensalista) são ajustados
+      // para a primeira forma admitida pelo contrato.
+      forma_pagamento: ajustarFormaPagamento(
+        regime,
+        c.forma_pagamento ?? formaPagamentoPadrao(regime),
+      ) as FormaPagamento,
       salario_base: c.salario_base != null ? String(c.salario_base).replace(".", ",") : "",
       valor_hora: c.valor_hora != null ? String(c.valor_hora).replace(".", ",") : "",
       dependentes_irrf: String(c.dependentes_irrf ?? 0),
@@ -162,7 +179,12 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       elegivel_recontratacao: c.elegivel_recontratacao ?? NONE_DESLIG,
       observacao_desligamento: c.observacao_desligamento ?? "",
       
-      tipo_vinculo: c.regime ? REGIME_TO_VINCULO[String(c.regime)] ?? "CLT" : "CLT",
+      tipo_vinculo:
+        (c.vinculo_label && TIPOS_VINCULO.some((t) => t.value === c.vinculo_label)
+          ? String(c.vinculo_label)
+          : c.regime
+            ? REGIME_TO_VINCULO[String(c.regime)] ?? "CLT"
+            : "CLT"),
       folga_fixa_semana: c.folga_fixa_semana != null ? String(c.folga_fixa_semana) : "none",
       perfil_acesso: c.perfil_acesso ?? "colaborador",
       ativo: c.ativo ?? true,
@@ -170,6 +192,18 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       optante_adiantamento: c.optante_adiantamento ?? false,
     });
   }, [open, colaborador, atribuicoes]);
+
+  const regimeSelecionado = VINCULO_TO_REGIME[form.tipo_vinculo] ?? "clt";
+
+  // Mudar o vínculo pode invalidar a forma de pagamento (ex.: intermitente não
+  // é mensalista): reconciliamos sempre pela política do contrato.
+  useEffect(() => {
+    cienciaConfirmada.current = null;
+    setRem((r) => {
+      const ajustada = ajustarFormaPagamento(regimeSelecionado, r.forma_pagamento) as FormaPagamento;
+      return ajustada === r.forma_pagamento ? r : { ...r, forma_pagamento: ajustada };
+    });
+  }, [regimeSelecionado]);
 
   const unidadeSelecionada = (unidades.data ?? []).find((u) => u.id === form.unidade_id) as any;
   const cargoSelecionado = (cargos.data ?? []).find((c) => c.id === form.cargo_id) as any;
@@ -191,6 +225,31 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   }, [unidadeSelecionada?.tem_adiantamento, isEdit, permiteAdiantamento]);
 
 
+
+  /** Registra a ciência do risco jurídico em dp_regras_historico. */
+  const registrarCiencia = async (justificativa: string) => {
+    if (!selectedCompanyId) return;
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth?.user?.id) return;
+      await supabase.from("dp_regras_historico").insert({
+        company_id: selectedCompanyId,
+        usuario_id: auth.user.id,
+        tabela: "dp_colaboradores",
+        registro_id: colaborador?.id ?? null,
+        valor_antigo: null as never,
+        valor_novo: {
+          vinculo: form.tipo_vinculo,
+          regime: regimeSelecionado,
+          nome: form.nome.trim(),
+          cpf: form.cpf.replace(/\D/g, ""),
+        } as never,
+        justificativa: justificativa || null,
+        ciencia_confirmada: true,
+      });
+    } catch { /* o cadastro não deve falhar por causa do log */ }
+  };
 
   const submit = async () => {
     if (!form.nome.trim()) { toast.error("Nome é obrigatório"); return; }
@@ -271,6 +330,12 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       return;
     }
 
+    // Vínculo sem registro em carteira exige ciência formal do risco jurídico.
+    if (policy.exigeCienciaLegal && !cienciaConfirmada.current) {
+      setCienciaAberta(true);
+      return;
+    }
+
     try {
       const colaboradorId = await upsert.mutateAsync({
         id: colaborador?.id,
@@ -280,7 +345,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         cargo: cargoNome,
         cargo_id: form.cargo_id,
         unidade_id: form.unidade_id,
-        regime: VINCULO_TO_REGIME[form.tipo_vinculo] ?? "clt",
+        regime: regimeSelecionado,
+        vinculo_label: form.tipo_vinculo,
         data_admissao: form.data_admissao || null,
         data_nascimento: form.data_nascimento || null,
         email: form.email.trim() || null,
@@ -507,6 +573,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             onChange={patchRem}
             salarioCargo={salarioCargo}
             cargoInsalubre={!!cargoSelecionado?.insalubridade || !!cargoSelecionado?.periculosidade}
+            regime={regimeSelecionado}
             beneficios={beneficios}
           />
 
@@ -625,6 +692,23 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <CienciaLegalDialog
+        open={cienciaAberta}
+        titulo="Vínculo sem registro em carteira"
+        alertas={
+          policy.cienciaLegalMensagem
+            ? [{ campo: "vinculo", mensagem: policy.cienciaLegalMensagem }]
+            : []
+        }
+        onCancel={() => setCienciaAberta(false)}
+        onConfirm={async (justificativa) => {
+          cienciaConfirmada.current = { justificativa };
+          setCienciaAberta(false);
+          await registrarCiencia(justificativa);
+          await submit();
+        }}
+      />
     </Dialog>
   );
 }
