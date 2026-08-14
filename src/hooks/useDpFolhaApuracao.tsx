@@ -38,7 +38,9 @@ export function useDpFolhaApuracao(competencia: string) {
       const [colabRes, configRes] = await Promise.all([
         supabase
           .from("dp_colaboradores")
-          .select("id, cargo_id, dp_cargos:cargo_id(salario_base)")
+          .select(
+            "id, cargo_id, forma_pagamento, salario_base, valor_hora, dependentes_irrf, adicional_percentual, dp_cargos:cargo_id(salario_base)",
+          )
           .eq("company_id", selectedCompanyId!)
           .eq("ativo", true),
         supabase
@@ -56,16 +58,25 @@ export function useDpFolhaApuracao(competencia: string) {
       }
 
       const bases = new Map<string, BaseSalarial>();
-      for (const c of colabRes.data ?? []) {
-        const cargo = (c as { dp_cargos?: { salario_base: number | null } | null }).dp_cargos;
-        const salarioBase = cargo?.salario_base ?? null;
+      for (const c of (colabRes.data ?? []) as any[]) {
         const cargaSemanalHoras = cargas.get(c.id) ?? null;
+        const remuneracao = {
+          forma_pagamento: (c.forma_pagamento ?? "mensalista") as FormaPagamento,
+          salario_base: c.salario_base ?? null,
+          valor_hora: c.valor_hora ?? null,
+          salario_cargo: c.dp_cargos?.salario_base ?? null,
+        };
         bases.set(c.id, {
-          salarioBase,
+          salarioBase: remuneracao.salario_base ?? remuneracao.salario_cargo ?? null,
           cargaSemanalHoras,
-          valorHora: valorHoraDe(salarioBase, cargaSemanalHoras),
+          valorHora: valorHoraEfetivo(remuneracao, cargaSemanalHoras),
+          formaPagamento: remuneracao.forma_pagamento,
+          dependentes: Number(c.dependentes_irrf ?? 0),
+          adicionalPercentual: Number(c.adicional_percentual ?? 0),
+          pendencia: remuneracaoPendente(remuneracao),
         });
       }
+
       return bases;
     },
   });
