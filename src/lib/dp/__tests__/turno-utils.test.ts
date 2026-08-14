@@ -3,6 +3,9 @@ import {
   cargaLiquidaHoras,
   formatarFaixaTurno,
   formatarFuncionamento,
+  intervaloAbaixoDoLegal,
+  intervaloMinimoLegal,
+  nomeSugeridoTurno,
   sugerirCategoria,
   turnoForaDoFuncionamento,
   turnoSnapshot,
@@ -77,5 +80,25 @@ describe("turno-utils", () => {
   it("formata o funcionamento do dia", () => {
     expect(formatarFuncionamento({ dia_semana: 0, aberto: false, hora_abertura: null, hora_fechamento: null, fecha_no_dia_seguinte: false })).toBe("Fechado");
     expect(formatarFuncionamento({ dia_semana: 1, aberto: true, hora_abertura: "11:00", hora_fechamento: "23:00", fecha_no_dia_seguinte: false })).toBe("11:00 → 23:00");
+  });
+});
+
+describe("nome e intervalo legal", () => {
+  it("gera o nome do turno a partir da categoria e do horário", () => {
+    expect(nomeSugeridoTurno("jantar", "17:00", "23:00")).toBe("Jantar 17:00–23:00");
+    expect(nomeSugeridoTurno(null, "08:00", "12:00")).toBe("Abertura 08:00–12:00");
+  });
+
+  it("define o intervalo mínimo legal pela carga do dia", () => {
+    expect(intervaloMinimoLegal(8)).toBe(60);
+    expect(intervaloMinimoLegal(5)).toBe(15);
+    expect(intervaloMinimoLegal(3)).toBe(0);
+  });
+
+  it("detecta intervalo abaixo do mínimo legal", () => {
+    expect(intervaloAbaixoDoLegal({ entrada: "10:00", saida: "19:00", intervalo_minutos: 30 })?.minimo).toBe(60);
+    expect(intervaloAbaixoDoLegal({ entrada: "10:00", saida: "16:00", intervalo_minutos: 0 })?.minimo).toBe(15);
+    expect(intervaloAbaixoDoLegal({ entrada: "10:00", saida: "19:00", intervalo_minutos: 60 })).toBeNull();
+    expect(intervaloAbaixoDoLegal({ entrada: "10:00", saida: "13:00", intervalo_minutos: 0 })).toBeNull();
   });
 });

@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDpTurnos, TURNO_FORM_DEFAULT, type DpTurnoForm } from "@/hooks/useDpTurnos";
-import { TurnoForm } from "@/components/dp/TurnoForm";
+import { TurnoForm, type TurnoSubmitPayload } from "@/components/dp/TurnoForm";
 import { CopiarConfigColaboradorDialog, type ConfigCopiada } from "@/components/dp/CopiarConfigColaboradorDialog";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
@@ -113,9 +113,9 @@ export function ColaboradorConfigTrabalhoDialog({ colaborador, open, onOpenChang
     setDias((prev) => prev.map((d) => (d.dow === dow ? { ...d, turno_id: turnoId === "padrao" ? null : turnoId } : d)));
 
   /** Cria o turno já dentro do cadastro do colaborador e o seleciona. */
-  const onCriarTurno = async (form: DpTurnoForm) => {
+  const onCriarTurno = async (payload: TurnoSubmitPayload) => {
     try {
-      const criado = await criarTurno.mutateAsync(form);
+      const criado = await criarTurno.mutateAsync(payload);
       if (criado?.id) setTurnoPadraoId(criado.id);
       setNovoTurnoOpen(false);
       toast.success("Turno criado e selecionado");

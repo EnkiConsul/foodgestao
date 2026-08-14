@@ -19,11 +19,11 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { TurnoCard } from "@/components/dp/TurnoCard";
-import { TurnoForm } from "@/components/dp/TurnoForm";
+import { TurnoForm, type TurnoSubmitPayload } from "@/components/dp/TurnoForm";
 import { HorarioFuncionamentoEditor } from "@/components/dp/HorarioFuncionamentoEditor";
 import {
   useDpTurnos, turnoParaForm, TURNO_FORM_DEFAULT,
-  type DpTurnoForm, type DpTurnoRow,
+  type CienciaTurno, type DpTurnoForm, type DpTurnoRow,
 } from "@/hooks/useDpTurnos";
 
 const TODAS = "todas";
@@ -38,7 +38,7 @@ export default function DpTurnos() {
   const [formOpen, setFormOpen] = useState(false);
   const [editando, setEditando] = useState<DpTurnoRow | null>(null);
   const [inicial, setInicial] = useState<DpTurnoForm | null>(null);
-  const [pendente, setPendente] = useState<{ atual: DpTurnoRow; form: DpTurnoForm } | null>(null);
+  const [pendente, setPendente] = useState<{ atual: DpTurnoRow; form: DpTurnoForm; ciencia?: CienciaTurno | null } | null>(null);
   const [aRemover, setARemover] = useState<DpTurnoRow | null>(null);
 
   const unidades = useQuery({
@@ -86,16 +86,16 @@ export default function DpTurnos() {
     setFormOpen(true);
   };
 
-  const submeter = async (form: DpTurnoForm) => {
+  const submeter = async ({ form, ciencia }: TurnoSubmitPayload) => {
     try {
       if (!editando) {
-        await criar.mutateAsync(form);
+        await criar.mutateAsync({ form, ciencia });
         toast.success("Turno criado.");
         setFormOpen(false);
         return;
       }
       // Turno em uso: o gestor escolhe entre editar ou versionar preservando o histórico.
-      setPendente({ atual: editando, form });
+      setPendente({ atual: editando, form, ciencia });
       setFormOpen(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível salvar o turno.");
@@ -105,7 +105,12 @@ export default function DpTurnos() {
   const confirmarEdicao = async () => {
     if (!pendente) return;
     try {
-      await atualizar.mutateAsync({ id: pendente.atual.id, form: pendente.form });
+      await atualizar.mutateAsync({
+        id: pendente.atual.id,
+        form: pendente.form,
+        anterior: pendente.atual,
+        ciencia: pendente.ciencia,
+      });
       toast.success("Turno atualizado.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível atualizar.");

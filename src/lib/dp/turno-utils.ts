@@ -100,6 +100,55 @@ export function sugerirCategoria(entrada: string): CategoriaTurno {
   return "fechamento";
 }
 
+/** Nome padrão do turno derivado da categoria e do horário: "Jantar 17:00–23:00". */
+export function nomeSugeridoTurno(
+  categoria: string | null | undefined,
+  entrada: string,
+  saida: string,
+): string {
+  const cat = categoria || sugerirCategoria(entrada);
+  const label = CATEGORIA_LABEL[cat] ?? "Turno";
+  return `${label} ${hhmm(entrada)}–${hhmm(saida)}`;
+}
+
+/** Intervalo mínimo (minutos) exigido pelo art. 71 da CLT para a carga do dia. */
+export function intervaloMinimoLegal(cargaBrutaHoras: number): number {
+  if (cargaBrutaHoras > 6) return 60;
+  if (cargaBrutaHoras > 4) return 15;
+  return 0;
+}
+
+export interface AlertaIntervalo {
+  campo: "intervalo_minutos";
+  minimo: number;
+  informado: number;
+  mensagem: string;
+}
+
+/**
+ * O intervalo informado está abaixo do mínimo legal? Nunca bloqueia:
+ * exige ciência registrada do responsável (art. 71 da CLT).
+ */
+export function intervaloAbaixoDoLegal(t: TurnoHorario): AlertaIntervalo | null {
+  const e = paraMinutos(t.entrada);
+  const s = paraMinutos(t.saida);
+  if (e === null || s === null || e === s) return null;
+  const bruto = duracaoBrutaMinutos(t.entrada, t.saida);
+  const informado = Math.max(0, t.intervalo_minutos || 0);
+  if (informado >= bruto) return null;
+  const minimo = intervaloMinimoLegal((bruto - informado) / 60);
+  if (minimo === 0 || informado >= minimo) return null;
+  return {
+    campo: "intervalo_minutos",
+    minimo,
+    informado,
+    mensagem:
+      `O art. 71 da CLT exige ${minimo} minutos de intervalo para esta duração de jornada, ` +
+      `e o turno prevê ${informado === 0 ? "nenhum intervalo" : `${informado} minutos`}. ` +
+      "Manter assim é menos protetivo que o padrão legal e exige registro de ciência do responsável.",
+  };
+}
+
 export interface ValidacaoTurno {
   campo: "nome" | "entrada" | "saida" | "intervalo_minutos" | "vigencia";
   nivel: "erro" | "aviso";
