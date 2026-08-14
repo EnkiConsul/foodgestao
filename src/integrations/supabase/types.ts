@@ -11115,6 +11115,14 @@ export type Database = {
         Args: { _connection_id: string }
         Returns: Json
       }
+      can_use_module: {
+        Args: {
+          p_company_id: string
+          p_module: Database["public"]["Enums"]["app_module"]
+          p_operation?: string
+        }
+        Returns: Json
+      }
       can_use_orders_module: {
         Args: { p_company_id: string; p_operation?: string }
         Returns: Json
@@ -12724,6 +12732,13 @@ export type Database = {
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       soft_delete_account: { Args: { _account_id: string }; Returns: undefined }
+      start_module_trial: {
+        Args: {
+          p_company_id: string
+          p_module: Database["public"]["Enums"]["app_module"]
+        }
+        Returns: Json
+      }
       start_orders_trial: { Args: { p_company_id: string }; Returns: Json }
       storefront_public_create_order: {
         Args: {
