@@ -26,12 +26,22 @@ Mudança na lista "Dias da semana":
 
 ## 3. Folga semanal (6x1) na mesma tela
 
-O campo de folga fixa existe no banco, mas nunca é preenchido pela tela. Será exposto no mesmo painel:
+O campo de folga fixa existe no banco (`folga_fixa_dow`), mas nunca é preenchido pela tela. Ele volta com a mesma lógica do projeto original — escolher o dia da folga no cadastro do colaborador — agora dentro da aba "Turno & Jornada":
 
-- Seletor "Folga semanal" com as opções: um dia fixo da semana, "variável conforme escala" ou "sem folga fixa".
+- Seletor "Folga semanal" com as opções: um dia fixo da semana (dom a sáb), "variável conforme escala" ou "sem folga fixa".
 - Atalhos de escala: 6x1 (marca seis dias e a folga escolhida) e 5x2, aplicados com um clique sobre os dias.
 - Escolher a folga fixa desmarca automaticamente aquele dia na lista, e o valor passa a ser gravado e recarregado na edição.
 - Os avisos de descanso semanal e de folga dominical continuam valendo, incluindo a ciência já existente para regras menos protetivas.
+
+### Como o campo se comporta por tipo de vínculo
+
+Nenhuma tela testa o regime direto: o comportamento sai de `contrato-policy.ts`, com um novo indicador de folga por contrato.
+
+- **CLT, estágio, temporário**: folga semanal obrigatória (fixa ou variável). É o comportamento do projeto original, com validação de DSR.
+- **Intermitente**: o campo de folga não aparece. O trabalho nasce de convocação, então a semana cadastrada é apenas disponibilidade habitual — sem folga a definir e sem validação de DSR.
+- **PJ / MEI**: o campo aparece, mas como **referência operacional opcional**, rotulado "Dias sem previsão de trabalho". Não há DSR nem exigência legal; serve só para a escala e a operação do dia saberem quando não contar com a pessoa. Salvar sem folga é permitido, sem aviso.
+- **Freelancer**: mesmo tratamento do PJ (opcional, apenas operacional), reforçando que não há jornada contratual — coerente com o vínculo que participa de escala e ponto, mas fica fora da folha.
+
 
 ## Detalhes técnicos
 
@@ -40,5 +50,6 @@ O campo de folga fixa existe no banco, mas nunca é preenchido pela tela. Será 
 - Migração: adicionar `entrada_override`, `saida_override`, `intervalo_minutos_override` em `dp_colaborador_config_dias` **ou** manter o modelo atual criando/reaproveitando `dp_turnos` por horário. Preferência pela segunda opção (sem migração), para que escala, ponto e apuração continuem lendo o snapshot do turno sem alteração.
 - `src/components/dp/ColaboradorJornadaPanel.tsx`: campos por dia, seletor de folga semanal, atalhos 6x1/5x2, passar `folga_fixa_dow` real no salvamento.
 - `src/lib/dp/config-trabalho.ts`: `normalizarDias` já aceita `folgaFixaDow`; ajustar resumo e validações para o novo campo.
+- `src/lib/dp/contrato-policy.ts`: novo indicador `folgaSemanal: "obrigatoria" | "opcional" | "nao_se_aplica"` e rótulo próprio, derivando o comportamento de CLT, PJ/MEI, freelancer e intermitente.
 - `src/hooks/useDpColaboradorConfigTrabalho.tsx`: persistir `folga_fixa_dow`.
 - Verificação: teste Playwright salvando turno com intervalo 30 e 0, e conferindo horários distintos em sexta/sábado/domingo.
