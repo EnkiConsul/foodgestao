@@ -49,7 +49,9 @@ export default function AdminModulos() {
   const modulesQuery = useQuery({
     queryKey: ["admin_all_company_modules"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("company_modules").select("id,company_id,module,status");
+      const { data, error } = await supabase
+        .from("company_modules")
+        .select("id,company_id,module,status,starts_at,ends_at,trial_iniciado_em,trial_termina_em");
       if (error) throw error;
       return (data ?? []) as ModuleRow[];
     },
@@ -69,19 +71,22 @@ export default function AdminModulos() {
       toast.success("Módulo atualizado");
       qc.invalidateQueries({ queryKey: ["admin_all_company_modules"] });
       qc.invalidateQueries({ queryKey: ["company_modules"] });
+      qc.invalidateQueries({ queryKey: ["module-entitlement"] });
+      qc.invalidateQueries({ queryKey: ["orders-entitlement"] });
     },
     onError: (e) => toast.error("Falha ao salvar", { description: e instanceof Error ? e.message : String(e) }),
   });
 
   const modulesByCompany = useMemo(() => {
-    const map = new Map<string, Record<AppModule, ModuleStatus>>();
+    const map = new Map<string, Partial<Record<AppModule, ModuleRow>>>();
     (modulesQuery.data ?? []).forEach((r) => {
-      const cur = map.get(r.company_id) ?? ({} as Record<AppModule, ModuleStatus>);
-      cur[r.module] = r.status;
+      const cur = map.get(r.company_id) ?? {};
+      cur[r.module] = r;
       map.set(r.company_id, cur);
     });
     return map;
   }, [modulesQuery.data]);
+
 
   const filtered = (companiesQuery.data ?? []).filter((c) => {
     const q = search.trim().toLowerCase();
