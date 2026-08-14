@@ -456,14 +456,15 @@ const AppRoutes = () => (
         <Route path="escalas/mes" element={<DpEscalaMes />} />
         <Route path="operacao" element={<DpOperacaoDia />} />
         <Route path="convocacoes" element={<DpConvocacoes />} />
-        <Route path="ponto" element={<DpPonto />} />
-        <Route path="ponto/time" element={<DpPontoConsolidado />} />
-        <Route path="ponto/apuracao" element={<DpPontoApuracao />} />
-        <Route path="folha" element={<DpFolha />} />
-        <Route path="folha/provisoes" element={<DpFolhaProvisoes />} />
-        <Route path="folha/relatorios" element={<DpFolhaRelatorios />} />
-        <Route path="rescisoes" element={<DpRescisoes />} />
-        <Route path="folha/:id" element={<DpFolhaPeriodo />} />
+        <Route path="ponto" element={<ModuloEmDesenvolvimentoGate module="ponto"><DpPonto /></ModuloEmDesenvolvimentoGate>} />
+        <Route path="ponto/time" element={<ModuloEmDesenvolvimentoGate module="ponto"><DpPontoConsolidado /></ModuloEmDesenvolvimentoGate>} />
+        <Route path="ponto/apuracao" element={<ModuloEmDesenvolvimentoGate module="ponto"><DpPontoApuracao /></ModuloEmDesenvolvimentoGate>} />
+        <Route path="folha" element={<ModuloEmDesenvolvimentoGate module="folha"><DpFolha /></ModuloEmDesenvolvimentoGate>} />
+        <Route path="folha/provisoes" element={<ModuloEmDesenvolvimentoGate module="folha"><DpFolhaProvisoes /></ModuloEmDesenvolvimentoGate>} />
+        <Route path="folha/relatorios" element={<ModuloEmDesenvolvimentoGate module="folha"><DpFolhaRelatorios /></ModuloEmDesenvolvimentoGate>} />
+        <Route path="rescisoes" element={<ModuloEmDesenvolvimentoGate module="folha"><DpRescisoes /></ModuloEmDesenvolvimentoGate>} />
+        <Route path="folha/:id" element={<ModuloEmDesenvolvimentoGate module="folha"><DpFolhaPeriodo /></ModuloEmDesenvolvimentoGate>} />
+
         <Route path="documentos/act-cct" element={<DpSindicatoNegociacoes />} />
         <Route path="configuracoes" element={<DpConfiguracoes />} />
         <Route path="sindicatos" element={<Navigate to="/dp/cadastros/sindicatos" replace />} />
