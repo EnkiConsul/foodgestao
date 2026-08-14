@@ -108,12 +108,22 @@ export function useDpFolhaApuracao(competencia: string) {
     mutationFn: async (linhas: LinhaApuracao[]) => {
       if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
 
+      const bases = basesQuery.data;
       const lancamentos = linhas
-        .map((l) => apuracaoParaLancamento(l))
+        .map((l) => {
+          const base = bases?.get(l.colaborador_id);
+          return apuracaoParaLancamento(l, {
+            dependentes: base?.dependentes ?? 0,
+            adicionalPercentual: base?.adicionalPercentual ?? 0,
+          });
+        })
         .filter((l): l is NonNullable<typeof l> => !!l);
       if (!lancamentos.length) {
-        throw new Error("Nenhum colaborador com salário base cadastrado no cargo.");
+        throw new Error(
+          "Nenhum colaborador com remuneração cadastrada. Informe salário ou valor da hora no cadastro do colaborador.",
+        );
       }
+
 
       let periodoId = periodoQuery.data?.id ?? null;
       let status = periodoQuery.data?.status ?? null;
