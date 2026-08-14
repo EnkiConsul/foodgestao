@@ -20,7 +20,7 @@ import { buildCategoryTree, type Category } from "@/lib/categories/tree";
 import { StagingCard } from "@/components/conciliacao/StagingCard";
 import { ContactSelectContent } from "@/components/conciliacao/ContactSelectContent";
 import { suggestPaymentMethodId } from "@/lib/conciliacao/paymentMethodInference";
-import { fetchAllCompanyContacts } from "@/lib/conciliacao/contacts";
+import { fetchAllCompanyContacts, findExistingContact, ensureContactCompanyLink } from "@/lib/conciliacao/contacts";
 import {
   counterpartyLabel,
   extractCounterparty,
@@ -675,6 +675,27 @@ export default function ConciliacaoPluggy() {
       if (!userId || !selectedCompanyId) { toast.error("Sessão expirada"); return; }
       const isEntrada = row.amount >= 0;
       const contactType = cp.internal ? "fornecedor" : isEntrada ? "cliente" : "fornecedor";
+
+      // Reaproveita contato já existente (mesmo documento ou mesmo nome) em vez de duplicar.
+      const existing = await findExistingContact({ userId, name, document: cp.document });
+      if (existing) {
+        await ensureContactCompanyLink(existing.id, selectedCompanyId);
+        setContacts((prev) =>
+          prev.some((c) => c.id === existing.id)
+            ? prev
+            : [...prev, {
+                id: existing.id,
+                name: existing.name,
+                type: existing.contact_type ?? null,
+                document: existing.document ?? null,
+              }].sort((a, b) => a.name.localeCompare(b.name)),
+        );
+        setRowContact((prev) => ({ ...prev, [row.id]: existing.id }));
+        setContactNamePrompt(null);
+        toast.success("Contato já cadastrado — vinculado ao lançamento");
+        return;
+      }
+
       const { data: created, error } = await supabase
         .from("contacts")
         .insert({
@@ -691,10 +712,7 @@ export default function ConciliacaoPluggy() {
         return;
       }
       const newId = (created as unknown as { id: string }).id;
-      await supabase.from("contact_companies").insert({
-        contact_id: newId,
-        company_id: selectedCompanyId,
-      } as never);
+      await ensureContactCompanyLink(newId, selectedCompanyId);
       setContacts((prev) => [
         ...prev,
         { id: newId, name, type: contactType, document: cp.document },
