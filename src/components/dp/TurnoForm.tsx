@@ -13,7 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   CORES_TURNO, DEFAULT_INTERVALOS, categoriasTurno,
   cargaLiquidaHoras, formatarFaixaTurno, intervaloAbaixoDoLegal, nomeSugeridoTurno,
