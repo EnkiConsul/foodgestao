@@ -42,6 +42,16 @@ describe("contratoPolicy", () => {
     expect(contratoPolicy("aprendiz_futuro").regime).toBe("clt");
   });
 
+  it("adiantamento salarial só existe em contratos com salário mensal em folha", () => {
+    expect(contratoPolicy("clt").permiteAdiantamento).toBe(true);
+    expect(contratoPolicy("estagio").permiteAdiantamento).toBe(true);
+    expect(contratoPolicy("temporario").permiteAdiantamento).toBe(true);
+    expect(contratoPolicy("intermitente").permiteAdiantamento).toBe(false);
+    expect(contratoPolicy("intermitente").adiantamentoHint).toContain("convocação");
+    expect(contratoPolicy("pj").permiteAdiantamento).toBe(false);
+    expect(contratoPolicy("mei").permiteAdiantamento).toBe(false);
+  });
+
   it("isIntermitente reflete a política", () => {
     expect(isIntermitente("intermitente")).toBe(true);
     expect(isIntermitente("clt")).toBe(false);
