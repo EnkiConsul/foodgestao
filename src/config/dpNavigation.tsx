@@ -267,7 +267,7 @@ const PORTAL_GROUPS: DpNavGroup[] = [
     icon: Fingerprint,
     matchPrefixes: ["/dp/meu/ponto"],
     items: [
-      { label: "Registrar Ponto", to: "/dp/meu/ponto", icon: Fingerprint, shortcut: true, shortLabel: "Ponto" },
+      { label: "Registrar Ponto", to: "/dp/meu/ponto", icon: Fingerprint, shortLabel: "Ponto", badge: "Em breve" },
     ],
   },
   {
