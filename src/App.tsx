@@ -422,7 +422,7 @@ const AppRoutes = () => (
         <Route path="folgas/calendario" element={<DpFolgas />} />
         <Route path="ferias" element={<DpFerias />} />
         <Route path="conformidade" element={<DpConformidade />} />
-        <Route path="beneficios" element={<DpBeneficios />} />
+        <Route path="beneficios" element={<ModuloEmDesenvolvimentoGate module="folha"><DpBeneficios /></ModuloEmDesenvolvimentoGate>} />
         <Route path="analytics" element={<DpAnalytics />} />
 
         <Route path="calendario" element={<DpAdminCalendario />} />
