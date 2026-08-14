@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -123,6 +123,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const [form, setForm] = useState(blank);
   const { selectedCompanyId } = useCompanyContext();
   const [cienciaAberta, setCienciaAberta] = useState(false);
+  // Ciência do risco jurídico do vínculo sem registro, válida para este salvamento.
+  const cienciaConfirmada = useRef<{ justificativa: string } | null>(null);
 
 
   const isEdit = !!colaborador?.id;
@@ -136,6 +138,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
   useEffect(() => {
     if (!open) return;
+    cienciaConfirmada.current = null;
     const c = (colaborador ?? {}) as any;
     const regime = c.regime ? String(c.regime) : "clt";
     setRem({
@@ -195,6 +198,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   // Mudar o vínculo pode invalidar a forma de pagamento (ex.: intermitente não
   // é mensalista): reconciliamos sempre pela política do contrato.
   useEffect(() => {
+    cienciaConfirmada.current = null;
     setRem((r) => {
       const ajustada = ajustarFormaPagamento(regimeSelecionado, r.forma_pagamento) as FormaPagamento;
       return ajustada === r.forma_pagamento ? r : { ...r, forma_pagamento: ajustada };
@@ -221,6 +225,31 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   }, [unidadeSelecionada?.tem_adiantamento, isEdit, permiteAdiantamento]);
 
 
+
+  /** Registra a ciência do risco jurídico em dp_regras_historico. */
+  const registrarCiencia = async (justificativa: string) => {
+    if (!selectedCompanyId) return;
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth?.user?.id) return;
+      await supabase.from("dp_regras_historico").insert({
+        company_id: selectedCompanyId,
+        usuario_id: auth.user.id,
+        tabela: "dp_colaboradores",
+        registro_id: colaborador?.id ?? null,
+        valor_antigo: null as never,
+        valor_novo: {
+          vinculo: form.tipo_vinculo,
+          regime: regimeSelecionado,
+          nome: form.nome.trim(),
+          cpf: form.cpf.replace(/\D/g, ""),
+        } as never,
+        justificativa: justificativa || null,
+        ciencia_confirmada: true,
+      });
+    } catch { /* o cadastro não deve falhar por causa do log */ }
+  };
 
   const submit = async () => {
     if (!form.nome.trim()) { toast.error("Nome é obrigatório"); return; }
@@ -662,6 +691,23 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <CienciaLegalDialog
+        open={cienciaAberta}
+        titulo="Vínculo sem registro em carteira"
+        alertas={
+          policy.cienciaLegalMensagem
+            ? [{ campo: "vinculo", mensagem: policy.cienciaLegalMensagem }]
+            : []
+        }
+        onCancel={() => setCienciaAberta(false)}
+        onConfirm={async (justificativa) => {
+          cienciaConfirmada.current = { justificativa };
+          setCienciaAberta(false);
+          await registrarCiencia(justificativa);
+          await submit();
+        }}
+      />
     </Dialog>
   );
 }
