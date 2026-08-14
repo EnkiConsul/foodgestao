@@ -23,13 +23,13 @@ Ao trocar o vínculo, se a forma atual não for permitida, o formulário passa a
 
 Ao selecionar Freelancer, abre um diálogo de ciência legal (mesmo padrão do intervalo intrajornada do turno): explica que trabalho habitual sem registro pode ser reconhecido como vínculo empregatício (arts. 2º e 3º da CLT) e que a responsabilidade é do empregador. Sem o aceite, o vínculo não é salvo. O aceite fica registrado no histórico de regras com usuário e data.
 
-## 4. Lista de vínculos simplificada
+## 4. Rótulos de vínculo mais claros
 
-De sete para seis rótulos, sem regras duplicadas:
+O termo "CLT" hoje confunde, porque o intermitente também é contrato celetista. A lista fica assim:
 
-CLT · Intermitente · Estagiário · Temporário · PJ · Freelancer (sem registro)
+CLT efetivo · CLT intermitente · Estagiário · Temporário · PJ · Sócio · Freelancer (sem registro)
 
-"Sócio" e "Autônomo" saem da lista. Colaboradores já cadastrados com esses rótulos continuam válidos: eles são gravados como PJ no banco e passam a aparecer como PJ na edição — nenhum dado é perdido.
+"Autônomo" sai da lista — quem trabalha por conta própria sem registro passa a ser Freelancer, e quem tem contrato de prestação de serviço é PJ. Colaboradores já cadastrados como Autônomo estão gravados como PJ no banco e aparecerão como PJ na edição; nenhum dado é perdido. "Sócio" continua com regras de PJ (fora da folha CLT), apenas com rótulo próprio.
 
 ## Detalhes técnicos
 
