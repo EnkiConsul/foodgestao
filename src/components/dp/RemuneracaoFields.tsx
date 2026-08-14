@@ -1,13 +1,21 @@
+import { useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Calculator, PencilLine } from "lucide-react";
 import {
   formaPagamentoOptions,
   valeTransporteDoMes,
+  valorHoraPorBase,
+  valorDiaPorBase,
+  BASES_HORAS_MES,
+  ASSIDUIDADE_CRITERIO_OPTIONS,
   type FormaPagamento,
+  type AssiduidadeCriterio,
 } from "@/lib/dp/remuneracao";
 import type { Beneficio } from "@/hooks/useDpBeneficios";
 import { formatarBRL } from "@/lib/dp/folha";
@@ -21,6 +29,17 @@ export interface RemuneracaoFormState {
   vale_transporte: boolean;
   vale_transporte_valor_dia: string;
   beneficios: Record<string, boolean>;
+  /** Base de cálculo (para horistas/diaristas: base salarial ÷ base de horas/dias). */
+  base_salarial: string;
+  base_horas_mes: string;
+  base_dias_mes: string;
+  valor_hora_manual: boolean;
+  /** Assiduidade e pontualidade. */
+  premio_assiduidade: boolean;
+  premio_assiduidade_valor: string;
+  assiduidade_criterio: AssiduidadeCriterio;
+  assiduidade_tolerancia_min: string;
+  assiduidade_max_atrasos: string;
 }
 
 export const remuneracaoBlank: RemuneracaoFormState = {
@@ -32,12 +51,23 @@ export const remuneracaoBlank: RemuneracaoFormState = {
   vale_transporte: false,
   vale_transporte_valor_dia: "",
   beneficios: {},
+  base_salarial: "",
+  base_horas_mes: "220",
+  base_dias_mes: "30",
+  valor_hora_manual: false,
+  premio_assiduidade: false,
+  premio_assiduidade_valor: "",
+  assiduidade_criterio: "sem_faltas_sem_atrasos",
+  assiduidade_tolerancia_min: "10",
+  assiduidade_max_atrasos: "2",
 };
 
 export const numeroBR = (v: string): number => {
   const n = Number(String(v).replace(/\./g, "").replace(",", "."));
   return Number.isFinite(n) ? n : 0;
 };
+
+const paraBR = (v: number) => v.toFixed(2).replace(".", ",");
 
 interface Props {
   value: RemuneracaoFormState;
@@ -66,6 +96,24 @@ export function RemuneracaoFields({
 }: Props) {
   const forma = value.forma_pagamento;
   const formaOptions = formaPagamentoOptions(regime);
+  const usaBase = forma === "horista" || forma === "diarista";
+  const baseSalarial = numeroBR(value.base_salarial);
+  const calculado =
+    forma === "horista"
+      ? valorHoraPorBase(baseSalarial, numeroBR(value.base_horas_mes))
+      : valorDiaPorBase(baseSalarial, numeroBR(value.base_dias_mes));
+
+  // Enquanto o administrador não sobrepõe, o valor da hora/dia acompanha a base.
+  useEffect(() => {
+    if (!usaBase || value.valor_hora_manual || calculado == null) return;
+    const alvo = paraBR(calculado);
+    if (forma === "horista") {
+      if (value.valor_hora !== alvo) onChange({ valor_hora: alvo });
+    } else if (value.salario_base !== alvo) {
+      onChange({ salario_base: alvo });
+    }
+  }, [usaBase, value.valor_hora_manual, calculado, forma]);
+
   const salario = numeroBR(value.salario_base) || salarioCargo || 0;
   const vt = valeTransporteDoMes(
     {
@@ -77,6 +125,7 @@ export function RemuneracaoFields({
 
   const labelValor =
     forma === "horista" ? "Valor da hora *" : forma === "diarista" ? "Valor do dia *" : "Salário base *";
+  const bloqueiaValor = usaBase && !value.valor_hora_manual && calculado != null;
 
   return (
     <div className="col-span-2 space-y-4 rounded-xl border border-border bg-muted/20 p-3">
@@ -107,6 +156,8 @@ export function RemuneracaoFields({
             <Input
               inputMode="decimal"
               value={value.valor_hora}
+              readOnly={bloqueiaValor}
+              className={bloqueiaValor ? "bg-muted/60" : undefined}
               onChange={(e) => onChange({ valor_hora: e.target.value })}
               placeholder="Ex: 18,50"
             />
@@ -114,16 +165,88 @@ export function RemuneracaoFields({
             <Input
               inputMode="decimal"
               value={value.salario_base}
+              readOnly={bloqueiaValor}
+              className={bloqueiaValor ? "bg-muted/60" : undefined}
               onChange={(e) => onChange({ salario_base: e.target.value })}
               placeholder={salarioCargo ? `Cargo: ${formatarBRL(salarioCargo)}` : "Ex: 2200,00"}
             />
           )}
-          {forma !== "horista" && salarioCargo ? (
+          {forma === "mensalista" && salarioCargo ? (
             <p className="text-[11px] text-muted-foreground">
               Em branco, a folha usa o salário do cargo ({formatarBRL(salarioCargo)}).
             </p>
           ) : null}
         </div>
+
+        {/* Base de cálculo — facilita o cadastro de intermitentes e horistas */}
+        {usaBase && (
+          <div className="space-y-3 rounded-lg border border-border bg-background p-3 md:col-span-2">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Calculator className="h-4 w-4 text-primary" aria-hidden="true" />
+              Base de cálculo {forma === "horista" ? "da hora" : "do dia"}
+            </div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label>Base salarial (mês)</Label>
+                <Input
+                  inputMode="decimal"
+                  value={value.base_salarial}
+                  onChange={(e) => onChange({ base_salarial: e.target.value })}
+                  placeholder="Ex: 2200,00"
+                />
+              </div>
+              {forma === "horista" ? (
+                <div className="space-y-2">
+                  <Label>Base de horas / mês</Label>
+                  <Select
+                    value={value.base_horas_mes}
+                    onValueChange={(v) => onChange({ base_horas_mes: v })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {BASES_HORAS_MES.map((h) => (
+                        <SelectItem key={h} value={String(h)}>{h} horas</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>Base de dias / mês</Label>
+                  <Input
+                    inputMode="numeric"
+                    value={value.base_dias_mes}
+                    onChange={(e) => onChange({ base_dias_mes: e.target.value.replace(/\D/g, "") })}
+                    placeholder="30"
+                  />
+                </div>
+              )}
+              <div className="space-y-1 rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground">
+                <div>{forma === "horista" ? "Valor da hora" : "Valor do dia"} calculado</div>
+                <div className="text-base font-semibold tabular-nums text-foreground">
+                  {calculado != null ? formatarBRL(calculado) : "—"}
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-[11px] text-muted-foreground">
+                {value.valor_hora_manual
+                  ? "Valor informado manualmente — a base fica apenas como referência."
+                  : `Informe a base salarial e o sistema calcula automaticamente o ${forma === "horista" ? "valor da hora" : "valor do dia"}.`}
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                onClick={() => onChange({ valor_hora_manual: !value.valor_hora_manual })}
+              >
+                <PencilLine className="h-3.5 w-3.5" aria-hidden="true" />
+                {value.valor_hora_manual ? "Voltar ao cálculo automático" : "Usar valor manual"}
+              </Button>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label>Dependentes (IRRF)</Label>
@@ -149,6 +272,69 @@ export function RemuneracaoFields({
             </p>
           ) : null}
         </div>
+      </div>
+
+      {/* Assiduidade e pontualidade */}
+      <div className="space-y-3 rounded-lg border border-border bg-background p-3">
+        <div className="flex items-center gap-3">
+          <Switch
+            id="premio_assiduidade"
+            checked={value.premio_assiduidade}
+            onCheckedChange={(v) => onChange({ premio_assiduidade: v })}
+          />
+          <Label htmlFor="premio_assiduidade" className="cursor-pointer">
+            Prêmio de assiduidade e pontualidade
+          </Label>
+        </div>
+        {value.premio_assiduidade && (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Valor mensal</Label>
+              <Input
+                inputMode="decimal"
+                value={value.premio_assiduidade_valor}
+                onChange={(e) => onChange({ premio_assiduidade_valor: e.target.value })}
+                placeholder="Ex: 150,00"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Critério</Label>
+              <Select
+                value={value.assiduidade_criterio}
+                onValueChange={(v: AssiduidadeCriterio) => onChange({ assiduidade_criterio: v })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {ASSIDUIDADE_CRITERIO_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Tolerância de atraso (min/dia)</Label>
+              <Input
+                inputMode="numeric"
+                value={value.assiduidade_tolerancia_min}
+                onChange={(e) => onChange({ assiduidade_tolerancia_min: e.target.value.replace(/\D/g, "") })}
+                placeholder="10"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Máximo de atrasos no mês</Label>
+              <Input
+                inputMode="numeric"
+                value={value.assiduidade_max_atrasos}
+                onChange={(e) => onChange({ assiduidade_max_atrasos: e.target.value.replace(/\D/g, "") })}
+                placeholder="2"
+                disabled={value.assiduidade_criterio !== "sem_faltas_sem_atrasos"}
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground md:col-span-2">
+              O prêmio é pago quando o critério é cumprido no mês. Faltas sempre cancelam o benefício.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Vale-transporte */}
