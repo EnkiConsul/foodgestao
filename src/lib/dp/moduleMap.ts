@@ -34,7 +34,9 @@ export const DP_ROUTE_MODULES: DpRouteModuleRule[] = [
   // Folha de pagamento
   { prefix: "/dp/folha", module: "folha" },
   { prefix: "/dp/rescisoes", module: "folha" },
+  { prefix: "/dp/beneficios", module: "folha" },
   { prefix: "/dp/meu/contracheque", module: "folha" },
+
 ];
 
 /**
