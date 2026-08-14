@@ -26,7 +26,6 @@ import {
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { DesligamentoDialog } from "@/components/dp/DesligamentoDialog";
-import { ColaboradorConfigTrabalhoDialog } from "@/components/dp/ColaboradorConfigTrabalhoDialog";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { supabase } from "@/integrations/supabase/client";
