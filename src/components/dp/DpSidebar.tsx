@@ -281,10 +281,13 @@ function DpGroup({
               <sub.icon className="h-3.5 w-3.5 shrink-0" />
               <span className="truncate">{toTitleCase(sub.title)}</span>
               {sub.badge && (
-                <span className="ml-auto shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
-                  {sub.badge}
-                </span>
+                <span
+                  title={sub.badge}
+                  aria-label={sub.badge}
+                  className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/50"
+                />
               )}
+
 
             </NavLink>
           ))}
