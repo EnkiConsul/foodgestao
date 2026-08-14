@@ -19,11 +19,11 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { TurnoCard } from "@/components/dp/TurnoCard";
-import { TurnoForm } from "@/components/dp/TurnoForm";
+import { TurnoForm, type TurnoSubmitPayload } from "@/components/dp/TurnoForm";
 import { HorarioFuncionamentoEditor } from "@/components/dp/HorarioFuncionamentoEditor";
 import {
   useDpTurnos, turnoParaForm, TURNO_FORM_DEFAULT,
-  type DpTurnoForm, type DpTurnoRow,
+  type CienciaTurno, type DpTurnoForm, type DpTurnoRow,
 } from "@/hooks/useDpTurnos";
 
 const TODAS = "todas";
@@ -38,7 +38,7 @@ export default function DpTurnos() {
   const [formOpen, setFormOpen] = useState(false);
   const [editando, setEditando] = useState<DpTurnoRow | null>(null);
   const [inicial, setInicial] = useState<DpTurnoForm | null>(null);
-  const [pendente, setPendente] = useState<{ atual: DpTurnoRow; form: DpTurnoForm } | null>(null);
+  const [pendente, setPendente] = useState<{ atual: DpTurnoRow; form: DpTurnoForm; ciencia?: CienciaTurno | null } | null>(null);
   const [aRemover, setARemover] = useState<DpTurnoRow | null>(null);
 
   const unidades = useQuery({
