@@ -86,16 +86,16 @@ export default function DpTurnos() {
     setFormOpen(true);
   };
 
-  const submeter = async (form: DpTurnoForm) => {
+  const submeter = async ({ form, ciencia }: TurnoSubmitPayload) => {
     try {
       if (!editando) {
-        await criar.mutateAsync(form);
+        await criar.mutateAsync({ form, ciencia });
         toast.success("Turno criado.");
         setFormOpen(false);
         return;
       }
       // Turno em uso: o gestor escolhe entre editar ou versionar preservando o histórico.
-      setPendente({ atual: editando, form });
+      setPendente({ atual: editando, form, ciencia });
       setFormOpen(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível salvar o turno.");
@@ -105,7 +105,12 @@ export default function DpTurnos() {
   const confirmarEdicao = async () => {
     if (!pendente) return;
     try {
-      await atualizar.mutateAsync({ id: pendente.atual.id, form: pendente.form });
+      await atualizar.mutateAsync({
+        id: pendente.atual.id,
+        form: pendente.form,
+        anterior: pendente.atual,
+        ciencia: pendente.ciencia,
+      });
       toast.success("Turno atualizado.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível atualizar.");
