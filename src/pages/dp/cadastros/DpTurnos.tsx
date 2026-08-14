@@ -143,11 +143,18 @@ export default function DpTurnos() {
         title="Turnos"
         description="Cadastre os horários mais usados na operação e reaproveite na escala."
         actions={
-          <Button className="h-11" onClick={abrirNovo}>
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-            Novo turno
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" className="h-11" onClick={() => setLabelsOpen(true)}>
+              <Tags className="mr-2 h-4 w-4" aria-hidden="true" />
+              Nomes das categorias
+            </Button>
+            <Button className="h-11" onClick={abrirNovo}>
+              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+              Novo turno
+            </Button>
+          </div>
         }
+
       />
 
       <Tabs defaultValue="turnos" className="space-y-4">
