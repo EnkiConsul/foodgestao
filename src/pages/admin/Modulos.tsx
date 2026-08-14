@@ -14,9 +14,24 @@ import { MODULES, statusLabel, type AppModule, type ModuleStatus, MODULE_BY_SLUG
 import { ModulosCatalogoCard } from "@/components/admin/ModulosCatalogoCard";
 
 interface CompanyRow { id: string; name: string; trade_name: string | null }
-interface ModuleRow { id: string; company_id: string; module: AppModule; status: ModuleStatus }
+interface ModuleRow {
+  id: string;
+  company_id: string;
+  module: AppModule;
+  status: ModuleStatus;
+  starts_at: string | null;
+  ends_at: string | null;
+  trial_iniciado_em: string | null;
+  trial_termina_em: string | null;
+}
 
 const STATUS_OPTIONS: ModuleStatus[] = ["not_contracted", "trial", "active", "suspended", "canceled"];
+
+function formatDate(value: string | null): string | null {
+  if (!value) return null;
+  return new Date(value).toLocaleDateString("pt-BR");
+}
+
 
 export default function AdminModulos() {
   const [search, setSearch] = useState("");
@@ -34,7 +49,9 @@ export default function AdminModulos() {
   const modulesQuery = useQuery({
     queryKey: ["admin_all_company_modules"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("company_modules").select("id,company_id,module,status");
+      const { data, error } = await supabase
+        .from("company_modules")
+        .select("id,company_id,module,status,starts_at,ends_at,trial_iniciado_em,trial_termina_em");
       if (error) throw error;
       return (data ?? []) as ModuleRow[];
     },
@@ -54,19 +71,22 @@ export default function AdminModulos() {
       toast.success("Módulo atualizado");
       qc.invalidateQueries({ queryKey: ["admin_all_company_modules"] });
       qc.invalidateQueries({ queryKey: ["company_modules"] });
+      qc.invalidateQueries({ queryKey: ["module-entitlement"] });
+      qc.invalidateQueries({ queryKey: ["orders-entitlement"] });
     },
     onError: (e) => toast.error("Falha ao salvar", { description: e instanceof Error ? e.message : String(e) }),
   });
 
   const modulesByCompany = useMemo(() => {
-    const map = new Map<string, Record<AppModule, ModuleStatus>>();
+    const map = new Map<string, Partial<Record<AppModule, ModuleRow>>>();
     (modulesQuery.data ?? []).forEach((r) => {
-      const cur = map.get(r.company_id) ?? ({} as Record<AppModule, ModuleStatus>);
-      cur[r.module] = r.status;
+      const cur = map.get(r.company_id) ?? {};
+      cur[r.module] = r;
       map.set(r.company_id, cur);
     });
     return map;
   }, [modulesQuery.data]);
+
 
   const filtered = (companiesQuery.data ?? []).filter((c) => {
     const q = search.trim().toLowerCase();
@@ -119,7 +139,7 @@ export default function AdminModulos() {
               </TableHeader>
               <TableBody>
                 {filtered.map((c) => {
-                  const mods = modulesByCompany.get(c.id) ?? ({} as Record<AppModule, ModuleStatus>);
+                  const mods = modulesByCompany.get(c.id) ?? {};
                   return (
                     <TableRow key={c.id}>
                       <TableCell>
@@ -127,9 +147,12 @@ export default function AdminModulos() {
                         {c.trade_name && <div className="text-xs text-muted-foreground">{c.trade_name}</div>}
                       </TableCell>
                       {MODULES.map((m) => {
-                        const status = mods[m.slug] ?? "not_contracted";
+                        const row = mods[m.slug];
+                        const status: ModuleStatus = row?.status ?? "not_contracted";
+                        const trialEnd = formatDate(row?.trial_termina_em ?? null);
+                        const startedAt = formatDate(row?.starts_at ?? null);
                         return (
-                          <TableCell key={m.slug}>
+                          <TableCell key={m.slug} className="align-top">
                             <Select
                               value={status}
                               onValueChange={(val) =>
@@ -147,6 +170,12 @@ export default function AdminModulos() {
                                 ))}
                               </SelectContent>
                             </Select>
+                            <div className="mt-1 space-y-0.5 text-[10px] leading-tight text-muted-foreground">
+                              {startedAt && <div>Início: {startedAt}</div>}
+                              {trialEnd && <div>Teste até {trialEnd}</div>}
+                              {row?.trial_iniciado_em && <div>Teste já utilizado</div>}
+                              {m.parent && <div>Requer {MODULE_BY_SLUG[m.parent].shortName}</div>}
+                            </div>
                           </TableCell>
                         );
                       })}

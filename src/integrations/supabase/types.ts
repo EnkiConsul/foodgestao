@@ -7170,6 +7170,36 @@ export type Database = {
         }
         Relationships: []
       }
+      module_dependencies: {
+        Row: {
+          created_at: string
+          hard: boolean
+          id: string
+          module: Database["public"]["Enums"]["app_module"]
+          notes: string | null
+          requires: Database["public"]["Enums"]["app_module"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hard?: boolean
+          id?: string
+          module: Database["public"]["Enums"]["app_module"]
+          notes?: string | null
+          requires: Database["public"]["Enums"]["app_module"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hard?: boolean
+          id?: string
+          module?: Database["public"]["Enums"]["app_module"]
+          notes?: string | null
+          requires?: Database["public"]["Enums"]["app_module"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       modulos_catalogo: {
         Row: {
           ativo: boolean
@@ -11085,6 +11115,14 @@ export type Database = {
         Args: { _connection_id: string }
         Returns: Json
       }
+      can_use_module: {
+        Args: {
+          p_company_id: string
+          p_module: Database["public"]["Enums"]["app_module"]
+          p_operation?: string
+        }
+        Returns: Json
+      }
       can_use_orders_module: {
         Args: { p_company_id: string; p_operation?: string }
         Returns: Json
@@ -12694,6 +12732,13 @@ export type Database = {
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       soft_delete_account: { Args: { _account_id: string }; Returns: undefined }
+      start_module_trial: {
+        Args: {
+          p_company_id: string
+          p_module: Database["public"]["Enums"]["app_module"]
+        }
+        Returns: Json
+      }
       start_orders_trial: { Args: { p_company_id: string }; Returns: Json }
       storefront_public_create_order: {
         Args: {
@@ -12745,6 +12790,9 @@ export type Database = {
         | "pedidos"
         | "bi"
         | "financeiro_pessoal"
+        | "ponto"
+        | "escala"
+        | "folha"
       app_role: "super_admin" | "admin" | "user" | "dp_colaborador"
       bill_status: "em_dia" | "vence_em_breve" | "atrasado" | "pago" | "parcial"
       billing_period: "monthly" | "yearly"
@@ -13244,6 +13292,9 @@ export const Constants = {
         "pedidos",
         "bi",
         "financeiro_pessoal",
+        "ponto",
+        "escala",
+        "folha",
       ],
       app_role: ["super_admin", "admin", "user", "dp_colaborador"],
       bill_status: ["em_dia", "vence_em_breve", "atrasado", "pago", "parcial"],

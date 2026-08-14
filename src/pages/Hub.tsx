@@ -85,12 +85,14 @@ export default function Hub() {
 
   // Somente módulos ativos e marcados para aparecer no Hub (backoffice).
   // Enquanto o catálogo não carrega, mantém a lista padrão.
+  const hubCandidates = MODULES.filter((def) => !def.parent);
   const visibleModules = catalogo
-    ? MODULES.filter((def) => {
+    ? hubCandidates.filter((def) => {
         const entry = catalogo.find((c) => c.slug === def.slug);
         return entry ? entry.show_on_hub : false;
       })
-    : MODULES;
+    : hubCandidates;
+
 
   const contextLabel = contextType === "pj"
     ? companies.find((c) => c.id === selectedCompanyId)?.name ?? "Empresa"

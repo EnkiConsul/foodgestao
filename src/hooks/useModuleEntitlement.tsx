@@ -3,42 +3,41 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import type { OrdersPermissionKey } from "@/lib/orders/permissions";
+import type { AppModule } from "@/lib/modules";
 import {
-  DENIED_ENTITLEMENT,
-  type OrdersEntitlement,
-} from "@/lib/orders/entitlement";
+  DENIED_MODULE_ENTITLEMENT,
+  type ModuleEntitlement,
+} from "@/lib/modules/entitlement";
 
 /**
- * Direito de uso do módulo Pedidos para a empresa selecionada.
- * Decisão é sempre do backend (`can_use_orders_module`) — fail closed.
+ * Direito de uso de qualquer módulo vendável para a empresa selecionada.
+ * Decisão sempre do backend (`can_use_module`) — fail closed.
  */
-export function useOrdersEntitlement(
-  operation: OrdersPermissionKey = "orders.dashboard",
-) {
+export function useModuleEntitlement(module: AppModule, operation?: string) {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const enabled = !!user && contextType === "pj" && !!selectedCompanyId;
+  const op = operation ?? `${module}.dashboard`;
 
   const query = useQuery({
-    queryKey: ["orders-entitlement", selectedCompanyId, operation],
+    queryKey: ["module-entitlement", module, selectedCompanyId, op],
     enabled,
     staleTime: 30_000,
-    queryFn: async (): Promise<OrdersEntitlement> => {
-      // Caso especial do motor genérico de módulos (`can_use_module`).
+    queryFn: async (): Promise<ModuleEntitlement> => {
       const { data, error } = await supabase.rpc("can_use_module", {
         p_company_id: selectedCompanyId!,
-        p_module: "pedidos",
-        p_operation: operation,
+        p_module: module,
+        p_operation: op,
       });
       if (error) throw error;
-      return { ...DENIED_ENTITLEMENT, ...(data as object) } as OrdersEntitlement;
+      return { ...DENIED_MODULE_ENTITLEMENT, ...(data as object) } as ModuleEntitlement;
     },
   });
 
-
-  const entitlement: OrdersEntitlement = query.data ?? {
-    ...DENIED_ENTITLEMENT,
+  const entitlement: ModuleEntitlement = query.data ?? {
+    ...DENIED_MODULE_ENTITLEMENT,
+    module,
+    operation: op,
     reason: enabled ? "loading" : contextType === "pj" ? "no_company" : "personal_context",
   };
 
@@ -56,7 +55,7 @@ export function useOrdersEntitlement(
   };
 }
 
-interface StartTrialResult {
+export interface StartModuleTrialResult {
   success: boolean;
   code: string;
   message: string;
@@ -64,13 +63,13 @@ interface StartTrialResult {
   trial_ends_at?: string | null;
 }
 
-/** Inicia o teste gratuito de 7 dias (ação explícita do proprietário). */
-export function useStartOrdersTrial() {
+/** Inicia o teste gratuito de 7 dias de um módulo (ação explícita do proprietário). */
+export function useStartModuleTrial(module: AppModule) {
   const queryClient = useQueryClient();
   const { selectedCompanyId } = useCompanyContext();
 
   return useMutation({
-    mutationFn: async (): Promise<StartTrialResult> => {
+    mutationFn: async (): Promise<StartModuleTrialResult> => {
       if (!selectedCompanyId) {
         return {
           success: false,
@@ -78,18 +77,17 @@ export function useStartOrdersTrial() {
           message: "Selecione uma empresa para iniciar o teste.",
         };
       }
-      const { data, error } = await supabase.rpc("start_orders_trial", {
+      const { data, error } = await supabase.rpc("start_module_trial", {
         p_company_id: selectedCompanyId,
+        p_module: module,
       });
       if (error) throw error;
-      return data as unknown as StartTrialResult;
+      return data as unknown as StartModuleTrialResult;
     },
     onSuccess: (result) => {
-      if (result.success) {
-        toast.success(result.message);
-      } else {
-        toast.error(result.message);
-      }
+      if (result.success) toast.success(result.message);
+      else toast.error(result.message);
+      queryClient.invalidateQueries({ queryKey: ["module-entitlement"] });
       queryClient.invalidateQueries({ queryKey: ["orders-entitlement"] });
       queryClient.invalidateQueries({ queryKey: ["company_modules"] });
     },

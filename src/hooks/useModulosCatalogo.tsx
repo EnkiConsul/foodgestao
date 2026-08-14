@@ -9,6 +9,9 @@ import {
   UserCog,
   BarChart3,
   Wallet,
+  Clock,
+  CalendarDays,
+  Receipt,
   type LucideIcon,
   Package,
 } from "lucide-react";
@@ -21,7 +24,11 @@ const ICON_MAP: Record<string, LucideIcon> = {
   UserCog,
   BarChart3,
   Wallet,
+  Clock,
+  CalendarDays,
+  Receipt,
 };
+
 
 export interface ModuloCatalogo {
   id: string;
