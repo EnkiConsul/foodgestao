@@ -468,10 +468,20 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar Colaborador" : "Novo Colaborador"}</DialogTitle>
         </DialogHeader>
+
+        <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="w-full">
+          <TabsList className="w-full justify-start overflow-x-auto">
+            <TabsTrigger value="dados">Dados</TabsTrigger>
+            <TabsTrigger value="jornada">Turno &amp; Jornada</TabsTrigger>
+            <TabsTrigger value="remuneracao">Remuneração</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="dados" className="mt-0">
+
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
           {/* Nome */}
