@@ -8,11 +8,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useUpsertDpColaborador, type DpColaborador } from "@/hooks/useDpColaboradores";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
+import { useDpBeneficios } from "@/hooks/useDpBeneficios";
 import { Textarea } from "@/components/ui/textarea";
 import { maskCpf, isValidCpf } from "@/lib/cpf";
 import { MOTIVO_DESLIGAMENTO_OPTIONS, ELEGIBILIDADE_OPTIONS } from "@/lib/dp/desligamento";
 import type { Database } from "@/integrations/supabase/types";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
+import {
+  RemuneracaoFields,
+  remuneracaoBlank,
+  numeroBR,
+  type RemuneracaoFormState,
+} from "@/components/dp/RemuneracaoFields";
+import {
+  formaPagamentoPadrao,
+  permiteAdiantamento as permiteAdiantamentoRemuneracao,
+  type FormaPagamento,
+} from "@/lib/dp/remuneracao";
+
 
 
 type Regime = Database["public"]["Enums"]["dp_regime_trabalho"];
