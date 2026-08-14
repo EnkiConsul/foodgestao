@@ -45,7 +45,10 @@ export function ModuleSwitcherChip() {
         </SheetHeader>
 
         <div className="mt-4 space-y-2">
-          {MODULES.filter((mod) => mod.available && isModuleUsable(getStatus(mod.slug))).map((mod) => {
+          {MODULES.filter(
+            (mod) => !mod.parent && mod.available && isModuleUsable(getStatus(mod.slug)),
+          ).map((mod) => {
+
             const activeSlug = MODULE_TO_ACTIVE[mod.slug];
             const usable = true;
             const isActive = activeSlug === active;
