@@ -552,9 +552,6 @@ export default function DpColaboradores() {
                 <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => { setEditing(c); setDialogOpen(true); }}>
                   <Pencil className="h-4 w-4 mr-1" /> Editar
                 </Button>
-                <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => setJornadaTarget(c)}>
-                  <Clock className="h-4 w-4 mr-1" /> Trabalho
-                </Button>
                 {c.user_id && (
                   <>
                     <Button size="sm" variant="ghost" className="min-h-11 flex-1" disabled={resetting === c.id} onClick={() => handleReset(c)}>
