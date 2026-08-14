@@ -15,10 +15,11 @@ import {
 import { cn } from "@/lib/utils";
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import {
-  CATEGORIAS_TURNO, CORES_TURNO, DEFAULT_INTERVALOS,
+  CORES_TURNO, DEFAULT_INTERVALOS, categoriasTurno,
   cargaLiquidaHoras, formatarFaixaTurno, intervaloAbaixoDoLegal, nomeSugeridoTurno,
   sugerirCategoria, turnoTemErro, validarTurno,
 } from "@/lib/dp/turno-utils";
+import { useTurnoCategoriaLabels } from "@/hooks/useTurnoCategoriaLabels";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import { TURNO_FORM_DEFAULT, type CienciaTurno, type DpTurnoForm } from "@/hooks/useDpTurnos";
 
@@ -58,8 +59,10 @@ export function TurnoForm({
   const set = <K extends keyof DpTurnoForm>(k: K, v: DpTurnoForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
+  const { labels: categoriaLabels } = useTurnoCategoriaLabels();
+  const categoriasDisponiveis = useMemo(() => categoriasTurno(categoriaLabels), [categoriaLabels]);
   const categoria = form.categoria ?? sugerirCategoria(form.entrada);
-  const nomeAutomatico = nomeSugeridoTurno(categoria, form.entrada, form.saida);
+  const nomeAutomatico = nomeSugeridoTurno(categoria, form.entrada, form.saida, categoriaLabels);
   const nomeFinal = form.nome?.trim() ? form.nome.trim() : nomeAutomatico;
 
   const validacoes = useMemo(
@@ -107,7 +110,7 @@ export function TurnoForm({
             <Select value={categoria} onValueChange={(v) => set("categoria", v)}>
               <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {CATEGORIAS_TURNO.map((c) => (
+                {categoriasDisponiveis.map((c) => (
                   <SelectItem key={c.v} value={c.v}>{c.label}</SelectItem>
                 ))}
               </SelectContent>

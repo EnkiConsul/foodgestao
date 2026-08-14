@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Clock, Plus, Search, Store } from "lucide-react";
+import { Clock, Plus, Search, Store, Tags } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { DpPage, DpPageHeader, DpFilterCard, DpEmptyState } from "@/components/dp/DpPage";
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { TurnoCard } from "@/components/dp/TurnoCard";
 import { TurnoForm, type TurnoSubmitPayload } from "@/components/dp/TurnoForm";
+import { TurnoCategoriaLabelsDialog } from "@/components/dp/TurnoCategoriaLabelsDialog";
 import { HorarioFuncionamentoEditor } from "@/components/dp/HorarioFuncionamentoEditor";
 import {
   useDpTurnos, turnoParaForm, TURNO_FORM_DEFAULT,
@@ -36,6 +37,7 @@ export default function DpTurnos() {
   const [unidadeFiltro, setUnidadeFiltro] = useState(TODAS);
   const [unidadeFuncionamento, setUnidadeFuncionamento] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [labelsOpen, setLabelsOpen] = useState(false);
   const [editando, setEditando] = useState<DpTurnoRow | null>(null);
   const [inicial, setInicial] = useState<DpTurnoForm | null>(null);
   const [pendente, setPendente] = useState<{ atual: DpTurnoRow; form: DpTurnoForm; ciencia?: CienciaTurno | null } | null>(null);
@@ -143,11 +145,18 @@ export default function DpTurnos() {
         title="Turnos"
         description="Cadastre os horários mais usados na operação e reaproveite na escala."
         actions={
-          <Button className="h-11" onClick={abrirNovo}>
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-            Novo turno
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" className="h-11" onClick={() => setLabelsOpen(true)}>
+              <Tags className="mr-2 h-4 w-4" aria-hidden="true" />
+              Nomes das categorias
+            </Button>
+            <Button className="h-11" onClick={abrirNovo}>
+              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+              Novo turno
+            </Button>
+          </div>
         }
+
       />
 
       <Tabs defaultValue="turnos" className="space-y-4">
@@ -245,6 +254,8 @@ export default function DpTurnos() {
           <HorarioFuncionamentoEditor unidadeId={unidadeFuncionamento} />
         </TabsContent>
       </Tabs>
+
+      <TurnoCategoriaLabelsDialog open={labelsOpen} onOpenChange={setLabelsOpen} />
 
       <TurnoForm
         open={formOpen}

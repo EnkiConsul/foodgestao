@@ -3818,6 +3818,7 @@ export type Database = {
           regra_dsr: Database["public"]["Enums"]["dp_regra_dsr"]
           setor_comercio: boolean
           tipo_descanso_domingo: string
+          turno_categoria_labels: Json
           unidade_id: string | null
           updated_at: string
         }
@@ -3841,6 +3842,7 @@ export type Database = {
           regra_dsr?: Database["public"]["Enums"]["dp_regra_dsr"]
           setor_comercio?: boolean
           tipo_descanso_domingo?: string
+          turno_categoria_labels?: Json
           unidade_id?: string | null
           updated_at?: string
         }
@@ -3864,6 +3866,7 @@ export type Database = {
           regra_dsr?: Database["public"]["Enums"]["dp_regra_dsr"]
           setor_comercio?: boolean
           tipo_descanso_domingo?: string
+          turno_categoria_labels?: Json
           unidade_id?: string | null
           updated_at?: string
         }
@@ -11441,6 +11444,7 @@ export type Database = {
           regra_dsr: Database["public"]["Enums"]["dp_regra_dsr"]
           setor_comercio: boolean
           tipo_descanso_domingo: string
+          turno_categoria_labels: Json
           unidade_id: string | null
           updated_at: string
         }

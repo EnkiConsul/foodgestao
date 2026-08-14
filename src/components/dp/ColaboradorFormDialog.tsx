@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useUpsertDpColaborador, type DpColaborador } from "@/hooks/useDpColaboradores";
-import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
+import { useDpUnidades, useDpCargos, useUpsertDpCargo, type DpCargo } from "@/hooks/useDpCadastros";
 import { useDpBeneficios } from "@/hooks/useDpBeneficios";
 import { Textarea } from "@/components/ui/textarea";
 import { maskCpf, isValidCpf } from "@/lib/cpf";
@@ -18,6 +18,9 @@ import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { ColaboradorJornadaPanel } from "@/components/dp/ColaboradorJornadaPanel";
+import { CargoQuickCreateDialog } from "@/components/dp/CargoQuickCreateDialog";
+import { CargoSalarioConflitoDialog } from "@/components/dp/CargoSalarioConflitoDialog";
+import { compararSalarioCargo, moedaBR, salarioReferencia, sugerirNomeVariacao } from "@/lib/dp/cargos";
 import {
   RemuneracaoFields,
   remuneracaoBlank,
@@ -125,6 +128,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const upsert = useUpsertDpColaborador();
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
+  const upsertCargo = useUpsertDpCargo();
   const { beneficios, atribuicoes, saveAtribuicao } = useDpBeneficios();
   const [form, setForm] = useState(blank);
   const { selectedCompanyId } = useCompanyContext();
@@ -132,6 +136,14 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const [tab, setTab] = useState<"dados" | "jornada" | "remuneracao">("dados");
   /** Id do colaborador recém-criado — permite salvar a jornada sem sair do cadastro. */
   const [criadoId, setCriadoId] = useState<string | null>(null);
+  /** Criação de cargo sem sair do cadastro. */
+  const [novoCargoOpen, setNovoCargoOpen] = useState(false);
+  /** Conflito entre o salário informado e o salário de referência do cargo. */
+  const [conflitoCargo, setConflitoCargo] = useState<
+    { salarioCargo: number; salarioInformado: number } | null
+  >(null);
+  /** Regras de cargo/salário já resolvidas para este salvamento. */
+  const cargoResolvido = useRef(false);
   // Ciência do risco jurídico do vínculo sem registro, válida para este salvamento.
   const cienciaConfirmada = useRef<{ justificativa: string } | null>(null);
 
@@ -229,6 +241,25 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const unidadeSelecionada = (unidades.data ?? []).find((u) => u.id === form.unidade_id) as any;
   const cargoSelecionado = (cargos.data ?? []).find((c) => c.id === form.cargo_id) as any;
   const salarioCargo = cargoSelecionado?.salario_base ?? null;
+
+  // Trocar o cargo ou o salário exige revalidar a regra "um cargo = um salário".
+  useEffect(() => {
+    cargoResolvido.current = false;
+  }, [form.cargo_id, rem.salario_base, rem.base_salarial, rem.forma_pagamento]);
+
+  /** Base mensal usada para comparar com o salário de referência do cargo. */
+  const baseSalarialInformada = () => {
+    const usaBase = rem.forma_pagamento === "horista" || rem.forma_pagamento === "diarista";
+    return usaBase ? numeroBR(rem.base_salarial) : numeroBR(rem.salario_base);
+  };
+
+  /** Vincula o cargo criado/escolhido pelos diálogos auxiliares. */
+  const selecionarCargo = (cargo: DpCargo) => {
+    setForm((f) => ({ ...f, cargo_id: cargo.id }));
+    cargoResolvido.current = true;
+  };
+
+
 
   // Adiantamento depende do contrato e da forma de pagamento (intermitente não tem).
   const permiteAdiantamento =
@@ -360,11 +391,46 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     }
 
 
+    // Um cargo = um salário: reconcilia o cargo antes de gravar o colaborador.
+    if (!cargoResolvido.current) {
+      const comparacao = compararSalarioCargo(cargoSelecionado, baseSalarialInformada());
+      if (comparacao.status === "cargo_sem_salario") {
+        const definir = window.confirm(
+          `Definir ${moedaBR(comparacao.salarioInformado)} como salário de referência do cargo ` +
+            `${cargoSelecionado?.nome ?? ""}?`,
+        );
+        if (definir) {
+          try {
+            await upsertCargo.mutateAsync({
+              id: form.cargo_id,
+              nome: cargoSelecionado.nome,
+              salario_base: comparacao.salarioInformado,
+            } as Parameters<typeof upsertCargo.mutateAsync>[0]);
+          } catch (e) {
+            toast.error("Não foi possível gravar o salário do cargo", {
+              description: e instanceof Error ? e.message : String(e),
+            });
+            return;
+          }
+        }
+        cargoResolvido.current = true;
+      } else if (comparacao.status === "divergente") {
+        setConflitoCargo({
+          salarioCargo: comparacao.salarioCargo,
+          salarioInformado: comparacao.salarioInformado,
+        });
+        return;
+      } else {
+        cargoResolvido.current = true;
+      }
+    }
+
     // Vínculo sem registro em carteira exige ciência formal do risco jurídico.
     if (policy.exigeCienciaLegal && !cienciaConfirmada.current) {
       setCienciaAberta(true);
       return;
     }
+
 
     try {
       const colaboradorId = await upsert.mutateAsync({
@@ -535,15 +601,29 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           {/* Cargo / Unidade */}
           <div className="space-y-2">
             <Label>Cargo *</Label>
-            <Select value={form.cargo_id} onValueChange={(v) => setForm({ ...form, cargo_id: v })}>
-              <SelectTrigger><SelectValue placeholder="Selecione o cargo" /></SelectTrigger>
-              <SelectContent>
-                {(cargos.data ?? []).map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select value={form.cargo_id} onValueChange={(v) => setForm({ ...form, cargo_id: v })}>
+                <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione o cargo" /></SelectTrigger>
+                <SelectContent>
+                  {(cargos.data ?? []).map((c) => {
+                    const ref = salarioReferencia(c as any);
+                    return (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome}{ref ? ` — ${moedaBR(ref)}` : ""}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              <Button type="button" variant="outline" className="shrink-0" onClick={() => setNovoCargoOpen(true)}>
+                Novo cargo
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Cada cargo tem um único salário de referência. Cargos criados aqui já entram na tela de Cargos.
+            </p>
           </div>
+
           <div className="space-y-2">
             <Label>Unidade *</Label>
             <Select value={form.unidade_id} onValueChange={(v) => setForm({ ...form, unidade_id: v })}>
@@ -727,12 +807,20 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                       nome: form.nome,
                       regime: regimeSelecionado,
                       unidade_id: form.unidade_id || null,
+                      data_admissao: form.data_admissao || null,
                     }
-                  : { id: null, nome: form.nome, regime: regimeSelecionado, unidade_id: form.unidade_id || null }
+                  : {
+                      id: null,
+                      nome: form.nome,
+                      regime: regimeSelecionado,
+                      unidade_id: form.unidade_id || null,
+                      data_admissao: form.data_admissao || null,
+                    }
               }
               active={tab === "jornada"}
             />
           </TabsContent>
+
 
           <TabsContent value="remuneracao" className="mt-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -798,6 +886,53 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           await submit();
         }}
       />
+
+      <CargoQuickCreateDialog
+        open={novoCargoOpen}
+        onOpenChange={setNovoCargoOpen}
+        salarioInicial={baseSalarialInformada() || null}
+        onCreated={selecionarCargo}
+      />
+
+      {conflitoCargo && (
+        <CargoSalarioConflitoDialog
+          open
+          onOpenChange={(v) => { if (!v) setConflitoCargo(null); }}
+          cargoNome={cargoSelecionado?.nome ?? ""}
+          salarioCargo={conflitoCargo.salarioCargo}
+          salarioInformado={conflitoCargo.salarioInformado}
+          nomeSugerido={sugerirNomeVariacao(cargoSelecionado?.nome ?? "", (cargos.data ?? []) as any)}
+          saving={upsertCargo.isPending}
+          onCriarVariacao={async (nome) => {
+            try {
+              const cargo = await upsertCargo.mutateAsync({
+                nome,
+                cbo: cargoSelecionado?.cbo ?? null,
+                insalubre_periculoso:
+                  !!cargoSelecionado?.insalubridade || !!cargoSelecionado?.periculosidade,
+                salario_base: conflitoCargo.salarioInformado,
+              } as Parameters<typeof upsertCargo.mutateAsync>[0]);
+              selecionarCargo(cargo);
+              setConflitoCargo(null);
+              toast.success("Cargo criado e vinculado. Salve para concluir.");
+            } catch (e) {
+              toast.error("Não foi possível criar a variação do cargo", {
+                description: e instanceof Error ? e.message : String(e),
+              });
+            }
+          }}
+          onUsarSalarioDoCargo={() => {
+            const valor = conflitoCargo.salarioCargo;
+            const texto = valor.toFixed(2).replace(".", ",");
+            const usaBase = rem.forma_pagamento === "horista" || rem.forma_pagamento === "diarista";
+            patchRem(usaBase ? { base_salarial: texto } : { salario_base: texto });
+            cargoResolvido.current = true;
+            setConflitoCargo(null);
+            toast.info("Salário ajustado para o valor do cargo. Salve para concluir.");
+          }}
+        />
+      )}
     </Dialog>
+
   );
 }

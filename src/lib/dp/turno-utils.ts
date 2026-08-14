@@ -44,6 +44,24 @@ export const CATEGORIA_LABEL: Record<string, string> = Object.fromEntries(
   CATEGORIAS_TURNO.map((c) => [c.v, c.label]),
 );
 
+/** Rótulos personalizados por empresa: { almoco: "Turno do almoço" }. */
+export type CategoriaLabels = Record<string, string>;
+
+/** Rótulo da categoria respeitando o nome personalizado da empresa. */
+export function categoriaLabel(
+  categoria: string | null | undefined,
+  overrides?: CategoriaLabels | null,
+): string {
+  if (!categoria) return "Turno";
+  const custom = overrides?.[categoria]?.trim();
+  return custom || CATEGORIA_LABEL[categoria] || categoria;
+}
+
+/** Lista de categorias já com os rótulos personalizados aplicados. */
+export function categoriasTurno(overrides?: CategoriaLabels | null) {
+  return CATEGORIAS_TURNO.map((c) => ({ v: c.v, label: categoriaLabel(c.v, overrides) }));
+}
+
 /** Cores sugeridas para identificar o turno na grade da escala. */
 export const CORES_TURNO = [
   "#EB6119",
@@ -56,7 +74,8 @@ export const CORES_TURNO = [
   "#455A64",
 ] as const;
 
-export const DEFAULT_INTERVALOS = [0, 15, 30, 45, 60, 90, 120];
+export const DEFAULT_INTERVALOS = [0, 30, 60, 120];
+
 
 /** O turno atravessa a meia-noite? */
 export function turnoViraODia(entrada: string, saida: string): boolean {
@@ -105,9 +124,10 @@ export function nomeSugeridoTurno(
   categoria: string | null | undefined,
   entrada: string,
   saida: string,
+  overrides?: CategoriaLabels | null,
 ): string {
   const cat = categoria || sugerirCategoria(entrada);
-  const label = CATEGORIA_LABEL[cat] ?? "Turno";
+  const label = categoriaLabel(cat, overrides);
   return `${label} ${hhmm(entrada)}–${hhmm(saida)}`;
 }
 

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles, UserMinus, RotateCcw, Clock, MoreHorizontal } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles, UserMinus, RotateCcw, MoreHorizontal } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -26,7 +26,6 @@ import {
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { DesligamentoDialog } from "@/components/dp/DesligamentoDialog";
-import { ColaboradorConfigTrabalhoDialog } from "@/components/dp/ColaboradorConfigTrabalhoDialog";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { supabase } from "@/integrations/supabase/client";
@@ -75,7 +74,6 @@ export default function DpColaboradores() {
   const [editing, setEditing] = useState<DpColaborador | null>(null);
   const [toDelete, setToDelete] = useState<DpColaborador | null>(null);
   const [toDesligar, setToDesligar] = useState<DpColaborador | null>(null);
-  const [jornadaTarget, setJornadaTarget] = useState<DpColaborador | null>(null);
   const [toReintegrar, setToReintegrar] = useState<DpColaborador | null>(null);
   const [resetting, setResetting] = useState<string | null>(null);
   const [granting, setGranting] = useState<string | null>(null);
@@ -432,9 +430,6 @@ export default function DpColaboradores() {
                           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditing(c); setDialogOpen(true); }} title="Editar">
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setJornadaTarget(c)} title="Configuração de trabalho">
-                            <Clock className="h-4 w-4" />
-                          </Button>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button size="icon" variant="ghost" className="h-8 w-8" title="Mais ações">
@@ -555,9 +550,6 @@ export default function DpColaboradores() {
                 <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => { setEditing(c); setDialogOpen(true); }}>
                   <Pencil className="h-4 w-4 mr-1" /> Editar
                 </Button>
-                <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => setJornadaTarget(c)}>
-                  <Clock className="h-4 w-4 mr-1" /> Trabalho
-                </Button>
                 {c.user_id && (
                   <>
                     <Button size="sm" variant="ghost" className="min-h-11 flex-1" disabled={resetting === c.id} onClick={() => handleReset(c)}>
@@ -595,11 +587,8 @@ export default function DpColaboradores() {
 
       <ColaboradorFormDialog open={dialogOpen} onOpenChange={setDialogOpen} colaborador={editing} />
 
-      <ColaboradorConfigTrabalhoDialog
-        colaborador={jornadaTarget}
-        open={!!jornadaTarget}
-        onOpenChange={(o) => !o && setJornadaTarget(null)}
-      />
+
+
 
       <DesligamentoDialog colaborador={toDesligar} onOpenChange={(o) => !o && setToDesligar(null)} />
 

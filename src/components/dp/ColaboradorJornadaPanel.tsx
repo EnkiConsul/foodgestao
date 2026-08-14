@@ -31,6 +31,8 @@ export interface JornadaColaborador {
   nome?: string | null;
   regime?: string | null;
   unidade_id?: string | null;
+  /** Base da vigência inicial da jornada. */
+  data_admissao?: string | null;
 }
 
 interface Props {
@@ -56,6 +58,9 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
   const [folgaVariavel, setFolgaVariavel] = useState(false);
   const [dias, setDias] = useState<DiaConfig[]>(diasPadrao());
   const [inicio, setInicio] = useState(hoje());
+  /** "base" = admissão (ou vigência atual) · "nova_data" = mudança de horário. */
+  const [vigenciaModo, setVigenciaModo] = useState<"base" | "nova_data">("base");
+  const admissao = colaborador?.data_admissao ?? null;
   const [obs, setObs] = useState("");
 
   const [novoTurnoOpen, setNovoTurnoOpen] = useState(false);
@@ -85,15 +90,18 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
       setFolgaVariavel(vigente.folga_variavel);
       setDias(normalizarDias(vigente.dias.map((d) => ({ dow: d.dow, trabalha: d.trabalha, turno_id: d.turno_id }))));
       setObs(vigente.observacoes ?? "");
+      setInicio(vigente.vigencia_inicio ?? admissao ?? hoje());
     } else {
       setUnidadeId(colaborador?.unidade_id ?? "none");
       setTurnoPadraoId("none");
       setFolgaVariavel(false);
       setDias(diasPadrao());
       setObs("");
+      setInicio(admissao ?? hoje());
     }
-    setInicio(hoje());
-  }, [active, vigente, colaborador?.unidade_id]);
+    setVigenciaModo("base");
+  }, [active, vigente, colaborador?.unidade_id, admissao]);
+
 
   const config = useMemo(
     () => ({
@@ -198,9 +206,44 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="ct-inicio">Vigente a partir de</Label>
-          <Input id="ct-inicio" type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} />
+          <Label htmlFor="ct-inicio">Vigência</Label>
+          {vigenciaModo === "base" && (vigente || admissao) ? (
+            <div className="space-y-1.5">
+              <p className="rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground">
+                {vigente
+                  ? <>Mantém a vigência atual: <strong className="text-foreground">{fmt(inicio)}</strong></>
+                  : <>Vigente desde a admissão: <strong className="text-foreground">{fmt(inicio)}</strong></>}
+              </p>
+              <Button
+                type="button" variant="link" size="sm" className="h-auto p-0 text-xs"
+                onClick={() => { setVigenciaModo("nova_data"); setInicio(hoje()); }}
+              >
+                Mudança de horário a partir de outra data
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Input id="ct-inicio" type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} />
+              {(vigente || admissao) && (
+                <Button
+                  type="button" variant="link" size="sm" className="h-auto p-0 text-xs"
+                  onClick={() => {
+                    setVigenciaModo("base");
+                    setInicio(vigente?.vigencia_inicio ?? admissao ?? hoje());
+                  }}
+                >
+                  {vigente ? "Manter a vigência atual" : "Usar a data de admissão"}
+                </Button>
+              )}
+              {!vigente && !admissao && (
+                <p className="text-[11px] text-muted-foreground">
+                  Informe a data de admissão no cadastro para que a vigência seja preenchida automaticamente.
+                </p>
+              )}
+            </div>
+          )}
         </div>
+
 
         <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="ct-turno">Turno padrão</Label>

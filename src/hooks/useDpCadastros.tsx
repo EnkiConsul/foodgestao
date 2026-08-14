@@ -144,12 +144,22 @@ export function useUpsertDpCargo() {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
       const payload = { ...input, company_id: selectedCompanyId } as DpCargoInsert;
       if (input.id) {
-        const { error } = await supabase.from("dp_cargos").update(payload).eq("id", input.id);
+        const { data, error } = await supabase
+          .from("dp_cargos")
+          .update(payload)
+          .eq("id", input.id)
+          .select("*")
+          .single();
         if (error) throw error;
-      } else {
-        const { error } = await supabase.from("dp_cargos").insert(payload);
-        if (error) throw error;
+        return data as DpCargo;
       }
+      const { data, error } = await supabase
+        .from("dp_cargos")
+        .insert(payload)
+        .select("*")
+        .single();
+      if (error) throw error;
+      return data as DpCargo;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_cargos"] }),
   });
