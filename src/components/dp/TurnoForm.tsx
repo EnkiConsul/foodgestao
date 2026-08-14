@@ -15,10 +15,11 @@ import {
 import { cn } from "@/lib/utils";
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import {
-  CATEGORIAS_TURNO, CORES_TURNO, DEFAULT_INTERVALOS,
+  CORES_TURNO, DEFAULT_INTERVALOS, categoriasTurno,
   cargaLiquidaHoras, formatarFaixaTurno, intervaloAbaixoDoLegal, nomeSugeridoTurno,
   sugerirCategoria, turnoTemErro, validarTurno,
 } from "@/lib/dp/turno-utils";
+import { useTurnoCategoriaLabels } from "@/hooks/useTurnoCategoriaLabels";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import { TURNO_FORM_DEFAULT, type CienciaTurno, type DpTurnoForm } from "@/hooks/useDpTurnos";
 
