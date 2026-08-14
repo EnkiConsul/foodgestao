@@ -154,7 +154,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       { label: "Provisões de Férias e 13º", to: "/dp/folha/provisoes", icon: Palmtree, end: true, badge: "Em breve" },
       { label: "Rescisões", to: "/dp/rescisoes", icon: FileSignature, badge: "Em breve" },
       { label: "Relatórios da Folha", to: "/dp/folha/relatorios", icon: FileBarChart, end: true, badge: "Em breve" },
-      { label: "Benefícios", to: "/dp/beneficios", icon: Gift, shortcut: true },
+      { label: "Benefícios", to: "/dp/beneficios", icon: Gift, badge: "Em breve" },
     ],
   },
 
