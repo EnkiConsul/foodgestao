@@ -31,6 +31,15 @@ CLT efetivo · CLT intermitente · Estagiário · Temporário · PJ · Sócio ·
 
 "Autônomo" sai da lista — quem trabalha por conta própria sem registro passa a ser Freelancer, e quem tem contrato de prestação de serviço é PJ. Colaboradores já cadastrados como Autônomo estão gravados como PJ no banco e aparecerão como PJ na edição; nenhum dado é perdido. "Sócio" continua com regras de PJ (fora da folha CLT), apenas com rótulo próprio.
 
+## Riscos e recomendações
+
+- **Dado já existente incompatível**: há 1 colaborador intermitente gravado como mensalista hoje. Ao restringir as opções, esse cadastro fica com uma forma inválida. Recomendação: converter esse registro para horista na mesma entrega, pedindo o valor da hora (o campo entra como pendência de remuneração até ser preenchido) em vez de inventar um valor.
+- **Adicionar valor ao enum do banco é definitivo**: `freelancer` não pode ser removido depois sem recriar o tipo. Por isso vale acrescentar só esse valor agora, e manter Sócio/Autônomo como rótulos de tela sobre o regime `pj`, sem novos valores de enum.
+- **Rótulo vs. regime**: Sócio e PJ compartilham o regime `pj`, então o rótulo escolhido não é reconstituível na edição (hoje ambos voltam como "PJ"). Recomendação: guardar o rótulo escolhido num campo próprio de exibição do colaborador para que Sócio volte como Sócio.
+- **Onde o freelancer é pago**: como ele fica fora da folha, hoje não existe caminho de pagamento para ele — e o módulo Folha está pausado em desenvolvimento. Recomendação: nesta entrega apenas marcar o vínculo e a diária/hora; o "acerto avulso" (lançamento de despesa a partir dos dias trabalhados) fica para quando a Folha voltar, para não criar um fluxo financeiro paralelo.
+- **Risco jurídico do registro**: manter escala e ponto de freelancer é ótimo para gestão, mas é também prova de habitualidade. O diálogo de ciência deve dizer isso com clareza, e o histórico do aceite (usuário, data, IP) é o que protege a plataforma.
+- **Escopo de código**: a mudança toca cadastro, política de contrato e filtros de folha. Não altera escala, ponto nem relatórios — o que reduz o risco de regressão, e os testes de política cobrem cada vínculo.
+
 ## Detalhes técnicos
 
 - Banco: adicionar `freelancer` ao enum `dp_regime_trabalho`. Sem mudança de tabelas.
