@@ -154,7 +154,7 @@ export function StagingCard({
             aria-expanded={open}
           >
             <div className="flex items-start justify-between gap-2">
-              <p className="break-words text-sm font-medium leading-snug">{row.description ?? "-"}</p>
+              <p className="line-clamp-2 break-words text-sm font-medium leading-snug">{row.description ?? "-"}</p>
               <span
                 className={cn(
                   "shrink-0 text-sm font-bold tabular-nums",
@@ -167,7 +167,7 @@ export function StagingCard({
             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
               <span>{format(parseISO(row.date), "dd/MM/yyyy")}</span>
               {counterpartyLabel && (
-                <span className="break-all">
+                <span className="line-clamp-1 break-all">
                   {counterpartyInternal ? "Banco: " : ""}
                   {counterpartyLabel}
                 </span>
@@ -214,7 +214,7 @@ export function StagingCard({
             </div>
             {!open && (
               <p className="mt-1 text-[10px] text-muted-foreground">
-                {accountName ? `Conta: ${accountName}` : "Toque para classificar"}
+                <span className="line-clamp-1">{accountName ? `Conta: ${accountName}` : "Toque para classificar"}</span>
               </p>
             )}
           </button>
@@ -225,7 +225,7 @@ export function StagingCard({
             <div>
               <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Conta destino</label>
               <Select value={accountValue} onValueChange={onAccountChange} disabled={disabled}>
-                <SelectTrigger className="h-10 w-full text-sm">
+                <SelectTrigger className="h-10 w-full max-w-full text-sm [&>span]:block [&>span]:truncate [&>span]:text-left">
                   <SelectValue placeholder="Selecionar…" />
                 </SelectTrigger>
                 <SelectContent>
@@ -245,7 +245,7 @@ export function StagingCard({
                 onValueChange={(v) => onKindChange(v as "auto" | "transfer")}
                 disabled={disabled}
               >
-                <SelectTrigger className="h-10 w-full text-sm" aria-label="Tipo do lançamento">
+                <SelectTrigger className="h-10 w-full max-w-full text-sm [&>span]:block [&>span]:truncate [&>span]:text-left" aria-label="Tipo do lançamento">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -261,7 +261,7 @@ export function StagingCard({
                   {isEntrada ? "Conta de origem" : "Conta de destino"}
                 </label>
                 <Select value={counterpart} onValueChange={onCounterpartChange} disabled={disabled}>
-                  <SelectTrigger className="h-10 w-full text-sm">
+                  <SelectTrigger className="h-10 w-full max-w-full text-sm [&>span]:block [&>span]:truncate [&>span]:text-left">
                     <SelectValue placeholder={isEntrada ? "Conta de origem…" : "Conta de destino…"} />
                   </SelectTrigger>
                   <SelectContent>
@@ -283,7 +283,7 @@ export function StagingCard({
               <div>
                 <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Categoria</label>
                 <Select value={category} onValueChange={onCategoryChange} disabled={disabled}>
-                  <SelectTrigger className="h-10 w-full text-sm">
+                  <SelectTrigger className="h-10 w-full max-w-full text-sm [&>span]:block [&>span]:truncate [&>span]:text-left">
                     <SelectValue placeholder="Sem categoria" />
                   </SelectTrigger>
                   <SelectContent className="max-h-[60vh]">
@@ -319,7 +319,7 @@ export function StagingCard({
                     <span className="ml-1 text-[10px] text-muted-foreground">(sugerido)</span>
                   )}
                   <Select value={paymentMethod} onValueChange={onPaymentMethodChange} disabled={disabled}>
-                    <SelectTrigger className="h-10 w-full text-sm">
+                    <SelectTrigger className="h-10 w-full max-w-full text-sm [&>span]:block [&>span]:truncate [&>span]:text-left">
                       <SelectValue placeholder="Não informada" />
                     </SelectTrigger>
                     <SelectContent>
