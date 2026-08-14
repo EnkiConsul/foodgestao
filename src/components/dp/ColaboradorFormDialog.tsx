@@ -524,7 +524,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           )}
 
           {/* Adiantamento — apenas para contratos com salário mensal em folha */}
-          {policy.permiteAdiantamento ? (
+          {permiteAdiantamento ? (
             <div className="col-span-2 flex items-center gap-3 rounded-xl border border-border p-3">
               <Switch
                 id="optante_adiantamento"
