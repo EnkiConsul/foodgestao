@@ -573,6 +573,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             onChange={patchRem}
             salarioCargo={salarioCargo}
             cargoInsalubre={!!cargoSelecionado?.insalubridade || !!cargoSelecionado?.periculosidade}
+            regime={regimeSelecionado}
             beneficios={beneficios}
           />
 
