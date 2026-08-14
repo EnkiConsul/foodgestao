@@ -34,6 +34,10 @@ export interface ContratoPolicy {
   jornadaLabel: string;
   /** Texto explicativo exibido quando a jornada é apenas disponibilidade. */
   jornadaHint: string | null;
+  /** Admite adiantamento salarial quinzenal (salário mensal fixo em folha). */
+  permiteAdiantamento: boolean;
+  /** Motivo exibido quando o adiantamento não se aplica ao contrato. */
+  adiantamentoHint: string | null;
 }
 
 const CLT_LIKE: ContratoPolicy = {
