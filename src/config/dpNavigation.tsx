@@ -62,7 +62,10 @@ export type DpNavItem = {
   shortcut?: boolean;
   /** Rótulo curto usado nos atalhos da BottomNav (default: label). */
   shortLabel?: string;
+  /** Selo discreto ao lado do rótulo (ex.: "Em breve"). */
+  badge?: string;
 };
+
 
 export type DpNavGroup = {
   label: string;
@@ -131,9 +134,9 @@ const ADMIN_GROUPS: DpNavGroup[] = [
     icon: Fingerprint,
     matchPrefixes: ["/dp/ponto"],
     items: [
-      { label: "Espelho de Ponto", to: "/dp/ponto", icon: Fingerprint, end: true },
-      { label: "Ponto do Time", to: "/dp/ponto/time", icon: Users, end: true, shortcut: true },
-      { label: "Apuração para Folha", to: "/dp/ponto/apuracao", icon: Calculator, end: true },
+      { label: "Espelho de Ponto", to: "/dp/ponto", icon: Fingerprint, end: true, badge: "Em breve" },
+      { label: "Ponto do Time", to: "/dp/ponto/time", icon: Users, end: true, badge: "Em breve" },
+      { label: "Apuração para Folha", to: "/dp/ponto/apuracao", icon: Calculator, end: true, badge: "Em breve" },
     ],
   },
   {
@@ -146,14 +149,15 @@ const ADMIN_GROUPS: DpNavGroup[] = [
         to: "/dp/folha",
         icon: Receipt,
         end: true,
-        shortcut: true,
+        badge: "Em breve",
       },
-      { label: "Provisões de Férias e 13º", to: "/dp/folha/provisoes", icon: Palmtree, end: true },
-      { label: "Rescisões", to: "/dp/rescisoes", icon: FileSignature },
-      { label: "Relatórios da Folha", to: "/dp/folha/relatorios", icon: FileBarChart, end: true },
+      { label: "Provisões de Férias e 13º", to: "/dp/folha/provisoes", icon: Palmtree, end: true, badge: "Em breve" },
+      { label: "Rescisões", to: "/dp/rescisoes", icon: FileSignature, badge: "Em breve" },
+      { label: "Relatórios da Folha", to: "/dp/folha/relatorios", icon: FileBarChart, end: true, badge: "Em breve" },
       { label: "Benefícios", to: "/dp/beneficios", icon: Gift, shortcut: true },
     ],
   },
+
   {
     label: "Documentos",
     icon: FileText,
@@ -263,7 +267,7 @@ const PORTAL_GROUPS: DpNavGroup[] = [
     icon: Fingerprint,
     matchPrefixes: ["/dp/meu/ponto"],
     items: [
-      { label: "Registrar Ponto", to: "/dp/meu/ponto", icon: Fingerprint, shortcut: true, shortLabel: "Ponto" },
+      { label: "Registrar Ponto", to: "/dp/meu/ponto", icon: Fingerprint, shortLabel: "Ponto", badge: "Em breve" },
     ],
   },
   {
@@ -278,7 +282,7 @@ const PORTAL_GROUPS: DpNavGroup[] = [
     ],
     items: [
       { label: "Meus Documentos", to: "/dp/meu/documentos", icon: FileText, shortcut: true, shortLabel: "Documentos" },
-      { label: "Meus Contracheques", to: "/dp/meu/contracheque", icon: Receipt, shortcut: true, shortLabel: "Contracheques" },
+      { label: "Meus Contracheques", to: "/dp/meu/contracheque", icon: Receipt, shortLabel: "Contracheques", badge: "Em breve" },
       { label: "Atestados", to: "/dp/meu/atestados", icon: HeartPulse },
       { label: "Disciplinar", to: "/dp/meu/disciplinar", icon: ShieldAlert },
       { label: "Sindicato", to: "/dp/meu/sindicato", icon: Scale },

@@ -282,6 +282,12 @@ function ItemRow({
     >
       <Icon className="h-5 w-5 shrink-0" />
       <span className="text-sm font-medium flex-1">{item.label}</span>
+      {item.badge && (
+        <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+          {item.badge}
+        </span>
+      )}
+
       {fav && <Star className="h-4 w-4 fill-primary text-primary shrink-0" />}
     </button>
   );

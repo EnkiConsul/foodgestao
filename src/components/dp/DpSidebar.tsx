@@ -23,7 +23,7 @@ import {
 } from "@/config/dpNavigation";
 import { makeIsActive } from "@/lib/nav-active";
 
-type Sub = { title: string; url: string; icon: LucideIcon; end?: boolean };
+type Sub = { title: string; url: string; icon: LucideIcon; end?: boolean; badge?: string };
 type Item =
   | { kind: "link"; title: string; url: string; icon: LucideIcon; end?: boolean; home?: boolean }
   | { kind: "group"; title: string; icon: LucideIcon; prefixes: string[]; items: Sub[]; hubUrl?: string };
@@ -33,8 +33,9 @@ type Item =
  * `src/config/dpNavigation.tsx`.
  */
 function toSub(item: DpNavItem): Sub {
-  return { title: item.label, url: item.to, icon: item.icon, end: item.end };
+  return { title: item.label, url: item.to, icon: item.icon, end: item.end, badge: item.badge };
 }
+
 
 function toGroup(group: DpNavGroup): Item {
   return {
@@ -278,7 +279,16 @@ function DpGroup({
               }
             >
               <sub.icon className="h-3.5 w-3.5 shrink-0" />
-              <span>{toTitleCase(sub.title)}</span>
+              <span className="truncate">{toTitleCase(sub.title)}</span>
+              {sub.badge && (
+                <span
+                  title={sub.badge}
+                  aria-label={sub.badge}
+                  className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/50"
+                />
+              )}
+
+
             </NavLink>
           ))}
         </div>

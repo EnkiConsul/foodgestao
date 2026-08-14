@@ -76,7 +76,10 @@ export type NavLeaf = {
   end?: boolean;
   /** Se true, ocupa a linha inteira na página "Mais" (item de destaque). */
   featured?: boolean;
+  /** Selo discreto ao lado do rótulo (ex.: "Em breve"). */
+  badge?: string;
 };
+
 
 /** Chave semântica de cor para o chip do grupo na página "Mais". */
 export type GroupAccent = "primary" | "navy" | "amber" | "slate" | "muted";
@@ -151,8 +154,9 @@ const financeiroShortcuts: NavLeaf[] = [
 // ── DP + Portal (derivados de src/config/dpNavigation.tsx) ───────────────
 /** Converte um item da config compartilhada em NavLeaf do menu mobile. */
 function toLeaf(item: DpNavItem): NavLeaf {
-  return { icon: item.icon, label: item.label, to: item.to, end: item.end };
+  return { icon: item.icon, label: item.label, to: item.to, end: item.end, badge: item.badge };
 }
+
 
 /** Versão curta, usada nas opções de atalho da BottomNav. */
 function toShortcutLeaf(item: DpNavItem): NavLeaf {

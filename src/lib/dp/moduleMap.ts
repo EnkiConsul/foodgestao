@@ -37,6 +37,23 @@ export const DP_ROUTE_MODULES: DpRouteModuleRule[] = [
   { prefix: "/dp/meu/contracheque", module: "folha" },
 ];
 
+/**
+ * Módulos temporariamente pausados: as telas seguem no código e nas rotas,
+ * mas exibem a máscara "Módulo em desenvolvimento".
+ * Para liberar um módulo, basta removê-lo desta lista.
+ */
+export const MODULOS_EM_DESENVOLVIMENTO: AppModule[] = ["ponto", "folha"];
+
+export function isModuleEmDesenvolvimento(module: AppModule): boolean {
+  return MODULOS_EM_DESENVOLVIMENTO.includes(module);
+}
+
+/** A rota pertence a um módulo pausado? */
+export function isDpRouteEmDesenvolvimento(pathname: string): boolean {
+  return isModuleEmDesenvolvimento(moduleForDpRoute(pathname));
+}
+
+
 /** Retorna o módulo vendável responsável por uma rota do DP. */
 export function moduleForDpRoute(pathname: string): AppModule {
   const path = pathname.replace(/\/+$/, "") || "/";

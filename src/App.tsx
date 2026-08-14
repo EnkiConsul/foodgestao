@@ -12,6 +12,8 @@ import { usePageviewTracking } from "@/hooks/usePageviewTracking";
 import { ModuleGuard } from "@/components/modules/ModuleGuard";
 import { ModulePlaceholder } from "@/components/modules/ModulePlaceholder";
 import { DpLayout } from "@/components/dp/DpLayout";
+import { ModuloEmDesenvolvimentoGate } from "@/components/dp/ModuloEmDesenvolvimentoGate";
+
 import { ColaboradorShell } from "./components/dp/ColaboradorShell";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
@@ -342,8 +344,9 @@ const AppRoutes = () => (
         <Route path="calendario" element={<DpMeuCalendario />} />
         <Route path="escala" element={<DpMeuEscala />} />
         <Route path="convocacoes" element={<DpMinhasConvocacoes />} />
-        <Route path="ponto" element={<DpMeuPonto />} />
-        <Route path="contracheque" element={<DpMeuContracheque />} />
+        <Route path="ponto" element={<ModuloEmDesenvolvimentoGate module="ponto" surface="portal"><DpMeuPonto /></ModuloEmDesenvolvimentoGate>} />
+        <Route path="contracheque" element={<ModuloEmDesenvolvimentoGate module="folha" surface="portal"><DpMeuContracheque /></ModuloEmDesenvolvimentoGate>} />
+
         <Route path="atestados" element={<Navigate to="/dp/meu/documentos?tipo=atestado" replace />} />
         <Route path="disciplinar" element={<Navigate to="/dp/meu/documentos?tipo=disciplinar" replace />} />
         <Route path="sindicato" element={<Navigate to="/dp/meu/documentos?tipo=act_cct" replace />} />
@@ -456,14 +459,15 @@ const AppRoutes = () => (
         <Route path="escalas/mes" element={<DpEscalaMes />} />
         <Route path="operacao" element={<DpOperacaoDia />} />
         <Route path="convocacoes" element={<DpConvocacoes />} />
-        <Route path="ponto" element={<DpPonto />} />
-        <Route path="ponto/time" element={<DpPontoConsolidado />} />
-        <Route path="ponto/apuracao" element={<DpPontoApuracao />} />
-        <Route path="folha" element={<DpFolha />} />
-        <Route path="folha/provisoes" element={<DpFolhaProvisoes />} />
-        <Route path="folha/relatorios" element={<DpFolhaRelatorios />} />
-        <Route path="rescisoes" element={<DpRescisoes />} />
-        <Route path="folha/:id" element={<DpFolhaPeriodo />} />
+        <Route path="ponto" element={<ModuloEmDesenvolvimentoGate module="ponto"><DpPonto /></ModuloEmDesenvolvimentoGate>} />
+        <Route path="ponto/time" element={<ModuloEmDesenvolvimentoGate module="ponto"><DpPontoConsolidado /></ModuloEmDesenvolvimentoGate>} />
+        <Route path="ponto/apuracao" element={<ModuloEmDesenvolvimentoGate module="ponto"><DpPontoApuracao /></ModuloEmDesenvolvimentoGate>} />
+        <Route path="folha" element={<ModuloEmDesenvolvimentoGate module="folha"><DpFolha /></ModuloEmDesenvolvimentoGate>} />
+        <Route path="folha/provisoes" element={<ModuloEmDesenvolvimentoGate module="folha"><DpFolhaProvisoes /></ModuloEmDesenvolvimentoGate>} />
+        <Route path="folha/relatorios" element={<ModuloEmDesenvolvimentoGate module="folha"><DpFolhaRelatorios /></ModuloEmDesenvolvimentoGate>} />
+        <Route path="rescisoes" element={<ModuloEmDesenvolvimentoGate module="folha"><DpRescisoes /></ModuloEmDesenvolvimentoGate>} />
+        <Route path="folha/:id" element={<ModuloEmDesenvolvimentoGate module="folha"><DpFolhaPeriodo /></ModuloEmDesenvolvimentoGate>} />
+
         <Route path="documentos/act-cct" element={<DpSindicatoNegociacoes />} />
         <Route path="configuracoes" element={<DpConfiguracoes />} />
         <Route path="sindicatos" element={<Navigate to="/dp/cadastros/sindicatos" replace />} />

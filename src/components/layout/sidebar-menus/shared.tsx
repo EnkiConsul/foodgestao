@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/collapsible";
 import { NavLink } from "@/components/NavLink";
 
-export type MenuItem = { title: string; url: string; icon: LucideIcon; end?: boolean };
+export type MenuItem = { title: string; url: string; icon: LucideIcon; end?: boolean; badge?: string };
 
 export function SidebarNavItem({ item }: { item: MenuItem }) {
   return (
@@ -32,12 +32,18 @@ export function SidebarNavItem({ item }: { item: MenuItem }) {
           activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium translate-x-1"
         >
           <item.icon className="h-4 w-4 shrink-0" />
-          <span>{item.title}</span>
+          <span className="truncate">{item.title}</span>
+          {item.badge && (
+            <span className="ml-auto shrink-0 rounded-full bg-sidebar-accent px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-sidebar-foreground/70">
+              {item.badge}
+            </span>
+          )}
         </NavLink>
       </SidebarMenuButton>
     </SidebarMenuItem>
   );
 }
+
 
 export function SidebarSection({ label, children }: { label?: string; children: ReactNode }) {
   return (
