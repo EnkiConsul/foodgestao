@@ -16,15 +16,28 @@ import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
-import { formatarFaixaTurno } from "@/lib/dp/turno-utils";
+import {
+  formatarFaixaTurno, intervaloAbaixoDoLegal, nomeSugeridoTurno, sugerirCategoria,
+} from "@/lib/dp/turno-utils";
 import {
   cargaSemanalConfig, configTemErro, diasPadrao, DOW_LABEL, normalizarDias,
   resumoConfigTexto, turnoDoDia, validarConfigTrabalho,
   type DiaConfig, type TurnoResolvido,
 } from "@/lib/dp/config-trabalho";
 
+/** Horário digitado direto em um dia da semana, antes de virar turno. */
+interface HorarioDia {
+  entrada: string;
+  saida: string;
+  intervalo_minutos: number;
+}
+
+/** Prefixo do turno virtual usado apenas para calcular carga e validações na tela. */
+const VIRTUAL_PREFIX = "novo:";
+
 const hoje = () => new Date().toISOString().slice(0, 10);
 const fmt = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : null);
+
 
 export interface JornadaColaborador {
   id?: string | null;
