@@ -11,6 +11,11 @@ import { MoreHeader } from "@/components/mobile/MoreHeader";
 import { MoreGroupSection } from "@/components/mobile/MoreGroupSection";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useDpMenuLayout } from "@/hooks/useDpMenuLayout";
+import {
+  orderLeavesByLayout,
+  orderSubgroupsByLayout,
+} from "@/lib/dp/menuLayout";
 
 const norm = (s: string) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -23,8 +28,31 @@ export default function Mais() {
   const { favorites, isFavorite, toggle, max } = useFavoriteNavItems();
   const [query, setQuery] = useState("");
 
-  const config = MODULE_NAV[activeModule] ?? MODULE_NAV.financeiro;
+  const rawConfig = MODULE_NAV[activeModule] ?? MODULE_NAV.financeiro;
   const moduleLabel = MODULE_LABEL[activeModule];
+
+  // Ordem personalizada do menu do DP / Portal (mesma fonte da sidebar).
+  const isDpSurface = activeModule === "dp" || activeModule === "portal_colaborador";
+  const { layout } = useDpMenuLayout(
+    activeModule === "portal_colaborador" ? "portal" : "dp",
+  );
+  const config = useMemo(() => {
+    if (!isDpSurface || !layout) return rawConfig;
+    return {
+      ...rawConfig,
+      moreGroups: rawConfig.moreGroups.map((g) =>
+        g.subgroups
+          ? {
+              ...g,
+              subgroups: orderSubgroupsByLayout(g.subgroups, layout).map((sg) => ({
+                ...sg,
+                items: orderLeavesByLayout(sg.id, sg.items, layout),
+              })),
+            }
+          : g,
+      ),
+    };
+  }, [rawConfig, isDpSurface, layout]);
 
   const allItems: NavLeaf[] = useMemo(
     () =>

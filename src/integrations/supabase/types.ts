@@ -5444,6 +5444,44 @@ export type Database = {
           },
         ]
       }
+      dp_menu_defaults: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          layout: Json
+          surface: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          layout?: Json
+          surface: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          layout?: Json
+          surface?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_menu_defaults_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_modelos_mensagem: {
         Row: {
           assunto: string | null

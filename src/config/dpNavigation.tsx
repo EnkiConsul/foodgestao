@@ -68,6 +68,8 @@ export type DpNavItem = {
 
 
 export type DpNavGroup = {
+  /** Slug estável (independente do rótulo) usado para persistir a ordem. */
+  id: string;
   label: string;
   icon: LucideIcon;
   /** Rota "hub" da seção — cabeçalho do grupo navega para cá. */
@@ -90,6 +92,7 @@ export type DpNavSurface = {
 
 const ADMIN_GROUPS: DpNavGroup[] = [
   {
+    id: "rotina-dia",
     label: "Rotina do Dia",
     icon: CalendarClock,
     hubTo: "/dp/operacao",
@@ -108,6 +111,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
     ],
   },
   {
+    id: "folgas-ferias",
     label: "Folgas e Férias",
     icon: Calendar,
     matchPrefixes: [
@@ -130,6 +134,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
     ],
   },
   {
+    id: "ponto",
     label: "Ponto",
     icon: Fingerprint,
     matchPrefixes: ["/dp/ponto"],
@@ -140,6 +145,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
     ],
   },
   {
+    id: "folha",
     label: "Folha",
     icon: Receipt,
     matchPrefixes: ["/dp/folha", "/dp/rescisoes", "/dp/beneficios"],
@@ -159,6 +165,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
   },
 
   {
+    id: "documentos",
     label: "Documentos",
     icon: FileText,
     hubTo: "/dp/documentos",
@@ -181,6 +188,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
     ],
   },
   {
+    id: "comunicacao",
     label: "Comunicação",
     icon: MessageSquare,
     hubTo: "/dp/comunicacao",
@@ -199,6 +207,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
     ],
   },
   {
+    id: "cadastro",
     label: "Cadastro",
     icon: Users,
     hubTo: "/dp/cadastros",
@@ -243,6 +252,7 @@ export const DP_ADMIN_NAV: DpNavSurface = {
 
 const PORTAL_GROUPS: DpNavGroup[] = [
   {
+    id: "minha-escala",
     label: "Minha Escala",
     icon: Calendar,
     matchPrefixes: [
@@ -263,6 +273,7 @@ const PORTAL_GROUPS: DpNavGroup[] = [
     ],
   },
   {
+    id: "meu-ponto",
     label: "Meu Ponto",
     icon: Fingerprint,
     matchPrefixes: ["/dp/meu/ponto"],
@@ -271,6 +282,7 @@ const PORTAL_GROUPS: DpNavGroup[] = [
     ],
   },
   {
+    id: "portal-documentos",
     label: "Documentos",
     icon: FileText,
     matchPrefixes: [
