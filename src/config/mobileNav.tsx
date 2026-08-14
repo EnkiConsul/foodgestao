@@ -87,6 +87,8 @@ export type GroupAccent = "primary" | "navy" | "amber" | "slate" | "muted";
 /** Subgrupo dentro de uma seção — espelha grupos colapsáveis/estáticos do sidebar desktop. */
 export type MoreSubGroup = {
   kind: "collapsible" | "static";
+  /** Id estável do grupo de origem (usado para reordenação personalizada). */
+  id?: string;
   label: string;
   icon: LucideIcon;
   /** Rota do "hub" da seção (ex.: /dp/cadastros) — vira link "Ver visão geral". */
@@ -166,6 +168,7 @@ function toShortcutLeaf(item: DpNavItem): NavLeaf {
 function toSubGroup(group: DpNavGroup): MoreSubGroup {
   return {
     kind: "collapsible",
+    id: group.id,
     label: group.label,
     icon: group.icon,
     hubTo: group.hubTo,
