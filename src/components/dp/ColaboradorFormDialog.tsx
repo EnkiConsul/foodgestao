@@ -715,16 +715,71 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
               </div>
             </div>
           )}
-        </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="jornada" className="mt-4">
+            <ColaboradorJornadaPanel
+              colaborador={
+                colaborador?.id || criadoId
+                  ? {
+                      id: colaborador?.id ?? criadoId,
+                      nome: form.nome,
+                      regime: regimeSelecionado,
+                      unidade_id: form.unidade_id || null,
+                    }
+                  : { id: null, nome: form.nome, regime: regimeSelecionado, unidade_id: form.unidade_id || null }
+              }
+              active={tab === "jornada"}
+            />
+          </TabsContent>
+
+          <TabsContent value="remuneracao" className="mt-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {/* Remuneração e benefícios — base da folha de pagamento */}
+              <RemuneracaoFields
+                value={rem}
+                onChange={patchRem}
+                salarioCargo={salarioCargo}
+                cargoInsalubre={!!cargoSelecionado?.insalubridade || !!cargoSelecionado?.periculosidade}
+                regime={regimeSelecionado}
+                beneficios={beneficios}
+              />
+
+              {/* Adiantamento — apenas para contratos com salário mensal em folha */}
+              {permiteAdiantamento ? (
+                <div className="col-span-2 flex items-center gap-3 rounded-xl border border-border p-3">
+                  <Switch
+                    id="optante_adiantamento"
+                    checked={form.optante_adiantamento}
+                    onCheckedChange={(v) => setForm({ ...form, optante_adiantamento: v })}
+                  />
+                  <Label htmlFor="optante_adiantamento" className="cursor-pointer">Opta por Adiantamento Salarial</Label>
+                  {unidadeSelecionada?.tem_adiantamento && unidadeSelecionada?.dia_adiantamento && (
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      Dia do adiantamento: {unidadeSelecionada.dia_adiantamento}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <p className="col-span-2 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                  <strong className="text-foreground">Adiantamento salarial não se aplica.</strong>{" "}
+                  {policy.adiantamentoHint}
+                </p>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={upsert.isPending}>
-            Cancelar
+            {criadoId ? "Concluir" : "Cancelar"}
           </Button>
           <Button onClick={submit} disabled={upsert.isPending}>
-            {upsert.isPending ? "Salvando..." : isEdit ? "Atualizar" : "Criar"}
+            {upsert.isPending ? "Salvando..." : isEdit || criadoId ? "Atualizar" : "Criar"}
           </Button>
         </DialogFooter>
+
       </DialogContent>
 
       <CienciaLegalDialog
