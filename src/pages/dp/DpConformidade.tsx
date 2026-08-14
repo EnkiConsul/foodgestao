@@ -67,11 +67,11 @@ export default function DpConformidade() {
 
   return (
     <DpPage>
-      <Helmet><title>Conformidade e saúde ocupacional — DP 360°</title></Helmet>
+      <Helmet><title>SESMT — saúde e segurança ocupacional — DP 360°</title></Helmet>
       <DpPageHeader
         icon={ShieldCheck}
-        title="Conformidade"
-        description="Exames ocupacionais (ASO), ficha de EPI e treinamentos obrigatórios por colaborador."
+        title="SESMT"
+        description="Saúde e segurança ocupacional: exames (ASO), ficha de EPI e treinamentos obrigatórios por colaborador."
       />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
