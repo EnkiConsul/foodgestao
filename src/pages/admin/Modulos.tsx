@@ -182,10 +182,6 @@ export default function AdminModulos() {
                     </TableRow>
                   );
                 })}
-
-                    </TableRow>
-                  );
-                })}
                 {filtered.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={MODULES.length + 1} className="text-center text-muted-foreground py-8">
