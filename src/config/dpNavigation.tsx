@@ -62,7 +62,10 @@ export type DpNavItem = {
   shortcut?: boolean;
   /** Rótulo curto usado nos atalhos da BottomNav (default: label). */
   shortLabel?: string;
+  /** Selo discreto ao lado do rótulo (ex.: "Em breve"). */
+  badge?: string;
 };
+
 
 export type DpNavGroup = {
   label: string;
