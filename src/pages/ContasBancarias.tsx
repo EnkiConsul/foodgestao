@@ -74,6 +74,7 @@ export default function ContasBancarias() {
   const [adjustAccount, setAdjustAccount] = useState<Account | null>(null);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
+  const [filterNature, setFilterNature] = useState<"all" | "contabil" | "nao_contabil">("all");
   const [staleBalance, setStaleBalance] = useState(false);
   const [resyncing, setResyncing] = useState(false);
   const [lastTxAt, setLastTxAt] = useState<number>(0);
