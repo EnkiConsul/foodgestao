@@ -1,4 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { AlertTriangle } from "lucide-react";
+import { regimeRisco } from "@/lib/dp/regime-riscos";
+import { RegimeRiscoDialog } from "@/components/dp/RegimeRiscoDialog";
+
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
