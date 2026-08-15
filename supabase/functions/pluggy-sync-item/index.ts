@@ -429,7 +429,7 @@ Deno.serve(async (req) => {
       if (pausedIds.has(acc.id)) continue;
       const txs = await listTransactions(acc.id, fmt(from), fmt(to));
       if (txs.length === 0) continue;
-      const rows = txs.map((t: any) => {
+      const rows = txs.map((t: any): any => {
         const amt = Number(t.amount ?? 0);
         const counterparty = counterpartyName(t, enrichOptions);
         const description = buildDescription(t, enrichOptions);
@@ -455,6 +455,7 @@ Deno.serve(async (req) => {
           status: 'pending' as const,
         };
       });
+
 
 
       // Dedupe pelo identificador original do banco (providerId): quando o banco
