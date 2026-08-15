@@ -1,5 +1,6 @@
 # Fase 5 — Sindicatos: piso salarial e reflexo na remuneração
 
+
 Fases 1 a 4 (Horário de Trabalho, Remuneração, Benefícios e Cargos) estão concluídas. Esta fase fecha o roteiro do DP conectando a convenção coletiva ao cadastro do colaborador.
 
 ## Situação atual verificada
@@ -11,14 +12,18 @@ Fases 1 a 4 (Horário de Trabalho, Remuneração, Benefícios e Cargos) estão c
 ## O que será construído
 
 ### 1. Cláusulas econômicas na negociação
-Na tela de negociações (CCT/ACT), um bloco "Cláusulas econômicas" grava dentro de `clausulas`:
-- Piso salarial geral da categoria.
-- Pisos por cargo (lista: cargo + valor).
-- Percentuais de adicional noturno, insalubridade e periculosidade, quando a convenção definir acima do mínimo legal.
-- Valor de referência de vale-alimentação/refeição e desconto máximo permitido.
-- Observação livre por cláusula.
+Na tela de negociações (CCT/ACT), um bloco **"Cláusulas econômicas"** grava dentro de `clausulas`:
+- Piso salarial geral da categoria (opcional).
+- Pisos por cargo: lista de cargo + valor (opcional; piso geral vale para cargos sem valor específico).
+- Percentuais de adicional noturno, insalubridade e periculosidade, quando a convenção definir acima do mínimo legal (opcional).
+- Valor de referência de vale-alimentação/refeição e desconto máximo permitido (opcional).
+- Observação livre por cláusula (opcional).
 
-Nenhuma coluna nova: tudo dentro do JSON já existente, com leitura tolerante a documentos antigos (sem cláusulas).
+**Padrão quando não preenchido:**
+- Piso ausente → adota `dp_cargos.salario_base` (quando existir) como referência, sem gerar aviso de abaixo do piso.
+- Adicionais ausentes → seguem os percentuais mínimos legais, sem alerta de violação de convenção.
+- VA/VR ausente → desconto máximo fica sob as regras gerais do módulo de benefícios.
+- Documentos antigos sem `clausulas` continuam funcionando normalmente.
 
 ### 2. Piso vigente por cargo
 Regra pura nova em `src/lib/dp/sindicato-regras.ts`:
