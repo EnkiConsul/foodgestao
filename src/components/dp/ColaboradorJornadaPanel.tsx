@@ -314,7 +314,10 @@ export function ColaboradorJornadaPanel({
       vigencia_inicio: inicio,
       dias: dias.map((d) => ({ ...d, turno_id: null })),
     });
+    setAlterado(false);
     toast.success("Horário de trabalho salvo");
+    // Feedback: o topo do painel mostra a vigência gravada.
+    topoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const onSalvar = async () => {
@@ -341,6 +344,44 @@ export function ColaboradorJornadaPanel({
       toast.error(e instanceof Error ? e.message : "Não foi possível salvar o horário");
     }
   };
+
+  /**
+   * Salvamento acionado pelo botão único do cadastro do colaborador.
+   * Devolve "pendente_ciencia" quando ainda falta a confirmação dos avisos —
+   * nesse caso o cadastro permanece aberto nesta aba.
+   */
+  const salvarExterno = useCallback(async (): Promise<SalvarJornadaResultado> => {
+    if (!colaborador?.id || !alterado) return "nada";
+    if (!horario.entrada || !horario.saida) {
+      toast.error("Informe a entrada e a saída do horário de trabalho.");
+      return "erro";
+    }
+    if (bloqueado) {
+      toast.error("Corrija os pontos indicados no horário de trabalho.");
+      return "erro";
+    }
+    if (temAlertaClt(alertas)) {
+      setCienciaOpen(true);
+      return "pendente_ciencia";
+    }
+    try {
+      await persistir();
+      return "salvo";
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível salvar o horário");
+      return "erro";
+    }
+  });
+
+  const salvarExternoRef = useRef(salvarExterno);
+  salvarExternoRef.current = salvarExterno;
+
+  useEffect(() => {
+    if (!onRegistrarSalvar) return;
+    onRegistrarSalvar(() => salvarExternoRef.current());
+    return () => onRegistrarSalvar(null);
+  }, [onRegistrarSalvar]);
+
 
   const cargaDiaria = calcularCargaDia(horario);
 
