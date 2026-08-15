@@ -122,6 +122,56 @@ export function NotificationsBell() {
         }
       }
 
+      // Accountant access reminder (PJ only, once per month, only for owner/admin)
+      if (contextType === "pj" && selectedCompanyId) {
+        const storageKey = accountantKey(selectedCompanyId);
+        const alreadyDismissed = typeof window !== "undefined" && localStorage.getItem(storageKey) === "1";
+
+        if (!alreadyDismissed && !dismissed.has(storageKey)) {
+          const { data: myMembership } = await supabase
+            .from("company_members")
+            .select("role")
+            .eq("company_id", selectedCompanyId)
+            .eq("user_id", user!.id)
+            .maybeSingle();
+
+          const isAdminOrOwner = myMembership?.role === "owner" || myMembership?.role === "admin";
+
+          if (isAdminOrOwner) {
+            const { data: accountants } = await supabase
+              .from("company_members")
+              .select("id")
+              .eq("company_id", selectedCompanyId)
+              .eq("role", "contabilidade")
+              .limit(1);
+
+            const { data: pendingInvites } = await supabase
+              .from("company_invites")
+              .select("id")
+              .eq("company_id", selectedCompanyId)
+              .eq("role", "contabilidade")
+              .eq("status", "pending")
+              .limit(1);
+
+            if (!accountants?.length && !pendingInvites?.length) {
+              result.push({
+                id: `accountant-${selectedCompanyId}`,
+                type: "accountant",
+                title: "Cadastre o acesso do seu contador",
+                description: "Adicione um usuário com papel Contabilidade para acesso somente leitura às contas contábeis.",
+                href: "/gestao-usuarios",
+                dismiss: () => {
+                  if (typeof window !== "undefined") {
+                    localStorage.setItem(storageKey, "1");
+                  }
+                  setDismissed((prev) => new Set([...prev, storageKey]));
+                },
+              });
+            }
+          }
+        }
+      }
+
       return result;
     },
   });
