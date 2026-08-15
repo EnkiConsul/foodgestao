@@ -39,7 +39,10 @@ export interface EntradaAlertasClt {
   cargo?: string | null;
   /** Quando true, o alerta de menores é gerado (config da empresa). */
   avisarMenor?: boolean;
+  /** A folga muda a cada semana: quem responde por DSR é a escala do mês. */
+  folgaVariavel?: boolean;
 }
+
 
 const LIMITE_SEMANAL_CLT = 44;
 const LIMITE_DIARIO_CLT = 8;
