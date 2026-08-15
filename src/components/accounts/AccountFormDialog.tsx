@@ -68,6 +68,11 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
       setOwnerCompanyId(account.company_id);
       setAgency(a.agency ?? "");
       setAccountNumber(a.account_number ?? "");
+      setIsAccounting(
+        (account as Account & { is_accounting?: boolean }).is_accounting === false
+          ? "nao_contabil"
+          : "contabil",
+      );
     } else {
       setName("");
       setAccountType("corrente");
@@ -77,6 +82,7 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
       setBankSlug(null);
       setAgency("");
       setAccountNumber("");
+      setIsAccounting("contabil");
     }
   }, [open, account, contextType, selectedCompanyId]);
 
