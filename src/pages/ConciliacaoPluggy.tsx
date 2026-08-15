@@ -572,7 +572,20 @@ export default function ConciliacaoPluggy() {
 
   const confirmSelected = async () => {
     setBulkBusy("confirm");
-    try { await confirmIds(Array.from(selected)); } finally { setBulkBusy(null); }
+    try {
+      await confirmIds(Array.from(selected));
+      // Fim do fluxo: oferece o extrato comparativo banco x plataforma
+      toast.success("Conciliação concluída", {
+        description: "Veja o extrato comparativo entre o banco e a plataforma.",
+        action: {
+          label: "Ver extrato",
+          onClick: () =>
+            navigate(
+              `/contas-bancarias/conciliacao/extrato${scopedLocalAccountId ? `?account=${scopedLocalAccountId}` : ""}`,
+            ),
+        },
+      });
+    } finally { setBulkBusy(null); }
   };
   const ignoreSelected = async () => {
     setBulkBusy("ignore");
