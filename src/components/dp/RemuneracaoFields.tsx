@@ -148,6 +148,34 @@ export function RemuneracaoFields({
     },
   );
 
+  const premioCalculado = premioAssiduidadeBase(
+    {
+      premio_assiduidade_tipo: value.premio_assiduidade_tipo,
+      premio_assiduidade_valor: numeroBR(value.premio_assiduidade_valor),
+    },
+    salario,
+  );
+
+  const vaInput = {
+    vale_alimentacao: value.vale_alimentacao,
+    vale_alimentacao_valor: numeroBR(value.vale_alimentacao_valor),
+    vale_alimentacao_periodicidade: value.vale_alimentacao_periodicidade,
+    vale_alimentacao_dias_base: numeroBR(value.vale_alimentacao_dias_base),
+    vale_alimentacao_desconto_tipo: value.vale_alimentacao_desconto_tipo,
+    vale_alimentacao_desconto_valor: numeroBR(value.vale_alimentacao_desconto_valor),
+  };
+  const va = valeAlimentacaoDoMes(vaInput);
+  const alertasVa = value.vale_alimentacao
+    ? alertasBeneficioAlimentacao({
+      valor: vaInput.vale_alimentacao_valor,
+      periodicidade: vaInput.vale_alimentacao_periodicidade,
+      dias_base: vaInput.vale_alimentacao_dias_base,
+      desconto_tipo: vaInput.vale_alimentacao_desconto_tipo,
+      desconto_valor: vaInput.vale_alimentacao_desconto_valor,
+    })
+    : [];
+
+
   const labelValor =
     forma === "horista" ? "Valor da hora *" : forma === "diarista" ? "Valor do dia *" : "Salário base *";
   const bloqueiaValor = usaBase && !value.valor_hora_manual && calculado != null;
