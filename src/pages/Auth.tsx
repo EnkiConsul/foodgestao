@@ -95,6 +95,9 @@ export default function Auth() {
   const [turnstileToken, setTurnstileToken] = useState<string>("");
   const [turnstileError, setTurnstileError] = useState<string | null>(null);
   const [turnstileNonce, setTurnstileNonce] = useState(0);
+  const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resending, setResending] = useState(false);
   const turnstileSiteKey = useTurnstileSiteKey();
   const { signUp, user } = useAuth();
   const navigate = useNavigate();
