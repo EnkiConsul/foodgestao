@@ -231,6 +231,15 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
   const regimeSelecionado = VINCULO_TO_REGIME[form.tipo_vinculo] ?? "clt";
 
+  // Orientação jurídica: vínculos sem previsão legal (freelancer) ou de risco
+  // de pejotização (PJ/MEI) ganham faixa de alerta com caminhos seguros.
+  const risco = useMemo(
+    () => regimeRisco({ regime: regimeSelecionado, temHorarioDefinido: true }),
+    [regimeSelecionado],
+  );
+  const [riscoOpen, setRiscoOpen] = useState(false);
+
+
   // Mudar o vínculo pode invalidar a forma de pagamento (ex.: intermitente não
   // é mensalista): reconciliamos sempre pela política do contrato.
   useEffect(() => {
