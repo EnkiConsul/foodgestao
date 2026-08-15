@@ -574,6 +574,21 @@ export default function ConciliacaoPluggy() {
   };
 
 
+  /** Salva a descrição editada do lançamento importado (antes de conciliar). */
+  const saveDescription = async (id: string, description: string) => {
+    const { error } = await supabase
+      .from("pluggy_staging_transactions")
+      .update({ description })
+      .eq("id", id);
+    if (error) {
+      toast.error("Não foi possível alterar a descrição", { description: error.message });
+      return false;
+    }
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, description } : r)));
+    toast.success("Descrição atualizada");
+    return true;
+  };
+
   const handleRowAction = async (id: string, action: "confirm" | "ignore") => {
     setRowBusy(id);
     try {
@@ -583,6 +598,7 @@ export default function ConciliacaoPluggy() {
       setRowBusy(null);
     }
   };
+
 
 
   /** Banco cadastrado de cada conexão Open Finance (para débitos internos). */
