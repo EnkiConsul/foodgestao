@@ -16,6 +16,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ContactSelectContent } from "@/components/conciliacao/ContactSelectContent";
+import { DescriptionEditor } from "@/components/conciliacao/DescriptionEditor";
+
 import type { ReactNode } from "react";
 
 interface AccountOpt {
@@ -75,7 +77,10 @@ interface StagingCardProps {
   busy: boolean;
   isTransferBadge: boolean;
   maskBRL: (value: number) => string;
+  /** Salva a descrição editada do lançamento importado. */
+  onDescriptionSave?: (value: string) => Promise<boolean | void>;
   onAction: (action: "confirm" | "ignore") => void;
+
 }
 
 /** Versão mobile de uma linha da fila de conciliação (mesma lógica da tabela). */
@@ -111,7 +116,9 @@ export function StagingCard({
   busy,
   isTransferBadge,
   maskBRL,
+  onDescriptionSave,
   onAction,
+
 }: StagingCardProps) {
 
   const isEntrada = row.amount >= 0;
@@ -222,6 +229,17 @@ export function StagingCard({
 
         {open && (
           <div className="space-y-3 border-t bg-muted/20 p-3">
+            {onDescriptionSave && (
+              <div>
+                <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Descrição</label>
+                <DescriptionEditor
+                  value={row.description}
+                  disabled={disabled}
+                  onSave={onDescriptionSave}
+                />
+              </div>
+            )}
+
             <div>
               <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Conta destino</label>
               <Select value={accountValue} onValueChange={onAccountChange} disabled={disabled}>

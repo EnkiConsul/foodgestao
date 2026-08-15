@@ -18,6 +18,8 @@ import { CATEGORY_INDENT_STEP, categoryGuideLevels } from "@/lib/categories/disp
 import { CategoryTypeBadge } from "@/components/categorias/CategoryTypeBadge";
 import { buildCategoryTree, type Category } from "@/lib/categories/tree";
 import { StagingCard } from "@/components/conciliacao/StagingCard";
+import { DescriptionEditor } from "@/components/conciliacao/DescriptionEditor";
+
 import { ContactSelectContent } from "@/components/conciliacao/ContactSelectContent";
 import { suggestPaymentMethodId } from "@/lib/conciliacao/paymentMethodInference";
 import { fetchAllCompanyContacts, findExistingContact, ensureContactCompanyLink } from "@/lib/conciliacao/contacts";
@@ -574,6 +576,21 @@ export default function ConciliacaoPluggy() {
   };
 
 
+  /** Salva a descrição editada do lançamento importado (antes de conciliar). */
+  const saveDescription = async (id: string, description: string) => {
+    const { error } = await supabase
+      .from("pluggy_staging_transactions")
+      .update({ description })
+      .eq("id", id);
+    if (error) {
+      toast.error("Não foi possível alterar a descrição", { description: error.message });
+      return false;
+    }
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, description } : r)));
+    toast.success("Descrição atualizada");
+    return true;
+  };
+
   const handleRowAction = async (id: string, action: "confirm" | "ignore") => {
     setRowBusy(id);
     try {
@@ -583,6 +600,7 @@ export default function ConciliacaoPluggy() {
       setRowBusy(null);
     }
   };
+
 
 
   /** Banco cadastrado de cada conexão Open Finance (para débitos internos). */
@@ -998,7 +1016,9 @@ export default function ConciliacaoPluggy() {
                 busy={rowBusy === r.id}
                 isTransferBadge={!!r.matched_transaction_id && transferTxIds.has(r.matched_transaction_id)}
                 maskBRL={maskBRL}
+                onDescriptionSave={(v) => saveDescription(r.id, v)}
                 onAction={(action) => handleRowAction(r.id, action)}
+
               />
             );
           })}
@@ -1052,7 +1072,13 @@ export default function ConciliacaoPluggy() {
                     </td>
                     <td className="p-2 whitespace-nowrap">{format(parseISO(r.date), "dd/MM/yyyy")}</td>
                     <td className="p-2 max-w-[280px]">
-                      <p className="truncate" title={r.description ?? ""}>{r.description ?? "-"}</p>
+                      <DescriptionEditor
+                        compact
+                        value={r.description}
+                        disabled={disabled}
+                        onSave={(v) => saveDescription(r.id, v)}
+                      />
+
                       {counterpartyLabel(counterpartyByRow[r.id] ?? { name: null, document: null, documentType: null, internal: false }) && (
                         <p className="mt-0.5 truncate text-[10px] text-muted-foreground" title={counterpartyLabel(counterpartyByRow[r.id]!) ?? ""}>
                           {counterpartyByRow[r.id]?.internal ? "Banco (débito interno): " : ""}
