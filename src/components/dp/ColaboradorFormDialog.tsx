@@ -985,7 +985,20 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           }}
         />
       )}
+
+      {risco && (
+        <RegimeRiscoDialog
+          open={riscoOpen}
+          onOpenChange={setRiscoOpen}
+          tipo={risco.tipo}
+          onEscolher={(regime) => {
+            setForm({ ...form, tipo_vinculo: regime === "clt" ? "CLT" : "Intermitente" });
+            setRiscoOpen(false);
+          }}
+        />
+      )}
     </Dialog>
+
 
   );
 }
