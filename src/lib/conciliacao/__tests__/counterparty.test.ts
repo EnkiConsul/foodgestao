@@ -30,7 +30,7 @@ describe("extractCounterparty", () => {
       { ownDocuments: [OWN] },
     );
     expect(cp).toEqual({
-      name: "Rafael De Paula Castro",
+      name: "Rafael de Paula Castro",
       document: "023.559.691-40",
       documentType: "CPF",
       internal: false,
