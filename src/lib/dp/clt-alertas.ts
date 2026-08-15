@@ -86,11 +86,18 @@ function tocaNoturno(d: DiaHorarioResolvido): boolean {
   return s > NOTURNO_INICIO || e < NOTURNO_FIM || s > 24 * 60 + NOTURNO_FIM - 1;
 }
 
-/** Regimes fora da validação celetista de carga/folga. */
+/**
+ * Regimes fora da validação celetista de carga/folga.
+ *
+ * A decisão vem da política do contrato: PJ/MEI/freelancer não têm jornada
+ * contratual e o intermitente cadastra apenas disponibilidade habitual — as
+ * obrigações de jornada, intervalo e descanso são conferidas na convocação
+ * (art. 452-A da CLT), não no cadastro.
+ */
 function foraDaClt(regime?: string | null): boolean {
-  const r = (regime ?? "").toLowerCase();
-  return r === "pj" || r === "mei" || r === "estagio" || r === "estágio";
+  return !contratoPolicy(regime).validaCargaSemanal;
 }
+
 
 /**
  * Verifica o horário da semana contra as referências da CLT.
