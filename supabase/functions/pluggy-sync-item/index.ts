@@ -558,6 +558,30 @@ Deno.serve(async (req) => {
 
     }
 
+    // Materialização V2: mantém cópia persistente e imutável de contas + lançamentos
+    // em pluggy_v2_*. Falhas aqui não quebram a sincronização V1, apenas são logadas.
+    try {
+      const v2Result = await materializePluggyItemV2({
+        supabase: admin,
+        pluggyItemId: itemId,
+        companyId: effectiveCompanyId,
+        createdBy: userId,
+        triggerSource: userId ? 'manual' : 'webhook',
+        sourceWebhookEventId: null,
+        fullSync: isFirstConnect,
+      });
+      console.log('pluggy-v2 materialized', {
+        itemId,
+        companyId: effectiveCompanyId,
+        accounts: v2Result.accountsSynced,
+        transactions: v2Result.transactionsIngested,
+      });
+    } catch (v2Err) {
+      console.error('pluggy-v2 materialization failed (non-fatal)', {
+        itemId,
+        error: v2Err instanceof Error ? v2Err.message : String(v2Err),
+      });
+    }
 
     return new Response(JSON.stringify({
       ok: true,
@@ -565,12 +589,14 @@ Deno.serve(async (req) => {
       connection_id: conn.id,
       accounts: accounts.length,
       transactions: staged,
+      v2_materialized: true,
       first_connect: !!isFirstConnect,
       item_status: item?.status ?? null,
       execution_status: item?.executionStatus ?? null,
     }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+
   } catch (e) {
     console.error('pluggy-sync-item error', e);
     const msg = String(e);
