@@ -22,8 +22,9 @@ import {
   type PremioTipo,
 } from "@/lib/dp/remuneracao";
 import {
-  alertasBeneficioAlimentacao, DESCONTO_TIPO_LABEL, DIAS_BASE_PADRAO, PERIODICIDADE_LABEL,
-  type DescontoTipo, type Periodicidade,
+  alertasBeneficioAlimentacao, DESCONTO_TIPO_LABEL, DIAS_BASE_PADRAO, DIAS_ORIGEM_LABEL,
+  PERIODICIDADE_LABEL, descreverDiasJornada, diasTrabalhaveisNoMes,
+  type DescontoTipo, type DiaSemanaTrabalho, type DiasOrigem, type Periodicidade,
 } from "@/lib/dp/beneficios-regras";
 import { AlertTriangle, Info } from "lucide-react";
 import type { Beneficio } from "@/hooks/useDpBeneficios";
@@ -56,6 +57,8 @@ export interface RemuneracaoFormState {
   vale_alimentacao_valor: string;
   vale_alimentacao_periodicidade: Periodicidade;
   vale_alimentacao_dias_base: string;
+  /** Origem dos dias no mês para o VA pago por dia. */
+  vale_alimentacao_dias_origem: DiasOrigem;
   vale_alimentacao_desconto_tipo: DescontoTipo;
   vale_alimentacao_desconto_valor: string;
 }
