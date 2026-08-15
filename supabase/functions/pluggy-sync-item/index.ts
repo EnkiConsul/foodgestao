@@ -3,6 +3,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { getItem, listAccounts, listTransactions, refreshItem, waitForItem } from '../_shared/pluggy.ts';
 import { buildDescription, counterpartyName } from '../_shared/tx-description.ts';
 import { extractCounterpartyDocument } from '../_shared/counterparty-doc.ts';
+import { materializePluggyItemV2 } from '../_shared/pluggy-v2-materialize.ts';
+
 
 
 Deno.serve(async (req) => {
