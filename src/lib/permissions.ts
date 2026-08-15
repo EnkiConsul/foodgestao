@@ -78,6 +78,13 @@ export function getDefaultPermissions(role: CompanyRole): PermissionsMap {
     case "owner":
     case "admin":
       return all("edit");
+    case "contabilidade":
+      return Object.fromEntries(
+        ALL_MODULES.map((m) => [
+          m,
+          (ACCOUNTING_MODULES as ModuleKey[]).includes(m) ? "view" : "none",
+        ]),
+      ) as PermissionsMap;
     case "viewer":
       return all("view");
     case "member":
