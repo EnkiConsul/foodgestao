@@ -42,7 +42,7 @@ const signupSchema = z.object({
   path: ["confirmPassword"],
 });
 
-type Mode = "login" | "signup" | "forgot";
+type Mode = "login" | "signup" | "forgot" | "confirm-email";
 
 function translateAuthError(message: string): string {
   const m = message.toLowerCase();
