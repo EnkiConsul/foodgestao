@@ -36,6 +36,19 @@ Hoje a tela de turno não mostra quem usa aquele horário, e a escolha ao editar
 - **Escalas já publicadas nunca mudam.** A escala congela entrada/saída no item, então mês fechado, Ponto e Folha continuam com os números originais. A alteração vale da data escolhida em diante (padrão: hoje).
 - **Excluir/inativar um horário em uso passa a avisar quem ficará sem horário**, com a lista nominal, em vez do texto genérico atual.
 
+## Alertas trabalhistas (avisa, não bloqueia)
+
+Hoje a regra "menor não encerra após as 22:00" existe em `validarSemana` (`src/lib/dp/jornada-utils.ts`), mas o único componente que a usava (`HorariosSemanaEditor`) não é mais chamado por nenhuma tela — logo, no cadastro atual do colaborador nada é sinalizado. O ajuste transforma isso num verificador que roda no próprio "Horário de trabalho" do colaborador:
+
+- **Faixa amarela de avisos abaixo dos horários**, em linguagem de dono de loja, atualizada enquanto ele digita. Nada trava o salvamento.
+- **Ao salvar com algum aviso aberto**, aparece o `CienciaLegalDialog` já usado no projeto: lista dos pontos fora da referência CLT, checkbox de ciência e justificativa opcional, com registro em `dp_regras_historico` (quem confirmou, quando, o que).
+- Regras verificadas, todas derivadas da idade/cargo/regime já cadastrados:
+  - **Menor de 18**: nenhum horário depois das 22:00 nem virando o dia; máximo 6h por dia e 30h na semana (8h/44h só com curso e compensação); intervalo de 1h quando passa de 4h; nada de domingo/feriado sem folga compensatória.
+  - **Todos**: mais de 44h na semana; mais de 8h no dia sem acordo de compensação; intervalo menor que 1h em jornada acima de 6h (já existe) e ausência de intervalo acima de 4h; menos de 11h entre a saída de um dia e a entrada do seguinte; 7 dias seguidos sem folga; domingo sem folga no mês.
+  - **Aprendiz**: 6h/dia sem prorrogação.
+  - **Noturno (22h–5h)**: aviso informativo de que a hora vale 52min30 e há adicional de 20% — para a Folha calcular certo depois.
+- **Onde mais aparece**: o mesmo verificador é reaproveitado na ficha do colaborador (selo "Fora da referência CLT" com o motivo), no cadastro de "Horários da loja" e na geração da escala do mês (aviso na publicação, sem impedir).
+- A chave `exige_validacao_menor` já existente em `dp_config_dp` passa a significar "avisar sobre menores" — o texto do card em Configurações é corrigido, pois hoje promete bloqueio que não existe.
 
 
 ## Detalhes técnicos
