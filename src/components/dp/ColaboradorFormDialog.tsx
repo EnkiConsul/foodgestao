@@ -22,6 +22,7 @@ import { MOTIVO_DESLIGAMENTO_OPTIONS, ELEGIBILIDADE_OPTIONS } from "@/lib/dp/des
 import type { Database } from "@/integrations/supabase/types";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { ColaboradorJornadaPanel, type SalvarJornadaResultado } from "@/components/dp/ColaboradorJornadaPanel";
 import { CargoQuickCreateDialog } from "@/components/dp/CargoQuickCreateDialog";
@@ -148,10 +149,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
    */
   const configTrabalho = useDpColaboradorConfigTrabalho(colaborador?.id ?? criadoId);
   const diasJornada = useMemo(() => {
-    const vigente = (configTrabalho.registros ?? []).find((c) => !c.vigencia_fim)
-      ?? (configTrabalho.registros ?? [])[0];
+    const vigente = configTrabalho.vigente ?? configTrabalho.configs[0] ?? null;
     return (vigente?.dias ?? []).map((d) => ({ dow: d.dow, trabalha: d.trabalha }));
-  }, [configTrabalho.registros]);
+  }, [configTrabalho.vigente, configTrabalho.configs]);
 
   /** Criação de cargo sem sair do cadastro. */
   const [novoCargoOpen, setNovoCargoOpen] = useState(false);
