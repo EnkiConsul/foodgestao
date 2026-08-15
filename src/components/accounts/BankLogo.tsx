@@ -23,7 +23,7 @@ function isCashAccountName(text?: string | null): boolean {
     .replace(/\s+/g, " ")
     .trim();
   if (/economica|federal|cef|cx economica/.test(t)) return false;
-  return /^(caixa|caixa geral|caixa interno|caixa loja|dinheiro|especie|carteira|cofre)\b/.test(t);
+  return /^(caixa|caixa geral|caixa interno|caixa loja|dinheiro|especie|carteira|cofre|emprestimos?)\b/.test(t);
 }
 
 export function BankLogo({ slug, fallbackName, size = 40, className, fallbackColor }: BankLogoProps) {
