@@ -28,11 +28,14 @@ const SECTIONS: { title: string; modules: readonly ModuleKey[]; fallback: Permis
 ];
 
 export function PermissionsEditor({ role, value, onChange }: Props) {
-  const disabled = role === "owner" || role === "admin" || role === "viewer";
+  const disabled =
+    role === "owner" || role === "admin" || role === "viewer" || role === "contabilidade";
   const disabledNote =
     role === "owner" || role === "admin"
       ? "Admins têm acesso total a todos os módulos."
-      : role === "viewer"
+      : role === "contabilidade"
+        ? "Contabilidade tem acesso somente leitura e vê apenas contas e lançamentos marcados como contábeis."
+        : role === "viewer"
         ? "Visualizadores têm acesso somente leitura em todos os módulos."
         : null;
 

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Users, UserPlus, Crown, Shield, User, Eye, Trash2, Clock, Copy, XCircle, Settings2 } from "lucide-react";
+import { Users, UserPlus, Crown, Shield, User, Eye, Trash2, Clock, Copy, XCircle, Settings2, Calculator } from "lucide-react";
 import { formatDate } from "@/lib/date-utils";
 import { InviteUserDialog } from "@/components/users/InviteUserDialog";
 import { EditMemberPermissionsDialog } from "@/components/users/EditMemberPermissionsDialog";
@@ -21,6 +21,8 @@ const roleBadge = (role: string) => {
       return <Badge className="bg-purple-500/15 text-purple-700 border-purple-200 dark:text-purple-400"><Crown className="h-3 w-3 mr-1" />Dono</Badge>;
     case "admin":
       return <Badge className="bg-blue-500/15 text-blue-700 border-blue-200 dark:text-blue-400"><Shield className="h-3 w-3 mr-1" />Admin</Badge>;
+    case "contabilidade":
+      return <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-200 dark:text-emerald-400"><Calculator className="h-3 w-3 mr-1" />Contabilidade</Badge>;
     case "viewer":
       return <Badge className="bg-amber-500/15 text-amber-700 border-amber-200 dark:text-amber-400"><Eye className="h-3 w-3 mr-1" />Visualizador</Badge>;
     default:
