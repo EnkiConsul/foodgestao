@@ -749,7 +749,7 @@ export default function ConciliacaoPluggy() {
             </h1>
             <p className="text-sm text-muted-foreground">
               {scope
-                ? "Lançamentos importados apenas desta conta bancária."
+                ? "Lançamentos importados apenas desta conta financeira."
                 : "Revise, categorize e confirme os lançamentos importados dos bancos conectados."}
             </p>
           </div>
