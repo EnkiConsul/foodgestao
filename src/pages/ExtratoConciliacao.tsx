@@ -405,6 +405,18 @@ export default function ExtratoConciliacao() {
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <div className="min-w-0 flex-1">
                               <div className="truncate text-sm font-medium">{r.platform.description}</div>
+                              <div
+                                className={cn(
+                                  "text-sm font-semibold tabular-nums",
+                                  Math.abs(Math.abs(r.platform.amount) - Math.abs(r.amount)) > 0.004
+                                    ? "text-warning"
+                                    : r.side === "credito"
+                                      ? "text-success"
+                                      : "text-destructive",
+                                )}
+                              >
+                                {maskBRL(r.side === "debito" ? -Math.abs(r.platform.amount) : Math.abs(r.platform.amount))}
+                              </div>
                               <div className="mt-0.5 flex flex-wrap gap-1">
                                 {r.platform.categoryName && (
                                   <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{r.platform.categoryName}</Badge>
@@ -420,6 +432,7 @@ export default function ExtratoConciliacao() {
                                 )}
                               </div>
                             </div>
+
                             <Button
                               type="button"
                               size="sm"
