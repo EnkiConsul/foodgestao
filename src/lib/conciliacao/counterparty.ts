@@ -12,6 +12,8 @@
  *   contraparte externa: nesses casos a contraparte é o próprio banco.
  */
 
+import { toProperName } from "@/lib/text/properName";
+
 export type DocumentType = "CNPJ" | "CPF";
 
 export interface CounterpartyRow {
@@ -181,7 +183,7 @@ export function extractCounterparty(
   if (external && (external.name || onlyDigits(external.document).length >= 11)) {
     return {
       // Último recurso: nome dentro da descrição do extrato.
-      name: external.name ?? nameFromDescription(row.description),
+      name: toProperName(external.name ?? nameFromDescription(row.description)) || null,
       document: formatDocument(external.document),
       documentType: documentTypeOf(external.document),
       internal: false,
