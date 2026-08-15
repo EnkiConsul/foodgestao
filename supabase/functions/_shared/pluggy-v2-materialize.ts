@@ -105,7 +105,9 @@ export async function materializePluggyItemV2(params: {
 
   // 4. Sincroniza contas
   const accountsResp = await listAccounts(item.id);
-  const accounts = accountsResp?.results ?? [];
+  if (!accountsResp.ok) throw new Error(`list_accounts_failed:${accountsResp.error}`);
+  const accounts = accountsResp.data.results ?? [];
+
   let accountsSynced = 0;
   const accountIdMap = new Map<string, string>(); // pluggy_account_id -> internal id
 
