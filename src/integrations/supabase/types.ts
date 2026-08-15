@@ -10304,6 +10304,419 @@ export type Database = {
           },
         ]
       }
+      pluggy_v2_accounts: {
+        Row: {
+          balance: number | null
+          bank_data: Json
+          company_id: string
+          connection_id: string
+          created_at: string
+          credit_data: Json
+          currency_code: string
+          id: string
+          last_synced_at: string | null
+          marketing_name: string | null
+          name: string | null
+          number_masked: string | null
+          owner_masked: string | null
+          pluggy_account_id: string
+          pluggy_item_id: string
+          raw_snapshot: Json
+          subtype: string | null
+          tax_number_masked: string | null
+          type: string | null
+          updated_at: string
+        }
+        Insert: {
+          balance?: number | null
+          bank_data?: Json
+          company_id: string
+          connection_id: string
+          created_at?: string
+          credit_data?: Json
+          currency_code?: string
+          id?: string
+          last_synced_at?: string | null
+          marketing_name?: string | null
+          name?: string | null
+          number_masked?: string | null
+          owner_masked?: string | null
+          pluggy_account_id: string
+          pluggy_item_id: string
+          raw_snapshot?: Json
+          subtype?: string | null
+          tax_number_masked?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          balance?: number | null
+          bank_data?: Json
+          company_id?: string
+          connection_id?: string
+          created_at?: string
+          credit_data?: Json
+          currency_code?: string
+          id?: string
+          last_synced_at?: string | null
+          marketing_name?: string | null
+          name?: string | null
+          number_masked?: string | null
+          owner_masked?: string | null
+          pluggy_account_id?: string
+          pluggy_item_id?: string
+          raw_snapshot?: Json
+          subtype?: string | null
+          tax_number_masked?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pluggy_v2_accounts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pluggy_v2_accounts_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "pluggy_v2_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pluggy_v2_connections: {
+        Row: {
+          company_id: string
+          connector_id: string | null
+          connector_name: string | null
+          created_at: string
+          created_by: string | null
+          credentials_expires_at: string | null
+          execution_status: string | null
+          id: string
+          last_sync_at: string | null
+          last_updated_at: string | null
+          metadata: Json
+          pluggy_item_id: string
+          status: Database["public"]["Enums"]["pluggy_v2_connection_status"]
+          status_detail: Json
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          connector_id?: string | null
+          connector_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          credentials_expires_at?: string | null
+          execution_status?: string | null
+          id?: string
+          last_sync_at?: string | null
+          last_updated_at?: string | null
+          metadata?: Json
+          pluggy_item_id: string
+          status?: Database["public"]["Enums"]["pluggy_v2_connection_status"]
+          status_detail?: Json
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          connector_id?: string | null
+          connector_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          credentials_expires_at?: string | null
+          execution_status?: string | null
+          id?: string
+          last_sync_at?: string | null
+          last_updated_at?: string | null
+          metadata?: Json
+          pluggy_item_id?: string
+          status?: Database["public"]["Enums"]["pluggy_v2_connection_status"]
+          status_detail?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pluggy_v2_connections_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pluggy_v2_sync_runs: {
+        Row: {
+          accounts_synced: number
+          company_id: string
+          connection_id: string
+          created_at: string
+          cursor_after: string | null
+          error_message: string | null
+          finished_at: string | null
+          from_date: string | null
+          id: string
+          metadata: Json
+          pages_processed: number
+          source_webhook_event_id: string | null
+          started_at: string
+          status: Database["public"]["Enums"]["pluggy_v2_sync_status"]
+          transactions_ingested: number
+          triggered_by: string
+          updated_at: string
+        }
+        Insert: {
+          accounts_synced?: number
+          company_id: string
+          connection_id: string
+          created_at?: string
+          cursor_after?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          from_date?: string | null
+          id?: string
+          metadata?: Json
+          pages_processed?: number
+          source_webhook_event_id?: string | null
+          started_at?: string
+          status?: Database["public"]["Enums"]["pluggy_v2_sync_status"]
+          transactions_ingested?: number
+          triggered_by?: string
+          updated_at?: string
+        }
+        Update: {
+          accounts_synced?: number
+          company_id?: string
+          connection_id?: string
+          created_at?: string
+          cursor_after?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          from_date?: string | null
+          id?: string
+          metadata?: Json
+          pages_processed?: number
+          source_webhook_event_id?: string | null
+          started_at?: string
+          status?: Database["public"]["Enums"]["pluggy_v2_sync_status"]
+          transactions_ingested?: number
+          triggered_by?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pluggy_v2_sync_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pluggy_v2_sync_runs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "pluggy_v2_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pluggy_v2_transactions_raw: {
+        Row: {
+          account_id: string
+          amount: number
+          balance: number | null
+          category: string | null
+          category_id: string | null
+          company_id: string
+          confirmed_transaction_id: string | null
+          connection_id: string
+          created_at: string
+          currency_code: string
+          date: string
+          description: string | null
+          description_raw: string | null
+          id: string
+          merchant: Json | null
+          payment_data: Json | null
+          pluggy_account_id: string
+          pluggy_transaction_id: string
+          provider_id: string | null
+          raw: Json
+          status: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          balance?: number | null
+          category?: string | null
+          category_id?: string | null
+          company_id: string
+          confirmed_transaction_id?: string | null
+          connection_id: string
+          created_at?: string
+          currency_code?: string
+          date: string
+          description?: string | null
+          description_raw?: string | null
+          id?: string
+          merchant?: Json | null
+          payment_data?: Json | null
+          pluggy_account_id: string
+          pluggy_transaction_id: string
+          provider_id?: string | null
+          raw?: Json
+          status?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          balance?: number | null
+          category?: string | null
+          category_id?: string | null
+          company_id?: string
+          confirmed_transaction_id?: string | null
+          connection_id?: string
+          created_at?: string
+          currency_code?: string
+          date?: string
+          description?: string | null
+          description_raw?: string | null
+          id?: string
+          merchant?: Json | null
+          payment_data?: Json | null
+          pluggy_account_id?: string
+          pluggy_transaction_id?: string
+          provider_id?: string | null
+          raw?: Json
+          status?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pluggy_v2_transactions_raw_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "pluggy_v2_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pluggy_v2_transactions_raw_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pluggy_v2_transactions_raw_confirmed_transaction_id_fkey"
+            columns: ["confirmed_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_sources"
+            referencedColumns: ["transaction_id"]
+          },
+          {
+            foreignKeyName: "pluggy_v2_transactions_raw_confirmed_transaction_id_fkey"
+            columns: ["confirmed_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pluggy_v2_transactions_raw_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "pluggy_v2_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pluggy_v2_transactions_raw_archive: {
+        Row: {
+          account_id: string
+          amount: number
+          archived_at: string
+          archived_by: string | null
+          balance: number | null
+          category: string | null
+          category_id: string | null
+          company_id: string
+          confirmed_transaction_id: string | null
+          connection_id: string
+          currency_code: string
+          date: string
+          description: string | null
+          description_raw: string | null
+          id: string
+          merchant: Json | null
+          payment_data: Json | null
+          pluggy_account_id: string
+          pluggy_transaction_id: string
+          provider_id: string | null
+          raw: Json
+          status: string | null
+          type: string
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          archived_at?: string
+          archived_by?: string | null
+          balance?: number | null
+          category?: string | null
+          category_id?: string | null
+          company_id: string
+          confirmed_transaction_id?: string | null
+          connection_id: string
+          currency_code?: string
+          date: string
+          description?: string | null
+          description_raw?: string | null
+          id: string
+          merchant?: Json | null
+          payment_data?: Json | null
+          pluggy_account_id: string
+          pluggy_transaction_id: string
+          provider_id?: string | null
+          raw?: Json
+          status?: string | null
+          type: string
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          archived_at?: string
+          archived_by?: string | null
+          balance?: number | null
+          category?: string | null
+          category_id?: string | null
+          company_id?: string
+          confirmed_transaction_id?: string | null
+          connection_id?: string
+          currency_code?: string
+          date?: string
+          description?: string | null
+          description_raw?: string | null
+          id?: string
+          merchant?: Json | null
+          payment_data?: Json | null
+          pluggy_account_id?: string
+          pluggy_transaction_id?: string
+          provider_id?: string | null
+          raw?: Json
+          status?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
       pluggy_webhook_events: {
         Row: {
           created_at: string
@@ -10686,6 +11099,9 @@ export type Database = {
           payment_date: string | null
           payment_method_id: string | null
           payment_method_provider: string | null
+          pluggy_raw_snapshot: Json | null
+          pluggy_staging_transaction_id: string | null
+          pluggy_transaction_id: string | null
           provider_category: string | null
           provider_last_updated_at: string | null
           provider_status: string | null
@@ -10747,6 +11163,9 @@ export type Database = {
           payment_date?: string | null
           payment_method_id?: string | null
           payment_method_provider?: string | null
+          pluggy_raw_snapshot?: Json | null
+          pluggy_staging_transaction_id?: string | null
+          pluggy_transaction_id?: string | null
           provider_category?: string | null
           provider_last_updated_at?: string | null
           provider_status?: string | null
@@ -10810,6 +11229,9 @@ export type Database = {
           payment_date?: string | null
           payment_method_id?: string | null
           payment_method_provider?: string | null
+          pluggy_raw_snapshot?: Json | null
+          pluggy_staging_transaction_id?: string | null
+          pluggy_transaction_id?: string | null
           provider_category?: string | null
           provider_last_updated_at?: string | null
           provider_status?: string | null
@@ -10901,6 +11323,13 @@ export type Database = {
             columns: ["credit_card_invoice_id"]
             isOneToOne: false
             referencedRelation: "credit_card_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_pluggy_staging_transaction_id_fkey"
+            columns: ["pluggy_staging_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "pluggy_staging_transactions"
             referencedColumns: ["id"]
           },
           {
@@ -12660,18 +13089,33 @@ export type Database = {
               transaction_id: string
             }[]
           }
-      pluggy_confirm_staging_transfer: {
-        Args: {
-          p_account_id: string
-          p_counterpart_account_id: string
-          p_staging_ids: string[]
-        }
-        Returns: {
-          mirror_staging_id: string
-          staging_id: string
-          transaction_id: string
-        }[]
-      }
+      pluggy_confirm_staging_transfer:
+        | {
+            Args: {
+              p_account_id: string
+              p_counterpart_account_id: string
+              p_staging_ids: string[]
+            }
+            Returns: {
+              mirror_staging_id: string
+              staging_id: string
+              transaction_id: string
+            }[]
+          }
+        | {
+            Args: {
+              p_category_id?: string
+              p_contact_id?: string
+              p_destination_account_id: string
+              p_origin_account_id: string
+              p_payment_method_id?: string
+              p_staging_ids: string[]
+            }
+            Returns: {
+              staging_id: string
+              transaction_id: string
+            }[]
+          }
       pluggy_ignore_staging: {
         Args: { p_staging_ids: string[] }
         Returns: number

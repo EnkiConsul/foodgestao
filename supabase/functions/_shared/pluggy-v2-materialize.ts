@@ -54,8 +54,10 @@ export async function materializePluggyItemV2(params: {
   } = params;
 
   // 1. Busca item na Pluggy
-  const item = await getItem(pluggyItemId);
-  if (!item) throw new Error(`pluggy_item_not_found:${pluggyItemId}`);
+  const itemResult = await getItem(pluggyItemId);
+  if (!itemResult.ok) throw new Error(`pluggy_item_not_found:${pluggyItemId}:${itemResult.error}`);
+  const item = itemResult.data;
+
 
   // 2. Upsert conexão
   const { data: connRow, error: connErr } = await supabase
@@ -103,7 +105,9 @@ export async function materializePluggyItemV2(params: {
 
   // 4. Sincroniza contas
   const accountsResp = await listAccounts(item.id);
-  const accounts = accountsResp?.results ?? [];
+  if (!accountsResp.ok) throw new Error(`list_accounts_failed:${accountsResp.error}`);
+  const accounts = accountsResp.data.results ?? [];
+
   let accountsSynced = 0;
   const accountIdMap = new Map<string, string>(); // pluggy_account_id -> internal id
 
@@ -156,13 +160,15 @@ export async function materializePluggyItemV2(params: {
     let cursor: string | undefined;
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const page = await listTransactionsV2({
+      const txResp = await listTransactionsV2({
         accountId: acc.id,
         from,
         pageCursor: cursor,
         pageSize: 500,
       });
+      if (!txResp.ok) throw new Error(`list_transactions_failed:${txResp.error}`);
       pagesProcessed++;
+      const page = txResp.data;
       const txs = page.results ?? [];
       if (txs.length > 0) {
         const rows = txs.map((t) => ({
@@ -193,6 +199,7 @@ export async function materializePluggyItemV2(params: {
       }
       cursor = page.nextCursor ?? undefined;
       cursorAfter = cursor ?? cursorAfter;
+
       if (!cursor) break;
       if (pagesProcessed > 200) {
         console.warn("[pv2-materialize] safety-cap 200 pages hit");

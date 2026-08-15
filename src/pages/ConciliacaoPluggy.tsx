@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2, UserPlus } from "lucide-react";
+import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2, UserPlus, FileJson } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { CATEGORY_INDENT_STEP, categoryGuideLevels } from "@/lib/categories/display";
@@ -19,6 +19,8 @@ import { CategoryTypeBadge } from "@/components/categorias/CategoryTypeBadge";
 import { buildCategoryTree, type Category } from "@/lib/categories/tree";
 import { StagingCard } from "@/components/conciliacao/StagingCard";
 import { DescriptionEditor } from "@/components/conciliacao/DescriptionEditor";
+import { PluggyAuditDialog } from "@/components/conciliacao/PluggyAuditDialog";
+
 
 import { ContactSelectContent } from "@/components/conciliacao/ContactSelectContent";
 import { suggestPaymentMethodId } from "@/lib/conciliacao/paymentMethodInference";
@@ -239,6 +241,8 @@ export default function ConciliacaoPluggy() {
 
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [auditOpen, setAuditOpen] = useState(false);
+
   const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(() => new Set(draft.selected));
@@ -781,6 +785,15 @@ export default function ConciliacaoPluggy() {
           {syncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
           Sincronizar
         </Button>
+        <Button
+          onClick={() => setAuditOpen(true)}
+          variant="outline"
+          className="w-full sm:w-auto"
+        >
+          <FileJson className="h-4 w-4 mr-2" />
+          Auditoria
+        </Button>
+
       </div>
 
 
@@ -1374,7 +1387,10 @@ export default function ConciliacaoPluggy() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PluggyAuditDialog open={auditOpen} onOpenChange={setAuditOpen} />
     </div>
 
   );
+
 }
