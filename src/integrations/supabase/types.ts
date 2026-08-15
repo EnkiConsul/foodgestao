@@ -3366,7 +3366,10 @@ export type Database = {
           config_id: string
           created_at: string
           dow: number
+          entrada: string | null
           id: string
+          intervalo_minutos: number | null
+          saida: string | null
           trabalha: boolean
           turno_id: string | null
           updated_at: string
@@ -3376,7 +3379,10 @@ export type Database = {
           config_id: string
           created_at?: string
           dow: number
+          entrada?: string | null
           id?: string
+          intervalo_minutos?: number | null
+          saida?: string | null
           trabalha?: boolean
           turno_id?: string | null
           updated_at?: string
@@ -3386,7 +3392,10 @@ export type Database = {
           config_id?: string
           created_at?: string
           dow?: number
+          entrada?: string | null
           id?: string
+          intervalo_minutos?: number | null
+          saida?: string | null
           trabalha?: boolean
           turno_id?: string | null
           updated_at?: string
