@@ -516,6 +516,11 @@ export default function ContasBancarias() {
                       <Badge className="text-[10px] h-4 px-1.5 shrink-0 bg-primary/10 text-primary border-0 hover:bg-primary/15">
                         {accountTypeLabels[a.account_type]}
                       </Badge>
+                      {(a as typeof a & { is_accounting?: boolean }).is_accounting === false && (
+                        <Badge variant="secondary" className="text-[10px] h-4 px-1.5 shrink-0">
+                          Não Contábil
+                        </Badge>
+                      )}
                       {!a.is_active && (
                         <Badge variant="outline" className="text-[10px] h-4 px-1.5 shrink-0">Inativa</Badge>
                       )}
