@@ -6,6 +6,8 @@
 // ------------------------------------------------------------------
 
 import { paraMinutos, duracaoBrutaMinutos, viraODia, formatarHoras, DIAS_SEMANA } from "@/lib/dp/jornada-utils";
+import { contratoPolicy } from "@/lib/dp/contrato-policy";
+
 
 const DOW_LABEL_LONGO: Record<number, string> = Object.fromEntries(
   DIAS_SEMANA.map((d) => [d.v, d.longo]),
