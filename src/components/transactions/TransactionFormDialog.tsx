@@ -28,6 +28,7 @@ import {
   type CategoryGuidance,
 } from "@/components/categories/CategoryGuidanceHint";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
+import { toProperName } from "@/lib/text/properName";
 import { PaymentMethodFormDialog } from "@/components/payment-methods/PaymentMethodFormDialog";
 import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/searchable-select";
 import { useTransactionFieldSettings, TRANSACTION_FIELD_LABELS, type TransactionField } from "@/hooks/useTransactionFieldSettings";
@@ -569,11 +570,11 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
   const contactOptions: SearchableSelectOption[] = filteredContacts.map((ct) => ({
     value: ct.id,
-    label: ct.name,
-    keywords: `${ct.email ?? ""} ${ct.phone ?? ""} ${ct.document ?? ""}`,
+    label: toProperName(ct.name),
+    keywords: `${ct.name} ${ct.email ?? ""} ${ct.phone ?? ""} ${ct.document ?? ""}`,
     leading: (
       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
-        {ct.name.slice(0, 2).toUpperCase()}
+        {toProperName(ct.name).slice(0, 2).toUpperCase()}
       </span>
     ),
     trailing: (

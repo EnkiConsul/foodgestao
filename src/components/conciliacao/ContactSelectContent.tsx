@@ -1,3 +1,4 @@
+import { toProperName } from "@/lib/text/properName";
 import { useMemo, useState } from "react";
 import { SelectContent, SelectItem } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -68,7 +69,7 @@ export function ContactSelectContent({
       {shown.map((c) => (
         <SelectItem key={c.id} value={c.id}>
           <span className="flex min-w-0 items-center gap-2">
-            <span className="truncate">{c.name}</span>
+            <span className="truncate">{toProperName(c.name)}</span>
             {c.type && (
               <span className="shrink-0 text-[10px] uppercase text-muted-foreground">
                 {TYPE_LABELS[c.type] ?? c.type}

@@ -1,3 +1,4 @@
+import { toProperName } from "@/lib/text/properName";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ArrowLeftRight, FileSpreadsheet, Loader2, Pencil, Printer, TrendingDown, TrendingUp } from "lucide-react";
@@ -510,7 +511,7 @@ export default function ExtratoConciliacao() {
                                       <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{p.categoryName}</Badge>
                                     )}
                                     {p.contactName && (
-                                      <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{p.contactName}</Badge>
+                                      <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{toProperName(p.contactName)}</Badge>
                                     )}
                                     {p.accountName && (
                                       <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{p.accountName}</Badge>

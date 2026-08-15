@@ -30,7 +30,7 @@ describe("extractCounterparty", () => {
       { ownDocuments: [OWN] },
     );
     expect(cp).toEqual({
-      name: "Rafael De Paula Castro",
+      name: "Rafael de Paula Castro",
       document: "023.559.691-40",
       documentType: "CPF",
       internal: false,
@@ -42,11 +42,11 @@ describe("extractCounterparty", () => {
       {
         amount: -1200,
         description: "TRANSF ENVIADA PIX",
-        raw: pix(side(null, OWN), side("PAGAR.ME S.A.", "18.727.053/0001-74")),
+        raw: pix(side(null, OWN), side("Pagar.me S.A.", "18.727.053/0001-74")),
       },
       { ownDocuments: [OWN] },
     );
-    expect(cp.name).toBe("PAGAR.ME S.A.");
+    expect(cp.name).toBe("Pagar.me S.A.");
     expect(cp.document).toBe("18.727.053/0001-74");
     expect(cp.documentType).toBe("CNPJ");
     expect(cp.internal).toBe(false);
@@ -65,9 +65,9 @@ describe("extractCounterparty", () => {
     const cp = extractCounterparty({
       amount: -89.9,
       description: "COMPRA CARTAO",
-      raw: { merchant: { businessName: "POSTO SHELL LTDA", cnpj: "12.345.678/0001-95" } },
+      raw: { merchant: { businessName: "Posto Shell LTDA", cnpj: "12.345.678/0001-95" } },
     });
-    expect(cp.name).toBe("POSTO SHELL LTDA");
+    expect(cp.name).toBe("Posto Shell LTDA");
     expect(cp.document).toBe("12.345.678/0001-95");
   });
 
@@ -86,10 +86,10 @@ describe("extractCounterparty", () => {
     const cp = extractCounterparty({
       amount: -10,
       description: "JUROS PAGOS A FORNECEDOR",
-      raw: pix(side(null, OWN), side("FORNECEDOR X LTDA", "11.222.333/0001-44")),
+      raw: pix(side(null, OWN), side("Fornecedor X LTDA", "11.222.333/0001-44")),
     }, { ownDocuments: [OWN] });
     expect(cp.internal).toBe(false);
-    expect(cp.name).toBe("FORNECEDOR X LTDA");
+    expect(cp.name).toBe("Fornecedor X LTDA");
   });
 
   it("retorna vazio sem dados", () => {
@@ -154,7 +154,7 @@ describe("nameFromDescription", () => {
       description: "Pix enviado para ANTONIA BARROS RODRIGUES",
       raw: { paymentData: { receiver: { documentNumber: { type: "CPF", value: "28832752115" } } } },
     });
-    expect(cp.name).toBe("ANTONIA BARROS RODRIGUES");
+    expect(cp.name).toBe("Antonia Barros Rodrigues");
     expect(cp.document).toBe("288.327.521-15");
   });
 

@@ -34,6 +34,7 @@ import {
   type BankOpt,
   type Counterparty,
 } from "@/lib/conciliacao/counterparty";
+import { toProperName } from "@/lib/text/properName";
 
 
 
@@ -718,7 +719,8 @@ export default function ConciliacaoPluggy() {
   const createContactFromStatement = async (row: StagingRow, overrideName?: string) => {
     const cp = counterpartyByRow[row.id];
     if (!cp?.name && !cp?.document) return;
-    const name = (overrideName ?? cp.name ?? "").trim();
+    // Nomes vindos do extrato chegam em CAIXA ALTA: gravamos já normalizados.
+    const name = toProperName(overrideName ?? cp.name ?? "").trim();
     if (!name) {
       setContactNamePrompt({ rowId: row.id, name: "", document: cp.document });
       return;

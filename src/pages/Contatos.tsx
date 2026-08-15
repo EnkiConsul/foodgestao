@@ -1,3 +1,4 @@
+import { toProperName } from "@/lib/text/properName";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -172,11 +173,11 @@ export default function Contatos() {
             <Card key={contact.id} className="shadow-sm hover:shadow transition-shadow">
               <CardContent className="flex items-center gap-4 p-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-sm">
-                  {contact.name.slice(0, 2).toUpperCase()}
+                  {toProperName(contact.name).slice(0, 2).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-medium truncate">{contact.name}</p>
+                    <p className="text-sm font-medium truncate">{toProperName(contact.name)}</p>
                     <Badge variant="secondary" className={`text-[10px] h-4 px-1.5 border-0 ${TYPE_COLORS[contact.contact_type]}`}>
                       {TYPE_LABELS[contact.contact_type]}
                     </Badge>
