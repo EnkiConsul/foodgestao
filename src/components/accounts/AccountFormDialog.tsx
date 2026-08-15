@@ -233,6 +233,23 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
                 </Select>
               </div>
             </div>
+            <div className="space-y-2">
+              <Label>Natureza Contábil</Label>
+              <Select
+                value={isAccounting}
+                onValueChange={(v) => setIsAccounting(v as "contabil" | "nao_contabil")}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="contabil">Contábil</SelectItem>
+                  <SelectItem value="nao_contabil">Não Contábil</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Contas contábeis são as que a contabilidade acompanha. Contas não contábeis (caixa
+                interno, empréstimos entre sócios) ficam visíveis só para você e sua equipe.
+              </p>
+            </div>
           </section>
 
           {/* Seção 3 — Dados bancários (opcional) */}
