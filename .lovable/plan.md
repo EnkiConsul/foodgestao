@@ -25,6 +25,19 @@ Um modelo por pessoa quebra coisas que o empresário usa sem saber: a cobertura 
 ### E a tela "Turnos"
 Sai do menu principal e passa a viver como tela avançada em Cadastros, renomeada **"Horários da loja"** — para quem quiser ajustar cobertura mínima ou corrigir um horário de todos de uma vez. Deixa de ser passo obrigatório.
 
+## Corrigir um horário depois: quem é afetado
+
+Hoje a tela de turno não mostra quem usa aquele horário, e a escolha ao editar é apenas "aplicar às novas escalas" ou "criar nova versão". Passa a ficar assim:
+
+- **Cada horário mostra quem trabalha nele.** No card de "Horários da loja" aparece a contagem ("6 colaboradores") e, ao abrir, a lista com nome, cargo e dias. O mesmo bloco aparece dentro da edição, antes de salvar.
+- **Ao salvar uma alteração de horário, o usuário escolhe o alcance:**
+  - *Todos os que usam este horário* (padrão) — uma edição, todos passam a seguir o horário novo.
+  - *Somente alguns* — marca os colaboradores na lista; os marcados continuam no horário novo e os não marcados são movidos para um horário com os valores antigos (reaproveitando um equivalente se existir, ou criado automaticamente), então ninguém tem a jornada alterada sem intenção.
+- **Escalas já publicadas nunca mudam.** A escala congela entrada/saída no item, então mês fechado, Ponto e Folha continuam com os números originais. A alteração vale da data escolhida em diante (padrão: hoje).
+- **Excluir/inativar um horário em uso passa a avisar quem ficará sem horário**, com a lista nominal, em vez do texto genérico atual.
+
+
+
 ## Detalhes técnicos
 
 - Migração: `entrada`, `saida`, `intervalo_minutos` (nulos) em `dp_colaborador_config_dias`, com check de coerência (os três juntos ou nenhum).
