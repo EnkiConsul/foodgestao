@@ -114,7 +114,9 @@ export function StagingCard({
   busy,
   isTransferBadge,
   maskBRL,
+  onDescriptionSave,
   onAction,
+
 }: StagingCardProps) {
 
   const isEntrada = row.amount >= 0;
