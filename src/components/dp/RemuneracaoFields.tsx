@@ -109,6 +109,8 @@ interface Props {
   cargoInsalubreHint?: string;
   /** Regime do vínculo — restringe as formas de pagamento admitidas. */
   regime?: string | null;
+  /** Dias da semana da jornada do colaborador (aba Horário de Trabalho). */
+  diasJornada?: DiaSemanaTrabalho[] | null;
 }
 
 /**
@@ -122,6 +124,7 @@ export function RemuneracaoFields({
   cargoInsalubre,
   beneficios,
   regime,
+  diasJornada,
 }: Props) {
   const forma = value.forma_pagamento;
   const formaOptions = formaPagamentoOptions(regime);
