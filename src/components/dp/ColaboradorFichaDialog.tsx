@@ -297,5 +297,3 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
     </Dialog>
   );
 }
-
-import { Pencil } from "lucide-react";
