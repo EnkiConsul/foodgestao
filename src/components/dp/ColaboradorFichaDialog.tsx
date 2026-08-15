@@ -14,7 +14,7 @@ import {
 } from "@/lib/dp/remuneracao";
 import { MOTIVO_DESLIGAMENTO_LABEL, ELEGIBILIDADE_LABEL } from "@/lib/dp/desligamento";
 import {
-  User, Briefcase, Building, Calendar, Wallet, Clock, Lock, LogOut, Mail, Phone, Shield, CheckCircle2, XCircle,
+  User, Briefcase, Mail, Phone, Clock, Wallet, Lock, LogOut, Shield, CheckCircle2, XCircle, Pencil,
 } from "lucide-react";
 import { maskCpf } from "@/lib/cpf";
 
