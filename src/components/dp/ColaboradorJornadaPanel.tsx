@@ -21,7 +21,7 @@ import { useDpModelosHorario } from "@/hooks/useDpModelosHorario";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import { formatarHoras, calcularCargaDia } from "@/lib/dp/jornada-utils";
 import { formatarFaixaTurno, intervaloAbaixoDoLegal } from "@/lib/dp/turno-utils";
-import { atalhosDeHorario, resolverTurnoDoHorario, type HorarioSimples } from "@/lib/dp/turno-resolver";
+import { resolverTurnoDoHorario, type HorarioSimples } from "@/lib/dp/turno-resolver";
 import { verificarAlertasClt, idadeNaData, temAlertaClt, type AlertaClt } from "@/lib/dp/clt-alertas";
 import { tituloSistema } from "@/lib/text/titleCase";
 import {
