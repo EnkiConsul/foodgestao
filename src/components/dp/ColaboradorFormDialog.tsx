@@ -800,23 +800,14 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
           <TabsContent value="jornada" className="mt-4">
             <ColaboradorJornadaPanel
-              colaborador={
-                colaborador?.id || criadoId
-                  ? {
-                      id: colaborador?.id ?? criadoId,
-                      nome: form.nome,
-                      regime: regimeSelecionado,
-                      unidade_id: form.unidade_id || null,
-                      data_admissao: form.data_admissao || null,
-                    }
-                  : {
-                      id: null,
-                      nome: form.nome,
-                      regime: regimeSelecionado,
-                      unidade_id: form.unidade_id || null,
-                      data_admissao: form.data_admissao || null,
-                    }
-              }
+              colaborador={{
+                id: colaborador?.id ?? criadoId ?? null,
+                nome: form.nome,
+                regime: regimeSelecionado,
+                unidade_id: form.unidade_id || null,
+                data_admissao: form.data_admissao || null,
+                data_nascimento: form.data_nascimento || null,
+              }}
               active={tab === "jornada"}
             />
           </TabsContent>
