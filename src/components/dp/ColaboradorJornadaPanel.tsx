@@ -479,21 +479,21 @@ export function ColaboradorJornadaPanel({
             <Label className="text-xs" htmlFor="ct-entrada">Entrada</Label>
             <Input
               id="ct-entrada" type="time" value={horario.entrada}
-              onChange={(e) => setHorario((h) => ({ ...h, entrada: e.target.value }))}
+              onChange={(e) => definirHorario({ entrada: e.target.value })}
             />
           </div>
           <div className="space-y-1">
             <Label className="text-xs" htmlFor="ct-saida">Saída</Label>
             <Input
               id="ct-saida" type="time" value={horario.saida}
-              onChange={(e) => setHorario((h) => ({ ...h, saida: e.target.value }))}
+              onChange={(e) => definirHorario({ saida: e.target.value })}
             />
           </div>
           <div className="space-y-1">
             <Label className="text-xs" htmlFor="ct-intervalo">Intervalo (min)</Label>
             <Input
               id="ct-intervalo" type="number" min={0} inputMode="numeric" value={horario.intervalo_minutos}
-              onChange={(e) => setHorario((h) => ({ ...h, intervalo_minutos: Number(e.target.value || 0) }))}
+              onChange={(e) => definirHorario({ intervalo_minutos: Number(e.target.value || 0) })}
             />
           </div>
         </div>
@@ -503,7 +503,7 @@ export function ColaboradorJornadaPanel({
             {atalhos.map((t) => (
               <Button
                 key={t.id} type="button" size="sm" variant="secondary" className="h-7 text-[11px]"
-                onClick={() => setHorario({
+                onClick={() => definirHorario({
                   entrada: t.entrada, saida: t.saida, intervalo_minutos: t.intervalo_minutos ?? 0,
                 })}
               >
@@ -513,8 +513,11 @@ export function ColaboradorJornadaPanel({
           </div>
         )}
         <p className="text-[11px] text-muted-foreground">
-          Este horário vale para todos os dias trabalhados. Dias diferentes ficam como exceção logo abaixo.
+          {policy.horasPorConvocacao
+            ? "Este é o horário habitual de disponibilidade. O que vale para pagamento é o que for efetivamente convocado e trabalhado."
+            : "Este horário vale para todos os dias trabalhados. Dias diferentes ficam como exceção logo abaixo."}
         </p>
+
       </section>
 
       <section className="space-y-2">
