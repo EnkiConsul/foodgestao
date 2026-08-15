@@ -93,4 +93,54 @@ describe("remuneração", () => {
   it("vale-alimentação desativado não gera valor", () => {
     expect(valeAlimentacaoDoMes({ vale_alimentacao: false, vale_alimentacao_valor: 500 }).bruto).toBe(0);
   });
+
+  it("vale-alimentação diário usa os dias da jornada e, havendo ponto, os dias apurados", () => {
+    const cfg = {
+      vale_alimentacao: true,
+      vale_alimentacao_valor: 25,
+      vale_alimentacao_periodicidade: "diario" as const,
+      vale_alimentacao_dias_base: 22,
+      vale_alimentacao_dias_origem: "jornada" as const,
+      vale_alimentacao_desconto_tipo: "nenhum" as const,
+    };
+    const jornada = valeAlimentacaoDoMes(cfg, { diasJornada: 26 });
+    expect(jornada.dias).toBe(26);
+    expect(jornada.bruto).toBe(650);
+    expect(jornada.diasOrigem).toBe("jornada");
+
+    const ponto = valeAlimentacaoDoMes(cfg, { diasJornada: 26, diasApurados: 24 });
+    expect(ponto.dias).toBe(24);
+    expect(ponto.diasOrigem).toBe("ponto");
+
+    const fixo = valeAlimentacaoDoMes(
+      { ...cfg, vale_alimentacao_dias_origem: "fixo" },
+      { diasJornada: 26 },
+    );
+    expect(fixo.dias).toBe(22);
+    expect(fixo.diasOrigem).toBe("fixo");
+  });
 });
+
+describe("dias trabalháveis no mês", () => {
+  it("conta as ocorrências dos dias marcados na jornada", () => {
+    const seisPorUm = [0, 1, 2, 3, 4, 5, 6].map((dow) => ({ dow, trabalha: dow !== 0 }));
+    // Agosto/2026: 31 dias, 5 domingos → 26 dias trabalháveis.
+    expect(diasTrabalhaveisNoMes(seisPorUm, "2026-08")).toBe(26);
+
+    const cincoPorDois = [0, 1, 2, 3, 4, 5, 6].map((dow) => ({ dow, trabalha: dow >= 1 && dow <= 5 }));
+    // Setembro/2026: 30 dias, 22 dias úteis (seg–sex).
+    expect(diasTrabalhaveisNoMes(cincoPorDois, "2026-09")).toBe(22);
+  });
+
+  it("retorna nulo quando a jornada não foi cadastrada", () => {
+    expect(diasTrabalhaveisNoMes([], "2026-08")).toBeNull();
+    expect(diasTrabalhaveisNoMes(null, "2026-08")).toBeNull();
+  });
+
+  it("descreve a jornada de forma legível", () => {
+    const seisPorUm = [0, 1, 2, 3, 4, 5, 6].map((dow) => ({ dow, trabalha: dow !== 0 }));
+    expect(descreverDiasJornada(seisPorUm)).toContain("folga dom");
+    expect(descreverDiasJornada([])).toBe("jornada não cadastrada");
+  });
+});
+
