@@ -1,42 +1,38 @@
-# Turno criado dentro do cadastro do colaborador
+# Tudo pelo cadastro do colaborador — sem falar "turno"
 
-Você não precisa mais ir à tela "Turnos": o turno passa a nascer dentro da aba "Turno & Jornada" do colaborador. Mas com uma distinção importante — **um turno é um modelo de horário da unidade, não o horário de uma pessoa**.
+O usuário é o dono da loja, não um analista de DP. Ele pensa em "quem trabalha, em que horário e quando folga". Então o cadastro do colaborador passa a ser o único lugar necessário, e a palavra "turno" sai da frente dele.
 
-## Por que não registrar o horário de cada colaborador como um turno
+## O que ele passa a ver
 
-- **Explosão de cadastro**: 40 colaboradores com pequenas variações = 40 turnos. A lista de Turnos deixa de ser útil e ninguém sabe qual pode inativar.
-- **Duplicidade silenciosa**: dois turnos "08:00–17:00" criados por telas/dias diferentes convivem, e relatórios que agrupam por turno passam a mostrar a mesma coisa em duas linhas.
-- **Cobertura mínima quebra**: o mínimo por turno é cadastrado por turno. Se cada pessoa tem o seu, não existe mais um turno comum para exigir "2 pessoas no jantar".
-- **Operação do Dia e Escala perdem leitura**: o painel diário agrupa por turno; com turnos individuais cada coluna tem uma pessoa.
-- **Ponto e Folha (futuro)**: adicional noturno, tolerância e regras de intervalo tendem a ser definidos por turno. Turno por pessoa transforma regra em exceção e impede mudar a regra de todos de uma vez.
-- **Manutenção**: mudar o jantar de 17h para 18h passaria a ser 40 edições em vez de uma.
+Na aba "Turno & Jornada" do colaborador — renomeada para **"Horário de trabalho"**:
 
-## Como fica
+1. **Horário** — entrada, saída e intervalo direto na tela, com atalhos prontos da loja ("Almoço 10:00–16:00", "Jantar 17:00–23:00") sugeridos a partir dos horários que já existem na unidade. Escolher um atalho preenche os campos; digitar outro horário também funciona, sem passar por nenhum cadastro.
+2. **Dias e folga** — sete switches da semana. Dia desmarcado = folga, e o texto abaixo confirma ("Folga: quarta-feira"), com a opção "folga varia conforme a escala". Atalhos 6x1 e 5x2 continuam.
+3. **Horário diferente em algum dia** — botão discreto por dia ("sábado tem horário diferente") que abre entrada/saída/intervalo daquele dia.
+4. **Copiar de outro colaborador** — para cadastrar o segundo, terceiro e o resto em segundos.
 
-### 1. Criar turno sem sair do colaborador
-- No seletor "Turno padrão" da aba Turno & Jornada, o botão "Novo turno" abre o formulário de turno já com a unidade do colaborador preenchida; ao salvar, o turno é criado na unidade e selecionado.
-- Estado vazio convida a criar o primeiro turno em vez de só dizer "nenhum turno cadastrado".
-- Antes de criar, o sistema sugere turnos existentes com o mesmo horário na unidade ("Já existe 'Jantar' 17:00–23:00 — usar este?"), evitando duplicidade.
-- A tela "Turnos" continua existindo para gestão (editar, inativar, cobertura mínima), mas não é obrigatória no caminho do cadastro.
+Nada disso obriga o usuário a abrir outra tela. Ele nunca precisa saber que existe uma tabela de turnos.
 
-### 2. Horário diferente de um dia não cria turno
-- Ao ligar "usar horário diferente neste dia", entrada/saída/intervalo são gravados no próprio dia da configuração do colaborador, como exceção ao turno.
-- Nenhum turno é criado automaticamente ao salvar o colaborador.
-- Escala, Operação do Dia e horário previsto passam a usar o horário do dia quando existir, caindo no turno do dia / turno padrão quando não existir. A escala continua congelando entrada/saída no item, então Ponto e Folha leem as mesmas horas de hoje.
-- Turnos já criados automaticamente pela rotina antiga não serão apagados — vale revisar e inativar os que não fizerem sentido.
+## O que acontece por trás
 
-### 3. Folga passa a ser uma só informação
-- Os switches dos dias da semana viram a única fonte de verdade: dia desmarcado = folga.
-- O bloco "Folga semanal" deixa de ser um seletor de dia e passa a mostrar em texto a folga resultante ("Folga: quarta-feira"), com a opção "Folga variável conforme escala".
-- Alertas legais continuam (sem folga marcada, folga dominical conforme o regime).
-- Gravação compatível: com exatamente um dia de folga, grava-se folga fixa; com mais de um (5x2), grava-se sem dia fixo e a folga é lida dos dias.
+- Quando o horário digitado é igual a um horário já usado na unidade, o sistema **reaproveita** esse modelo em silêncio. Quando é novo, cria o modelo automaticamente com nome derivado do horário ("17:00–23:00"), sem pedir nada.
+- Um horário específico de um único dia **não** cria modelo: fica gravado no próprio dia do colaborador, como exceção.
+- Resultado: o cadastro de horários da loja cresce só quando existe de fato um horário novo — e é o mesmo modelo compartilhado por todos que trabalham nele.
+
+### Por que não criar um modelo por colaborador
+Um modelo por pessoa quebra coisas que o empresário usa sem saber: a cobertura mínima por horário ("preciso de 2 no jantar"), as colunas da Operação do Dia, os relatórios que agrupam por horário e, no futuro, adicional noturno e tolerância de ponto — que são regras do horário, não da pessoa. Além disso, mudar o jantar de 17h para 18h passaria a ser 40 edições em vez de uma.
+
+### E a tela "Turnos"
+Sai do menu principal e passa a viver como tela avançada em Cadastros, renomeada **"Horários da loja"** — para quem quiser ajustar cobertura mínima ou corrigir um horário de todos de uma vez. Deixa de ser passo obrigatório.
 
 ## Detalhes técnicos
 
 - Migração: `entrada`, `saida`, `intervalo_minutos` (nulos) em `dp_colaborador_config_dias`, com check de coerência (os três juntos ou nenhum).
-- `src/lib/dp/config-trabalho.ts`: `DiaConfig` ganha campos de horário; `turnoDoDia` retorna horário resolvido priorizando o override do dia; nova `folgaFixaDerivada(dias)`; `validarConfigTrabalho` passa a olhar `dias` em vez de `folga_fixa_dow`.
-- `src/components/dp/ColaboradorJornadaPanel.tsx`: remover `VIRTUAL_PREFIX`/`resolverDias` e o seletor de dia de folga; overrides no estado `dias`; botão "Novo turno" com detecção de turno equivalente na unidade via `useDpTurnos`.
-- `src/hooks/useDpColaboradorConfigTrabalho.tsx`: persistir horários por dia e derivar `folga_fixa_dow` no salvamento.
-- `src/lib/dp/escala-mes.ts`, `src/lib/dp/horario-previsto.ts`, `src/hooks/useDpEscalaMes.tsx`, `src/lib/dp/operacao-dia.ts`: propagar o horário do dia na resolução do previsto.
+- `src/lib/dp/config-trabalho.ts`: `DiaConfig` ganha campos de horário; `turnoDoDia` devolve horário resolvido priorizando o override do dia; nova `folgaFixaDerivada(dias)`; `validarConfigTrabalho` olha `dias` em vez de `folga_fixa_dow`.
+- Novo helper `src/lib/dp/turno-resolver.ts`: dado horário + unidade, encontra turno equivalente (entrada/saída/intervalo iguais) ou monta o payload de criação automática com nome derivado. Testado isoladamente.
+- `src/components/dp/ColaboradorJornadaPanel.tsx`: campos de horário no lugar do seletor de turno, atalhos vindos dos turnos da unidade, overrides por dia dentro do estado `dias`, remoção de `VIRTUAL_PREFIX`/`resolverDias` e do seletor de dia de folga; textos sem a palavra "turno".
+- `src/hooks/useDpColaboradorConfigTrabalho.tsx`: resolver/criar o turno da unidade no salvamento, persistir horários por dia e derivar `folga_fixa_dow`.
+- `src/lib/dp/escala-mes.ts`, `src/lib/dp/horario-previsto.ts`, `src/lib/dp/operacao-dia.ts`, `src/hooks/useDpEscalaMes.tsx`: propagar o horário do dia na resolução do previsto (escala continua congelando entrada/saída no item, então Ponto e Folha leem as mesmas horas).
+- `src/config/dpNavigation.tsx`: `/dp/cadastros/turnos` renomeado para "Horários da loja" e movido para o fim do grupo Cadastros.
 - `src/components/dp/CopiarConfigColaboradorDialog.tsx`: copiar também as exceções de horário.
-- Testes: estender `config-trabalho.test.ts`, `escala-mes.test.ts`, `horario-previsto.test.ts` com override de horário e folga derivada.
+- Testes: estender `config-trabalho.test.ts`, `escala-mes.test.ts`, `horario-previsto.test.ts` e criar teste do resolver (reaproveita vs cria).
