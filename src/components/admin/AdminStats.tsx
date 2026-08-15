@@ -27,7 +27,7 @@ export function AdminStats() {
     { title: "Usuários", value: stats?.totalUsers, icon: Users, color: "text-blue-500" },
     { title: "Perfis de Acesso", value: stats?.totalCompanies, icon: Building2, color: "text-emerald-500" },
     { title: "Lançamentos", value: stats?.totalTransactions, icon: ArrowLeftRight, color: "text-amber-500" },
-    { title: "Contas Bancárias", value: stats?.totalAccounts, icon: Landmark, color: "text-purple-500" },
+    { title: "Contas Financeiras", value: stats?.totalAccounts, icon: Landmark, color: "text-purple-500" },
   ];
 
   return (

@@ -27,7 +27,7 @@ export type ModuleKey = FinanceModuleKey | OrdersPermissionKey;
 export const MODULE_LABELS: Record<ModuleKey, string> = {
   dashboard: "Dashboard",
   transactions: "Lançamentos",
-  accounts: "Contas Bancárias",
+  accounts: "Contas Financeiras",
   categories: "Categorias",
   contacts: "Contatos",
   payment_methods: "Formas de Pagamento",

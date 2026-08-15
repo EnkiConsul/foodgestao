@@ -237,7 +237,7 @@ export default function Dashboard() {
       variant: "plain" as const,
     },
     {
-      label: "Contas Bancárias",
+      label: "Contas Financeiras",
       value: maskBRL(totalBankBalance),
       hint: `${accounts.length} ${accounts.length === 1 ? "conta ativa" : "contas ativas"}`,
       icon: Landmark,
@@ -534,10 +534,10 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Saldo por Conta Bancária */}
+        {/* Saldo por Conta Financeira */}
         <div className="col-span-12 lg:col-span-5 p-6 rounded-3xl bg-card border border-border/60 shadow-sm">
           <h2 className="font-display text-lg font-bold text-foreground mb-1">Saldo por Conta</h2>
-          <p className="text-xs text-muted-foreground mb-5">Posição atual das contas bancárias</p>
+          <p className="text-xs text-muted-foreground mb-5">Posição atual das contas financeiras</p>
           {accounts.length === 0 ? (
             <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
               Nenhuma conta cadastrada
@@ -560,7 +560,7 @@ export default function Dashboard() {
                     />
                     <div className="flex-1 min-w-0 ml-3">
                       <p className="text-sm font-semibold text-foreground truncate">{acc.name}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Conta bancária</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Conta financeira</p>
                     </div>
                     <span className={cn(
                       "font-display text-sm font-bold shrink-0 ml-2 tracking-tight",

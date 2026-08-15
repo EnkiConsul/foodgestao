@@ -91,7 +91,7 @@ export default function ContasBancarias() {
       _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
       _include_inactive: true,
     });
-    if (error) toast.error("Erro ao carregar contas bancárias");
+    if (error) toast.error("Erro ao carregar contas financeiras");
     else setAccounts((data ?? []) as any);
 
     // Contas vinculadas a uma conexão Open Finance (para exibir a conciliação no card)
@@ -379,7 +379,7 @@ export default function ContasBancarias() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Contas Bancárias</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Contas Financeiras</h1>
           <p className="text-sm text-muted-foreground">Gerencie suas contas e saldos</p>
         </div>
         <div className="flex items-center gap-2">
@@ -486,7 +486,7 @@ export default function ContasBancarias() {
           <Card className="shadow-sm">
             <CardContent className="flex flex-col items-center py-12 text-muted-foreground">
               <Landmark className="h-10 w-10 mb-3 opacity-40" />
-              <p className="text-sm">Nenhuma conta bancária encontrada</p>
+              <p className="text-sm">Nenhuma conta financeira encontrada</p>
               <Button variant="link" onClick={openMethodDialog} className="mt-2">
                 Criar primeira conta
               </Button>
@@ -671,7 +671,7 @@ export default function ContasBancarias() {
       <AlertDialog open={!!deactivateAccount} onOpenChange={(open) => { if (!open) { setDeactivateAccount(null); setDeactivateOfBank(null); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Desativar conta bancária</AlertDialogTitle>
+            <AlertDialogTitle>Desativar conta financeira</AlertDialogTitle>
             <AlertDialogDescription data-testid="deactivate-account-description">
               A conta <strong>{deactivateAccount?.name}</strong> deixará de aparecer nas listas de seleção e nos totais de saldo.
               O histórico de lançamentos é <strong>preservado</strong> e você pode reativá-la a qualquer momento.
@@ -740,7 +740,7 @@ export default function ContasBancarias() {
       <AlertDialog open={!!deleteAccount} onOpenChange={(open) => { if (!open) setDeleteAccount(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir conta bancária</AlertDialogTitle>
+            <AlertDialogTitle>Excluir conta financeira</AlertDialogTitle>
             <AlertDialogDescription data-testid="delete-account-description">
               {deleteHasTx === null && (
                 <>Verificando lançamentos vinculados à conta <strong>{deleteAccount?.name}</strong>…</>

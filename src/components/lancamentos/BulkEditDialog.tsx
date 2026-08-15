@@ -101,7 +101,7 @@ export function BulkEditDialog({
           <div className="flex items-start gap-2">
             <Checkbox id="bulk-acc" checked={changeAccount} onCheckedChange={(v) => setChangeAccount(!!v)} className="mt-2" />
             <div className="flex-1">
-              <Label htmlFor="bulk-acc" className="text-sm cursor-pointer">Conta bancária</Label>
+              <Label htmlFor="bulk-acc" className="text-sm cursor-pointer">Conta financeira</Label>
               <Select value={accountId} onValueChange={setAccountId} disabled={!changeAccount}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Selecionar conta" /></SelectTrigger>
                 <SelectContent>

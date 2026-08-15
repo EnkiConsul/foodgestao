@@ -194,7 +194,7 @@ export function FluxoCaixaFiltros({ filtros, onChange, opcoes }: Props) {
           </Button>
         </PopoverTrigger>
         <PopoverContent align="end" className="w-[300px] space-y-3">
-          {picker("Conta bancária", "accountId", opcoes.accounts)}
+          {picker("Conta financeira", "accountId", opcoes.accounts)}
           {picker("Forma de pagamento", "paymentMethodId", opcoes.paymentMethods)}
           {picker("Cartão de crédito", "creditCardId", opcoes.creditCards)}
           {picker("Centro de custo", "costCenterId", opcoes.costCenters)}

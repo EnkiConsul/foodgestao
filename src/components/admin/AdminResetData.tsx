@@ -24,7 +24,7 @@ import {
 
 const SCOPE_OPTIONS: { key: string; label: string; help: string; needsUser?: boolean }[] = [
   { key: "transactions", label: "Lançamentos", help: "Inclui anexos e tags vinculadas" },
-  { key: "accounts", label: "Contas bancárias", help: "Saldos e contas cadastradas" },
+  { key: "accounts", label: "Contas financeiras", help: "Saldos e contas cadastradas" },
   { key: "categories", label: "Categorias", help: "Categorias e vínculos com empresas", needsUser: true },
   { key: "contacts", label: "Contatos", help: "Clientes e fornecedores", needsUser: true },
   { key: "payment_methods", label: "Formas de pagamento", help: "Métodos cadastrados", needsUser: true },
