@@ -130,6 +130,8 @@ export function ColaboradorJornadaPanel({
       setInicio(admissao ?? hoje());
     }
     setVigenciaModo("base");
+    setAlterado(false);
+
   }, [active, vigente, colaborador?.unidade_id, admissao]);
 
   // O horário principal da tela vem do turno padrão gravado na vigência.
