@@ -1,15 +1,24 @@
-import { Bell, AlertTriangle, Clock, TrendingUp, CheckCircle2, Calculator, X } from "lucide-react";
+import { Bell, AlertTriangle, Clock, TrendingUp, CheckCircle2, Calculator, BellOff } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/billing";
+import { toast } from "sonner";
 
 type Alert = {
   id: string;
@@ -17,32 +26,59 @@ type Alert = {
   title: string;
   description: string;
   href: string;
-  dismiss?: () => void;
+  snoozeKey?: string;
 };
 
 const formatDate = (d: string) =>
   new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 
-const accountantKey = (companyId: string) => {
-  const month = new Date().toISOString().slice(0, 7); // yyyy-MM
-  return `accountant-reminder-${companyId}-${month}`;
+const accountantSnoozeKey = (companyId: string) => `accountant-reminder-snooze-${companyId}`;
+
+export const SNOOZE_OPTIONS = [
+  { label: "Por 1 mês", days: 30 },
+  { label: "Por 3 meses", days: 90 },
+  { label: "Por 6 meses", days: 180 },
+  { label: "Por 1 ano", days: 365 },
+  { label: "Não mostrar novamente", days: null as number | null },
+];
+
+const isSnoozed = (key: string) => {
+  if (typeof window === "undefined") return false;
+  const raw = localStorage.getItem(key);
+  if (!raw) return false;
+  if (raw === "never" || raw === "1") return true;
+  const until = Date.parse(raw);
+  if (Number.isNaN(until)) return false;
+  if (until > Date.now()) return true;
+  localStorage.removeItem(key);
+  return false;
+};
+
+const applySnooze = (key: string, days: number | null) => {
+  if (typeof window === "undefined") return;
+  if (days === null) {
+    localStorage.setItem(key, "never");
+    return;
+  }
+  localStorage.setItem(key, new Date(Date.now() + days * 86400000).toISOString());
 };
 
 export function NotificationsBell() {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const navigate = useNavigate();
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [snoozeVersion, setSnoozeVersion] = useState(0);
 
   const today = new Date().toISOString().slice(0, 10);
   const in7 = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
 
   const { data: alerts = [] } = useQuery<Alert[]>({
-    queryKey: ["alerts-bell", user?.id, contextType, selectedCompanyId],
+    queryKey: ["alerts-bell", user?.id, contextType, selectedCompanyId, snoozeVersion],
     enabled: !!user,
     refetchInterval: 60_000,
     queryFn: async () => {
       const result: Alert[] = [];
+
 
       // Base filters
       let txQuery = supabase
@@ -122,12 +158,11 @@ export function NotificationsBell() {
         }
       }
 
-      // Accountant access reminder (PJ only, once per month, only for owner/admin)
+      // Accountant access reminder (PJ only, snoozable, only for owner/admin)
       if (contextType === "pj" && selectedCompanyId) {
-        const storageKey = accountantKey(selectedCompanyId);
-        const alreadyDismissed = typeof window !== "undefined" && localStorage.getItem(storageKey) === "1";
+        const storageKey = accountantSnoozeKey(selectedCompanyId);
 
-        if (!alreadyDismissed && !dismissed.has(storageKey)) {
+        if (!isSnoozed(storageKey)) {
           const { data: myMembership } = await supabase
             .from("company_members")
             .select("role")
@@ -160,17 +195,13 @@ export function NotificationsBell() {
                 title: "Cadastre o acesso do seu contador",
                 description: "Adicione um usuário com papel Contabilidade para acesso somente leitura às contas contábeis.",
                 href: "/gestao-usuarios",
-                dismiss: () => {
-                  if (typeof window !== "undefined") {
-                    localStorage.setItem(storageKey, "1");
-                  }
-                  setDismissed((prev) => new Set([...prev, storageKey]));
-                },
+                snoozeKey: storageKey,
               });
             }
           }
         }
       }
+
 
       return result;
     },
@@ -247,19 +278,43 @@ export function NotificationsBell() {
                       <p className="text-xs text-muted-foreground truncate">{a.description}</p>
                     </div>
                   </button>
-                  {a.dismiss && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        a.dismiss?.();
-                      }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-muted hover:text-foreground transition-opacity"
-                      aria-label="Dispensar aviso"
-                      title="Dispensar este mês"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
+                  {a.snoozeKey && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-muted-foreground opacity-100 hover:bg-muted hover:text-foreground transition-colors"
+                          aria-label="Não mostrar novamente"
+                          title="Não mostrar novamente"
+                        >
+                          <BellOff className="h-3.5 w-3.5" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-52">
+                        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                          Não mostrar novamente
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {SNOOZE_OPTIONS.map((opt) => (
+                          <DropdownMenuItem
+                            key={opt.label}
+                            onSelect={() => {
+                              applySnooze(a.snoozeKey!, opt.days);
+                              setSnoozeVersion((v) => v + 1);
+                              toast.success(
+                                opt.days === null
+                                  ? "Aviso desativado para esta empresa."
+                                  : `Aviso oculto ${opt.label.toLowerCase()}.`
+                              );
+                            }}
+                          >
+                            {opt.label}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   )}
+
                 </li>
               ))}
             </ul>
