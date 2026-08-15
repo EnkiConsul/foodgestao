@@ -268,7 +268,7 @@ export default function Auth() {
         }
       } else {
         try {
-          const { error } = await signUp(email, password, fullName);
+          const { error, needsEmailConfirmation } = await signUp(email, password, fullName);
           if (error) {
             const translated = translateAuthError(error.message);
             const { reason, category } = classifySignupError(error.message);
@@ -299,8 +299,19 @@ export default function Auth() {
               value: 0,
               method: "email_signup",
             });
-            toast.success("Cadastro realizado!");
-            navigate("/onboarding");
+            if (needsEmailConfirmation) {
+              setPendingConfirmationEmail(email.trim());
+              setPassword("");
+              setConfirmPassword("");
+              setResendCooldown(60);
+              setMode("confirm-email");
+              toast.success("Cadastro realizado!", {
+                description: "Confirme seu e-mail para ativar o acesso.",
+              });
+            } else {
+              toast.success("Cadastro realizado!");
+              navigate("/onboarding");
+            }
           }
         } catch (thrown) {
           const msg = thrown instanceof Error ? thrown.message : String(thrown);
