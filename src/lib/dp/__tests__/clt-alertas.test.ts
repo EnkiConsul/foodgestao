@@ -92,3 +92,39 @@ describe("turno-resolver", () => {
     )).toBeNull();
   });
 });
+
+describe("clt-alertas por regime de contrato", () => {
+  it("não valida carga semanal nem DSR no intermitente (só disponibilidade)", () => {
+    const dias = [
+      dia(1, "08:00", "19:00"), dia(2, "08:00", "19:00"), dia(3, "08:00", "19:00"),
+      dia(4, "08:00", "19:00"), dia(5, "08:00", "19:00"), dia(6, "08:00", "19:00"),
+      dia(0, "08:00", "19:00"),
+    ];
+    const codigos = verificarAlertasClt({ dias, regime: "intermitente", idade: 30 })
+      .map((a) => a.codigo);
+    expect(codigos).not.toContain("carga_semanal");
+    expect(codigos).not.toContain("sem_folga");
+  });
+
+  it("mantém as regras de menor de idade mesmo em regimes sem carga semanal", () => {
+    const codigos = verificarAlertasClt({
+      dias: [dia(1, "16:00", "23:30", 0), folga(0)],
+      regime: "pj",
+      idade: 17,
+    }).map((a) => a.codigo);
+    expect(codigos).toContain("menor_noturno");
+  });
+
+  it("aponta ausência de folga na CLT quando todos os dias são trabalhados", () => {
+    const dias = [0, 1, 2, 3, 4, 5, 6].map((d) => dia(d, "08:00", "14:00", 0));
+    const codigos = verificarAlertasClt({ dias, regime: "clt", idade: 30 }).map((a) => a.codigo);
+    expect(codigos).toContain("sem_folga");
+  });
+
+  it("folga variável não gera aviso de ausência de folga", () => {
+    const dias = [0, 1, 2, 3, 4, 5, 6].map((d) => dia(d, "08:00", "14:00", 0));
+    const codigos = verificarAlertasClt({ dias, regime: "clt", idade: 30, folgaVariavel: true })
+      .map((a) => a.codigo);
+    expect(codigos).not.toContain("sem_folga");
+  });
+});
