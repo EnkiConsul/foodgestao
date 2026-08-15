@@ -17,7 +17,7 @@ export function AccountCreationMethodDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Nova conta bancária</DialogTitle>
+          <DialogTitle>Nova Conta Financeira</DialogTitle>
           <DialogDescription>
             Escolha como deseja cadastrar sua conta.
           </DialogDescription>

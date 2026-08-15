@@ -23,7 +23,7 @@ import {
 
 const SCOPE_OPTIONS = [
   { key: "transactions", label: "Lançamentos", help: "Inclui anexos e tags" },
-  { key: "accounts", label: "Contas bancárias", help: "Saldos e contas cadastradas" },
+  { key: "accounts", label: "Contas financeiras", help: "Saldos e contas cadastradas" },
   { key: "categories", label: "Categorias", help: "Categorias e vínculos" },
   { key: "contacts", label: "Contatos", help: "Clientes e fornecedores" },
   { key: "payment_methods", label: "Formas de pagamento", help: "" },

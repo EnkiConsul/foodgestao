@@ -142,7 +142,7 @@ export default function AdminBancos() {
       <div className="flex items-start justify-between gap-3">
         <AdminPageHeader
           title="Bancos"
-          description="Gerencie a lista de bancos disponíveis no cadastro de contas bancárias."
+          description="Gerencie a lista de bancos disponíveis no cadastro de contas financeiras."
         />
         <Button onClick={() => setCreating(true)}>
           <Plus className="h-4 w-4 mr-2" /> Novo Banco

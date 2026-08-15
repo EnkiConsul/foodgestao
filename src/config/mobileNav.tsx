@@ -282,7 +282,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
         label: "Cadastros",
         accent: "navy",
         items: [
-          { icon: Landmark, label: "Contas Bancárias", to: "/contas-bancarias" },
+          { icon: Landmark, label: "Contas Financeiras", to: "/contas-bancarias" },
           { icon: CreditCard, label: "Cartões de Crédito", to: "/cartoes-credito" },
           { icon: Banknote, label: "Formas de Pagamento", to: "/formas-pagamento" },
           { icon: Target, label: "Centros de Custo", to: "/centros-custo" },

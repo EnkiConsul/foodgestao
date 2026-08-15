@@ -56,7 +56,7 @@ export function FolhaDespesaDialog({
 
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="folha-conta">Conta bancária (opcional)</Label>
+            <Label htmlFor="folha-conta">Conta financeira (opcional)</Label>
             <Select value={accountId} onValueChange={setAccountId}>
               <SelectTrigger id="folha-conta"><SelectValue placeholder="Selecionar conta" /></SelectTrigger>
               <SelectContent>

@@ -287,7 +287,7 @@ export function ImportStatementDialog({ open, onOpenChange, onImported, defaultA
         {step === "upload" && (
           <div className="space-y-4 py-2">
             <div>
-              <Label>Conta bancária de destino</Label>
+              <Label>Conta financeira de destino</Label>
               <Select value={accountId} onValueChange={setAccountId}>
                 <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
                 <SelectContent>
