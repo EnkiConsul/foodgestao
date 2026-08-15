@@ -64,4 +64,8 @@ Hoje a regra "menor não encerra após as 22:00" existe em `validarSemana` (`src
 - Novo `src/hooks/useDpTurnoVinculos.tsx`: colaboradores com configuração vigente apontando para o turno (via `dp_colaborador_config_trabalho` + `dp_colaborador_config_dias`), com nome e cargo.
 - Novo `src/components/dp/TurnoAlcanceDialog.tsx` (padrão do `ReplicarRegrasDialog`): escolha entre "todos" e "somente alguns" + data de início; ao aplicar parcialmente, repõe o horário antigo nos não marcados via o resolver.
 - `src/pages/dp/cadastros/DpTurnos.tsx` e `src/components/dp/TurnoCard.tsx`: contagem/lista de vinculados no card, no formulário e no diálogo de exclusão.
-- Testes: estender `config-trabalho.test.ts`, `escala-mes.test.ts`, `horario-previsto.test.ts`, criar teste do resolver (reaproveita vs cria) e do cálculo de alcance (quem permanece, quem é movido).
+- Novo `src/lib/dp/clt-alertas.ts`: função pura `verificarAlertasClt({ dias, idade, regime, cargo, tipoEscala })` devolvendo `{ codigo, severidade, mensagem }[]`; consolida e amplia o que hoje está em `validarSemana`, que passa a delegar. `HorariosSemanaEditor` (órfão) é removido.
+- `src/components/dp/ColaboradorJornadaPanel.tsx` + `ColaboradorFormDialog.tsx`: faixa de avisos e `CienciaLegalDialog` no salvamento, com log em `dp_regras_historico` (reusando o helper de ciência já existente no form).
+- `src/components/dp/ColaboradorFichaDialog.tsx`, `src/pages/dp/cadastros/DpTurnos.tsx`, `src/hooks/useDpEscalaMes.tsx`: consumir o mesmo verificador para selo/avisos.
+- `src/components/dp/ValidacaoMenorCard.tsx`: texto ajustado para "avisar" em vez de "bloquear".
+- Testes: estender `config-trabalho.test.ts`, `escala-mes.test.ts`, `horario-previsto.test.ts`, criar teste do resolver (reaproveita vs cria), do cálculo de alcance (quem permanece, quem é movido) e de `clt-alertas` (menor após 22h, 6h/30h, interjornada 11h, 7º dia sem folga).
