@@ -953,6 +953,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 cargoInsalubre={!!cargoSelecionado?.insalubridade || !!cargoSelecionado?.periculosidade}
                 regime={regimeSelecionado}
                 beneficios={beneficios}
+                diasJornada={diasJornada}
               />
 
               {/* Adiantamento — apenas para contratos com salário mensal em folha */}
