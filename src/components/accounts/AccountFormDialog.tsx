@@ -114,6 +114,7 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
           bank_slug: bankSlug,
           agency: agencyValue,
           account_number: accountNumberValue,
+          is_accounting: isAccounting === "contabil",
         } as never)
         .eq("id", account.id);
       if (error) toast.error("Erro ao atualizar conta");
