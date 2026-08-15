@@ -39,7 +39,7 @@ export default function RelatoriosContabeis() {
       preset: (sp.get("preset") as Preset) || DEFAULTS.preset,
       from: sp.get("from") || DEFAULTS.from,
       to: sp.get("to") || DEFAULTS.to,
-      regime: (sp.get("regime") as FiltersState["regime"]) || DEFAULTS.regime,
+      regime: "caixa",
       include_zero: sp.get("include_zero") === "1",
     };
   }, [sp]);
