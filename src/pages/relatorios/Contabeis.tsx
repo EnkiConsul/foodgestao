@@ -206,6 +206,7 @@ export default function RelatoriosContabeis() {
         from={filters.from}
         to={filters.to}
         regime={filters.regime}
+        status={filters.status}
       />
     </div>
   );
