@@ -49,6 +49,9 @@ function translateAuthError(message: string): string {
   if (m.includes("weak") || m.includes("pwned") || m.includes("known to be")) {
     return "Senha comprometida ou muito fraca. Escolha outra com no mínimo 6 caracteres, combinando letras maiúsculas, minúsculas, números e símbolos.";
   }
+  if (m.includes("email not confirmed") || m.includes("not confirmed")) {
+    return "Seu e-mail ainda não foi confirmado. Abra o link que enviamos para a sua caixa de entrada e confirme o cadastro.";
+  }
   if (m.includes("already registered") || m.includes("user already")) {
     return "Este e-mail já está cadastrado. Tente entrar ou recuperar sua senha.";
   }
