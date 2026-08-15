@@ -367,7 +367,11 @@ export default function DpColaboradores() {
                   const folha = (c as any).possui_folha_ponto as boolean | null;
                   const adiantamento = (c as any).optante_adiantamento as boolean | null;
                   return (
-                    <TableRow key={c.id}>
+                    <TableRow
+                      key={c.id}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => setViewing(c)}
+                    >
                       <TableCell className="align-top">
                         <div className="font-semibold uppercase truncate" title={c.nome}>{c.nome}</div>
                         <div className="font-mono text-[11px] text-muted-foreground">{c.cpf ?? "—"}</div>
