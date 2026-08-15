@@ -57,8 +57,9 @@ interface Props {
    * acioná-lo pelo botão único do rodapé. Recebe null ao desmontar.
    */
   onRegistrarSalvar?: (
-    fn: ((colaboradorId: string) => Promise<SalvarJornadaResultado>) | null,
+    fn: (() => Promise<SalvarJornadaResultado>) | null,
   ) => void;
+
 }
 
 
