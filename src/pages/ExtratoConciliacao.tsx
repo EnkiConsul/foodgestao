@@ -161,6 +161,10 @@ export default function ExtratoConciliacao() {
     navigate(`/contas-bancarias/conciliacao?${params.toString()}`);
   };
 
+  const editReconciledTransaction = (transactionId: string) => {
+    navigate(`/lancamentos?edit=${encodeURIComponent(transactionId)}`);
+  };
+
   const exportRows = () =>
     model.rows.map((r) => [
       fmtDate(r.date),
@@ -398,23 +402,35 @@ export default function ExtratoConciliacao() {
                           Lançamento na plataforma
                         </div>
                         {r.platform ? (
-                          <>
-                            <div className="truncate text-sm font-medium">{r.platform.description}</div>
-                            <div className="mt-0.5 flex flex-wrap gap-1">
-                              {r.platform.categoryName && (
-                                <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{r.platform.categoryName}</Badge>
-                              )}
-                              {r.platform.contactName && (
-                                <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{r.platform.contactName}</Badge>
-                              )}
-                              {r.platform.accountName && (
-                                <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{r.platform.accountName}</Badge>
-                              )}
-                              {r.platform.paymentMethodName && (
-                                <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{r.platform.paymentMethodName}</Badge>
-                              )}
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-sm font-medium">{r.platform.description}</div>
+                              <div className="mt-0.5 flex flex-wrap gap-1">
+                                {r.platform.categoryName && (
+                                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{r.platform.categoryName}</Badge>
+                                )}
+                                {r.platform.contactName && (
+                                  <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{r.platform.contactName}</Badge>
+                                )}
+                                {r.platform.accountName && (
+                                  <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{r.platform.accountName}</Badge>
+                                )}
+                                {r.platform.paymentMethodName && (
+                                  <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{r.platform.paymentMethodName}</Badge>
+                                )}
+                              </div>
                             </div>
-                          </>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-8 shrink-0"
+                              onClick={() => editReconciledTransaction(r.platform?.id ?? "")}
+                            >
+                              <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                              Editar e conciliar
+                            </Button>
+                          </div>
                         ) : (
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <span className="text-sm text-muted-foreground">

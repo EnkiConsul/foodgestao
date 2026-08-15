@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from "react";
+import { useSearchParams } from "react-router-dom";
 import { resolveAttachments } from "@/lib/attachments";
 import { amountColorClass } from "@/lib/transaction-sign";
 import { useAuth } from "@/hooks/useAuth";
@@ -147,6 +148,8 @@ export default function Lancamentos() {
   const { contextType, selectedCompanyId } = useCompanyContext();
   const { maskBRL } = usePrivacy();
   const isMobile = useIsMobile();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const openedTransactionId = useRef<string | null>(null);
 
 
   const now = new Date();
@@ -249,6 +252,37 @@ export default function Lancamentos() {
   // Date range filter
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+
+  useEffect(() => {
+    const transactionId = searchParams.get("edit");
+    if (!transactionId || !user || openedTransactionId.current === transactionId) return;
+    if (!isFinancialScopeReady(contextType, user.id, selectedCompanyId)) return;
+
+    openedTransactionId.current = transactionId;
+    const scope = assertFinancialScope({ context: contextType, userId: user.id, companyId: selectedCompanyId });
+    const query = applyFinancialScope(
+      supabase
+        .from("transactions")
+        .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, bill_status, payment_date, contact_id, notes, destination_account_id, is_recurring, parent_transaction_id, attachment_url, installment_number, installment_total")
+        .eq("id", transactionId),
+      scope,
+    );
+
+    void query.maybeSingle().then(({ data, error }) => {
+      if (error || !data) {
+        openedTransactionId.current = null;
+        toast.error("Não foi possível abrir o lançamento conciliado");
+        return;
+      }
+      setPendingEditScope("single");
+      setDialogInitialType(undefined);
+      setEditTransaction(data as unknown as Transaction);
+      setDialogOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete("edit");
+      setSearchParams(next, { replace: true });
+    });
+  }, [contextType, searchParams, selectedCompanyId, setSearchParams, user]);
 
   // Column visibility
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
