@@ -466,6 +466,14 @@ export default function ContasBancarias() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={filterNature} onValueChange={(v) => setFilterNature(v as typeof filterNature)}>
+          <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Contábil e não contábil</SelectItem>
+            <SelectItem value="contabil">Somente contábeis</SelectItem>
+            <SelectItem value="nao_contabil">Somente não contábeis</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Account list */}
