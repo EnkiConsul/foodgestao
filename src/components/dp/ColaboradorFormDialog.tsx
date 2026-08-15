@@ -142,6 +142,17 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   /** Salvamento do horário de trabalho exposto pelo painel da aba. */
   const jornadaSalvarRef = useRef<(() => Promise<SalvarJornadaResultado>) | null>(null);
 
+  /**
+   * Dias da semana da configuração vigente — usados para calcular os dias do
+   * mês do vale-alimentação diário (fonte única: aba Horário de Trabalho).
+   */
+  const configTrabalho = useDpColaboradorConfigTrabalho(colaborador?.id ?? criadoId);
+  const diasJornada = useMemo(() => {
+    const vigente = (configTrabalho.registros ?? []).find((c) => !c.vigencia_fim)
+      ?? (configTrabalho.registros ?? [])[0];
+    return (vigente?.dias ?? []).map((d) => ({ dow: d.dow, trabalha: d.trabalha }));
+  }, [configTrabalho.registros]);
+
   /** Criação de cargo sem sair do cadastro. */
   const [novoCargoOpen, setNovoCargoOpen] = useState(false);
   /** Conflito entre o salário informado e o salário de referência do cargo. */
