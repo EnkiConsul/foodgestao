@@ -136,6 +136,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const [tab, setTab] = useState<"dados" | "jornada" | "remuneracao">("dados");
   /** Id do colaborador recém-criado — permite salvar a jornada sem sair do cadastro. */
   const [criadoId, setCriadoId] = useState<string | null>(null);
+  /** Salvamento do horário de trabalho exposto pelo painel da aba. */
+  const jornadaSalvarRef = useRef<(() => Promise<SalvarJornadaResultado>) | null>(null);
+
   /** Criação de cargo sem sair do cadastro. */
   const [novoCargoOpen, setNovoCargoOpen] = useState(false);
   /** Conflito entre o salário informado e o salário de referência do cargo. */
