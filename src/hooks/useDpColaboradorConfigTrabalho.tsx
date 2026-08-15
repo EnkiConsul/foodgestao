@@ -96,6 +96,9 @@ export function useDpColaboradorConfigTrabalho(colaboradorId?: string | null) {
             dow: d.dow,
             trabalha: d.trabalha,
             turno_id: d.turno_id,
+            entrada: d.trabalha && d.entrada && d.saida ? d.entrada : null,
+            saida: d.trabalha && d.entrada && d.saida ? d.saida : null,
+            intervalo_minutos: d.trabalha && d.entrada && d.saida ? d.intervalo_minutos ?? 0 : null,
           })),
         );
         if (errDias) throw errDias;
@@ -135,6 +138,9 @@ export function useDpColaboradorConfigTrabalho(colaboradorId?: string | null) {
           dow: d.dow,
           trabalha: d.trabalha,
           turno_id: d.turno_id,
+          entrada: d.trabalha && d.entrada && d.saida ? d.entrada : null,
+          saida: d.trabalha && d.entrada && d.saida ? d.saida : null,
+          intervalo_minutos: d.trabalha && d.entrada && d.saida ? d.intervalo_minutos ?? 0 : null,
         })),
       );
       if (errDias) throw errDias;

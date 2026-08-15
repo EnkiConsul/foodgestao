@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { CalendarOff, Info, AlertTriangle, Save, Trash2, Plus, Users } from "lucide-react";
+import { CalendarOff, Info, AlertTriangle, Save, Trash2, Users, Clock, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,34 +10,27 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDpTurnos, TURNO_FORM_DEFAULT } from "@/hooks/useDpTurnos";
-import { TurnoForm, type TurnoSubmitPayload } from "@/components/dp/TurnoForm";
 import { CopiarConfigColaboradorDialog, type ConfigCopiada } from "@/components/dp/CopiarConfigColaboradorDialog";
+import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
-import { formatarHoras } from "@/lib/dp/jornada-utils";
+import { formatarHoras, calcularCargaDia } from "@/lib/dp/jornada-utils";
+import { formatarFaixaTurno, intervaloAbaixoDoLegal } from "@/lib/dp/turno-utils";
+import { atalhosDeHorario, resolverTurnoDoHorario, type HorarioSimples } from "@/lib/dp/turno-resolver";
+import { verificarAlertasClt, idadeNaData, temAlertaClt, type AlertaClt } from "@/lib/dp/clt-alertas";
+import { tituloSistema } from "@/lib/text/titleCase";
 import {
-  formatarFaixaTurno, intervaloAbaixoDoLegal, nomeSugeridoTurno, sugerirCategoria,
-} from "@/lib/dp/turno-utils";
-import {
-  cargaSemanalConfig, configTemErro, diasPadrao, DOW_LABEL, normalizarDias,
-  resumoConfigTexto, turnoDoDia, validarConfigTrabalho,
+  cargaSemanalConfig, configTemErro, diasPadrao, DOW_LABEL, folgaFixaDerivada, normalizarDias,
+  resumoConfigTexto, temHorarioProprio, turnoDoDia, validarConfigTrabalho,
   type DiaConfig, type TurnoResolvido,
 } from "@/lib/dp/config-trabalho";
-
-/** Horário digitado direto em um dia da semana, antes de virar turno. */
-interface HorarioDia {
-  entrada: string;
-  saida: string;
-  intervalo_minutos: number;
-}
-
-/** Prefixo do turno virtual usado apenas para calcular carga e validações na tela. */
-const VIRTUAL_PREFIX = "novo:";
 
 const hoje = () => new Date().toISOString().slice(0, 10);
 const fmt = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : null);
 
+const HORARIO_PADRAO: HorarioSimples = { entrada: "08:00", saida: "17:00", intervalo_minutos: 60 };
 
 export interface JornadaColaborador {
   id?: string | null;
@@ -46,41 +39,45 @@ export interface JornadaColaborador {
   unidade_id?: string | null;
   /** Base da vigência inicial da jornada. */
   data_admissao?: string | null;
+  /** Usada apenas para os alertas de menor de 18 anos. */
+  data_nascimento?: string | null;
 }
 
 interface Props {
   colaborador: JornadaColaborador | null;
   /** Recarrega o formulário com a configuração vigente quando muda para true. */
   active?: boolean;
-  /** Mostra o botão "Salvar configuração" dentro do painel. */
+  /** Mostra o botão "Salvar Configuração" dentro do painel. */
   showSaveButton?: boolean;
 }
 
 /**
- * Painel de turno e jornada do colaborador — usado tanto na aba
- * "Turno & Jornada" do cadastro unificado quanto no diálogo dedicado.
+ * Painel de horário de trabalho do colaborador.
+ *
+ * O empresário digita o horário direto (entrada, saída, intervalo) e marca os
+ * dias trabalhados. O sistema converte isso, em silêncio, em um "horário da
+ * loja" compartilhado (tabela dp_turnos) para que escala, ponto e folha
+ * continuem lendo turno. Dias fora do padrão ficam como exceção no próprio
+ * colaborador, sem criar horários novos na loja.
  */
 export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveButton = true }: Props) {
   const policy = contratoPolicy(colaborador?.regime);
+  const { selectedCompanyId } = useCompanyContext();
   const { data: unidades = [] } = useDpUnidades();
   const { configs, vigente, isLoading, salvar, encerrar, remover, saving } =
     useDpColaboradorConfigTrabalho(colaborador?.id ?? undefined);
 
   const [unidadeId, setUnidadeId] = useState<string>("none");
-  const [turnoPadraoId, setTurnoPadraoId] = useState<string>("none");
+  const [horario, setHorario] = useState<HorarioSimples>(HORARIO_PADRAO);
   const [folgaVariavel, setFolgaVariavel] = useState(false);
-  const [folgaFixaDow, setFolgaFixaDow] = useState<number | null>(null);
   const [dias, setDias] = useState<DiaConfig[]>(diasPadrao());
-  /** Horário próprio de um dia (sexta, sábado, domingo etc.) antes de virar turno. */
-  const [overrides, setOverrides] = useState<Record<number, HorarioDia>>({});
   const [inicio, setInicio] = useState(hoje());
   /** "base" = admissão (ou vigência atual) · "nova_data" = mudança de horário. */
   const [vigenciaModo, setVigenciaModo] = useState<"base" | "nova_data">("base");
   const admissao = colaborador?.data_admissao ?? null;
   const [obs, setObs] = useState("");
-
-  const [novoTurnoOpen, setNovoTurnoOpen] = useState(false);
   const [copiarOpen, setCopiarOpen] = useState(false);
+  const [cienciaOpen, setCienciaOpen] = useState(false);
 
   const { turnos: turnosUnidade, criar: criarTurno } = useDpTurnos(unidadeId === "none" ? null : unidadeId);
   const turnosAtivos = useMemo(() => turnosUnidade.filter((t) => t.ativo), [turnosUnidade]);
@@ -97,219 +94,223 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
     [turnosAtivos],
   );
 
+  const atalhos = useMemo(() => atalhosDeHorario(turnosResolvidos).slice(0, 6), [turnosResolvidos]);
+
   // Recarrega o formulário com a configuração vigente sempre que o painel ativa.
   useEffect(() => {
     if (!active) return;
     if (vigente) {
       setUnidadeId(vigente.unidade_id ?? "none");
-      setTurnoPadraoId(vigente.turno_padrao_id ?? "none");
       setFolgaVariavel(vigente.folga_variavel);
-      setFolgaFixaDow(vigente.folga_fixa_dow ?? null);
-      setDias(normalizarDias(vigente.dias.map((d) => ({ dow: d.dow, trabalha: d.trabalha, turno_id: d.turno_id }))));
+      setDias(normalizarDias(vigente.dias, vigente.folga_fixa_dow));
       setObs(vigente.observacoes ?? "");
       setInicio(vigente.vigencia_inicio ?? admissao ?? hoje());
     } else {
       setUnidadeId(colaborador?.unidade_id ?? "none");
-      setTurnoPadraoId("none");
       setFolgaVariavel(false);
-      setFolgaFixaDow(null);
       setDias(diasPadrao());
       setObs("");
       setInicio(admissao ?? hoje());
     }
-    setOverrides({});
     setVigenciaModo("base");
   }, [active, vigente, colaborador?.unidade_id, admissao]);
 
-  /** Dias com o horário próprio apontando para um turno virtual (só na tela). */
-  const diasEfetivos: DiaConfig[] = useMemo(
-    () => dias.map((d) => (overrides[d.dow] ? { ...d, turno_id: `${VIRTUAL_PREFIX}${d.dow}` } : d)),
-    [dias, overrides],
-  );
+  // O horário principal da tela vem do turno padrão gravado na vigência.
+  useEffect(() => {
+    if (!active || !vigente?.turno_padrao_id) return;
+    const t = turnosResolvidos.find((x) => x.id === vigente.turno_padrao_id);
+    if (t?.entrada && t?.saida) {
+      setHorario({ entrada: t.entrada, saida: t.saida, intervalo_minutos: t.intervalo_minutos ?? 0 });
+    }
+  }, [active, vigente?.turno_padrao_id, turnosResolvidos]);
 
-  const turnosEfetivos: TurnoResolvido[] = useMemo(
-    () => [
-      ...turnosResolvidos,
-      ...Object.entries(overrides).map(([dow, h]) => ({
-        id: `${VIRTUAL_PREFIX}${dow}`,
-        nome: `Horário de ${DOW_LABEL[Number(dow)]}`,
-        cor: null,
-        entrada: h.entrada,
-        saida: h.saida,
-        intervalo_minutos: h.intervalo_minutos,
-      })),
-    ],
-    [turnosResolvidos, overrides],
+  /** Turno virtual que representa o horário digitado — só para cálculo na tela. */
+  const turnoPadraoTela: TurnoResolvido = useMemo(
+    () => ({ id: "padrao-tela", nome: "Horário de Trabalho", cor: null, ...horario }),
+    [horario],
   );
 
   const config = useMemo(
     () => ({
-      turno_padrao_id: turnoPadraoId === "none" ? null : turnoPadraoId,
+      turno_padrao_id: turnoPadraoTela.id,
       folga_variavel: folgaVariavel,
-      folga_fixa_dow: folgaFixaDow,
-      dias: diasEfetivos,
+      folga_fixa_dow: null as number | null,
+      dias,
     }),
-    [turnoPadraoId, folgaVariavel, folgaFixaDow, diasEfetivos],
+    [turnoPadraoTela.id, folgaVariavel, dias],
   );
+
+  const turnosTela = useMemo(() => [turnoPadraoTela, ...turnosResolvidos], [turnoPadraoTela, turnosResolvidos]);
 
   const validacoes = useMemo(
-    () => validarConfigTrabalho(config, turnosEfetivos, { regime: colaborador?.regime, vigenciaInicio: inicio }),
-    [config, turnosEfetivos, colaborador?.regime, inicio],
+    () => validarConfigTrabalho(config, turnosTela, { regime: colaborador?.regime, vigenciaInicio: inicio }),
+    [config, turnosTela, colaborador?.regime, inicio],
   );
-  const carga = cargaSemanalConfig(config, turnosEfetivos);
+  const carga = cargaSemanalConfig(config, turnosTela);
   const bloqueado = configTemErro(validacoes);
+  const folgas = folgaFixaDerivada(dias);
+
+  /** Alertas trabalhistas do horário resolvido de cada dia. */
+  const alertas: AlertaClt[] = useMemo(() => {
+    const idade = idadeNaData(colaborador?.data_nascimento, inicio);
+    return verificarAlertasClt({
+      idade,
+      regime: colaborador?.regime,
+      dias: dias.map((d) => {
+        const t = turnoDoDia(d, turnoPadraoTela.id, turnosTela);
+        return {
+          dow: d.dow,
+          trabalha: d.trabalha,
+          entrada: t?.entrada ?? null,
+          saida: t?.saida ?? null,
+          intervalo_minutos: t?.intervalo_minutos ?? null,
+        };
+      }),
+    });
+  }, [dias, turnoPadraoTela.id, turnosTela, colaborador?.data_nascimento, colaborador?.regime, inicio]);
+
+  const avisos = alertas.filter((a) => a.severidade === "aviso");
+  const infos = alertas.filter((a) => a.severidade === "info");
 
   const alternarDia = (dow: number) =>
-    setDias((prev) => prev.map((d) => (d.dow === dow ? { ...d, trabalha: !d.trabalha } : d)));
+    setDias((prev) => prev.map((d) => (d.dow === dow
+      ? { ...d, trabalha: !d.trabalha, entrada: null, saida: null, intervalo_minutos: null }
+      : d)));
 
-  const definirTurnoDia = (dow: number, turnoId: string) =>
-    setDias((prev) => prev.map((d) => (d.dow === dow ? { ...d, turno_id: turnoId === "padrao" ? null : turnoId } : d)));
+  /** Liga/desliga o horário próprio do dia, partindo do horário atualmente previsto. */
+  const alternarHorarioProprio = (dow: number, ativar: boolean) =>
+    setDias((prev) => prev.map((d) => {
+      if (d.dow !== dow) return d;
+      if (!ativar) return { ...d, entrada: null, saida: null, intervalo_minutos: null };
+      return { ...d, ...horario };
+    }));
 
-  /** Liga/desliga o horário próprio do dia, partindo do turno atualmente previsto. */
-  const alternarHorarioProprio = (dow: number, ativar: boolean) => {
-    setOverrides((prev) => {
-      const next = { ...prev };
-      if (!ativar) {
-        delete next[dow];
-        return next;
-      }
-      const dia = dias.find((d) => d.dow === dow);
-      const base = dia ? turnoDoDia(dia, config.turno_padrao_id, turnosResolvidos) : null;
-      next[dow] = {
-        entrada: base?.entrada ?? "08:00",
-        saida: base?.saida ?? "17:00",
-        intervalo_minutos: base?.intervalo_minutos ?? 60,
-      };
-      return next;
-    });
-  };
+  const definirHorarioDia = (dow: number, patch: Partial<HorarioSimples>) =>
+    setDias((prev) => prev.map((d) => (d.dow === dow ? { ...d, ...patch } : d)));
 
-  const definirHorarioDia = (dow: number, patch: Partial<HorarioDia>) =>
-    setOverrides((prev) => (prev[dow] ? { ...prev, [dow]: { ...prev[dow], ...patch } } : prev));
-
-  /** Define a folga semanal fixa, desmarcando o dia escolhido. */
-  const definirFolgaFixa = (dow: number | null) => {
-    setFolgaFixaDow(dow);
-    if (dow === null) return;
-    setFolgaVariavel(false);
-    setDias((prev) => prev.map((d) => (d.dow === dow ? { ...d, trabalha: false } : d)));
-    setOverrides((prev) => {
-      const next = { ...prev };
-      delete next[dow];
-      return next;
-    });
-  };
-
-  /** Atalhos de escala: 6x1 usa a folga escolhida (domingo por padrão) e 5x2 folga sáb/dom. */
+  /** Atalhos de escala: 6x1 folga no domingo e 5x2 folga sábado e domingo. */
   const aplicarEscala = (modo: "6x1" | "5x2") => {
-    if (modo === "6x1") {
-      const folga = folgaFixaDow ?? 0;
-      setFolgaVariavel(false);
-      setFolgaFixaDow(folga);
-      setDias((prev) => prev.map((d) => ({ ...d, trabalha: d.dow !== folga })));
-      return;
-    }
     setFolgaVariavel(false);
-    setFolgaFixaDow(0);
-    setDias((prev) => prev.map((d) => ({ ...d, trabalha: d.dow !== 0 && d.dow !== 6 })));
-  };
-
-  /** Cria o turno já dentro do cadastro do colaborador e o seleciona. */
-  const onCriarTurno = async (payload: TurnoSubmitPayload) => {
-    try {
-      const criado = await criarTurno.mutateAsync(payload);
-      if (criado?.id) setTurnoPadraoId(criado.id);
-      setNovoTurnoOpen(false);
-      toast.success("Turno criado e selecionado");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível criar o turno");
-    }
+    const folgar = modo === "6x1" ? [0] : [0, 6];
+    setDias((prev) => prev.map((d) => (folgar.includes(d.dow)
+      ? { ...d, trabalha: false, entrada: null, saida: null, intervalo_minutos: null }
+      : { ...d, trabalha: true })));
   };
 
   const onCopiarConfig = (c: ConfigCopiada) => {
-    setTurnoPadraoId(c.turno_padrao_id ?? "none");
     setFolgaVariavel(c.folga_variavel);
     setDias(normalizarDias(c.dias));
-    setOverrides({});
+    const base = c.turno_padrao_id ? turnosResolvidos.find((t) => t.id === c.turno_padrao_id) : null;
+    if (base?.entrada && base?.saida) {
+      setHorario({ entrada: base.entrada, saida: base.saida, intervalo_minutos: base.intervalo_minutos ?? 0 });
+    }
     toast.success("Configuração copiada — revise e salve");
   };
 
   /**
-   * Resolve os horários próprios em turnos reais: reaproveita um turno com o
-   * mesmo horário na unidade ou cria um novo, mantendo escala/ponto lendo turno.
+   * Converte o horário digitado em um horário da loja: reaproveita um turno com
+   * o mesmo horário na unidade ou cria um novo, sem pedir nada ao usuário.
    */
-  const resolverDias = async (): Promise<DiaConfig[]> => {
+  const resolverTurnoPadrao = async (): Promise<string> => {
     const unidade = unidadeId === "none" ? null : unidadeId;
-    const resolvidos: DiaConfig[] = [];
-    for (const dia of dias) {
-      const h = overrides[dia.dow];
-      if (!dia.trabalha || !h) { resolvidos.push(dia); continue; }
-      const existente = turnosAtivos.find(
-        (t) => (t.entrada ?? "").slice(0, 5) === h.entrada
-          && (t.saida ?? "").slice(0, 5) === h.saida
-          && (t.intervalo_minutos ?? 0) === h.intervalo_minutos,
-      );
-      if (existente) { resolvidos.push({ ...dia, turno_id: existente.id }); continue; }
-      const criado = await criarTurno.mutateAsync({
-        form: {
-          ...TURNO_FORM_DEFAULT,
-          unidade_id: unidade,
-          entrada: h.entrada,
-          saida: h.saida,
-          intervalo_minutos: h.intervalo_minutos,
-          nome: nomeSugeridoTurno(sugerirCategoria(h.entrada), h.entrada, h.saida),
-          categoria: sugerirCategoria(h.entrada),
-        },
-        ciencia: intervaloAbaixoDoLegal(h) ? { confirmada: true, justificativa: "Horário próprio do dia definido no cadastro do colaborador" } : null,
-      });
-      resolvidos.push({ ...dia, turno_id: criado.id });
-    }
-    return resolvidos;
+    const decisao = resolverTurnoDoHorario(horario, turnosResolvidos.map((t) => ({ ...t, ativo: true })), unidade);
+    if (decisao.tipo === "reaproveita") return decisao.turno.id;
+    const criado = await criarTurno.mutateAsync({
+      form: {
+        ...TURNO_FORM_DEFAULT,
+        unidade_id: unidade,
+        nome: decisao.novo.nome,
+        categoria: decisao.novo.categoria,
+        entrada: decisao.novo.entrada,
+        saida: decisao.novo.saida,
+        intervalo_minutos: decisao.novo.intervalo_minutos,
+      },
+      ciencia: intervaloAbaixoDoLegal(horario)
+        ? { confirmada: true, justificativa: "Horário definido no cadastro do colaborador" }
+        : null,
+    });
+    return criado.id;
   };
 
+  /** Registra a ciência dos desvios da CLT em dp_regras_historico. */
+  const registrarCiencia = async (justificativa: string) => {
+    if (!selectedCompanyId) return;
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth?.user?.id) return;
+      await supabase.from("dp_regras_historico").insert({
+        company_id: selectedCompanyId,
+        usuario_id: auth.user.id,
+        tabela: "dp_colaborador_config_trabalho",
+        registro_id: colaborador?.id ?? null,
+        valor_antigo: null as never,
+        valor_novo: {
+          vigencia_inicio: inicio,
+          horario,
+          dias,
+          alertas: avisos.map((a) => ({ codigo: a.codigo, mensagem: a.mensagem })),
+        } as never,
+        justificativa: justificativa || null,
+        ciencia_confirmada: true,
+      });
+    } catch { /* o cadastro não deve falhar por causa do log */ }
+  };
+
+  const persistir = async () => {
+    const turnoPadraoId = await resolverTurnoPadrao();
+    await salvar.mutateAsync({
+      unidade_id: unidadeId === "none" ? null : unidadeId,
+      turno_padrao_id: turnoPadraoId,
+      folga_variavel: folgaVariavel,
+      folga_fixa_dow: folgaVariavel || folgas.length !== 1 ? null : folgas[0],
+      observacoes: obs.trim() || null,
+      vigencia_inicio: inicio,
+      dias: dias.map((d) => ({ ...d, turno_id: null })),
+    });
+    toast.success("Horário de trabalho salvo");
+  };
 
   const onSalvar = async () => {
     if (!colaborador?.id) {
-      toast.error("Salve os dados do colaborador antes de definir a jornada.");
+      toast.error("Salve os dados do colaborador antes de definir o horário.");
       return;
     }
+    if (!horario.entrada || !horario.saida) { toast.error("Informe a entrada e a saída."); return; }
     if (bloqueado) { toast.error("Corrija os pontos indicados antes de salvar."); return; }
+    if (temAlertaClt(alertas)) { setCienciaOpen(true); return; }
     try {
-      const diasResolvidos = await resolverDias();
-      await salvar.mutateAsync({
-        unidade_id: unidadeId === "none" ? null : unidadeId,
-        turno_padrao_id: turnoPadraoId === "none" ? null : turnoPadraoId,
-        folga_variavel: folgaVariavel,
-        folga_fixa_dow: folgaVariavel ? null : folgaFixaDow,
-        observacoes: obs.trim() || null,
-        vigencia_inicio: inicio,
-        dias: diasResolvidos,
-      });
-      setDias(diasResolvidos);
-      setOverrides({});
-      toast.success("Configuração de trabalho salva");
-
+      await persistir();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível salvar a configuração");
+      toast.error(e instanceof Error ? e.message : "Não foi possível salvar o horário");
     }
   };
+
+  const onConfirmarCiencia = async (justificativa: string) => {
+    setCienciaOpen(false);
+    try {
+      await registrarCiencia(justificativa);
+      await persistir();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível salvar o horário");
+    }
+  };
+
+  const cargaDiaria = calcularCargaDia(horario);
 
   return (
     <div className="space-y-5">
       {!colaborador?.id && (
         <p className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-400">
           <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-          Defina a jornada agora: ela será gravada automaticamente logo após o colaborador ser criado.
+          Defina o horário agora: ele será gravado automaticamente logo após o colaborador ser criado.
         </p>
       )}
 
       <div className="flex flex-wrap gap-2">
-        <Button
-          type="button" variant="outline" size="sm" className="gap-2"
-          onClick={() => setCopiarOpen(true)}
-        >
+        <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => setCopiarOpen(true)}>
           <Users className="h-4 w-4" aria-hidden="true" />
-          Copiar de outro colaborador
+          {tituloSistema("Copiar de Outro Colaborador")}
         </Button>
       </div>
 
@@ -370,38 +371,62 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
             </div>
           )}
         </div>
-
-
-        <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="ct-turno">Turno padrão</Label>
-          <div className="flex gap-2">
-            <Select value={turnoPadraoId} onValueChange={setTurnoPadraoId}>
-              <SelectTrigger id="ct-turno" className="flex-1">
-                <SelectValue placeholder={turnosResolvidos.length ? "Selecione" : "Crie o primeiro turno"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Definir turno dia a dia</SelectItem>
-                {turnosResolvidos.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>{t.nome} — {formatarFaixaTurno(t)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button type="button" variant="outline" className="shrink-0 gap-1.5" onClick={() => setNovoTurnoOpen(true)}>
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              Novo turno
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {turnosResolvidos.length
-              ? "Vale para todos os dias trabalhados. Você pode trocar o turno em dias específicos abaixo."
-              : "Nenhum turno cadastrado nesta unidade ainda — crie o primeiro aqui mesmo, sem sair do cadastro."}
-          </p>
-        </div>
       </div>
+
+      <section className="space-y-3 rounded-lg border p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="flex items-center gap-2 text-sm font-semibold">
+            <Clock className="h-4 w-4 text-primary" aria-hidden="true" />
+            {tituloSistema("Horário de Trabalho")}
+          </h3>
+          <span className="text-xs tabular-nums text-muted-foreground">{formatarHoras(cargaDiaria)}/dia</span>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-3">
+          <div className="space-y-1">
+            <Label className="text-xs" htmlFor="ct-entrada">Entrada</Label>
+            <Input
+              id="ct-entrada" type="time" value={horario.entrada}
+              onChange={(e) => setHorario((h) => ({ ...h, entrada: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs" htmlFor="ct-saida">Saída</Label>
+            <Input
+              id="ct-saida" type="time" value={horario.saida}
+              onChange={(e) => setHorario((h) => ({ ...h, saida: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs" htmlFor="ct-intervalo">Intervalo (min)</Label>
+            <Input
+              id="ct-intervalo" type="number" min={0} inputMode="numeric" value={horario.intervalo_minutos}
+              onChange={(e) => setHorario((h) => ({ ...h, intervalo_minutos: Number(e.target.value || 0) }))}
+            />
+          </div>
+        </div>
+        {atalhos.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] text-muted-foreground">Horários já usados na loja:</span>
+            {atalhos.map((t) => (
+              <Button
+                key={t.id} type="button" size="sm" variant="secondary" className="h-7 text-[11px]"
+                onClick={() => setHorario({
+                  entrada: t.entrada, saida: t.saida, intervalo_minutos: t.intervalo_minutos ?? 0,
+                })}
+              >
+                {formatarFaixaTurno(t)}
+              </Button>
+            ))}
+          </div>
+        )}
+        <p className="text-[11px] text-muted-foreground">
+          Este horário vale para todos os dias trabalhados. Dias diferentes ficam como exceção logo abaixo.
+        </p>
+      </section>
 
       <section className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold">Dias da semana</h3>
+          <h3 className="text-sm font-semibold">{tituloSistema("Dias da Semana")}</h3>
           <div className="flex items-center gap-2">
             <Button type="button" size="sm" variant="outline" className="h-8 text-xs" onClick={() => aplicarEscala("6x1")}>
               6x1
@@ -414,12 +439,8 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
         </div>
         <ul className="divide-y rounded-lg border">
           {dias.map((dia) => {
-            const override = overrides[dia.dow];
-            const turno = turnoDoDia(
-              override ? { ...dia, turno_id: `${VIRTUAL_PREFIX}${dia.dow}` } : dia,
-              config.turno_padrao_id,
-              turnosEfetivos,
-            );
+            const proprio = temHorarioProprio(dia);
+            const turno = turnoDoDia(dia, turnoPadraoTela.id, turnosTela);
             return (
               <li key={dia.dow} className="space-y-2 p-3">
                 <div className="flex flex-wrap items-center gap-3">
@@ -430,31 +451,11 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
                   />
                   <span className="w-24 shrink-0 text-sm font-medium">{DOW_LABEL[dia.dow]}</span>
                   {dia.trabalha ? (
-                    <div className="ml-auto flex min-w-[11rem] flex-1 items-center gap-2">
-                      <Select
-                        value={dia.turno_id ?? "padrao"}
-                        onValueChange={(v) => definirTurnoDia(dia.dow, v)}
-                        disabled={!!override}
-                      >
-                        <SelectTrigger className="h-9 text-xs" aria-label={`Turno de ${DOW_LABEL[dia.dow]}`}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="padrao">Turno padrão</SelectItem>
-                          {turnosResolvidos.map((t) => (
-                            <SelectItem key={t.id} value={t.id}>{t.nome} — {formatarFaixaTurno(t)}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        type="button" size="icon" variant="ghost" className="h-9 w-9 shrink-0"
-                        aria-label="Criar novo turno" onClick={() => setNovoTurnoOpen(true)}
-                      >
-                        <Plus className="h-4 w-4" aria-hidden="true" />
-                      </Button>
-                      <span className="w-24 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
-                        {turno ? formatarFaixaTurno(turno) : "sem turno"}
+                    <div className="ml-auto flex items-center gap-2">
+                      <span className="text-xs tabular-nums text-muted-foreground">
+                        {turno ? formatarFaixaTurno(turno) : "sem horário"}
                       </span>
+                      {proprio && <Badge variant="outline" className="text-[10px]">Exceção</Badge>}
                     </div>
                   ) : (
                     <Badge variant="secondary" className="ml-auto">Folga</Badge>
@@ -465,19 +466,19 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
                   <div className="space-y-2 pl-[3.25rem]">
                     <label className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Switch
-                        checked={!!override}
+                        checked={proprio}
                         onCheckedChange={(v) => alternarHorarioProprio(dia.dow, v)}
                         aria-label={`Horário diferente em ${DOW_LABEL[dia.dow]}`}
                       />
-                      Usar horário diferente neste dia
+                      Horário diferente neste dia
                     </label>
-                    {override && (
+                    {proprio && (
                       <div className="grid gap-2 sm:grid-cols-3">
                         <div className="space-y-1">
                           <Label className="text-[11px]" htmlFor={`h-ent-${dia.dow}`}>Entrada</Label>
                           <Input
                             id={`h-ent-${dia.dow}`} type="time" className="h-9"
-                            value={override.entrada}
+                            value={dia.entrada ?? ""}
                             onChange={(e) => definirHorarioDia(dia.dow, { entrada: e.target.value })}
                           />
                         </div>
@@ -485,7 +486,7 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
                           <Label className="text-[11px]" htmlFor={`h-sai-${dia.dow}`}>Saída</Label>
                           <Input
                             id={`h-sai-${dia.dow}`} type="time" className="h-9"
-                            value={override.saida}
+                            value={dia.saida ?? ""}
                             onChange={(e) => definirHorarioDia(dia.dow, { saida: e.target.value })}
                           />
                         </div>
@@ -493,7 +494,7 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
                           <Label className="text-[11px]" htmlFor={`h-int-${dia.dow}`}>Intervalo (min)</Label>
                           <Input
                             id={`h-int-${dia.dow}`} type="number" min={0} inputMode="numeric" className="h-9"
-                            value={override.intervalo_minutos}
+                            value={dia.intervalo_minutos ?? 0}
                             onChange={(e) => definirHorarioDia(dia.dow, { intervalo_minutos: Number(e.target.value || 0) })}
                           />
                         </div>
@@ -505,40 +506,60 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
             );
           })}
         </ul>
-        {Object.keys(overrides).length > 0 && (
-          <p className="flex items-start gap-2 text-xs text-muted-foreground">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            Ao salvar, cada horário diferente vira um turno reutilizável (ou reaproveita um turno igual já cadastrado).
-          </p>
+        {policy.folgaSemanal !== "nao_se_aplica" && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
+            <div className="min-w-0 text-xs">
+              <p className="font-medium text-foreground">{tituloSistema(policy.folgaLabel)}</p>
+              <p className="text-muted-foreground">
+                {folgaVariavel
+                  ? "A folga muda a cada semana e é definida na escala do mês."
+                  : folgas.length === 0
+                    ? "Nenhum dia de folga marcado acima."
+                    : `Folga em ${folgas.map((d) => DOW_LABEL[d]).join(", ")} — desmarque o dia acima para alterar.`}
+              </p>
+            </div>
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Switch
+                checked={folgaVariavel}
+                onCheckedChange={setFolgaVariavel}
+                aria-label="A folga varia conforme a escala"
+              />
+              Varia conforme a escala
+            </label>
+          </div>
         )}
       </section>
 
-      {policy.folgaSemanal !== "nao_se_aplica" && (
-        <section className="space-y-2 rounded-lg border p-3">
-          <Label htmlFor="ct-folga">{policy.folgaLabel}</Label>
-          <Select
-            value={folgaVariavel ? "variavel" : folgaFixaDow === null ? "nenhuma" : String(folgaFixaDow)}
-            onValueChange={(v) => {
-              if (v === "variavel") { setFolgaVariavel(true); setFolgaFixaDow(null); return; }
-              setFolgaVariavel(false);
-              definirFolgaFixa(v === "nenhuma" ? null : Number(v));
-            }}
-          >
-            <SelectTrigger id="ct-folga" className="h-10"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="nenhuma">
-                {policy.folgaSemanal === "obrigatoria" ? "Sem folga fixa definida" : "Sem dia definido"}
-              </SelectItem>
-              <SelectItem value="variavel">Variável conforme escala</SelectItem>
-              {[0, 1, 2, 3, 4, 5, 6].map((dow) => (
-                <SelectItem key={dow} value={String(dow)}>{DOW_LABEL[dow]}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {policy.folgaHint && <p className="text-xs text-muted-foreground">{policy.folgaHint}</p>}
+      {(avisos.length > 0 || infos.length > 0) && (
+        <section className="space-y-1.5">
+          <h3 className="flex items-center gap-2 text-sm font-semibold">
+            <ShieldAlert className="h-4 w-4 text-amber-600" aria-hidden="true" />
+            {tituloSistema("Pontos de Atenção Trabalhista")}
+          </h3>
+          <ul className="space-y-1.5">
+            {avisos.map((a) => (
+              <li
+                key={a.codigo}
+                className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-2.5 text-xs text-amber-700 dark:text-amber-400"
+              >
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                {a.mensagem}
+              </li>
+            ))}
+            {infos.map((a) => (
+              <li key={a.codigo} className="flex items-start gap-2 rounded-lg border bg-muted/30 p-2.5 text-xs text-muted-foreground">
+                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                {a.mensagem}
+              </li>
+            ))}
+          </ul>
+          {avisos.length > 0 && (
+            <p className="text-[11px] text-muted-foreground">
+              O cadastro não é bloqueado: ao salvar, você confirma a ciência e ela fica registrada no histórico.
+            </p>
+          )}
         </section>
       )}
-
 
       {validacoes.length > 0 && (
         <ul className="space-y-1.5">
@@ -567,14 +588,14 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
         <div className="flex justify-end">
           <Button className="gap-2" disabled={saving || bloqueado} onClick={() => void onSalvar()}>
             <Save className="h-4 w-4" aria-hidden="true" />
-            {saving ? "Salvando..." : "Salvar configuração"}
+            {saving ? "Salvando..." : tituloSistema("Salvar Configuração")}
           </Button>
         </div>
       )}
 
       {colaborador?.id && (
         <section className="space-y-2 border-t pt-4">
-          <h3 className="text-sm font-semibold">Histórico de vigências</h3>
+          <h3 className="text-sm font-semibold">{tituloSistema("Histórico de Vigências")}</h3>
           {isLoading ? (
             <Skeleton className="h-16 w-full" />
           ) : configs.length === 0 ? (
@@ -598,7 +619,7 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
                             turno_padrao_id: c.turno_padrao_id,
                             folga_variavel: c.folga_variavel,
                             folga_fixa_dow: c.folga_fixa_dow,
-                            dias: c.dias.map((d) => ({ dow: d.dow, trabalha: d.trabalha, turno_id: d.turno_id })),
+                            dias: c.dias,
                           },
                           turnosResolvidos,
                         )}
@@ -629,17 +650,13 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
         </section>
       )}
 
-      <TurnoForm
-        open={novoTurnoOpen}
-        onOpenChange={setNovoTurnoOpen}
-        titulo="Novo turno"
-        unidades={unidades.map((u) => ({ id: u.id, nome: u.nome }))}
-        initial={{
-          ...TURNO_FORM_DEFAULT,
-          unidade_id: unidadeId === "none" ? null : unidadeId,
-        }}
-        saving={criarTurno.isPending}
-        onSubmit={(f) => void onCriarTurno(f)}
+      <CienciaLegalDialog
+        open={cienciaOpen}
+        titulo="Horário fora da referência da CLT"
+        alertas={avisos.map((a) => ({ campo: a.codigo, mensagem: a.mensagem }))}
+        confirming={saving}
+        onCancel={() => setCienciaOpen(false)}
+        onConfirm={(j) => void onConfirmarCiencia(j)}
       />
 
       <CopiarConfigColaboradorDialog
