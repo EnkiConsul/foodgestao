@@ -385,7 +385,13 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       valor_hora: valorHoraNum || null,
       salario_cargo: salarioCargo,
     });
-    if (pendencia) { toast.error(pendencia); return; }
+    // Editando um colaborador existente, a falta de remuneração não pode travar
+    // o salvamento das outras abas: avisamos depois de gravar.
+    if (pendencia && !isEdit && !criadoId) {
+      toast.error(pendencia);
+      setTab("remuneracao");
+      return;
+    }
 
     const adicionalNum = numeroBR(rem.adicional_percentual);
     if (adicionalNum < 0 || adicionalNum > 100) {
@@ -411,25 +417,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     if (!cargoResolvido.current) {
       const comparacao = compararSalarioCargo(cargoSelecionado, baseSalarialInformada());
       if (comparacao.status === "cargo_sem_salario") {
-        const definir = window.confirm(
-          `Definir ${moedaBR(comparacao.salarioInformado)} como salário de referência do cargo ` +
-            `${cargoSelecionado?.nome ?? ""}?`,
-        );
-        if (definir) {
-          try {
-            await upsertCargo.mutateAsync({
-              id: form.cargo_id,
-              nome: cargoSelecionado.nome,
-              salario_base: comparacao.salarioInformado,
-            } as Parameters<typeof upsertCargo.mutateAsync>[0]);
-          } catch (e) {
-            toast.error("Não foi possível gravar o salário do cargo", {
-              description: e instanceof Error ? e.message : String(e),
-            });
-            return;
-          }
-        }
-        cargoResolvido.current = true;
+        setCargoSemSalario({ salarioInformado: comparacao.salarioInformado });
+        return;
       } else if (comparacao.status === "divergente") {
         setConflitoCargo({
           salarioCargo: comparacao.salarioCargo,
@@ -540,6 +529,11 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         }
         if (resultado === "erro") { setTab("jornada"); return; }
         toast.success("Colaborador atualizado");
+        if (pendencia) {
+          toast.warning("Falta completar a remuneração", {
+            description: `${pendencia} A folha só é gerada depois disso.`,
+          });
+        }
         onOpenChange(false);
         return;
       }
@@ -727,32 +721,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           </div>
 
 
-          {/* Folga Fixa / Perfil */}
-          {policy.exigeFolgaSemanal ? (
-            <div className="space-y-2">
-              <Label>Folga Fixa Semanal</Label>
-              <Select
-                value={form.folga_fixa_semana}
-                onValueChange={(v) => setForm({ ...form, folga_fixa_semana: v })}
-              >
-                <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
-                <SelectContent>
-                  {DIAS_SEMANA.map((d) => (
-                    <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <Label>Folga Fixa Semanal</Label>
-              <p className="rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground">
-                {policy.jornadaComoDisponibilidade
-                  ? "No contrato intermitente não há folga fixa: os dias trabalhados nascem das convocações aceitas."
-                  : "Não se aplica a este tipo de vínculo."}
-              </p>
-            </div>
-          )}
+          {/* A folga fixa semanal é definida na aba Horário de Trabalho, junto
+              com os dias da semana — evita dois lugares com a mesma informação. */}
 
           <div className="space-y-2">
             <Label>Perfil de Acesso</Label>
