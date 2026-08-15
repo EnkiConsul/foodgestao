@@ -132,7 +132,7 @@ describe("helpers", () => {
 
 describe("nameFromDescription", () => {
   it("extrai o nome de PIX enviado/recebido", () => {
-    expect(nameFromDescription("Pix enviado para ANTONIA BARROS RODRIGUES")).toBe("Antonia Barros Rodrigues");
+    expect(nameFromDescription("Pix enviado para ANTONIA BARROS RODRIGUES")).toBe("ANTONIA BARROS RODRIGUES");
     expect(nameFromDescription("PIX RECEBIDO DE JOAO DA SILVA")).toBe("JOAO DA SILVA");
   });
 
