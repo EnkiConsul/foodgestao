@@ -507,52 +507,53 @@ export default function DpColaboradores() {
           const folha = (c as any).possui_folha_ponto as boolean | null;
           return (
             <div key={c.id} className="rounded-2xl border border-border bg-card p-4 space-y-3 active:scale-[0.98] transition-transform">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="font-semibold uppercase truncate">{c.nome}</div>
-                  <div className="font-mono text-xs text-muted-foreground mt-0.5">{c.cpf ?? "—"}</div>
-                  <div className="text-sm text-muted-foreground mt-1">
-                    {c.cargo_nome ?? c.cargo ?? "—"}
-                    {c.unidade_nome ? <span> • {c.unidade_nome}</span> : null}
+              <div className="cursor-pointer" onClick={() => setViewing(c)}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold uppercase truncate">{c.nome}</div>
+                    <div className="font-mono text-xs text-muted-foreground mt-0.5">{c.cpf ?? "—"}</div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      {c.cargo_nome ?? c.cargo ?? "—"}
+                      {c.unidade_nome ? <span> • {c.unidade_nome}</span> : null}
+                    </div>
                   </div>
+                  {c.ativo ? (
+                    <Badge variant="outline" className="text-[11px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
+                      Ativo
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[11px] bg-destructive/10 text-destructive border-destructive/30">
+                      Desligado {fmtDate(c.data_desligamento)}
+                    </Badge>
+                  )}
                 </div>
-                {c.ativo ? (
-                  <Badge variant="outline" className="text-[11px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
-                    Ativo
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-[11px] bg-destructive/10 text-destructive border-destructive/30">
-                    Desligado {fmtDate(c.data_desligamento)}
-                  </Badge>
-                )}
 
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  <Badge variant="outline" className="uppercase border-primary/30 text-primary bg-primary/5 text-[11px]">
+                    {vinculoLabel(c as any)}
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className={
+                      "text-[11px] " + (perfil === "admin" ? "bg-destructive/10 text-destructive border-destructive/30"
+                      : perfil === "gestor" ? "bg-primary/10 text-primary border-primary/30"
+                      : "")
+                    }
+                  >
+                    {PERFIL_LABEL[perfil ?? "colaborador"]}
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className={"text-[11px] " + (folha
+                      ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400"
+                      : "text-muted-foreground")}
+                  >
+                    Folha: {folha ? "Sim" : "Não"}
+                  </Badge>
+                </div>
               </div>
 
-              <div className="flex flex-wrap gap-1.5">
-                <Badge variant="outline" className="uppercase border-primary/30 text-primary bg-primary/5 text-[11px]">
-                  {vinculoLabel(c as any)}
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className={
-                    "text-[11px] " + (perfil === "admin" ? "bg-destructive/10 text-destructive border-destructive/30"
-                    : perfil === "gestor" ? "bg-primary/10 text-primary border-primary/30"
-                    : "")
-                  }
-                >
-                  {PERFIL_LABEL[perfil ?? "colaborador"]}
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className={"text-[11px] " + (folha
-                    ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400"
-                    : "text-muted-foreground")}
-                >
-                  Folha: {folha ? "Sim" : "Não"}
-                </Badge>
-              </div>
-
-              <div className="flex flex-wrap gap-1 pt-1 border-t border-border/60">
+              <div className="flex flex-wrap gap-1 pt-1 border-t border-border/60" onClick={(e) => e.stopPropagation()}>
                 <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => { setEditing(c); setDialogOpen(true); }}>
                   <Pencil className="h-4 w-4 mr-1" /> Editar
                 </Button>
@@ -583,7 +584,6 @@ export default function DpColaboradores() {
                 <Button size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => setToDelete(c)} title="Remover">
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
-
               </div>
             </div>
           );
