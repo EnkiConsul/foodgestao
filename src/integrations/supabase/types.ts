@@ -13089,6 +13089,13 @@ export type Database = {
               transaction_id: string
             }[]
           }
+      pluggy_confirm_staging_split: {
+        Args: { p_account_id: string; p_splits: Json; p_staging_id: string }
+        Returns: {
+          staging_id: string
+          transaction_id: string
+        }[]
+      }
       pluggy_confirm_staging_transfer:
         | {
             Args: {

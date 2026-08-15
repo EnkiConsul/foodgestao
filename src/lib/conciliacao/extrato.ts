@@ -34,6 +34,16 @@ export interface ExtratoTxLike {
 
 export type ExtratoSide = "credito" | "debito";
 
+export interface ExtratoPlatformItem {
+  id: string;
+  description: string;
+  amount: number;
+  categoryName: string | null;
+  contactName: string | null;
+  accountName: string | null;
+  paymentMethodName: string | null;
+}
+
 export interface ExtratoRow {
   stagingId: string;
   date: string;
@@ -41,18 +51,16 @@ export interface ExtratoRow {
   amount: number;
   side: ExtratoSide;
   status: ExtratoStatus;
-  /** true quando existe lançamento na plataforma vinculado a esta linha */
+  /** true quando existe pelo menos um lançamento na plataforma vinculado a esta linha */
   conciliado: boolean;
-  platform: {
-    id: string;
-    description: string;
-    amount: number;
-    categoryName: string | null;
-    contactName: string | null;
-    accountName: string | null;
-    paymentMethodName: string | null;
-  } | null;
+  /** lançamentos vinculados (mais de um quando a linha do banco foi dividida) */
+  platforms: ExtratoPlatformItem[];
+  /** soma dos valores absolutos dos lançamentos vinculados */
+  platformTotal: number;
+  /** true quando a soma dos lançamentos difere do valor do banco */
+  divergenteValor: boolean;
 }
+
 
 export interface ExtratoBucket {
   total: number;
@@ -110,43 +118,54 @@ export function buildExtratoConciliacao({
   transactions: ExtratoTxLike[];
   statusFilter?: ExtratoStatusFilter;
 }): ExtratoModel {
-  const txByStaging = new Map<string, ExtratoTxLike>();
+  const txsByStaging = new Map<string, ExtratoTxLike[]>();
   const txById = new Map<string, ExtratoTxLike>();
   for (const tx of transactions) {
     txById.set(tx.id, tx);
-    if (tx.pluggy_staging_transaction_id) txByStaging.set(tx.pluggy_staging_transaction_id, tx);
+    if (tx.pluggy_staging_transaction_id) {
+      const list = txsByStaging.get(tx.pluggy_staging_transaction_id);
+      if (list) list.push(tx);
+      else txsByStaging.set(tx.pluggy_staging_transaction_id, [tx]);
+    }
   }
+
+  const toItem = (tx: ExtratoTxLike): ExtratoPlatformItem => ({
+    id: tx.id,
+    description: (tx.description ?? "").trim() || "Sem descrição",
+    amount: Number(tx.amount ?? 0),
+    categoryName: tx.category_name ?? null,
+    contactName: tx.contact_name ?? null,
+    accountName: tx.account_name ?? null,
+    paymentMethodName: tx.payment_method_name ?? null,
+  });
 
   const all: ExtratoRow[] = staging
     .slice()
     .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.id.localeCompare(b.id)))
     .map((s) => {
       const status = normalizeStatus(s.status);
-      const tx =
-        txByStaging.get(s.id) ??
-        (s.matched_transaction_id ? txById.get(s.matched_transaction_id) : undefined);
-      const conciliado = status === "confirmed" && !!tx;
+      const linked = txsByStaging.get(s.id);
+      const fallback =
+        !linked?.length && s.matched_transaction_id ? txById.get(s.matched_transaction_id) : undefined;
+      const txs = linked?.length ? linked : fallback ? [fallback] : [];
+      const platforms = txs.map(toItem);
+      const amount = Number(s.amount ?? 0);
+      const platformTotal = platforms.reduce((acc, p) => acc + Math.abs(p.amount), 0);
+      const conciliado = status === "confirmed" && platforms.length > 0;
       return {
         stagingId: s.id,
         date: s.date,
         bankDescription: (s.description ?? "").trim() || "Sem descrição",
-        amount: Number(s.amount ?? 0),
-        side: sideOf(Number(s.amount ?? 0)),
+        amount,
+        side: sideOf(amount),
         status,
         conciliado,
-        platform: tx
-          ? {
-              id: tx.id,
-              description: (tx.description ?? "").trim() || "Sem descrição",
-              amount: Number(tx.amount ?? 0),
-              categoryName: tx.category_name ?? null,
-              contactName: tx.contact_name ?? null,
-              accountName: tx.account_name ?? null,
-              paymentMethodName: tx.payment_method_name ?? null,
-            }
-          : null,
+        platforms,
+        platformTotal,
+        divergenteValor: platforms.length > 0 && Math.abs(platformTotal - Math.abs(amount)) > 0.004,
       } satisfies ExtratoRow;
     });
+
 
   // Os totais do extrato sempre consideram TODAS as linhas do banco no período;
   // o filtro de status afeta apenas a lista exibida.

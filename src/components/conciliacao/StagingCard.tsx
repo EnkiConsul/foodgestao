@@ -79,7 +79,7 @@ interface StagingCardProps {
   maskBRL: (value: number) => string;
   /** Salva a descrição editada do lançamento importado. */
   onDescriptionSave?: (value: string) => Promise<boolean | void>;
-  onAction: (action: "confirm" | "ignore") => void;
+  onAction: (action: "confirm" | "ignore" | "split") => void;
 
 }
 
@@ -385,6 +385,9 @@ export function StagingCard({
 
         {row.status === "pending" && (
           <div className="grid grid-cols-2 gap-2 border-t p-3">
+            <Button variant="ghost" className="h-10" disabled={busy} onClick={() => onAction("split")}>
+              Dividir
+            </Button>
             <Button variant="outline" className="h-10" disabled={busy} onClick={() => onAction("ignore")}>
               <X className="mr-1 h-4 w-4" /> Ignorar
             </Button>

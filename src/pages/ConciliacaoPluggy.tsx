@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2, UserPlus, FileJson, FileText } from "lucide-react";
+import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2, UserPlus, FileJson, FileText, Split } from "lucide-react";
+import { DividirLancamentoDialog } from "@/components/conciliacao/DividirLancamentoDialog";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { CATEGORY_INDENT_STEP, categoryGuideLevels } from "@/lib/categories/display";
@@ -618,7 +619,16 @@ export default function ConciliacaoPluggy() {
     return true;
   };
 
-  const handleRowAction = async (id: string, action: "confirm" | "ignore") => {
+  /** Divisão de uma linha do banco em vários lançamentos. */
+  const [splitRowId, setSplitRowId] = useState<string | null>(null);
+  const splitRow = useMemo(() => rows.find((r) => r.id === splitRowId) ?? null, [rows, splitRowId]);
+  const splitAccountId = splitRow
+    ? (rowAccount[splitRow.id] ?? linkedByPluggyAccount[splitRow.pluggy_account_id] ?? null)
+    : null;
+  const openSplit = (id: string) => setSplitRowId(id);
+
+  const handleRowAction = async (id: string, action: "confirm" | "ignore" | "split") => {
+    if (action === "split") { openSplit(id); return; }
     setRowBusy(id);
     try {
       if (action === "confirm") await confirmIds([id]);
@@ -1314,6 +1324,18 @@ export default function ConciliacaoPluggy() {
                           </Button>
                           <Button
                             size="sm"
+                            variant="outline"
+                            className="h-8 px-2"
+                            disabled={rowBusy === r.id}
+                            onClick={() => openSplit(r.id)}
+                            aria-label="Dividir lançamento em vários"
+                            title="Dividir em vários lançamentos"
+                          >
+                            <Split className="h-4 w-4" />
+                          </Button>
+
+                          <Button
+                            size="sm"
                             className="h-8 px-2"
                             disabled={rowBusy === r.id}
                             onClick={() => handleRowAction(r.id, "confirm")}
@@ -1419,6 +1441,17 @@ export default function ConciliacaoPluggy() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <DividirLancamentoDialog
+        open={!!splitRowId}
+        onOpenChange={(o) => { if (!o) setSplitRowId(null); }}
+        row={splitRow ? { id: splitRow.id, date: splitRow.date, description: splitRow.description, amount: splitRow.amount } : null}
+        accountId={splitAccountId}
+        categoryOptions={(splitRow?.amount ?? 0) >= 0 ? categoryOptionsReceita : categoryOptionsDespesa}
+        paymentMethods={paymentMethods}
+        contacts={contacts}
+        onDone={() => { setSplitRowId(null); load(); }}
+      />
 
       <PluggyAuditDialog open={auditOpen} onOpenChange={setAuditOpen} />
     </div>
