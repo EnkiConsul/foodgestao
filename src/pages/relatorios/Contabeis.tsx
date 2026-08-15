@@ -25,7 +25,7 @@ const DEFAULTS: FiltersState = (() => {
     preset: "month",
     from: format(startOfMonth(now), "yyyy-MM-dd"),
     to: format(endOfMonth(now), "yyyy-MM-dd"),
-    regime: "competencia",
+    regime: "caixa",
     include_zero: false,
   };
 })();
@@ -39,7 +39,7 @@ export default function RelatoriosContabeis() {
       preset: (sp.get("preset") as Preset) || DEFAULTS.preset,
       from: sp.get("from") || DEFAULTS.from,
       to: sp.get("to") || DEFAULTS.to,
-      regime: (sp.get("regime") as FiltersState["regime"]) || DEFAULTS.regime,
+      regime: "caixa",
       include_zero: sp.get("include_zero") === "1",
     };
   }, [sp]);
@@ -142,7 +142,7 @@ export default function RelatoriosContabeis() {
                       Nenhum lançamento no período selecionado.
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Ajuste o período/regime ou ative “Incluir contas sem movimento” para ver o
+                      Ajuste o período ou ative “Incluir contas sem movimento” para ver o
                       plano de contas completo.
                     </p>
                   </>

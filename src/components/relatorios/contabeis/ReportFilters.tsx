@@ -71,17 +71,8 @@ export function ReportFilters({ value, onChange }: Props) {
           </div>
         )}
 
-        <div className="space-y-1">
-          <Label className="text-xs">Regime</Label>
-          <ToggleGroup
-            type="single"
-            value={value.regime}
-            onValueChange={(v) => v && onChange({ ...value, regime: v as Regime })}
-          >
-            <ToggleGroupItem value="competencia" size="sm">Competência</ToggleGroupItem>
-            <ToggleGroupItem value="caixa" size="sm">Caixa</ToggleGroupItem>
-          </ToggleGroup>
-        </div>
+
+
 
         <div className="flex items-center gap-2 pb-1.5">
           <Switch
