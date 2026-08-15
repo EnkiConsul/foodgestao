@@ -187,6 +187,8 @@ export function NotificationsBell() {
       <AlertTriangle className="h-4 w-4 text-destructive" />
     ) : t === "upcoming" ? (
       <Clock className="h-4 w-4 text-warning" />
+    ) : t === "accountant" ? (
+      <Calculator className="h-4 w-4 text-emerald-600" />
     ) : (
       <TrendingUp className="h-4 w-4 text-primary" />
     );
