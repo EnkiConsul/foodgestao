@@ -126,6 +126,33 @@ export default function Auth() {
   const isLogin = mode === "login";
   const isSignup = mode === "signup";
   const isForgot = mode === "forgot";
+  const isConfirmEmail = mode === "confirm-email";
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
+
+  const handleResendConfirmation = async () => {
+    if (!pendingConfirmationEmail || resendCooldown > 0) return;
+    setResending(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: pendingConfirmationEmail,
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (error) {
+        toast.error("Não foi possível reenviar", { description: translateAuthError(error.message) });
+      } else {
+        toast.success("E-mail reenviado", { description: "Confira sua caixa de entrada e a pasta de spam." });
+        setResendCooldown(60);
+      }
+    } finally {
+      setResending(false);
+    }
+  };
 
   // Track signup form view (funnel step between CTA click and signup_start)
   const signupViewTracked = useRef(false);
