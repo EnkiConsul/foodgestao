@@ -2722,10 +2722,14 @@ export type Database = {
           company_id: string
           created_at: string
           desconto_percentual: number
+          desconto_tipo: string
+          desconto_valor_fixo: number
           descricao: string | null
+          dias_base: number
           folha_tipo: Database["public"]["Enums"]["dp_folha_tipo"] | null
           id: string
           nome: string
+          periodicidade: string
           tipo: Database["public"]["Enums"]["dp_beneficio_tipo"]
           updated_at: string
           valor_padrao: number
@@ -2735,10 +2739,14 @@ export type Database = {
           company_id: string
           created_at?: string
           desconto_percentual?: number
+          desconto_tipo?: string
+          desconto_valor_fixo?: number
           descricao?: string | null
+          dias_base?: number
           folha_tipo?: Database["public"]["Enums"]["dp_folha_tipo"] | null
           id?: string
           nome: string
+          periodicidade?: string
           tipo?: Database["public"]["Enums"]["dp_beneficio_tipo"]
           updated_at?: string
           valor_padrao?: number
@@ -2748,10 +2756,14 @@ export type Database = {
           company_id?: string
           created_at?: string
           desconto_percentual?: number
+          desconto_tipo?: string
+          desconto_valor_fixo?: number
           descricao?: string | null
+          dias_base?: number
           folha_tipo?: Database["public"]["Enums"]["dp_folha_tipo"] | null
           id?: string
           nome?: string
+          periodicidade?: string
           tipo?: Database["public"]["Enums"]["dp_beneficio_tipo"]
           updated_at?: string
           valor_padrao?: number
@@ -3298,9 +3310,14 @@ export type Database = {
           created_at: string
           data_fim: string | null
           data_inicio: string
+          desconto_percentual: number
+          desconto_tipo: string
           desconto_valor: number
+          dispensa_motivo: string | null
+          dispensado_pelo_colaborador: boolean
           id: string
           observacao: string | null
+          termo_gerado_em: string | null
           updated_at: string
           valor: number
         }
@@ -3312,9 +3329,14 @@ export type Database = {
           created_at?: string
           data_fim?: string | null
           data_inicio?: string
+          desconto_percentual?: number
+          desconto_tipo?: string
           desconto_valor?: number
+          dispensa_motivo?: string | null
+          dispensado_pelo_colaborador?: boolean
           id?: string
           observacao?: string | null
+          termo_gerado_em?: string | null
           updated_at?: string
           valor?: number
         }
@@ -3326,9 +3348,14 @@ export type Database = {
           created_at?: string
           data_fim?: string | null
           data_inicio?: string
+          desconto_percentual?: number
+          desconto_tipo?: string
           desconto_valor?: number
+          dispensa_motivo?: string | null
+          dispensado_pelo_colaborador?: boolean
           id?: string
           observacao?: string | null
+          termo_gerado_em?: string | null
           updated_at?: string
           valor?: number
         }
@@ -3638,6 +3665,7 @@ export type Database = {
           perfil_acesso: Database["public"]["Enums"]["dp_perfil_acesso"]
           possui_folha_ponto: boolean
           premio_assiduidade: boolean
+          premio_assiduidade_tipo: string
           premio_assiduidade_valor: number | null
           regime: Database["public"]["Enums"]["dp_regime_trabalho"]
           salario_base: number | null
@@ -3647,6 +3675,12 @@ export type Database = {
           unidade_id: string | null
           updated_at: string
           user_id: string | null
+          vale_alimentacao: boolean
+          vale_alimentacao_desconto_tipo: string
+          vale_alimentacao_desconto_valor: number
+          vale_alimentacao_dias_base: number
+          vale_alimentacao_periodicidade: string
+          vale_alimentacao_valor: number | null
           vale_transporte: boolean
           vale_transporte_valor_dia: number | null
           valor_hora: number | null
@@ -3700,6 +3734,7 @@ export type Database = {
           perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"]
           possui_folha_ponto?: boolean
           premio_assiduidade?: boolean
+          premio_assiduidade_tipo?: string
           premio_assiduidade_valor?: number | null
           regime?: Database["public"]["Enums"]["dp_regime_trabalho"]
           salario_base?: number | null
@@ -3709,6 +3744,12 @@ export type Database = {
           unidade_id?: string | null
           updated_at?: string
           user_id?: string | null
+          vale_alimentacao?: boolean
+          vale_alimentacao_desconto_tipo?: string
+          vale_alimentacao_desconto_valor?: number
+          vale_alimentacao_dias_base?: number
+          vale_alimentacao_periodicidade?: string
+          vale_alimentacao_valor?: number | null
           vale_transporte?: boolean
           vale_transporte_valor_dia?: number | null
           valor_hora?: number | null
@@ -3762,6 +3803,7 @@ export type Database = {
           perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"]
           possui_folha_ponto?: boolean
           premio_assiduidade?: boolean
+          premio_assiduidade_tipo?: string
           premio_assiduidade_valor?: number | null
           regime?: Database["public"]["Enums"]["dp_regime_trabalho"]
           salario_base?: number | null
@@ -3771,6 +3813,12 @@ export type Database = {
           unidade_id?: string | null
           updated_at?: string
           user_id?: string | null
+          vale_alimentacao?: boolean
+          vale_alimentacao_desconto_tipo?: string
+          vale_alimentacao_desconto_valor?: number
+          vale_alimentacao_dias_base?: number
+          vale_alimentacao_periodicidade?: string
+          vale_alimentacao_valor?: number | null
           vale_transporte?: boolean
           vale_transporte_valor_dia?: number | null
           valor_hora?: number | null
@@ -12035,6 +12083,18 @@ export type Database = {
       dp_reintegrar_colaborador: {
         Args: { p_colaborador_id: string }
         Returns: undefined
+      }
+      dp_sindicato_conflitos: {
+        Args: {
+          _cargo_id: string
+          _sindicato_id?: string
+          _tipo: Database["public"]["Enums"]["dp_sindicato_tipo"]
+          _unidade_id: string
+        }
+        Returns: {
+          sindicato_id: string
+          sindicato_nome: string
+        }[]
       }
       dre_apply_default_mapping: {
         Args: { _company_id: string }
