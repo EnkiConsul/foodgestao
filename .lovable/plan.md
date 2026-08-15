@@ -1,52 +1,20 @@
-# Fase 5 — Sindicatos: piso salarial e reflexo na remuneração
+# Vale-alimentação por dia: calcular os dias pela jornada
 
+Você está certo. Hoje, quando o vale-alimentação é "por dia", o cadastro pede "Dias considerados no mês" e o cálculo usa esse número fixo (padrão 22) — ele não consulta a jornada do colaborador. Como a jornada já diz quais dias da semana ele trabalha, esse campo é redundante na maioria dos casos.
 
-Fases 1 a 4 (Horário de Trabalho, Remuneração, Benefícios e Cargos) estão concluídas. Esta fase fecha o roteiro do DP conectando a convenção coletiva ao cadastro do colaborador.
+## O que muda
 
-## Situação atual verificada
-
-- `dp_sindicatos` guarda nome, tipo, CNPJ, data-base e contatos; `dp_sindicato_cargos` e `dp_sindicato_unidades` fazem os vínculos.
-- `dp_sindicato_negociacoes` já tem `reajuste_pct`, vigência, PDF e um campo `clausulas` (JSON) que hoje não é preenchido nem lido em nenhuma tela.
-- `dp_cargos` já tem `salario_base` e `insalubre_periculoso` (usados desde a Fase 4), mas nada compara o salário do colaborador com o piso da categoria.
-
-## O que será construído
-
-### 1. Cláusulas econômicas na negociação
-Na tela de negociações (CCT/ACT), um bloco **"Cláusulas econômicas"** grava dentro de `clausulas`:
-- Piso salarial geral da categoria (opcional).
-- Pisos por cargo: lista de cargo + valor (opcional; piso geral vale para cargos sem valor específico).
-- Percentuais de adicional noturno, insalubridade e periculosidade, quando a convenção definir acima do mínimo legal (opcional).
-- Valor de referência de vale-alimentação/refeição e desconto máximo permitido (opcional).
-- Observação livre por cláusula (opcional).
-
-**Padrão quando não preenchido:**
-- Piso ausente → adota `dp_cargos.salario_base` (quando existir) como referência, sem gerar aviso de abaixo do piso.
-- Adicionais ausentes → seguem os percentuais mínimos legais, sem alerta de violação de convenção.
-- VA/VR ausente → desconto máximo fica sob as regras gerais do módulo de benefícios.
-- Documentos antigos sem `clausulas` continuam funcionando normalmente.
-
-### 2. Piso vigente por cargo
-Regra pura nova em `src/lib/dp/sindicato-regras.ts`:
-- Escolhe a negociação vigente na data (por unidade quando houver, senão a da empresa).
-- Resolve o piso do cargo: piso específico do cargo > piso geral > salário de referência do cargo.
-- Devolve também os percentuais de adicionais e o teto de desconto de VA da convenção.
-
-### 3. Alerta no cadastro do colaborador
-Na aba **Remuneração**:
-- Aviso quando o salário informado ficar abaixo do piso vigente da categoria, citando a convenção e a vigência.
-- Aviso quando o desconto de vale-alimentação passar do teto da convenção.
-- Aviso quando o adicional informado (noturno/insalubridade/periculosidade) for menor que o percentual da convenção, ou quando o cargo é marcado como insalubre/perigoso e nenhum adicional foi informado.
-- Seguindo o padrão do módulo, os avisos **não bloqueiam** o salvamento: são orientativos, no mesmo estilo do Advisor de Compliance já existente.
-
-### 4. Visão sintética em Sindicatos
-Na tela de sindicatos, cada sindicato passa a mostrar:
-- Convenção vigente (documento, vigência, reajuste) ou aviso de convenção vencida/ausente.
-- Piso vigente e quantos colaboradores estão abaixo dele, com link para a ficha do colaborador.
-- Cargos e unidades vinculados.
+1. O campo deixa de ser um número solto e passa a ter duas opções:
+   - **Pela jornada do colaborador (padrão)** — o sistema conta os dias trabalháveis do mês a partir dos dias da semana marcados no Horário de Trabalho do colaborador (descontando as folgas fixas). O campo mostra o número calculado em modo leitura, com o texto de origem ("22 dias — seg a sáb, folga domingo").
+   - **Quantidade fixa** — só para quem tem acordo/CCT com número fechado de dias (ex.: 22 dias sempre). Aí o número volta a ser editável.
+2. Quando a jornada ainda não foi preenchida, o sistema avisa na própria linha ("cadastre o Horário de Trabalho para calcular os dias") e usa 22 como referência provisória, sem travar o salvamento.
+3. A prévia do valor mensal do VA passa a mostrar a conta explícita: `valor por dia × dias do mês (origem)`.
+4. Na geração/apuração da folha, quando existir ponto apurado no período, os dias considerados são os **dias efetivamente trabalhados** do período, não a média da jornada — o cadastro passa a ser só a regra de referência.
 
 ## Detalhes técnicos
 
-- Arquivos novos: `src/lib/dp/sindicato-regras.ts` (regras puras) e `src/hooks/useDpSindicatoVigente.tsx` (negociação vigente + pisos por cargo).
-- Arquivos alterados: `src/pages/dp/DpSindicatoNegociacoes.tsx` (bloco de cláusulas), `src/pages/dp/DpSindicatos.tsx` (resumo e colaboradores abaixo do piso), `src/components/dp/RemuneracaoFields.tsx` (avisos), `src/components/dp/ColaboradorFormDialog.tsx` (passagem do contexto sindical).
-- Sem migração de banco: `clausulas` é JSON já existente e as consultas continuam escopadas por `company_id` conforme as políticas atuais.
-- Testes unitários para as regras de piso, vigência e tetos em `src/lib/dp/__tests__`.
+- `dp_colaboradores`: novo campo `vale_alimentacao_dias_origem` (`jornada` | `fixo`), default `jornada`. `vale_alimentacao_dias_base` continua existindo e é usado quando a origem é `fixo` (e como fallback).
+- Nova regra pura em `src/lib/dp/beneficios-regras.ts`: `diasTrabalhaveisNoMes(diasSemana, competencia)` — conta as ocorrências no mês de cada `dow` marcado como trabalha; testes unitários em `src/test/unit/dpHorarioBeneficios.test.ts` (mês de 30/31 dias, semana 6x1, 5x2, jornada vazia).
+- `RemuneracaoFields.tsx`: seletor de origem, número em leitura quando `jornada`, prévia com a conta detalhada; recebe os dias da jornada por prop.
+- `ColaboradorFormDialog.tsx`: passa os dias da configuração de trabalho (`useDpColaboradorConfigTrabalho`) para `RemuneracaoFields` e persiste a nova origem.
+- `valeAlimentacaoDoMes` (`src/lib/dp/remuneracao.ts`) ganha parâmetro opcional `diasTrabalhados`, com precedência: dias apurados no ponto > dias da jornada > `dias_base` fixo > 22.
