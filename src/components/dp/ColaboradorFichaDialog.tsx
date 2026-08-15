@@ -95,14 +95,6 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit }: ColaboradorFichaDialogProps) {
   const { atribuicoes } = useDpBeneficios(colaborador?.id ?? "todos");
 
-  if (!colaborador) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl" />
-      </Dialog>
-    );
-  }
-
   const perfil = (colaborador as any)?.perfil_acesso as string | null;
   const isDesligado = !!colaborador?.data_desligamento;
   const folga = (colaborador as any)?.folga_fixa_semana;
