@@ -55,7 +55,7 @@ Hoje a regra "menor não encerra após as 22:00" existe em `validarSemana` (`src
   - **Todos**: mais de 44h na semana; mais de 8h no dia sem acordo de compensação; intervalo menor que 1h em jornada acima de 6h (já existe) e ausência de intervalo acima de 4h; menos de 11h entre a saída de um dia e a entrada do seguinte; 7 dias seguidos sem folga; domingo sem folga no mês.
   - **Aprendiz**: 6h/dia sem prorrogação.
   - **Noturno (22h–5h)**: aviso informativo de que a hora vale 52min30 e há adicional de 20% — para a Folha calcular certo depois.
-- **Onde mais aparece**: o mesmo verificador é reaproveitado na ficha do colaborador (selo "Fora da referência CLT" com o motivo), no cadastro de "Horários da loja" e na geração da escala do mês (aviso na publicação, sem impedir).
+- **Onde mais aparece**: o mesmo verificador é reaproveitado na ficha do colaborador (selo "Fora da Referência CLT" com o motivo), no cadastro de "Horários da Loja" e na geração da escala do mês (aviso na publicação, sem impedir).
 - A chave `exige_validacao_menor` já existente em `dp_config_dp` passa a significar "avisar sobre menores" — o texto do card em Configurações é corrigido, pois hoje promete bloqueio que não existe.
 
 
