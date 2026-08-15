@@ -678,7 +678,11 @@ export function ColaboradorJornadaPanel({
 
       <div className="space-y-1.5">
         <Label htmlFor="ct-obs">Observações</Label>
-        <Textarea id="ct-obs" rows={2} value={obs} onChange={(e) => setObs(e.target.value)} />
+        <Textarea
+          id="ct-obs" rows={2} value={obs}
+          onChange={(e) => { marcarAlterado(); setObs(e.target.value); }}
+        />
+
       </div>
 
       {showSaveButton && (
